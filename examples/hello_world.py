@@ -1,19 +1,22 @@
+from datetime import datetime, timedelta
+
 from engine import Simulation
 from modules.ihd import IHDModule
 
 def main():
     simulation = Simulation()
 
-    ihd_module = IHDModule()
-    ihd_module.setup()
-    simulation.register_module(ihd_module)
+    module = IHDModule()
+    module.setup()
+    simulation.register_module(module)
 
     simulation.load_population('/home/j/Project/Cost_Effectiveness/dev/data_processed/population_columns')
     simulation.load_data('/home/j/Project/Cost_Effectiveness/dev/data_processed')
 
-    simulation.run(1990, 2013)
+    simulation.run(datetime(1990, 1, 1), datetime(2013, 12, 31), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
 
     print('YLDs: %s'%sum(simulation.yld_by_year.values()))
+
 
 if __name__ == '__main__':
     main()

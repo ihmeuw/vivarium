@@ -1,31 +1,20 @@
-import math
 import os.path
-from random import random
 from collections import defaultdict
-from copy import copy
 
 import pandas as pd
 import numpy as np
 
-from util import sort_modules
-
-def only_living(fun):
-    def inner(label, mask, simulation):
-            return fun(label, mask & (simulation.population.alive == True), simulation)
-    return inner
+from ceam.util import sort_modules, from_yearly_rate, only_living, mask_for_rate
 
 # Generic event handlers
-
 
 def chronic_condition_incidence_handler(condition):
     @only_living
     def handler(label, mask, simulation):
         mask = mask & (simulation.population[condition] == False)
         incidence_rates = simulation.incidence_rates(simulation.population, condition)
-        incidence_rates = 1-np.exp(-incidence_rates)
-        population = simulation.population.join(pd.DataFrame(np.random.random(size=len(simulation.population)), columns=['draw']))
-        population = population.join(incidence_rates)
-        simulation.population.loc[(population.draw < population.incidence_rate) & mask, condition] = True
+        mask = mask & mask_for_rate(simulation.population, incidence_rates.incidence_rate)
+        simulation.population.loc[mask, condition] = True
     return handler
 
 
@@ -61,7 +50,7 @@ class EventHandler(object):
 class Simulation(object):
     def __init__(self):
         self.reference_data = {}
-        self.modules = {}
+        self._modules = {}
         self._ordered_modules = []
         self.current_time = None
         self.yll_by_year = defaultdict(float)
@@ -77,8 +66,14 @@ class Simulation(object):
             module.load_data(path_prefix)
 
     def load_population(self, path_prefix):
-        for module in self._ordered_modules:
-            module.load_population_columns(path_prefix)
+        #TODO: This will always be BaseSimulationModule which loads the core population definition and thus can discover what the population size is
+        module = self._ordered_modules[0]
+        module.load_population_columns(path_prefix, 0)
+        population_size = len(module.population_columns)
+
+        for module in self._ordered_modules[1:]:
+            module.load_population_columns(path_prefix, population_size)
+            assert module.population_columns.empty or len(module.population_columns) == population_size, 'Culpret: %s'%module
         self.reset_population()
 
     def reset_population(self):
@@ -89,13 +84,22 @@ class Simulation(object):
 
     def register_module(self, module):
         module.register(self)
-        self.modules[module.__class__] = module
-        self._ordered_modules = sort_modules(self.modules)
+        self._modules[module.__class__] = module
+
+        # TODO: This little dance is awkward but it makes it so I can privilege BaseSimulationModule without having to import it in utils
+        to_sort = set(self._modules.values())
+        to_sort.remove(self._modules[BaseSimulationModule])
+        self._ordered_modules = sort_modules(to_sort, self._modules)
+        self._ordered_modules.insert(0, self._modules[BaseSimulationModule])
 
     def deregister_module(self, module):
         module.deregister(self)
-        del self.modules[module.__class__]
-        self._ordered_modules = sort_modules(self.modules)
+        del self._modules[module.__class__]
+
+        to_sort = set(self._modules.values())
+        to_sort.remove(self._modules[BaseSimulationModule])
+        self._ordered_modules = sort_modules(to_sort, self._modules)
+        self._ordered_modules.insert(0, self._modules[BaseSimulationModule])
 
     def emit_event(self, label, mask):
         for module in self._ordered_modules:
@@ -105,13 +109,13 @@ class Simulation(object):
         rates = pd.DataFrame(0, index=np.arange(len(population)), columns=['mortality_rate'])
         for module in self._ordered_modules:
             rates = module.mortality_rates(population, rates)
-        return rates
+        return from_yearly_rate(rates, self.last_time_step)
 
     def incidence_rates(self, population, label):
         rates = pd.DataFrame(0, index=np.arange(len(population)), columns=['incidence_rate'])
         for module in self._ordered_modules:
             rates = module.incidence_rates(population, rates, label)
-        return rates
+        return from_yearly_rate(rates, self.last_time_step)
 
     def years_lived_with_disability(self):
         ylds = 0
@@ -120,12 +124,15 @@ class Simulation(object):
         return ylds
 
     
-    def run(self, start_time, end_time):
-        for current_time in range(int(start_time), int(end_time)+1):
-            self.current_time = current_time
-            self.population.year = current_time
+    def run(self, start_time, end_time, time_step):
+        self.current_time = start_time
+        self.last_time_step = time_step
+        while self.current_time <= end_time:
+            self.population.year = self.current_time.year
             self.emit_event('time_step', np.array([True]*len(self.population)))
-            self.yld_by_year[current_time] = self.years_lived_with_disability()
+            self.yld_by_year[self.current_time.year] = self.years_lived_with_disability()
+            self.current_time += time_step
+
 
     def reset(self):
         for module in self._ordered_modules:
@@ -142,7 +149,6 @@ class SimulationModule(EventHandler):
     DEPENDENCIES = set()
     def __init__(self):
         EventHandler.__init__(self)
-        self._mortality_causes_tracked = set()
         self.population_columns = pd.DataFrame()
         self._presereved_population_columns = None
 
@@ -152,16 +158,13 @@ class SimulationModule(EventHandler):
     def reset(self):
         pass
 
-    def track_mortality(self, label):
-        self._mortality_causes_tracked.add(label)
-
     def register(self, simulation):
         pass
 
     def deregister(self, simulation):
         pass
 
-    def load_population_columns(self, path_prefix):
+    def load_population_columns(self, path_prefix, population_size):
         pass
 
     def load_data(self, path_prefix):
@@ -179,12 +182,12 @@ class SimulationModule(EventHandler):
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
         super(BaseSimulationModule, self).__init__()
-        self.track_mortality('all_cause')
         self.register_event_listener(self.advance_age, 'time_step', priority=0)
         self.register_event_listener(self.mortality_handler, 'time_step', priority=1)
 
-    def load_population_columns(self, path_prefix):
+    def load_population_columns(self, path_prefix, population_size):
         self.population_columns = self.population_columns.join(pd.read_csv(os.path.join(path_prefix, 'age.csv')), how='outer')
+        self.population_columns = self.population_columns.assign(fractional_age=self.population_columns.age.astype(float))
         self.population_columns = self.population_columns.join(pd.read_csv(os.path.join(path_prefix, 'sex.csv')))
         self.population_columns = self.population_columns.join(pd.DataFrame({'alive': [True]*len(self.population_columns.age)}))
 
@@ -194,17 +197,17 @@ class BaseSimulationModule(SimulationModule):
         self.life_table = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data/gbd/interpolated_reference_life_table.csv')
 
     def advance_age(self, label, mask, simulation):
-        simulation.population.loc[mask, 'age'] += 1
+        simulation.population.loc[mask, 'fractional_age'] += simulation.last_time_step.days/365.0
+        simulation.population.age = simulation.population.fractional_age.astype(int)
 
     def mortality_rates(self, population, rates):
         rates.mortality_rate += population.merge(self.all_cause_mortality_rates, on=['age', 'sex', 'year']).mortality_rate
         return rates
 
+    @only_living
     def mortality_handler(self, label, mask, simulation):
         mortality_rate = simulation.mortality_rates(simulation.population)
-        mortality_prob = 1-np.exp(-mortality_rate)
-        population = simulation.population.join(pd.DataFrame(np.random.random(size=len(simulation.population)), columns=['draw']))
-        population = population.join(mortality_prob)
-        mask &= population.draw < population.mortality_rate
-        simulation.yll_by_year[simulation.current_time] += population.merge(self.life_table, on=['age']).ex.sum()
+        mask &= mask_for_rate(simulation.population, mortality_rate.mortality_rate)
+        simulation.yll_by_year[simulation.current_time.year] += simulation.population.merge(self.life_table, on=['age'])[mask].ex.sum()
         simulation.population.loc[mask, 'alive'] = False
+        simulation.emit_event('deaths', mask)

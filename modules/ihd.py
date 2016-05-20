@@ -1,14 +1,13 @@
 import os.path
 import pandas as pd
 
-from engine import SimulationModule, chronic_condition_incidence_handler
+from ceam.engine import SimulationModule, chronic_condition_incidence_handler
 
 class IHDModule(SimulationModule):
     def setup(self):
         self.register_event_listener(chronic_condition_incidence_handler('ihd'), 'time_step')
-        self.track_mortality('ihd')
 
-    def load_population_columns(self, path_prefix):
+    def load_population_columns(self, path_prefix, population_size):
         self.population_columns = pd.read_csv(os.path.join(path_prefix, 'ihd.csv'))
 
     def load_data(self, path_prefix):
