@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from framework import SimulationModule
+from engine import SimulationModule
 from util import sort_modules
 
 class AModule(SimulationModule):
