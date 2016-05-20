@@ -18,7 +18,7 @@ class IHDModule(SimulationModule):
         self.ihd_incidence_rates.columns = [col.lower() for col in self.ihd_incidence_rates]
 
     def years_lived_with_disability(self, population):
-        return len(population[population.ihd == True])*0.08
+        return sum(population.ihd == True)*0.08
 
     def mortality_rates(self, population, rates):
         rates.mortality_rate += population.merge(self.ihd_mortality_rates, on=['age', 'sex', 'year']).mortality_rate
