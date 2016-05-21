@@ -8,7 +8,7 @@ def main():
 
     module = IHDModule()
     module.setup()
-    simulation.register_module(module)
+    simulation.register_modules([module])
 
     simulation.load_population('/home/j/Project/Cost_Effectiveness/dev/data_processed/population_columns')
     simulation.load_data('/home/j/Project/Cost_Effectiveness/dev/data_processed')

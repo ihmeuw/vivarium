@@ -28,7 +28,7 @@ class HealthcareAccessModule(SimulationModule):
     def general_access(self, label, mask, simulation):
         mask &= mask_for_rate(simulation.population, from_yearly_rate(simulation.population.merge(self.general_access_rates, on=['age', 'sex', 'year']).rate, simulation.last_time_step))
         simulation.population.loc[mask, 'healthcare_last_visit_date'] = simulation.current_time
-        simulation.emit_event('healthcare_access', mask)
+        simulation.emit_event('general_healthcare_access', mask)
 
     @only_living
     def followup_access(self, label, mask, simulation):
@@ -36,4 +36,4 @@ class HealthcareAccessModule(SimulationModule):
         # TODO: probability of missing followup
         # TODO: track costs
         simulation.population.loc[mask, 'healthcare_last_visit_date'] = simulation.current_time
-        simulation.emit_event('healthcare_access', mask)
+        simulation.emit_event('followup_healthcare_access', mask)

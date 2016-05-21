@@ -3,6 +3,8 @@ import pandas as pd
 
 def sort_modules(to_sort, modules_registry):
     def inner_sort(sorted_modules, current):
+        if current in sorted_modules:
+            return sorted_modules
         if not current.DEPENDENCIES:
             return [current] + sorted_modules
         else:
@@ -11,7 +13,7 @@ def sort_modules(to_sort, modules_registry):
                 try:
                     i = max(i, sorted_modules.index(modules_registry[dependency]))
                 except ValueError:
-                    sorted_modules = inner_sort(sorted_modules, modules, modules_registry[dependency])
+                    sorted_modules = inner_sort(sorted_modules, modules_registry[dependency])
                     i = max(i, sorted_modules.index(modules_registry[dependency]))
             return sorted_modules[0:i+1] + [current] + sorted_modules[i+1:]
 

@@ -58,7 +58,7 @@ class Simulation(object):
         self.deaths_by_year_and_cause = defaultdict(lambda: defaultdict(int))
         self.yll_by_year_and_cause = defaultdict(lambda: defaultdict(float))
         self.new_cases_per_year = defaultdict(lambda: defaultdict(int))
-        self.register_module(BaseSimulationModule())
+        self.register_modules([BaseSimulationModule()])
         self.population = pd.DataFrame
 
     def load_data(self, path_prefix):
@@ -82,11 +82,13 @@ class Simulation(object):
             population = population.join(module.population_columns, how='outer')
         self.population = population.join(pd.DataFrame(0, index=np.arange(len(population)), columns=['year']))
 
-    def register_module(self, module):
-        module.register(self)
-        self._modules[module.__class__] = module
+    def register_modules(self, modules):
+        for module in modules:
+            module.register(self)
+            self._modules[module.__class__] = module
 
         # TODO: This little dance is awkward but it makes it so I can privilege BaseSimulationModule without having to import it in utils
+        # It shoul also probably be happening at a lifecycle phase between here and the loading of data, but that doesn't exist yet
         to_sort = set(self._modules.values())
         to_sort.remove(self._modules[BaseSimulationModule])
         self._ordered_modules = sort_modules(to_sort, self._modules)

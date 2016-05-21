@@ -14,9 +14,10 @@ class DModule(SimulationModule):
     DEPENDENCIES = (CModule, BModule)
 
 class TestSortModules(TestCase):
+    # TODO: this test is not complete. There are situations in practice where the sort is wrong but this passes.
     def test_basic_function(self):
         modules = {DModule: DModule(), CModule: CModule(), BModule:BModule(), AModule:AModule()}
-        sorted_modules = sort_modules(modules)
+        sorted_modules = sort_modules(modules.values(), modules)
         self.assertListEqual(sorted_modules, [modules[AModule], modules[BModule], modules[CModule], modules[DModule]])
 
 class TestRateConversions(TestCase):
