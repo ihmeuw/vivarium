@@ -21,9 +21,8 @@ class IHDModule(SimulationModule):
         self.ihd_incidence_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/IHD incidence rates.csv') 
         self.ihd_incidence_rates.columns = [col.lower() for col in self.ihd_incidence_rates]
 
-    def disability_weight(self, population):
-        #TODO: this can probably be further generalized
-        return np.array([0.08 if has_condition else 0.0 for has_condition in population[population.ihd == True]])
+    def years_lived_with_disability(self, population):
+        return sum(population.ihd == True)*0.08
 
     def mortality_rates(self, population, rates):
         rates.mortality_rate += population.merge(self.ihd_mortality_rates, on=['age', 'sex', 'year']).mortality_rate
