@@ -119,11 +119,12 @@ class Simulation(object):
             rates = module.incidence_rates(population, rates, label)
         return from_yearly_rate(rates, self.last_time_step)
 
-    def years_lived_with_disability(self):
-        ylds = 0
+    def disability_weight(self):
+        weights = 1
         for module in self._ordered_modules:
-            ylds += module.years_lived_with_disability(self.population[self.population.alive == True])
-        return ylds
+            weights *= 1 - module.disability_weight(self.population.loc[self.population.alive == True])
+        total_weight = 1 - weights
+        return total_weight
 
     
     def run(self, start_time, end_time, time_step):
@@ -132,7 +133,6 @@ class Simulation(object):
         while self.current_time <= end_time:
             self.population.year = self.current_time.year
             self.emit_event('time_step', np.array([True]*len(self.population)))
-            self.yld_by_year[self.current_time.year] = self.years_lived_with_disability()
             self.current_time += time_step
 
 
@@ -141,11 +141,6 @@ class Simulation(object):
             module.reset()
         self.reset_population()
         self.current_time = None
-        self.yll_by_year = defaultdict(float)
-        self.yld_by_year = defaultdict(float)
-        self.deaths_by_year_and_cause = defaultdict(lambda: defaultdict(float))
-        self.yll_by_year_and_cause = defaultdict(lambda: defaultdict(float))
-        self.new_cases_per_year = defaultdict(lambda: defaultdict(int))
 
 class SimulationModule(EventHandler):
     DEPENDENCIES = set()
@@ -172,7 +167,7 @@ class SimulationModule(EventHandler):
     def load_data(self, path_prefix):
         pass
 
-    def years_lived_with_disability(self, population):
+    def disability_weight(self, population):
         return 0.0
 
     def mortality_rates(self, population, rates):
@@ -196,7 +191,6 @@ class BaseSimulationModule(SimulationModule):
     def load_data(self, path_prefix):
         self.all_cause_mortality_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/Mortality_Rates.csv')
         self.all_cause_mortality_rates.columns = [col.lower() for col in self.all_cause_mortality_rates]
-        self.life_table = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data/gbd/interpolated_reference_life_table.csv')
 
     def advance_age(self, label, mask, simulation):
         simulation.population.loc[mask, 'fractional_age'] += simulation.last_time_step.days/365.0
@@ -210,6 +204,5 @@ class BaseSimulationModule(SimulationModule):
     def mortality_handler(self, label, mask, simulation):
         mortality_rate = simulation.mortality_rates(simulation.population)
         mask &= mask_for_rate(simulation.population, mortality_rate.mortality_rate)
-        simulation.yll_by_year[simulation.current_time.year] += simulation.population.merge(self.life_table, on=['age'])[mask].ex.sum()
         simulation.population.loc[mask, 'alive'] = False
         simulation.emit_event('deaths', mask)

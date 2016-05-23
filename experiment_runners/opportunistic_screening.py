@@ -7,9 +7,12 @@ import pandas as pd
 from ceam.engine import Simulation, SimulationModule
 from ceam.util import only_living
 from ceam.modules.ihd import IHDModule
+from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
 from ceam.modules.healthcare_access import HealthcareAccessModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.metrics import MetricsModule
+
+pd.set_option('mode.chained_assignment', 'raise')
 
 def _hypertensive_categories(mask, population):
         under_60 = mask & (population.age < 60)
@@ -97,14 +100,14 @@ class OpportunisticScreeningModule(SimulationModule):
     @only_living
     def adjust_blood_pressure(self, label, mask, simulation):
         # TODO: Real drug effects + adherance rates
-        simulation.population.loc[mask & (simulation.population.taking_blood_pressure_medication_a == True)].systolic_blood_pressure -= 0.01
-        simulation.population.loc[mask & (simulation.population.taking_blood_pressure_medication_b == True)].systolic_blood_pressure -= 0.01
+        simulation.population.loc[mask & (simulation.population.taking_blood_pressure_medication_a == True), 'systolic_blood_pressure'] -= 0.01
+        simulation.population.loc[mask & (simulation.population.taking_blood_pressure_medication_b == True), 'systolic_blood_pressure'] -= 0.01
 
 
 def main():
     simulation = Simulation()
 
-    modules = [IHDModule(), HealthcareAccessModule(), BloodPressureModule()]
+    modules = [IHDModule(), HemorrhagicStrokeModule(), HealthcareAccessModule(), BloodPressureModule()]
     metrics_module = MetricsModule()
     modules.append(metrics_module)
     screening_module = OpportunisticScreeningModule()
@@ -119,7 +122,6 @@ def main():
     for i in range(10):
         start = time()
         simulation.run(datetime(1990, 1, 1), datetime(2013, 12, 31), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
-        print('YLDs: %s'%sum(simulation.yld_by_year.values()))
         print('Cost: %s'%sum(screening_module.cost_by_year.values()))
         print(metrics_module.metrics)
         print('Duration: %s'%(time()-start))
