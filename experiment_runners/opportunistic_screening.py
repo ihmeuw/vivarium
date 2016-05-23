@@ -46,7 +46,7 @@ class OpportunisticScreeningModule(SimulationModule):
             })
 
     def non_followup_blood_pressure_test(self, label, mask, simulation):
-        self.cost_by_year[simulation.current_time.year] += sum(mask) * 3.0
+        self.cost_by_year[simulation.current_time.year] += mask.sum() * 3.0
 
         #TODO: testing error
 
@@ -64,7 +64,7 @@ class OpportunisticScreeningModule(SimulationModule):
         simulation.population.loc[severe_hypertension, 'taking_blood_pressure_medication_b'] = True
 
     def followup_blood_pressure_test(self, label, mask, simulation):
-        self.cost_by_year[simulation.current_time.year] += sum(mask) * 3.0
+        self.cost_by_year[simulation.current_time.year] += mask.sum() * 3.0
 
         normotensive, hypertensive, severe_hypertension = _hypertensive_categories(mask, simulation.population)
 
@@ -96,7 +96,7 @@ class OpportunisticScreeningModule(SimulationModule):
         for medication in ['medication_a', 'medication_b']:
             medication_cost = simulation.config.getfloat('opportunistic_screening', medication + '_cost')
             medication_cost *= simulation.config.getfloat('opportunistic_screening', 'adherence')
-            self.cost_by_year[simulation.current_time.year] += sum(mask & (simulation.population['taking_blood_pressure_'+medication] == True)) * 1*simulation.last_time_step.days 
+            self.cost_by_year[simulation.current_time.year] += (mask & (simulation.population['taking_blood_pressure_'+medication] == True)).sum() * 1*simulation.last_time_step.days 
 
     @only_living
     def adjust_blood_pressure(self, label, mask, simulation):

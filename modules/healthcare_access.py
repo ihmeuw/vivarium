@@ -41,7 +41,7 @@ class HealthcareAccessModule(SimulationModule):
         mask &= mask_for_probability(simulation.population, simulation.config.getfloat('appointments', 'adherence'))
 
         # TODO: Cost will probably need to be much more complex
-        self.cost_by_year[simulation.current_time.year] += sum(mask) * simulation.config.getfloat('appointments', 'cost')
+        self.cost_by_year[simulation.current_time.year] += mask.sum() * simulation.config.getfloat('appointments', 'cost')
 
         simulation.population.loc[mask, 'healthcare_last_visit_date'] = simulation.current_time
 
