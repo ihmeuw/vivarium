@@ -1,3 +1,5 @@
+# ~/ceam/engine.py
+
 import os.path
 from collections import defaultdict
 import ConfigParser
@@ -7,7 +9,6 @@ import numpy as np
 
 from ceam.util import sort_modules, from_yearly_rate, only_living, mask_for_rate
 
-# Generic event handlers
 
 def chronic_condition_incidence_handler(condition):
     @only_living
@@ -47,6 +48,7 @@ class EventHandler(object):
         listeners = [listener for _,listener in sorted(listeners, key=lambda x:x[0])]
         for listener in listeners:
             listener(label, mask.copy(), simulation)
+
 
 class Simulation(object):
     def __init__(self):
@@ -135,7 +137,6 @@ class Simulation(object):
         total_weight = 1 - weights
         return total_weight
 
-    
     def run(self, start_time, end_time, time_step):
         self.current_time = start_time
         self.last_time_step = time_step
@@ -144,12 +145,12 @@ class Simulation(object):
             self.emit_event('time_step', np.array([True]*len(self.population)))
             self.current_time += time_step
 
-
     def reset(self):
         for module in self._ordered_modules:
             module.reset()
         self.reset_population()
         self.current_time = None
+
 
 class SimulationModule(EventHandler):
     DEPENDENCIES = set()
@@ -185,6 +186,7 @@ class SimulationModule(EventHandler):
     def incidence_rates(self, population, rates, label):
         return rates
 
+
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
         super(BaseSimulationModule, self).__init__()
@@ -215,3 +217,6 @@ class BaseSimulationModule(SimulationModule):
         mask &= mask_for_rate(simulation.population, mortality_rate.mortality_rate)
         simulation.population.loc[mask, 'alive'] = False
         simulation.emit_event('deaths', mask)
+
+
+# End.

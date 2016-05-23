@@ -1,5 +1,8 @@
+# ~/ceam/util.py
+
 import numpy as np
 import pandas as pd
+
 
 def sort_modules(to_sort, modules_registry):
     def inner_sort(sorted_modules, current):
@@ -40,6 +43,7 @@ def mask_for_probability(population, probability):
     population = population.join(pd.DataFrame(np.random.random(size=len(population)), columns=['draw']))
     return population.draw < probability
 
+
 # _MethodDecoratorAdaptor and auto_adapt_to_methods from http://stackoverflow.com/questions/1288498/using-the-same-decorator-with-arguments-with-functions-and-methods
 class _MethodDecoratorAdaptor(object):
     def __init__(self, decorator, func):
@@ -49,6 +53,7 @@ class _MethodDecoratorAdaptor(object):
         return self.decorator(self.func)(*args, **kwargs)
     def __get__(self, instance, owner):
         return self.decorator(self.func.__get__(instance, owner))
+
 
 def auto_adapt_to_methods(decorator):
     """Allows you to use the same decorator on methods and functions,
@@ -62,3 +67,6 @@ def only_living(fun):
     def inner(label, mask, simulation):
             return fun(label, mask & (simulation.population.alive == True), simulation)
     return inner
+
+
+# End.
