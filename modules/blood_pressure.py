@@ -1,5 +1,3 @@
-from random import triangular
-
 import pandas as pd
 import numpy as np
 
