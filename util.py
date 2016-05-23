@@ -34,9 +34,11 @@ def rate_to_probability(rate):
     return 1-np.exp(-rate)
 
 def mask_for_rate(population, rate):
+    return mask_for_probability(population, rate_to_probability(rate))
+
+def mask_for_probability(population, probability):
     population = population.join(pd.DataFrame(np.random.random(size=len(population)), columns=['draw']))
-    population['probability'] = rate_to_probability(rate)
-    return population.draw < population.probability
+    return population.draw < probability
 
 # _MethodDecoratorAdaptor and auto_adapt_to_methods from http://stackoverflow.com/questions/1288498/using-the-same-decorator-with-arguments-with-functions-and-methods
 class _MethodDecoratorAdaptor(object):

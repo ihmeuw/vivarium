@@ -1,5 +1,6 @@
 import os.path
 from collections import defaultdict
+import ConfigParser
 
 import pandas as pd
 import numpy as np
@@ -60,12 +61,20 @@ class Simulation(object):
         self.new_cases_per_year = defaultdict(lambda: defaultdict(int))
         self.register_modules([BaseSimulationModule()])
         self.population = pd.DataFrame
+        self.config = ConfigParser.SafeConfigParser()
+        self.config.read(['./config.cfg', './local.cfg']) # TODO: something more formal? Also, handle config file location better this will break in somebody's environment
 
-    def load_data(self, path_prefix):
+    def load_data(self, path_prefix=None):
+        if path_prefix is None:
+            path_prefix = self.config.get('general', 'reference_data_directory')
+
         for module in self._ordered_modules:
             module.load_data(path_prefix)
 
-    def load_population(self, path_prefix):
+    def load_population(self, path_prefix=None):
+        if path_prefix is None:
+            path_prefix = self.config.get('general', 'population_data_directory')
+
         #TODO: This will always be BaseSimulationModule which loads the core population definition and thus can discover what the population size is
         module = self._ordered_modules[0]
         module.load_population_columns(path_prefix, 0)

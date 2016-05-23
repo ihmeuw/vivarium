@@ -93,15 +93,19 @@ class OpportunisticScreeningModule(SimulationModule):
     @only_living
     def track_monthly_cost(self, label, mask, simulation):
         #TODO: realistic costs
-        #TODO: Also, costs should be configured in some way other than magic constants in the code
-        self.cost_by_year[simulation.current_time.year] += sum(mask & (simulation.population.taking_blood_pressure_medication_a == True)) * 1*simulation.last_time_step.days 
-        self.cost_by_year[simulation.current_time.year] += sum(mask & (simulation.population.taking_blood_pressure_medication_b == True)) * 3*simulation.last_time_step.days 
+        for medication in ['medication_a', 'medication_b']:
+            medication_cost = simulation.config.getfloat('opportunistic_screening', medication + '_cost')
+            medication_cost *= simulation.config.getfloat('opportunistic_screening', 'adherence')
+            self.cost_by_year[simulation.current_time.year] += sum(mask & (simulation.population['taking_blood_pressure_'+medication] == True)) * 1*simulation.last_time_step.days 
 
     @only_living
     def adjust_blood_pressure(self, label, mask, simulation):
         # TODO: Real drug effects + adherance rates
-        simulation.population.loc[mask & (simulation.population.taking_blood_pressure_medication_a == True), 'systolic_blood_pressure'] -= 0.01
-        simulation.population.loc[mask & (simulation.population.taking_blood_pressure_medication_b == True), 'systolic_blood_pressure'] -= 0.01
+        for medication in ['medication_a', 'medication_b']:
+            medication_effect = simulation.config.getfloat('opportunistic_screening', medication + '_effectiveness')
+            medication_effect *= simulation.config.getfloat('opportunistic_screening', 'adherence')
+            medication_effect *= simulation.population.systolic_blood_pressure
+            simulation.population.loc[mask & (simulation.population['taking_blood_pressure_'+medication] == True), 'systolic_blood_pressure'] -= medication_effect
 
 
 def main():
@@ -116,8 +120,8 @@ def main():
         module.setup()
     simulation.register_modules(modules)
 
-    simulation.load_population('/home/j/Project/Cost_Effectiveness/dev/data_processed/population_columns')
-    simulation.load_data('/home/j/Project/Cost_Effectiveness/dev/data_processed')
+    simulation.load_population()
+    simulation.load_data()
     
     for i in range(10):
         start = time()
