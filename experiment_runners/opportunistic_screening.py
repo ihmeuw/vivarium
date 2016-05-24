@@ -25,10 +25,10 @@ def _hypertensive_categories(mask, population):
         normotensive = under_60 & (under_140)
         normotensive |= over_60 & (under_150)
 
-        hypertensive = under_60 & (np.invert(under_140)) & (under_180)
-        hypertensive |= over_60 & (np.invert(under_150)) & (under_180)
+        hypertensive = under_60 & (~under_140) & (under_180)
+        hypertensive |= over_60 & (~under_150) & (under_180)
 
-        severe_hypertension = mask & (np.invert(under_180))
+        severe_hypertension = mask & (~under_180)
 
         return (normotensive, hypertensive, severe_hypertension)
 
