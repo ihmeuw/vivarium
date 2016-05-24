@@ -100,7 +100,7 @@ class OpportunisticScreeningModule(SimulationModule):
         for medication in ['medication_a', 'medication_b']:
             medication_cost = simulation.config.getfloat('opportunistic_screening', medication + '_cost')
             medication_cost *= simulation.config.getfloat('opportunistic_screening', 'adherence')
-            self.cost_by_year[simulation.current_time.year] += (mask & (simulation.population['taking_blood_pressure_'+medication] == True)).sum() * 1*simulation.last_time_step.days 
+            self.cost_by_year[simulation.current_time.year] += (mask & (simulation.population['taking_blood_pressure_'+medication] == True)).sum() * medication_cost*simulation.last_time_step.days 
 
     @only_living
     def adjust_blood_pressure(self, label, mask, simulation):
@@ -108,10 +108,60 @@ class OpportunisticScreeningModule(SimulationModule):
         for medication in ['medication_a', 'medication_b']:
             medication_effect = simulation.config.getfloat('opportunistic_screening', medication + '_effectiveness')
             medication_effect *= simulation.config.getfloat('opportunistic_screening', 'adherence')
-            medication_effect *= simulation.population.systolic_blood_pressure
             simulation.population.loc[mask & (simulation.population['taking_blood_pressure_'+medication] == True), 'systolic_blood_pressure'] -= medication_effect
 
+def confidence(seq):
+    mean = np.mean(seq)
+    std = np.std(seq)
+    runs = len(seq)
+    interval = (1.96*std)/np.sqrt(runs)
+    return mean, int(mean-interval), int(mean+interval)
 
+def difference_with_confidence(a, b):
+    mean_diff = np.mean(a) - np.mean(b)
+    interval = 1.96*np.sqrt(np.std(a)/len(a)+np.std(b)/len(b))
+    return mean_diff, int(mean_diff-interval), int(mean_diff+interval)
+
+def run_comparisons(simulation, test_modules, runs=10):
+    test_a_metrics = []
+    test_b_metrics = []
+    for run in range(runs):
+        for do_test in [True, False]:
+            if do_test:
+                simulation.register_modules(test_modules)
+            else:
+                simulation.deregister_modules(test_modules)
+
+            start = time()
+            simulation.run(datetime(1990, 1, 1), datetime(2013, 12, 31), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
+            metrics = dict(simulation._modules[MetricsModule].metrics)
+            metrics['ihd_count'] = sum(simulation.population.ihd == True)
+            metrics['hemorrhagic_stroke_count'] = sum(simulation.population.hemorrhagic_stroke == True)
+            metrics['sbp'] = np.mean(simulation.population.systolic_blood_pressure)
+            if do_test:
+                metrics['cost'] = sum(test_modules[0].cost_by_year.values())
+                test_a_metrics.append(metrics)
+            else:
+                metrics['cost'] = 0.0
+                test_b_metrics.append(metrics)
+            print(metrics)
+            print('Duration: %s'%(time()-start))
+            simulation.reset()
+    def sequences(metrics):
+        dalys = [m['ylls'] + m['ylds'] for m in metrics]
+        cost = [m['cost'] for m in metrics]
+        ihd_counts = [m['ihd_count'] for m in metrics]
+        hemorrhagic_stroke_counts = [m['hemorrhagic_stroke_count'] for m in metrics]
+        return dalys, cost, ihd_counts, hemorrhagic_stroke_counts
+
+    a_dalys, a_cost, a_ihd_counts, a_hemorrhagic_stroke_counts = sequences(test_a_metrics)
+    b_dalys, b_cost, b_ihd_counts, b_hemorrhagic_stroke_counts = sequences(test_b_metrics)
+    per_daly = [(b-a)/cost for a,b,cost in zip(a_dalys, b_dalys, a_cost)]
+    print("DALYs averted:", difference_with_confidence(b_dalys, a_dalys))
+    print("Total cost:", confidence(a_cost))
+    print("Cost per DALY:", confidence(per_daly))
+
+        
 def main():
     simulation = Simulation()
 
@@ -127,13 +177,8 @@ def main():
     simulation.load_population()
     simulation.load_data()
     
-    for i in range(10):
-        start = time()
-        simulation.run(datetime(1990, 1, 1), datetime(2013, 12, 31), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
-        print('Cost: %s'%sum(screening_module.cost_by_year.values()))
-        print(metrics_module.metrics)
-        print('Duration: %s'%(time()-start))
-        simulation.reset()
+    run_comparisons(simulation, [screening_module], runs=10)
+
 
 
 if __name__ == '__main__':
