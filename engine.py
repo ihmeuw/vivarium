@@ -2,7 +2,11 @@
 
 import os.path
 from collections import defaultdict
-import ConfigParser
+try:
+    from configparser import ConfigParser
+except ImportError:
+    #Python2
+    from ConfigParser import SafeConfigParser as ConfigParser
 
 import pandas as pd
 import numpy as np
@@ -63,7 +67,7 @@ class Simulation(object):
         self.new_cases_per_year = defaultdict(lambda: defaultdict(int))
         self.register_modules([BaseSimulationModule()])
         self.population = pd.DataFrame
-        self.config = ConfigParser.SafeConfigParser()
+        self.config = ConfigParser()
         self.config.read(['./config.cfg', './local.cfg']) # TODO: something more formal? Also, handle config file location better this will break in somebody's environment
 
     def load_data(self, path_prefix=None):
