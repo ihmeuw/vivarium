@@ -29,7 +29,7 @@ class HemorrhagicStrokeModule(SimulationModule):
         return np.array([0.316 if has_condition else 0.0 for has_condition in population[population.hemorrhagic_stroke == True]])
 
     def mortality_rates(self, population, rates):
-        rates.mortality_rate += population.merge(self.ihd_mortality_rates, on=['age', 'sex', 'year']).mortality_rate
+        rates += population.merge(self.ihd_mortality_rates, on=['age', 'sex', 'year']).mortality_rate
         return rates
 
     def incidence_rates(self, population, rates, label):

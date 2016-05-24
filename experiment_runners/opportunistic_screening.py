@@ -3,6 +3,7 @@ from time import time
 from collections import defaultdict
 
 import pandas as pd
+import numpy as np
 
 from ceam.engine import Simulation, SimulationModule
 from ceam.util import only_living
@@ -17,14 +18,17 @@ pd.set_option('mode.chained_assignment', 'raise')
 def _hypertensive_categories(mask, population):
         under_60 = mask & (population.age < 60)
         over_60 = mask & (population.age >= 60)
+        under_140 = population.systolic_blood_pressure < 140
+        under_150 = population.systolic_blood_pressure < 150
+        under_180 = population.systolic_blood_pressure < 180
 
-        normotensive = under_60 & (population.systolic_blood_pressure < 140)
-        normotensive |= over_60 & (population.systolic_blood_pressure < 150)
+        normotensive = under_60 & (under_140)
+        normotensive |= over_60 & (under_150)
 
-        hypertensive = under_60 & (population.systolic_blood_pressure >= 140) & (population.systolic_blood_pressure < 180)
-        hypertensive |= over_60 & (population.systolic_blood_pressure >= 150) & (population.systolic_blood_pressure < 180)
+        hypertensive = under_60 & (np.invert(under_140)) & (under_180)
+        hypertensive |= over_60 & (np.invert(under_150)) & (under_180)
 
-        severe_hypertension = mask & (population.systolic_blood_pressure >= 180)
+        severe_hypertension = mask & (np.invert(under_180))
 
         return (normotensive, hypertensive, severe_hypertension)
 

@@ -28,7 +28,7 @@ class IHDModule(SimulationModule):
         return sum(population.ihd == True)*0.08
 
     def mortality_rates(self, population, rates):
-        rates.mortality_rate += population.merge(self.ihd_mortality_rates, on=['age', 'sex', 'year']).mortality_rate
+        rates += population.merge(self.ihd_mortality_rates, on=['age', 'sex', 'year']).mortality_rate
         return rates
 
     def incidence_rates(self, population, rates, label):

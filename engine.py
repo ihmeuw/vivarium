@@ -119,7 +119,7 @@ class Simulation(object):
             module.emit_event(label, mask, self)
 
     def mortality_rates(self, population):
-        rates = pd.DataFrame(0, index=np.arange(len(population)), columns=['mortality_rate'])
+        rates = 0
         for module in self._ordered_modules:
             rates = module.mortality_rates(population, rates)
         return from_yearly_rate(rates, self.last_time_step)
@@ -132,8 +132,9 @@ class Simulation(object):
 
     def disability_weight(self):
         weights = 1
+        pop = self.population.loc[self.population.alive == True]
         for module in self._ordered_modules:
-            weights *= 1 - module.disability_weight(self.population.loc[self.population.alive == True])
+            weights *= 1 - module.disability_weight(pop)
         total_weight = 1 - weights
         return total_weight
 
@@ -208,13 +209,12 @@ class BaseSimulationModule(SimulationModule):
         simulation.population.age = simulation.population.fractional_age.astype(int)
 
     def mortality_rates(self, population, rates):
-        rates.mortality_rate += population.merge(self.all_cause_mortality_rates, on=['age', 'sex', 'year']).mortality_rate
-        return rates
+        return rates + population.merge(self.all_cause_mortality_rates, on=['age', 'sex', 'year'], copy=False).mortality_rate
 
     @only_living
     def mortality_handler(self, label, mask, simulation):
         mortality_rate = simulation.mortality_rates(simulation.population)
-        mask &= mask_for_rate(simulation.population, mortality_rate.mortality_rate)
+        mask &= mask_for_rate(simulation.population, mortality_rate)
         simulation.population.loc[mask, 'alive'] = False
         simulation.emit_event('deaths', mask)
 
