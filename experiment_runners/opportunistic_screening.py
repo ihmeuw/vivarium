@@ -115,7 +115,7 @@ def confidence(seq):
     std = np.std(seq)
     runs = len(seq)
     interval = (1.96*std)/np.sqrt(runs)
-    return mean, int(mean-interval), int(mean+interval)
+    return mean, mean-interval, mean+interval
 
 def difference_with_confidence(a, b):
     mean_diff = np.mean(a) - np.mean(b)
@@ -123,6 +123,12 @@ def difference_with_confidence(a, b):
     return mean_diff, int(mean_diff-interval), int(mean_diff+interval)
 
 def run_comparisons(simulation, test_modules, runs=10):
+    def sequences(metrics):
+        dalys = [m['ylls'] + m['ylds'] for m in metrics]
+        cost = [m['cost'] for m in metrics]
+        ihd_counts = [m['ihd_count'] for m in metrics]
+        hemorrhagic_stroke_counts = [m['hemorrhagic_stroke_count'] for m in metrics]
+        return dalys, cost, ihd_counts, hemorrhagic_stroke_counts
     test_a_metrics = []
     test_b_metrics = []
     for run in range(runs):
@@ -144,22 +150,15 @@ def run_comparisons(simulation, test_modules, runs=10):
             else:
                 metrics['cost'] = 0.0
                 test_b_metrics.append(metrics)
-            print(metrics)
             print('Duration: %s'%(time()-start))
             simulation.reset()
-    def sequences(metrics):
-        dalys = [m['ylls'] + m['ylds'] for m in metrics]
-        cost = [m['cost'] for m in metrics]
-        ihd_counts = [m['ihd_count'] for m in metrics]
-        hemorrhagic_stroke_counts = [m['hemorrhagic_stroke_count'] for m in metrics]
-        return dalys, cost, ihd_counts, hemorrhagic_stroke_counts
 
-    a_dalys, a_cost, a_ihd_counts, a_hemorrhagic_stroke_counts = sequences(test_a_metrics)
-    b_dalys, b_cost, b_ihd_counts, b_hemorrhagic_stroke_counts = sequences(test_b_metrics)
-    per_daly = [(b-a)/cost for a,b,cost in zip(a_dalys, b_dalys, a_cost)]
-    print("DALYs averted:", difference_with_confidence(b_dalys, a_dalys))
-    print("Total cost:", confidence(a_cost))
-    print("Cost per DALY:", confidence(per_daly))
+        a_dalys, a_cost, a_ihd_counts, a_hemorrhagic_stroke_counts = sequences(test_a_metrics)
+        b_dalys, b_cost, b_ihd_counts, b_hemorrhagic_stroke_counts = sequences(test_b_metrics)
+        print(per_daly)
+        print("DALYs averted:", difference_with_confidence(b_dalys, a_dalys))
+        print("Total cost:", confidence(a_cost))
+        print("Cost per DALY:", confidence(per_daly))
 
         
 def main():
