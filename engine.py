@@ -109,9 +109,10 @@ class Simulation(object):
         self._ordered_modules = sort_modules(to_sort, self._modules)
         self._ordered_modules.insert(0, self._modules[BaseSimulationModule])
 
-    def deregister_module(self, module):
-        module.deregister(self)
-        del self._modules[module.__class__]
+    def deregister_modules(self, modules):
+        for module in modules:
+            module.deregister(self)
+            del self._modules[module.__class__]
 
         to_sort = set(self._modules.values())
         to_sort.remove(self._modules[BaseSimulationModule])
@@ -143,6 +144,7 @@ class Simulation(object):
         return total_weight
 
     def run(self, start_time, end_time, time_step):
+        self.reset_population()
         self.current_time = start_time
         self.last_time_step = time_step
         while self.current_time <= end_time:
