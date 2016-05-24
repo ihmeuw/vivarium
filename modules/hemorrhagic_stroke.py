@@ -26,7 +26,7 @@ class HemorrhagicStrokeModule(SimulationModule):
 
     def disability_weight(self, population):
         #TODO: this can probably be further generalized
-        return np.array([0.316 if has_condition else 0.0 for has_condition in population[population.hemorrhagic_stroke == True]])
+        return np.array([0.316 if has_condition else 0.0 for has_condition in population.hemorrhagic_stroke == True])
 
     def mortality_rates(self, population, rates):
         rates += population.merge(self.ihd_mortality_rates, on=['age', 'sex', 'year']).mortality_rate
