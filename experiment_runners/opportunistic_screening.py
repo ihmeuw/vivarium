@@ -1,3 +1,5 @@
+# ~/ceam/experiment_runners/opportunistic_screening.py
+
 from datetime import datetime, timedelta
 from time import time
 from collections import defaultdict
@@ -13,7 +15,9 @@ from ceam.modules.healthcare_access import HealthcareAccessModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.metrics import MetricsModule
 
+
 pd.set_option('mode.chained_assignment', 'raise')
+
 
 def _hypertensive_categories(mask, population):
         under_60 = mask & (population.age < 60)
@@ -31,6 +35,7 @@ def _hypertensive_categories(mask, population):
         severe_hypertension = mask & (~under_180)
 
         return (normotensive, hypertensive, severe_hypertension)
+
 
 class OpportunisticScreeningModule(SimulationModule):
     DEPENDS = (BloodPressureModule, HealthcareAccessModule,)
@@ -100,7 +105,7 @@ class OpportunisticScreeningModule(SimulationModule):
         for medication in ['medication_a', 'medication_b']:
             medication_cost = simulation.config.getfloat('opportunistic_screening', medication + '_cost')
             medication_cost *= simulation.config.getfloat('opportunistic_screening', 'adherence')
-            self.cost_by_year[simulation.current_time.year] += (mask & (simulation.population['taking_blood_pressure_'+medication] == True)).sum() * medication_cost*simulation.last_time_step.days 
+            self.cost_by_year[simulation.current_time.year] += (mask & (simulation.population['taking_blood_pressure_'+medication] == True)).sum() * medication_cost*simulation.last_time_step.days
 
     @only_living
     def adjust_blood_pressure(self, label, mask, simulation):
@@ -109,6 +114,7 @@ class OpportunisticScreeningModule(SimulationModule):
             medication_effect = simulation.config.getfloat('opportunistic_screening', medication + '_effectiveness')
             medication_effect *= simulation.config.getfloat('opportunistic_screening', 'adherence')
             simulation.population.loc[mask & (simulation.population['taking_blood_pressure_'+medication] == True), 'systolic_blood_pressure'] -= medication_effect
+
 
 def confidence(seq):
     mean = np.mean(seq)
@@ -161,7 +167,7 @@ def run_comparisons(simulation, test_modules, runs=10):
         print("Total cost:", confidence(a_cost))
         print("Cost per DALY:", confidence(per_daly))
 
-        
+
 def main():
     simulation = Simulation()
 
@@ -176,10 +182,12 @@ def main():
 
     simulation.load_population()
     simulation.load_data()
-    
-    run_comparisons(simulation, [screening_module], runs=10)
 
+    run_comparisons(simulation, [screening_module], runs=10)
 
 
 if __name__ == '__main__':
     main()
+
+
+# End.

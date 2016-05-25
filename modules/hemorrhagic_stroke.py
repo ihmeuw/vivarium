@@ -1,3 +1,5 @@
+# ~/ceam/modules/hemorrhagic_stroke.py
+
 import os.path
 
 import numpy as np
@@ -5,6 +7,7 @@ import pandas as pd
 
 from ceam.engine import SimulationModule, chronic_condition_incidence_handler
 from ceam.modules.blood_pressure import BloodPressureModule
+
 
 class HemorrhagicStrokeModule(SimulationModule):
     # TODO: This is effectivly a copy of the IHD module. It's possible that there will be real differences in the final model but there probably are base similarities between conditions that should be captured in a general form. Possible in an abstract subclass of SimulationModule. CronicDiseaseModule or some such.
@@ -19,9 +22,9 @@ class HemorrhagicStrokeModule(SimulationModule):
         self.population_columns.columns = ['hemorrhagic_stroke']
 
     def load_data(self, path_prefix):
-        self.ihd_mortality_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/ihd_mortality_rate.csv') 
+        self.ihd_mortality_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/ihd_mortality_rate.csv')
         self.ihd_mortality_rates.columns = [col.lower() for col in self.ihd_mortality_rates]
-        self.ihd_incidence_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/IHD incidence rates.csv') 
+        self.ihd_incidence_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/IHD incidence rates.csv')
         self.ihd_incidence_rates.columns = [col.lower() for col in self.ihd_incidence_rates]
 
     def disability_weight(self, population):
@@ -39,3 +42,6 @@ class HemorrhagicStrokeModule(SimulationModule):
             rates.incidence_rate += population.merge(self.ihd_incidence_rates, on=['age', 'sex', 'year']).incidence * blood_pressure_effect
             return rates
         return rates
+
+
+# End.

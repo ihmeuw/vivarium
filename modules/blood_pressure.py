@@ -1,3 +1,5 @@
+# ~/ceam/modules/blood_pressure.py
+
 import pandas as pd
 import numpy as np
 
@@ -13,3 +15,6 @@ class BloodPressureModule(SimulationModule):
     def update_systolic_blood_pressure(self, label, mask, simulation):
         #TODO: real SBP model
         simulation.population.systolic_blood_pressure += np.random.randint(-2, 3, size=len(simulation.population))
+
+
+# End.

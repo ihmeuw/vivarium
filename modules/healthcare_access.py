@@ -1,3 +1,5 @@
+# ~/ceam/modules/healthcare_access.py
+
 import os.path
 from datetime import datetime
 from collections import defaultdict
@@ -7,6 +9,7 @@ import pandas as pd
 
 from ceam.engine import SimulationModule
 from ceam.util import only_living, mask_for_rate, mask_for_probability, from_yearly_rate
+
 
 class HealthcareAccessModule(SimulationModule):
     def setup(self):
@@ -46,3 +49,6 @@ class HealthcareAccessModule(SimulationModule):
         simulation.population.loc[mask, 'healthcare_last_visit_date'] = simulation.current_time
 
         simulation.emit_event('followup_healthcare_access', mask)
+
+
+# End.

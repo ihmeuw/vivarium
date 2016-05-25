@@ -1,3 +1,5 @@
+# ~/ceam/modules/metrics.py
+
 from collections import defaultdict
 
 import pandas as pd
@@ -5,6 +7,7 @@ import numpy as np
 
 from ceam.engine import SimulationModule
 from ceam.util import only_living
+
 
 class MetricsModule(SimulationModule):
     def setup(self):
@@ -22,9 +25,12 @@ class MetricsModule(SimulationModule):
     def count_deaths_and_ylls(self, label, mask, simulation):
         self.metrics['deaths'] += mask.sum()
         self.metrics['ylls'] += simulation.population.merge(self.life_table, on=['age'])[mask].ex.sum()
-    
+
     def count_ylds(self, label, mask, simulation):
         self.metrics['ylds'] += np.sum(simulation.disability_weight()) * (simulation.last_time_step.days/365.0)
 
     def reset(self):
         self.metrics = defaultdict(int)
+
+
+# End.
