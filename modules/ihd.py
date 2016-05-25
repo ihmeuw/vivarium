@@ -33,7 +33,7 @@ class IHDModule(SimulationModule):
 
     def incidence_rates(self, population, rates, label):
         if label == 'ihd':
-            blood_pressure_adjustment = 1.1**((population.systolic_blood_pressure - 117) / 10)
+            blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 117) / 10), 1)
             #TODO: I'm multiplying a rate by the blood_pressure_adjustment but it Reed's work he's using a probability. I'm not sure how much of a difference that makes in practice
             rates.incidence_rate += population.merge(self.ihd_incidence_rates, on=['age', 'sex', 'year']).incidence * blood_pressure_adjustment
             return rates
