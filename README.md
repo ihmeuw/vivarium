@@ -8,7 +8,8 @@
 5. If you seem to be missing some dependencies, try installing them with pip: `pip install -r requirements.txt` #TODO: or conda?
 
 ## Path to the Data
-By default CEAM assumes that you're filesystem is like the one on the cluster. If that's not the case then you'll need to tell the system where to find the datafiles. Do this by creating a file called `ceam.cfg` in your home directory. It's contents should look like this:
+By default CEAM assumes that your filesystem is like the one on the cluster. If that's not the case then you'll need to tell the system where to find the datafiles. Do this by creating a file called `ceam.cfg` in your home directory. It's contents should look like this:
+
     [general]
     reference_data_directory=PATH_TO_THE_J_DRIVE/Project/Cost_Effectiveness/dev/data_processed
     population_data_directory=PATH_TO_THE_J_DRIVE/Project/Cost_Effectiveness/dev/data_processed/population_columns
