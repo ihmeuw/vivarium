@@ -1,6 +1,6 @@
-#CEAM (Cost Effectiveness Analysis Microsimulation)
+# CEAM (Cost Effectiveness Analysis Microsimulation)
 
-##Installation
+## Installation
 1. Clone the repo: `git clone https://#YOUR_STASH_USERNAME#@stash.ihme.washington.edu/scm/cste/ceam.git`
 2. Switch to the virtualenv you'll be developing in if any. #TODO: describe the anaconda workflow?
 3. From inside the repo install in development mode: `python setup.py develop`
