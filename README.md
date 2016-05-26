@@ -17,17 +17,22 @@ Our basic development process will use a `master` branch for major releases (cor
 1. Assure that you have a current version of the repository:
     git pull
 2. Create your feature branch. Branch names should be reasonably descriptive. `salt_consumption_model` not `stuff`:
+    ```
     git checkout -b YOUR_BRANCH_NAME develop
-2.5 Alternately, if your work is tied to a JIRA ticket you can create the branch using the 'Create Branch' link from inside the ticket and then checkout your new branch like so:
-    git checkout --track -b origin/YOUR_BRANCH_NAME
+    ```
+  * Alternately, if your work is tied to a JIRA ticket you can create the branch using the 'Create Branch' link from inside the ticket and then checkout your new branch like so:
+        ```
+        git checkout --track -b origin/YOUR_BRANCH_NAME
+        ```
+
 3. Write some fancy code.
 4. Commit frequently (remember you and your collaborators are the only ones who are looking at this code, so it's better to have a fine grained record of your work than to make sure everything is perfect before you commit):
+    ```
     git add PATH_TO_CHANGED_FILE
     git commit -m "Write a short but thorough description of the changes. If that's hard, you should probably break it up into multiple commits."
     git push
+    ```
 5. Repeat steps 3-4 until everything works nicely (don't forget to write tests to prove that things really do work (you will find bugs while writing the tests, I guarantee it)).
 6. Create a pull request: https://stash.ihme.washington.edu/projects/CSTE/repos/ceam/pull-requests?create
 7. Once all your reviewers agree that things are good, use the pull request interface to merge your feature branch back into `develop`
 8. :partyhat:
-
-
