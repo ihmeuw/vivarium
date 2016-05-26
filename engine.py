@@ -1,5 +1,6 @@
 # ~/ceam/engine.py
 
+import os
 import os.path
 from collections import defaultdict
 try:
@@ -68,7 +69,9 @@ class Simulation(object):
         self.register_modules([BaseSimulationModule()])
         self.population = pd.DataFrame
         self.config = ConfigParser()
-        self.config.read(['./config.cfg', './local.cfg']) # TODO: something more formal? Also, handle config file location better this will break in somebody's environment
+
+        config_path = os.path.abspath(os.path.dirname(__file__))
+        self.config.read([os.path.join(config_path, 'config.cfg'), os.path.join(config_path, 'local.cfg')]) # TODO: something more formal? Also, handle config file location better this will break in somebody's environment
 
     def load_data(self, path_prefix=None):
         if path_prefix is None:
