@@ -20,7 +20,7 @@ Our basic development process will use a `master` branch for major releases (cor
     ```
     git checkout -b YOUR_BRANCH_NAME develop
     ```
-  * Alternately, if your work is tied to a JIRA ticket you can create the branch using the 'Create Branch' link from inside the ticket and then checkout your new branch like so:
+    * Alternately, if your work is tied to a JIRA ticket you can create the branch using the 'Create Branch' link from inside the ticket and then checkout your new branch like so:
         ```
         git checkout --track -b origin/YOUR_BRANCH_NAME
         ```
