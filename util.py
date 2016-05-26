@@ -36,6 +36,9 @@ def to_yearly_rate(rate, time_step):
 def rate_to_probability(rate):
     return 1-np.exp(-rate)
 
+def probability_to_rate(probability):
+    return -np.log(1-probability)
+
 def mask_for_rate(population, rate):
     return mask_for_probability(population, rate_to_probability(rate))
 
