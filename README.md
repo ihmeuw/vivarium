@@ -7,6 +7,14 @@
 4. See if it works: `python examples/hello_world.py`
 5. If you seem to be missing some dependencies, try installing them with pip: `pip install -r requirements.txt` #TODO: or conda?
 
+## Path to the Data
+By default CEAM assumes that you're filesystem is like the one on the cluster. If that's not the case then you'll need to tell the system where to find the datafiles. Do this by creating a file called `ceam.cfg` in your home directory. It's contents should look like this:
+    [general]
+    reference_data_directory=PATH_TO_THE_J_DRIVE/Project/Cost_Effectiveness/dev/data_processed
+    population_data_directory=PATH_TO_THE_J_DRIVE/Project/Cost_Effectiveness/dev/data_processed/population_columns
+
+Protip: You can override any configuration using this file. Take a look at ceam/config.cfg to get an idea what other configuration variables there are.
+
 ## Testing
 All tests are in the tests directory. Test files should correspond with the files they test. So, `ceam/engine.py` will have `tests/test_engine.py`. Run the tests by invoking `py.test`.
 
