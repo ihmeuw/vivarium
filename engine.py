@@ -27,30 +27,30 @@ def chronic_condition_incidence_handler(condition):
 class EventHandler(object):
     def __init__(self):
         super(EventHandler, self).__init__()
-        self._listeners = defaultdict(set)
-        self._generic_listeners = set()
-        self._listener_priorities = {}
+        self._listeners_store = [defaultdict(set) for _ in range(10)]
 
-    def register_event_listener(self, listener, label=None, priority=10):
-        assert callable(listener)
-        if label:
-            self._listeners[label].add(listener)
-        else:
-            self._generic_listeners.add(listener)
-        self._listener_priorities[(label, listener)] = priority
+    def _listeners(self, label):
+        listeners = []
+        for priority_level in self._listeners_store:
+            listeners += priority_level[label]
+            if label is not None:
+                listeners += priority_level[None]
+        return listeners
+
+    def register_event_listener(self, listener, label=None, priority=5):
+        assert callable(listener), "Listener must be callable"
+        assert priority in range(10), "Priority must be 0-9"
+
+        self._listeners_store[priority][label].add(listener)
 
     def deregister_event_listener(self, listener, label=None):
-        if label:
-            self._listeners[label].remove(listener)
-        else:
-            self._generic_listeners.remove(listener)
-        del self._listener_priorities[(label, listener)]
+        for priority_level in self._listeners_store:
+            if label in priority_level:
+                if listener in priority_level[label]:
+                    priority_level[label].remove(listener)
 
     def emit_event(self, label, mask, simulation):
-        listeners = [(self._listener_priorities[(label, listener)], listener) for listener in self._listeners[label]]
-        listeners += [(self._listener_priorities[(None, listener)], listener) for listener in self._generic_listeners]
-        listeners = [listener for _,listener in sorted(listeners, key=lambda x:x[0])]
-        for listener in listeners:
+        for listener in self._listeners(label):
             listener(label, mask.copy(), simulation)
 
 
@@ -103,7 +103,7 @@ class Simulation(object):
             self._modules[module.__class__] = module
 
         # TODO: This little dance is awkward but it makes it so I can privilege BaseSimulationModule without having to import it in utils
-        # It shoul also probably be happening at a lifecycle phase between here and the loading of data, but that doesn't exist yet
+        # It should also probably be happening at a lifecycle phase between here and the loading of data, but that doesn't exist yet
         to_sort = set(self._modules.values())
         to_sort.remove(self._modules[BaseSimulationModule])
         self._ordered_modules = sort_modules(to_sort, self._modules)
