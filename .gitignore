@@ -1,4 +1,4 @@
 .cache
 *.pyc
 *.swp
-.cache
+.coverage
