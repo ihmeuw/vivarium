@@ -22,9 +22,9 @@ class HemorrhagicStrokeModule(SimulationModule):
         self.population_columns.columns = ['hemorrhagic_stroke']
 
     def load_data(self, path_prefix):
-        self.ihd_mortality_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/ihd_mortality_rate.csv')
+        self.ihd_mortality_rates = pd.read_csv(os.path.join(path_prefix, 'ihd_mortality_rate.csv'))
         self.ihd_mortality_rates.columns = [col.lower() for col in self.ihd_mortality_rates]
-        self.ihd_incidence_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/IHD incidence rates.csv')
+        self.ihd_incidence_rates = pd.read_csv(os.path.join(path_prefix, 'IHD incidence rates.csv'))
         self.ihd_incidence_rates.columns = [col.lower() for col in self.ihd_incidence_rates]
 
     def disability_weight(self, population):

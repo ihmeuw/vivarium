@@ -210,7 +210,7 @@ class BaseSimulationModule(SimulationModule):
         self.population_columns = self.population_columns.join(pd.DataFrame({'alive': [True]*len(self.population_columns.age)}))
 
     def load_data(self, path_prefix):
-        self.all_cause_mortality_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/Mortality_Rates.csv')
+        self.all_cause_mortality_rates = pd.read_csv(os.path.join(path_prefix, 'Mortality_Rates.csv'))
         self.all_cause_mortality_rates.columns = [col.lower() for col in self.all_cause_mortality_rates]
 
     def advance_age(self, label, mask, simulation):
