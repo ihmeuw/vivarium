@@ -24,7 +24,6 @@ Our basic development process will use a `master` branch for major releases (cor
         ```
         git checkout --track -b origin/YOUR_BRANCH_NAME
         ```
-
 3. Write some fancy code.
 4. Commit frequently (remember you and your collaborators are the only ones who are looking at this code, so it's better to have a fine grained record of your work than to make sure everything is perfect before you commit):
     ```
