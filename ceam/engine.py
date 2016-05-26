@@ -71,7 +71,7 @@ class Simulation(object):
         self.config = ConfigParser()
 
         config_path = os.path.abspath(os.path.dirname(__file__))
-        self.config.read([os.path.join(config_path, 'config.cfg'), os.path.join(config_path, 'local.cfg')])
+        self.config.read([os.path.join(config_path, 'config.cfg'), os.path.join(config_path, 'local.cfg'), os.path.expanduser('~/ceam.cfg')])
 
     def load_data(self, path_prefix=None):
         if path_prefix is None:

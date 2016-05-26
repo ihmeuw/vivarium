@@ -3,3 +3,4 @@
 *.swp
 .coverage
 *.egg-info
+local.cfg
