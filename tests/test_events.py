@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from ceam.engine import EventHandler
+from ceam.events import EventHandler
 
 class TestEventHandler(TestCase):
     def test_listener_registration(self):
