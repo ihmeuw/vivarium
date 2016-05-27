@@ -6,12 +6,11 @@ import numpy as np
 import pandas as pd
 
 from ceam.engine import SimulationModule, chronic_condition_incidence_handler
-from ceam.modules.blood_pressure import BloodPressureModule
 
 
 class HemorrhagicStrokeModule(SimulationModule):
-    # TODO: This is effectivly a copy of the IHD module. It's possible that there will be real differences in the final model but there probably are base similarities between conditions that should be captured in a general form. Possible in an abstract subclass of SimulationModule. CronicDiseaseModule or some such.
-    DEPENDENCIES = (BloodPressureModule,)
+    # TODO: This is effectivly a copy of the IHD module.  It's possible that there will be real differences in the final model but there probably are base similarities
+    # between conditions that should be captured in a general form.  Possible in an abstract subclass of SimulationModule.  CronicDiseaseModule or some such.
 
     def setup(self):
         self.register_event_listener(chronic_condition_incidence_handler('hemorrhagic_stroke'), 'time_step')
@@ -38,8 +37,7 @@ class HemorrhagicStrokeModule(SimulationModule):
     def incidence_rates(self, population, rates, label):
         if label == 'hemorrhagic_stroke':
             #TODO: realistic relationship between SBP and stroke
-            blood_pressure_effect = population.systolic_blood_pressure / 190.0
-            rates.incidence_rate += population.merge(self.ihd_incidence_rates, on=['age', 'sex', 'year']).incidence * blood_pressure_effect
+            rates.incidence_rate += population.merge(self.ihd_incidence_rates, on=['age', 'sex', 'year']).incidence
             return rates
         return rates
 

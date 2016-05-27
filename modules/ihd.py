@@ -6,11 +6,9 @@ import numpy as np
 import pandas as pd
 
 from ceam.engine import SimulationModule, chronic_condition_incidence_handler
-from ceam.modules.blood_pressure import BloodPressureModule
 
 
 class IHDModule(SimulationModule):
-    DEPENDENCIES = (BloodPressureModule,)
 
     def setup(self):
         self.register_event_listener(chronic_condition_incidence_handler('ihd'), 'time_step')
@@ -34,8 +32,7 @@ class IHDModule(SimulationModule):
     def incidence_rates(self, population, rates, label):
         if label == 'ihd':
             #TODO: realistic relationship between SBP and IHD
-            blood_pressure_effect = population.systolic_blood_pressure / 190.0
-            rates.incidence_rate += population.merge(self.ihd_incidence_rates, on=['age', 'sex', 'year']).incidence * blood_pressure_effect
+            rates.incidence_rate += population.merge(self.ihd_incidence_rates, on=['age', 'sex', 'year']).incidence
             return rates
         return rates
 
