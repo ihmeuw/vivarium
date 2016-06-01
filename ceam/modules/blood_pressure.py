@@ -5,6 +5,7 @@ import numpy as np
 from scipy.stats import norm
 
 from ceam.engine import SimulationModule
+from ceam.util import only_living
 
 class BloodPressureModule(SimulationModule):
     def setup(self):
@@ -21,11 +22,13 @@ class BloodPressureModule(SimulationModule):
             for age in range(0, 104):
                 for sex in [1,2]:
                     tmp.append([year, age, sex, 117, 5])
-        self.systolic_blood_pressure_distributions = pd.DataFrame(tmp, columns=['year', 'age', 'sex', 'mean', 'std'])
+        self.lookup_table = pd.DataFrame(tmp, columns=['year', 'age', 'sex', 'mean', 'std'])
 
-    def update_systolic_blood_pressure(self, label, mask, simulation):
-        distribution = simulation.population.merge(self.systolic_blood_pressure_distributions, on=['age', 'sex', 'year'])[['mean', 'std']]
-        simulation.population['systolic_blood_pressure'] = norm.ppf(simulation.population.systolic_blood_pressure_precentile, loc=distribution['mean'], scale=distribution['std'])
+    @only_living
+    def update_systolic_blood_pressure(self, event):
+        distribution = self.lookup_columns(event.affected_population, ['mean', 'std'])
+        event.affected_population['systolic_blood_pressure'] = norm.ppf(event.affected_population.systolic_blood_pressure_precentile, loc=distribution['mean'], scale=distribution['std'])
+        self.simulation.population.loc[event.affected_population.index, 'systolic_blood_pressure'] = event.affected_population['systolic_blood_pressure']
 
 
 # End.

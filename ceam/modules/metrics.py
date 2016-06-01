@@ -20,15 +20,15 @@ class MetricsModule(SimulationModule):
     def load_data(self, path_prefix):
         self.life_table = pd.read_csv(os.path.join(path_prefix, 'interpolated_reference_life_table.csv'))
 
-    def event_sums(self, label, mask, simulation):
-        self.metrics[label] += mask.sum()
+    def event_sums(self, event):
+        self.metrics[event.label] += len(event.affected_population)
 
-    def count_deaths_and_ylls(self, label, mask, simulation):
-        self.metrics['deaths'] += mask.sum()
-        self.metrics['ylls'] += simulation.population.merge(self.life_table, on=['age'])[mask].ex.sum()
+    def count_deaths_and_ylls(self, event):
+        self.metrics['deaths'] += len(event.affected_population)
+        #self.metrics['ylls'] += simulation.population.age.merge(self.life_table, on=['age'])[mask].ex.sum()
 
-    def count_ylds(self, label, mask, simulation):
-        self.metrics['ylds'] += np.sum(simulation.disability_weight()) * (simulation.last_time_step.days/365.0)
+    def count_ylds(self, event):
+        self.metrics['ylds'] += np.sum(self.simulation.disability_weight()) * (self.simulation.last_time_step.days/365.0)
 
     def reset(self):
         self.metrics = defaultdict(int)

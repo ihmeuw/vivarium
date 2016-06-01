@@ -22,24 +22,28 @@ class HemorrhagicStrokeModule(SimulationModule):
         self.population_columns.columns = ['hemorrhagic_stroke']
 
     def load_data(self, path_prefix):
-        self.ihd_mortality_rates = pd.read_csv(os.path.join(path_prefix, 'ihd_mortality_rate.csv'))
-        self.ihd_mortality_rates.columns = [col.lower() for col in self.ihd_mortality_rates]
-        self.ihd_incidence_rates = pd.read_csv(os.path.join(path_prefix, 'IHD incidence rates.csv'))
-        self.ihd_incidence_rates.columns = [col.lower() for col in self.ihd_incidence_rates]
+        self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'ihd_mortality_rate.csv'))
+        self.lookup_table.rename(columns=lambda col:col.lower(), inplace=True)
+
+        ihd_incidence_rates = pd.read_csv(os.path.join(path_prefix, 'IHD incidence rates.csv'))
+        ihd_incidence_rates.rename(columns=lambda col: col.lower(), inplace=True)
+
+        self.lookup_table = self.lookup_table.merge(ihd_incidence_rates, on=['age', 'sex', 'year'])
+
 
     def disability_weight(self, population):
         #TODO: this can probably be further generalized
         return np.array([0.316 if has_condition else 0.0 for has_condition in population.hemorrhagic_stroke == True])
 
     def mortality_rates(self, population, rates):
-        rates += population.merge(self.ihd_mortality_rates, on=['age', 'sex', 'year']).mortality_rate
+        rates += self.lookup_columns(population, ['mortality_rate'])['mortality_rate']
         return rates
 
     def incidence_rates(self, population, rates, label):
         if label == 'hemorrhagic_stroke':
             #TODO: realistic relationship between SBP and stroke
             blood_pressure_effect = population.systolic_blood_pressure / 190.0
-            rates.incidence_rate += population.merge(self.ihd_incidence_rates, on=['age', 'sex', 'year']).incidence * blood_pressure_effect
+            rates += self.lookup_columns(population, ['incidence'])['incidence'] * blood_pressure_effect
             return rates
         return rates
 

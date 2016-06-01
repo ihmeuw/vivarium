@@ -3,6 +3,8 @@
 import numpy as np
 import pandas as pd
 
+from ceam.events import PopulationEvent
+
 
 def sort_modules(to_sort, modules_registry):
     def inner_sort(sorted_modules, current):
@@ -39,12 +41,12 @@ def rate_to_probability(rate):
 def probability_to_rate(probability):
     return -np.log(1-probability)
 
-def mask_for_rate(population, rate):
-    return mask_for_probability(population, rate_to_probability(rate))
+def filter_for_rate(population, rate):
+    return filter_for_probability(population, rate_to_probability(rate))
 
-def mask_for_probability(population, probability):
+def filter_for_probability(population, probability):
     draw = np.random.random(size=len(population))
-    return draw < probability
+    return population.loc[draw < probability]
 
 
 # _MethodDecoratorAdaptor and auto_adapt_to_methods from http://stackoverflow.com/questions/1288498/using-the-same-decorator-with-arguments-with-functions-and-methods
@@ -67,8 +69,10 @@ def auto_adapt_to_methods(decorator):
 
 @auto_adapt_to_methods
 def only_living(fun):
-    def inner(label, mask, simulation):
-            return fun(label, mask & (simulation.population.alive == True), simulation)
+    def inner(event):
+        event = PopulationEvent(event.label, event.affected_population.loc[event.affected_population.alive == True])
+        if not event.affected_population.empty:
+            return fun(event)
     return inner
 
 
