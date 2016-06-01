@@ -9,4 +9,5 @@ py.test
 e=$?
 cd /home/j/Project/Cost_Effectiveness/dev/test_tmp
 rm -rf ceam
+
 exit $e
