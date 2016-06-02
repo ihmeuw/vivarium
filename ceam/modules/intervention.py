@@ -1,4 +1,4 @@
-# ~/ceam/modules/intervention.py
+# ~/ceam/ceam/modules/intervention.py
 
 import os.path
 
@@ -10,7 +10,7 @@ from ceam.modules.ihd import IHDModule
 from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
 
 
-class InterventionModule(SimulationModule):
+class Level3InterventionModule(SimulationModule):
     DEPENDENCIES = (IHDModule, HemorrhagicStrokeModule,)
 
     def setup(self):

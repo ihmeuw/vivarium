@@ -1,4 +1,4 @@
-# ~/ceam/examples/level_3.py
+# ~/ceam/experiment_runners/level_3.py
 
 import numpy as np
 from time import time
@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from ceam.engine import Simulation
 from ceam.modules.ihd import IHDModule
 from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
-from ceam.modules.intervention import InterventionModule
+from ceam.modules.intervention import Level3InterventionModule
 from ceam.modules.metrics import MetricsModule
 
 
@@ -66,7 +66,7 @@ def main():
     simulation = Simulation()
 
     modules = [IHDModule(), HemorrhagicStrokeModule(), MetricsModule()]
-    screening_module = InterventionModule()
+    screening_module = Level3InterventionModule()
     modules.append(screening_module)
     for module in modules:
         module.setup()
