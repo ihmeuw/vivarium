@@ -1,5 +1,6 @@
-# ~/ceam/engine.py
+# ~/ceam/ceam/engine.py
 
+import os
 import os.path
 from collections import defaultdict
 try:
@@ -12,6 +13,7 @@ import pandas as pd
 import numpy as np
 
 from ceam.util import sort_modules, from_yearly_rate, only_living, mask_for_rate
+from ceam.events import EventHandler
 
 
 def chronic_condition_incidence_handler(condition):
@@ -22,36 +24,6 @@ def chronic_condition_incidence_handler(condition):
         mask = mask & mask_for_rate(simulation.population, incidence_rates.incidence_rate)
         simulation.population.loc[mask, condition] = True
     return handler
-
-
-class EventHandler(object):
-    def __init__(self):
-        super(EventHandler, self).__init__()
-        self._listeners = defaultdict(set)
-        self._generic_listeners = set()
-        self._listener_priorities = {}
-
-    def register_event_listener(self, listener, label=None, priority=10):
-        assert callable(listener)
-        if label:
-            self._listeners[label].add(listener)
-        else:
-            self._generic_listeners.add(listener)
-        self._listener_priorities[(label, listener)] = priority
-
-    def deregister_event_listener(self, listener, label=None):
-        if label:
-            self._listeners[label].remove(listener)
-        else:
-            self._generic_listeners.remove(listener)
-        del self._listener_priorities[(label, listener)]
-
-    def emit_event(self, label, mask, simulation):
-        listeners = [(self._listener_priorities[(label, listener)], listener) for listener in self._listeners[label]]
-        listeners += [(self._listener_priorities[(None, listener)], listener) for listener in self._generic_listeners]
-        listeners = [listener for _,listener in sorted(listeners, key=lambda x:x[0])]
-        for listener in listeners:
-            listener(label, mask.copy(), simulation)
 
 
 class Simulation(object):
@@ -68,7 +40,9 @@ class Simulation(object):
         self.register_modules([BaseSimulationModule()])
         self.population = pd.DataFrame
         self.config = ConfigParser()
-        self.config.read(['./config.cfg', './local.cfg']) # TODO: something more formal? Also, handle config file location better this will break in somebody's environment.
+
+        config_path = os.path.abspath(os.path.dirname(__file__))
+        self.config.read([os.path.join(config_path, 'config.cfg'), os.path.join(config_path, 'local.cfg'), os.path.expanduser('~/ceam.cfg')])
 
     def load_data(self, path_prefix=None):
         if path_prefix is None:
@@ -207,7 +181,7 @@ class BaseSimulationModule(SimulationModule):
         self.population_columns = self.population_columns.join(pd.DataFrame({'alive': [True]*len(self.population_columns.age)}))
 
     def load_data(self, path_prefix):
-        self.all_cause_mortality_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/Mortality_Rates.csv')
+        self.all_cause_mortality_rates = pd.read_csv(os.path.join(path_prefix, 'Mortality_Rates.csv'))
         self.all_cause_mortality_rates.columns = [col.lower() for col in self.all_cause_mortality_rates]
 
     def advance_age(self, label, mask, simulation):

@@ -1,4 +1,4 @@
-# ~/ceam/modules/ihd.py
+# ~/ceam/ceam/modules/ihd.py
 
 import os.path
 

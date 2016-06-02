@@ -1,4 +1,4 @@
-# ~/ceam/modules/hemorrhagic_stroke.py
+# ~/ceam/ceam/modules/hemorrhagic_stroke.py
 
 import os.path
 

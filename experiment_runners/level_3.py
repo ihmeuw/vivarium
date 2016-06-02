@@ -56,10 +56,17 @@ def run_comparisons(simulation, test_modules, runs=10):
         a_dalys, a_cost, a_ihd_counts, a_hemorrhagic_stroke_counts = sequences(test_a_metrics)
         b_dalys, b_cost, b_ihd_counts, b_hemorrhagic_stroke_counts = sequences(test_b_metrics)
         per_daly = [cost/(b-a) for a,b,cost in zip(a_dalys, b_dalys, a_cost)]
+        print()
         print(per_daly)
-        print("DALYs averted:", difference_with_confidence(b_dalys, a_dalys))
-        print("Total cost:", confidence(a_cost))
-        print("Cost per DALY:", confidence(per_daly))
+        print("IHD count (without intervention):       ", b_ihd_counts)
+        print("IHD count (with intervention):          ", a_ihd_counts)
+        print("Hem Stroke count (without intervention):", b_hemorrhagic_stroke_counts)
+        print("Hem Stroke count (with intervention):   ", a_hemorrhagic_stroke_counts)
+        print("IHD count averted:                      ", difference_with_confidence(b_ihd_counts, a_ihd_counts))
+        print("Hem Strokes averted:                    ", difference_with_confidence(b_hemorrhagic_stroke_counts, a_hemorrhagic_stroke_counts))
+        print("DALYs averted:                          ", difference_with_confidence(b_dalys, a_dalys))
+        print("Total cost:                             ", confidence(a_cost))
+        print("Cost per DALY:                          ", confidence(per_daly))
 
 
 def main():

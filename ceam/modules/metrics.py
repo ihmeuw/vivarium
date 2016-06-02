@@ -1,4 +1,4 @@
-# ~/ceam/modules/metrics.py
+# ~/ceam/ceam/modules/metrics.py
 
 from collections import defaultdict
 
