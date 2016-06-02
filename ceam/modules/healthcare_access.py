@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 
 from ceam.engine import SimulationModule
-from ceam.events import PopulationEvent
-from ceam.util import only_living, filter_for_rate, filter_for_probability, from_yearly_rate
+from ceam.events import PopulationEvent, only_living
+from ceam.util import filter_for_rate, filter_for_probability, from_yearly_rate
 
 
 class HealthcareAccessModule(SimulationModule):
@@ -26,11 +26,16 @@ class HealthcareAccessModule(SimulationModule):
 
     def load_data(self, path_prefix):
         # TODO: Refine these rates. Possibly include age effects, though Marcia says they are small
-        self.general_access_rates = pd.DataFrame({'sex': [1,2], 'rate': [0.1165, 0.1392]})
+        rows = []
+        for year in range(1990, 2014):
+            for age in range(0, 103):
+                for sex in [1,2]:
+                    rows.append([year, age, sex, 0.1165 if sex == 1 else 0.1392])
+        self.lookup_table = pd.DataFrame(rows, columns=['year', 'age', 'sex', 'rate'])
 
     @only_living
     def general_access(self, event):
-        affected_population = filter_for_rate(event.affected_population, from_yearly_rate(event.affected_population.merge(self.general_access_rates, on=['sex']).rate, self.simulation.last_time_step))
+        affected_population = filter_for_rate(event.affected_population, from_yearly_rate(self.lookup_columns(event.affected_population, ['rate'])['rate'], self.simulation.last_time_step))
         self.simulation.population.loc[affected_population.index, 'healthcare_last_visit_date'] = self.simulation.current_time
         self.simulation.emit_event(PopulationEvent('general_healthcare_access', affected_population))
 

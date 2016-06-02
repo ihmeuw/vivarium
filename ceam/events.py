@@ -1,6 +1,9 @@
 # ~/ceam/engine.py
 
 from collections import defaultdict
+from weakref import WeakKeyDictionary
+
+from ceam.util import auto_adapt_to_methods
 
 class Event(object):
     def __init__(self, label):
@@ -39,5 +42,21 @@ class EventHandler(object):
     def emit_event(self, event):
         for listener in self._listeners(event.label):
             listener(event)
+
+
+#TODO: Ugly singleton global
+ONLY_LIVING_CACHE = WeakKeyDictionary()
+@auto_adapt_to_methods
+def only_living(fun):
+    def inner(event):
+        if event in ONLY_LIVING_CACHE:
+            event = ONLY_LIVING_CACHE[event]
+        else:
+            new_event = PopulationEvent(event.label, event.affected_population.loc[event.affected_population.alive == True])
+            ONLY_LIVING_CACHE[event] = new_event
+            event = new_event
+        if not event.affected_population.empty:
+            return fun(event)
+    return inner
 
 #End.

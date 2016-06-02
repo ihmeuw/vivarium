@@ -12,8 +12,8 @@ except ImportError:
 import pandas as pd
 import numpy as np
 
-from ceam.util import sort_modules, from_yearly_rate, only_living, filter_for_rate
-from ceam.events import EventHandler, PopulationEvent
+from ceam.util import sort_modules, from_yearly_rate, filter_for_rate
+from ceam.events import EventHandler, PopulationEvent, only_living
 
 
 
@@ -57,7 +57,6 @@ class Simulation(object):
                     lookup_table = prefixed_table
                 else:
                     lookup_table = lookup_table.merge(prefixed_table, how='outer')
-        #lookup_table = lookup_table.set_index(['year', 'age', 'sex']).sort_index()
         lookup_table['lookup_id'] = range(0, len(lookup_table))
         self.lookup_table = lookup_table
 
@@ -82,7 +81,6 @@ class Simulation(object):
         self.population = population.join(pd.DataFrame(0, index=np.arange(len(population)), columns=['year']))
 
     def index_population(self):
-        #self._indexed_population = self.population.set_index(['year', 'age', 'sex']).sort_index()
         if not self.lookup_table.empty:
             if 'lookup_id' in self.population:
                 self.population.drop('lookup_id', 1, inplace=True)
@@ -194,7 +192,7 @@ class SimulationModule(EventHandler):
     def lookup_columns(self, population, columns):
         origonal_columns = columns
         columns = [self.lookup_column_prefix + '_' + c for c in columns]
-        results = self.simulation.lookup_table.iloc[population.lookup_id][columns]
+        results = self.simulation.lookup_table.ix[population.lookup_id, columns]
         return results.rename(columns=dict(zip(columns,origonal_columns)))
 
 

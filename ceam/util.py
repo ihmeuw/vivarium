@@ -3,9 +3,6 @@
 import numpy as np
 import pandas as pd
 
-from ceam.events import PopulationEvent
-
-
 def sort_modules(to_sort, modules_registry):
     def inner_sort(sorted_modules, current):
         if current in sorted_modules:
@@ -70,14 +67,6 @@ def auto_adapt_to_methods(decorator):
     def adapt(func):
         return _MethodDecoratorAdaptor(decorator, func)
     return adapt
-
-@auto_adapt_to_methods
-def only_living(fun):
-    def inner(event):
-        event = PopulationEvent(event.label, event.affected_population.loc[event.affected_population.alive == True])
-        if not event.affected_population.empty:
-            return fun(event)
-    return inner
 
 
 # End.

@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 
 from ceam.engine import SimulationModule
-from ceam.util import filter_for_rate, only_living
+from ceam.util import filter_for_rate
+from ceam.event import only_living
 from ceam.modules.blood_pressure import BloodPressureModule
 
 

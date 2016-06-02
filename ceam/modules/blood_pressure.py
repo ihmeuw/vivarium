@@ -5,7 +5,7 @@ import numpy as np
 from scipy.stats import norm
 
 from ceam.engine import SimulationModule
-from ceam.util import only_living
+from ceam.events import only_living
 
 class BloodPressureModule(SimulationModule):
     def setup(self):

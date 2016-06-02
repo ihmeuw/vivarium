@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from ceam.engine import SimulationModule
-from ceam.util import sort_modules, from_yearly_rate, to_yearly_rate, rate_to_probability, probability_to_rate, only_living
+from ceam.util import sort_modules, from_yearly_rate, to_yearly_rate, rate_to_probability, probability_to_rate
 
 
 class AModule(SimulationModule):
@@ -31,15 +31,6 @@ class TestSortModules(TestCase):
         modules = {DModule: DModule(), CModule: CModule(), BModule:BModule(), AModule:AModule()}
         sorted_modules = sort_modules(modules.values(), modules)
         self.assertListEqual(sorted_modules, [modules[AModule], modules[BModule], modules[CModule], modules[DModule]])
-
-class TestEventListenerDecorators(TestCase):
-    def test_only_living(self):
-        simulation = Mock(population=pd.DataFrame({'alive': [True, True, False, True]}))
-
-        @only_living
-        def inner(label, mask, simulation):
-            self.assertListEqual(list(mask), [True, True, False, True])
-        inner(None, [True, True, True, True], simulation)
 
 class TestRateConversions(TestCase):
     """

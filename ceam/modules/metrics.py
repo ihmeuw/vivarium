@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 from ceam.engine import SimulationModule
-from ceam.util import only_living
+from ceam.events import only_living
 
 
 class MetricsModule(SimulationModule):
