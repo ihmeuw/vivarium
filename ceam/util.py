@@ -46,7 +46,11 @@ def filter_for_rate(population, rate):
 
 def filter_for_probability(population, probability):
     draw = np.random.random(size=len(population))
-    return population.loc[(draw < probability).values]
+    mask = draw < probability
+    if not isinstance(mask, np.ndarray):
+        # TODO: Something less akward
+        mask = mask.values
+    return population.loc[mask]
 
 
 # _MethodDecoratorAdaptor and auto_adapt_to_methods from http://stackoverflow.com/questions/1288498/using-the-same-decorator-with-arguments-with-functions-and-methods

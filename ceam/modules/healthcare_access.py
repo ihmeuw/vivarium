@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 
 from ceam.engine import SimulationModule
-from ceam.util import only_living, mask_for_rate, mask_for_probability, from_yearly_rate
+from ceam.events import PopulationEvent
+from ceam.util import only_living, filter_for_rate, filter_for_probability, from_yearly_rate
 
 
 class HealthcareAccessModule(SimulationModule):
@@ -28,22 +29,22 @@ class HealthcareAccessModule(SimulationModule):
         self.general_access_rates = pd.DataFrame({'sex': [1,2], 'rate': [0.1165, 0.1392]})
 
     @only_living
-    def general_access(self, label, mask, simulation):
-        mask &= mask_for_rate(simulation.population, from_yearly_rate(simulation.population.merge(self.general_access_rates, on=['sex']).rate, simulation.last_time_step))
-        simulation.population.loc[mask, 'healthcare_last_visit_date'] = simulation.current_time
-        simulation.emit_event('general_healthcare_access', mask)
+    def general_access(self, event):
+        affected_population = filter_for_rate(event.affected_population, from_yearly_rate(event.affected_population.merge(self.general_access_rates, on=['sex']).rate, self.simulation.last_time_step))
+        self.simulation.population.loc[affected_population.index, 'healthcare_last_visit_date'] = self.simulation.current_time
+        self.simulation.emit_event(PopulationEvent('general_healthcare_access', affected_population))
 
     @only_living
-    def followup_access(self, label, mask, simulation):
-        mask &= (simulation.population.healthcare_followup_date > simulation.current_time-simulation.last_time_step) & (simulation.population.healthcare_followup_date <= simulation.current_time)
-        mask &= mask_for_probability(simulation.population, simulation.config.getfloat('appointments', 'adherence'))
+    def followup_access(self, event):
+        affected_population = event.affected_population.loc[(event.affected_population.healthcare_followup_date > self.simulation.current_time-self.simulation.last_time_step) & (event.affected_population.healthcare_followup_date <= self.simulation.current_time)]
+        affected_population = filter_for_probability(affected_population, self.simulation.config.getfloat('appointments', 'adherence'))
 
         # TODO: Cost will probably need to be much more complex
-        self.cost_by_year[simulation.current_time.year] += mask.sum() * simulation.config.getfloat('appointments', 'cost')
+        self.cost_by_year[self.simulation.current_time.year] += len(affected_population) * self.simulation.config.getfloat('appointments', 'cost')
 
-        simulation.population.loc[mask, 'healthcare_last_visit_date'] = simulation.current_time
+        self.simulation.population.loc[affected_population.index, 'healthcare_last_visit_date'] = self.simulation.current_time
 
-        simulation.emit_event('followup_healthcare_access', mask)
+        self.simulation.emit_event(PopulationEvent('followup_healthcare_access', affected_population))
 
 
 # End.

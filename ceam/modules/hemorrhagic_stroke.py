@@ -5,7 +5,8 @@ import os.path
 import numpy as np
 import pandas as pd
 
-from ceam.engine import SimulationModule, chronic_condition_incidence_handler
+from ceam.engine import SimulationModule
+from ceam.util import only_living, filter_for_rate
 from ceam.modules.blood_pressure import BloodPressureModule
 
 
@@ -14,7 +15,7 @@ class HemorrhagicStrokeModule(SimulationModule):
     DEPENDENCIES = (BloodPressureModule,)
 
     def setup(self):
-        self.register_event_listener(chronic_condition_incidence_handler('hemorrhagic_stroke'), 'time_step')
+        self.register_event_listener(self.incidence_handler, 'time_step')
 
     def load_population_columns(self, path_prefix, population_size):
         #TODO: use real stroke data. I think Everett even has this on the J drive now
@@ -43,9 +44,16 @@ class HemorrhagicStrokeModule(SimulationModule):
         if label == 'hemorrhagic_stroke':
             #TODO: realistic relationship between SBP and stroke
             blood_pressure_effect = population.systolic_blood_pressure / 190.0
-            rates += self.lookup_columns(population, ['incidence'])['incidence'] * blood_pressure_effect
+            rates += self.lookup_columns(population, ['incidence'])['incidence'].values * blood_pressure_effect
             return rates
         return rates
+
+    @only_living
+    def incidence_handler(self, event):
+        affected_population = event.affected_population[event.affected_population['hemorrhagic_stroke'] == False]
+        incidence_rates = self.simulation.incidence_rates(affected_population, 'hemorrhagic_stroke')
+        affected_population = filter_for_rate(affected_population, incidence_rates)
+        self.simulation.population.loc[affected_population.index, 'hemorrhagic_stroke'] = True
 
 
 # End.
