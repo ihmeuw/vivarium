@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 
 from ceam.engine import Simulation
-#from ceam.modules.ihd import IHDModule
+from ceam.modules.ihd import IHDModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.metrics import MetricsModule
 
@@ -15,9 +15,9 @@ def main():
     module.setup()
     simulation.register_modules([module])
 
-    #module = IHDModule()
-    #module.setup()
-    #simulation.register_modules([module])
+    module = IHDModule()
+    module.setup()
+    simulation.register_modules([module])
 
     metrics_module = MetricsModule()
     metrics_module.setup()

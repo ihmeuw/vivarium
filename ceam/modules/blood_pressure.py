@@ -27,8 +27,7 @@ class BloodPressureModule(SimulationModule):
     @only_living
     def update_systolic_blood_pressure(self, event):
         distribution = self.lookup_columns(event.affected_population, ['mean', 'std'])
-        event.affected_population['systolic_blood_pressure'] = norm.ppf(event.affected_population.systolic_blood_pressure_precentile, loc=distribution['mean'], scale=distribution['std'])
-        self.simulation.population.loc[event.affected_population.index, 'systolic_blood_pressure'] = event.affected_population['systolic_blood_pressure']
+        self.simulation.population.loc[event.affected_population.index, 'systolic_blood_pressure'] = norm.ppf(event.affected_population.systolic_blood_pressure_precentile, loc=distribution['mean'], scale=distribution['std']) 
 
 
 # End.

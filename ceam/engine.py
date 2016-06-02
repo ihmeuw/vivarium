@@ -16,15 +16,6 @@ from ceam.util import sort_modules, from_yearly_rate, only_living, filter_for_ra
 from ceam.events import EventHandler, PopulationEvent
 
 
-def chronic_condition_incidence_handler(condition):
-    @only_living
-    def handler(label, mask, simulation):
-        mask = mask & (simulation.population[condition] == False)
-        incidence_rates = simulation.incidence_rates(simulation.population, condition)
-        mask = mask & mask_for_rate(simulation.population, incidence_rates)
-        simulation.population.loc[mask, condition] = True
-    return handler
-
 
 class Simulation(object):
     def __init__(self):
@@ -66,7 +57,7 @@ class Simulation(object):
                     lookup_table = prefixed_table
                 else:
                     lookup_table = lookup_table.merge(prefixed_table, how='outer')
-        #self.lookup_table = lookup_table.set_index(['year', 'age', 'sex']).sort_index()
+        #lookup_table = lookup_table.set_index(['year', 'age', 'sex']).sort_index()
         lookup_table['lookup_id'] = range(0, len(lookup_table))
         self.lookup_table = lookup_table
 
@@ -74,7 +65,7 @@ class Simulation(object):
         if path_prefix is None:
             path_prefix = self.config.get('general', 'population_data_directory')
 
-        #TODO: This will always be BaseSimulationModule which loads the core population definition and thus can discover what the population size is
+        #NOTE: This will always be BaseSimulationModule which loads the core population definition and thus can discover what the population size is
         module = self._ordered_modules[0]
         module.load_population_columns(path_prefix, 0)
         population_size = len(module.population_columns)
@@ -89,14 +80,13 @@ class Simulation(object):
         for module in self._ordered_modules:
             population = population.join(module.population_columns, how='outer')
         self.population = population.join(pd.DataFrame(0, index=np.arange(len(population)), columns=['year']))
-        self.index_population()
 
     def index_population(self):
-        #self.population = self.population.set_index(['year', 'age', 'sex']).sort_index()
+        #self._indexed_population = self.population.set_index(['year', 'age', 'sex']).sort_index()
         if not self.lookup_table.empty:
             if 'lookup_id' in self.population:
                 self.population.drop('lookup_id', 1, inplace=True)
-            self.population['lookup_id'] = self.population.merge(self.lookup_table, on=['year', 'age', 'sex'])['lookup_id']
+            self.population = self.population.merge(self.lookup_table[['year','age','sex','lookup_id']], on=['year','age','sex'])
 
     def register_modules(self, modules):
         for module in modules:
