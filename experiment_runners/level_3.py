@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from ceam.engine import Simulation
 from ceam.modules.ihd import IHDModule
 from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
-from ceam.modules.intervention import Level3InterventionModule
+from ceam.modules.level3intervention import Level3InterventionModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.metrics import MetricsModule
 
