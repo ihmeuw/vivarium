@@ -12,23 +12,22 @@ except ImportError:
 import pandas as pd
 import numpy as np
 
-from ceam.util import sort_modules, from_yearly_rate, filter_for_rate
+from ceam.util import from_yearly_rate, filter_for_rate
 from ceam.events import EventHandler, PopulationEvent, only_living
+from ceam.modules import ModuleRegistry
 
 
+class Simulation(ModuleRegistry):
+    def __init__(self, base_module_class=None):
+        ModuleRegistry.__init__(self, base_module_class if base_module_class is not None else BaseSimulationModule)
 
-class Simulation(object):
-    def __init__(self):
         self.reference_data = {}
-        self._modules = {}
-        self._ordered_modules = []
         self.current_time = None
         self.yll_by_year = defaultdict(float)
         self.yld_by_year = defaultdict(float)
         self.deaths_by_year_and_cause = defaultdict(lambda: defaultdict(int))
         self.yll_by_year_and_cause = defaultdict(lambda: defaultdict(float))
         self.new_cases_per_year = defaultdict(lambda: defaultdict(int))
-        self.register_modules([BaseSimulationModule()])
         self.population = pd.DataFrame()
         self.lookup_table = pd.DataFrame()
         self.config = ConfigParser()
@@ -85,28 +84,6 @@ class Simulation(object):
             if 'lookup_id' in self.population:
                 self.population.drop('lookup_id', 1, inplace=True)
             self.population = self.population.merge(self.lookup_table[['year','age','sex','lookup_id']], on=['year','age','sex'])
-
-    def register_modules(self, modules):
-        for module in modules:
-            module.register(self)
-            self._modules[module.__class__] = module
-
-        # TODO: This little dance is awkward but it makes it so I can privilege BaseSimulationModule without having to import it in utils
-        # It should also probably be happening at a lifecycle phase between here and the loading of data, but that doesn't exist yet
-        to_sort = set(self._modules.values())
-        to_sort.remove(self._modules[BaseSimulationModule])
-        self._ordered_modules = sort_modules(to_sort, self._modules)
-        self._ordered_modules.insert(0, self._modules[BaseSimulationModule])
-
-    def deregister_modules(self, modules):
-        for module in modules:
-            module.deregister(self)
-            del self._modules[module.__class__]
-
-        to_sort = set(self._modules.values())
-        to_sort.remove(self._modules[BaseSimulationModule])
-        self._ordered_modules = sort_modules(to_sort, self._modules)
-        self._ordered_modules.insert(0, self._modules[BaseSimulationModule])
 
     def emit_event(self, event):
         for module in self._ordered_modules:

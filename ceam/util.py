@@ -3,29 +3,6 @@
 import numpy as np
 import pandas as pd
 
-def sort_modules(to_sort, modules_registry):
-    def inner_sort(sorted_modules, current):
-        if current in sorted_modules:
-            return sorted_modules
-        if not current.DEPENDENCIES:
-            return [current] + sorted_modules
-        else:
-            i = 0
-            for dependency in current.DEPENDENCIES:
-                try:
-                    i = max(i, sorted_modules.index(modules_registry[dependency]))
-                except ValueError:
-                    sorted_modules = inner_sort(sorted_modules, modules_registry[dependency])
-                    i = max(i, sorted_modules.index(modules_registry[dependency]))
-            return sorted_modules[0:i+1] + [current] + sorted_modules[i+1:]
-
-    to_sort = set(to_sort)
-    sorted_modules = []
-    while to_sort.difference(sorted_modules):
-        current = to_sort.pop()
-        sorted_modules = inner_sort(sorted_modules, current)
-    return sorted_modules
-
 def from_yearly_rate(rate, time_step):
     return rate * (time_step.total_seconds() / (60*60*24*365.0))
 

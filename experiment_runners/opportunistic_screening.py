@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 
 from ceam.engine import Simulation, SimulationModule
-from ceam.util import only_living
+from ceam.events import only_living
 from ceam.modules.ihd import IHDModule
 from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
 from ceam.modules.healthcare_access import HealthcareAccessModule

@@ -12,25 +12,8 @@ import numpy as np
 import pandas as pd
 
 from ceam.engine import SimulationModule
-from ceam.util import sort_modules, from_yearly_rate, to_yearly_rate, rate_to_probability, probability_to_rate
+from ceam.util import from_yearly_rate, to_yearly_rate, rate_to_probability, probability_to_rate
 
-
-class AModule(SimulationModule):
-    pass
-class BModule(SimulationModule):
-    DEPENDENCIES = (AModule,)
-class CModule(SimulationModule):
-    DEPENDENCIES = (BModule,)
-class DModule(SimulationModule):
-    DEPENDENCIES = (CModule, BModule)
-
-
-class TestSortModules(TestCase):
-    # TODO: this test is not complete. There are situations in practice where the sort is wrong but this passes.
-    def test_basic_function(self):
-        modules = {DModule: DModule(), CModule: CModule(), BModule:BModule(), AModule:AModule()}
-        sorted_modules = sort_modules(modules.values(), modules)
-        self.assertListEqual(sorted_modules, [modules[AModule], modules[BModule], modules[CModule], modules[DModule]])
 
 class TestRateConversions(TestCase):
     """
