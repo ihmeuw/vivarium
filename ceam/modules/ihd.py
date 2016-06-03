@@ -1,4 +1,4 @@
-# ~/ceam/modules/ihd.py
+# ~/ceam/ceam/modules/ihd.py
 
 import os.path
 
@@ -7,7 +7,7 @@ import pandas as pd
 
 from ceam.engine import SimulationModule
 from ceam.util import filter_for_rate
-from ceam.event import only_living
+from ceam.events import only_living
 from ceam.modules.blood_pressure import BloodPressureModule
 
 
@@ -19,6 +19,7 @@ class IHDModule(SimulationModule):
 
     def load_population_columns(self, path_prefix, population_size):
         self.population_columns = pd.read_csv(os.path.join(path_prefix, 'ihd.csv'))
+        self.population_columns['ihd'] = self.population_columns['ihd'].astype(bool)
 
     def load_data(self, path_prefix):
         self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'ihd_mortality_rate.csv'))
@@ -33,7 +34,7 @@ class IHDModule(SimulationModule):
         return np.array([0.08 if has_condition else 0.0 for has_condition in population.ihd == True])
 
     def mortality_rates(self, population, rates):
-        rates += self.lookup_columns(population, ['mortality_rate'])['mortality_rate']
+        rates += self.lookup_columns(population, ['mortality_rate'])['mortality_rate'].values * population.ihd.values
         return rates
 
     def incidence_rates(self, population, rates, label):

@@ -1,4 +1,4 @@
-# ~/ceam/engine.py
+# ~/ceam/ceam/engine.py
 
 import os
 import os.path
@@ -91,8 +91,8 @@ class Simulation(object):
             module.register(self)
             self._modules[module.__class__] = module
 
-        # TODO: This little dance is awkward but it makes it so I can privilege BaseSimulationModule without having to import it in utils
-        # It should also probably be happening at a lifecycle phase between here and the loading of data, but that doesn't exist yet
+        # TODO: This little dance is awkward but it makes it so I can privilege BaseSimulationModule without having to import it in utils.
+        # It should also probably be happening at a lifecycle phase between here and the loading of data, but that doesn't exist yet.
         to_sort = set(self._modules.values())
         to_sort.remove(self._modules[BaseSimulationModule])
         self._ordered_modules = sort_modules(to_sort, self._modules)

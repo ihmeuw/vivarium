@@ -1,4 +1,4 @@
-# ~/ceam/modules/healthcare_access.py
+# ~/ceam/ceam/modules/healthcare_access.py
 
 import os.path
 from datetime import datetime
@@ -44,7 +44,7 @@ class HealthcareAccessModule(SimulationModule):
         affected_population = event.affected_population.loc[(event.affected_population.healthcare_followup_date > self.simulation.current_time-self.simulation.last_time_step) & (event.affected_population.healthcare_followup_date <= self.simulation.current_time)]
         affected_population = filter_for_probability(affected_population, self.simulation.config.getfloat('appointments', 'adherence'))
 
-        # TODO: Cost will probably need to be much more complex
+        # TODO: Cost will probably need to be much more complex.
         self.cost_by_year[self.simulation.current_time.year] += len(affected_population) * self.simulation.config.getfloat('appointments', 'cost')
 
         self.simulation.population.loc[affected_population.index, 'healthcare_last_visit_date'] = self.simulation.current_time
