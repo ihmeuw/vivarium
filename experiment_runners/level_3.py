@@ -8,6 +8,7 @@ from ceam.engine import Simulation
 from ceam.modules.ihd import IHDModule
 from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
 from ceam.modules.intervention import Level3InterventionModule
+from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.metrics import MetricsModule
 
 
@@ -50,14 +51,15 @@ def run_comparisons(simulation, test_modules, runs=10):
             else:
                 metrics['cost'] = 0.0
                 test_b_metrics.append(metrics)
-            print('Duration: %s'%(time()-start))
+            print()
+            print('Duration: %s'%(time()-start)) # fix
+            print()
             simulation.reset()
 
         a_dalys, a_cost, a_ihd_counts, a_hemorrhagic_stroke_counts = sequences(test_a_metrics)
         b_dalys, b_cost, b_ihd_counts, b_hemorrhagic_stroke_counts = sequences(test_b_metrics)
         per_daly = [cost/(b-a) for a,b,cost in zip(a_dalys, b_dalys, a_cost)]
         print()
-        print(per_daly)
         print("IHD count (without intervention):       ", b_ihd_counts)
         print("IHD count (with intervention):          ", a_ihd_counts)
         print("Hem Stroke count (without intervention):", b_hemorrhagic_stroke_counts)
@@ -72,7 +74,7 @@ def run_comparisons(simulation, test_modules, runs=10):
 def main():
     simulation = Simulation()
 
-    modules = [IHDModule(), HemorrhagicStrokeModule(), MetricsModule()]
+    modules = [BloodPressureModule(), IHDModule(), HemorrhagicStrokeModule(), MetricsModule()]
     screening_module = Level3InterventionModule()
     modules.append(screening_module)
     for module in modules:

@@ -156,7 +156,9 @@ def run_comparisons(simulation, test_modules, runs=10):
             else:
                 metrics['cost'] = 0.0
                 test_b_metrics.append(metrics)
+            print()
             print('Duration: %s'%(time()-start))
+            print()
             simulation.reset()
 
         a_dalys, a_cost, a_ihd_counts, a_hemorrhagic_stroke_counts = sequences(test_a_metrics)
