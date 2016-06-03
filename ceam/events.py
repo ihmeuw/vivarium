@@ -1,4 +1,4 @@
-# ~/ceam/engine.py
+# ~/ceam/ceam/events.py
 
 from collections import defaultdict
 from weakref import WeakKeyDictionary
@@ -59,4 +59,5 @@ def only_living(fun):
             return fun(event)
     return inner
 
-#End.
+
+# End.

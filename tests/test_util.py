@@ -5,7 +5,7 @@ from datetime import timedelta
 try:
     from unittest.mock import Mock
 except ImportError:
-    # python2 
+    # python2
     from mock import Mock
 
 import numpy as np

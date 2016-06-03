@@ -1,3 +1,5 @@
+# ~/ceam/tests/test_events.py
+
 from unittest import TestCase
 
 import numpy as np
@@ -19,7 +21,7 @@ class TestEventHandler(TestCase):
         eh.deregister_event_listener(listener, 'test')
         eh.emit_event(Event('test'))
         self.assertFalse(trigger[0])
-    
+
     def test_generic_listener(self):
         eh = EventHandler()
         records = []
@@ -51,3 +53,4 @@ class TestEventListenerDecorators(TestCase):
             self.assertEqual(len(event.affected_population), 3)
         inner(PopulationEvent('test', pop))
 
+# End.
