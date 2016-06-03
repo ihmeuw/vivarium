@@ -29,8 +29,8 @@ class EventHandler(object):
                     priority_level[label].remove(listener)
 
     def emit_event(self, label, mask, simulation):
-        for listener in self._listeners(label):                         # Function call, not reference to instance variable.
+        for listener in self._listeners(label):
             listener(label, mask.copy(), simulation)
 
 
-#End.
+# End.

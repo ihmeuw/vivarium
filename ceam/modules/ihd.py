@@ -17,9 +17,9 @@ class IHDModule(SimulationModule):
         self.population_columns = pd.read_csv(os.path.join(path_prefix, 'ihd.csv'))
 
     def load_data(self, path_prefix):
-        self.ihd_mortality_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/ihd_mortality_rate.csv')
+        self.ihd_mortality_rates = pd.read_csv(os.path.join(path_prefix, 'ihd_mortality_rate.csv'))
         self.ihd_mortality_rates.columns = [col.lower() for col in self.ihd_mortality_rates]
-        self.ihd_incidence_rates = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/IHD incidence rates.csv')
+        self.ihd_incidence_rates = pd.read_csv(os.path.join(path_prefix, 'IHD incidence rates.csv'))
         self.ihd_incidence_rates.columns = [col.lower() for col in self.ihd_incidence_rates]
 
     def disability_weight(self, population):
@@ -31,8 +31,9 @@ class IHDModule(SimulationModule):
 
     def incidence_rates(self, population, rates, label):
         if label == 'ihd':
-            #TODO: realistic relationship between SBP and IHD
-            rates.incidence_rate += population.merge(self.ihd_incidence_rates, on=['age', 'sex', 'year']).incidence
+            blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 117) / 10), 1)
+            #TODO: I'm multiplying a rate by the blood_pressure_adjustment but in Reed's work he's using a probability.  I'm not sure how much of a difference that makes in practice.
+            rates.incidence_rate += population.merge(self.ihd_incidence_rates, on=['age', 'sex', 'year']).incidence * blood_pressure_adjustment
             return rates
         return rates
 

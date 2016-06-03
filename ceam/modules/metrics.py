@@ -1,5 +1,6 @@
 # ~/ceam/ceam/modules/metrics.py
 
+import os.path
 from collections import defaultdict
 
 import pandas as pd
@@ -17,7 +18,7 @@ class MetricsModule(SimulationModule):
         self.register_event_listener(self.count_ylds, 'time_step')
 
     def load_data(self, path_prefix):
-        self.life_table = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data/gbd/interpolated_reference_life_table.csv')
+        self.life_table = pd.read_csv(os.path.join(path_prefix, 'interpolated_reference_life_table.csv'))
 
     def event_sums(self, label, mask, simulation):
         self.metrics[label] += mask.sum()

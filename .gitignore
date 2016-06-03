@@ -1,4 +1,6 @@
 .cache
 *.pyc
 *.swp
-.cache
+.coverage
+*.egg-info
+local.cfg
