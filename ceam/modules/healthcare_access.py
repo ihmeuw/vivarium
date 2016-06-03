@@ -1,4 +1,4 @@
-# ~/ceam/modules/healthcare_access.py
+# ~/ceam/ceam/modules/healthcare_access.py
 
 import os.path
 from datetime import datetime
@@ -24,7 +24,7 @@ class HealthcareAccessModule(SimulationModule):
         self.population_columns = pd.DataFrame({'healthcare_followup_date': [None]*population_size, 'healthcare_last_visit_date': [None]*population_size})
 
     def load_data(self, path_prefix):
-        # TODO: Refine these rates. Possibly include age effects, though Marcia says they are small
+        # TODO: Refine these rates.  Possibly include age effects, though Marcia says they are small.
         self.general_access_rates = pd.DataFrame({'sex': [1,2], 'rate': [0.1165, 0.1392]})
 
     @only_living
@@ -38,7 +38,7 @@ class HealthcareAccessModule(SimulationModule):
         mask &= (simulation.population.healthcare_followup_date > simulation.current_time-simulation.last_time_step) & (simulation.population.healthcare_followup_date <= simulation.current_time)
         mask &= mask_for_probability(simulation.population, simulation.config.getfloat('appointments', 'adherence'))
 
-        # TODO: Cost will probably need to be much more complex
+        # TODO: Cost will probably need to be much more complex.
         self.cost_by_year[simulation.current_time.year] += mask.sum() * simulation.config.getfloat('appointments', 'cost')
 
         simulation.population.loc[mask, 'healthcare_last_visit_date'] = simulation.current_time

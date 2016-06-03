@@ -1,4 +1,4 @@
-# ~/ceam/engine.py
+# ~/ceam/ceam/events.py
 
 from collections import defaultdict
 
@@ -32,4 +32,5 @@ class EventHandler(object):
         for listener in self._listeners(label):
             listener(label, mask.copy(), simulation)
 
-#End.
+
+# End.

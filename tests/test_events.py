@@ -1,3 +1,5 @@
+# ~/ceam/tests/test_events.py
+
 from unittest import TestCase
 
 import numpy as np
@@ -20,7 +22,7 @@ class TestEventHandler(TestCase):
         eh.deregister_event_listener(listener, 'test')
         eh.emit_event('test', np.array([]), None)
         self.assertFalse(trigger[0])
-    
+
     def test_generic_listener(self):
         eh = EventHandler()
         records = []
@@ -41,3 +43,6 @@ class TestEventHandler(TestCase):
         eh.register_event_listener(lambda a,b,c: records.append('last'), 'test', priority=9)
         eh.emit_event('test', np.array([]), None)
         self.assertListEqual(records, ['first', 'second', 'last'])
+
+
+# End.

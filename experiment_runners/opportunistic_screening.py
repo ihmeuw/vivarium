@@ -156,12 +156,14 @@ def run_comparisons(simulation, test_modules, runs=10):
             else:
                 metrics['cost'] = 0.0
                 test_b_metrics.append(metrics)
+            print()
             print('Duration: %s'%(time()-start))
+            print()
             simulation.reset()
 
         a_dalys, a_cost, a_ihd_counts, a_hemorrhagic_stroke_counts = sequences(test_a_metrics)
         b_dalys, b_cost, b_ihd_counts, b_hemorrhagic_stroke_counts = sequences(test_b_metrics)
-        per_daly = [(b-a)/cost for a,b,cost in zip(a_dalys, b_dalys, a_cost)]
+        per_daly = [cost/(b-a) for a,b,cost in zip(a_dalys, b_dalys, a_cost)]
         print(per_daly)
         print("DALYs averted:", difference_with_confidence(b_dalys, a_dalys))
         print("Total cost:", confidence(a_cost))

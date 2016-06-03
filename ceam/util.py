@@ -1,4 +1,4 @@
-# ~/ceam/util.py
+# ~/ceam/ceam/util.py
 
 import numpy as np
 import pandas as pd
@@ -44,7 +44,11 @@ def mask_for_rate(population, rate):
 
 def mask_for_probability(population, probability):
     draw = np.random.random(size=len(population))
-    return draw < probability
+    import pdb
+    try:
+        return draw < probability
+    except:
+        pdb.set_trace()
 
 
 # _MethodDecoratorAdaptor and auto_adapt_to_methods from http://stackoverflow.com/questions/1288498/using-the-same-decorator-with-arguments-with-functions-and-methods
