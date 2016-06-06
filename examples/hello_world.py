@@ -61,11 +61,11 @@ simulation.load_data()
 
 
 ### Run business-as-usual scenario
-time_params = {'start_time': pd.Timestamp('1/1/1990'),
-               'end_time': pd.Timestamp('12/31/2013'),
-               'time_step': pd.Timedelta(days=30.5)} # TODO: Is 30.5 days a good enough approximation of one month? -Alec
+start_time = pd.Timestamp('1/1/1990'),
+end_time = pd.Timestamp('12/31/2013'),
+time_step = pd.Timedelta(days=30.5)} # TODO: Is 30.5 days a good enough approximation of one month? -Alec
 np.random.seed(123456)  # set random seed for reproducibility
-simulation.run(**time_params) 
+simulation.run(start_time, end_time, time_step) 
 
 print('Without intervention:')
 print('Deaths:', metrics_module.deaths)
@@ -82,7 +82,7 @@ simulation.register_modules([intervention])
 
 np.random.seed(123456)  # set random seed for reproducibility
 simulation.reset()
-simulation.run(**time_params)
+simulation.run(start_time, end_time, time_step) 
 
 print('Without intervention:')
 print('Deaths:', metrics_module.deaths)
