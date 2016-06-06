@@ -1,3 +1,5 @@
+# ~/ceam/ceam/modules/__init__.py
+
 class ModuleException(Exception):
     pass
 class DependencyException(ModuleException):
@@ -31,7 +33,7 @@ class ModuleRegistry(object):
             self.__deregister(module)
 
         self._sort_modules()
-    
+
     @property
     def modules(self):
         """
@@ -59,7 +61,7 @@ class ModuleRegistry(object):
                 return sorted_modules[0:i+1] + [current] + sorted_modules[i+1:]
 
         to_sort = set(self._modules.values())
-        
+
         if self._base_module_class is not None:
             to_sort.remove(self._modules[self._base_module_class])
 
@@ -72,3 +74,6 @@ class ModuleRegistry(object):
             sorted_modules.insert(0, self._modules[self._base_module_class])
 
         self._ordered_modules = sorted_modules
+
+
+# End.
