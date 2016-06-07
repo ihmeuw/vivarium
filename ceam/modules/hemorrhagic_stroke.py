@@ -29,7 +29,7 @@ class HemorrhagicStrokeModule(SimulationModule):
         return np.array([0.316 if has_condition else 0.0 for has_condition in population.hemorrhagic_stroke == True])
 
     def mortality_rates(self, population, rates):
-        rates += self.lookup_columns(population, ['mtexcess'])['mtexcess'].values * population.hemorrhagic_stroke.values
+        rates += self.lookup_columns(population, ['chronic_rate'])['chronic_rate'].values * population.hemorrhagic_stroke.values
         return rates
 
     def incidence_rates(self, population, rates, label):
