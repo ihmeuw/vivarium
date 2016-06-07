@@ -1,8 +1,10 @@
 # ~/ceam/experiment_runners/opportunistic_screening.py
 
+import os.path
 from datetime import datetime, timedelta
 from time import time
 from collections import defaultdict
+import argparse
 
 import pandas as pd
 import numpy as np
@@ -14,6 +16,8 @@ from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
 from ceam.modules.healthcare_access import HealthcareAccessModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.metrics import MetricsModule
+
+from ceam.analysis import analyze_results, dump_results
 
 
 pd.set_option('mode.chained_assignment', 'raise')
@@ -128,28 +132,19 @@ class OpportunisticScreeningModule(SimulationModule):
             affected_population = event.affected_population[event.affected_population.medication_count > medication_number]
             self.simulation.population.loc[affected_population.index, 'systolic_blood_pressure'] -= medication_efficacy
 
+def make_hist(start, stop, step, name, data):
+    bins = [-float('inf')] + list(range(start, stop, step)) + [float('inf')]
+    names = ['%s_lt_%s'%(name, start)] + ['%s_%d_to_%d'%(name, i, i+step) for i in bins[1:-2]] + ['%s_gte_%d'%(name, stop-step)]
+    return zip(names, np.histogram(data, bins)[0])
 
-def confidence(seq):
-    mean = np.mean(seq)
-    std = np.std(seq)
-    runs = len(seq)
-    interval = (1.96*std)/np.sqrt(runs)
-    return mean, mean-interval, mean+interval
-
-def difference_with_confidence(a, b):
-    mean_diff = np.mean(a) - np.mean(b)
-    interval = 1.96*np.sqrt(np.std(a)/len(a)+np.std(b)/len(b))
-    return mean_diff, int(mean_diff-interval), int(mean_diff+interval)
-
-def run_comparisons(simulation, test_modules, runs=10):
+def run_comparisons(simulation, test_modules, runs=10, verbose=False):
     def sequences(metrics):
         dalys = [m['ylls'] + m['ylds'] for m in metrics]
         cost = [m['cost'] for m in metrics]
         ihd_counts = [m['ihd_count'] for m in metrics]
         hemorrhagic_stroke_counts = [m['hemorrhagic_stroke_count'] for m in metrics]
         return dalys, cost, ihd_counts, hemorrhagic_stroke_counts
-    test_a_metrics = []
-    test_b_metrics = []
+    all_metrics = []
     for run in range(runs):
         for do_test in [True, False]:
             if do_test:
@@ -158,32 +153,50 @@ def run_comparisons(simulation, test_modules, runs=10):
                 simulation.deregister_modules(test_modules)
 
             start = time()
+            metrics = {}
+            metrics['population_size'] = len(simulation.population)
+            metrics['males'] = (simulation.population.sex == 1).sum()
+            metrics['females'] = (simulation.population.sex == 2).sum()
+            for name, count in make_hist(10, 110, 10, 'ages', simulation.population.age):
+                metrics[name] = count
+
             simulation.run(datetime(1990, 1, 1), datetime(2013, 12, 31), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
-            metrics = dict(simulation._modules[MetricsModule].metrics)
+            metrics.update(simulation._modules[MetricsModule].metrics)
             metrics['ihd_count'] = sum(simulation.population.ihd == True)
             metrics['hemorrhagic_stroke_count'] = sum(simulation.population.hemorrhagic_stroke == True)
-            metrics['sbp'] = np.mean(simulation.population.systolic_blood_pressure)
+
+            for name, count in make_hist(110, 180, 10, 'sbp', simulation.population.systolic_blood_pressure):
+                metrics[name] = count
+
+            for i, medication in enumerate(MEDICATIONS):
+                if do_test:
+                    metrics[medication['name']] = (simulation.population.medication_count > i).sum()
+                else:
+                    metrics[medication['name']] = 0
+
             if do_test:
                 metrics['cost'] = sum(test_modules[0].cost_by_year.values())
-                test_a_metrics.append(metrics)
+                metrics['intervention'] = True
             else:
                 metrics['cost'] = 0.0
-                test_b_metrics.append(metrics)
-            print()
-            print('Duration: %s'%(time()-start))
-            print()
+                metrics['intervention'] = False
+            all_metrics.append(metrics)
+            metrics['duration'] = time()-start
             simulation.reset()
-
-        a_dalys, a_cost, a_ihd_counts, a_hemorrhagic_stroke_counts = sequences(test_a_metrics)
-        b_dalys, b_cost, b_ihd_counts, b_hemorrhagic_stroke_counts = sequences(test_b_metrics)
-        per_daly = [cost/(b-a) for a,b,cost in zip(a_dalys, b_dalys, a_cost)]
-        print(per_daly)
-        print("DALYs averted:", difference_with_confidence(b_dalys, a_dalys))
-        print("Total cost:", confidence(a_cost))
-        print("Cost per DALY:", confidence(per_daly))
+            if verbose:
+                analyze_results(pd.DataFrame(all_metrics))
+    return pd.DataFrame(all_metrics)
+    
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--runs', type=int, default=1, help='Number of simulation runs to complete')
+    parser.add_argument('-n', type=int, default=1, help='Instance number for this process')
+    parser.add_argument('-v', action='store_true', help='Verbose logging')
+    parser.add_argument('--stats_path', type=str, default=None, help='Output file directory. No file is written if this argument is missing')
+    args = parser.parse_args()
+
     simulation = Simulation()
 
     modules = [IHDModule(), HemorrhagicStrokeModule(), HealthcareAccessModule(), BloodPressureModule()]
@@ -198,7 +211,14 @@ def main():
     simulation.load_population()
     simulation.load_data()
 
-    run_comparisons(simulation, [screening_module], runs=10)
+    results = run_comparisons(simulation, [screening_module], runs=args.runs, verbose=args.v)
+
+    if args.stats_path:
+        dump_results(results, os.path.join(args.stats_path, '%d_stats'%args.n))
+
+    if not args.v:
+        analyze_results(results)
+    
 
 
 if __name__ == '__main__':
