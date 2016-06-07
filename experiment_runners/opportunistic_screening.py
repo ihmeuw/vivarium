@@ -186,7 +186,6 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
             if verbose:
                 analyze_results(pd.DataFrame(all_metrics))
     return pd.DataFrame(all_metrics)
-    
 
 
 def main():
@@ -218,7 +217,6 @@ def main():
 
     if not args.v:
         analyze_results(results)
-    
 
 
 if __name__ == '__main__':
