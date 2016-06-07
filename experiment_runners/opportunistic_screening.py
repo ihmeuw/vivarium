@@ -81,7 +81,7 @@ class OpportunisticScreeningModule(SimulationModule):
         self.population_columns['medication_count'] = [0]*population_size
 
     def non_followup_blood_pressure_test(self, event):
-        self.cost_by_year[self.simulation.current_time.year] += len(event.affected_population) * 9.73
+        self.cost_by_year[self.simulation.current_time.year] += len(event.affected_population) * 2.43
 
         #TODO: testing error
 
@@ -99,7 +99,7 @@ class OpportunisticScreeningModule(SimulationModule):
         self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension['medication_count'] + 2, len(MEDICATIONS))
 
     def followup_blood_pressure_test(self, event):
-        self.cost_by_year[self.simulation.current_time.year] += len(event.affected_population) * 9.73
+        self.cost_by_year[self.simulation.current_time.year] += len(event.affected_population) * 2.43
 
         normotensive, hypertensive, severe_hypertension = _hypertensive_categories(event.affected_population)
 
@@ -127,13 +127,15 @@ class OpportunisticScreeningModule(SimulationModule):
 
     @only_living
     def adjust_blood_pressure(self, event):
-        # TODO: Real drug effects + adherance rates
         for medication_number in range(len(MEDICATIONS)):
             medication_efficacy = MEDICATIONS[medication_number]['efficacy'] * self.simulation.config.getfloat('opportunistic_screening', 'adherence')
             affected_population = event.affected_population[event.affected_population.medication_count > medication_number]
             self.simulation.population.loc[affected_population.index, 'systolic_blood_pressure'] -= medication_efficacy
 
 def make_hist(start, stop, step, name, data):
+    #TODO there are NANs in the systolic blood pressure data, why?
+
+    data = data[~data.isnull()]
     bins = [-float('inf')] + list(range(start, stop, step)) + [float('inf')]
     names = ['%s_lt_%s'%(name, start)] + ['%s_%d_to_%d'%(name, i, i+step) for i in bins[1:-2]] + ['%s_gte_%d'%(name, stop-step)]
     return zip(names, np.histogram(data, bins)[0])
@@ -161,9 +163,10 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
             for name, count in make_hist(10, 110, 10, 'ages', simulation.population.age):
                 metrics[name] = count
 
-            simulation.run(datetime(1990, 1, 1), datetime(2013, 12, 31), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
+            simulation.run(datetime(1990, 1, 1), datetime(2010, 12, 1), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
             metrics.update(simulation._modules[MetricsModule].metrics)
             metrics['ihd_count'] = sum(simulation.population.ihd == True)
+            metrics['hemorrhagic_stroke_count'] = sum(simulation.population.hemorrhagic_stroke == True)
             metrics['hemorrhagic_stroke_count'] = sum(simulation.population.hemorrhagic_stroke == True)
 
             for name, count in make_hist(110, 180, 10, 'sbp', simulation.population.systolic_blood_pressure):
@@ -175,16 +178,18 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
                 else:
                     metrics[medication['name']] = 0
 
+            metrics['healthcare_access_cost'] = sum(simulation._modules[HealthcareAccessModule].cost_by_year.values())
             if do_test:
-                metrics['cost'] = sum(test_modules[0].cost_by_year.values())
+                metrics['intervention_cost'] = sum(test_modules[0].cost_by_year.values())
                 metrics['intervention'] = True
             else:
-                metrics['cost'] = 0.0
+                metrics['intervention_cost'] = 0.0
                 metrics['intervention'] = False
             all_metrics.append(metrics)
             metrics['duration'] = time()-start
             simulation.reset()
             if verbose:
+                print('RUN:',run)
                 analyze_results(pd.DataFrame(all_metrics))
     return pd.DataFrame(all_metrics)
 

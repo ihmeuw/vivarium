@@ -4,8 +4,11 @@ import pandas as pd
 import numpy as np
 
 from ceam.engine import SimulationModule
+from ceam.modules.ihd import IHDModule
+from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
 
 class SmokingModule(SimulationModule):
+    DEPENDENCIES = (IHDModule, HemorrhagicStrokeModule,)
     def setup(self):
         self.mediation_factor = 0.2
         paf_smok = 0.4
