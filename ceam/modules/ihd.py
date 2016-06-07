@@ -8,12 +8,8 @@ import pandas as pd
 from ceam.engine import SimulationModule
 from ceam.util import filter_for_rate
 from ceam.events import only_living
-from ceam.modules.blood_pressure import BloodPressureModule
-
 
 class IHDModule(SimulationModule):
-    DEPENDENCIES = (BloodPressureModule,)
-
     def setup(self):
         self.register_event_listener(self.incidence_handler, 'time_step')
 
@@ -39,10 +35,9 @@ class IHDModule(SimulationModule):
 
     def incidence_rates(self, population, rates, label):
         if label == 'ihd':
-            blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
-            #TODO: I'm multiplying a rate by the blood_pressure_adjustment but it Reed's work he's using a probability. I'm not sure how much of a difference that makes in practice
+            mediation_factor = self.simulation.incidence_mediation_factor('ihd')
             #TODO: I'm not sure that using values here is safe. I _believe_ that the resulting column comes out in the correct order but I haven't rigorously tested that
-            rates += self.lookup_columns(population, ['incidence'])['incidence'].values * blood_pressure_adjustment
+            rates += self.lookup_columns(population, ['incidence'])['incidence'].values * mediation_factor
             return rates
         return rates
 

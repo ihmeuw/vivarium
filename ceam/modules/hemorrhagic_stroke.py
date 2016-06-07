@@ -8,15 +8,8 @@ import pandas as pd
 from ceam.engine import SimulationModule
 from ceam.util import filter_for_rate
 from ceam.events import only_living
-from ceam.modules.blood_pressure import BloodPressureModule
-
-# Blood pressure as a risk factor is being ignored in this simplified model.  To include it later, import as follows.
-# from ceam.modules.blood_pressure import BloodPressureModule
-
 
 class HemorrhagicStrokeModule(SimulationModule):
-    DEPENDENCIES = (BloodPressureModule,)
-
     def setup(self):
         self.register_event_listener(self.incidence_handler, 'time_step')
 
@@ -26,7 +19,8 @@ class HemorrhagicStrokeModule(SimulationModule):
         self.population_columns['hemorrhagic_stroke'] = self.population_columns['hemorrhagic_stroke'].astype(bool)
 
     def load_data(self, path_prefix):
-        self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'hem_stroke_excess_mortality.csv'))
+        self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'chronic_hem_stroke_excess_mortality.csv'))
+        self.lookup_table.drop_duplicates(['Age','Year','sex'], inplace=True)
         self.lookup_table = self.lookup_table.merge(pd.read_csv(os.path.join(path_prefix, 'hem_stroke_incidence_rates.csv')))
         self.lookup_table.rename(columns=lambda col: col.lower(), inplace=True)
 
@@ -40,10 +34,7 @@ class HemorrhagicStrokeModule(SimulationModule):
 
     def incidence_rates(self, population, rates, label):
         if label == 'hemorrhagic_stroke':
-            # blood_pressure_effect = population.systolic_blood_pressure / 190.0
-            # blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 117) / 10), 1)
-            blood_pressure_effect = 1.0                                 # "Ignore me" line.  Remove if previous line is included in a fancier model.
-            rates += self.lookup_columns(population, ['incidence'])['incidence'].values * blood_pressure_effect
+            rates += self.lookup_columns(population, ['incidence'])['incidence'].values
             return rates
         return rates
 

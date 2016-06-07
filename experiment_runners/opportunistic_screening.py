@@ -15,6 +15,7 @@ from ceam.modules.ihd import IHDModule
 from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
 from ceam.modules.healthcare_access import HealthcareAccessModule
 from ceam.modules.blood_pressure import BloodPressureModule
+from ceam.modules.smoking import SmokingModule
 from ceam.modules.metrics import MetricsModule
 
 from ceam.analysis import analyze_results, dump_results
@@ -95,7 +96,7 @@ class OpportunisticScreeningModule(SimulationModule):
         # Severe hypertensive simulants get a 1 month followup and two drugs
         self.simulation.population.loc[severe_hypertension.index, 'healthcare_followup_date'] = self.simulation.current_time + timedelta(days= 30.5*6) # 6 months
 
-        self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.maximum(severe_hypertension['medication_count'] + 2, len(MEDICATIONS))
+        self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension['medication_count'] + 2, len(MEDICATIONS))
 
     def followup_blood_pressure_test(self, event):
         self.cost_by_year[self.simulation.current_time.year] += len(event.affected_population) * 9.73
@@ -113,15 +114,15 @@ class OpportunisticScreeningModule(SimulationModule):
 
         # Hypertensive simulants get a 6 month followup and go on one drug
         self.simulation.population.loc[hypertensive.index, 'healthcare_followup_date'] = self.simulation.current_time + timedelta(days= 30.5*6) # 6 months
-        self.simulation.population.loc[hypertensive.index, 'medication_count'] = np.maximum(hypertensive['medication_count'] + 1, len(MEDICATIONS))
+        self.simulation.population.loc[hypertensive.index, 'medication_count'] = np.minimum(hypertensive['medication_count'] + 1, len(MEDICATIONS))
         self.simulation.population.loc[severe_hypertension.index, 'healthcare_followup_date'] = self.simulation.current_time + timedelta(days= 30.5*6) # 6 months
-        self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.maximum(severe_hypertension.medication_count + 1, len(MEDICATIONS))
+        self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension.medication_count + 1, len(MEDICATIONS))
 
 
     @only_living
     def track_monthly_cost(self, event):
         for medication_number in range(len(MEDICATIONS)):
-            user_count = sum(event.affected_population.medication_count > medication_number)
+            user_count = (event.affected_population.medication_count > medication_number).sum()
             self.cost_by_year[self.simulation.current_time.year] += user_count * MEDICATIONS[medication_number]['daily_cost'] * self.simulation.last_time_step.days
 
     @only_living
@@ -198,7 +199,7 @@ def main():
 
     simulation = Simulation()
 
-    modules = [IHDModule(), HemorrhagicStrokeModule(), HealthcareAccessModule(), BloodPressureModule()]
+    modules = [IHDModule(), HemorrhagicStrokeModule(), HealthcareAccessModule(), BloodPressureModule(), SmokingModule()]
     metrics_module = MetricsModule()
     modules.append(metrics_module)
     screening_module = OpportunisticScreeningModule()

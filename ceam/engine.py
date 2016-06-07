@@ -55,7 +55,7 @@ class Simulation(ModuleRegistry):
                 if lookup_table.empty:
                     lookup_table = prefixed_table
                 else:
-                    lookup_table = lookup_table.merge(prefixed_table, how='outer')
+                    lookup_table = lookup_table.merge(prefixed_table, on=['age', 'sex', 'year'], how='inner')
         lookup_table['lookup_id'] = range(0, len(lookup_table))
         self.lookup_table = lookup_table
 
@@ -84,6 +84,13 @@ class Simulation(ModuleRegistry):
             if 'lookup_id' in self.population:
                 self.population.drop('lookup_id', 1, inplace=True)
             self.population = self.population.merge(self.lookup_table[['year','age','sex','lookup_id']], on=['year','age','sex'])
+
+    def incidence_mediation_factor(self, label):
+        factor = 1
+        for module in self._ordered_modules:
+            factor *= 1 - module.incidence_mediation_factors.get(label, 0)
+        return 1 - factor
+
 
     def emit_event(self, event):
         for module in self._ordered_modules:
@@ -118,6 +125,7 @@ class Simulation(ModuleRegistry):
             self.population.loc[self.population.alive == True, 'fractional_age'] += time_step.days/365.0
             self.population['age'] = self.population.fractional_age.astype(int)
             self.index_population()
+            self.emit_event(PopulationEvent('time_step__continuous', self.population))
             self.emit_event(PopulationEvent('time_step', self.population))
             self.current_time += time_step
 
@@ -134,6 +142,7 @@ class SimulationModule(EventHandler):
         EventHandler.__init__(self)
         self.population_columns = pd.DataFrame()
         self.lookup_table = pd.DataFrame()
+        self.incidence_mediation_factors = {}
 
     def setup(self):
         pass
