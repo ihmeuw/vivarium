@@ -205,7 +205,6 @@ class BaseSimulationModule(SimulationModule):
     def mortality_handler(self, event):
         mortality_rate = self.simulation.mortality_rates(event.affected_population)
         affected_population = filter_for_rate(event.affected_population, mortality_rate)
-        
         if not affected_population.empty:
             self.simulation.population.loc[affected_population.index, 'alive'] = False
             self.simulation.emit_event(PopulationEvent('deaths', affected_population))
