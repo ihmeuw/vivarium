@@ -44,3 +44,11 @@ Our basic development process will use a `master` branch for major releases (cor
 6. Create a pull request: https://stash.ihme.washington.edu/projects/CSTE/repos/ceam/pull-requests?create
 7. Once all your reviewers agree that things are good, use the pull request interface to merge your feature branch back into `develop`
 8. :partyhat:
+
+## Run it on the cluster
+To run a test on the cluster use 'scripts/cluster_runner.py' This will launch and optionally monitor any number of simulation runs distributed across the cluster. Example usage:
+    ```
+    cluster_runner.py --runs 300 --runs_per_slot 10 --results_dir ~/ --watch_progress
+    ```
+
+This will create a directory in your home directory named for the current time and write all results files there. It will launch 30 jobs running the simulation 10 times each. You'll end up with 30 result csv files, one for each process. The cluster_runner script will watch the jobs until they finish, occasionally printing out progress information.
