@@ -16,14 +16,19 @@ class SmokingModule(SimulationModule):
 
     def load_population_columns(self, path_prefix, population_size):
         self.population_columns['smoking_susceptibility'] = np.random.uniform(low=0.01, high=0.99, size=population_size)
-    
+
     def load_data(self, path_prefix):
         # TODO: Where does prevelence data come from?
         self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'smoking_exp_cat1_female.csv'))
         self.lookup_table = self.lookup_table.append(pd.read_csv(os.path.join(path_prefix, 'smoking_exp_cat1_male.csv')))
         self.lookup_table = self.lookup_table.drop_duplicates(['age','year_id','sex_id'])
         self.lookup_table.columns = ['row','age', 'year', 'prevelence', 'sex', 'parameter']
-    
+        self.lookup_table = self.lookup_table.drop(['row', 'parameter'], 1)
+
+        missing_rows = set((age, sex, year) for age in range(1, 104) for sex in [1,2] for year in range(1990, 2011)).difference(set(tuple(row) for row in self.lookup_table[['age','sex','year']].values.tolist()))
+        missing_rows = [(age,sex,year,0) for age,sex,year in missing_rows]
+        self.lookup_table = self.lookup_table.append(pd.DataFrame(missing_rows, columns=['age', 'sex', 'year', 'prevelence']))
+
     def incidence_rates(self, population, rates, label):
         smokers = population.smoking_susceptibility < self.lookup_columns(population, ['prevelence'])['prevelence']
         if label == 'ihd':

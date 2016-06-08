@@ -48,10 +48,17 @@ class Simulation(ModuleRegistry):
             if column not in ['age', 'year', 'sex']:
                 return prefix + '_' + column
             return column
+
+        expected_index = set((age, sex, year) for age in range(1, 104) for sex in [1,2] for year in range(1990, 2011))
         for module in self._ordered_modules:
             # TODO: This should guard against badly formatted tables somehow
             if not module.lookup_table.empty:
                 prefixed_table = module.lookup_table.rename(columns=lambda c: column_prefixer(c, module.lookup_column_prefix))
+                new_index = set(tuple(row) for row in prefixed_table[['age','sex','year']].values.tolist())
+
+                assert len(expected_index.difference(new_index)) == 0, "%s has a lookup table that doesn't meet the minimal index requirements"%module
+                assert prefixed_table.duplicated(['age','sex','year']).sum() == 0, "%s has a lookup table with duplicate rows"%module
+
                 if lookup_table.empty:
                     lookup_table = prefixed_table
                 else:
@@ -83,7 +90,9 @@ class Simulation(ModuleRegistry):
         if not self.lookup_table.empty:
             if 'lookup_id' in self.population:
                 self.population.drop('lookup_id', 1, inplace=True)
-            self.population = self.population.merge(self.lookup_table[['year','age','sex','lookup_id']], on=['year','age','sex'])
+            population = self.population.merge(self.lookup_table[['year','age','sex','lookup_id']], on=['year','age','sex'])
+            assert len(population) == len(self.population), "One of the lookup tables is missing rows or has duplicate rows"
+            self.population = population
 
     def incidence_mediation_factor(self, label):
         factor = 1
@@ -97,15 +106,19 @@ class Simulation(ModuleRegistry):
             module.emit_event(event)
 
     def mortality_rates(self, population):
-        rates = 0
+        rates = pd.Series(0, index=population.index)
         for module in self._ordered_modules:
-            rates = module.mortality_rates(population, rates)
+            new_rates = module.mortality_rates(population, rates)
+            assert len(new_rates) == len(rates), "%s is corrupting mortality rates"%module
+            rates = new_rates
         return from_yearly_rate(rates, self.last_time_step)
 
     def incidence_rates(self, population, label):
-        rates = 0
+        rates = pd.Series(0, index=population.index)
         for module in self._ordered_modules:
-            rates = module.incidence_rates(population, rates, label)
+            new_rates = module.incidence_rates(population, rates, label)
+            assert len(new_rates) == len(rates), "%s is corrupting incidence rates"%module
+            rates = new_rates
         return from_yearly_rate(rates, self.last_time_step)
 
     def disability_weight(self):
@@ -199,7 +212,7 @@ class BaseSimulationModule(SimulationModule):
         self.lookup_table.columns = [col.lower() for col in self.lookup_table.columns]
 
     def mortality_rates(self, population, rates):
-        return rates + self.lookup_columns(population, ['mortality_rate'])['mortality_rate']
+        return rates + self.lookup_columns(population, ['mortality_rate'])['mortality_rate'].values
 
     @only_living
     def mortality_handler(self, event):
