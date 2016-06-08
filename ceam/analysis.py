@@ -16,17 +16,36 @@ def difference_with_confidence(a, b):
     return mean_diff, int(mean_diff-interval), int(mean_diff+interval)
 
 def analyze_results(results):
-    for col in results.columns:
-        print(col, confidence(results[col]))
+    intervention = results[results.intervention == True]
+    non_intervention = results[results.intervention == False]
+
+    i_dalys = intervention.ylds + intervention.ylls
+    ni_dalys = non_intervention.ylds + non_intervention.ylls
+
+    print('Total runs', len(intervention))
+    print('DALYs averted', difference_with_confidence(ni_dalys,i_dalys))
+    print('Total Intervention Cost', confidence(intervention.intervention_cost))
+    print('Cost per DALY', confidence(intervention.intervention_cost.values/(ni_dalys.values-i_dalys.values)))
+    print('IHD Count (intervention)',confidence(intervention.ihd_count), 'IHD Count (non-intervention)', confidence(non_intervention.ihd_count))
+    print('Stroke Count (intervention)',confidence(intervention.hemorrhagic_stroke_count), 'Stroke Count (non-intervention)', confidence(non_intervention.hemorrhagic_stroke_count))
+
+
+    print('Healthcare Access Events per year (intervention):', confidence((intervention.general_healthcare_access+intervention.followup_healthcare_access)/20))
+    print('Healthcare Access Events per year (non-non_intervention):', confidence((non_intervention.general_healthcare_access+non_intervention.followup_healthcare_access)/20))
+
 
 def dump_results(results, path):
     results.to_csv(path)
 
-def load_results(path):
-    return pd.read_csv(path)
+def load_results(paths):
+    results = pd.DataFrame()
+    for path in paths:
+        results = results.append(pd.read_csv(path))
+    return results
 
 def main():
-    pass
+    import sys
+    analyze_results(load_results(sys.argv[1:]))
 
 if __name__ == '__main__':
     main()
