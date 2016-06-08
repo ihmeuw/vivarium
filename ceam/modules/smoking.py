@@ -1,4 +1,4 @@
-# ~/ceam/ceam/smoking.py
+# ~/ceam/ceam/modules/smoking.py
 
 import os.path
 
