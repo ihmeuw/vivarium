@@ -99,7 +99,7 @@ class OpportunisticScreeningModule(SimulationModule):
         self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension['medication_count'] + 2, len(MEDICATIONS))
 
     def followup_blood_pressure_test(self, event):
-        self.cost_by_year[self.simulation.current_time.year] += len(event.affected_population) * 2.43
+        self.cost_by_year[self.simulation.current_time.year] += len(event.affected_population) * 9.73
 
         normotensive, hypertensive, severe_hypertension = _hypertensive_categories(event.affected_population)
 
