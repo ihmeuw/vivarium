@@ -49,14 +49,9 @@ class Simulation(ModuleRegistry):
                 return prefix + '_' + column
             return column
 
-        expected_index = set((age, sex, year) for age in range(1, 104) for sex in [1,2] for year in range(1990, 2011))
         for module in self._ordered_modules:
-            # TODO: This should guard against badly formatted tables somehow
             if not module.lookup_table.empty:
                 prefixed_table = module.lookup_table.rename(columns=lambda c: column_prefixer(c, module.lookup_column_prefix))
-                new_index = set(tuple(row) for row in prefixed_table[['age','sex','year']].values.tolist())
-
-                assert len(expected_index.difference(new_index)) == 0, "%s has a lookup table that doesn't meet the minimal index requirements"%module
                 assert prefixed_table.duplicated(['age','sex','year']).sum() == 0, "%s has a lookup table with duplicate rows"%module
 
                 if lookup_table.empty:
@@ -130,6 +125,13 @@ class Simulation(ModuleRegistry):
         return total_weight
 
     def run(self, start_time, end_time, time_step):
+        # Check that all the data necessary to run the requested date range is available
+        expected_index = set((age, sex, year) for age in range(1, 104) for sex in [1,2] for year in range(start_time.year, end_time.year))
+        for module in self._ordered_modules:
+            if not module.lookup_table.empty:
+                index = set(tuple(row) for row in module.lookup_table[['age','sex','year']].values.tolist())
+                assert len(expected_index.difference(index)) == 0, "%s has a lookup table that doesn't meet the minimal index requirements"%module
+
         self.reset_population()
         self.current_time = start_time
         self.last_time_step = time_step
