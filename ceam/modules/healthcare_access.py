@@ -28,7 +28,7 @@ class HealthcareAccessModule(SimulationModule):
         # TODO: Refine these rates. Possibly include age effects, though Marcia says they are small
         rows = []
         for year in range(1990, 2014):
-            for age in range(0, 103):
+            for age in range(1, 104):
                 for sex in [1,2]:
                     rows.append([year, age, sex, 0.1165 if sex == 1 else 0.1392])
         self.lookup_table = pd.DataFrame(rows, columns=['year', 'age', 'sex', 'rate'])

@@ -13,7 +13,8 @@ from ceam.events import only_living
 class MetricsModule(SimulationModule):
     def setup(self):
         self.metrics = defaultdict(int)
-        self.register_event_listener(self.event_sums, 'healthcare_access')
+        self.register_event_listener(self.event_sums, 'general_healthcare_access')
+        self.register_event_listener(self.event_sums, 'followup_healthcare_access')
         self.register_event_listener(self.count_deaths_and_ylls, 'deaths')
         self.register_event_listener(self.count_ylds, 'time_step')
 
