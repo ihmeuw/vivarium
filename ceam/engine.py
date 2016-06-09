@@ -124,7 +124,7 @@ class Simulation(ModuleRegistry):
         total_weight = 1 - weights
         return total_weight
 
-    def run(self, start_time, end_time, time_step):
+    def _verify_tables(self, start_time, end_time):
         # Check that all the data necessary to run the requested date range is available
         expected_index = set((age, sex, year) for age in range(1, 104) for sex in [1,2] for year in range(start_time.year, end_time.year))
         for module in self._ordered_modules:
@@ -132,17 +132,23 @@ class Simulation(ModuleRegistry):
                 index = set(tuple(row) for row in module.lookup_table[['age','sex','year']].values.tolist())
                 assert len(expected_index.difference(index)) == 0, "%s has a lookup table that doesn't meet the minimal index requirements"%((module.module_id(),))
 
-        self.reset_population()
-        self.current_time = start_time
+    def _step(self, time_step):
         self.last_time_step = time_step
+        self.population['year'] = self.current_time.year
+        self.population.loc[self.population.alive == True, 'fractional_age'] += time_step.days/365.0
+        self.population['age'] = self.population.fractional_age.astype(int)
+        self.index_population()
+        self.emit_event(PopulationEvent('time_step__continuous', self.population))
+        self.emit_event(PopulationEvent('time_step', self.population))
+        self.current_time += time_step
+
+    def run(self, start_time, end_time, time_step):
+        self._verify_tables(start_time, end_time)
+        self.reset_population()
+
+        self.current_time = start_time
         while self.current_time <= end_time:
-            self.population['year'] = self.current_time.year
-            self.population.loc[self.population.alive == True, 'fractional_age'] += time_step.days/365.0
-            self.population['age'] = self.population.fractional_age.astype(int)
-            self.index_population()
-            self.emit_event(PopulationEvent('time_step__continuous', self.population))
-            self.emit_event(PopulationEvent('time_step', self.population))
-            self.current_time += time_step
+            self._step(time_step)
 
     def reset(self):
         for module in self._ordered_modules:
