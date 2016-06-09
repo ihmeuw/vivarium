@@ -5,8 +5,7 @@ from time import time
 from datetime import datetime, timedelta
 
 from ceam.engine import Simulation
-from ceam.modules.ihd import IHDModule
-from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
+from ceam.modules.chronic_condition import ChronicConditionModule
 from ceam.modules.level3intervention import Level3InterventionModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.metrics import MetricsModule
@@ -41,7 +40,7 @@ def run_comparisons(simulation, test_modules, runs=10):
                 simulation.deregister_modules(test_modules)
 
             start = time()
-            simulation.run(datetime(1990, 1, 1), datetime(2013, 12, 31), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
+            simulation.run(datetime(1990, 1, 1), datetime(2010, 12, 31), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
             metrics = dict(simulation._modules[MetricsModule].metrics)
             metrics['ihd_count'] = sum(simulation.population.ihd == True)
             metrics['hemorrhagic_stroke_count'] = sum(simulation.population.hemorrhagic_stroke == True)
@@ -74,7 +73,11 @@ def run_comparisons(simulation, test_modules, runs=10):
 def main():
     simulation = Simulation()
 
-    modules = [BloodPressureModule(), IHDModule(), HemorrhagicStrokeModule(), MetricsModule()]
+    modules = [
+            ChronicConditionModule('ihd', 'ihd_mortality_rate.csv', 'IHD incidence rates.csv', 0.08),
+            ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316),
+            MetricsModule(),
+            ]
     screening_module = Level3InterventionModule()
     modules.append(screening_module)
     for module in modules:

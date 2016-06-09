@@ -7,16 +7,17 @@ class DependencyException(ModuleException):
 
 class ModuleRegistry(object):
     def __init__(self, base_module_class=None):
-        self._base_module_class = base_module_class
+        self._base_module_id = None
         self._modules = {}
-        if self._base_module_class is not None:
-            module = self._base_module_class()
+        if base_module_class is not None:
+            module = base_module_class()
             module.setup()
+            self._base_module_id = module.module_id()
             self.__register(module)
 
     def __register(self, module):
         module.register(self)
-        self._modules[module.__class__] = module
+        self._modules[module.module_id()] = module
 
     def register_modules(self, modules):
         for module in modules:
@@ -62,16 +63,16 @@ class ModuleRegistry(object):
 
         to_sort = set(self._modules.values())
 
-        if self._base_module_class is not None:
-            to_sort.remove(self._modules[self._base_module_class])
+        if self._base_module_id is not None:
+            to_sort.remove(self._modules[self._base_module_id])
 
         sorted_modules = []
         while to_sort.difference(sorted_modules):
             current = to_sort.pop()
             sorted_modules = inner_sort(sorted_modules, current)
 
-        if self._base_module_class is not None:
-            sorted_modules.insert(0, self._modules[self._base_module_class])
+        if self._base_module_id is not None:
+            sorted_modules.insert(0, self._modules[self._base_module_id])
 
         self._ordered_modules = sorted_modules
 

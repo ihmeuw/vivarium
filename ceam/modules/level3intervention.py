@@ -6,13 +6,9 @@ import numpy as np
 import pandas as pd
 
 from ceam.engine import SimulationModule
-from ceam.modules.ihd import IHDModule
-from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
 
 
 class Level3InterventionModule(SimulationModule):
-    DEPENDENCIES = (IHDModule, HemorrhagicStrokeModule,)
-
     def setup(self):
         self.register_event_listener(self.track_cost, 'time_step')
         self.cummulative_cost = 0

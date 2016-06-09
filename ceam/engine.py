@@ -52,7 +52,7 @@ class Simulation(ModuleRegistry):
         for module in self._ordered_modules:
             if not module.lookup_table.empty:
                 prefixed_table = module.lookup_table.rename(columns=lambda c: column_prefixer(c, module.lookup_column_prefix))
-                assert prefixed_table.duplicated(['age','sex','year']).sum() == 0, "%s has a lookup table with duplicate rows"%module
+                assert prefixed_table.duplicated(['age','sex','year']).sum() == 0, "%s has a lookup table with duplicate rows"%(module.module_id())
 
                 if lookup_table.empty:
                     lookup_table = prefixed_table
@@ -130,7 +130,7 @@ class Simulation(ModuleRegistry):
         for module in self._ordered_modules:
             if not module.lookup_table.empty:
                 index = set(tuple(row) for row in module.lookup_table[['age','sex','year']].values.tolist())
-                assert len(expected_index.difference(index)) == 0, "%s has a lookup table that doesn't meet the minimal index requirements"%module
+                assert len(expected_index.difference(index)) == 0, "%s has a lookup table that doesn't meet the minimal index requirements"%((module.module_id(),))
 
         self.reset_population()
         self.current_time = start_time
@@ -164,6 +164,9 @@ class SimulationModule(EventHandler):
 
     def reset(self):
         pass
+
+    def module_id(self):
+        return self.__class__
 
     def register(self, simulation):
         self.simulation = simulation

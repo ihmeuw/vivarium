@@ -12,7 +12,7 @@ def confidence(seq):
 
 def difference_with_confidence(a, b):
     mean_diff = np.mean(a) - np.mean(b)
-    interval = 1.96*np.sqrt(np.std(a)/len(a)+np.std(b)/len(b))
+    interval = 1.96*np.sqrt(np.std(a)**2/len(a)+np.std(b)**2/len(b))
     return mean_diff, int(mean_diff-interval), int(mean_diff+interval)
 
 def analyze_results(results):
@@ -23,6 +23,7 @@ def analyze_results(results):
     ni_dalys = non_intervention.ylds + non_intervention.ylls
 
     print('Total runs', len(intervention))
+    print('DALYs (intervention)', confidence(i_dalys), 'DALYs (non-intervention)', confidence(ni_dalys))
     print('DALYs averted', difference_with_confidence(ni_dalys,i_dalys))
     print('Total Intervention Cost', confidence(intervention.intervention_cost))
     print('Cost per DALY', confidence(intervention.intervention_cost.values/(ni_dalys.values-i_dalys.values)))
