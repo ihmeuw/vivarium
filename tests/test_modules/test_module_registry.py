@@ -1,3 +1,5 @@
+# ~/ceam/tests/test_modules/test_module_registry.py
+
 from unittest import TestCase
 
 from ceam.modules import ModuleRegistry, DependencyException
@@ -50,3 +52,5 @@ class TestModuleRegistration(TestCase):
 #        sorted_modules = sort_modules(modules, TestBaseModule)
 #        self.assertListEqual(sorted_modules, [modules[TestBaseModule], modules[AModule], modules[BModule], modules[CModule], modules[DModule]])
 
+
+# End.

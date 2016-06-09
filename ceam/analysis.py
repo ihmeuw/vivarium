@@ -1,3 +1,5 @@
+# ~/ceam/ceam/analysis.py
+
 import argparse
 
 import pandas as pd
@@ -30,7 +32,6 @@ def analyze_results(results):
     print('IHD Count (intervention)',confidence(intervention.ihd_count), 'IHD Count (non-intervention)', confidence(non_intervention.ihd_count))
     print('Stroke Count (intervention)',confidence(intervention.hemorrhagic_stroke_count), 'Stroke Count (non-intervention)', confidence(non_intervention.hemorrhagic_stroke_count))
 
-
     print('Healthcare Access Events per year (intervention):', confidence((intervention.general_healthcare_access+intervention.followup_healthcare_access)/20))
     print('Healthcare Access Events per year (non-non_intervention):', confidence((non_intervention.general_healthcare_access+non_intervention.followup_healthcare_access)/20))
 
@@ -48,5 +49,9 @@ def main():
     import sys
     analyze_results(load_results(sys.argv[1:]))
 
+
 if __name__ == '__main__':
     main()
+
+
+# End.

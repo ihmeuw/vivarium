@@ -53,4 +53,5 @@ class TestEventListenerDecorators(TestCase):
             self.assertEqual(len(event.affected_population), 3)
         inner(PopulationEvent('test', pop))
 
+
 # End.

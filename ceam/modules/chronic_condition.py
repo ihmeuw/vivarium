@@ -1,3 +1,5 @@
+# ~/ceam/ceam/modules/chronic_condition.py
+
 import os.path
 
 import pandas as pd
@@ -61,3 +63,5 @@ class ChronicConditionModule(SimulationModule):
         affected_population = filter_for_rate(affected_population, incidence_rates)
         self.simulation.population.loc[affected_population.index, self.condition] = True
 
+
+# End.
