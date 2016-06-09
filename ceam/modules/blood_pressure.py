@@ -1,4 +1,5 @@
 # ~/ceam/ceam/modules/blood_pressure.py
+import os.path
 
 import pandas as pd
 import numpy as np
@@ -18,7 +19,7 @@ class BloodPressureModule(SimulationModule):
         self.population_columns['systolic_blood_pressure_precentile'] = np.random.uniform(low=0.01, high=0.99, size=population_size)
 
     def load_data(self, path_prefix):
-        dists = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/SBP_dist.csv')
+        dists = pd.read_csv(os.path.join(path_prefix, 'SBP_dist.csv'))
         self.lookup_table = dists[dists.Parameter == 'sd'].merge(dists[dists.Parameter == 'mean'], on=['Age', 'Year', 'sex'])
         self.lookup_table.drop(['Parameter_x','Parameter_y'],axis=1, inplace=True)
         self.lookup_table.columns = ['age', 'year', 'std', 'sex', 'mean']
