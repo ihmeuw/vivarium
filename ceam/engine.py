@@ -191,11 +191,10 @@ class SimulationModule(EventHandler):
         return self.__class__.__name__
 
     def lookup_columns(self, population, columns):
-        origonal_columns = columns
+        original_columns = columns
         columns = [self.lookup_column_prefix + '_' + c for c in columns]
         results = self.simulation.lookup_table.ix[population.lookup_id, columns]
-        return results.rename(columns=dict(zip(columns,origonal_columns)))
-
+        return results.rename(columns=dict(zip(columns,original_columns)))
 
 
 class BaseSimulationModule(SimulationModule):
