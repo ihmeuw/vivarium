@@ -1,4 +1,5 @@
 # ~/ceam/ceam/modules/blood_pressure.py
+
 import os.path
 
 import pandas as pd
@@ -32,7 +33,6 @@ class BloodPressureModule(SimulationModule):
         self.lookup_table = self.lookup_table.append(pd.DataFrame(rows, columns=['age', 'year', 'std', 'sex', 'mean']))
         self.lookup_table.drop_duplicates(['year','age','sex'], inplace=True)
 
-
     @only_living
     def update_systolic_blood_pressure(self, event):
         distribution = self.lookup_columns(event.affected_population, ['mean', 'std'])
@@ -47,7 +47,6 @@ class BloodPressureModule(SimulationModule):
             blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
             rates *= self.incidence_mediation_factors['hemorrhagic_stroke'] * blood_pressure_adjustment
         return rates
-
 
 
 # End.
