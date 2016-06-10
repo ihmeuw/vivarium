@@ -11,15 +11,96 @@ except ImportError:
 
 import pandas as pd
 import numpy as np
+np.seterr(all='raise')
 
-from ceam.util import from_yearly_rate, filter_for_rate
+from ceam.util import from_yearly, filter_for_rate
 from ceam.events import EventHandler, PopulationEvent, only_living
 from ceam.modules import ModuleRegistry
 
 
+class SimulationModule(EventHandler):
+    DEPENDENCIES = set()
+    def __init__(self):
+        EventHandler.__init__(self)
+        self.population_columns = pd.DataFrame()
+        self.lookup_table = pd.DataFrame()
+        self.incidence_mediation_factors = {}
+
+    def setup(self):
+        pass
+
+    def reset(self):
+        pass
+
+    def module_id(self):
+        return self.__class__
+
+    def register(self, simulation):
+        self.simulation = simulation
+
+    def deregister(self, simulation):
+        pass
+
+    def load_population_columns(self, path_prefix, population_size):
+        pass
+
+    def load_data(self, path_prefix):
+        pass
+
+    def disability_weight(self, population):
+        return 0.0
+
+    def mortality_rates(self, population, rates):
+        return rates
+
+    def incidence_rates(self, population, rates, label):
+        return rates
+
+    @property
+    def lookup_column_prefix(self):
+        return str(self.module_id())
+
+    def lookup_columns(self, population, columns):
+        origonal_columns = columns
+        columns = [self.lookup_column_prefix + '_' + c for c in columns]
+
+        for i, column in enumerate(columns):
+            assert column in self.simulation.lookup_table, 'Tried to lookup non-existent column: %s'%column
+
+        results = self.simulation.lookup_table.ix[population.lookup_id, columns]
+        return results.rename(columns=dict(zip(columns,origonal_columns)))
+
+
+class BaseSimulationModule(SimulationModule):
+    def __init__(self):
+        super(BaseSimulationModule, self).__init__()
+        self.register_event_listener(self.mortality_handler, 'time_step', priority=1)
+
+    def load_population_columns(self, path_prefix, population_size):
+        self.population_columns = self.population_columns.join(pd.read_csv(os.path.join(path_prefix, 'age.csv')), how='outer')
+        self.population_columns = self.population_columns.assign(fractional_age=self.population_columns.age.astype(float))
+        self.population_columns = self.population_columns.join(pd.read_csv(os.path.join(path_prefix, 'sex.csv')))
+        self.population_columns = self.population_columns.join(pd.DataFrame({'alive': [True]*len(self.population_columns.age)}))
+
+    def load_data(self, path_prefix):
+        self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'Mortality_Rates.csv'))
+        self.lookup_table.columns = [col.lower() for col in self.lookup_table.columns]
+
+    def mortality_rates(self, population, rates):
+        return rates + self.lookup_columns(population, ['mortality_rate'])['mortality_rate'].values
+
+    @only_living
+    def mortality_handler(self, event):
+        mortality_rate = self.simulation.mortality_rates(event.affected_population)
+        affected_population = filter_for_rate(event.affected_population, mortality_rate)
+        if not affected_population.empty:
+            self.simulation.population.loc[affected_population.index, 'alive'] = False
+            self.simulation.emit_event(PopulationEvent('deaths', affected_population))
+
+
 class Simulation(ModuleRegistry):
-    def __init__(self, base_module_class=None):
-        ModuleRegistry.__init__(self, base_module_class if base_module_class is not None else BaseSimulationModule)
+    def __init__(self, base_module_class=BaseSimulationModule):
+        ModuleRegistry.__init__(self, base_module_class)
 
         self.reference_data = {}
         self.current_time = None
@@ -92,9 +173,8 @@ class Simulation(ModuleRegistry):
     def incidence_mediation_factor(self, label):
         factor = 1
         for module in self._ordered_modules:
-            factor *= 1 - module.incidence_mediation_factors.get(label, 0)
+            factor *= 1 - module.incidence_mediation_factors.get(label, 1)
         return 1 - factor
-
 
     def emit_event(self, event):
         for module in self._ordered_modules:
@@ -106,7 +186,7 @@ class Simulation(ModuleRegistry):
             new_rates = module.mortality_rates(population, rates)
             assert len(new_rates) == len(rates), "%s is corrupting mortality rates"%module
             rates = new_rates
-        return from_yearly_rate(rates, self.last_time_step)
+        return from_yearly(rates, self.last_time_step)
 
     def incidence_rates(self, population, label):
         rates = pd.Series(0, index=population.index)
@@ -114,7 +194,7 @@ class Simulation(ModuleRegistry):
             new_rates = module.incidence_rates(population, rates, label)
             assert len(new_rates) == len(rates), "%s is corrupting incidence rates"%module
             rates = new_rates
-        return from_yearly_rate(rates, self.last_time_step)
+        return from_yearly(rates, self.last_time_step)
 
     def disability_weight(self):
         weights = 1
@@ -155,82 +235,6 @@ class Simulation(ModuleRegistry):
             module.reset()
         self.reset_population()
         self.current_time = None
-
-
-class SimulationModule(EventHandler):
-    DEPENDENCIES = set()
-    def __init__(self):
-        EventHandler.__init__(self)
-        self.population_columns = pd.DataFrame()
-        self.lookup_table = pd.DataFrame()
-        self.incidence_mediation_factors = {}
-
-    def setup(self):
-        pass
-
-    def reset(self):
-        pass
-
-    def module_id(self):
-        return self.__class__
-
-    def register(self, simulation):
-        self.simulation = simulation
-
-    def deregister(self, simulation):
-        pass
-
-    def load_population_columns(self, path_prefix, population_size):
-        pass
-
-    def load_data(self, path_prefix):
-        pass
-
-    def disability_weight(self, population):
-        return 0.0
-
-    def mortality_rates(self, population, rates):
-        return rates
-
-    def incidence_rates(self, population, rates, label):
-        return rates
-
-    @property
-    def lookup_column_prefix(self):
-        return self.__class__.__name__
-
-    def lookup_columns(self, population, columns):
-        original_columns = columns
-        columns = [self.lookup_column_prefix + '_' + c for c in columns]
-        results = self.simulation.lookup_table.ix[population.lookup_id, columns]
-        return results.rename(columns=dict(zip(columns,original_columns)))
-
-
-class BaseSimulationModule(SimulationModule):
-    def __init__(self):
-        super(BaseSimulationModule, self).__init__()
-        self.register_event_listener(self.mortality_handler, 'time_step', priority=1)
-
-    def load_population_columns(self, path_prefix, population_size):
-        self.population_columns = self.population_columns.join(pd.read_csv(os.path.join(path_prefix, 'age.csv')), how='outer')
-        self.population_columns = self.population_columns.assign(fractional_age=self.population_columns.age.astype(float))
-        self.population_columns = self.population_columns.join(pd.read_csv(os.path.join(path_prefix, 'sex.csv')))
-        self.population_columns = self.population_columns.join(pd.DataFrame({'alive': [True]*len(self.population_columns.age)}))
-
-    def load_data(self, path_prefix):
-        self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'Mortality_Rates.csv'))
-        self.lookup_table.columns = [col.lower() for col in self.lookup_table.columns]
-
-    def mortality_rates(self, population, rates):
-        return rates + self.lookup_columns(population, ['mortality_rate'])['mortality_rate'].values
-
-    @only_living
-    def mortality_handler(self, event):
-        mortality_rate = self.simulation.mortality_rates(event.affected_population)
-        affected_population = filter_for_rate(event.affected_population, mortality_rate)
-        if not affected_population.empty:
-            self.simulation.population.loc[affected_population.index, 'alive'] = False
-            self.simulation.emit_event(PopulationEvent('deaths', affected_population))
 
 
 # End.

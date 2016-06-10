@@ -3,11 +3,11 @@
 import numpy as np
 import pandas as pd
 
-def from_yearly_rate(rate, time_step):
-    return rate * (time_step.total_seconds() / (60*60*24*365.0))
+def from_yearly(value, time_step):
+    return value * (time_step.total_seconds() / (60*60*24*365.0))
 
-def to_yearly_rate(rate, time_step):
-    return rate / (time_step.total_seconds() / (60*60*24*365.0))
+def to_yearly(value, time_step):
+    return value / (time_step.total_seconds() / (60*60*24*365.0))
 
 def rate_to_probability(rate):
     return 1-np.exp(-rate)
