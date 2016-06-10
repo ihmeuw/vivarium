@@ -6,13 +6,9 @@ import numpy as np
 import pandas as pd
 
 from ceam.engine import SimulationModule
-from ceam.modules.ihd import IHDModule
-from ceam.modules.hemorrhagic_stroke import HemorrhagicStrokeModule
 
 
 class Level3InterventionModule(SimulationModule):
-    DEPENDENCIES = (IHDModule, HemorrhagicStrokeModule,)
-
     def setup(self):
         self.register_event_listener(self.track_cost, 'time_step')
         self.cummulative_cost = 0
@@ -23,7 +19,9 @@ class Level3InterventionModule(SimulationModule):
 
     def incidence_rates(self, population, rates, label):
         if label == 'ihd' or label == 'hemorrhagic_stroke':
-            rates *= ((population.year >= 1995) & (population.age >= 25)) * 0.5
+            # If conditions (year >= 1995 and age >= 25) are satisfied, then incidence is reduced to half (multiplied by 0.5) for each simulant.
+            # This operation (multiplication by 1.0 if conditions eval to False or by 0.5 if conditions eval to True) is vectorized (performed on EACH member of the vector "rates").
+            rates *= 1.0 - ( ((population.year >= 1995) & (population.age >= 25)) * 0.5 )
         return rates
 
     def reset(self):

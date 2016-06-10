@@ -1,4 +1,4 @@
-# ~/ceam/tests/test_module_registery.py
+# ~/ceam/tests/test_modules/test_module_registry.py
 
 from unittest import TestCase
 

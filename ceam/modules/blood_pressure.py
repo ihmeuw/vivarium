@@ -1,5 +1,7 @@
 # ~/ceam/ceam/modules/blood_pressure.py
 
+import os.path
+
 import pandas as pd
 import numpy as np
 from scipy.stats import norm
@@ -18,7 +20,7 @@ class BloodPressureModule(SimulationModule):
         self.population_columns['systolic_blood_pressure_precentile'] = np.random.uniform(low=0.01, high=0.99, size=population_size)
 
     def load_data(self, path_prefix):
-        dists = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/SBP_dist.csv')
+        dists = pd.read_csv(os.path.join(path_prefix, 'SBP_dist.csv'))
         self.lookup_table = dists[dists.Parameter == 'sd'].merge(dists[dists.Parameter == 'mean'], on=['Age', 'Year', 'sex'])
         self.lookup_table.drop(['Parameter_x','Parameter_y'],axis=1, inplace=True)
         self.lookup_table.columns = ['age', 'year', 'std', 'sex', 'mean']
@@ -30,7 +32,6 @@ class BloodPressureModule(SimulationModule):
                     rows.append([age, year, 0, sex, 112])
         self.lookup_table = self.lookup_table.append(pd.DataFrame(rows, columns=['age', 'year', 'std', 'sex', 'mean']))
         self.lookup_table.drop_duplicates(['year','age','sex'], inplace=True)
-
 
     @only_living
     def update_systolic_blood_pressure(self, event):
@@ -46,7 +47,6 @@ class BloodPressureModule(SimulationModule):
             blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
             rates *= self.incidence_mediation_factors['hemorrhagic_stroke'] * blood_pressure_adjustment
         return rates
-
 
 
 # End.
