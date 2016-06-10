@@ -77,10 +77,10 @@ def main():
     simulation = Simulation()
 
     modules = [
-            ChronicConditionModule('ihd', 'ihd_mortality_rate.csv', 'IHD incidence rates.csv', 0.08),
-            ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316),
-            MetricsModule(),
-            ]
+               ChronicConditionModule('ihd', 'ihd_mortality_rate.csv', 'IHD incidence rates.csv', 0.08),
+               ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316),
+               MetricsModule(),
+              ]
     screening_module = Level3InterventionModule()
     modules.append(screening_module)
     for module in modules:
