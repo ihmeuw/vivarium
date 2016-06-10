@@ -21,7 +21,11 @@ class Level3InterventionModule(SimulationModule):
         if label == 'ihd' or label == 'hemorrhagic_stroke':
             # If conditions (year >= 1995 and age >= 25) are satisfied, then incidence is reduced to half (multiplied by 0.5) for each simulant.
             # This operation (multiplication by 1.0 if conditions eval to False or by 0.5 if conditions eval to True) is vectorized (performed on EACH member of the vector "rates").
-            rates *= 1.0 - ( ((population.year >= 1995) & (population.age >= 25)) * 0.5 )
+            for i in range(len(rates)):
+                rates.iloc[i] *= 1.0 - ( ((population.year.iloc[i] >= 1995) & (population.age.iloc[i] >= 25)) * 0.5 )
+
+#            rates *= 1.0 - ( ((population.year >= 1995) & (population.age >= 25)) * 0.5 )
+
         return rates
 
     def reset(self):
