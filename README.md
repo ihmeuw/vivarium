@@ -17,7 +17,7 @@ By default CEAM assumes that your filesystem is like the one on the cluster. If 
 Protip: You can override any configuration using this file. Take a look at ceam/config.cfg to get an idea what other configuration variables there are.
 
 ## Testing
-All tests are in the tests directory. Test files should correspond with the files they test. So, `ceam/engine.py` will have `tests/test_engine.py`. Run the tests by invoking `py.test`.
+All tests are in the tests directory. Test files should correspond with the files they test. So, `ceam/engine.py` will have `tests/test_engine.py`. Run the tests by invoking `py.test`. Some of the data backed tests are slow, if that's irritating you can exclude them with `py.test -m "not data"`.
 
 ## Development Process
 Our basic development process will use a `master` branch for major releases (corresponding to presentations or papers), a `develop` branch which has the current shared version of the code and should always be as stable and bug free as possible, and many feature branches which have work-in-progress code for new features.
