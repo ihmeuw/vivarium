@@ -71,7 +71,6 @@ class SimulationModule(EventHandler):
         return results.rename(columns=dict(zip(columns,origonal_columns)))
 
 
-
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
         super(BaseSimulationModule, self).__init__()
@@ -97,6 +96,7 @@ class BaseSimulationModule(SimulationModule):
         if not affected_population.empty:
             self.simulation.population.loc[affected_population.index, 'alive'] = False
             self.simulation.emit_event(PopulationEvent('deaths', affected_population))
+
 
 class Simulation(ModuleRegistry):
     def __init__(self, base_module_class=BaseSimulationModule):
@@ -176,7 +176,6 @@ class Simulation(ModuleRegistry):
             factor *= 1 - module.incidence_mediation_factors.get(label, 1)
         return 1 - factor
 
-
     def emit_event(self, event):
         for module in self._ordered_modules:
             module.emit_event(event)
@@ -236,8 +235,6 @@ class Simulation(ModuleRegistry):
             module.reset()
         self.reset_population()
         self.current_time = None
-
-
 
 
 # End.
