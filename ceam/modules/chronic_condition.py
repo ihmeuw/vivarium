@@ -40,9 +40,18 @@ class ChronicConditionModule(SimulationModule):
         self.lookup_table = pd.read_csv(os.path.join(path_prefix, self.mortality_table_name))
         self.lookup_table.rename(columns=lambda col: col.lower(), inplace=True)
 
-        self.lookup_table.merge(pd.read_csv(os.path.join(path_prefix, self.incidence_table_name)).rename(columns=lambda col: col.lower()), on=['age', 'sex', 'year'])
+        self.lookup_table = self.lookup_table.merge(pd.read_csv(os.path.join(path_prefix, self.incidence_table_name)).rename(columns=lambda col: col.lower()), on=['age', 'sex', 'year'])
 
         self.lookup_table.drop_duplicates(['age','year','sex'], inplace=True)
+
+        #TODO: normalize inputs instead
+        columns = []
+        for col in self.lookup_table.columns:
+            if col == 'chronic_rate':
+                columns.append('mortality_rate')
+            else:
+                columns.append(col)
+        self.lookup_table.columns = columns
 
     def disability_weight(self, population):
         return (population[self.condition] == True) * self._disability_weight

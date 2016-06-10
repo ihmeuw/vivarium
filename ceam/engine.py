@@ -11,6 +11,7 @@ except ImportError:
 
 import pandas as pd
 import numpy as np
+np.seterr(all='raise')
 
 from ceam.util import from_yearly_rate, filter_for_rate
 from ceam.events import EventHandler, PopulationEvent, only_living
@@ -197,11 +198,15 @@ class SimulationModule(EventHandler):
 
     @property
     def lookup_column_prefix(self):
-        return self.__class__.__name__
+        return str(self.module_id())
 
     def lookup_columns(self, population, columns):
         origonal_columns = columns
         columns = [self.lookup_column_prefix + '_' + c for c in columns]
+
+        for i, column in enumerate(columns):
+            assert column in self.simulation.lookup_table, 'Tried to lookup non-existent column: %s'%column
+
         results = self.simulation.lookup_table.ix[population.lookup_id, columns]
         return results.rename(columns=dict(zip(columns,origonal_columns)))
 

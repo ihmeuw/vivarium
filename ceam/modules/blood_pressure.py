@@ -29,7 +29,7 @@ class BloodPressureModule(SimulationModule):
         for age in range(0,25):
             for year in range(1990, 2014):
                 for sex in [1,2]:
-                    rows.append([age, year, 0, sex, 112])
+                    rows.append([age, year, 0.0000001, sex, 112])
         self.lookup_table = self.lookup_table.append(pd.DataFrame(rows, columns=['age', 'year', 'std', 'sex', 'mean']))
         self.lookup_table.drop_duplicates(['year','age','sex'], inplace=True)
 
