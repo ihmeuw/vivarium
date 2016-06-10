@@ -9,7 +9,7 @@ import pandas as pd
 
 from ceam.engine import SimulationModule
 from ceam.events import PopulationEvent, only_living
-from ceam.util import filter_for_rate, filter_for_probability, from_yearly_rate
+from ceam.util import filter_for_rate, filter_for_probability, from_yearly
 
 
 class HealthcareAccessModule(SimulationModule):
@@ -35,7 +35,7 @@ class HealthcareAccessModule(SimulationModule):
 
     @only_living
     def general_access(self, event):
-        affected_population = filter_for_rate(event.affected_population, from_yearly_rate(self.lookup_columns(event.affected_population, ['rate'])['rate'], self.simulation.last_time_step))
+        affected_population = filter_for_rate(event.affected_population, from_yearly(self.lookup_columns(event.affected_population, ['rate'])['rate'], self.simulation.last_time_step))
         self.simulation.population.loc[affected_population.index, 'healthcare_last_visit_date'] = self.simulation.current_time
         self.simulation.emit_event(PopulationEvent('general_healthcare_access', affected_population))
         self.cost_by_year[self.simulation.current_time.year] += len(affected_population) * 7.30
