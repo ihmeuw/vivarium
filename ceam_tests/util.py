@@ -17,7 +17,7 @@ def simulation_factory(modules):
     simulation._verify_tables(datetime(1990, 1, 1), datetime(2010, 12, 1))
     return simulation
 
-def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population), population_sample_func=lambda p:p):
+def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population)):
     """ Asserts that the rate of change of some property in the simulation matches expectations.
 
     Parameters
@@ -34,8 +34,6 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
     """
 
     simulation.reset_population()
-
-    simulation.population = population_sample_func(simulation.population)
 
     timestep = timedelta(days=30)
     start_time = datetime(1990, 1, 1)

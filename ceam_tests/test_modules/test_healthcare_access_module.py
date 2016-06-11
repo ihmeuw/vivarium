@@ -22,10 +22,13 @@ class MetricsModule(SimulationModule):
 def test_general_access():
     metrics = MetricsModule()
     simulation = simulation_factory([metrics, HealthcareAccessModule()])
+    initial_population = simulation.population
 
     # Men and women have different utilization rates
-    assert_rate(simulation, simulation.config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count, population_sample_func=lambda p:p[p.sex == 1])
-    assert_rate(simulation, simulation.config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count, population_sample_func=lambda p: p[p.sex == 2])
+    simulation.population = initial_population[initial_population.sex == 1]
+    assert_rate(simulation, simulation.config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count)
+    simulation.population = initial_population[initial_population.sex == 2]
+    assert_rate(simulation, simulation.config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count)
 
 @pytest.mark.data
 def test_general_access_cost():
