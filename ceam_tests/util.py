@@ -17,32 +17,37 @@ def simulation_factory(modules):
     simulation._verify_tables(datetime(1990, 1, 1), datetime(2010, 12, 1))
     return simulation
 
-def assert_rate(simulation, count_func, effective_population_func, expected_rate):
+def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population), population_sample_func=lambda p:p):
     """ Asserts that the rate of change of some property in the simulation matches expectations.
 
     Parameters
     ----------
     simulation : ceam.engine.Simulation
-    count_func
+    value_func
         a function that takes a Simulation and returns the current value of the property to be tested
     effective_population_func
         a function that takes a Simulation and returns the size of the population over which the rate should be measured (ie. living simulants for mortality)
     expected_rate
         The rate of change we expect
+    population_sample_func
+        A function that takes in a population and returns a subset of it which will be used for the test
     """
 
     simulation.reset_population()
+
+    simulation.population = population_sample_func(simulation.population)
+
     timestep = timedelta(days=30)
     start_time = datetime(1990, 1, 1)
     simulation.current_time = start_time
 
-    count = count_func(simulation)
+    count = value_func(simulation)
     total_expected_rate = 0
     total_true_rate = 0
     for _ in range(10*12):
         effective_population_size = effective_population_func(simulation)
         simulation._step(timestep)
-        new_count = count_func(simulation)
+        new_count = value_func(simulation)
         total_expected_rate += from_yearly(expected_rate, timestep)*effective_population_size
         total_true_rate += new_count - count
         count = new_count
