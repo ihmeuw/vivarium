@@ -16,8 +16,8 @@ class BloodPressureModule(SimulationModule):
         self.incidence_mediation_factors['hemorrhagic_stroke'] = 0.3
 
     def load_population_columns(self, path_prefix, population_size):
-        self.population_columns = pd.DataFrame(np.random.randint(90, 180, size=population_size), columns=['systolic_blood_pressure'])
         self.population_columns['systolic_blood_pressure_precentile'] = np.random.uniform(low=0.01, high=0.99, size=population_size)
+        self.population_columns['systolic_blood_pressure'] = norm.ppf(self.population_columns.systolic_blood_pressure_precentile, loc=138, scale=15)
 
     def load_data(self, path_prefix):
         dists = pd.read_csv(os.path.join(path_prefix, 'SBP_dist.csv'))
