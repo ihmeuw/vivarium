@@ -4,6 +4,9 @@ from ceam.modules.chronic_condition import ChronicConditionModule
 
 from ceam_tests.util import simulation_factory, assert_rate
 
+import numpy as np
+np.random.seed(100)
+
 @pytest.mark.data
 def test_incidence_rate():
     simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.0.csv', 'incidence_0.7.csv', 0.01)])

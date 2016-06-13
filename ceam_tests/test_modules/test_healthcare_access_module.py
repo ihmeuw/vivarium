@@ -7,6 +7,9 @@ from ceam.engine import SimulationModule
 
 from ceam.modules.healthcare_access import HealthcareAccessModule
 
+import numpy as np
+np.random.seed(100)
+
 class MetricsModule(SimulationModule):
     def setup(self):
         self.register_event_listener(self.count_access, 'general_healthcare_access')
