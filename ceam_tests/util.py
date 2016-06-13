@@ -12,8 +12,8 @@ def simulation_factory(modules):
         module.setup()
     simulation.register_modules(modules)
     data_path = os.path.join(str(pytest.config.rootdir), 'ceam_tests', 'test_data')
-    simulation.load_population(os.path.join(data_path, 'population_columns'))
     simulation.load_data(data_path)
+    simulation.load_population(os.path.join(data_path, 'population_columns'))
     simulation._verify_tables(datetime(1990, 1, 1), datetime(2010, 12, 1))
     return simulation
 
@@ -52,3 +52,26 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
 
     assert abs(total_expected_rate - total_true_rate)/total_expected_rate < 0.1
 
+def pump_simulation(simulation, duration=None, iterations=None):
+    simulation.reset_population()
+
+    timestep = timedelta(days=30)
+    start_time = datetime(1990, 1, 1)
+    simulation.current_time = start_time
+    iteration_count = 0
+
+    def should_stop():
+        if duration is not None:
+            if simulation.current_time - start_time >= duration:
+                return True
+        elif iterations is not None:
+            if iteration_count >= iterations:
+                return True
+        else:
+            raise ValueError('Must supply either duration or iterations')
+
+        return False
+
+    while not should_stop():
+        iteration_count += 1
+        simulation._step(timestep)
