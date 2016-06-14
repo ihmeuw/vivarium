@@ -1,3 +1,5 @@
+# ~/ceam/tests/test_modules/test_chronic_condition.py
+
 import os.path
 from datetime import datetime, timedelta
 
@@ -6,6 +8,7 @@ import pytest
 from ceam.engine import Simulation
 from ceam.modules.chronic_condition import ChronicConditionModule
 from ceam.util import from_yearly
+
 
 def simulation_factory(modules):
     simulation = Simulation()
@@ -17,6 +20,7 @@ def simulation_factory(modules):
     simulation.load_data(data_path)
     simulation._verify_tables(datetime(1990, 1, 1), datetime(1995, 12, 1))
     return simulation
+
 
 @pytest.mark.data
 def test_incidence_rate():
@@ -37,5 +41,7 @@ def test_incidence_rate():
         true_rate += new_disease_count - disease_count
         disease_count = new_disease_count
 
-
     assert abs(expected_rate - true_rate)/expected_rate < 0.1
+
+
+# End.
