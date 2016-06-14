@@ -41,11 +41,11 @@ class BloodPressureModule(SimulationModule):
     def incidence_rates(self, population, rates, label):
         if label == 'ihd':
             blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
-            rates *= self.incidence_mediation_factors['ihd'] * blood_pressure_adjustment
+            rates *= blood_pressure_adjustment
         elif label == 'hemorrhagic_stroke':
             # TODO: get the real model for the effect of SBP on stroke from Reed
             blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
-            rates *= self.incidence_mediation_factors['hemorrhagic_stroke'] * blood_pressure_adjustment
+            rates *= blood_pressure_adjustment
         return rates
 
 
