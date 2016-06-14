@@ -14,6 +14,8 @@ class BloodPressureModule(SimulationModule):
         self.register_event_listener(self.update_systolic_blood_pressure, 'time_step__continuous')
         self.incidence_mediation_factors['ihd'] = 0.3
         self.incidence_mediation_factors['hemorrhagic_stroke'] = 0.3
+        self.register_value_mutator(self.ihd_incidence_rates, 'incidence_rates', 'ihd')
+        self.register_value_mutator(self.hemorrhagic_stroke_incidence_rates, 'incidence_rates', 'hemorrhagic_stroke')
 
     def load_population_columns(self, path_prefix, population_size):
         self.population_columns['systolic_blood_pressure_precentile'] = np.random.uniform(low=0.01, high=0.99, size=population_size)
@@ -38,15 +40,14 @@ class BloodPressureModule(SimulationModule):
         distribution = self.lookup_columns(event.affected_population, ['mean', 'std'])
         self.simulation.population.loc[event.affected_population.index, 'systolic_blood_pressure'] = norm.ppf(event.affected_population.systolic_blood_pressure_precentile, loc=distribution['mean'], scale=distribution['std'])
 
-    def incidence_rates(self, population, rates, label):
-        if label == 'ihd':
-            blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
-            rates *= blood_pressure_adjustment
-        elif label == 'hemorrhagic_stroke':
-            # TODO: get the real model for the effect of SBP on stroke from Reed
-            blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
-            rates *= blood_pressure_adjustment
-        return rates
+    def ihd_incidence_rates(self, population, rates):
+        blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
+        return rates * blood_pressure_adjustment
+
+    def hemorrhagic_stroke_incidence_rates(self, population, rates):
+        # TODO: get the real model for the effect of SBP on stroke from Reed
+        blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
+        return rates * blood_pressure_adjustment
 
 
 # End.

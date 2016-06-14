@@ -38,6 +38,8 @@ class ChronicConditionModule(SimulationModule):
 
     def setup(self):
         self.register_event_listener(self.incidence_handler, 'time_step')
+        self.register_value_source(self.incidence_rates, 'incidence_rates', self.condition)
+        self.register_value_mutator(self.mortality_rates, 'mortality_rates')
 
     def module_id(self):
         return (self.__class__, self.condition)
@@ -83,11 +85,9 @@ class ChronicConditionModule(SimulationModule):
     def mortality_rates(self, population, rates):
         return rates + self.lookup_columns(population, ['mortality_rate'])['mortality_rate'].values * population[self.condition]
 
-    def incidence_rates(self, population, rates, label):
-        if label == self.condition:
-            mediation_factor = self.simulation.incidence_mediation_factor(self.condition)
-            return rates + self.lookup_columns(population, ['incidence'])['incidence'].values * mediation_factor
-        return rates
+    def incidence_rates(self, population):
+        mediation_factor = self.simulation.incidence_mediation_factor(self.condition)
+        return self.lookup_columns(population, ['incidence'])['incidence'].values * mediation_factor
 
     @only_living
     def incidence_handler(self, event):

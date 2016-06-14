@@ -1,4 +1,9 @@
 # ~/ceam/ceam/modules/__init__.py
+from collections import defaultdict
+
+import pandas as pd
+
+from ceam.events import EventHandler
 
 class ModuleException(Exception):
     pass
@@ -75,6 +80,77 @@ class ModuleRegistry(object):
             sorted_modules.insert(0, self._modules[self._base_module_id])
 
         self._ordered_modules = sorted_modules
+
+class ValueMutationNode(object):
+    def __init__(self):
+        self._value_sources = defaultdict(lambda: defaultdict(lambda: None))
+        self._value_mutators = defaultdict(lambda: defaultdict(set))
+
+    def register_value_mutator(self, mutator, value_type, label=None):
+        self._value_mutators[value_type][label].add(mutator)
+
+    def deregister_value_mutator(self, mutator, value_type, label=None):
+        self._value_mutators[value_type][label].remove(mutator)
+
+    def register_value_source(self, source, value_type, label=None):
+        assert not self._value_sources[value_type][label], 'Source already registered for %s:%s:%s'%(value_type, label, self._value_sources[value_type][label])
+        self._value_sources[value_type][label] = source
+
+    def deregister_value_source(self, value_type, label=None):
+        del self._value_sources[value_type][label]
+
+class SimulationModule(EventHandler, ValueMutationNode):
+    DEPENDENCIES = set()
+    def __init__(self):
+        EventHandler.__init__(self)
+        ValueMutationNode.__init__(self)
+        self.population_columns = pd.DataFrame()
+        self.lookup_table = pd.DataFrame()
+        self.incidence_mediation_factors = {}
+
+    def setup(self):
+        pass
+
+    def reset(self):
+        pass
+
+    def module_id(self):
+        return self.__class__
+
+    def register(self, simulation):
+        self.simulation = simulation
+
+    def deregister(self, simulation):
+        pass
+
+    def load_population_columns(self, path_prefix, population_size):
+        pass
+
+    def load_data(self, path_prefix):
+        pass
+
+    def disability_weight(self, population):
+        return 0.0
+
+    def mortality_rates(self, population, rates):
+        return rates
+
+    def incidence_rates(self, population, rates, label):
+        return rates
+
+    @property
+    def lookup_column_prefix(self):
+        return str(self.module_id())
+
+    def lookup_columns(self, population, columns):
+        origonal_columns = columns
+        columns = [self.lookup_column_prefix + '_' + c for c in columns]
+
+        for i, column in enumerate(columns):
+            assert column in self.simulation.lookup_table, 'Tried to lookup non-existent column: %s'%column
+
+        results = self.simulation.lookup_table.ix[population.lookup_id, columns]
+        return results.rename(columns=dict(zip(columns,origonal_columns)))
 
 
 # End.
