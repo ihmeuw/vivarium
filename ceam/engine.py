@@ -131,7 +131,7 @@ class Simulation(ModuleRegistry):
     def _validate_value_nodes(self):
         sources = defaultdict(lambda: defaultdict(set))
         for module in self._ordered_modules:
-            for value_type, msources in modules._value_sources.items():
+            for value_type, msources in module._value_sources.items():
                 for label, source in msources.items():
                     sources[value_type][label].add(source)
 
@@ -139,7 +139,7 @@ class Simulation(ModuleRegistry):
         assert not duplicates, "Multiple sources for these values: %s"%duplicates
 
         for module in self._ordered_modules:
-            for value_type, mmutators in modules._value_mutators.items():
+            for value_type, mmutators in module._value_mutators.items():
                 for label, mutators in mmutators.items():
                     assert sources[value_type][label], "Missing source for mutator: %s"%((value_type, label, mutator))
 

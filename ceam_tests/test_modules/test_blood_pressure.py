@@ -34,7 +34,7 @@ def test_basic_SBP_bounds():
 @pytest.mark.data
 def test_blood_pressure_effect_on_incidince(condition):
     bp_module = BloodPressureModule()
-    condition_module = ChronicConditionModule(condition, 'mortality_0.0.csv', 'incidence_0.7.csv', 0.01, 'high_initial_disease.csv')
+    condition_module = ChronicConditionModule(condition, 'mortality_0.0.csv', 'incidence_0.7.csv', 0.01)
     simulation = simulation_factory([bp_module, condition_module])
 
     pump_simulation(simulation, iterations=1) # Get blood pressure stablaized
