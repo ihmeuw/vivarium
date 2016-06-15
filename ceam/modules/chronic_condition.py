@@ -21,7 +21,7 @@ def _rename_mortality_column(table, col_name):
 
 class ChronicConditionModule(SimulationModule):
     """
-    A generic module that can handle any simple condition
+    A generic module that can handle any simple condition which has an incidence rate, chronic mortality rate and, optionally, an acute mortality rate
     """
 
     def __init__(self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=np.timedelta64(28, 'D'), acute_mortality_table_name=None):
