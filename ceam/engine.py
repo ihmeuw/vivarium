@@ -12,6 +12,7 @@ except ImportError:
 import pandas as pd
 import numpy as np
 np.seterr(all='raise')
+pd.set_option('mode.chained_assignment', 'raise')
 
 from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, only_living
