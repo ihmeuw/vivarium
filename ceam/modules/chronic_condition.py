@@ -86,13 +86,13 @@ class ChronicConditionModule(SimulationModule):
 
     def load_data(self, path_prefix):
         chronic_mortality_rate_table_path = os.path.join(path_prefix, self.chronic_mortality_table_name)
-        self.lookup_table = pd.read_csv()
+        self.lookup_table = pd.read_csv(chronic_mortality_rate_table_path)
         assert len(self.lookup_table.columns) == 4, "Too many columns in chronic mortality rate table: %s"%chronic_mortality_rate_table_path
         self.lookup_table.columns = _rename_mortality_column(self.lookup_table, 'chronic_mortality')
 
         if self.acute_mortality_table_name:
-            accute_mortality_rate_table_path = os.path.join(path_prefix, self.acute_mortality_table_name)
-            lookup_table = pd.read_csv(accute_mortality_rate_table_path)
+            acute_mortality_rate_table_path = os.path.join(path_prefix, self.acute_mortality_table_name)
+            lookup_table = pd.read_csv(acute_mortality_rate_table_path)
             assert len(lookup_table.columns) == 4, "Too many columns in acute mortality rate table: %s"%acute_mortality_rate_table_path
             lookup_table.columns = _rename_mortality_column(lookup_table, 'acute_mortality')
             self.lookup_table = self.lookup_table.merge(lookup_table, on=['age', 'sex', 'year'])
