@@ -1,7 +1,6 @@
 # ~/ceam/ceam/modules/healthcare_access.py
 
 import os.path
-from datetime import datetime
 from collections import defaultdict
 
 import numpy as np

@@ -1,9 +1,9 @@
 # ~/ceam/ceam/modules/chronic_condition.py
 
 import os.path
-from datetime import timedelta
 
 import pandas as pd
+import numpy as np
 
 from ceam.engine import SimulationModule
 from ceam.util import filter_for_rate
@@ -23,9 +23,8 @@ class ChronicConditionModule(SimulationModule):
     """
     A generic module that can handle any simple condition
     """
-    # TODO: expand this to handle acute vs chronic states, hopefully that can be generic too
 
-    def __init__(self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=timedelta(days=28), acute_mortality_table_name=None):
+    def __init__(self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=np.timedelta64(28, 'D'), acute_mortality_table_name=None):
         """
         Parameters
         ----------
@@ -39,7 +38,7 @@ class ChronicConditionModule(SimulationModule):
             Disability weight of this condition
         initial_column_table_name : str
             Name of the column table that contains the inital state of this condition. If None then `condition`.csv will be used. Will search in the standard population columns directory.
-        acute_phase_duration : datetime.timedelta
+        acute_phase_duration : np.timedelta64
             Time after the initial incident in which simulants are effected by the acute excess mortality for this condition, if any.
         acute_mortality_table_name : str
             Name of the table to load acute mortality rates from. If this is None only chronic rates will be used
@@ -48,6 +47,10 @@ class ChronicConditionModule(SimulationModule):
         self.condition = condition
         self.chronic_mortality_table_name = chronic_mortality_table_name
         self.acute_mortality_table_name = acute_mortality_table_name
+        if acute_mortality_table_name is not None:
+            self.acute_phase_duration = acute_phase_duration
+        else:
+            self.acute_phase_duration = None
         self.incidence_table_name = incidence_table_name
         self._disability_weight = disability_weight
         self._initial_column_table_name = initial_column_table_name
@@ -78,6 +81,9 @@ class ChronicConditionModule(SimulationModule):
             # If there's no initial data for this condition, start everyone healthy
             self.population_columns = pd.DataFrame([False]*population_size, columns=[self.condition])
 
+        # NOTE: people who start with the condition go straight into the chronic phase.
+        self.population_columns[self.condition + '_event_time'] = np.array([np.datetime64('1970')] * population_size, dtype=np.datetime64)
+
     def load_data(self, path_prefix):
         self.lookup_table = pd.read_csv(os.path.join(path_prefix, self.chronic_mortality_table_name))
         self.lookup_table.columns = _rename_mortality_column(self.lookup_table, 'chronic_mortality')
@@ -96,7 +102,19 @@ class ChronicConditionModule(SimulationModule):
         return (population[self.condition] == True) * self._disability_weight
 
     def mortality_rates(self, population, rates):
-        return rates + self.lookup_columns(population, ['chronic_mortality'])['chronic_mortality'].values * population[self.condition]
+        if self.acute_phase_duration:
+            affected_population = population
+            affected_population['rates'] = rates
+            affected_population = affected_population[affected_population[self.condition] == True]
+            # This monstrosity is meant to calculate the amount of time in the last time_step that each simulant spent affected by the acute excess mortality rate of this condition
+            time_in_acute = np.maximum(np.timedelta64(0, 'D'), np.minimum(np.timedelta64(self.simulation.last_time_step), affected_population[self.condition + '_event_time'].values - (np.datetime64(self.simulation.current_time - self.simulation.last_time_step) + self.acute_phase_duration)))
+            portion_in_acute = time_in_acute/np.timedelta64(self.simulation.last_time_step)
+
+            population.loc[affected_population.index, 'rates'] += self.lookup_columns(affected_population, ['chronic_mortality'])['chronic_mortality'].values * (1-portion_in_acute)
+            population.loc[affected_population.index, 'rates'] += self.lookup_columns(affected_population, ['acute_mortality'])['acute_mortality'].values * portion_in_acute
+            return population['rates'].values
+        else:
+            return rates + self.lookup_columns(population, ['chronic_mortality'])['chronic_mortality'].values * population[self.condition]
 
     def incidence_rates(self, population):
         mediation_factor = self.simulation.incidence_mediation_factor(self.condition)
@@ -108,6 +126,7 @@ class ChronicConditionModule(SimulationModule):
         incidence_rates = self.simulation.incidence_rates(affected_population, self.condition)
         affected_population = filter_for_rate(affected_population, incidence_rates)
         self.simulation.population.loc[affected_population.index, self.condition] = True
+        self.simulation.population.loc[affected_population.index, self.condition+'_event_time'] = np.datetime64(self.simulation.current_time)
 
 
 # End.

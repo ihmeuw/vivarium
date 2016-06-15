@@ -21,7 +21,7 @@ class MetricsModule(SimulationModule):
     def reset(self):
         self.access_count = 0
 
-@pytest.mark.data
+@pytest.mark.slow
 def test_general_access():
     metrics = MetricsModule()
     simulation = simulation_factory([metrics, HealthcareAccessModule()])
@@ -33,7 +33,7 @@ def test_general_access():
     simulation.population = initial_population[initial_population.sex == 2]
     assert_rate(simulation, simulation.config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count)
 
-@pytest.mark.data
+@pytest.mark.slow
 def test_general_access_cost():
     metrics = MetricsModule()
     access = HealthcareAccessModule()
