@@ -107,9 +107,9 @@ class ChronicConditionModule(SimulationModule):
 
     def mortality_rates(self, population, rates):
         if self.acute_phase_duration:
-            affected_population = population
-            affected_population['rates'] = rates
-            affected_population = affected_population[affected_population[self.condition] == True]
+            population = population.copy()
+            population['rates'] = rates
+            affected_population = population[population[self.condition] == True]
             # This monstrosity is meant to calculate the amount of time in the last time_step that each simulant spent affected by the acute excess mortality rate of this condition
             time_in_acute = np.maximum(np.timedelta64(0, 'D'), np.minimum(np.timedelta64(self.simulation.last_time_step), affected_population[self.condition + '_event_time'].values - (np.datetime64(self.simulation.current_time - self.simulation.last_time_step) + self.acute_phase_duration)))
             portion_in_acute = time_in_acute/np.timedelta64(self.simulation.last_time_step)
