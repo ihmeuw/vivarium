@@ -20,7 +20,6 @@ from ceam.modules.metrics import MetricsModule
 from ceam.analysis import analyze_results, dump_results
 
 
-pd.set_option('mode.chained_assignment', 'raise')
 
 #TODO: This feels like configuration but is difficult to express in ini type files
 MEDICATIONS = [
@@ -204,8 +203,8 @@ def main():
     simulation = Simulation()
 
     modules = [
-            ChronicConditionModule('ihd', 'ihd_mortality_rate.csv', 'IHD incidence rates.csv', 0.08),
-            ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316),
+            ChronicConditionModule('ihd', 'ihd_mortality_rate.csv', 'IHD incidence rates.csv', 0.08, acute_mortality_table_name='mi_acute_excess_mortality.csv'),
+            ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316, acute_mortality_table_name='acute_hem_stroke_excess_mortality.csv'),
             HealthcareAccessModule(),
             BloodPressureModule(),
             SmokingModule(),
