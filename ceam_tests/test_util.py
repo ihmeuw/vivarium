@@ -12,23 +12,23 @@ import numpy as np
 import pandas as pd
 
 from ceam.engine import SimulationModule
-from ceam.util import from_yearly_rate, to_yearly_rate, rate_to_probability, probability_to_rate
+from ceam.util import from_yearly, to_yearly, rate_to_probability, probability_to_rate
 
 
 class TestRateConversions(TestCase):
     """
     Simple regression tests for rate functions
     """
-    def test_from_yearly_rate(self):
+    def test_from_yearly(self):
         one_month = timedelta(days=30.5)
         rate = 0.01
-        new_rate = from_yearly_rate(rate, one_month)
+        new_rate = from_yearly(rate, one_month)
         self.assertAlmostEqual(new_rate, 0.0008356164383561645)
 
-    def test_to_yearly_rate(self):
+    def test_to_yearly(self):
         one_month = timedelta(days=30.5)
         rate = 0.0008356164383561645
-        new_rate = to_yearly_rate(rate, one_month)
+        new_rate = to_yearly(rate, one_month)
         self.assertAlmostEqual(new_rate, 0.01)
 
     def test_rate_to_probability(self):

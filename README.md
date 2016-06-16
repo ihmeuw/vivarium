@@ -17,7 +17,7 @@ By default CEAM assumes that your filesystem is like the one on the cluster. If 
 Protip: You can override any configuration using this file. Take a look at ceam/config.cfg to get an idea what other configuration variables there are.
 
 ## Testing
-All tests are in the tests directory. Test files should correspond with the files they test. So, `ceam/engine.py` will have `tests/test_engine.py`. Run the tests by invoking `py.test`.
+All tests are in the ceam_tests directory. Test files should correspond with the files they test. So, `ceam/engine.py` will have `ceam_tests/test_engine.py`. Run the tests by invoking `py.test`. Some of the data backed tests are slow, if that's irritating you can exclude them with `py.test -m "not data"`.
 
 ## Development Process
 Our basic development process will use a `master` branch for major releases (corresponding to presentations or papers), a `develop` branch which has the current shared version of the code and should always be as stable and bug free as possible, and many feature branches which have work-in-progress code for new features.
@@ -31,7 +31,7 @@ Our basic development process will use a `master` branch for major releases (cor
     ```
     * Alternately, if your work is tied to a JIRA ticket you can create the branch using the 'Create Branch' link from inside the ticket and then checkout your new branch like so:
         ```
-        git checkout --track -b origin/YOUR_BRANCH_NAME
+        git checkout YOUR_BRANCH_NAME
         ```
 3. Write some fancy code.
 4. Commit frequently (remember you and your collaborators are the only ones who are looking at this code, so it's better to have a fine grained record of your work than to make sure everything is perfect before you commit):
@@ -44,3 +44,11 @@ Our basic development process will use a `master` branch for major releases (cor
 6. Create a pull request: https://stash.ihme.washington.edu/projects/CSTE/repos/ceam/pull-requests?create
 7. Once all your reviewers agree that things are good, use the pull request interface to merge your feature branch back into `develop`
 8. :partyhat:
+
+## Run it on the cluster
+To run a test on the cluster use 'scripts/cluster_runner.py' This will launch and optionally monitor any number of simulation runs distributed across the cluster. Example usage:
+    ```
+    cluster_runner.py --runs 300 --runs_per_slot 10 --results_dir ~/ --watch_progress
+    ```
+
+This will create a directory in your home directory named for the current time and write all results files there. It will launch 30 jobs running the simulation 10 times each. You'll end up with 30 result csv files, one for each process. The cluster_runner script will watch the jobs until they finish, occasionally printing out progress information.
