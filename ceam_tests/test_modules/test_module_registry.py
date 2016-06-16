@@ -5,6 +5,7 @@ from unittest import TestCase
 from ceam.modules import ModuleRegistry, DependencyException
 from ceam.engine import SimulationModule
 
+
 class BaseModule(SimulationModule):
     pass
 class AModule(SimulationModule):
@@ -15,6 +16,7 @@ class CModule(SimulationModule):
     DEPENDENCIES = (BModule,)
 class DModule(SimulationModule):
     DEPENDENCIES = (CModule, BModule)
+
 
 class TestModuleRegistration(TestCase):
     def test_register(self):
@@ -44,6 +46,7 @@ class TestModuleRegistration(TestCase):
         module_d = DModule()
 
         registry.register_modules([module_a, module_b])
+
 
 #class TestSortModules(TestCase):
 #    # TODO: this test is not complete. There are situations in practice where the sort is wrong but this passes.
