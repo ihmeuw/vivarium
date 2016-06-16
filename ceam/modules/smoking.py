@@ -12,6 +12,8 @@ class SmokingModule(SimulationModule):
         self.mediation_factor = 0.2
         paf_smok = 0.4
         self.incidence_mediation_factors['ihd'] = paf_smok * (1 - self.mediation_factor)
+        self.register_value_mutator(self.incidence_rates, 'incidence_rates', 'ihd')
+        self.register_value_mutator(self.incidence_rates, 'incidence_rates', 'hemorrhagic_stroke')
 
     def load_population_columns(self, path_prefix, population_size):
         self.population_columns['smoking_susceptibility'] = np.random.uniform(low=0.01, high=0.99, size=population_size)
@@ -28,12 +30,9 @@ class SmokingModule(SimulationModule):
         missing_rows = [(age,sex,year,0) for age,sex,year in missing_rows]
         self.lookup_table = self.lookup_table.append(pd.DataFrame(missing_rows, columns=['age', 'sex', 'year', 'prevalence']))
 
-    def incidence_rates(self, population, rates, label):
+    def incidence_rates(self, population, rates):
         smokers = population.smoking_susceptibility < self.lookup_columns(population, ['prevalence'])['prevalence']
-        if label == 'ihd':
-            rates[smokers] *= 2.2**(1 - self.mediation_factor)
-        elif label == 'hemorrhagic_stroke':
-            rates[smokers] *= 2.2**(1 - self.mediation_factor)
+        rates[smokers] *= 2.2**(1 - self.mediation_factor)
         return rates
 
 

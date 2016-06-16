@@ -80,7 +80,7 @@ class OpportunisticScreeningModule(SimulationModule):
         self.population_columns['medication_count'] = [0]*population_size
 
     def non_followup_blood_pressure_test(self, event):
-        self.cost_by_year[self.simulation.current_time.year] += len(event.affected_population) * 2.43
+        self.cost_by_year[self.simulation.current_time.year] += len(event.affected_population) * self.simulation.config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
 
         #TODO: testing error
 
@@ -98,7 +98,7 @@ class OpportunisticScreeningModule(SimulationModule):
         self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension['medication_count'] + 2, len(MEDICATIONS))
 
     def followup_blood_pressure_test(self, event):
-        self.cost_by_year[self.simulation.current_time.year] += len(event.affected_population) * 9.73
+        self.cost_by_year[self.simulation.current_time.year] += len(event.affected_population) * (self.simulation.config.getfloat('opportunistic_screening', 'blood_pressure_test_cost') + self.simulation.config.getfloat('appointments', 'cost'))
 
         normotensive, hypertensive, severe_hypertension = _hypertensive_categories(event.affected_population)
 

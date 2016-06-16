@@ -2,7 +2,7 @@
 
 import os
 import os.path
-from collections import defaultdict, Iterable
+from collections import defaultdict
 try:
     from configparser import ConfigParser
 except ImportError:
@@ -14,62 +14,8 @@ import numpy as np
 np.seterr(all='raise')
 
 from ceam.util import from_yearly, filter_for_rate
-from ceam.events import EventHandler, PopulationEvent, only_living
-from ceam.modules import ModuleRegistry
-
-
-class SimulationModule(EventHandler):
-    DEPENDENCIES = set()
-    def __init__(self):
-        EventHandler.__init__(self)
-        self.population_columns = pd.DataFrame()
-        self.lookup_table = pd.DataFrame()
-        self.incidence_mediation_factors = {}
-
-    def setup(self):
-        pass
-
-    def reset(self):
-        pass
-
-    def module_id(self):
-        return self.__class__
-
-    def register(self, simulation):
-        self.simulation = simulation
-
-    def deregister(self, simulation):
-        pass
-
-    def load_population_columns(self, path_prefix, population_size):
-        pass
-
-    def load_data(self, path_prefix):
-        pass
-
-    def disability_weight(self, population):
-        return 0.0
-
-    def mortality_rates(self, population, rates):
-        return rates
-
-    def incidence_rates(self, population, rates, label):
-        return rates
-
-    @property
-    def lookup_column_prefix(self):
-        return str(self.module_id())
-
-    def lookup_columns(self, population, columns):
-        origonal_columns = columns
-        columns = [self.lookup_column_prefix + '_' + c for c in columns]
-
-        for i, column in enumerate(columns):
-            assert column in self.simulation.lookup_table, 'Tried to lookup non-existent column: %s'%column
-
-        results = self.simulation.lookup_table.ix[population.lookup_id, columns]
-        return results.rename(columns=dict(zip(columns,origonal_columns)))
-
+from ceam.events import PopulationEvent, only_living
+from ceam.modules import ModuleRegistry, SimulationModule
 
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
@@ -81,13 +27,14 @@ class BaseSimulationModule(SimulationModule):
         self.population_columns = self.population_columns.assign(fractional_age=self.population_columns.age.astype(float))
         self.population_columns = self.population_columns.join(pd.read_csv(os.path.join(path_prefix, 'sex.csv')))
         self.population_columns = self.population_columns.join(pd.DataFrame({'alive': [True]*len(self.population_columns.age)}))
+        self.register_value_source(self.mortality_rates, 'mortality_rates')
 
     def load_data(self, path_prefix):
         self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'Mortality_Rates.csv'))
         self.lookup_table.columns = [col.lower() for col in self.lookup_table.columns]
 
-    def mortality_rates(self, population, rates):
-        return rates + self.lookup_columns(population, ['mortality_rate'])['mortality_rate'].values
+    def mortality_rates(self, population):
+        return self.lookup_columns(population, ['mortality_rate'])['mortality_rate'].values
 
     @only_living
     def mortality_handler(self, event):
@@ -180,20 +127,53 @@ class Simulation(ModuleRegistry):
         for module in self._ordered_modules:
             module.emit_event(event)
 
-    def mortality_rates(self, population):
-        rates = pd.Series(0, index=population.index)
+    def _validate_value_nodes(self):
+        sources = defaultdict(lambda: defaultdict(set))
         for module in self._ordered_modules:
-            new_rates = module.mortality_rates(population, rates)
-            assert len(new_rates) == len(rates), "%s is corrupting mortality rates"%module
-            rates = new_rates
+            for value_type, msources in module._value_sources.items():
+                for label, source in msources.items():
+                    sources[value_type][label].add(source)
+
+        duplicates = [(value_type, label, sources) for value_type, by_label in sources.items() for label, sources in by_label.items() if len(sources) > 1]
+        assert not duplicates, "Multiple sources for these values: %s"%duplicates
+
+        for module in self._ordered_modules:
+            for value_type, mmutators in module._value_mutators.items():
+                for label, mutators in mmutators.items():
+                    assert sources[value_type][label], "Missing source for mutator: %s"%((value_type, label, mutator))
+
+    def _get_value(self, population, value_type, label=None):
+        source = None
+        for module in self._ordered_modules:
+            if label in module._value_sources[value_type]:
+                source = module._value_sources[value_type][label]
+                break
+        assert source is not None, "No source for %s %s"%(value_type, label)
+
+        mutators = set()
+        for module in self._ordered_modules:
+            mutators.update(module._value_mutators[value_type][label])
+
+        value = source(population)
+
+        try:
+            # If the value has the concept of length, assure that it's length doesn't change over the course of the mutation
+            fixed_length = len(value)
+        except TypeError:
+            fixed_length = None
+
+        for mutator in mutators:
+            value = mutator(population, value)
+            if fixed_length is not None:
+                assert len(value) == fixed_length, "%s is corrupting incidence rates"%mutator
+        return value
+
+    def mortality_rates(self, population):
+        rates = self._get_value(population, 'mortality_rates')
         return from_yearly(rates, self.last_time_step)
 
     def incidence_rates(self, population, label):
-        rates = pd.Series(0, index=population.index)
-        for module in self._ordered_modules:
-            new_rates = module.incidence_rates(population, rates, label)
-            assert len(new_rates) == len(rates), "%s is corrupting incidence rates"%module
-            rates = new_rates
+        rates = self._get_value(population, 'incidence_rates', label)
         return from_yearly(rates, self.last_time_step)
 
     def disability_weight(self):
@@ -212,6 +192,10 @@ class Simulation(ModuleRegistry):
                 index = set(tuple(row) for row in module.lookup_table[['age','sex','year']].values.tolist())
                 assert len(expected_index.difference(index)) == 0, "%s has a lookup table that doesn't meet the minimal index requirements"%((module.module_id(),))
 
+    def _validate(self, start_time, end_time):
+        self._verify_tables(start_time, end_time)
+        self._validate_value_nodes()
+
     def _step(self, time_step):
         self.last_time_step = time_step
         self.population['year'] = self.current_time.year
@@ -223,7 +207,7 @@ class Simulation(ModuleRegistry):
         self.current_time += time_step
 
     def run(self, start_time, end_time, time_step):
-        self._verify_tables(start_time, end_time)
+        self._validate(start_time, end_time)
         self.reset_population()
 
         self.current_time = start_time
