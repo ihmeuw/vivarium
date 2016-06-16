@@ -1,5 +1,9 @@
 # ~/ceam/tests/test_modules/test_module_registry.py
 
+# To run ALL tests:  py.test (from "~/ceam" directory).
+# To run just tests in THIS file:  py.test tests/test_modules/test_module_registry.py  (from same directory).
+
+
 from unittest import TestCase
 
 from ceam.modules import ModuleRegistry, DependencyException
