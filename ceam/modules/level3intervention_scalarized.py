@@ -1,4 +1,4 @@
-# ~/ceam/ceam/modules/level3intervention.py
+# ~/ceam/ceam/modules/level3intervention_scalarized.py
 
 import os.path
 
@@ -8,7 +8,7 @@ import pandas as pd
 from ceam.engine import SimulationModule
 
 
-class Level3InterventionModule(SimulationModule):
+class Level3InterventionScalarizedModule(SimulationModule):
     def setup(self):
         self.register_event_listener(self.track_cost, 'time_step')
         self.cummulative_cost = 0
@@ -27,11 +27,11 @@ class Level3InterventionModule(SimulationModule):
         # code if there is not speed penalty thereof).
         #
         # Scalar-looping version:
-        # for i in range(len(rates)):
-        #     rates[i] *= 1.0 - ( ((population.year.iat[i] >= 1995) & (population.age.iat[i] >= 25)) * 0.5 )
+        for i in range(len(rates)):
+            rates[i] *= 1.0 - ( ((population.year.iat[i] >= 1995) & (population.age.iat[i] >= 25)) * 0.5 )
         #
         # Vectorized version: the multiplication by 1.0 if conditions eval to False or by 0.5 if conditions eval to True is vectorized (performed on EACH member of the vector "rates").
-        rates *= 1.0 - ( ((population.year >= 1995) & (population.age >= 25)) * 0.5 )
+        # rates *= 1.0 - ( ((population.year >= 1995) & (population.age >= 25)) * 0.5 )
         #
         return rates
 
