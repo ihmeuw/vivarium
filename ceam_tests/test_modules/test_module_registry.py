@@ -41,7 +41,7 @@ class TestModuleRegistration(TestCase):
         registry.register_modules([DModule()])
         self.assertSetEqual({m.__class__ for m in registry.modules}, {AModule, BModule, CModule, DModule})
 
-    def test_sort_without_base_module(self):
+    def test_sort_1_without_base_module(self):
         registry = ModuleRegistry()
         module_a = AModule()
         module_b = BModule()
@@ -51,18 +51,17 @@ class TestModuleRegistration(TestCase):
 
         self.assertListEqual(output, [module_a, module_b])
 
-    def test_sort_with_base_module(self):
+    def test_sort_2_without_base_module(self):
         registry = ModuleRegistry()
-        base_module = BaseModule()
         module_a = AModule()
         module_b = BModule()
         module_c = CModule()
         module_d = DModule()
 
-        registry.register_modules([module_a, module_b, module_c, module_d, base_module])
+        registry.register_modules([module_a, module_b, module_c, module_d])
         output = registry._ordered_modules
 
-        self.assertListEqual(output, [module_a, module_b, module_c, module_d, base_module])
+        self.assertListEqual(output, [module_a, module_b, module_c, module_d])
 
 
 # End.
