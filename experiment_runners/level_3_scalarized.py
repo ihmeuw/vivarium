@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 from ceam.engine import Simulation
 from ceam.modules.chronic_condition import ChronicConditionModule
-from ceam.modules.level3intervention import Level3InterventionModule
+from ceam.modules.level3intervention_scalarized import Level3InterventionScalarizedModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.metrics import MetricsModule
 
@@ -81,7 +81,7 @@ def main():
                ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316),
                MetricsModule(),
               ]
-    screening_module = Level3InterventionModule()
+    screening_module = Level3InterventionScalarizedModule()
     modules.append(screening_module)
     for module in modules:
         module.setup()

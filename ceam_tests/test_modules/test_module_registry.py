@@ -1,5 +1,9 @@
 # ~/ceam/tests/test_modules/test_module_registry.py
 
+# To run ALL tests:  py.test (from "~/ceam" directory).
+# To run just tests in THIS file:  py.test tests/test_modules/test_module_registry.py  (from same directory).
+
+
 from unittest import TestCase
 
 from ceam.modules import ModuleRegistry, DependencyException
@@ -22,38 +26,43 @@ class TestModuleRegistration(TestCase):
     def test_register(self):
         registry = ModuleRegistry()
 
-        # Registered modules are actually added to the internal store
+        # Registered modules are actually added to the internal store.
         registry.register_modules([AModule()])
         self.assertSetEqual({m.__class__ for m in registry.modules}, {AModule})
 
         registry.register_modules([BModule()])
         self.assertSetEqual({m.__class__ for m in registry.modules}, {AModule, BModule})
 
-        # Reregistering the same module is idempotent
+        # Reregistering the same module is idempotent.
         registry.register_modules([BModule()])
         self.assertEqual(len(registry.modules), 2)
 
-        # Registering a module without it's dependencies implicitly registers those dependencies
+        # Registering a module without it's dependencies implicitly registers those dependencies.
         registry.register_modules([DModule()])
         self.assertSetEqual({m.__class__ for m in registry.modules}, {AModule, BModule, CModule, DModule})
 
     def test_sort_without_base_module(self):
-        # TODO: this test is not complete. There are situations in practice where the sort is wrong but this passes.
         registry = ModuleRegistry()
+        module_a = AModule()
+        module_b = BModule()
+
+        registry.register_modules([module_a, module_b])
+        output = registry._ordered_modules
+
+        self.assertListEqual(output, [module_a, module_b])
+
+    def test_sort_with_base_module(self):
+        registry = ModuleRegistry()
+        base_module = BaseModule()
         module_a = AModule()
         module_b = BModule()
         module_c = CModule()
         module_d = DModule()
 
-        registry.register_modules([module_a, module_b])
+        registry.register_modules([module_a, module_b, module_c, module_d, base_module])
+        output = registry._ordered_modules
 
-
-#class TestSortModules(TestCase):
-#    # TODO: this test is not complete. There are situations in practice where the sort is wrong but this passes.
-#    def test_basic_function(self):
-#        modules = {DModule: DModule(), CModule: CModule(), BModule:BModule(), AModule:AModule(), TestBaseModule:TestBaseModule()}
-#        sorted_modules = sort_modules(modules, TestBaseModule)
-#        self.assertListEqual(sorted_modules, [modules[TestBaseModule], modules[AModule], modules[BModule], modules[CModule], modules[DModule]])
+        self.assertListEqual(output, [module_a, module_b, module_c, module_d, base_module])
 
 
 # End.
