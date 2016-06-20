@@ -55,5 +55,8 @@ class TestRateConversions(TestCase):
         self.assertAlmostEqual(prob[10], 0.00099950016662497809)
         self.assertAlmostEqual(np.sum(rate), np.sum(probability_to_rate(prob)))
 
+    def test_failure(self):
+        assert False
+
 
 # End.
