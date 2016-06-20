@@ -1,5 +1,6 @@
 # ~/ceam/examples/hello_world.py
 
+import os, time
 import numpy as np, pandas as pd
 import ceam, ceam.engine
 
@@ -27,7 +28,6 @@ class SimpleMetrics(ceam.engine.SimulationModule):
         self.register_event_listener(self.count_deaths_and_ylls, 'deaths')
 
     def load_data(self, path_prefix):
-        import os
         self.life_table = pd.read_csv(os.path.join(path_prefix, 'interpolated_reference_life_table.csv'))
 
     def count_deaths_and_ylls(self, event):
@@ -35,13 +35,11 @@ class SimpleMetrics(ceam.engine.SimulationModule):
         self.ylls += event.affected_population.merge(self.life_table, on=['age']).ex.sum()  # it includes a column called "age"
 
     def reset(self):
-        import time
         self.start_time = time.time()
         self.deaths = 0
         self.ylls = 0
 
     def run_time(self):
-        import time
         return time.time() - self.start_time
 
 ### Setup simulation
@@ -61,11 +59,11 @@ simulation.load_data()
 
 
 ### Run business-as-usual scenario
-time_params = {'start_time': pd.Timestamp('1/1/1990'),
-               'end_time': pd.Timestamp('12/31/2013'),
-               'time_step': pd.Timedelta(days=30.5)} # TODO: Is 30.5 days a good enough approximation of one month? -Alec
+start_time = pd.Timestamp('1/1/1990')
+end_time = pd.Timestamp('12/31/2013')
+time_step = pd.Timedelta(days=30.5) # TODO: Is 30.5 days a good enough approximation of one month? -Alec
 np.random.seed(123456)  # set random seed for reproducibility
-simulation.run(**time_params) 
+simulation.run(start_time, end_time, time_step) 
 
 print('Without intervention:')
 print('Deaths:', metrics_module.deaths)
@@ -82,9 +80,9 @@ simulation.register_modules([intervention])
 
 np.random.seed(123456)  # set random seed for reproducibility
 simulation.reset()
-simulation.run(**time_params)
+simulation.run(start_time, end_time, time_step) 
 
-print('Without intervention:')
+print('\nWith intervention:')
 print('Deaths:', metrics_module.deaths)
 print('YLLs:', metrics_module.ylls)
 print('Cost:', intervention.cumulative_cost)
