@@ -1,4 +1,4 @@
-[![Build Status](http://costeffect-app-p01.ihme.washington.edu/buildStatus/icon?job=CEAM Tests/develop)](http://costeffect-app-p01.ihme.washington.edu/job/CEAM%20Tests/job/develop/)
+[![Build Status](https://costeffect-app-p01.ihme.washington.edu/buildStatus/icon?job=CEAM%20Tests/develop) ](http://costeffect-app-p01.ihme.washington.edu/job/CEAM%20Tests/job/develop/)
 # CEAM (Cost Effectiveness Analysis Microsimulation)
 
 ## Installation
