@@ -1,7 +1,7 @@
 # ~/ceam/tests/test_modules/test_module_registry.py
 
-# To run ALL tests:  py.test (from "~/ceam" directory).
-# To run just tests in THIS file:  py.test tests/test_modules/test_module_registry.py  (from same directory).
+# To run ALL tests:  py.test (run from "~/ceam" directory).
+# To run just tests in THIS file:  py.test tests/test_modules/test_module_registry.py  (run from same directory).
 
 
 from unittest import TestCase
@@ -11,22 +11,28 @@ from ceam.engine import SimulationModule
 
 
 class BaseModule(SimulationModule):
-    index = 0
+    pass
 
 class AModule(SimulationModule):
-    index = 1
+    pass
 
 class BModule(SimulationModule):
-    DEPENDENCIES = (AModule,)
-    index = 2
+    pass
 
 class CModule(SimulationModule):
-    DEPENDENCIES = (BModule,)
-    index = 3
+    pass
 
 class DModule(SimulationModule):
-    DEPENDENCIES = (CModule, BModule)
-    index = 4
+    pass
+
+class EModule(SimulationModule):
+    DEPENDENCIES = (AModule, BModule)
+
+class FModule(SimulationModule):
+    DEPENDENCIES = (CModule, DModule)
+
+class GModule(SimulationModule):
+    DEPENDENCIES = (EModule, FModule)
 
 
 class TestModuleRegistration(TestCase):
@@ -45,43 +51,65 @@ class TestModuleRegistration(TestCase):
         self.assertEqual(len(registry.modules), 2)
 
         # Registering a module without it's dependencies implicitly registers those dependencies.
-        registry.register_modules([DModule()])
-        self.assertSetEqual({m.__class__ for m in registry.modules}, {AModule, BModule, CModule, DModule})
+        registry.register_modules([GModule()])
+        self.assertSetEqual({m.__class__ for m in registry.modules}, {AModule, BModule, CModule, DModule, EModule, FModule, GModule})
 
-    def test_sort_1_without_base_module(self):
+    def test_small_sort_without_base_module(self):
         registry = ModuleRegistry()
         module_a = AModule()
         module_b = BModule()
+        module_e = EModule()
 
-        registry.register_modules([module_a, module_b])
+        registry.register_modules([module_a, module_b, module_e])
         output = registry._ordered_modules
 
-        self.assertListEqual(output, [module_a, module_b])
+        self.assertListEqual(output, [module_a, module_b, module_e])
 
-    def test_sort_2_without_base_module(self):
+    def test_bigger_sort_without_base_module(self):
         registry = ModuleRegistry()
         module_a = AModule()
         module_b = BModule()
         module_c = CModule()
         module_d = DModule()
+        module_e = EModule()
+        module_f = FModule()
+        module_g = GModule()
 
-        registry.register_modules([module_a, module_b, module_c, module_d])
+        # Note that modules C, D, and F are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of G.
+        registry.register_modules([module_a, module_b, module_e, module_g])
         output = registry._ordered_modules
 
-        self.assertListEqual(output, [module_a, module_b, module_c, module_d])
+        self.assertIn(output, [[module_a, module_b, module_e, module_c, module_d, module_f, module_g],
+                               [module_b, module_a, module_e, module_c, module_d, module_f, module_g],
+                               [module_a, module_b, module_e, module_d, module_c, module_f, module_g],
+                               [module_b, module_a, module_e, module_d, module_c, module_f, module_g],
+                               [module_c, module_d, module_f, module_a, module_b, module_e, module_g],
+                               [module_c, module_d, module_f, module_b, module_a, module_e, module_g],
+                               [module_d, module_c, module_f, module_a, module_b, module_e, module_g],
+                               [module_d, module_c, module_f, module_b, module_a, module_e, module_g]])
 
-    def test_sort_with_base_module(self):
-        registry = ModuleRegistry()
-        base_module = BaseModule()
+    def test_big_sort_with_base_module(self):
+        registry = ModuleRegistry(BaseModule)
         module_a = AModule()
         module_b = BModule()
         module_c = CModule()
         module_d = DModule()
+        module_e = EModule()
+        module_f = FModule()
+        module_g = GModule()
 
-        registry.register_modules([module_a, module_b, module_c, module_d, base_module])
+        # Note that modules C, D, and F are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of G.
+        registry.register_modules([module_a, module_b, module_e, module_g])
         output = registry._ordered_modules
 
-        self.assertListEqual(output, [base_module, module_a, module_b, module_c, module_d])
+        self.assertIn(output, [[BaseModule, module_a, module_b, module_e, module_c, module_d, module_f, module_g],
+                               [BaseModule, module_b, module_a, module_e, module_c, module_d, module_f, module_g],
+                               [BaseModule, module_a, module_b, module_e, module_d, module_c, module_f, module_g],
+                               [BaseModule, module_b, module_a, module_e, module_d, module_c, module_f, module_g],
+                               [BaseModule, module_c, module_d, module_f, module_a, module_b, module_e, module_g],
+                               [BaseModule, module_c, module_d, module_f, module_b, module_a, module_e, module_g],
+                               [BaseModule, module_d, module_c, module_f, module_a, module_b, module_e, module_g],
+                               [BaseModule, module_d, module_c, module_f, module_b, module_a, module_e, module_g]])
 
 
 # End.
