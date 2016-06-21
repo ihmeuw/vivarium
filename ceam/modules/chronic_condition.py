@@ -1,6 +1,7 @@
 # ~/ceam/ceam/modules/chronic_condition.py
 
 import os.path
+from datetime import timedelta, datetime
 
 import pandas as pd
 import numpy as np
@@ -19,12 +20,53 @@ def _rename_mortality_column(table, col_name):
             columns.append(col_name)
     return columns
 
+def _calculate_time_spent_in_phases(onset_times, acute_phase_duration, current_time, current_time_step):
+    """
+    Calculate the intersection of the current time step with each simulant's time in both the acute and chronic phases
+
+    Parameters
+    ----------
+    onset_times : pandas.Series
+        A Series containing the epoc time at which the simulant had it's most recent acute event
+    acute_phase_duration : datetime.timedelta
+        The length of this condition's acute phase
+    current_time : datetime.datetime
+        The end of the current time step
+    current_time_step : datetime.timedelta
+        The duration of the current time step
+
+    Returns
+    -------
+    pandas.DataTable
+        A DataTable with two columns (`acute` and `chronic`) representing the time spent in each phase for each simulant
+    """
+    #TODO: This implementation is extremely slow. Extremely slow. But I believe it to be correct which is more than I can say for any of the faster versions I tried. I'll need to revisit perf here sooner rather than later.
+    def calc_intersection(onset_time):
+        onset_time = datetime.fromtimestamp(onset_time)
+        if onset_time > current_time:
+            # Onset is in the future
+            acute = timedelta(seconds=0)
+        elif onset_time <= current_time - current_time_step:
+            # Onset happened before the begining of the current time step
+            if onset_time + acute_phase_duration >= current_time - current_time_step:
+                acute = min(current_time_step, min(acute_phase_duration, (onset_time + acute_phase_duration) -(current_time - current_time_step)))
+            else:
+                # Onset happened more than acute_phase_duration before the current time step
+                acute = timedelta(seconds=0)
+        else:
+            # Onset happened during the current time step
+            acute = min(current_time_step, min(acute_phase_duration, onset_time - (current_time - current_time_step)))
+        chronic = min(current_time_step, max(timedelta(seconds=0), (current_time-onset_time) - acute_phase_duration))
+        return pd.Series({'acute': acute.total_seconds(), 'chronic': chronic.total_seconds()})
+
+    return onset_times.apply(calc_intersection)
+
 class ChronicConditionModule(SimulationModule):
     """
     A generic module that can handle any simple condition which has an incidence rate, chronic mortality rate and, optionally, an acute mortality rate
     """
 
-    def __init__(self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=np.timedelta64(28, 'D'), acute_mortality_table_name=None):
+    def __init__(self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=timedelta(days=28), acute_mortality_table_name=None):
         """
         Parameters
         ----------
@@ -84,7 +126,7 @@ class ChronicConditionModule(SimulationModule):
             self.population_columns = pd.DataFrame([False]*population_size, columns=[self.condition])
 
         # NOTE: people who start with the condition go straight into the chronic phase.
-        self.population_columns[self.condition + '_event_time'] = np.array([np.datetime64('1970')] * population_size, dtype=np.datetime64)
+        self.population_columns[self.condition + '_event_time'] = np.array([0] * population_size, dtype=np.float)
 
     def load_data(self, path_prefix):
         # Load the chronic mortality rates table, we should always have this
@@ -121,16 +163,21 @@ class ChronicConditionModule(SimulationModule):
             population = population.copy()
             population['rates'] = rates
             affected_population = population[population[self.condition] == True]
+            if affected_population.empty:
+                # Nothing to be done and some of the code below doesn't handle empty tables well anyway.
+                return rates
 
-            # This monstrosity is meant to calculate the amount of time in the last time_step that each simulant spent affected by the acute excess mortality rate of this condition
-            time_in_acute = np.maximum(np.timedelta64(0, 'D'), np.minimum(np.timedelta64(self.simulation.last_time_step), affected_population[self.condition + '_event_time'].values - (np.datetime64(self.simulation.current_time - self.simulation.last_time_step) + self.acute_phase_duration)))
-            portion_in_acute = time_in_acute/np.timedelta64(self.simulation.last_time_step)
+            times = _calculate_time_spent_in_phases(affected_population[self.condition + '_event_time'], self.acute_phase_duration, self.simulation.current_time, self.simulation.last_time_step)
 
-            population.loc[affected_population.index, 'rates'] += self.lookup_columns(affected_population, ['chronic_mortality'])['chronic_mortality'].values * (1-portion_in_acute)
+            portion_in_acute = times.acute/self.simulation.last_time_step.total_seconds()
+            portion_in_chronic = times.chronic/self.simulation.last_time_step.total_seconds()
+
+            population.loc[affected_population.index, 'rates'] += self.lookup_columns(affected_population, ['chronic_mortality'])['chronic_mortality'].values * portion_in_chronic
             population.loc[affected_population.index, 'rates'] += self.lookup_columns(affected_population, ['acute_mortality'])['acute_mortality'].values * portion_in_acute
             return population['rates'].values
         else:
             # If we aren't doing acute phase mortality, then everything is simple. Just use the chronic rate.
+            # TODO: This ignores the posibility that the simulant aquired this condition at a time other than a time step boundry. That's correctly handled for the more complex case above. As currently implemented state transitions _are_ aligned with time step boundries so this isn't an issue.
             return rates + self.lookup_columns(population, ['chronic_mortality'])['chronic_mortality'].values * population[self.condition]
 
     def incidence_rates(self, population):
@@ -148,7 +195,7 @@ class ChronicConditionModule(SimulationModule):
         incidence_rates = self.simulation.incidence_rates(affected_population, self.condition)
         affected_population = filter_for_rate(affected_population, incidence_rates)
         self.simulation.population.loc[affected_population.index, self.condition] = True
-        self.simulation.population.loc[affected_population.index, self.condition+'_event_time'] = np.datetime64(self.simulation.current_time)
+        self.simulation.population.loc[affected_population.index, self.condition+'_event_time'] = self.simulation.current_time.timestamp()
 
 
 # End.

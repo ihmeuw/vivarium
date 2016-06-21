@@ -25,6 +25,7 @@ def analyze_results(results):
     ni_dalys = non_intervention.ylds + non_intervention.ylls
 
     print('Total runs', len(intervention))
+    print('Duration per run', results.duration.mean())
     print('DALYs (intervention)', confidence(i_dalys), 'DALYs (non-intervention)', confidence(ni_dalys))
     print('DALYs averted', difference_with_confidence(ni_dalys,i_dalys))
     print('Total Intervention Cost', confidence(intervention.intervention_cost))

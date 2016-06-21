@@ -1,13 +1,33 @@
 import os.path
+from datetime import datetime, timedelta
+
+import pandas as pd
+import numpy as np
+np.random.seed(100)
 
 import pytest
 
-from ceam.modules.chronic_condition import ChronicConditionModule
+from ceam.modules.chronic_condition import ChronicConditionModule, _calculate_time_spent_in_phases
 
 from ceam_tests.util import simulation_factory, assert_rate
 
-import numpy as np
-np.random.seed(100)
+@pytest.mark.parametrize('current_time,onset_time,acute_phase_duration,acute_time,chronic_time', [
+        [datetime(1990, 12, 1), datetime(1990, 11, 1), timedelta(days=30), timedelta(days=30), timedelta(days=0)], # Acute phase overlaps perfectly with current time step
+        [datetime(1990, 12, 1), datetime(1990, 11, 1), timedelta(days=28), timedelta(days=28), timedelta(days=2)], # Acute phase overlaps partially with current time step and onset time is equal to the beginning of the current time step
+        [datetime(1991, 11, 1), datetime(1991, 9, 15), timedelta(days=28), timedelta(days=11), timedelta(days=19)], # Acute phase overlaps partially with current time step and onset time is before the beginning of the current time step
+        [datetime(1991, 10, 1), datetime(1991, 9, 15), timedelta(days=28), timedelta(days=14), timedelta(days=0)], # Acute phase overlaps partially with current time step and onset time is after the beginning of the current time step
+        [datetime(1990, 12, 1), datetime(1980, 11, 1), timedelta(days=28), timedelta(days=0), timedelta(days=30)], # Onset was much earlier that current time
+        [datetime(1990, 12, 1), datetime(2021, 11, 1), timedelta(days=28), timedelta(days=0), timedelta(days=0)], # Onset is in the future
+        [datetime(1990, 12, 1), datetime(1990, 9, 1), timedelta(days=280), timedelta(days=30), timedelta(days=0)], # Acute phase duration is much longer than time step
+        [datetime(1990, 10, 1), datetime(1990, 9, 15), timedelta(days=2), timedelta(days=2), timedelta(days=14)], # Acute phase duration is much shorted than time step
+    ])
+def test_calculate_time_spent_in_phases(acute_phase_duration, onset_time, current_time, acute_time, chronic_time):
+    current_time_step = timedelta(days=30)
+
+    onset_times = pd.Series([onset_time.timestamp()])
+    times = _calculate_time_spent_in_phases(onset_times, acute_phase_duration, current_time, current_time_step)
+    assert timedelta(seconds=int(times.acute.iloc[0])) == acute_time
+    assert timedelta(seconds=int(times.chronic.iloc[0])) == chronic_time
 
 @pytest.mark.slow
 def test_incidence_rate():

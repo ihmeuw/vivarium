@@ -131,8 +131,6 @@ class OpportunisticScreeningModule(SimulationModule):
             self.simulation.population.loc[affected_population.index, 'systolic_blood_pressure'] -= medication_efficacy
 
 def make_hist(start, stop, step, name, data):
-    #TODO there are NANs in the systolic blood pressure data, why?
-
     data = data[~data.isnull()]
     bins = [-float('inf')] + list(range(start, stop, step)) + [float('inf')]
     names = ['%s_lt_%s'%(name, start)] + ['%s_%d_to_%d'%(name, i, i+step) for i in bins[1:-2]] + ['%s_gte_%d'%(name, stop-step)]
