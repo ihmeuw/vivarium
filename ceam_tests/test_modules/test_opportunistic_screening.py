@@ -45,6 +45,7 @@ def test_hypertensive_categories():
     assert len(severe_hypertension) == 2
 
 def test_drug_effects():
+    pass
 
 def test_drug_cost():
     simulation, module = blood_pressure_setup()
