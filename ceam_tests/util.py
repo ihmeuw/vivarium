@@ -19,7 +19,7 @@ def simulation_factory(modules):
     simulation._verify_tables(datetime(1990, 1, 1), datetime(2010, 12, 1))
     return simulation
 
-def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population)):
+def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population), dummy_population=None):
     """ Asserts that the rate of change of some property in the simulation matches expectations.
 
     Parameters
@@ -35,7 +35,10 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
         A function that takes in a population and returns a subset of it which will be used for the test
     """
 
-    simulation.reset_population()
+    if dummy_population is None:
+        simulation.reset_population()
+    else:
+        simulation.population = dummy_population.copy()
 
     timestep = timedelta(days=30)
     start_time = datetime(1990, 1, 1)
@@ -57,8 +60,11 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
         total_expected_rate = from_yearly(expected_rate, timestep)*effective_population_size
         assert abs(total_expected_rate - total_true_rate)/total_expected_rate < 0.1
 
-def pump_simulation(simulation, duration=None, iterations=None):
-    simulation.reset_population()
+def pump_simulation(simulation, duration=None, iterations=None, dummy_population=None):
+    if dummy_population is None:
+        simulation.reset_population()
+    else:
+        simulation.population = dummy_population.copy()
 
     timestep = timedelta(days=30)
     start_time = datetime(1990, 1, 1)
@@ -80,3 +86,6 @@ def pump_simulation(simulation, duration=None, iterations=None):
     while not should_stop():
         iteration_count += 1
         simulation._step(timestep)
+
+def assert_all_equal(series, value):
+    assert (series != value).sum() == 0
