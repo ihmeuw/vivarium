@@ -44,6 +44,8 @@ def test_hypertensive_categories():
     assert len(hypertensive) == 5
     assert len(severe_hypertension) == 2
 
+def test_drug_effects():
+
 def test_drug_cost():
     simulation, module = blood_pressure_setup()
 
@@ -59,7 +61,7 @@ def test_drug_cost():
     assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_first_medication * 30 * len(simulation.population)
 
     # Now everyone is on all the drugs
-    simulation.population.medication_count = len(simulation.population)
+    simulation.population.medication_count = len(MEDICATIONS)
     simulation.current_time += timedelta(days=361) # Force us into the next year
     module.emit_event(PopulationEvent('time_step', simulation.population))
     daily_cost_of_all_medication = sum(m['daily_cost'] for m in MEDICATIONS)
