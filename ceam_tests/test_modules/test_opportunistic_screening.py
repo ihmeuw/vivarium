@@ -1,9 +1,10 @@
-from collections import namedtuple
 from datetime import timedelta
 
 import pytest
 
 import pandas as pd
+
+from ceam.events import PopulationEvent
 
 from ceam_tests.util import simulation_factory, pump_simulation, assert_all_equal
 
@@ -43,6 +44,41 @@ def test_hypertensive_categories():
     assert len(hypertensive) == 5
     assert len(severe_hypertension) == 2
 
+def test_drug_cost():
+    simulation, module = blood_pressure_setup()
+
+    # No one is taking drugs yet so there should be no cost
+    module.emit_event(PopulationEvent('time_step', simulation.population))
+    assert module.cost_by_year[simulation.current_time.year] == 0
+
+    # Now everyone is on one drug
+    simulation.population.medication_count = 1
+    simulation.last_time_step = timedelta(days=30)
+    module.emit_event(PopulationEvent('time_step', simulation.population))
+    daily_cost_of_first_medication = MEDICATIONS[0]['daily_cost']
+    assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_first_medication * 30 * len(simulation.population)
+
+    # Now everyone is on all the drugs
+    simulation.population.medication_count = len(simulation.population)
+    simulation.current_time += timedelta(days=361) # Force us into the next year
+    module.emit_event(PopulationEvent('time_step', simulation.population))
+    daily_cost_of_all_medication = sum(m['daily_cost'] for m in MEDICATIONS)
+    assert round(module.cost_by_year[simulation.current_time.year], 5) == round(daily_cost_of_all_medication * 30 * len(simulation.population), 5)
+
+def test_blood_pressure_test_cost():
+    simulation, module = blood_pressure_setup()
+
+    # Everybody goes to the hospital
+    simulation.emit_event(PopulationEvent('general_healthcare_access', simulation.population))
+    cost_of_a_single_test = simulation.config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
+    assert module.cost_by_year[simulation.current_time.year] == cost_of_a_single_test * len(simulation.population)
+
+    # Later, everybody goes to their followup appointment
+    simulation.current_time += timedelta(days=361) # Force us into the next year
+    simulation.emit_event(PopulationEvent('followup_healthcare_access', simulation.population))
+    cost_of_a_followup = cost_of_a_single_test + simulation.config.getfloat('appointments', 'cost')
+    assert module.cost_by_year[simulation.current_time.year] == cost_of_a_followup * len(simulation.population)
+
 @pytest.fixture(scope="module")
 def blood_pressure_setup():
     module = OpportunisticScreeningModule()
@@ -58,8 +94,8 @@ def blood_pressure_setup():
 # They must run in the order shown here since they represent a sequence of events with state shared through the blood_pressure_setup fixture.
 def test_general_blood_pressure_test(blood_pressure_setup):
     simulation, module = blood_pressure_setup
-    stub_event = namedtuple('PopulationEvent', ['affected_population', 'label'])(simulation.population, 'general_healthcare_access')
-    module.general_blood_pressure_test(stub_event)
+    event = PopulationEvent('general_healthcare_access', simulation.population)
+    module.emit_event(event)
     normotensive, hypertensive, severe_hypertension = _hypertensive_categories(simulation.population)
     assert_all_equal(normotensive.medication_count, 0)
     assert_all_equal(normotensive.healthcare_followup_date, simulation.current_time + timedelta(days=30.5*60))
@@ -71,8 +107,8 @@ def test_general_blood_pressure_test(blood_pressure_setup):
 def test_first_followup_blood_pressure_test(blood_pressure_setup):
     simulation, module = blood_pressure_setup
     simulation.current_time += timedelta(days=30) # Tick forward without triggering any actual events
-    stub_event = namedtuple('PopulationEvent', ['affected_population', 'label'])(simulation.population, 'followup_healthcare_access')
-    module.followup_blood_pressure_test(stub_event)
+    event = PopulationEvent('followup_healthcare_access', simulation.population)
+    module.emit_event(event)
     normotensive, hypertensive, severe_hypertension = _hypertensive_categories(simulation.population)
     assert_all_equal(normotensive.medication_count, 0)
     assert_all_equal(normotensive.healthcare_followup_date, simulation.current_time + timedelta(days=30.5*60))
@@ -84,8 +120,8 @@ def test_first_followup_blood_pressure_test(blood_pressure_setup):
 def test_second_followup_blood_pressure_test(blood_pressure_setup):
     simulation, module = blood_pressure_setup
     simulation.current_time += timedelta(days=30) # Tick forward without triggering any actual events
-    stub_event = namedtuple('PopulationEvent', ['affected_population', 'label'])(simulation.population, 'followup_healthcare_access')
-    module.followup_blood_pressure_test(stub_event)
+    event = PopulationEvent('followup_healthcare_access', simulation.population)
+    module.emit_event(event)
     normotensive, hypertensive, severe_hypertension = _hypertensive_categories(simulation.population)
     assert_all_equal(normotensive.medication_count, 0)
     assert_all_equal(normotensive.healthcare_followup_date, simulation.current_time + timedelta(days=30.5*60))
@@ -98,8 +134,8 @@ def test_Nth_followup_blood_pressure_test(blood_pressure_setup):
     simulation, module = blood_pressure_setup
     for _ in range(10):
         simulation.current_time += timedelta(days=30) # Tick forward without triggering any actual events
-        stub_event = namedtuple('PopulationEvent', ['affected_population', 'label'])(simulation.population, 'followup_healthcare_access')
-        module.followup_blood_pressure_test(stub_event)
+        event = PopulationEvent('followup_healthcare_access', simulation.population)
+        module.emit_event(event)
 
     normotensive, hypertensive, severe_hypertension = _hypertensive_categories(simulation.population)
     assert_all_equal(normotensive.medication_count, 0)
