@@ -61,7 +61,7 @@ class OpportunisticScreeningModule(SimulationModule):
         self.register_event_listener(self.general_blood_pressure_test, 'general_healthcare_access')
         self.register_event_listener(self.followup_blood_pressure_test, 'followup_healthcare_access')
         self.register_event_listener(self.track_monthly_cost, 'time_step')
-        self.register_event_listener(self.adjust_blood_pressure, 'time_step')
+        self.register_event_listener(self.adjust_blood_pressure, 'time_step__continuous')
 
     def load_population_columns(self, path_prefix, population_size):
         #TODO: Some people will start out taking medications?
@@ -125,3 +125,6 @@ class OpportunisticScreeningModule(SimulationModule):
             medication_efficacy = medication['efficacy'] * self.simulation.config.getfloat('opportunistic_screening', 'adherence')
             affected_population = event.affected_population[event.affected_population.medication_count > medication_number]
             self.simulation.population.loc[affected_population.index, 'systolic_blood_pressure'] -= medication_efficacy
+
+    def reset(self):
+        self.cost_by_year = defaultdict(int)
