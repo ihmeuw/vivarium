@@ -36,8 +36,8 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
         return dalys, cost, ihd_counts, hemorrhagic_stroke_counts
     all_metrics = []
     for run in range(runs):
-        for do_test in [True, False]:
-            if do_test:
+        for intervention in [True, False]:
+            if intervention:
                 simulation.register_modules(test_modules)
                 # TODO: This is a hack to fix the bug in the module sorting code until Bob can get a general fix out
                 simulation._ordered_modules.remove(test_modules[0])
@@ -57,19 +57,18 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
             metrics.update(simulation._modules[MetricsModule].metrics)
             metrics['ihd_count'] = sum(simulation.population.ihd == True)
             metrics['hemorrhagic_stroke_count'] = sum(simulation.population.hemorrhagic_stroke == True)
-            metrics['hemorrhagic_stroke_count'] = sum(simulation.population.hemorrhagic_stroke == True)
 
             for name, count in make_hist(110, 180, 10, 'sbp', simulation.population.systolic_blood_pressure):
                 metrics[name] = count
 
             for i, medication in enumerate(MEDICATIONS):
-                if do_test:
+                if intervention:
                     metrics[medication['name']] = (simulation.population.medication_count > i).sum()
                 else:
                     metrics[medication['name']] = 0
 
             metrics['healthcare_access_cost'] = sum(simulation._modules[HealthcareAccessModule].cost_by_year.values())
-            if do_test:
+            if intervention:
                 metrics['intervention_cost'] = sum(test_modules[0].cost_by_year.values())
                 metrics['intervention'] = True
             else:

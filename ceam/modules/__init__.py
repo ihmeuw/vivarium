@@ -34,7 +34,7 @@ class ModuleRegistry(object):
 
     def __deregister(self, module):
         module.deregister(self)
-        del self._modules[module.__class__]
+        del self._modules[module.module_id()]
 
     def deregister_modules(self, modules):
         for module in modules:
