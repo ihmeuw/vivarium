@@ -34,7 +34,7 @@ def analyze_results(results):
     print('Stroke Count (intervention)',confidence(intervention.hemorrhagic_stroke_count), 'Stroke Count (non-intervention)', confidence(non_intervention.hemorrhagic_stroke_count))
 
     print('Healthcare Access Events per year (intervention):', confidence((intervention.general_healthcare_access+intervention.followup_healthcare_access)/20))
-    print('Healthcare Access Events per year (non-non_intervention):', confidence((non_intervention.general_healthcare_access+non_intervention.followup_healthcare_access)/20))
+    print('Healthcare Access Events per year (non-intervention):', confidence((non_intervention.general_healthcare_access+non_intervention.followup_healthcare_access)/20))
 
 
 def dump_results(results, path):
