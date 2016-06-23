@@ -39,6 +39,9 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
         for do_test in [True, False]:
             if do_test:
                 simulation.register_modules(test_modules)
+                # TODO: This is a hack to fix the bug in the module sorting code until Bob can get a general fix out
+                simulation._ordered_modules.remove(test_modules[0])
+                simulation._ordered_modules.append(test_modules[0])
             else:
                 simulation.deregister_modules(test_modules)
 
@@ -91,7 +94,9 @@ def main():
 
     simulation = Simulation()
 
+    screening_module = OpportunisticScreeningModule()
     modules = [
+            screening_module,
             ChronicConditionModule('ihd', 'ihd_mortality_rate.csv', 'ihd_incidence_rates.csv', 0.08, acute_mortality_table_name='mi_acute_excess_mortality.csv'),
             ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316, acute_mortality_table_name='acute_hem_stroke_excess_mortality.csv'),
             HealthcareAccessModule(),
@@ -100,8 +105,6 @@ def main():
             ]
     metrics_module = MetricsModule()
     modules.append(metrics_module)
-    screening_module = OpportunisticScreeningModule()
-    modules.append(screening_module)
     for module in modules:
         module.setup()
     simulation.register_modules(modules)
