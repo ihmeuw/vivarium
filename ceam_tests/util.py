@@ -86,6 +86,3 @@ def pump_simulation(simulation, duration=None, iterations=None, dummy_population
     while not should_stop():
         iteration_count += 1
         simulation._step(timestep)
-
-def assert_all_equal(series, value):
-    assert (series != value).sum() == 0
