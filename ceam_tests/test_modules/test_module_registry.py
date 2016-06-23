@@ -3,6 +3,15 @@
 # To run ALL tests:  py.test (run from "~/ceam" directory).
 # To run just tests in THIS file:  py.test tests/test_modules/test_module_registry.py  (run from same directory).
 
+# The dependency tree associated with the "big" tests below follows.  Classes are "above" those upon which they depend.
+# If BaseModule is included, then ALL classes depend upon it).
+#
+#                          GModule
+#                        /         \
+#                 EModule           FModule
+#                /       \         /       \
+#            AModule  BModule  CModule  DModule
+
 
 from unittest import TestCase
 
