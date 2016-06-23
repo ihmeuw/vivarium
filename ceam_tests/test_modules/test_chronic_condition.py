@@ -7,9 +7,24 @@ np.random.seed(100)
 
 import pytest
 
+from ceam.modules import SimulationModule
 from ceam.modules.chronic_condition import ChronicConditionModule, _calculate_time_spent_in_phases
 
 from ceam_tests.util import simulation_factory, assert_rate
+
+class MetricsModule(SimulationModule):
+    def __init__(self, condition):
+        super(MetricsModule, self).__init__()
+        self.time_to_death = []
+        self.condition = condition
+
+    def setup(self):
+        self.register_event_listener(self.death_listener, 'deaths')
+
+    def death_listener(self, event):
+        # Record time between onset and duration for simulants affected by the condition of interest
+        affected_population = event.affected_population[event.affected_population[self.condition]]
+        self.time_to_death.extend(self.simulation.current_time.timestamp() - affected_population[self.condition+'_event_time'])
 
 @pytest.mark.parametrize('current_time,onset_time,acute_phase_duration,acute_time,chronic_time', [
         [datetime(1990, 12, 1), datetime(1990, 11, 1), timedelta(days=30), timedelta(days=30), timedelta(days=0)], # Acute phase overlaps perfectly with current time step
@@ -43,6 +58,12 @@ def test_mortality_rate_without_acute_phase():
 def test_mortality_rate_with_acute_phase_saturated_initial_population():
     # In this test everyone starts with the condition and are out of the acute phase so the only rate should be chronic
     simulation = simulation_factory([ChronicConditionModule('high_initial_disease', 'mortality_0.7.csv', 'incidence_0.7.csv', 0.01, acute_mortality_table_name='mortality_1.6.csv')])
+    assert_rate(simulation, 0.7, lambda sim: (sim.population.alive == False).sum(), lambda sim: (sim.population.alive == True).sum())
+
+@pytest.mark.slow
+def test_that_acute_mortality_shortens_time_between_onset_and_death():
+    # First get a baseline with only chronic mortality
+    simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.7.csv', 'incidence_0.7.csv', 0.01, acute_mortality_table_name='mortality_1.6.csv')])
     assert_rate(simulation, 0.7, lambda sim: (sim.population.alive == False).sum(), lambda sim: (sim.population.alive == True).sum())
 
 @pytest.mark.slow
