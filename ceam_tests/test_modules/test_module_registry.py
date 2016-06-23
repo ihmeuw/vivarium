@@ -4,35 +4,6 @@
 # To run just tests in THIS file:  py.test tests/test_modules/test_module_registry.py  (run from same directory).
 
 
-# Explanation of the difference between "level-only" and "depth-first strictness" tests:
-#
-#   The "level-only" spec states merely that classes at a lower level in the hierarchy must come before those higher.  A "lower" class means something "above" it
-#   depends upon it.  A "higher" class means it depends upon something "lower" than it.  But WHICH items depend upon WHICH OTHERS is ignored - only "level" matters.
-#
-#   The "depth-first" spec specifies WHICH classes depend upon WHICH OTHERS.  In other words, a class is listed IMMEDIATELY FOLLOWING a class (or group of classes)
-#   that it depends upon (not merely somewhere later in the listing, as can happen in the "level-only" specification).
-#
-#   For example, the dependency tree associated with the "big" tests here follows (classes are "above" those upon which they depend; if BaseModule is included,
-#   then ALL classes depend upon it):
-#
-#                        GG
-#                      /    \
-#                    EE      FF
-#                   /  \    /  \
-#                  AA  BB  CC  DD
-#
-#   The "level-only" requirement is that any from AA, BB, CC, DD must come (in any order) before EE or FF (in any order), and GG must be last.
-#   Thus [AA, CC, DD, BB, FF, EE, GG] is a legal order.
-#
-#   The "depth-first" requirement is that any dependent element must immediately follow those it depends on.  Thus the order immediately above is NOT valid
-#   (because EE does not immediately follow AA and BB), but [AA, BB, EE, DD, CC, FF, GG] IS valid.  This order is the result of a depth-first tree traversal.
-#
-#   For the sort algorithm used (and being tested here), the REQUIREMENT is the specification of "level-only".  However, the ALGORITHM used is a depth-first traversal.
-#   Therefore, the "level-only" tests can be thought of as test of functional correctness AS SPECIFIED, while the "depth-first" tests are a measure of the correctness
-#   of the algorithm currently used.  The "depth-first" tests are therefore NOT required to pass as "black-box unit tests" but will be useful as tools for debugging
-#   the current algorithm (ie, as "glass-box" tests).
-
-
 from unittest import TestCase
 
 from ceam.modules import ModuleRegistry, DependencyException
@@ -40,30 +11,27 @@ from ceam.engine import SimulationModule
 
 
 class BaseModule(SimulationModule):
-    LEVEL = 0
+    pass
 
 class AModule(SimulationModule):
-    LEVEL = 1
+    pass
 
 class BModule(SimulationModule):
-    LEVEL = 1
+    pass
 
 class CModule(SimulationModule):
-    LEVEL = 1
+    pass
 
 class DModule(SimulationModule):
-    LEVEL = 1
+    pass
 
 class EModule(SimulationModule):
-    LEVEL = 2
     DEPENDENCIES = (AModule, BModule)
 
 class FModule(SimulationModule):
-    LEVEL = 2
     DEPENDENCIES = (CModule, DModule)
 
 class GModule(SimulationModule):
-    LEVEL = 3
     DEPENDENCIES = (EModule, FModule)
 
 
@@ -86,7 +54,14 @@ class TestModuleRegistration(TestCase):
         registry.register_modules([GModule()])
         self.assertSetEqual({m.__class__ for m in registry.modules}, {AModule, BModule, CModule, DModule, EModule, FModule, GModule})
 
-    # There is only a single test here since level-only and depth-first strictness are equivalent in this case.  Includes 2 levels only; no BaseModule.
+    def insert_modules_in_order(self, output):
+        resultset = set()
+        for module in output:
+            self.assertNotIn(module, resultset)
+            for dependency in module.DEPENDENCIES:
+                self.assertIn(dependency, resultset)
+            resultset.add(module.__class__)
+
     def test_small_sort_without_base_module(self):
         registry = ModuleRegistry()
         module_a = AModule()
@@ -96,28 +71,10 @@ class TestModuleRegistration(TestCase):
         registry.register_modules([module_a, module_b, module_e])
         output = registry._ordered_modules
         #
-        self.assertListEqual(output, [module_a, module_b, module_e])
+        self.insert_modules_in_order(output)
 
-    # The level-only test here is a less strict specification for the sort than the depth-first strictness requirement.  Includes 3 levels (lacking BaseModule).
-    def test_big_sort_level_only_without_base_module(self):
-        registry = ModuleRegistry()
-        module_a = AModule()
-        module_b = BModule()
-        module_c = CModule()
-        module_d = DModule()
-        module_e = EModule()
-        module_f = FModule()
-        module_g = GModule()
-        #
-        # Note that modules C, D, and F are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of G.
-        registry.register_modules([module_a, module_b, module_e, module_g])
-        output = registry._ordered_modules
-        levels = [cls.LEVEL for cls in output]
-        #
-        self.assertListEqual(levels, [1, 1, 1, 1, 2, 2, 3]
-
-    # The depth-first strictness test here is a stricter specification for the sort than the level-only requirement.  Includes 3 levels (lacking BaseModule).
-    def test_big_sort_depth_first_without_base_module(self):
+    # Includes 3 levels (lacking BaseModule).
+    def test_big_sort_without_base_module(self):
         registry = ModuleRegistry()
         module_a = AModule()
         module_b = BModule()
@@ -131,43 +88,10 @@ class TestModuleRegistration(TestCase):
         registry.register_modules([module_a, module_b, module_e, module_g])
         output = registry._ordered_modules
         #
-        self.assertIn(output, [[module_a, module_b, module_e, module_c, module_d, module_f, module_g],
-                               [module_b, module_a, module_e, module_c, module_d, module_f, module_g],
-                               [module_a, module_b, module_e, module_d, module_c, module_f, module_g],
-                               [module_b, module_a, module_e, module_d, module_c, module_f, module_g],
-                               [module_c, module_d, module_f, module_a, module_b, module_e, module_g],
-                               [module_c, module_d, module_f, module_b, module_a, module_e, module_g],
-                               [module_d, module_c, module_f, module_a, module_b, module_e, module_g],
-                               [module_d, module_c, module_f, module_b, module_a, module_e, module_g]])
+        self.insert_modules_in_order(output)
 
-    # The level-only test here is a less strict specification for the sort than the depth-first strictness requirement.  Includes 4 levels (including BaseModule).
-    def test_big_sort_level_only_with_base_module(self):
-        registry = ModuleRegistry(BaseModule)
-        module_a = AModule()
-        module_b = BModule()
-        module_c = CModule()
-        module_d = DModule()
-        module_e = EModule()
-        module_f = FModule()
-        module_g = GModule()
-        #
-        # Note that modules C, D, and F are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of G.
-        registry.register_modules([module_a, module_b, module_e, module_g])
-        output = registry._ordered_modules
-        levels = [cls.LEVEL for cls in output]
-        #
-        self.assertListEqual(levels, [0, 1, 1, 1, 1, 2, 2, 3]
-        self.assertIn(levels, [[BaseModule, module_a, module_b, module_e, module_c, module_d, module_f, module_g],
-                               [BaseModule, module_b, module_a, module_e, module_c, module_d, module_f, module_g],
-                               [BaseModule, module_a, module_b, module_e, module_d, module_c, module_f, module_g],
-                               [BaseModule, module_b, module_a, module_e, module_d, module_c, module_f, module_g],
-                               [BaseModule, module_c, module_d, module_f, module_a, module_b, module_e, module_g],
-                               [BaseModule, module_c, module_d, module_f, module_b, module_a, module_e, module_g],
-                               [BaseModule, module_d, module_c, module_f, module_a, module_b, module_e, module_g],
-                               [BaseModule, module_d, module_c, module_f, module_b, module_a, module_e, module_g]])
-
-    # The depth-first strictness test here is a stricter specification for the sort than the level-only requirement.  Includes 4 levels (including BaseModule).
-    def test_big_sort_depth_first_with_base_module(self):
+    # Includes 4 levels (including BaseModule).
+    def test_big_sort_with_base_module(self):
         registry = ModuleRegistry(BaseModule)
         module_a = AModule()
         module_b = BModule()
@@ -181,14 +105,27 @@ class TestModuleRegistration(TestCase):
         registry.register_modules([module_a, module_b, module_e, module_g])
         output = registry._ordered_modules
         #
-        self.assertIn(output, [[BaseModule, module_a, module_b, module_e, module_c, module_d, module_f, module_g],
-                               [BaseModule, module_b, module_a, module_e, module_c, module_d, module_f, module_g],
-                               [BaseModule, module_a, module_b, module_e, module_d, module_c, module_f, module_g],
-                               [BaseModule, module_b, module_a, module_e, module_d, module_c, module_f, module_g],
-                               [BaseModule, module_c, module_d, module_f, module_a, module_b, module_e, module_g],
-                               [BaseModule, module_c, module_d, module_f, module_b, module_a, module_e, module_g],
-                               [BaseModule, module_d, module_c, module_f, module_a, module_b, module_e, module_g],
-                               [BaseModule, module_d, module_c, module_f, module_b, module_a, module_e, module_g]])
+        self.insert_modules_in_order(output)
+
+    # This is a test to verify that the tests above are working correctly (ie, that the specification being tested is correct).  Rather than testing
+    # a list sorted by the function-under-test (local function "inner_sort" in local function "_sort_modules" in class "ModuleRegistry"), it tests
+    # a hand-sorted list of modules.  If the hand-sort succeeds while the software-sorted one fails, that points to a bug in the program.
+    # Includes 4 levels (including BaseModule).
+    def test_manual_sort_with_base_module(self):
+        registry = ModuleRegistry(BaseModule)
+        module_a = AModule()
+        module_b = BModule()
+        module_c = CModule()
+        module_d = DModule()
+        module_e = EModule()
+        module_f = FModule()
+        module_g = GModule()
+        #
+        # Note that all modules not EXPLICITLY registered should be registered IMPLICITLY because they are dependencies of G.
+        registry.register_modules([module_g])
+        manually_sorted_list = [BaseModule(), module_a, module_b, module_e, module_c, module_d, module_f, module_g]
+        #
+        self.insert_modules_in_order(manually_sorted_list)
 
 
 # End.
