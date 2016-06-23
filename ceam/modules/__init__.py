@@ -1,4 +1,5 @@
 # ~/ceam/ceam/modules/__init__.py
+
 from collections import defaultdict
 
 import pandas as pd
@@ -44,7 +45,7 @@ class ModuleRegistry(object):
     @property
     def modules(self):
         """
-        A read only list of registered modules.
+        A read-only list of registered modules.
         """
         return tuple(self._ordered_modules)
 
