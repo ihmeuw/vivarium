@@ -53,9 +53,6 @@ class ModuleRegistry(object):
             if current in sorted_modules:
                 return sorted_modules
             if not current.DEPENDENCIES:
-                # Dependency-order sorting bug was here:
-                # return [current] + sorted_modules
-                # New element (which may depend on items in "sorted_modules" was being inserted BEFORE rather than AFTER things it depends upon.
                 return sorted_modules + [current]
             else:
                 i = 0

@@ -1,8 +1,5 @@
 # ~/ceam/tests/test_modules/test_module_registry.py
 
-# To run ALL tests:  py.test (run from "~/ceam" directory).
-# To run just tests in THIS file:  py.test tests/test_modules/test_module_registry.py  (run from same directory).
-
 # The dependency tree associated with the "big" tests below follows.  Classes are "above" those upon which they depend.
 # If BaseModule is included, then ALL classes depend upon it).
 #
@@ -151,26 +148,6 @@ class TestModuleRegistration(TestCase):
         output = registry._ordered_modules
         #
         self.insert_modules_in_order(output)
-
-    # This is a test to verify that the tests above are working correctly (ie, that the specification being tested is correct).  Rather than testing
-    # a list sorted by the function-under-test (local function "inner_sort" in local function "_sort_modules" in class "ModuleRegistry"), it tests
-    # a hand-sorted list of modules.  If the hand-sort succeeds while the software-sorted one fails, that points to a bug in the program.
-    # Includes 4 levels (including BaseModule).
-    def test_manual_sort_with_base_module(self):
-        registry = ModuleRegistry(BaseModule)
-        module_a = AModule()
-        module_b = BModule()
-        module_c = CModule()
-        module_d = DModule()
-        module_e = EModule()
-        module_f = FModule()
-        module_g = GModule()
-        #
-        # Note that all modules not EXPLICITLY registered should be registered IMPLICITLY because they are dependencies of GModule.
-        registry.register_modules([module_g])
-        manually_sorted_list = [BaseModule(), module_a, module_b, module_e, module_c, module_d, module_f, module_g]
-        #
-        self.insert_modules_in_order(manually_sorted_list)
 
 
 # End.
