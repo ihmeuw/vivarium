@@ -66,7 +66,7 @@ def _hypertensive_categories(population):
 
 
 class OpportunisticScreeningModule(SimulationModule):
-    DEPENDS = (BloodPressureModule, HealthcareAccessModule,)
+    DEPENDENCIES = (BloodPressureModule, HealthcareAccessModule,)
 
     def setup(self):
         self.cost_by_year = defaultdict(int)
