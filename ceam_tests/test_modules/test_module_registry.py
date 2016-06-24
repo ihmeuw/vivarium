@@ -6,11 +6,11 @@
 # The dependency tree associated with the "big" tests below follows.  Classes are "above" those upon which they depend.
 # If BaseModule is included, then ALL classes depend upon it).
 #
-#                          GModule
-#                        /         \
-#                 EModule           FModule
-#                /       \         /       \
-#            AModule  BModule  CModule  DModule
+#                          GModule                         HModule                           IModule
+#                        /         \                       /     \                          /       \
+#                 EModule           FModule            BModule  CModule             _______/        FModule
+#                /       \         /       \                                       /      /          /    \
+#            AModule  BModule  CModule  DModule                               AModule  BModule  CModule  DModule
 
 
 from unittest import TestCase
@@ -43,6 +43,12 @@ class FModule(SimulationModule):
 class GModule(SimulationModule):
     DEPENDENCIES = (EModule, FModule)
 
+class HModule(SimulationModule):
+    DEPENDENCIES = (BModule, CModule)
+
+class IModule(SimulationModule):
+    DEPENDENCIES = (AModule, BModule, FModule)
+
 
 class TestModuleRegistration(TestCase):
     def test_register(self):
@@ -71,6 +77,7 @@ class TestModuleRegistration(TestCase):
                 self.assertIn(dependency, resultset)
             resultset.add(module.__class__)
 
+    # Includes 2 levels (lacking BaseModule).
     def test_small_sort_without_base_module(self):
         registry = ModuleRegistry()
         module_a = AModule()
@@ -78,6 +85,19 @@ class TestModuleRegistration(TestCase):
         module_e = EModule()
         #
         registry.register_modules([module_a, module_b, module_e])
+        output = registry._ordered_modules
+        #
+        self.insert_modules_in_order(output)
+
+    # Includes 2 levels (lacking BaseModule).
+    def test_alt_small_sort_without_base_module(self):
+        registry = ModuleRegistry()
+        module_b = BModule()
+        module_c = CModule()
+        module_h = HModule()
+        #
+        # Note that modules BModule and CModule are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of HModule.
+        registry.register_modules([module_h])
         output = registry._ordered_modules
         #
         self.insert_modules_in_order(output)
@@ -93,7 +113,7 @@ class TestModuleRegistration(TestCase):
         module_f = FModule()
         module_g = GModule()
         #
-        # Note that modules C, D, and F are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of G.
+        # Note that modules CModule, DModule, and FModule are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of GModule.
         registry.register_modules([module_a, module_b, module_e, module_g])
         output = registry._ordered_modules
         #
@@ -110,8 +130,24 @@ class TestModuleRegistration(TestCase):
         module_f = FModule()
         module_g = GModule()
         #
-        # Note that modules C, D, and F are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of G.
+        # Note that modules CModule, DModule, and FModule are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of GModule.
         registry.register_modules([module_a, module_b, module_e, module_g])
+        output = registry._ordered_modules
+        #
+        self.insert_modules_in_order(output)
+
+    # Includes 4 levels (including BaseModule).
+    def test_alt_big_sort_with_base_module(self):
+        registry = ModuleRegistry(BaseModule)
+        module_a = AModule()
+        module_b = BModule()
+        module_c = CModule()
+        module_d = DModule()
+        module_f = FModule()
+        module_i = GModule()
+        #
+        # Note that most modules are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of IModule.
+        registry.register_modules([module_i])
         output = registry._ordered_modules
         #
         self.insert_modules_in_order(output)
@@ -130,7 +166,7 @@ class TestModuleRegistration(TestCase):
         module_f = FModule()
         module_g = GModule()
         #
-        # Note that all modules not EXPLICITLY registered should be registered IMPLICITLY because they are dependencies of G.
+        # Note that all modules not EXPLICITLY registered should be registered IMPLICITLY because they are dependencies of GModule.
         registry.register_modules([module_g])
         manually_sorted_list = [BaseModule(), module_a, module_b, module_e, module_c, module_d, module_f, module_g]
         #
