@@ -53,7 +53,7 @@ class ModuleRegistry(object):
             if current in sorted_modules:
                 return sorted_modules
             if not current.DEPENDENCIES:
-                return [current] + sorted_modules
+                return sorted_modules + [current]
             else:
                 i = 0
                 for dependency in current.DEPENDENCIES:
