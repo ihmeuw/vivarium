@@ -10,7 +10,7 @@ import pytest
 from ceam.modules import SimulationModule
 from ceam.modules.chronic_condition import ChronicConditionModule, _calculate_time_spent_in_phases
 
-from ceam_tests.util import simulation_factory, assert_rate
+from ceam_tests.util import simulation_factory, assert_rate, pump_simulation
 
 class MetricsModule(SimulationModule):
     def __init__(self, condition):
@@ -63,8 +63,16 @@ def test_mortality_rate_with_acute_phase_saturated_initial_population():
 @pytest.mark.slow
 def test_that_acute_mortality_shortens_time_between_onset_and_death():
     # First get a baseline with only chronic mortality
-    simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.7.csv', 'incidence_0.7.csv', 0.01, acute_mortality_table_name='mortality_1.6.csv')])
-    assert_rate(simulation, 0.7, lambda sim: (sim.population.alive == False).sum(), lambda sim: (sim.population.alive == True).sum())
+    metrics_module = MetricsModule('no_initial_disease')
+    simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.7.csv', 'incidence_0.7.csv', 0.01), metrics_module])
+    pump_simulation(simulation, duration=timedelta(days=360*5))
+    base_time_to_death = np.mean(metrics_module.time_to_death)
+
+    # Now, include acute mortality
+    metrics_module = MetricsModule('no_initial_disease')
+    simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.7.csv', 'incidence_0.7.csv', 0.01, acute_mortality_table_name='mortality_1.6.csv'), metrics_module])
+    pump_simulation(simulation, duration=timedelta(days=360*5))
+    assert np.mean(metrics_module.time_to_death) < base_time_to_death
 
 @pytest.mark.slow
 def test_mortality_rate_with_acute_phase_unsaturated_initial_population():
