@@ -1,23 +1,84 @@
 import os.path
+from datetime import datetime, timedelta
 
-import pytest
-
-from ceam.modules.chronic_condition import ChronicConditionModule
-
-from ceam_tests.util import simulation_factory, assert_rate
-
+import pandas as pd
 import numpy as np
 np.random.seed(100)
 
-@pytest.mark.data
+import pytest
+
+from ceam.modules import SimulationModule
+from ceam.modules.chronic_condition import ChronicConditionModule, _calculate_time_spent_in_phases
+
+from ceam_tests.util import simulation_factory, assert_rate, pump_simulation
+
+class MetricsModule(SimulationModule):
+    def __init__(self, condition):
+        super(MetricsModule, self).__init__()
+        self.time_to_death = []
+        self.condition = condition
+
+    def setup(self):
+        self.register_event_listener(self.death_listener, 'deaths')
+
+    def death_listener(self, event):
+        # Record time between onset and duration for simulants affected by the condition of interest
+        affected_population = event.affected_population[event.affected_population[self.condition]]
+        self.time_to_death.extend(self.simulation.current_time.timestamp() - affected_population[self.condition+'_event_time'])
+
+@pytest.mark.parametrize('current_time,onset_time,acute_phase_duration,acute_time,chronic_time', [
+        [datetime(1990, 12, 1), datetime(1990, 11, 1), timedelta(days=30), timedelta(days=30), timedelta(days=0)], # Acute phase overlaps perfectly with current time step
+        [datetime(1990, 12, 1), datetime(1990, 11, 1), timedelta(days=28), timedelta(days=28), timedelta(days=2)], # Acute phase overlaps partially with current time step and onset time is equal to the beginning of the current time step
+        [datetime(1991, 11, 1), datetime(1991, 9, 15), timedelta(days=28), timedelta(days=11), timedelta(days=19)], # Acute phase overlaps partially with current time step and onset time is before the beginning of the current time step
+        [datetime(1991, 10, 1), datetime(1991, 9, 15), timedelta(days=28), timedelta(days=14), timedelta(days=0)], # Acute phase overlaps partially with current time step and onset time is after the beginning of the current time step
+        [datetime(1990, 12, 1), datetime(1980, 11, 1), timedelta(days=28), timedelta(days=0), timedelta(days=30)], # Onset was much earlier that current time
+        [datetime(1990, 12, 1), datetime(2021, 11, 1), timedelta(days=28), timedelta(days=0), timedelta(days=0)], # Onset is in the future
+        [datetime(1990, 12, 1), datetime(1990, 9, 1), timedelta(days=280), timedelta(days=30), timedelta(days=0)], # Acute phase duration is much longer than time step
+        [datetime(1990, 10, 1), datetime(1990, 9, 15), timedelta(days=2), timedelta(days=2), timedelta(days=14)], # Acute phase duration is much shorted than time step
+    ])
+def test_calculate_time_spent_in_phases(acute_phase_duration, onset_time, current_time, acute_time, chronic_time):
+    current_time_step = timedelta(days=30)
+
+    onset_times = pd.Series([onset_time.timestamp()])
+    times = _calculate_time_spent_in_phases(onset_times, acute_phase_duration, current_time, current_time_step)
+    assert timedelta(seconds=int(times.acute.iloc[0])) == acute_time
+    assert timedelta(seconds=int(times.chronic.iloc[0])) == chronic_time
+
+@pytest.mark.slow
 def test_incidence_rate():
     simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.0.csv', 'incidence_0.7.csv', 0.01)])
     assert_rate(simulation, 0.7, lambda sim: (sim.population.no_initial_disease == True).sum(), lambda sim: (sim.population.no_initial_disease == False).sum())
 
-@pytest.mark.data
-def test_mortality_rate():
+@pytest.mark.slow
+def test_mortality_rate_without_acute_phase():
     simulation = simulation_factory([ChronicConditionModule('high_initial_disease', 'mortality_0.7.csv', 'incidence_0.0.csv', 0.01)])
     assert_rate(simulation, 0.7, lambda sim: (sim.population.alive == False).sum(), lambda sim: (sim.population.alive == True).sum())
+
+@pytest.mark.slow
+def test_mortality_rate_with_acute_phase_saturated_initial_population():
+    # In this test everyone starts with the condition and are out of the acute phase so the only rate should be chronic
+    simulation = simulation_factory([ChronicConditionModule('high_initial_disease', 'mortality_0.7.csv', 'incidence_0.7.csv', 0.01, acute_mortality_table_name='mortality_1.6.csv')])
+    assert_rate(simulation, 0.7, lambda sim: (sim.population.alive == False).sum(), lambda sim: (sim.population.alive == True).sum())
+
+@pytest.mark.slow
+def test_that_acute_mortality_shortens_time_between_onset_and_death():
+    # First get a baseline with only chronic mortality
+    metrics_module = MetricsModule('no_initial_disease')
+    simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.7.csv', 'incidence_0.7.csv', 0.01), metrics_module])
+    pump_simulation(simulation, duration=timedelta(days=360*5))
+    base_time_to_death = np.mean(metrics_module.time_to_death)
+
+    # Now, include acute mortality
+    metrics_module = MetricsModule('no_initial_disease')
+    simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.7.csv', 'incidence_0.7.csv', 0.01, acute_mortality_table_name='mortality_1.6.csv'), metrics_module])
+    pump_simulation(simulation, duration=timedelta(days=360*5))
+    assert np.mean(metrics_module.time_to_death) < base_time_to_death
+
+@pytest.mark.slow
+def test_mortality_rate_with_acute_phase_unsaturated_initial_population():
+    # In this test people will be having accute events so the rate should be higher
+    simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.7.csv', 'incidence_0.7.csv', 0.01, acute_mortality_table_name='mortality_1.6.csv')])
+    assert_rate(simulation, lambda rate: rate > 0.7, lambda sim: (sim.population.alive == False).sum(), lambda sim: (sim.population.alive == True).sum())
 
 def test_disability_weight():
     simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.0.csv', 'incidence_0.0.csv', 0.01)])

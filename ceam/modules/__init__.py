@@ -15,6 +15,7 @@ class ModuleRegistry(object):
     def __init__(self, base_module_class=None):
         self._base_module_id = None
         self._modules = {}
+        self._ordered_modules = []
         if base_module_class is not None:
             module = base_module_class()
             module.setup()
@@ -33,7 +34,7 @@ class ModuleRegistry(object):
 
     def __deregister(self, module):
         module.deregister(self)
-        del self._modules[module.__class__]
+        del self._modules[module.module_id()]
 
     def deregister_modules(self, modules):
         for module in modules:
@@ -108,6 +109,7 @@ class SimulationModule(EventHandler, ValueMutationNode):
         self.population_columns = pd.DataFrame()
         self.lookup_table = pd.DataFrame()
         self.incidence_mediation_factors = {}
+        self.simulation = None
 
     def setup(self):
         pass
@@ -133,12 +135,6 @@ class SimulationModule(EventHandler, ValueMutationNode):
     def disability_weight(self, population):
         return 0.0
 
-    def mortality_rates(self, population, rates):
-        return rates
-
-    def incidence_rates(self, population, rates, label):
-        return rates
-
     @property
     def lookup_column_prefix(self):
         return str(self.module_id())
@@ -147,7 +143,7 @@ class SimulationModule(EventHandler, ValueMutationNode):
         origonal_columns = columns
         columns = [self.lookup_column_prefix + '_' + c for c in columns]
 
-        for i, column in enumerate(columns):
+        for column in columns:
             assert column in self.simulation.lookup_table, 'Tried to lookup non-existent column: %s'%column
 
         results = self.simulation.lookup_table.ix[population.lookup_id, columns]
