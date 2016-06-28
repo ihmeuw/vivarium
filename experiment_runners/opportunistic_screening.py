@@ -10,12 +10,13 @@ import pandas as pd
 import numpy as np
 
 from ceam.engine import Simulation, SimulationModule
-from ceam.events import only_living
+from ceam.events import only_living, ConfigurationEvent
 from ceam.modules.chronic_condition import ChronicConditionModule
 from ceam.modules.healthcare_access import HealthcareAccessModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.smoking import SmokingModule
 from ceam.modules.metrics import MetricsModule
+from ceam.modules.sample_history import SampleHistoryModule
 from ceam.modules.opportunistic_screening import OpportunisticScreeningModule, MEDICATIONS
 
 from ceam.analysis import analyze_results, dump_results
@@ -39,12 +40,11 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
         for intervention in [True, False]:
             if intervention:
                 simulation.register_modules(test_modules)
-                # TODO: This is a hack to fix the bug in the module sorting code until Bob can get a general fix out
-                simulation._ordered_modules.remove(test_modules[0])
-                simulation._ordered_modules.append(test_modules[0])
+                print(simulation._ordered_modules)
             else:
                 simulation.deregister_modules(test_modules)
 
+            simulation.emit_event(ConfigurationEvent('configure_run', {'run_number': run, 'tests_active': intervention}))
             start = time()
             metrics = {}
             metrics['population_size'] = len(simulation.population)
@@ -89,6 +89,7 @@ def main():
     parser.add_argument('-n', type=int, default=1, help='Instance number for this process')
     parser.add_argument('-v', action='store_true', help='Verbose logging')
     parser.add_argument('--stats_path', type=str, default=None, help='Output file directory. No file is written if this argument is missing')
+    parser.add_argument('--detailed_sample_size', type=int, default=0, help='Number of simulants to track at highest level of detail. Resulting data will be writtent to --stats_path (or /tmp if --stats_path is ommited) as history_{instance_number}.hdf Within the hdf the group identifier will be {run number}/{True|False indicating whether the test modules were active')
     args = parser.parse_args()
 
     simulation = Simulation()
@@ -102,6 +103,12 @@ def main():
             BloodPressureModule(),
             SmokingModule(),
             ]
+
+    if args.detailed_sample_size:
+        sample_path = args.stats_path if args.stats_path else '/tmp'
+        sample_path = os.path.join(sample_path, 'history_{0}.hdf'.format(args.n))
+        modules.append(SampleHistoryModule(args.detailed_sample_size, sample_path))
+
     metrics_module = MetricsModule()
     modules.append(metrics_module)
     for module in modules:

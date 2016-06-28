@@ -11,7 +11,7 @@ np.seterr(all='raise')
 pd.set_option('mode.chained_assignment', 'raise')
 
 from ceam.util import from_yearly, filter_for_rate
-from ceam.events import PopulationEvent, only_living
+from ceam.events import PopulationEvent, Event, only_living
 from ceam.modules import ModuleRegistry, SimulationModule
 
 class BaseSimulationModule(SimulationModule):
@@ -24,6 +24,7 @@ class BaseSimulationModule(SimulationModule):
         self.population_columns = self.population_columns.assign(fractional_age=self.population_columns.age.astype(float))
         self.population_columns = self.population_columns.join(pd.read_csv(os.path.join(path_prefix, 'sex.csv')))
         self.population_columns = self.population_columns.join(pd.DataFrame({'alive': [True]*len(self.population_columns.age)}))
+        self.population_columns['simulant_id'] = range(0, len(self.population_columns))
         self.register_value_source(self.mortality_rates, 'mortality_rates')
 
     def load_data(self, path_prefix):
@@ -206,6 +207,7 @@ class Simulation(ModuleRegistry):
         self.index_population()
         self.emit_event(PopulationEvent('time_step__continuous', self.population))
         self.emit_event(PopulationEvent('time_step', self.population))
+        self.emit_event(PopulationEvent('time_step__end', self.population))
         self.current_time += time_step
 
     def run(self, start_time, end_time, time_step):
@@ -213,8 +215,10 @@ class Simulation(ModuleRegistry):
         self.reset_population()
 
         self.current_time = start_time
+        self.emit_event(Event('simulation_begin'))
         while self.current_time <= end_time:
             self._step(time_step)
+        self.emit_event(Event('simulation_end'))
 
     def reset(self):
         for module in self._ordered_modules:

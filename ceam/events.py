@@ -14,6 +14,11 @@ class PopulationEvent(Event):
         super(PopulationEvent, self).__init__(label)
         self.affected_population = affected_population
 
+class ConfigurationEvent(Event):
+    def __init__(self, label, config):
+        super(ConfigurationEvent, self).__init__(label)
+        self.config = config
+
 class EventHandler(object):
     def __init__(self):
         super(EventHandler, self).__init__()

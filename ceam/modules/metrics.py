@@ -13,11 +13,11 @@ from ceam.events import only_living
 class MetricsModule(SimulationModule):
     def setup(self):
         self.metrics = defaultdict(int)
-        self.register_event_listener(self.calculate_qualys, 'time_step')
+        self.register_event_listener(self.calculate_qualys, 'time_step__end')
         self.register_event_listener(self.event_sums, 'general_healthcare_access')
         self.register_event_listener(self.event_sums, 'followup_healthcare_access')
         self.register_event_listener(self.count_deaths_and_ylls, 'deaths')
-        self.register_event_listener(self.count_ylds, 'time_step')
+        self.register_event_listener(self.count_ylds, 'time_step__end')
 
     def load_data(self, path_prefix):
         self.life_table = pd.read_csv(os.path.join(path_prefix, 'interpolated_reference_life_table.csv'))

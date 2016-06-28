@@ -1,4 +1,4 @@
 [FORMAT]
 max-line-length=150
 [TYPECHECK]
-ignored-modules = numpy
+ignored-modules = numpy, numpy.random
