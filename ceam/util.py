@@ -1,7 +1,6 @@
 # ~/ceam/ceam/util.py
 
 import numpy as np
-import pandas as pd
 
 def from_yearly(value, time_step):
     return value * (time_step.total_seconds() / (60*60*24*365.0))
@@ -27,8 +26,11 @@ def filter_for_probability(population, probability):
     return population.loc[mask]
 
 
-# _MethodDecoratorAdaptor and auto_adapt_to_methods from http://stackoverflow.com/questions/1288498/using-the-same-decorator-with-arguments-with-functions-and-methods
 class _MethodDecoratorAdaptor(object):
+    '''
+        _MethodDecoratorAdaptor and auto_adapt_to_methods from
+        http://stackoverflow.com/questions/1288498/using-the-same-decorator-with-arguments-with-functions-and-methods
+    '''
     def __init__(self, decorator, func):
         self.decorator = decorator
         self.func = func

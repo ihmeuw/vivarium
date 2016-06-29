@@ -95,7 +95,8 @@ class ValueMutationNode(object):
         self._value_mutators[value_type][label].remove(mutator)
 
     def register_value_source(self, source, value_type, label=None):
-        assert not self._value_sources[value_type][label], 'Source already registered for %s:%s:%s'%(value_type, label, self._value_sources[value_type][label])
+        assert not self._value_sources[value_type][label], \
+            'Source already registered for %s:%s:%s'%(value_type, label, self._value_sources[value_type][label])
         self._value_sources[value_type][label] = source
 
     def deregister_value_source(self, value_type, label=None):
@@ -147,7 +148,7 @@ class SimulationModule(EventHandler, ValueMutationNode):
             assert column in self.simulation.lookup_table, 'Tried to lookup non-existent column: %s'%column
 
         results = self.simulation.lookup_table.ix[population.lookup_id, columns]
-        return results.rename(columns=dict(zip(columns,origonal_columns)))
+        return results.rename(columns=dict(zip(columns, origonal_columns)))
 
 
 # End.

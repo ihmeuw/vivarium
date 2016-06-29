@@ -147,7 +147,7 @@ class ChronicConditionModule(SimulationModule):
         self.lookup_table = self.lookup_table.merge(pd.read_csv(os.path.join(path_prefix, self.incidence_table_name)).rename(columns=lambda col: col.lower()), on=['age', 'sex', 'year'])
 
         # TODO: Once we've normalized input generation it should be safe to remove this line
-        self.lookup_table.drop_duplicates(['age','year','sex'], inplace=True)
+        self.lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
 
     def disability_weight(self, population):
         return (population[self.condition] == True) * self._disability_weight

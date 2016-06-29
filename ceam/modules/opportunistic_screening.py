@@ -98,7 +98,7 @@ class OpportunisticScreeningModule(SimulationModule):
         medicated_normotensive = normotensive.loc[normotensive.medication_count > 0]
 
         # Unmedicated normotensive simulants get a 60 month followup
-        follow_up =  self.simulation.current_time + timedelta(days=30.5*60)
+        follow_up = self.simulation.current_time + timedelta(days=30.5*60)
         self.simulation.population.loc[nonmedicated_normotensive.index, 'healthcare_followup_date'] = follow_up
 
         # Medicated normotensive simulants get an 11 month followup

@@ -1,9 +1,7 @@
 # ~/ceam/ceam/modules/healthcare_access.py
 
-import os.path
 from collections import defaultdict
 
-import numpy as np
 import pandas as pd
 
 from ceam.engine import SimulationModule
@@ -12,10 +10,13 @@ from ceam.util import filter_for_rate, filter_for_probability, from_yearly
 
 
 class HealthcareAccessModule(SimulationModule):
+    def __init__(self):
+        super(HealthcareAccessModule, self).__init__()
+        self.cost_by_year = defaultdict(float)
+
     def setup(self):
         self.register_event_listener(self.general_access, 'time_step')
         self.register_event_listener(self.followup_access, 'time_step')
-        self.cost_by_year = defaultdict(float)
 
     def reset(self):
         self.cost_by_year = defaultdict(float)
@@ -30,7 +31,7 @@ class HealthcareAccessModule(SimulationModule):
         rows = []
         for year in range(1990, 2014):
             for age in range(1, 104):
-                for sex in [1,2]:
+                for sex in [1, 2]:
                     rows.append([year, age, sex, male_utilization if sex == 1 else female_utilization])
         self.lookup_table = pd.DataFrame(rows, columns=['year', 'age', 'sex', 'rate'])
 
