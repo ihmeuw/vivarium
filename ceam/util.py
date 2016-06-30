@@ -48,4 +48,5 @@ def auto_adapt_to_methods(decorator):
     return adapt
 
 
+
 # End.

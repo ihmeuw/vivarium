@@ -4,6 +4,7 @@ import pytest
 
 import pandas as pd
 
+from ceam import config
 from ceam.events import PopulationEvent
 
 from ceam_tests.util import simulation_factory, pump_simulation
@@ -59,14 +60,14 @@ def test_drug_effects():
     simulation.population['medication_count'] = 1
     module.adjust_blood_pressure(PopulationEvent('time_step', simulation.population))
     assert (starting_sbp > simulation.population.systolic_blood_pressure).all()
-    efficacy = MEDICATIONS[0]['efficacy'] * simulation.config.getfloat('opportunistic_screening', 'adherence')
+    efficacy = MEDICATIONS[0]['efficacy'] * config.getfloat('opportunistic_screening', 'adherence')
     assert (starting_sbp == (simulation.population.systolic_blood_pressure + efficacy)).all()
 
     # Now everyone is on the first three drugs
     simulation.population['medication_count'] = 3
     simulation.population.systolic_blood_pressure = starting_sbp
     module.adjust_blood_pressure(PopulationEvent('time_step', simulation.population))
-    efficacy = sum(m['efficacy'] * simulation.config.getfloat('opportunistic_screening', 'adherence') for m in MEDICATIONS[:3])
+    efficacy = sum(m['efficacy'] * config.getfloat('opportunistic_screening', 'adherence') for m in MEDICATIONS[:3])
     assert (starting_sbp == (simulation.population.systolic_blood_pressure + efficacy)).all()
 
 def test_dependencies():
@@ -102,13 +103,13 @@ def test_blood_pressure_test_cost():
 
     # Everybody goes to the hospital
     simulation.emit_event(PopulationEvent('general_healthcare_access', simulation.population))
-    cost_of_a_single_test = simulation.config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
+    cost_of_a_single_test = config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
     assert module.cost_by_year[simulation.current_time.year] == cost_of_a_single_test * len(simulation.population)
 
     # Later, everybody goes to their followup appointment
     simulation.current_time += timedelta(days=361) # Force us into the next year
     simulation.emit_event(PopulationEvent('followup_healthcare_access', simulation.population))
-    cost_of_a_followup = cost_of_a_single_test + simulation.config.getfloat('appointments', 'cost')
+    cost_of_a_followup = cost_of_a_single_test + config.getfloat('appointments', 'cost')
     assert module.cost_by_year[simulation.current_time.year] == cost_of_a_followup * len(simulation.population)
 
 @pytest.fixture(scope="module")

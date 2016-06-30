@@ -3,13 +3,13 @@
 import os
 import os.path
 from collections import defaultdict
-from configparser import ConfigParser
 
 import pandas as pd
 import numpy as np
 np.seterr(all='raise')
 pd.set_option('mode.chained_assignment', 'raise')
 
+from ceam import config
 from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, Event, only_living
 from ceam.modules import ModuleRegistry, SimulationModule
@@ -56,15 +56,11 @@ class Simulation(ModuleRegistry):
         self.new_cases_per_year = defaultdict(lambda: defaultdict(int))
         self.population = pd.DataFrame()
         self.lookup_table = pd.DataFrame()
-        self.config = ConfigParser()
         self.last_time_step = None
-
-        config_path = os.path.abspath(os.path.dirname(__file__))
-        self.config.read([os.path.join(config_path, 'config.cfg'), os.path.join(config_path, 'local.cfg'), os.path.expanduser('~/ceam.cfg')])
 
     def load_data(self, path_prefix=None):
         if path_prefix is None:
-            path_prefix = self.config.get('general', 'reference_data_directory')
+            path_prefix = config.get('general', 'reference_data_directory')
 
         for module in self._ordered_modules:
             module.load_data(path_prefix)
@@ -90,7 +86,7 @@ class Simulation(ModuleRegistry):
 
     def load_population(self, path_prefix=None):
         if path_prefix is None:
-            path_prefix = self.config.get('general', 'population_data_directory')
+            path_prefix = config.get('general', 'population_data_directory')
 
         #NOTE: This will always be BaseSimulationModule which loads the core population definition and thus can discover what the population size is
         module = self._ordered_modules[0]

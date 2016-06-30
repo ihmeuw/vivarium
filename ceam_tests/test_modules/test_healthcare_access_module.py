@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from ceam import config
 from ceam_tests.util import simulation_factory, assert_rate
 from ceam.engine import SimulationModule
 
@@ -29,9 +30,9 @@ def test_general_access():
 
     # Men and women have different utilization rates
     simulation.population = initial_population[initial_population.sex == 1]
-    assert_rate(simulation, simulation.config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count)
+    assert_rate(simulation, config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count)
     simulation.population = initial_population[initial_population.sex == 2]
-    assert_rate(simulation, simulation.config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count)
+    assert_rate(simulation, config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count)
 
 @pytest.mark.slow
 def test_general_access_cost():
@@ -48,4 +49,4 @@ def test_general_access_cost():
     simulation._step(timestep)
     simulation._step(timestep)
 
-    assert round(sum(access.cost_by_year.values()) / metrics.access_count, 5) == simulation.config.getfloat('appointments', 'cost')
+    assert round(sum(access.cost_by_year.values()) / metrics.access_count, 5) == config.getfloat('appointments', 'cost')
