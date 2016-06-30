@@ -21,7 +21,7 @@ class HealthcareAccessModule(SimulationModule):
         self.cost_by_year = defaultdict(float)
 
     def load_population_columns(self, path_prefix, population_size):
-        self.population_columns = pd.DataFrame({'healthcare_followup_date': [None]*population_size, 'healthcare_last_visit_date': [None]*population_size})
+        self.population_columns = pd.DataFrame({'healthcare_followup_date': [pd.NaT]*population_size, 'healthcare_last_visit_date': [pd.NaT]*population_size})
 
     def load_data(self, path_prefix):
         # TODO: Refine these rates. Possibly include age effects, though Marcia says they are small
