@@ -43,6 +43,7 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
     timestep = timedelta(days=30)
     start_time = datetime(1990, 1, 1)
     simulation.current_time = start_time
+    simulation.last_time_step = timestep
 
     count = value_func(simulation)
     total_true_rate = 0

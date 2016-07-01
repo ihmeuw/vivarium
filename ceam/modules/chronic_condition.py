@@ -66,7 +66,7 @@ class ChronicConditionModule(SimulationModule):
     A generic module that can handle any simple condition which has an incidence rate, chronic mortality rate and, optionally, an acute mortality rate
     """
 
-    def __init__(self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=timedelta(days=28), acute_mortality_table_name=None):
+    def __init__(self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=timedelta(days=28), acute_mortality_table_name=None, allow_multiple_events=True):
         """
         Parameters
         ----------
@@ -84,6 +84,15 @@ class ChronicConditionModule(SimulationModule):
             Time after the initial incident in which simulants are effected by the acute excess mortality for this condition, if any.
         acute_mortality_table_name : str
             Name of the table to load acute mortality rates from. If this is None only chronic rates will be used
+
+        Population Columns
+        ------------------
+        {condition}
+            Boolean indicating which simulants have the condition
+        {condition}_event_time
+            Epoch timestamps indicating the time of each simulant's most recent event
+        {condition}_event_count
+            Integers representing the number of events the simulant has suffered
         """
         SimulationModule.__init__(self)
         self.condition = condition
@@ -93,6 +102,7 @@ class ChronicConditionModule(SimulationModule):
             self.acute_phase_duration = acute_phase_duration
         else:
             self.acute_phase_duration = None
+        self.allow_multiple_events = allow_multiple_events
         self.incidence_table_name = incidence_table_name
         self._disability_weight = disability_weight
         self._initial_column_table_name = initial_column_table_name
@@ -127,6 +137,7 @@ class ChronicConditionModule(SimulationModule):
 
         # NOTE: people who start with the condition go straight into the chronic phase.
         self.population_columns[self.condition + '_event_time'] = np.array([0] * population_size, dtype=np.float)
+        self.population_columns[self.condition + '_event_count'] = self.population_columns[self.condition].astype(int)
 
     def load_data(self, path_prefix):
         # Load the chronic mortality rates table, we should always have this
@@ -191,11 +202,15 @@ class ChronicConditionModule(SimulationModule):
         The time at which they got the condition (or had an event if we're doing acute mortality) is stored in the
         `self.condition+'_event_time'` column which we use for determining when they are done with the acute phase
         """
-        affected_population = event.affected_population[event.affected_population[self.condition] == False]
+        affected_population = event.affected_population
+        if not self.allow_multiple_events:
+            affected_population = affected_population[affected_population[self.condition] == False]
+
         incidence_rates = self.simulation.incidence_rates(affected_population, self.condition)
         affected_population = filter_for_rate(affected_population, incidence_rates)
         self.simulation.population.loc[affected_population.index, self.condition] = True
         self.simulation.population.loc[affected_population.index, self.condition+'_event_time'] = self.simulation.current_time.timestamp()
+        self.simulation.population.loc[affected_population.index, self.condition+'_event_count'] += 1
 
 
 # End.

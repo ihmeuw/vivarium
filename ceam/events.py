@@ -17,7 +17,7 @@ class PopulationEvent(Event):
 class ConfigurationEvent(Event):
     def __init__(self, label, config):
         super(ConfigurationEvent, self).__init__(label)
-        config = config
+        self.config = config
 
 class EventHandler(object):
     def __init__(self):
