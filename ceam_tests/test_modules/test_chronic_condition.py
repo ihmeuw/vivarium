@@ -114,3 +114,14 @@ def test_initial_column_data():
     with pytest.raises(OSError):
         # We're explicitly specifying a table to load but it doesn't exist. Fail fast
         module.load_population_columns(data_path, 1000)
+
+@pytest.mark.slow
+def test_multiple_events():
+    simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.0.csv', 'incidence_0.7.csv', 0.01, allow_multiple_events=True)])
+    assert_rate(simulation, 0.7, lambda sim: sim.population.no_initial_disease_event_count.sum())
+    assert simulation.population.no_initial_disease_event_count.mean() > 1
+
+@pytest.mark.slow
+def test_suppresion_of_multiple_events():
+    simulation = simulation_factory([ChronicConditionModule('no_initial_disease', 'mortality_0.0.csv', 'incidence_0.7.csv', 0.01, allow_multiple_events=False)])
+    assert simulation.population.no_initial_disease_event_count.mean() <= 1
