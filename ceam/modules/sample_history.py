@@ -19,7 +19,7 @@ class SampleHistoryModule(SimulationModule):
     def setup(self):
         self.register_event_listener(self.record, 'time_step__end')
         self.register_event_listener(self.dump, 'simulation_end')
-        self.register_event_listener(configure_run, 'configure_run')
+        self.register_event_listener(self.configure_run, 'configure_run')
 
     def load_population_columns(self, path_prefix, population_size):
         if self.sample_size is None:
