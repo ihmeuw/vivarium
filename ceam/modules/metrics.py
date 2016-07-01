@@ -11,8 +11,12 @@ from ceam.events import only_living
 
 
 class MetricsModule(SimulationModule):
-    def setup(self):
+    def __init__(self):
+        super(MetricsModule, self).__init__()
         self.metrics = defaultdict(int)
+        self.life_table = pd.DataFrame()
+
+    def setup(self):
         self.register_event_listener(self.calculate_qualys, 'time_step__end')
         self.register_event_listener(self.event_sums, 'general_healthcare_access')
         self.register_event_listener(self.event_sums, 'followup_healthcare_access')

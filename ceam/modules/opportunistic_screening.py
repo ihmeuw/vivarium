@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import numpy as np
 
+from ceam import config
 from ceam.engine import SimulationModule
 from ceam.events import only_living
 from ceam.modules.blood_pressure import BloodPressureModule
@@ -68,7 +69,7 @@ class OpportunisticScreeningModule(SimulationModule):
         self.population_columns['medication_count'] = [0]*population_size
 
     def general_blood_pressure_test(self, event):
-        cost = len(event.affected_population) * self.simulation.config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
+        cost = len(event.affected_population) * config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
         self.cost_by_year[self.simulation.current_time.year] += cost
 
         #TODO: testing error
@@ -87,8 +88,8 @@ class OpportunisticScreeningModule(SimulationModule):
         self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension['medication_count'] + 2, len(MEDICATIONS))
 
     def followup_blood_pressure_test(self, event):
-        appointment_cost = self.simulation.config.getfloat('appointments', 'cost')
-        test_cost = self.simulation.config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
+        appointment_cost = config.getfloat('appointments', 'cost')
+        test_cost = config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
         cost_per_simulant = appointment_cost + test_cost
 
         self.cost_by_year[self.simulation.current_time.year] += cost_per_simulant * len(event.affected_population)
@@ -98,7 +99,7 @@ class OpportunisticScreeningModule(SimulationModule):
         medicated_normotensive = normotensive.loc[normotensive.medication_count > 0]
 
         # Unmedicated normotensive simulants get a 60 month followup
-        follow_up =  self.simulation.current_time + timedelta(days=30.5*60)
+        follow_up = self.simulation.current_time + timedelta(days=30.5*60)
         self.simulation.population.loc[nonmedicated_normotensive.index, 'healthcare_followup_date'] = follow_up
 
         # Medicated normotensive simulants get an 11 month followup
@@ -122,7 +123,7 @@ class OpportunisticScreeningModule(SimulationModule):
     @only_living
     def adjust_blood_pressure(self, event):
         for medication_number, medication in enumerate(MEDICATIONS):
-            medication_efficacy = medication['efficacy'] * self.simulation.config.getfloat('opportunistic_screening', 'adherence')
+            medication_efficacy = medication['efficacy'] * config.getfloat('opportunistic_screening', 'adherence')
             affected_population = event.affected_population[event.affected_population.medication_count > medication_number]
             self.simulation.population.loc[affected_population.index, 'systolic_blood_pressure'] -= medication_efficacy
 
