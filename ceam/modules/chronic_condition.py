@@ -84,6 +84,15 @@ class ChronicConditionModule(SimulationModule):
             Time after the initial incident in which simulants are effected by the acute excess mortality for this condition, if any.
         acute_mortality_table_name : str
             Name of the table to load acute mortality rates from. If this is None only chronic rates will be used
+
+        Population Columns
+        ------------------
+        {condition}
+            Boolean indicating which simulants have the condition
+        {condition}_event_time
+            Epoch timestamps indicating the time of each simulant's most recent event
+        {condition}_event_count
+            Integers representing the number of events the simulant has suffered
         """
         SimulationModule.__init__(self)
         self.condition = condition
