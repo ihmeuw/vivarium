@@ -24,21 +24,22 @@ class BloodPressureModule(SimulationModule):
     def load_data(self, path_prefix):
         dists = pd.read_csv(os.path.join(path_prefix, 'SBP_dist.csv'))
         self.lookup_table = dists[dists.Parameter == 'sd'].merge(dists[dists.Parameter == 'mean'], on=['Age', 'Year', 'sex'])
-        self.lookup_table.drop(['Parameter_x','Parameter_y'],axis=1, inplace=True)
+        self.lookup_table.drop(['Parameter_x', 'Parameter_y'], axis=1, inplace=True)
         self.lookup_table.columns = ['age', 'year', 'std', 'sex', 'mean']
         rows = []
         # NOTE: We treat simulants under 25 as having no risk associated with SBP so we aren't even modeling it for them
-        for age in range(0,25):
+        for age in range(0, 25):
             for year in range(1990, 2014):
-                for sex in [1,2]:
+                for sex in [1, 2]:
                     rows.append([age, year, 0.0000001, sex, 112])
         self.lookup_table = self.lookup_table.append(pd.DataFrame(rows, columns=['age', 'year', 'std', 'sex', 'mean']))
-        self.lookup_table.drop_duplicates(['year','age','sex'], inplace=True)
+        self.lookup_table.drop_duplicates(['year', 'age', 'sex'], inplace=True)
 
     @only_living
     def update_systolic_blood_pressure(self, event):
         distribution = self.lookup_columns(event.affected_population, ['mean', 'std'])
-        self.simulation.population.loc[event.affected_population.index, 'systolic_blood_pressure'] = norm.ppf(event.affected_population.systolic_blood_pressure_precentile, loc=distribution['mean'], scale=distribution['std'])
+        new_sbp = norm.ppf(event.affected_population.systolic_blood_pressure_precentile, loc=distribution['mean'], scale=distribution['std'])
+        self.simulation.population.loc[event.affected_population.index, 'systolic_blood_pressure'] = new_sbp
 
     def ihd_incidence_rates(self, population, rates):
         blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
