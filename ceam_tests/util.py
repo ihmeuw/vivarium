@@ -1,10 +1,12 @@
 import os.path
 from datetime import datetime, timedelta
 
+import numpy as np
+
 import pytest
 
 from ceam.engine import Simulation
-from ceam.util import from_yearly
+from ceam.util import from_yearly, to_yearly
 
 def simulation_factory(modules):
     simulation = Simulation()
@@ -17,7 +19,7 @@ def simulation_factory(modules):
     simulation._verify_tables(datetime(1990, 1, 1), datetime(2010, 12, 1))
     return simulation
 
-def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population)):
+def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population), dummy_population=None):
     """ Asserts that the rate of change of some property in the simulation matches expectations.
 
     Parameters
@@ -28,32 +30,42 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
     effective_population_func
         a function that takes a Simulation and returns the size of the population over which the rate should be measured (ie. living simulants for mortality)
     expected_rate
-        The rate of change we expect
+        The rate of change we expect or a lambda that will take a rate and return a boolean
     population_sample_func
         A function that takes in a population and returns a subset of it which will be used for the test
     """
 
-    simulation.reset_population()
+    if dummy_population is None:
+        simulation.reset_population()
+    else:
+        simulation.population = dummy_population.copy()
 
     timestep = timedelta(days=30)
     start_time = datetime(1990, 1, 1)
     simulation.current_time = start_time
+    simulation.last_time_step = timestep
 
     count = value_func(simulation)
-    total_expected_rate = 0
     total_true_rate = 0
+    effective_population_size = 0
     for _ in range(10*12):
-        effective_population_size = effective_population_func(simulation)
+        effective_population_size += effective_population_func(simulation)
         simulation._step(timestep)
         new_count = value_func(simulation)
-        total_expected_rate += from_yearly(expected_rate, timestep)*effective_population_size
         total_true_rate += new_count - count
         count = new_count
 
-    assert abs(total_expected_rate - total_true_rate)/total_expected_rate < 0.1
+    try:
+        assert expected_rate(to_yearly(total_true_rate, timestep*120))
+    except TypeError:
+        total_expected_rate = from_yearly(expected_rate, timestep)*effective_population_size
+        assert abs(total_expected_rate - total_true_rate)/total_expected_rate < 0.1
 
-def pump_simulation(simulation, duration=None, iterations=None):
-    simulation.reset_population()
+def pump_simulation(simulation, duration=None, iterations=None, dummy_population=None):
+    if dummy_population is None:
+        simulation.reset_population()
+    else:
+        simulation.population = dummy_population.copy()
 
     timestep = timedelta(days=30)
     start_time = datetime(1990, 1, 1)

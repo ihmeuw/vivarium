@@ -4,3 +4,4 @@
 .coverage
 *.egg-info
 local.cfg
+.ipynb_checkpoints

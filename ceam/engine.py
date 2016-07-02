@@ -3,18 +3,15 @@
 import os
 import os.path
 from collections import defaultdict
-try:
-    from configparser import ConfigParser
-except ImportError:
-    #Python2
-    from ConfigParser import SafeConfigParser as ConfigParser
 
 import pandas as pd
 import numpy as np
 np.seterr(all='raise')
+pd.set_option('mode.chained_assignment', 'raise')
 
+from ceam import config
 from ceam.util import from_yearly, filter_for_rate
-from ceam.events import PopulationEvent, only_living
+from ceam.events import PopulationEvent, Event, only_living
 from ceam.modules import ModuleRegistry, SimulationModule
 
 class BaseSimulationModule(SimulationModule):
@@ -27,6 +24,7 @@ class BaseSimulationModule(SimulationModule):
         self.population_columns = self.population_columns.assign(fractional_age=self.population_columns.age.astype(float))
         self.population_columns = self.population_columns.join(pd.read_csv(os.path.join(path_prefix, 'sex.csv')))
         self.population_columns = self.population_columns.join(pd.DataFrame({'alive': [True]*len(self.population_columns.age)}))
+        self.population_columns['simulant_id'] = range(0, len(self.population_columns))
         self.register_value_source(self.mortality_rates, 'mortality_rates')
 
     def load_data(self, path_prefix):
@@ -58,14 +56,11 @@ class Simulation(ModuleRegistry):
         self.new_cases_per_year = defaultdict(lambda: defaultdict(int))
         self.population = pd.DataFrame()
         self.lookup_table = pd.DataFrame()
-        self.config = ConfigParser()
-
-        config_path = os.path.abspath(os.path.dirname(__file__))
-        self.config.read([os.path.join(config_path, 'config.cfg'), os.path.join(config_path, 'local.cfg'), os.path.expanduser('~/ceam.cfg')])
+        self.last_time_step = None
 
     def load_data(self, path_prefix=None):
         if path_prefix is None:
-            path_prefix = self.config.get('general', 'reference_data_directory')
+            path_prefix = config.get('general', 'reference_data_directory')
 
         for module in self._ordered_modules:
             module.load_data(path_prefix)
@@ -80,7 +75,7 @@ class Simulation(ModuleRegistry):
         for module in self._ordered_modules:
             if not module.lookup_table.empty:
                 prefixed_table = module.lookup_table.rename(columns=lambda c: column_prefixer(c, module.lookup_column_prefix))
-                assert prefixed_table.duplicated(['age','sex','year']).sum() == 0, "%s has a lookup table with duplicate rows"%(module.module_id())
+                assert prefixed_table.duplicated(['age', 'sex', 'year']).sum() == 0, "%s has a lookup table with duplicate rows"%(module.module_id())
 
                 if lookup_table.empty:
                     lookup_table = prefixed_table
@@ -91,7 +86,7 @@ class Simulation(ModuleRegistry):
 
     def load_population(self, path_prefix=None):
         if path_prefix is None:
-            path_prefix = self.config.get('general', 'population_data_directory')
+            path_prefix = config.get('general', 'population_data_directory')
 
         #NOTE: This will always be BaseSimulationModule which loads the core population definition and thus can discover what the population size is
         module = self._ordered_modules[0]
@@ -113,7 +108,7 @@ class Simulation(ModuleRegistry):
         if not self.lookup_table.empty:
             if 'lookup_id' in self.population:
                 self.population.drop('lookup_id', 1, inplace=True)
-            population = self.population.merge(self.lookup_table[['year','age','sex','lookup_id']], on=['year','age','sex'])
+            population = self.population.merge(self.lookup_table[['year', 'age', 'sex', 'lookup_id']], on=['year', 'age', 'sex'])
             assert len(population) == len(self.population), "One of the lookup tables is missing rows or has duplicate rows"
             self.population = population
 
@@ -134,13 +129,17 @@ class Simulation(ModuleRegistry):
                 for label, source in msources.items():
                     sources[value_type][label].add(source)
 
-        duplicates = [(value_type, label, sources) for value_type, by_label in sources.items() for label, sources in by_label.items() if len(sources) > 1]
+        duplicates = [(value_type, label, sources)
+                      for value_type, by_label in sources.items()
+                      for label, sources in by_label.items()
+                      if len(sources) > 1
+                     ]
         assert not duplicates, "Multiple sources for these values: %s"%duplicates
 
         for module in self._ordered_modules:
             for value_type, mmutators in module._value_mutators.items():
-                for label, mutators in mmutators.items():
-                    assert sources[value_type][label], "Missing source for mutator: %s"%((value_type, label, mutator))
+                for label, _ in mmutators.items():
+                    assert sources[value_type][label], "Missing source for mutator: %s"%((value_type, label))
 
     def _get_value(self, population, value_type, label=None):
         source = None
@@ -186,10 +185,10 @@ class Simulation(ModuleRegistry):
 
     def _verify_tables(self, start_time, end_time):
         # Check that all the data necessary to run the requested date range is available
-        expected_index = set((age, sex, year) for age in range(1, 104) for sex in [1,2] for year in range(start_time.year, end_time.year))
+        expected_index = set((age, sex, year) for age in range(1, 104) for sex in [1, 2] for year in range(start_time.year, end_time.year))
         for module in self._ordered_modules:
             if not module.lookup_table.empty:
-                index = set(tuple(row) for row in module.lookup_table[['age','sex','year']].values.tolist())
+                index = set(tuple(row) for row in module.lookup_table[['age', 'sex', 'year']].values.tolist())
                 assert len(expected_index.difference(index)) == 0, "%s has a lookup table that doesn't meet the minimal index requirements"%((module.module_id(),))
 
     def _validate(self, start_time, end_time):
@@ -204,6 +203,7 @@ class Simulation(ModuleRegistry):
         self.index_population()
         self.emit_event(PopulationEvent('time_step__continuous', self.population))
         self.emit_event(PopulationEvent('time_step', self.population))
+        self.emit_event(PopulationEvent('time_step__end', self.population))
         self.current_time += time_step
 
     def run(self, start_time, end_time, time_step):
@@ -211,8 +211,10 @@ class Simulation(ModuleRegistry):
         self.reset_population()
 
         self.current_time = start_time
+        self.emit_event(Event('simulation_begin'))
         while self.current_time <= end_time:
             self._step(time_step)
+        self.emit_event(Event('simulation_end'))
 
     def reset(self):
         for module in self._ordered_modules:
