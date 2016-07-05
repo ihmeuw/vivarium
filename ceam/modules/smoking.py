@@ -8,6 +8,18 @@ import numpy as np
 from ceam.engine import SimulationModule
 
 class SmokingModule(SimulationModule):
+    """
+    Model smoking. Simulants will be smoking at any moment based on whether their `smoking_susceptibility` is less than
+    the current smoking prevalence for their demographic.
+
+    NOTE: This does not track whether a simulant has a history of smoking, only what their current state is.
+
+    Population Columns
+    ------------------
+    smoking_susceptibility
+        Likelihood that a simulant will smoke
+    """
+
     def __init__(self):
         super(SmokingModule, self).__init__()
         self.mediation_factor = 0.2

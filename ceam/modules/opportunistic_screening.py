@@ -53,6 +53,12 @@ def _hypertensive_categories(population):
 
 
 class OpportunisticScreeningModule(SimulationModule):
+    """
+    Model an intervention where simulants have their blood pressure tested every time they access health care and are prescribed
+    blood pressure reducing medication if they are found to be hypertensive. Each simulant can be prescribed up to 
+    `len(MEDICATIONS)` drugs. If they are still hypertensive while taking all the drugs then there is no further treatment.
+    """
+
     DEPENDENCIES = (BloodPressureModule, HealthcareAccessModule,)
     def __init__(self):
         SimulationModule.__init__(self)

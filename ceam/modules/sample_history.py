@@ -4,7 +4,21 @@ import numpy as np
 from ceam.engine import SimulationModule
 
 class SampleHistoryModule(SimulationModule):
+    """
+    Collect a detailed record of events that happen to a sampled sub-population for use with vizualization
+    or analysis. The records are written to an HDF file.
+    """
+
     def __init__(self, sample_size, output_path):
+        """
+        Parameters
+        ----------
+        sample_size
+            Size of the sampled population
+        output_path
+            Full path to the HDF file to write. Group identifiers within the file are /{run_number}/{True|False depending
+            on whether test modules were active for the run.
+        """
         super(SampleHistoryModule, self).__init__()
         self.sample_size = sample_size
         self.output_path = output_path

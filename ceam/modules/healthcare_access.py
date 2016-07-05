@@ -11,6 +11,17 @@ from ceam.util import filter_for_rate, filter_for_probability, from_yearly
 
 
 class HealthcareAccessModule(SimulationModule):
+    """
+    Model health care utilization. This includes access events due to chance (broken arms, flu, etc.) and those due to follow up appointments, which are effected by adherence rate. This module does not schedule follow ups on it's own but will respond to follow ups added to the `healthcare_followup_date` column by other modules.
+
+    Population Columns
+    ------------------
+    healthcare_last_visit_date
+        Epoch timestamp of the simulant's most recent health care access event
+    healthcare_followup_date
+        Epoch timestamp of the simulant's next scheduled follow up appointment
+    """
+
     def __init__(self):
         super(HealthcareAccessModule, self).__init__()
         self.cost_by_year = defaultdict(float)

@@ -64,6 +64,15 @@ def _calculate_time_spent_in_phases(onset_times, acute_phase_duration, current_t
 class ChronicConditionModule(SimulationModule):
     """
     A generic module that can handle any simple condition which has an incidence rate, chronic mortality rate and, optionally, an acute mortality rate
+
+    Population Columns
+    ------------------
+    {condition}
+        Boolean indicating which simulants have the condition
+    {condition}_event_time
+        Epoch timestamps indicating the time of each simulant's most recent event
+    {condition}_event_count
+        Integers representing the number of events the simulant has suffered
     """
 
     def __init__(self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=timedelta(days=28), acute_mortality_table_name=None, allow_multiple_events=True):
@@ -79,20 +88,11 @@ class ChronicConditionModule(SimulationModule):
         disability_weight : float
             Disability weight of this condition
         initial_column_table_name : str
-            Name of the column table that contains the inital state of this condition. If None then `condition`.csv will be used. Will search in the standard population columns directory.
+            Name of the column table that contains the initial state of this condition. If None then `condition`.csv will be used. Will search in the standard population columns directory.
         acute_phase_duration : np.timedelta64
             Time after the initial incident in which simulants are effected by the acute excess mortality for this condition, if any.
         acute_mortality_table_name : str
             Name of the table to load acute mortality rates from. If this is None only chronic rates will be used
-
-        Population Columns
-        ------------------
-        {condition}
-            Boolean indicating which simulants have the condition
-        {condition}_event_time
-            Epoch timestamps indicating the time of each simulant's most recent event
-        {condition}_event_count
-            Integers representing the number of events the simulant has suffered
         """
         SimulationModule.__init__(self)
         self.condition = condition
@@ -198,7 +198,7 @@ class ChronicConditionModule(SimulationModule):
     @only_living
     def incidence_handler(self, event):
         """
-        This applies the incidence rate for this condition to the suceptable population and causes some of them to get sick.
+        This applies the incidence rate for this condition to the susceptible population and causes some of them to get sick.
         The time at which they got the condition (or had an event if we're doing acute mortality) is stored in the
         `self.condition+'_event_time'` column which we use for determining when they are done with the acute phase
         """

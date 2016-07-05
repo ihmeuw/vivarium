@@ -10,6 +10,17 @@ from ceam.engine import SimulationModule
 from ceam.events import only_living
 
 class BloodPressureModule(SimulationModule):
+    """
+    Model systolic blood pressure and it's effect on IHD and stroke
+
+    Population Columns
+    ------------------
+    systolic_blood_pressure_percentile
+        Each simulant's position in the population level SBP distribution. A simulant with .99 will always have high blood pressure and a simulant with .01 will always be low relative to the current average
+    systolic_blood_pressure
+        Each simulant's current SBP
+    """
+
     def setup(self):
         self.register_event_listener(self.update_systolic_blood_pressure, 'time_step__continuous')
         self.incidence_mediation_factors['ihd'] = 0.3
@@ -18,7 +29,7 @@ class BloodPressureModule(SimulationModule):
         self.register_value_mutator(self.hemorrhagic_stroke_incidence_rates, 'incidence_rates', 'hemorrhagic_stroke')
 
     def load_population_columns(self, path_prefix, population_size):
-        self.population_columns['systolic_blood_pressure_precentile'] = np.random.uniform(low=0.01, high=0.99, size=population_size)
+        self.population_columns['systolic_blood_pressure_percentile'] = np.random.uniform(low=0.01, high=0.99, size=population_size)
         self.population_columns['systolic_blood_pressure'] = norm.ppf(self.population_columns.systolic_blood_pressure_precentile, loc=138, scale=15)
 
     def load_data(self, path_prefix):
@@ -38,7 +49,7 @@ class BloodPressureModule(SimulationModule):
     @only_living
     def update_systolic_blood_pressure(self, event):
         distribution = self.lookup_columns(event.affected_population, ['mean', 'std'])
-        new_sbp = norm.ppf(event.affected_population.systolic_blood_pressure_precentile, loc=distribution['mean'], scale=distribution['std'])
+        new_sbp = norm.ppf(event.affected_population.systolic_blood_pressure_percentile, loc=distribution['mean'], scale=distribution['std'])
         self.simulation.population.loc[event.affected_population.index, 'systolic_blood_pressure'] = new_sbp
 
     def ihd_incidence_rates(self, population, rates):
