@@ -40,7 +40,6 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
         for intervention in [True, False]:
             if intervention:
                 simulation.register_modules(test_modules)
-                print(simulation._ordered_modules)
             else:
                 simulation.deregister_modules(test_modules)
 
