@@ -13,6 +13,7 @@ from ceam import config
 from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, Event, only_living
 from ceam.modules import ModuleRegistry, SimulationModule
+from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
 
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
