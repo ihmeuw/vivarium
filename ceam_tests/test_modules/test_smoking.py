@@ -12,12 +12,12 @@ def test_incidence_rate_effect(condition):
     simulation = simulation_factory([smoking_module, condition_module])
     pump_simulation(simulation, iterations=1)
 
-    simulation.deregister_modules([smoking_module])
+    simulation.remove_children([smoking_module])
 
     # Base incidence rate without blood pressure
     base_incidence = simulation.incidence_rates(simulation.population, condition)
 
-    simulation.register_modules([smoking_module])
+    simulation.add_children([smoking_module])
 
     # Get incidence including the effect of smoking
     smoking_incidence = simulation.incidence_rates(simulation.population, condition)

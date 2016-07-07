@@ -27,7 +27,7 @@ class MetricsModule(SimulationModule):
         self.register_event_listener(self.count_deaths_and_ylls, 'deaths')
         self.register_event_listener(self.count_ylds, 'time_step__end')
 
-    def load_data(self, path_prefix):
+    def _load_data(self, path_prefix):
         self.life_table = pd.read_csv(os.path.join(path_prefix, 'interpolated_reference_life_table.csv'))
 
     def event_sums(self, event):

@@ -36,7 +36,7 @@ class HealthcareAccessModule(SimulationModule):
     def load_population_columns(self, path_prefix, population_size):
         self.population_columns = pd.DataFrame({'healthcare_followup_date': [pd.NaT]*population_size, 'healthcare_last_visit_date': [pd.NaT]*population_size})
 
-    def load_data(self, path_prefix):
+    def _load_data(self, path_prefix):
         # TODO: Refine these rates. Possibly include age effects, though Marcia says they are small
         male_utilization = config.getfloat('appointments', 'male_utilization_rate')
         female_utilization = config.getfloat('appointments', 'male_utilization_rate')
@@ -45,7 +45,7 @@ class HealthcareAccessModule(SimulationModule):
             for age in range(1, 104):
                 for sex in [1, 2]:
                     rows.append([year, age, sex, male_utilization if sex == 1 else female_utilization])
-        self.lookup_table = pd.DataFrame(rows, columns=['year', 'age', 'sex', 'rate'])
+        return pd.DataFrame(rows, columns=['year', 'age', 'sex', 'rate'])
 
     @only_living
     def general_access(self, event):

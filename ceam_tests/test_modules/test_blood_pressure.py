@@ -38,12 +38,12 @@ def test_blood_pressure_effect_on_incidince(condition):
     simulation = simulation_factory([bp_module, condition_module])
 
     pump_simulation(simulation, iterations=1) # Get blood pressure stablaized
-    simulation.deregister_modules([bp_module])
+    simulation.remove_children([bp_module])
 
     # Base incidence rate without blood pressure
     base_incidence = simulation.incidence_rates(simulation.population, condition)
 
-    simulation.register_modules([bp_module])
+    simulation.add_children([bp_module])
 
     # Get incidence including the effect of blood pressure
     bp_incidence = simulation.incidence_rates(simulation.population, condition)

@@ -118,9 +118,9 @@ def screening_setup():
     simulation = simulation_factory([module])
     dummy_population = _population_factory()
 
-    simulation.deregister_modules([module])
+    simulation.remove_children([module])
     pump_simulation(simulation, iterations=1, dummy_population=dummy_population)
-    simulation.register_modules([module])
+    simulation.add_children([module])
     return simulation, module
 
 #NOTE: If these tests start breaking mysteriously, it's likely because something changed the order in which pytest is executing them.

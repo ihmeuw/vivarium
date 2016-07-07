@@ -55,7 +55,7 @@ module.setup()
 metrics_module = SimpleMetrics()
 metrics_module.setup()
 
-simulation.register_modules([module, metrics_module])
+simulation.add_children([module, metrics_module])
 
 simulation.load_population()
 simulation.load_data()
@@ -80,7 +80,7 @@ print('Run time:', metrics_module.run_time())
 ### Run with intervention
 intervention = SimpleIntervention()
 intervention.setup()
-simulation.register_modules([intervention])
+simulation.add_children([intervention])
 
 np.random.seed(123456)  # set random seed for reproducibility
 simulation.reset()

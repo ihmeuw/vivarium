@@ -139,26 +139,28 @@ class ChronicConditionModule(SimulationModule):
         self.population_columns[self.condition + '_event_time'] = np.array([0] * population_size, dtype=np.float)
         self.population_columns[self.condition + '_event_count'] = self.population_columns[self.condition].astype(int)
 
-    def load_data(self, path_prefix):
+    def _load_data(self, path_prefix):
         # Load the chronic mortality rates table, we should always have this
         chronic_mortality_rate_table_path = os.path.join(path_prefix, self.chronic_mortality_table_name)
-        self.lookup_table = pd.read_csv(chronic_mortality_rate_table_path)
-        assert len(self.lookup_table.columns) == 4, "Too many columns in chronic mortality rate table: %s"%chronic_mortality_rate_table_path
-        self.lookup_table.columns = _rename_mortality_column(self.lookup_table, 'chronic_mortality')
+        lookup_table = pd.read_csv(chronic_mortality_rate_table_path)
+        assert len(lookup_table.columns) == 4, "Too many columns in chronic mortality rate table: %s"%chronic_mortality_rate_table_path
+        lookup_table.columns = _rename_mortality_column(lookup_table, 'chronic_mortality')
 
         if self.acute_mortality_table_name:
             # If we're configured to do acute mortality, load that table too
             acute_mortality_rate_table_path = os.path.join(path_prefix, self.acute_mortality_table_name)
-            lookup_table = pd.read_csv(acute_mortality_rate_table_path)
-            assert len(lookup_table.columns) == 4, "Too many columns in acute mortality rate table: %s"%acute_mortality_rate_table_path
-            lookup_table.columns = _rename_mortality_column(lookup_table, 'acute_mortality')
-            self.lookup_table = self.lookup_table.merge(lookup_table, on=['age', 'sex', 'year'])
+            acute_table = pd.read_csv(acute_mortality_rate_table_path)
+            assert len(acute_table.columns) == 4, "Too many columns in acute mortality rate table: %s"%acute_mortality_rate_table_path
+            acute_table.columns = _rename_mortality_column(acute_table, 'acute_mortality')
+            lookup_table = lookup_table.merge(acute_table, on=['age', 'sex', 'year'])
 
         # And also load the incidence rates table
-        self.lookup_table = self.lookup_table.merge(pd.read_csv(os.path.join(path_prefix, self.incidence_table_name)).rename(columns=lambda col: col.lower()), on=['age', 'sex', 'year'])
+        lookup_table = lookup_table.merge(pd.read_csv(os.path.join(path_prefix, self.incidence_table_name)).rename(columns=lambda col: col.lower()), on=['age', 'sex', 'year'])
 
         # TODO: Once we've normalized input generation it should be safe to remove this line
-        self.lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
+        lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
+
+        return lookup_table
 
     def disability_weight(self, population):
         return (population[self.condition] == True) * self._disability_weight

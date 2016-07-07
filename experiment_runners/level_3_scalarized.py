@@ -37,9 +37,9 @@ def run_comparisons(simulation, test_modules, runs=10):
     for run in range(runs):
         for do_test in [True, False]:
             if do_test:
-                simulation.register_modules(test_modules)
+                simulation.add_children(test_modules)
             else:
-                simulation.deregister_modules(test_modules)
+                simulation.remove_children(test_modules)
 
             start = time()
             simulation.run(datetime(1990, 1, 1), datetime(2010, 12, 31), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
@@ -85,7 +85,7 @@ def main():
     modules.append(screening_module)
     for module in modules:
         module.setup()
-    simulation.register_modules(modules)
+    simulation.add_children(modules)
 
     simulation.load_population()
     simulation.load_data()

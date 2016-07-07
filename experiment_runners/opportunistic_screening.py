@@ -39,9 +39,9 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
     for run in range(runs):
         for intervention in [True, False]:
             if intervention:
-                simulation.register_modules(test_modules)
+                simulation.add_children(test_modules)
             else:
-                simulation.deregister_modules(test_modules)
+                simulation.remove_children(test_modules)
 
             simulation.emit_event(ConfigurationEvent('configure_run', {'run_number': run, 'tests_active': intervention}))
             start = time()
@@ -53,7 +53,10 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
                 metrics[name] = count
 
             simulation.run(datetime(1990, 1, 1), datetime(2010, 12, 1), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
-            metrics.update(simulation._modules[MetricsModule].metrics)
+            for m in simulation.modules:
+                if isinstance(m, MetricsModule):
+                    metrics.update(m.metrics)
+                    break
             metrics['ihd_count'] = sum(simulation.population.ihd == True)
             metrics['hemorrhagic_stroke_count'] = sum(simulation.population.hemorrhagic_stroke == True)
 
@@ -66,7 +69,9 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
                 else:
                     metrics[medication['name']] = 0
 
-            metrics['healthcare_access_cost'] = sum(simulation._modules[HealthcareAccessModule].cost_by_year.values())
+            for m in simulation.modules:
+                if isinstance(m, HealthcareAccessModule):
+                    metrics['healthcare_access_cost'] = sum(m.cost_by_year.values())
             if intervention:
                 metrics['intervention_cost'] = sum(test_modules[0].cost_by_year.values())
                 metrics['intervention'] = True
@@ -112,7 +117,7 @@ def main():
     modules.append(metrics_module)
     for module in modules:
         module.setup()
-    simulation.register_modules(modules)
+    simulation.add_children(modules)
 
     simulation.load_population()
     simulation.load_data()
