@@ -9,16 +9,7 @@ import numpy as np
 from ceam.engine import SimulationModule
 from ceam.util import filter_for_rate
 from ceam.events import only_living
-
-def _rename_mortality_column(table, col_name):
-    columns = []
-    for col in table.columns:
-        col = col.lower()
-        if col in ['age', 'sex', 'year']:
-            columns.append(col)
-        else:
-            columns.append(col_name)
-    return columns
+from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
 
 def _calculate_time_spent_in_phases(onset_times, acute_phase_duration, current_time, current_time_step):
     """
@@ -66,7 +57,7 @@ class ChronicConditionModule(SimulationModule):
     A generic module that can handle any simple condition which has an incidence rate, chronic mortality rate and, optionally, an acute mortality rate
     """
 
-    def __init__(self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=timedelta(days=28), acute_mortality_table_name=None):
+    def __init__(self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=timedelta(days=28), acute_mortality_table_name=None,chronic_me_id,acute_me_id):
         """
         Parameters
         ----------
@@ -84,6 +75,10 @@ class ChronicConditionModule(SimulationModule):
             Time after the initial incident in which simulants are effected by the acute excess mortality for this condition, if any.
         acute_mortality_table_name : str
             Name of the table to load acute mortality rates from. If this is None only chronic rates will be used
+        chronic_me_id : int
+	    modelable entity id of the chronic cause of interest, takes same me_id values as are used for GBD
+	acute_me_id : int
+	    modelable entity id of the acute cause of interest, takes same me_id values as are used for GBD
         """
         SimulationModule.__init__(self)
         self.condition = condition
@@ -130,17 +125,17 @@ class ChronicConditionModule(SimulationModule):
 
     def load_data(self, path_prefix):
         # Load the chronic mortality rates table, we should always have this
-        chronic_mortality_rate_table_path = os.path.join(path_prefix, self.chronic_mortality_table_name)
-        self.lookup_table = pd.read_csv(chronic_mortality_rate_table_path)
-        assert len(self.lookup_table.columns) == 4, "Too many columns in chronic mortality rate table: %s"%chronic_mortality_rate_table_path
-        self.lookup_table.columns = _rename_mortality_column(self.lookup_table, 'chronic_mortality')
+        
+        self.lookup_table = load_data_from_cache(get_modelable_entity_draws,location_id,year_start,year_end,9,chronic_me_id)
+                
+	#  assert len(self.lookup_table.columns) == 4, "Too many columns in chronic mortality rate table: %s"%chronic_mortality_rate_table_path
+        # self.lookup_table.columns = _rename_mortality_column(self.lookup_table, 'chronic_mortality')
 
         if self.acute_mortality_table_name:
             # If we're configured to do acute mortality, load that table too
-            acute_mortality_rate_table_path = os.path.join(path_prefix, self.acute_mortality_table_name)
-            lookup_table = pd.read_csv(acute_mortality_rate_table_path)
-            assert len(lookup_table.columns) == 4, "Too many columns in acute mortality rate table: %s"%acute_mortality_rate_table_path
-            lookup_table.columns = _rename_mortality_column(lookup_table, 'acute_mortality')
+            lookup_table = load_data_from_cache(get_modelable_entity_draws,location_id,year_start,year_end,9,acute_me_id)
+            
+	    # will need to fix the line below, since col names are the same in the chronic and acute tables (e.g. 'draw_0') 
             self.lookup_table = self.lookup_table.merge(lookup_table, on=['age', 'sex', 'year'])
 
         # And also load the incidence rates table
@@ -159,7 +154,11 @@ class ChronicConditionModule(SimulationModule):
             # For example: if the simulant had an acute event at the end of the previous time step, our time step is 30 days and our acute
             # phase duration is 28 days then the simulant was in the acute phase for 28 of the 30 days in this time step and in the chronic
             # phase for 2 days. That means their effective mortality rate is `acute_rate*(28/30)+chronic_rate*(2/30)`
-
+            # We should also think about whether or not we want to include a different excess mortality rate for the first 2 days after acute mi
+            # There is a DisMod model -- me_id == 1815 -- that estimates prevalence and incidence of mi in the first 2 days. Another DisMod model --
+            # me_id == 1816 -- estimates prevalence and incidence of mi in days 3-28. Since these aren't full models, it might be a little difficult
+            # to estimate quantities such as excess mortality
+            
             population = population.copy()
             population['rates'] = rates
             affected_population = population[population[self.condition] == True]
