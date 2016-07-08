@@ -21,7 +21,7 @@ def filter_for_probability(population, probability):
     draw = np.random.random(size=len(population))
     mask = draw < probability
     if not isinstance(mask, np.ndarray):
-        # TODO: Something less akward
+        # TODO: Something less awkward
         mask = mask.values
     return population.loc[mask]
 
