@@ -3,80 +3,59 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from ceam.state_machine import Machine, ChoiceState, State
+from ceam.state_machine import Machine, State, Transition
 
-class CountingState(State):
-    state_id = 'counting'
-    def __init__(self):
-        super(CountingState, self).__init__(['done'], [self._condition])
-
-    def _condition(self, agents):
-        return agents.loc[agents.counter > 2]
-
-    def state_effect(self, agents):
-        agents['counter'] += 1
-        return agents
-
-    def transition_effect(self, agents):
-        agents['transition_count'] += 1
-        return agents
-
-class StartState(ChoiceState):
-    state_id = 'start'
-    def __init__(self):
-        super(StartState, self).__init__(['done'])
-
-class DoneState(State):
-    state_id = 'done'
-
-class WeightedState(ChoiceState):
-    state_id = 'weighted'
 
 def test_transition():
+    done_state = State('done')
+    start_state = State('start')
+    done_transition = Transition(done_state, lambda agents: np.full(len(agents), 1.0))
+    start_state.transition_set.add(done_transition)
     agents = pd.DataFrame(dict(state=['start']*100))
-    machine = Machine('state', [StartState(), DoneState()])
+    machine = Machine('state', [start_state, done_state])
 
-    machine.transition(agents)
+    agents = machine.transition(agents)
     assert np.all(agents.state == 'done')
 
-def test_state_effect():
-    agents = pd.DataFrame(dict(state=['counting']*100, transition_count=[0]*100, counter=[0]*100))
-    machine = Machine('state', [CountingState(), DoneState()])
+def test_default_output():
+    done_state = State('done')
+    start_state = State('start')
+    done_transition = Transition(done_state, lambda agents: np.full(len(agents), 0.5))
+    start_state.transition_set.add(done_transition)
+    agents = pd.DataFrame(dict(state=['start']*100))
+    machine = Machine('state', [start_state, done_state])
 
-    machine.transition(agents)
-    assert np.all(agents.counter == 1)
-    machine.transition(agents)
-    assert np.all(agents.counter == 2)
-    machine.transition(agents)
-    assert np.all(agents.counter == 3)
-
-def test_condition():
-    agents = pd.DataFrame(dict(state=['counting']*100, transition_count=[0]*100, counter=[0]*100))
-    machine = Machine('state', [CountingState(), DoneState()])
-
-    machine.transition(agents)
-    assert np.all(agents.state == 'counting')
-    machine.transition(agents)
-    assert np.all(agents.state == 'counting')
-    machine.transition(agents)
-    assert np.all(agents.state == 'done')
-    machine.transition(agents)
+    agents = machine.transition(agents)
     assert np.all(agents.state == 'done')
 
-def test_weights():
-    agents = pd.DataFrame(dict(state=['weighted']*100000))
-    machine = Machine('state', [WeightedState(['done'], [0.5]), DoneState()])
+def test_choice():
+    a_state = State('a')
+    b_state = State('b')
+    start_state = State('start')
+    a_transition = Transition(a_state, lambda agents: np.full(len(agents), 0.5))
+    b_transition = Transition(b_state, lambda agents: np.full(len(agents), 0.5))
+    start_state.transition_set.update((a_transition, b_transition))
+    agents = pd.DataFrame(dict(state=['start']*10000))
+    machine = Machine('state', [start_state, a_state, b_state])
 
-    machine.transition(agents)
-    done_count = (agents.state == 'done').sum()
-    assert round(done_count/len(agents), 2) == 0.5
+    agents = machine.transition(agents)
+    a_count = (agents.state == 'a').sum()
+    assert round(a_count/len(agents), 1) == 0.5
 
-    machine.transition(agents)
-    done_count = (agents.state == 'done').sum()
-    assert round(done_count/len(agents), 2) == 0.75
+def test_side_effects():
+    def incr_counter(agents, state_column):
+        agents['count'] += 1
+        return agents
+    done_state = State('done', incr_counter)
+    start_state = State('start')
+    done_transition = Transition(done_state, lambda agents: np.full(len(agents), 1.0))
+    start_state.transition_set.add(done_transition)
+    done_state.transition_set.add(done_transition)
 
+    agents = pd.DataFrame(dict(state=['start']*100, count=[0]*100))
+    machine = Machine('state', [start_state, done_state])
 
-def test_transition_effects():
-    agents = pd.DataFrame(dict(state=['counting']*10000, counter=[0]*10000))
-    machine = Machine('state', [CountingState(), DoneState()])
-
+    agents = machine.transition(agents)
+    assert np.all(agents['count'] == 1)
+    agents = machine.transition(agents)
+    assert np.all(agents['count'] == 2)

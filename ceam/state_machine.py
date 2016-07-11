@@ -1,115 +1,83 @@
 import pandas as pd
 import numpy as np
 
-from ceam.tree import Node
-from ceam.util import filter_for_probability
+class State:
+    def __init__(self, state_id, transition_side_effect=None):
+        self.state_id = state_id
+        self.transition_set = TransitionSet()
+        self._transition_side_effect = transition_side_effect
 
-class State(Node):
-    state_id = None
-    def __init__(self, transitions=[]):
-        super(State, self).__init__()
-        self.transitions = transitions
+    def next_state(self, agents, state_column):
+        if len(self.transition_set) == 0 or agents.empty:
+            return agents
 
-    def transition(self, agents, state_column):
-        return self.state_effect(agents)
+        agents_by_new_state = self.transition_set.agents_by_new_state(agents)
 
-    def state_effect(self, agents):
+        new_agents = pd.DataFrame()
+        for state, affected_agents in agents_by_new_state.items():
+            if state is not None:
+                new_agents = new_agents.append(state.transition_effect(affected_agents, state_column))
+            else:
+                new_agents = new_agents.append(affected_agents)
+
+        return new_agents
+
+    def transition_effect(self, agents, state_column):
+        agents[state_column] = self.state_id
+        if self._transition_side_effect:
+            agents = self._transition_side_effect(agents, state_column)
         return agents
 
-    def transition_effect(self, agents):
-        return agents
+class TransitionSet(set):
+    def __init__(self, allow_null_transition=True, *args, **kwargs):
+        super(TransitionSet, self).__init__(*args, **kwargs)
+        self.allow_null_transition = allow_null_transition
 
-    def get_edges(self):
-        return [(t, None) for t in self.transitions]
+    def agents_by_new_state(self, agents):
+        outputs, probabilities = zip(*[(t.output, np.array(t.probability(agents))) for t in self])
+        outputs = list(outputs)
 
-class FuncState(State):
-    def __init__(self, transitions=[], transition_conditions=[]):
-        assert len(transitions) == len(transition_conditions)
-        self.transitions = transitions
-        self.transition_conditions = transition_conditions
-
-    def transition(self, agents, state_column):
-        agents = self.state_effect(agents)
-
-        if self.transitions:
-            transitions = list(zip(self.transitions, self.transition_conditions))
-            np.random.shuffle(transitions)
-            pending_transitions = pd.Series()
-            remaining_agents = agents
-            for transition, transition_condition in transitions:
-                agents_to_transition = transition_condition(remaining_agents)
-                remaining_agents = remaining_agents.reindex(remaining_agents.index.difference(agents_to_transition.index))
-                pending_transitions = pending_transitions.append(pd.Series(transition, index=agents_to_transition.index))
-
-            affected_agents = agents.reindex(agents.index.difference(remaining_agents.index))
-            affected_agents[state_column] = pending_transitions
-            affected_agents = self.transition_effect(affected_agents)
-
-            agents.ix[affected_agents.index] = affected_agents
-
-        return agents
-
-class ChoiceState(State):
-    def __init__(self, transitions, weights=None):
-        super(ChoiceState, self).__init__(transitions)
-        if weights is None:
-            weights = [1/len(transitions)]*len(transitions)
+        total = np.sum(probabilities, axis=0)
+        if not self.allow_null_transition:
+            probabilities /= total
         else:
-            assert np.sum(weights) == 1
-        self.weights = weights
+            if np.any(total > 1):
+                raise ValueError("Total transition probability greater than 1")
+            else:
+                probabilities = np.concatenate([probabilities, [(1-total)]])
+                outputs.append(None)
+        outputs = dict(enumerate(outputs))
+        draw = np.random.rand(probabilities.shape[1])
+        sums = probabilities.cumsum(axis=0)
+        output_indexes = (draw >= sums).sum(axis=0)
+        groups = agents.groupby(by=pd.Series(np.array(list(outputs.keys()))[output_indexes], index=agents.index))
 
-    def transition(self, agents, state_column):
-        agents = self.state_effect(agents)
+        return {outputs[o]:a for o, a in groups}
 
-        agents[state_column] = np.random.choice(self.transitions, p=self.weights, size=len(agents))
+class Transition:
+    def __init__(self, output, probability_func):
+        self.output = output
+        self.probability = probability_func
 
-        agents = self.transition_effect(agents)
-        return agents
-
-    def get_edges(self):
-        return [(t, '{0}%'.format(w)) for t, w in zip(self.transitions, self.weights)]
-
-class GatewayState(State):
-    def __init__(self, transition):
-        super(GatewayState, self).__init__([transition])
-
-    def transition(self, agents, state_column):
-        agents = self.state_effect(agents)
-
-        affected_agents = self.gateway(agents)
-        affected_agents[state_column] = self.transitions[0]
-
-        affected_agents = self.transition_effect(affected_agents)
-
-        return affected_agents
-
-    def gateway(self, agents):
-        return agents
-
-class Machine(Node):
-    def __init__(self, state_column, states):
-        super(Machine, self).__init__()
+class Machine(set):
+    def __init__(self, state_column, *args, **kwargs):
+        super(Machine, self).__init__(*args, **kwargs)
         self.state_column = state_column
-        self.states = states
-        for state in states:
-            self.add_child(state)
 
     def transition(self, agents):
-        # TODO: This copy is here to suppress a warning. It shouldn't be necessary.
-        pending_transitions = [(agents.loc[agents[self.state_column] == state.state_id].copy(), state) for state in self.states]
-        for affected_agents, state in pending_transitions:
-            if affected_agents.empty:
-                continue
-            transition_result = state.transition(affected_agents, self.state_column)
-            agents.loc[transition_result.index, transition_result.columns] = transition_result
+        total_affected = pd.DataFrame()
+        for state in self:
+            affected_agents = agents.loc[agents[self.state_column] == state.state_id]
+            affected_agents = state.next_state(affected_agents, self.state_column)
+            total_affected = total_affected.append(affected_agents)
+        return total_affected
 
     def to_dot(self):
         from graphviz import Digraph
         dot = Digraph(format='png')
-        for state in self.states:
+        for state in self:
             dot.node(state.state_id)
-
-        for state in self.states:
-            for transition, transition_label in state.get_edges():
-                dot.edge(state.state_id, transition, transition_label)
+            for transition in state.transition_set:
+                dot.edge(state.state_id, transition.output.state_id)
         return dot
+

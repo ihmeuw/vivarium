@@ -26,8 +26,8 @@ class SmokingModule(SimulationModule):
 
     def setup(self):
         paf_smok = 0.4
-        self.incidence_mediation_factors['ihd'] = paf_smok * (1 - self.mediation_factor)
-        self.register_value_mutator(self.incidence_rates, 'incidence_rates', 'ihd')
+        self.incidence_mediation_factors['heart_attack'] = paf_smok * (1 - self.mediation_factor)
+        self.register_value_mutator(self.incidence_rates, 'incidence_rates', 'heart_attack')
         self.register_value_mutator(self.incidence_rates, 'incidence_rates', 'hemorrhagic_stroke')
 
     def load_population_columns(self, path_prefix, population_size):

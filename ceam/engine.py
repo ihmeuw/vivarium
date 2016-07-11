@@ -116,8 +116,8 @@ class Simulation(Root, ModuleRegistry, DataLoaderRootMixin, PopulationLoaderRoot
 
         for module in self.modules:
             for value_type, mmutators in module._value_mutators.items():
-                for label, _ in mmutators.items():
-                    assert sources[value_type][label], "Missing source for mutator: %s"%((value_type, label))
+                for label, mutators in mmutators.items():
+                    assert sources[value_type][label], "Missing source for mutator: {0}. Needed by: {1}".format((value_type, label), mutators)
 
     def _get_value(self, population, value_type, label=None):
         source = None

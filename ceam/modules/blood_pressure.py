@@ -23,9 +23,9 @@ class BloodPressureModule(SimulationModule):
 
     def setup(self):
         self.register_event_listener(self.update_systolic_blood_pressure, 'time_step__continuous')
-        self.incidence_mediation_factors['ihd'] = 0.3
+        self.incidence_mediation_factors['heart_attack'] = 0.3
         self.incidence_mediation_factors['hemorrhagic_stroke'] = 0.3
-        self.register_value_mutator(self.ihd_incidence_rates, 'incidence_rates', 'ihd')
+        self.register_value_mutator(self.ihd_incidence_rates, 'incidence_rates', 'heart_attack')
         self.register_value_mutator(self.hemorrhagic_stroke_incidence_rates, 'incidence_rates', 'hemorrhagic_stroke')
 
     def load_population_columns(self, path_prefix, population_size):

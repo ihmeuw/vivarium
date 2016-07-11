@@ -12,6 +12,7 @@ import numpy as np
 from ceam.engine import Simulation, SimulationModule
 from ceam.events import only_living, ConfigurationEvent
 from ceam.modules.chronic_condition import ChronicConditionModule
+from ceam.modules.disease import ihd_factory, hemorrhagic_stroke_factory
 from ceam.modules.healthcare_access import HealthcareAccessModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.smoking import SmokingModule
@@ -57,8 +58,8 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
                 if isinstance(m, MetricsModule):
                     metrics.update(m.metrics)
                     break
-            metrics['ihd_count'] = sum(simulation.population.ihd == True)
-            metrics['hemorrhagic_stroke_count'] = sum(simulation.population.hemorrhagic_stroke == True)
+            metrics['ihd_count'] = sum(simulation.population.ihd != 'healthy')
+            metrics['hemorrhagic_stroke_count'] = sum(simulation.population.hemorrhagic_stroke != 'healthy')
 
             for name, count in make_hist(110, 180, 10, 'sbp', simulation.population.systolic_blood_pressure):
                 metrics[name] = count
@@ -101,8 +102,10 @@ def main():
     screening_module = OpportunisticScreeningModule()
     modules = [
             screening_module,
-            ChronicConditionModule('ihd', 'ihd_mortality_rate.csv', 'ihd_incidence_rates.csv', 0.08, acute_mortality_table_name='mi_acute_excess_mortality.csv'),
-            ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316, acute_mortality_table_name='acute_hem_stroke_excess_mortality.csv'),
+            #ChronicConditionModule('ihd', 'ihd_mortality_rate.csv', 'ihd_incidence_rates.csv', 0.08, acute_mortality_table_name='mi_acute_excess_mortality.csv'),
+            ihd_factory(),
+            #ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316, acute_mortality_table_name='acute_hem_stroke_excess_mortality.csv'),
+            hemorrhagic_stroke_factory(),
             HealthcareAccessModule(),
             BloodPressureModule(),
             SmokingModule(),
