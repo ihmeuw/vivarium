@@ -30,7 +30,7 @@ def test_basic_SBP_bounds():
     # And that there's still no one wildly out of bounds
     assert ((simulation.population.systolic_blood_pressure > (sbp_mean+interval)) | ( simulation.population.systolic_blood_pressure < (sbp_mean-interval))).sum() == 0
 
-@pytest.mark.parametrize('condition', ['ihd', 'hemorrhagic_stroke'])
+@pytest.mark.parametrize('condition', ['heart_attack', 'hemorrhagic_stroke'])
 @pytest.mark.slow
 def test_blood_pressure_effect_on_incidince(condition):
     bp_module = BloodPressureModule()

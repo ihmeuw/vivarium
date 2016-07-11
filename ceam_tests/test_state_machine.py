@@ -17,17 +17,6 @@ def test_transition():
     agents = machine.transition(agents)
     assert np.all(agents.state == 'done')
 
-def test_default_output():
-    done_state = State('done')
-    start_state = State('start')
-    done_transition = Transition(done_state, lambda agents: np.full(len(agents), 0.5))
-    start_state.transition_set.add(done_transition)
-    agents = pd.DataFrame(dict(state=['start']*100))
-    machine = Machine('state', [start_state, done_state])
-
-    agents = machine.transition(agents)
-    assert np.all(agents.state == 'done')
-
 def test_choice():
     a_state = State('a')
     b_state = State('b')

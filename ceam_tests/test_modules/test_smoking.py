@@ -5,7 +5,7 @@ from ceam_tests.util import simulation_factory, pump_simulation
 from ceam.modules.smoking import SmokingModule
 from ceam.modules.chronic_condition import ChronicConditionModule
 
-@pytest.mark.parametrize('condition', ['ihd', 'hemorrhagic_stroke'])
+@pytest.mark.parametrize('condition', ['heart_attack', 'hemorrhagic_stroke'])
 def test_incidence_rate_effect(condition):
     smoking_module = SmokingModule()
     condition_module = ChronicConditionModule(condition, 'mortality_0.0.csv', 'incidence_0.7.csv', 0.01)
