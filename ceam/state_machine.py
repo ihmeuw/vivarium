@@ -2,10 +2,9 @@ import pandas as pd
 import numpy as np
 
 class State:
-    def __init__(self, state_id, transition_side_effect=None):
+    def __init__(self, state_id):
         self.state_id = state_id
         self.transition_set = TransitionSet()
-        self._transition_side_effect = transition_side_effect
 
     def next_state(self, agents, state_column):
         if len(self.transition_set) == 0 or agents.empty:
@@ -27,6 +26,13 @@ class State:
         if self._transition_side_effect:
             agents = self._transition_side_effect(agents, state_column)
         return agents
+
+    def _transition_side_effect(self, agents, state_column):
+        return agents
+
+
+    def __str__(self):
+        return 'State("{0}" ...)'.format(self.state_id)
 
 class TransitionSet(set):
     def __init__(self, allow_null_transition=True, *args, **kwargs):
@@ -55,18 +61,21 @@ class TransitionSet(set):
         return {outputs[o]:a for o, a in groups}
 
 class Transition:
-    def __init__(self, output, probability_func):
+    def __init__(self, output, probability_func=lambda agents: np.array(1, size=len(agents))):
         self.output = output
         self.probability = probability_func
 
-class Machine(set):
-    def __init__(self, state_column, *args, **kwargs):
-        super(Machine, self).__init__(*args, **kwargs)
+    def __str__(self):
+        return 'Transition("{0}" ...)'.format(self.output.state_id)
+
+class Machine:
+    def __init__(self, state_column):
+        self.states = set()
         self.state_column = state_column
 
     def transition(self, agents):
         total_affected = pd.DataFrame()
-        for state in self:
+        for state in self.states:
             affected_agents = agents.loc[agents[self.state_column] == state.state_id]
             affected_agents = state.next_state(affected_agents, self.state_column)
             total_affected = total_affected.append(affected_agents)
@@ -75,7 +84,7 @@ class Machine(set):
     def to_dot(self):
         from graphviz import Digraph
         dot = Digraph(format='png')
-        for state in self:
+        for state in self.states:
             dot.node(state.state_id)
             for transition in state.transition_set:
                 dot.edge(state.state_id, transition.output.state_id)

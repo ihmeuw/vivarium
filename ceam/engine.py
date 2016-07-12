@@ -13,7 +13,7 @@ from ceam import config
 from ceam.tree import Root
 from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, Event, only_living
-from ceam.modules import ModuleRegistry, SimulationModule, DataLoaderRootMixin, PopulationLoaderRootMixin
+from ceam.modules import ModuleRegistry, SimulationModule, DataLoaderRootMixin, PopulationLoaderRootMixin, ValueMutationNode
 
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
@@ -102,7 +102,7 @@ class Simulation(Root, ModuleRegistry, DataLoaderRootMixin, PopulationLoaderRoot
 
     def _validate_value_nodes(self):
         sources = defaultdict(lambda: defaultdict(set))
-        for module in self.modules:
+        for module in self.all_decendents(of_type=ValueMutationNode):
             for value_type, msources in module._value_sources.items():
                 for label, source in msources.items():
                     sources[value_type][label].add(source)
@@ -114,21 +114,22 @@ class Simulation(Root, ModuleRegistry, DataLoaderRootMixin, PopulationLoaderRoot
                      ]
         assert not duplicates, "Multiple sources for these values: %s"%duplicates
 
-        for module in self.modules:
+        for module in self.all_decendents(of_type=ValueMutationNode):
             for value_type, mmutators in module._value_mutators.items():
                 for label, mutators in mmutators.items():
                     assert sources[value_type][label], "Missing source for mutator: {0}. Needed by: {1}".format((value_type, label), mutators)
 
     def _get_value(self, population, value_type, label=None):
         source = None
-        for module in self.modules:
-            if label in module._value_sources[value_type]:
-                source = module._value_sources[value_type][label]
+        value_nodes = self.all_decendents(of_type=ValueMutationNode)
+        for value_node in value_nodes:
+            if label in value_node._value_sources[value_type]:
+                source = value_node._value_sources[value_type][label]
                 break
         assert source is not None, "No source for %s %s"%(value_type, label)
 
         mutators = set()
-        for module in self.modules:
+        for module in value_nodes:
             mutators.update(module._value_mutators[value_type][label])
 
         value = source(population)

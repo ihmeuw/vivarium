@@ -28,6 +28,14 @@ class Node:
     def removed_from(self, node):
         self.parent = None
 
+    def all_decendents(self, of_type=object):
+        results = []
+        for child in self.children:
+            if isinstance(child, of_type):
+                results.append(child)
+            results.extend(child.all_decendents(of_type))
+        return results
+
     @property
     def root(self):
         if self.parent is None:

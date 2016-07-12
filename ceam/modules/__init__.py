@@ -106,7 +106,8 @@ class DataLoaderMixin(NodeBehaviorMixin):
         lookup_table = pd.DataFrame()
         loaded_tables = []
         for node in self.children:
-            loaded_tables.extend(node.load_data(path_prefix))
+            if isinstance(node, DataLoaderMixin):
+                loaded_tables.extend(node.load_data(path_prefix))
         new_table = self._load_data(path_prefix)
         if new_table is not None and not new_table.empty:
             loaded_tables += [(self, new_table)]
