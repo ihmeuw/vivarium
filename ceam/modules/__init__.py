@@ -13,7 +13,7 @@ class ModuleException(Exception):
 class DependencyException(ModuleException):
     pass
 
-class ModuleRegistry(object):
+class ModuleRegistry:
     def __init__(self, base_module_class=None):
         self._base_module_id = None
         self._ordered_modules = []
@@ -71,7 +71,7 @@ class ModuleRegistry(object):
 
         return sorted_modules
 
-class ValueMutationNode(object):
+class ValueMutationNode:
     def __init__(self):
         self._value_sources = defaultdict(lambda: defaultdict(lambda: None))
         self._value_mutators = defaultdict(lambda: defaultdict(set))
@@ -89,6 +89,10 @@ class ValueMutationNode(object):
 
     def deregister_value_source(self, value_type, label=None):
         del self._value_sources[value_type][label]
+
+class DisabilityWeightNode:
+    def disability_weight(self, population):
+        return pd.Series(0.0, population.index)
 
 class PopulationLoaderMixin(NodeBehaviorMixin):
     def load_population_columns(self, path_prefix, population_size):
@@ -158,11 +162,12 @@ class DataLoaderRootMixin(DataLoaderMixin):
         results = self.lookup_table.ix[population.lookup_id, columns]
         return results.rename(columns=dict(zip(columns, origonal_columns)))
 
-class SimulationModule(EventHandlerMixin, ValueMutationNode, DataLoaderMixin, PopulationLoaderMixin, Node):
+class SimulationModule(EventHandlerMixin, ValueMutationNode, DataLoaderMixin, PopulationLoaderMixin, DisabilityWeightNode, Node):
     DEPENDENCIES = set()
     def __init__(self):
         EventHandlerMixin.__init__(self)
         ValueMutationNode.__init__(self)
+        DisabilityWeightNode.__init__(self)
         DataLoaderMixin.__init__(self)
         PopulationLoaderMixin.__init__(self)
         Node.__init__(self)
@@ -181,9 +186,6 @@ class SimulationModule(EventHandlerMixin, ValueMutationNode, DataLoaderMixin, Po
 
     def module_id(self):
         return self.__class__
-
-    def disability_weight(self, population):
-        return 0.0
 
 
 # End.

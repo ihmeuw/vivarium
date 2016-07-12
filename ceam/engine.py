@@ -13,7 +13,7 @@ from ceam import config
 from ceam.tree import Root
 from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, Event, only_living
-from ceam.modules import ModuleRegistry, SimulationModule, DataLoaderRootMixin, PopulationLoaderRootMixin, ValueMutationNode
+from ceam.modules import ModuleRegistry, SimulationModule, DataLoaderRootMixin, PopulationLoaderRootMixin, ValueMutationNode, DisabilityWeightNode
 
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
@@ -157,8 +157,8 @@ class Simulation(Root, ModuleRegistry, DataLoaderRootMixin, PopulationLoaderRoot
     def disability_weight(self):
         weights = 1
         pop = self.population.loc[self.population.alive == True]
-        for module in self.modules:
-            weights *= 1 - module.disability_weight(pop)
+        for node in self.all_decendents(of_type=DisabilityWeightNode):
+            weights *= 1 - node.disability_weight(pop)
         total_weight = 1 - weights
         return total_weight
 
