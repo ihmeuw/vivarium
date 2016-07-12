@@ -141,7 +141,8 @@ class DiseaseModule(SimulationModule, Machine):
 
     def load_population_columns(self, path_prefix, population_size):
         # TODO: Load real data and integrate with state machine
-        self.population_columns = pd.DataFrame(np.full(population_size, 'healthy', dtype=str), columns=[self.condition])
+        state_id_length = max(len(state.state_id) for state in self.states)
+        self.population_columns = pd.DataFrame(np.full(population_size, 'healthy', dtype='<U{0}'.format(state_id_length)), columns=[self.condition])
         for state in self.states:
             if state.dwell_time > 0:
                 self.population_columns[state.event_count_column] = 0
