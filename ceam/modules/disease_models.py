@@ -20,6 +20,7 @@ def heart_disease_factory():
     healthy.transition_set.add(heart_attack_transition)
     healthy.transition_set.add(angina_transition)
 
+    heart_attack.transition_set.allow_null_transition=False
     heart_attack.transition_set.add(Transition(mild_heart_failure))
     heart_attack.transition_set.add(Transition(moderate_heart_failure))
     heart_attack.transition_set.add(Transition(severe_heart_failure))

@@ -61,7 +61,7 @@ class TransitionSet(set):
         return {outputs[o]:a for o, a in groups}
 
 class Transition:
-    def __init__(self, output, probability_func=lambda agents: np.array(1, size=len(agents))):
+    def __init__(self, output, probability_func=lambda agents: np.full(len(agents), 1, dtype=float)):
         self.output = output
         self.probability = probability_func
 

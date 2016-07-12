@@ -46,7 +46,7 @@ class DiseaseState(State, DisabilityWeightNode, Node):
 
     def next_state(self, population, state_column):
         if self.dwell_time > 0:
-            eligible_population = population.loc[population[self.event_time_column] >= self.root.current_time.timestamp()]
+            eligible_population = population.loc[population[self.event_time_column] < self.root.current_time.timestamp() - self.dwell_time]
         else:
             eligible_population = population
         return super(DiseaseState, self).next_state(eligible_population, state_column)
