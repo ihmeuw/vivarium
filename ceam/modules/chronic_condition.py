@@ -126,14 +126,14 @@ class ChronicConditionModule(SimulationModule):
     def load_data(self, path_prefix):
         # Load the chronic mortality rates table, we should always have this
         
-        self.lookup_table = load_data_from_cache(get_modelable_entity_draws,location_id,year_start,year_end,9,chronic_me_id)
+        self.lookup_table = load_data_from_cache(get_modelable_entity_draws,config.getint('simulation_parameters','location_id'),config.getint('simulation_parameters','year_start'),config.getint('simulation_parameters','year_end'),9,chronic_me_id)
                 
 	#  assert len(self.lookup_table.columns) == 4, "Too many columns in chronic mortality rate table: %s"%chronic_mortality_rate_table_path
         # self.lookup_table.columns = _rename_mortality_column(self.lookup_table, 'chronic_mortality')
 
         if self.acute_mortality_table_name:
             # If we're configured to do acute mortality, load that table too
-            lookup_table = load_data_from_cache(get_modelable_entity_draws,location_id,year_start,year_end,9,acute_me_id)
+            lookup_table = load_data_from_cache(get_modelable_entity_draws,config.getint('simulation_parameters','location_id'),config.getint('simulation_parameters','year_start'),config.getint('simulation_parameters','year_end'),9,acute_me_id)
             
 	    # will need to fix the line below, since col names are the same in the chronic and acute tables (e.g. 'draw_0') 
             self.lookup_table = self.lookup_table.merge(lookup_table, on=['age', 'sex', 'year'])

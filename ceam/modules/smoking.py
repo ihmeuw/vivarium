@@ -5,6 +5,7 @@ import os.path
 import pandas as pd
 import numpy as np
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
+from ceam import config
 
 from ceam.engine import SimulationModule
 
@@ -25,7 +26,7 @@ class SmokingModule(SimulationModule):
     def load_data(self, path_prefix):
         # TODO: Where does prevalence data come from?
 	# The exposure comes from the central comp get draws function (see Everett if there are other questions)
-        load_data_from_cache(get_exposures,180,1990,2010,166) 
+        load_data_from_cache(get_exposures,config.getint('simulation_parameters','location_id'),config.getint('simulation_parameters','year_start'),config.getint('simulation_parameters','year_end'),166) 
         # self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'smoking_exp_cat1_female.csv'))
         self.lookup_table = self.lookup_table.append(pd.read_csv(os.path.join(path_prefix, 'smoking_exp_cat1_male.csv')))
         self.lookup_table = self.lookup_table.drop_duplicates(['age', 'year_id', 'sex_id'])

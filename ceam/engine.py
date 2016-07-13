@@ -29,7 +29,7 @@ class BaseSimulationModule(SimulationModule):
         self.register_value_source(self.mortality_rates, 'mortality_rates')
 
     def load_data(self, path_prefix):
-	load_data_from_cache(get_cause_deleted_mortality_rate,180,)
+	load_data_from_cache(get_cause_deleted_mortality_rate,config.getint('simulation_parameters', 'location_id'),config.getint('simulation_parameters', 'year_start'),config.getint('simulation_parameters', 'year_end'))
         self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'Mortality_Rates.csv'))
         self.lookup_table.columns = [col.lower() for col in self.lookup_table.columns]
 
