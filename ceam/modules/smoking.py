@@ -51,7 +51,7 @@ class SmokingModule(SimulationModule):
 
     def incidence_rates(self, population, rates):
         smokers = population.smoking_susceptibility < self.lookup_columns(population, ['prevalence'])['prevalence']
-        rates[smokers] *= 2.2**(1 - self.mediation_factor)
+        rates *= (2.2**(1 - self.mediation_factor))**smokers
         return rates
 
 
