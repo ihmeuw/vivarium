@@ -9,6 +9,7 @@ from ceam import config
 
 from ceam.tree import Node
 from ceam.modules import DataLoaderMixin, ValueMutationNode, DisabilityWeightNode
+from ceam.events import only_living
 from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
@@ -134,8 +135,12 @@ class DiseaseModule(SimulationModule, Machine):
                 if isinstance(transition, Node):
                     self.add_child(transition)
 
+    @only_living
     def time_step_handler(self, event):
-        affected_population = self.transition(event.affected_population)
+        # TODO: I shouldn't need this lookup into simulation.population. Somehow this method is
+        # poisoning @only_living's cache and this copy prevents that.
+        affected_population = self.simulation.population.ix[event.affected_population.index]
+        affected_population = self.transition(affected_population)
         self.simulation.population.loc[affected_population.index] = affected_population
 
 

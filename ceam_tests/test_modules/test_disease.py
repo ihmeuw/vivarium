@@ -28,5 +28,3 @@ def test_dwell_time():
     assert np.all(population.state == 'done')
     assert np.all(population.test_event_time == 20)
     assert np.all(population.test_event_count == 1)
-
-
