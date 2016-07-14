@@ -47,6 +47,11 @@ class SampleHistoryModule(SimulationModule):
         self.sample_frames[self.simulation.current_time].set_index('simulant_id', inplace=True)
 
     def dump(self, event):
+        # NOTE: I'm suppressing two very noisy warnings about HDF writing that I don't think are relevant to us
+        import warnings, tables
+        from pandas.core.common import PerformanceWarning
+        warnings.filterwarnings('ignore', category=PerformanceWarning)
+        warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
         pd.Panel(self.sample_frames).to_hdf(self.output_path, key='/{0}/{1}'.format(self.run_number, self.tests_active))
 
     def configure_run(self, event):
