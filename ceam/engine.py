@@ -29,12 +29,10 @@ class BaseSimulationModule(SimulationModule):
         self.register_value_source(self.mortality_rates, 'mortality_rates')
 
     def load_data(self, path_prefix):
-	load_data_from_cache(get_cause_deleted_mortality_rate,config.getint('simulation_parameters', 'location_id'),config.getint('simulation_parameters', 'year_start'),config.getint('simulation_parameters', 'year_end'))
-        self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'Mortality_Rates.csv'))
-        self.lookup_table.columns = [col.lower() for col in self.lookup_table.columns]
-
+	self.lookup_table = load_data_from_cache(get_cause_deleted_mortality_rate,config.getint('simulation_parameters', 'location_id'),config.getint('simulation_parameters', 'year_start'),config.getint('simulation_parameters', 'year_end'))
+        
     def mortality_rates(self, population):
-        return self.lookup_columns(population, ['mortality_rate'])['mortality_rate'].values
+        return self.lookup_columns(population, ['cause_deleted_mortality_rate_{i}'.format(i=config.getint('simulation_parameters','draw_number'))]['cause_deleted_mortality_rate_{i}'.format(i=config.getint('simulation_parameters','draw_number'))].values
 
     @only_living
     def mortality_handler(self, event):
@@ -68,7 +66,9 @@ class Simulation(ModuleRegistry):
             module.load_data(path_prefix)
         lookup_table = pd.DataFrame()
 
-        #TODO: This is ugly. There must be a better way
+        
+	# IS THE COLUMN_PREFIXER SECTION BELOW STILL NECESSARY NOW THAT THE FUNCTIONS PRODUCE MORE RELIABLE OUTPUT?
+	#TODO: This is ugly. There must be a better way
         def column_prefixer(column, prefix):
             if column not in ['age', 'year', 'sex']:
                 return prefix + '_' + column
@@ -77,12 +77,12 @@ class Simulation(ModuleRegistry):
         for module in self._ordered_modules:
             if not module.lookup_table.empty:
                 prefixed_table = module.lookup_table.rename(columns=lambda c: column_prefixer(c, module.lookup_column_prefix))
-                assert prefixed_table.duplicated(['age', 'sex', 'year']).sum() == 0, "%s has a lookup table with duplicate rows"%(module.module_id())
+                assert prefixed_table.duplicated(['age', 'sex_id', 'year_id']).sum() == 0, "%s has a lookup table with duplicate rows"%(module.module_id())
 
                 if lookup_table.empty:
                     lookup_table = prefixed_table
                 else:
-                    lookup_table = lookup_table.merge(prefixed_table, on=['age', 'sex', 'year'], how='inner')
+                    lookup_table = lookup_table.merge(prefixed_table, on=['age', 'sex_id', 'year_id'], how='inner')
         lookup_table['lookup_id'] = range(0, len(lookup_table))
         self.lookup_table = lookup_table
 
@@ -110,7 +110,7 @@ class Simulation(ModuleRegistry):
         if not self.lookup_table.empty:
             if 'lookup_id' in self.population:
                 self.population.drop('lookup_id', 1, inplace=True)
-            population = self.population.merge(self.lookup_table[['year', 'age', 'sex', 'lookup_id']], on=['year', 'age', 'sex'])
+            population = self.population.merge(self.lookup_table[['year_id', 'age', 'sex_id', 'lookup_id']], on=['year_id', 'age', 'sex_id'])
             assert len(population) == len(self.population), "One of the lookup tables is missing rows or has duplicate rows"
             self.population = population
 
@@ -185,12 +185,13 @@ class Simulation(ModuleRegistry):
         total_weight = 1 - weights
         return total_weight
 
+    # EM - I've been using year_start and year_end as the syntax in the config file. I'm happy to use start_time/end_time instead -- just want to make sure we're consistent
     def _verify_tables(self, start_time, end_time):
         # Check that all the data necessary to run the requested date range is available
-        expected_index = set((age, sex, year) for age in range(1, 104) for sex in [1, 2] for year in range(start_time.year, end_time.year))
+        expected_index = set((age, sex_id, year_id) for age in range(1, 104) for sex_id in [1, 2] for year_id in range(start_time.year, end_time.year))
         for module in self._ordered_modules:
             if not module.lookup_table.empty:
-                index = set(tuple(row) for row in module.lookup_table[['age', 'sex', 'year']].values.tolist())
+                index = set(tuple(row) for row in module.lookup_table[['age', 'sex_id', 'year_id']].values.tolist())
                 assert len(expected_index.difference(index)) == 0, "%s has a lookup table that doesn't meet the minimal index requirements"%((module.module_id(),))
 
     def _validate(self, start_time, end_time):
@@ -199,7 +200,7 @@ class Simulation(ModuleRegistry):
 
     def _step(self, time_step):
         self.last_time_step = time_step
-        self.population['year'] = self.current_time.year
+        self.population['year_id'] = self.current_time.year
         self.population.loc[self.population.alive == True, 'fractional_age'] += time_step.days/365.0
         self.population['age'] = self.population.fractional_age.astype(int)
         self.index_population()

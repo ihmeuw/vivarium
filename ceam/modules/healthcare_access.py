@@ -34,7 +34,7 @@ class HealthcareAccessModule(SimulationModule):
             for age in range(1, 104):
                 for sex in [1, 2]:
                     rows.append([year, age, sex, male_utilization if sex == 1 else female_utilization])
-        self.lookup_table = pd.DataFrame(rows, columns=['year', 'age', 'sex', 'rate'])
+        self.lookup_table = pd.DataFrame(rows, columns=['year_id', 'age', 'sex_id', 'rate'])
 
     @only_living
     def general_access(self, event):

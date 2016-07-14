@@ -26,20 +26,18 @@ class SmokingModule(SimulationModule):
     def load_data(self, path_prefix):
         # TODO: Where does prevalence data come from?
 	# The exposure comes from the central comp get draws function (see Everett if there are other questions)
-        load_data_from_cache(get_exposures,config.getint('simulation_parameters','location_id'),config.getint('simulation_parameters','year_start'),config.getint('simulation_parameters','year_end'),166) 
-        # self.lookup_table = pd.read_csv(os.path.join(path_prefix, 'smoking_exp_cat1_female.csv'))
-        self.lookup_table = self.lookup_table.append(pd.read_csv(os.path.join(path_prefix, 'smoking_exp_cat1_male.csv')))
-        self.lookup_table = self.lookup_table.drop_duplicates(['age', 'year_id', 'sex_id'])
-        self.lookup_table.columns = ['row', 'age', 'year', 'prevalence', 'sex', 'parameter']
-        self.lookup_table = self.lookup_table.drop(['row', 'parameter'], 1)
+        self.lookup_table = load_data_from_cache(get_exposures,config.getint('simulation_parameters','location_id'),config.getint('simulation_parameters','year_start'),config.getint('simulation_parameters','year_end'),166) 
+	self.lookup_table.columns = ['row', 'age', 'year_id', 'prevalence', 'sex_id', 'parameter']
 
-        expected_rows = set((age, sex, year) for age in range(1, 104)
+        # STEAL THE TEST BELOW TO PUT INTO THE FUNCTION
+	# "Pre-conditions check"
+	expected_rows = set((age, sex, year) for age in range(1, 104)
                             for sex in [1, 2]
                             for year in range(1990, 2011))
         missing_rows = expected_rows.difference(set(tuple(row)
-                                                    for row in self.lookup_table[['age', 'sex', 'year']].values.tolist()))
+                                                    for row in self.lookup_table[['age', 'sex_id', 'year_id']].values.tolist()))
         missing_rows = [(age, sex, year, 0) for age, sex, year in missing_rows]
-        self.lookup_table = self.lookup_table.append(pd.DataFrame(missing_rows, columns=['age', 'sex', 'year', 'prevalence']))
+        self.lookup_table = self.lookup_table.append(pd.DataFrame(missing_rows, columns=['age', 'sex_id', 'year_id', 'prevalence']))
 
     def incidence_rates(self, population, rates):
         smokers = population.smoking_susceptibility < self.lookup_columns(population, ['prevalence'])['prevalence']

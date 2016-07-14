@@ -136,13 +136,13 @@ class ChronicConditionModule(SimulationModule):
             lookup_table = load_data_from_cache(get_modelable_entity_draws,config.getint('simulation_parameters','location_id'),config.getint('simulation_parameters','year_start'),config.getint('simulation_parameters','year_end'),9,acute_me_id)
             
 	    # will need to fix the line below, since col names are the same in the chronic and acute tables (e.g. 'draw_0') 
-            self.lookup_table = self.lookup_table.merge(lookup_table, on=['age', 'sex', 'year'])
+            self.lookup_table = self.lookup_table.merge(lookup_table, on=['age', 'sex_id', 'year_id'])
 
         # And also load the incidence rates table
-        self.lookup_table = self.lookup_table.merge(pd.read_csv(os.path.join(path_prefix, self.incidence_table_name)).rename(columns=lambda col: col.lower()), on=['age', 'sex', 'year'])
+        self.lookup_table = self.lookup_table.merge(pd.read_csv(os.path.join(path_prefix, self.incidence_table_name)).rename(columns=lambda col: col.lower()), on=['age', 'sex_id', 'year_id'])
 
         # TODO: Once we've normalized input generation it should be safe to remove this line
-        self.lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
+        self.lookup_table.drop_duplicates(['age', 'year_id', 'sex_id'], inplace=True)
 
     def disability_weight(self, population):
         return (population[self.condition] == True) * self._disability_weight
