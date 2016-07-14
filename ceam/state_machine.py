@@ -12,19 +12,18 @@ class State:
 
         agents_by_new_state = self.transition_set.agents_by_new_state(agents)
 
-        new_agents = pd.DataFrame()
+        results = []
         for state, affected_agents in agents_by_new_state.items():
             if state is not None:
-                new_agents = new_agents.append(state.transition_effect(affected_agents, state_column))
+                results.append(state.transition_effect(affected_agents, state_column))
             else:
-                new_agents = new_agents.append(affected_agents)
+                results.append(affected_agents)
 
-        return new_agents
+        return pd.concat(results)
 
     def transition_effect(self, agents, state_column):
         agents[state_column] = self.state_id
-        if self._transition_side_effect:
-            agents = self._transition_side_effect(agents, state_column)
+        agents = self._transition_side_effect(agents, state_column)
         return agents
 
     def _transition_side_effect(self, agents, state_column):
@@ -74,12 +73,12 @@ class Machine:
         self.state_column = state_column
 
     def transition(self, agents):
-        total_affected = pd.DataFrame()
+        results = []
         for state in self.states:
             affected_agents = agents.loc[agents[self.state_column] == state.state_id]
             affected_agents = state.next_state(affected_agents, self.state_column)
-            total_affected = total_affected.append(affected_agents)
-        return total_affected
+            results.append(affected_agents)
+        return pd.concat(results)
 
     def to_dot(self):
         from graphviz import Digraph
