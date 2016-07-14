@@ -35,7 +35,7 @@ class ModuleRegistry:
         return tuple(self._ordered_modules)
 
     def _sort_modules(self):
-        modules_by_id = {child.module_id():child for child in self.children if isinstance(child, SimulationModule)}
+        modules_by_id = {child.module_id():child for child in self.all_decendents(of_type=SimulationModule)}
         def inner_sort(sorted_modules, current):
             if current in sorted_modules:
                 return sorted_modules
