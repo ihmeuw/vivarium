@@ -3,6 +3,7 @@
 import os
 import os.path
 from collections import defaultdict
+from functools import reduce
 
 import pandas as pd
 import numpy as np
@@ -10,25 +11,28 @@ np.seterr(all='raise')
 pd.set_option('mode.chained_assignment', 'raise')
 
 from ceam import config
-from ceam.tree import Root
+from ceam.tree import Node
 from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, Event, only_living
-from ceam.modules import ModuleRegistry, SimulationModule, DataLoaderRootMixin, PopulationLoaderRootMixin, ValueMutationNode, DisabilityWeightNode
+from ceam.modules import ModuleRegistry, SimulationModule, LookupTable, ValueMutationNode, DisabilityWeightNode
 
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
         super(BaseSimulationModule, self).__init__()
         self.register_event_listener(self.mortality_handler, 'time_step', priority=1)
 
-    def load_population_columns(self, path_prefix, population_size):
-        self.population_columns = self.population_columns.join(pd.read_csv(os.path.join(path_prefix, 'age.csv')), how='outer')
-        self.population_columns = self.population_columns.assign(fractional_age=self.population_columns.age.astype(float))
-        self.population_columns = self.population_columns.join(pd.read_csv(os.path.join(path_prefix, 'sex.csv')))
-        self.population_columns = self.population_columns.join(pd.DataFrame({'alive': [True]*len(self.population_columns.age)}))
-        self.population_columns['simulant_id'] = range(0, len(self.population_columns))
+    def setup(self):
         self.register_value_source(self.mortality_rates, 'mortality_rates')
 
-    def _load_data(self, path_prefix):
+    def load_population_columns(self, path_prefix, population_size):
+        population_columns = pd.read_csv(os.path.join(path_prefix, 'age.csv'))
+        population_columns = population_columns.assign(fractional_age=population_columns.age.astype(float))
+        population_columns = population_columns.join(pd.read_csv(os.path.join(path_prefix, 'sex.csv')))
+        population_columns['alive'] = np.full(len(population_columns), True, dtype=bool)
+        population_columns['simulant_id'] = range(0, len(population_columns))
+        return population_columns
+
+    def load_data(self, path_prefix):
         lookup_table = pd.read_csv(os.path.join(path_prefix, 'Mortality_Rates.csv'))
         lookup_table.columns = [col.lower() for col in lookup_table.columns]
         return lookup_table
@@ -45,12 +49,9 @@ class BaseSimulationModule(SimulationModule):
             self.simulation.emit_event(PopulationEvent('deaths', affected_population))
 
 
-class Simulation(Root, ModuleRegistry, DataLoaderRootMixin, PopulationLoaderRootMixin):
+class Simulation(Node, ModuleRegistry):
     def __init__(self, base_module_class=BaseSimulationModule):
-        Root.__init__(self)
-        ModuleRegistry.__init__(self, base_module_class)
-        DataLoaderRootMixin.__init__(self)
-        PopulationLoaderRootMixin.__init__(self)
+        super(Simulation, self).__init__(base_module_class)
 
         self.reference_data = {}
         self.current_time = None
@@ -60,33 +61,49 @@ class Simulation(Root, ModuleRegistry, DataLoaderRootMixin, PopulationLoaderRoot
         self.yll_by_year_and_cause = defaultdict(lambda: defaultdict(float))
         self.new_cases_per_year = defaultdict(lambda: defaultdict(int))
         self.population = pd.DataFrame()
+        self.initial_population = None
         self.last_time_step = None
+        self.lookup_table = LookupTable()
 
     def load_population(self, path_prefix=None):
         if path_prefix is None:
             path_prefix = config.get('general', 'population_data_directory')
 
-        #NOTE: This will always be BaseSimulationModule which loads the core population definition and thus can discover what the population size is
-        module = self.modules[0]
-        module.load_population_columns(path_prefix, 0)
-        population_size = len(module.population_columns)
 
-        for module in self.modules[1:]:
-            module.load_population_columns(path_prefix, population_size)
-            assert module.population_columns.empty or len(module.population_columns) == population_size, 'Culpret: %s'%module
+        loaders = []
+        for m in self.modules:
+            if hasattr(m, 'load_population_columns'):
+                loaders.append(m)
+            loaders.extend(m.all_decendents(with_attr='load_population_columns'))
+        #NOTE: This will always be BaseSimulationModule which loads the core population definition and thus can discover what the population size is
+        loader = loaders[0]
+        population = [loader.load_population_columns(path_prefix, 0)]
+        population_size = len(population[0])
+
+        for loader in loaders[1:]:
+            new_pop = loader.load_population_columns(path_prefix, population_size)
+            if new_pop is not None:
+                assert new_pop.empty or len(new_pop) == population_size, 'Culpret: {0}'.format(loader)
+                population.append(new_pop)
+
+        population.append(pd.DataFrame(0, index=np.arange(population_size), columns=['year']))
+        self.initial_population = reduce(lambda left,right: left.join(right), population)
         self.reset_population()
 
+    def load_data(self, path_prefix=None):
+        self.lookup_table.load_data(self.all_decendents(with_attr='load_data'), path_prefix)
+
+    def lookup_columns(self, population, columns, node):
+        return self.lookup_table.lookup_columns(population, columns, node)
+
     def reset_population(self):
-        population = pd.DataFrame()
-        for module in self.modules:
-            population = population.join(module.population_columns, how='outer')
-        self.population = population.join(pd.DataFrame(0, index=np.arange(len(population)), columns=['year']))
+        self.population = self.initial_population.copy()
 
     def index_population(self):
-        if not self.lookup_table.empty:
+        if not self.lookup_table.lookup_table.empty:
             if 'lookup_id' in self.population:
                 self.population.drop('lookup_id', 1, inplace=True)
-            population = self.population.merge(self.lookup_table[['year', 'age', 'sex', 'lookup_id']], on=['year', 'age', 'sex'])
+            population = self.population.merge(self.lookup_table.lookup_table[['year', 'age', 'sex', 'lookup_id']], on=['year', 'age', 'sex'])
             assert len(population) == len(self.population), "One of the lookup tables is missing rows or has duplicate rows"
             self.population = population
 

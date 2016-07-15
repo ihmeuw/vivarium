@@ -31,9 +31,9 @@ class SmokingModule(SimulationModule):
         self.register_value_mutator(self.incidence_rates, 'incidence_rates', 'hemorrhagic_stroke')
 
     def load_population_columns(self, path_prefix, population_size):
-        self.population_columns['smoking_susceptibility'] = np.random.uniform(low=0.01, high=0.99, size=population_size)
+        return pd.DataFrame(np.random.uniform(low=0.01, high=0.99, size=population_size), columns=['smoking_susceptibility'])
 
-    def _load_data(self, path_prefix):
+    def load_data(self, path_prefix):
         # TODO: Where does prevalence data come from?
         lookup_table = pd.read_csv(os.path.join(path_prefix, 'smoking_exp_cat1_female.csv'))
         lookup_table = lookup_table.append(pd.read_csv(os.path.join(path_prefix, 'smoking_exp_cat1_male.csv')))

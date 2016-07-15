@@ -128,18 +128,20 @@ class ChronicConditionModule(SimulationModule):
                 initial_column = pd.read_csv(os.path.join(path_prefix, table_name))
 
         if initial_column is not None:
-            self.population_columns = initial_column
-            self.population_columns.columns = [self.condition]
-            self.population_columns[self.condition] = self.population_columns[self.condition].astype(bool)
+            population_columns = initial_column
+            population_columns.columns = [self.condition]
+            population_columns[self.condition] = population_columns[self.condition].astype(bool)
         else:
             # We didn't find any initial data for this condition, start everyone healthy
-            self.population_columns = pd.DataFrame([False]*population_size, columns=[self.condition])
+            population_columns = pd.DataFrame([False]*population_size, columns=[self.condition])
 
         # NOTE: people who start with the condition go straight into the chronic phase.
-        self.population_columns[self.condition + '_event_time'] = np.array([0] * population_size, dtype=np.float)
-        self.population_columns[self.condition + '_event_count'] = self.population_columns[self.condition].astype(int)
+        population_columns[self.condition + '_event_time'] = np.array([0] * population_size, dtype=np.float)
+        population_columns[self.condition + '_event_count'] = population_columns[self.condition].astype(int)
 
-    def _load_data(self, path_prefix):
+        return population_columns
+
+    def load_data(self, path_prefix):
         # Load the chronic mortality rates table, we should always have this
         chronic_mortality_rate_table_path = os.path.join(path_prefix, self.chronic_mortality_table_name)
         lookup_table = pd.read_csv(chronic_mortality_rate_table_path)

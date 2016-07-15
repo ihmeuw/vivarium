@@ -29,10 +29,12 @@ class BloodPressureModule(SimulationModule):
         self.register_value_mutator(self.hemorrhagic_stroke_incidence_rates, 'incidence_rates', 'hemorrhagic_stroke')
 
     def load_population_columns(self, path_prefix, population_size):
-        self.population_columns['systolic_blood_pressure_percentile'] = np.random.uniform(low=0.01, high=0.99, size=population_size)
-        self.population_columns['systolic_blood_pressure'] = norm.ppf(self.population_columns.systolic_blood_pressure_percentile, loc=138, scale=15)
+        return pd.DataFrame({
+            'systolic_blood_pressure_percentile': np.random.uniform(low=0.01, high=0.99, size=population_size),
+            'systolic_blood_pressure': np.full(population_size, 112),
+            })
 
-    def _load_data(self, path_prefix):
+    def load_data(self, path_prefix):
         dists = pd.read_csv(os.path.join(path_prefix, 'SBP_dist.csv'))
         lookup_table = dists[dists.Parameter == 'sd'].merge(dists[dists.Parameter == 'mean'], on=['Age', 'Year', 'sex'])
         lookup_table.drop(['Parameter_x', 'Parameter_y'], axis=1, inplace=True)

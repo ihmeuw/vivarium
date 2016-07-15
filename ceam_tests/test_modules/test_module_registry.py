@@ -12,7 +12,7 @@
 
 from unittest import TestCase
 
-from ceam.tree import Root
+from ceam.tree import Node
 from ceam.modules import ModuleRegistry, DependencyException
 from ceam.engine import SimulationModule
 
@@ -47,10 +47,8 @@ class HModule(SimulationModule):
 class IModule(SimulationModule):
     DEPENDENCIES = (AModule, BModule, FModule)
 
-class TestModuleRegistry(Root, ModuleRegistry):
-    def __init__(self, base_module=None):
-        Root.__init__(self)
-        ModuleRegistry.__init__(self, base_module)
+class TestModuleRegistry(Node, ModuleRegistry):
+    pass
 
 class TestModuleRegistration(TestCase):
     def test_register(self):

@@ -2,6 +2,7 @@ from datetime import timedelta
 from collections import defaultdict
 
 import numpy as np
+import pandas as pd
 
 from ceam import config
 from ceam.engine import SimulationModule
@@ -72,7 +73,7 @@ class OpportunisticScreeningModule(SimulationModule):
 
     def load_population_columns(self, path_prefix, population_size):
         #TODO: Some people will start out taking medications?
-        self.population_columns['medication_count'] = [0]*population_size
+        return pd.DataFrame({'medication_count': np.zeros(population_size)})
 
     def general_blood_pressure_test(self, event):
         cost = len(event.affected_population) * config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')

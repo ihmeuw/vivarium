@@ -5,7 +5,7 @@ from collections import defaultdict
 import pandas as pd
 
 from ceam import config
-from ceam.tree import NodeBehaviorMixin, Node
+from ceam.tree import Node
 from ceam.events import EventHandlerMixin
 
 class ModuleException(Exception):
@@ -94,42 +94,18 @@ class DisabilityWeightNode:
     def disability_weight(self, population):
         return pd.Series(0.0, population.index)
 
-class PopulationLoaderMixin(NodeBehaviorMixin):
-    def load_population_columns(self, path_prefix, population_size):
-        pass
-
-class PopulationLoaderRootMixin(PopulationLoaderMixin):
-    pass
-
-class DataLoaderMixin(NodeBehaviorMixin):
+class LookupTableMixin:
     def lookup_columns(self, population, columns):
-        return self.root.munged_lookup_columns(population, columns, self)
+        return self.root.lookup_columns(population, columns, self)
 
-    def load_data(self, path_prefix):
+def _lookup_column_prefix(node):
+    return str(node)
 
-        lookup_table = pd.DataFrame()
-        loaded_tables = []
-        for node in self.children:
-            if isinstance(node, DataLoaderMixin):
-                loaded_tables.extend(node.load_data(path_prefix))
-        new_table = self._load_data(path_prefix)
-        if new_table is not None and not new_table.empty:
-            loaded_tables += [(self, new_table)]
-        return loaded_tables
-
-    def _load_data(self, path_prefix):
-        return pd.DataFrame()
-
-    @property
-    def lookup_column_prefix(self):
-        return str(hash(self))
-
-class DataLoaderRootMixin(DataLoaderMixin):
+class LookupTable:
     def __init__(self):
-        super(DataLoaderRootMixin, self).__init__()
         self.lookup_table = pd.DataFrame()
 
-    def load_data(self, path_prefix=None):
+    def load_data(self, loaders, path_prefix=None):
         def column_prefixer(column, prefix):
             if column not in ['age', 'year', 'sex']:
                 return prefix + '_' + column
@@ -138,11 +114,13 @@ class DataLoaderRootMixin(DataLoaderMixin):
         if path_prefix is None:
             path_prefix = config.get('general', 'reference_data_directory')
 
-        loaded_tables = super(DataLoaderRootMixin, self).load_data(path_prefix)
+        loaded_tables = [(l, l.load_data(path_prefix)) for l in loaders]
 
         lookup_table = None
         for node, table in loaded_tables:
-            table = table.rename(columns=lambda c: column_prefixer(c, node.lookup_column_prefix))
+            if table is None:
+                continue
+            table = table.rename(columns=lambda c: column_prefixer(c, _lookup_column_prefix(node)))
             assert table.duplicated(['age', 'sex', 'year']).sum() == 0, "{0} has a lookup table with duplicate rows".format(node)
             if not table.empty:
                 if lookup_table is not None:
@@ -153,25 +131,22 @@ class DataLoaderRootMixin(DataLoaderMixin):
         lookup_table['lookup_id'] = range(0, len(lookup_table))
         self.lookup_table = lookup_table
 
-    def munged_lookup_columns(self, population, columns, node):
+    def lookup_columns(self, population, columns, node):
         origonal_columns = columns
-        columns = [node.lookup_column_prefix + '_' + c for c in columns]
+        columns = [_lookup_column_prefix(node) + '_' + c for c in columns]
         for column, origonal_column in zip(columns, origonal_columns):
-            assert column in self.root.lookup_table, 'Tried to lookup non-existent column: {0} from node {1}'.format(origonal_column, node)
+            assert column in self.lookup_table, 'Tried to lookup non-existent column: {0} from node {1}'.format(origonal_column, node)
 
         results = self.lookup_table.ix[population.lookup_id, columns]
         return results.rename(columns=dict(zip(columns, origonal_columns)))
 
-class SimulationModule(EventHandlerMixin, ValueMutationNode, DataLoaderMixin, PopulationLoaderMixin, DisabilityWeightNode, Node):
+class SimulationModule(LookupTableMixin, EventHandlerMixin, ValueMutationNode, DisabilityWeightNode, Node):
     DEPENDENCIES = set()
     def __init__(self):
         EventHandlerMixin.__init__(self)
         ValueMutationNode.__init__(self)
         DisabilityWeightNode.__init__(self)
-        DataLoaderMixin.__init__(self)
-        PopulationLoaderMixin.__init__(self)
         Node.__init__(self)
-        self.population_columns = pd.DataFrame()
         self.incidence_mediation_factors = {}
 
     @property
@@ -186,6 +161,9 @@ class SimulationModule(EventHandlerMixin, ValueMutationNode, DataLoaderMixin, Po
 
     def module_id(self):
         return self.__class__
+
+    def __str__(self):
+        return str(self.module_id())
 
 
 # End.

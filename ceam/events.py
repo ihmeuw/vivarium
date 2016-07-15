@@ -3,7 +3,6 @@
 from collections import defaultdict
 from weakref import WeakKeyDictionary
 
-from ceam.tree import NodeBehaviorMixin
 from ceam.util import auto_adapt_to_methods
 
 class Event:
@@ -20,9 +19,8 @@ class ConfigurationEvent(Event):
         super(ConfigurationEvent, self).__init__(label)
         self.config = config
 
-class EventHandlerMixin(NodeBehaviorMixin):
+class EventHandlerMixin:
     def __init__(self):
-        super(EventHandlerMixin, self).__init__()
         self._listeners_store = [defaultdict(set) for _ in range(10)]
 
     def _listeners(self, label):

@@ -1,10 +1,19 @@
-class NodeBehaviorMixin:
-    pass
-
 class Node:
-    def __init__(self):
-        self.children = set()
-        self.parent = None
+    @property
+    def children(self):
+        if not hasattr(self, '_children'):
+            self._children = set()
+        return self._children
+
+    @property
+    def parent(self):
+        if not hasattr(self, '_parent'):
+            self._parent = None
+        return self._parent
+
+    @parent.setter
+    def parent(self, value):
+        self._parent = value
 
     def add_child(self, node):
         self.children.add(node)
@@ -28,12 +37,13 @@ class Node:
     def removed_from(self, node):
         self.parent = None
 
-    def all_decendents(self, of_type=object):
+    def all_decendents(self, of_type=None, with_attr=None):
         results = []
         for child in self.children:
-            if isinstance(child, of_type):
-                results.append(child)
-            results.extend(child.all_decendents(of_type))
+            if of_type is None or isinstance(child, of_type):
+                if with_attr is None or hasattr(child, with_attr):
+                    results.append(child)
+            results.extend(child.all_decendents(of_type, with_attr))
         return results
 
     @property
@@ -45,7 +55,3 @@ class Node:
             while root.parent is not None:
                 root = root.parent
             return root
-
-
-class Root(Node):
-    pass

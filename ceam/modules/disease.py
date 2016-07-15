@@ -8,7 +8,7 @@ import numpy as np
 from ceam import config
 
 from ceam.tree import Node
-from ceam.modules import DataLoaderMixin, ValueMutationNode, DisabilityWeightNode
+from ceam.modules import LookupTableMixin, ValueMutationNode, DisabilityWeightNode
 from ceam.events import only_living
 from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
@@ -62,17 +62,16 @@ class DiseaseState(State, DisabilityWeightNode, Node):
         return pd.Series(self._disability_weight, index=population.loc[population[self.parent.condition] == self.state_id].index)
 
 
-class ExcessMortalityState(DiseaseState, DataLoaderMixin, ValueMutationNode):
+class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
     def __init__(self, state_id, excess_mortality_table, **kwargs):
         DiseaseState.__init__(self, state_id, **kwargs)
-        DataLoaderMixin.__init__(self)
         ValueMutationNode.__init__(self)
 
         self.excess_mortality_table = excess_mortality_table
 
         self.register_value_mutator(self.mortality_rates, 'mortality_rates')
 
-    def _load_data(self, prefix_path):
+    def load_data(self, prefix_path):
         lookup_table = pd.read_csv(os.path.join(prefix_path, self.excess_mortality_table))
         lookup_table.columns = _rename_rate_column(lookup_table, 'rate')
         lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
@@ -84,18 +83,17 @@ class ExcessMortalityState(DiseaseState, DataLoaderMixin, ValueMutationNode):
     def __str__(self):
         return 'ExcessMortalityState("{0}" ...)'.format(self.state_id, self.excess_mortality_table)
 
-class IncidenceRateTransition(Transition, Node, DataLoaderMixin, ValueMutationNode):
+class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationNode):
     def __init__(self, output, rate_label, incidence_rate_table):
         Transition.__init__(self, output, self.probability)
         Node.__init__(self)
-        DataLoaderMixin.__init__(self)
         ValueMutationNode.__init__(self)
 
         self.rate_label = rate_label
         self.incidence_rate_table = incidence_rate_table
         self.register_value_source(self.incidence_rates, 'incidence_rates', rate_label)
 
-    def _load_data(self, prefix_path):
+    def load_data(self, prefix_path):
         lookup_table = pd.read_csv(os.path.join(prefix_path, self.incidence_rate_table))
         lookup_table.columns = _rename_rate_column(lookup_table, 'rate')
         lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
@@ -147,8 +145,9 @@ class DiseaseModule(SimulationModule, Machine):
     def load_population_columns(self, path_prefix, population_size):
         # TODO: Load real data and integrate with state machine
         state_id_length = max(len(state.state_id) for state in self.states)
-        self.population_columns = pd.DataFrame(np.full(population_size, 'healthy', dtype='<U{0}'.format(state_id_length)), columns=[self.condition])
+        population_columns = pd.DataFrame(np.full(population_size, 'healthy', dtype='<U{0}'.format(state_id_length)), columns=[self.condition])
         for state in self.states:
             if state.dwell_time > 0:
-                self.population_columns[state.event_count_column] = 0
-                self.population_columns[state.event_time_column] = 0
+                population_columns[state.event_count_column] = 0
+                population_columns[state.event_time_column] = 0
+        return population_columns
