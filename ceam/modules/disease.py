@@ -76,6 +76,10 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
         lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
         return lookup_table
 
+    def load_population_columns(self, path_prefix, population_size):
+        if self.dwell_time > 0:
+            return pd.DataFrame({self.event_count_column: np.zeros(population_size), self.event_time_column: np.zeros(population_size)})
+
     def mortality_rates(self, population, rates):
         return rates + self.lookup_columns(population, ['rate'])['rate'].values * (population[self.parent.condition] == self.state_id)
 
@@ -145,8 +149,4 @@ class DiseaseModule(SimulationModule, Machine):
         # TODO: Load real data and integrate with state machine
         state_id_length = max(len(state.state_id) for state in self.states)
         population_columns = pd.DataFrame(np.full(population_size, 'healthy', dtype='<U{0}'.format(state_id_length)), columns=[self.condition])
-        for state in self.states:
-            if state.dwell_time > 0:
-                population_columns[state.event_count_column] = 0
-                population_columns[state.event_time_column] = 0
         return population_columns
