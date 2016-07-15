@@ -44,6 +44,10 @@ class DiseaseState(State, DisabilityWeightMixin, Node):
         else:
             self.event_count_column = self.state_id + '_event_count'
 
+    def load_population_columns(self, path_prefix, population_size):
+        if self.dwell_time > 0:
+            return pd.DataFrame({self.event_time_column: np.zeros(population_size), self.event_count_column: np.zeros(population_size)})
+
     def next_state(self, population, state_column):
         if self.dwell_time > 0:
             eligible_population = population.loc[population[self.event_time_column] < self.root.current_time.timestamp() - self.dwell_time]
@@ -75,10 +79,6 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
         lookup_table.columns = _rename_rate_column(lookup_table, 'rate')
         lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
         return lookup_table
-
-    def load_population_columns(self, path_prefix, population_size):
-        if self.dwell_time > 0:
-            return pd.DataFrame({self.event_count_column: np.zeros(population_size), self.event_time_column: np.zeros(population_size)})
 
     def mortality_rates(self, population, rates):
         return rates + self.lookup_columns(population, ['rate'])['rate'].values * (population[self.parent.condition] == self.state_id)

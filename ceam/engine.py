@@ -182,12 +182,16 @@ class Simulation(Node, ModuleRegistry):
     def _validate(self, start_time, end_time):
         self._validate_value_nodes()
 
-    def _step(self, time_step):
-        self.last_time_step = time_step
+    def _prepare_step(self, time_step):
         self.population['year'] = self.current_time.year
         self.population.loc[self.population.alive == True, 'fractional_age'] += time_step.days/365.0
         self.population['age'] = self.population.fractional_age.astype(int)
         self.index_population()
+        self.last_time_step = time_step
+
+    def _step(self, time_step):
+        self._prepare_step(time_step)
+
         self.emit_event(PopulationEvent('time_step__continuous', self.population))
         self.emit_event(PopulationEvent('time_step', self.population))
         self.emit_event(PopulationEvent('time_step__end', self.population))

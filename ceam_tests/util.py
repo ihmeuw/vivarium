@@ -16,6 +16,10 @@ def simulation_factory(modules):
     data_path = os.path.join(str(pytest.config.rootdir), 'ceam_tests', 'test_data')
     simulation.load_data(data_path)
     simulation.load_population(os.path.join(data_path, 'population_columns'))
+    start_time = datetime(1990, 1, 1)
+    simulation.current_time = start_time
+    timestep = timedelta(days=30)
+    simulation._prepare_step(timestep)
     return simulation
 
 def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population), dummy_population=None):
