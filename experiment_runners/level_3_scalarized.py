@@ -7,7 +7,7 @@ from time import time
 from datetime import datetime, timedelta
 
 from ceam.engine import Simulation
-from ceam.modules.chronic_condition import ChronicConditionModule
+from ceam.modules.disease_models import heart_disease_factory, hemorrhagic_stroke_factory
 from ceam.modules.level3intervention_scalarized import Level3InterventionScalarizedModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.metrics import MetricsModule
@@ -77,8 +77,8 @@ def main():
     simulation = Simulation()
 
     modules = [
-               ChronicConditionModule('ihd', 'ihd_mortality_rate.csv', 'IHD incidence rates.csv', 0.08),
-               ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316),
+               heart_disease_factory(),
+               hemorrhagic_stroke_factory(),
                MetricsModule(),
               ]
     screening_module = Level3InterventionScalarizedModule()
