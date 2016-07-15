@@ -145,7 +145,6 @@ class SimulationModule(LookupTableMixin, EventHandlerMixin, ValueMutationNode, D
     def __init__(self):
         EventHandlerMixin.__init__(self)
         ValueMutationNode.__init__(self)
-        DisabilityWeightNode.__init__(self)
         Node.__init__(self)
         self.incidence_mediation_factors = {}
 

@@ -27,7 +27,6 @@ def _rename_rate_column(table, col_name):
 class DiseaseState(State, DisabilityWeightNode, Node):
     def __init__(self, state_id, disability_weight, dwell_time=0, event_time_column=None, event_count_column=None):
         Node.__init__(self)
-        DisabilityWeightNode.__init__(self)
         State.__init__(self, state_id)
 
         self._disability_weight = disability_weight
