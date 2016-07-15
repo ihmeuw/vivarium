@@ -1,12 +1,12 @@
 from datetime import timedelta
 
-from ceam.state_machine import Transition
+from ceam.state_machine import Transition, State
 from ceam.modules.disease import DiseaseModule, DiseaseState, ExcessMortalityState, IncidenceRateTransition
 
 def heart_disease_factory():
     module = DiseaseModule('ihd')
 
-    healthy = DiseaseState('healthy', disability_weight=0)
+    healthy = State('healthy')
     # TODO: disability weight for heart attack
     heart_attack = ExcessMortalityState('heart_attack', disability_weight=0.439, dwell_time=timedelta(days=28), excess_mortality_table='mi_acute_excess_mortality.csv')
 
@@ -34,10 +34,10 @@ def heart_disease_factory():
     module.states.update([healthy, heart_attack, mild_heart_failure, moderate_heart_failure, severe_heart_failure, angina])
     return module
 
-def ihd_factory():
+def simple_ihd_factory():
     module = DiseaseModule('ihd')
 
-    healthy = DiseaseState('healthy', disability_weight=0)
+    healthy = State('healthy')
     # TODO: disability weight for heart attack
     heart_attack = ExcessMortalityState('heart_attack', disability_weight=0.439, dwell_time=timedelta(days=28), excess_mortality_table='mi_acute_excess_mortality.csv')
     chronic_ihd = ExcessMortalityState('chronic_ihd', disability_weight=0.08, excess_mortality_table='ihd_mortality_rate.csv')
@@ -56,7 +56,7 @@ def ihd_factory():
 def hemorrhagic_stroke_factory():
     module = DiseaseModule('hemorrhagic_stroke')
 
-    healthy = DiseaseState('healthy', disability_weight=0)
+    healthy = State('healthy')
     # TODO: disability weight for stroke
     stroke = ExcessMortalityState('hemorrhagic_stroke', disability_weight=0.92, dwell_time=timedelta(days=28), excess_mortality_table='acute_hem_stroke_excess_mortality.csv')
     chronic_stroke = ExcessMortalityState('chronic_stroke', disability_weight=0.31, excess_mortality_table='chronic_hem_stroke_excess_mortality.csv')
