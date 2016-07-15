@@ -37,14 +37,21 @@ class Node:
     def removed_from(self, node):
         self.parent = None
 
-    def all_decendents(self, of_type=None, with_attr=None):
+    def _filter_decendents(self, of_type, with_attr, max_depth, current_depth):
         results = []
         for child in self.children:
             if of_type is None or isinstance(child, of_type):
                 if with_attr is None or hasattr(child, with_attr):
                     results.append(child)
-            results.extend(child.all_decendents(of_type, with_attr))
+            if max_depth > current_depth:
+                results.extend(child._filter_decendents(of_type, with_attr, max_depth=max_depth, current_depth=current_depth+1))
         return results
+
+    def all_children(self, of_type=None, with_attr=None):
+        return self._filter_decendents(of_type, with_attr, max_depth=0, current_depth=0)
+
+    def all_decendents(self, of_type=None, with_attr=None):
+        return self._filter_decendents(of_type, with_attr, max_depth=float('inf'), current_depth=0)
 
     @property
     def root(self):

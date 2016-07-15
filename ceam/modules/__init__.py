@@ -6,7 +6,7 @@ import pandas as pd
 
 from ceam import config
 from ceam.tree import Node
-from ceam.events import EventHandlerMixin
+from ceam.events import EventHandlerNode
 
 class ModuleException(Exception):
     pass
@@ -90,7 +90,7 @@ class ValueMutationNode:
     def deregister_value_source(self, value_type, label=None):
         del self._value_sources[value_type][label]
 
-class DisabilityWeightNode:
+class DisabilityWeightMixin:
     def disability_weight(self, population):
         return pd.Series(0.0, population.index)
 
@@ -140,10 +140,10 @@ class LookupTable:
         results = self.lookup_table.ix[population.lookup_id, columns]
         return results.rename(columns=dict(zip(columns, origonal_columns)))
 
-class SimulationModule(LookupTableMixin, EventHandlerMixin, ValueMutationNode, DisabilityWeightNode, Node):
+class SimulationModule(LookupTableMixin, EventHandlerNode, ValueMutationNode, DisabilityWeightMixin, Node):
     DEPENDENCIES = set()
     def __init__(self):
-        EventHandlerMixin.__init__(self)
+        EventHandlerNode.__init__(self)
         ValueMutationNode.__init__(self)
         Node.__init__(self)
         self.incidence_mediation_factors = {}

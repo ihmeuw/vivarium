@@ -14,7 +14,7 @@ from ceam import config
 from ceam.tree import Node
 from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, Event, only_living
-from ceam.modules import ModuleRegistry, SimulationModule, LookupTable, ValueMutationNode, DisabilityWeightNode
+from ceam.modules import ModuleRegistry, SimulationModule, LookupTable, ValueMutationNode, DisabilityWeightMixin
 
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
@@ -174,7 +174,7 @@ class Simulation(Node, ModuleRegistry):
     def disability_weight(self):
         weights = 1
         pop = self.population.loc[self.population.alive == True]
-        for node in self.all_decendents(of_type=DisabilityWeightNode):
+        for node in self.all_decendents(of_type=DisabilityWeightMixin):
             weights *= 1 - node.disability_weight(pop)
         total_weight = 1 - weights
         return total_weight

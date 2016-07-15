@@ -51,7 +51,7 @@ def test_tree_deconstruction():
 class FancyNode(Node):
     pass
 
-def test_child_filtering():
+def test_decendent_filtering():
     a = Node()
     b = Node()
     b.test_attribute = 'thing'
@@ -65,3 +65,16 @@ def test_child_filtering():
     assert set(a.all_decendents()) == {b, c, d}
     assert set(a.all_decendents(of_type=FancyNode)) == {c, d}
     assert set(a.all_decendents(with_attr='test_attribute')) == {b, c}
+
+def test_child_filtering():
+    a = Node()
+    b = Node()
+    b.test_attribute = 'thing'
+    c = FancyNode()
+    c.test_attribute = 'thing'
+    d = FancyNode()
+
+    a.add_child(c)
+    c.add_children([b,d])
+
+    assert set(a.all_children()) == {c}

@@ -19,7 +19,7 @@ class ConfigurationEvent(Event):
         super(ConfigurationEvent, self).__init__(label)
         self.config = config
 
-class EventHandlerMixin:
+class EventHandlerNode:
     def __init__(self):
         self._listeners_store = [defaultdict(set) for _ in range(10)]
 
@@ -46,7 +46,7 @@ class EventHandlerMixin:
     def emit_event(self, event):
         for listener in self._listeners(event.label):
             listener(event)
-        for child in [child for child in self.children if isinstance(child, EventHandlerMixin)]:
+        for child in [child for child in self.all_children(of_type=EventHandlerNode)]:
             child.emit_event(event)
 
 

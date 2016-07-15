@@ -6,12 +6,12 @@ import numpy as np
 import pandas as pd
 
 from ceam.tree import Node
-from ceam.events import EventHandlerMixin, Event, PopulationEvent, only_living
+from ceam.events import EventHandlerNode, Event, PopulationEvent, only_living
 
-class TestEventHandler(EventHandlerMixin, Node):
+class TestEventHandler(EventHandlerNode, Node):
     pass
 
-class TestEventHandlerMixin(TestCase):
+class TestEventHandlerNode(TestCase):
     def test_listener_registration(self):
         eh = TestEventHandler()
         trigger = [False]

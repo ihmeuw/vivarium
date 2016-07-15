@@ -8,7 +8,7 @@ import numpy as np
 from ceam import config
 
 from ceam.tree import Node
-from ceam.modules import LookupTableMixin, ValueMutationNode, DisabilityWeightNode
+from ceam.modules import LookupTableMixin, ValueMutationNode, DisabilityWeightMixin
 from ceam.events import only_living
 from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
@@ -24,7 +24,7 @@ def _rename_rate_column(table, col_name):
             columns.append(col_name)
     return columns
 
-class DiseaseState(State, DisabilityWeightNode, Node):
+class DiseaseState(State, DisabilityWeightMixin, Node):
     def __init__(self, state_id, disability_weight, dwell_time=0, event_time_column=None, event_count_column=None):
         Node.__init__(self)
         State.__init__(self, state_id)
