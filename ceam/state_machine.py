@@ -10,11 +10,11 @@ class State:
         if len(self.transition_set) == 0 or agents.empty:
             return agents
 
-        agents_by_new_state = self.transition_set.agents_by_new_state(agents)
+        groups = self.transition_set.groupby_new_state(agents)
 
         results = []
-        for state, affected_agents in agents_by_new_state.items():
-            if state is not None:
+        for state, affected_agents in groups.items():
+            if state != 'null_transition':
                 results.append(state.transition_effect(affected_agents, state_column))
             else:
                 results.append(affected_agents)
@@ -38,7 +38,7 @@ class TransitionSet(set):
         super(TransitionSet, self).__init__(*args, **kwargs)
         self.allow_null_transition = allow_null_transition
 
-    def agents_by_new_state(self, agents):
+    def groupby_new_state(self, agents):
         outputs, probabilities = zip(*[(t.output, np.array(t.probability(agents))) for t in self])
         outputs = list(outputs)
 
@@ -50,14 +50,13 @@ class TransitionSet(set):
                 raise ValueError("Total transition probability greater than 1")
             else:
                 probabilities = np.concatenate([probabilities, [(1-total)]])
-                outputs.append(None)
-        outputs = dict(enumerate(outputs))
+                outputs.append('null_transition')
+
         draw = np.random.rand(probabilities.shape[1])
         sums = probabilities.cumsum(axis=0)
         output_indexes = (draw >= sums).sum(axis=0)
-        groups = agents.groupby(by=pd.Series(np.array(list(outputs.keys()))[output_indexes], index=agents.index))
-
-        return {outputs[o]:a for o, a in groups}
+        groups = agents.groupby(output_indexes)
+        return {outputs[i]:sub_group for i, sub_group in groups}
 
 class Transition:
     def __init__(self, output, probability_func=lambda agents: np.full(len(agents), 1, dtype=float)):
@@ -73,12 +72,15 @@ class Machine:
         self.state_column = state_column
 
     def transition(self, agents):
-        results = []
-        for state in self.states:
-            affected_agents = agents.loc[agents[self.state_column] == state.state_id]
-            affected_agents = state.next_state(affected_agents, self.state_column)
-            results.append(affected_agents)
-        return pd.concat(results)
+        groups = agents.groupby(self.state_column, group_keys=False)
+        state_map = {state.state_id:state for state in self.states}
+        def transformer(agents):
+            if not agents.empty:
+                state = state_map[agents.iloc[0][self.state_column]]
+                return state.next_state(agents, self.state_column)
+            else:
+                return agents
+        return groups.apply(transformer)
 
     def to_dot(self):
         from graphviz import Digraph
