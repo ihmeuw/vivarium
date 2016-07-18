@@ -14,34 +14,36 @@ from ceam.modules.opportunistic_screening import _hypertensive_categories, Oppor
 from ceam.modules.healthcare_access import HealthcareAccessModule
 from ceam.modules.blood_pressure import BloodPressureModule
 
-def _population_factory():
-    population = []
-    population.append((40, 130)) # Normotensive, below 60
-    population.append((60, 145)) # Normotensive, exactly 60
-    population.append((70, 145)) # Normotensive, above 60
+def _population_setup(population=None):
+    if population is None:
+        population = pd.DataFrame(index=range(10))
+    else:
+        population = population.ix[population.index[:10]]
 
-    population.append((40, 140)) # Hypertensive, below 60
-    population.append((40, 145)) # Hypertensive, below 60
-    population.append((60, 170)) # Hypertensive, exactly 60
-    population.append((70, 150)) # Hypertensive, above 60
-    population.append((70, 155)) # Hypertensive, above 60
+    age_sbps = []
+    age_sbps.append((40, 130)) # Normotensive, below 60
+    age_sbps.append((60, 145)) # Normotensive, exactly 60
+    age_sbps.append((70, 145)) # Normotensive, above 60
 
-    population.append((40, 185)) # Severe hypertensive, below 60
-    population.append((70, 185)) # Severe hypertensive, above 60
+    age_sbps.append((40, 140)) # Hypertensive, below 60
+    age_sbps.append((40, 145)) # Hypertensive, below 60
+    age_sbps.append((60, 170)) # Hypertensive, exactly 60
+    age_sbps.append((70, 150)) # Hypertensive, above 60
+    age_sbps.append((70, 155)) # Hypertensive, above 60
 
-    population = pd.DataFrame(population, columns=['age', 'systolic_blood_pressure'])
-    population['sex'] = 1
-    population['alive'] = True
-    population['medication_count'] = 0
-    population['drug_adherence'] = np.random.choice([0, 1], size=len(population))
-    population['healthcare_followup_date'] = None
-    population['healthcare_last_visit_date'] = None
+    age_sbps.append((40, 185)) # Severe hypertensive, below 60
+    age_sbps.append((70, 185)) # Severe hypertensive, above 60
+
+    ages, sbps = zip(*age_sbps)
+    population['age'] = ages
+    population['systolic_blood_pressure'] = sbps
+
     population['fractional_age'] = population['age']
     return population
 
 
 def test_hypertensive_categories():
-    population = _population_factory()
+    population = _population_setup()
 
     normotensive, hypertensive, severe_hypertension = _hypertensive_categories(population)
 
@@ -79,29 +81,44 @@ def test_dependencies():
     assert BloodPressureModule in ordered_module_ids
     assert HealthcareAccessModule in ordered_module_ids
 
-def test_drug_cost():
+def test_medication_cost():
     simulation, module = screening_setup()
 
     # No one is taking drugs yet so there should be no cost
-    module.emit_event(PopulationEvent('time_step', simulation.population))
+    module._medication_costs(simulation.population)
     assert module.cost_by_year[simulation.current_time.year] == 0
 
     # Now everyone is on one drug
     simulation.population['medication_count'] = 1
     simulation.last_time_step = timedelta(days=30)
-    module.emit_event(PopulationEvent('time_step', simulation.population))
+    simulation.population['healthcare_followup_date'] = simulation.current_time + timedelta(days=60)
+    module._medication_costs(simulation.population)
+
     daily_cost_of_first_medication = MEDICATIONS[0]['daily_cost']
-    assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_first_medication * 30 * len(simulation.population)
+    assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_first_medication * 60 * len(simulation.population)
 
     # Now everyone is on all the drugs
     simulation.population['medication_count'] = len(MEDICATIONS)
     simulation.current_time += timedelta(days=361) # Force us into the next year
-    module.emit_event(PopulationEvent('time_step', simulation.population))
+    simulation.population['healthcare_followup_date'] = simulation.current_time + timedelta(days=60)
+    module._medication_costs(simulation.population)
     daily_cost_of_all_medication = sum(m['daily_cost'] for m in MEDICATIONS)
-    assert module.cost_by_year[simulation.current_time.year].round(5) == round(daily_cost_of_all_medication * 30 * len(simulation.population), 5)
+    assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_all_medication * 60 * len(simulation.population)
+
+    #Now everyone comes back early so they don't need a full sized refill
+    simulation.current_time += timedelta(days=45)
+    simulation.population['healthcare_followup_date'] = simulation.current_time + timedelta(days=60)
+    module.cost_by_year[simulation.current_time.year] = 0
+    module._medication_costs(simulation.population)
+
+    assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_all_medication * 45 * len(simulation.population)
 
 def test_blood_pressure_test_cost():
     simulation, module = screening_setup()
+
+    # For the sake of this test, everyone is healthy so we don't have to worry about them getting prescribed drugs
+    # which will change our costs.
+    simulation.population['systolic_blood_pressure'] = 112
 
     # Everybody goes to the hospital
     simulation.emit_event(PopulationEvent('general_healthcare_access', simulation.population))
@@ -118,7 +135,7 @@ def test_blood_pressure_test_cost():
 def screening_setup():
     module = OpportunisticScreeningModule()
     simulation = simulation_factory([module])
-    dummy_population = _population_factory()
+    dummy_population = _population_setup(simulation.population)
 
     simulation.remove_children([module])
     pump_simulation(simulation, iterations=1, dummy_population=dummy_population)

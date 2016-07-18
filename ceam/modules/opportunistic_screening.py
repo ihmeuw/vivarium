@@ -68,7 +68,6 @@ class OpportunisticScreeningModule(SimulationModule):
     def setup(self):
         self.register_event_listener(self.general_blood_pressure_test, 'general_healthcare_access')
         self.register_event_listener(self.followup_blood_pressure_test, 'followup_healthcare_access')
-        self.register_event_listener(self.track_monthly_cost, 'time_step')
         self.register_event_listener(self.adjust_blood_pressure, 'time_step__continuous')
 
     def load_population_columns(self, path_prefix, population_size):
@@ -76,14 +75,30 @@ class OpportunisticScreeningModule(SimulationModule):
         adherence = config.getfloat('opportunistic_screening', 'adherence')
         population = pd.DataFrame({'drug_adherence': np.random.choice([1, 0], p=[adherence, 1-adherence], size=population_size)})
         population['medication_count'] = np.zeros(population_size)
+        for medication in MEDICATIONS:
+            population[medication['name']+'_supplied_until'] = pd.NaT
         return population
 
+    def _medication_costs(self, population):
+        for medication_number, medication in enumerate(MEDICATIONS):
+            affected_population = population[population.medication_count > medication_number]
+            if not affected_population.empty:
+                supply_remaining = affected_population[medication['name']+'_supplied_until'] - pd.Timestamp(self.simulation.current_time)
+                supply_remaining = supply_remaining.fillna(pd.Timedelta(days=0))
+                supply_remaining[supply_remaining < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
+
+                supply_needed = affected_population['healthcare_followup_date'] - pd.Timestamp(self.simulation.current_time)
+                supply_needed.fillna(pd.Timedelta(days=0))
+                supply_needed[supply_needed < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
+
+                self.simulation.population.loc[affected_population.index, medication['name']+'_supplied_until'] = affected_population['healthcare_followup_date']
+                self.cost_by_year[self.simulation.current_time.year] += (supply_needed - supply_remaining).sum().days * medication['daily_cost']
 
     def general_blood_pressure_test(self, event):
         cost = len(event.affected_population) * config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
         self.cost_by_year[self.simulation.current_time.year] += cost
 
-        #TODO: testing error
+        #TODO: Model blood pressure testing error
 
         normotensive, hypertensive, severe_hypertension = _hypertensive_categories(event.affected_population)
 
@@ -97,6 +112,8 @@ class OpportunisticScreeningModule(SimulationModule):
         self.simulation.population.loc[severe_hypertension.index, 'healthcare_followup_date'] = self.simulation.current_time + timedelta(days=30.5*6)
 
         self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension['medication_count'] + 2, len(MEDICATIONS))
+
+        self._medication_costs(event.affected_population)
 
     def followup_blood_pressure_test(self, event):
         appointment_cost = config.getfloat('appointments', 'cost')
@@ -124,12 +141,7 @@ class OpportunisticScreeningModule(SimulationModule):
         self.simulation.population.loc[severe_hypertension.index, 'healthcare_followup_date'] = follow_up
         self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension.medication_count + 1, len(MEDICATIONS))
 
-
-    @only_living
-    def track_monthly_cost(self, event):
-        for medication_number, medication in enumerate(MEDICATIONS):
-            user_count = (event.affected_population.medication_count > medication_number).sum()
-            self.cost_by_year[self.simulation.current_time.year] += user_count * medication['daily_cost'] * self.simulation.last_time_step.days
+        self._medication_costs(event.affected_population)
 
     @only_living
     def adjust_blood_pressure(self, event):
