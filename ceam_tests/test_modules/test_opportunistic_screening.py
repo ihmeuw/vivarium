@@ -70,7 +70,7 @@ def test_drug_effects():
     simulation.population.systolic_blood_pressure = starting_sbp
     module.adjust_blood_pressure(PopulationEvent('time_step', simulation.population))
     efficacy = sum(m['efficacy'] * simulation.population.drug_adherence for m in MEDICATIONS[:3])
-    assert (round(starting_sbp) == round(simulation.population.systolic_blood_pressure + efficacy)).all()
+    assert (starting_sbp.round() == (simulation.population.systolic_blood_pressure + efficacy).round()).all()
 
 def test_dependencies():
     # NOTE: This is kind of a silly test since it just verifies that the class is defined correctly but I did actually make that mistake. -Alec
@@ -98,7 +98,7 @@ def test_drug_cost():
     simulation.current_time += timedelta(days=361) # Force us into the next year
     module.emit_event(PopulationEvent('time_step', simulation.population))
     daily_cost_of_all_medication = sum(m['daily_cost'] for m in MEDICATIONS)
-    assert round(module.cost_by_year[simulation.current_time.year], 5) == round(daily_cost_of_all_medication * 30 * len(simulation.population), 5)
+    assert module.cost_by_year[simulation.current_time.year].round(5) == (daily_cost_of_all_medication * 30 * len(simulation.population)).round(5)
 
 def test_blood_pressure_test_cost():
     simulation, module = screening_setup()
