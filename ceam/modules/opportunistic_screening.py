@@ -73,7 +73,11 @@ class OpportunisticScreeningModule(SimulationModule):
 
     def load_population_columns(self, path_prefix, population_size):
         #TODO: Some people will start out taking medications?
-        return pd.DataFrame({'medication_count': np.zeros(population_size)})
+        adherence = config.getfloat('opportunistic_screening', 'adherence')
+        population = pd.DataFrame({'drug_adherence': np.random.choice([1, 0], p=[adherence, 1-adherence], size=population_size)})
+        population['medication_count'] = np.zeros(population_size)
+        return population
+
 
     def general_blood_pressure_test(self, event):
         cost = len(event.affected_population) * config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
@@ -130,8 +134,8 @@ class OpportunisticScreeningModule(SimulationModule):
     @only_living
     def adjust_blood_pressure(self, event):
         for medication_number, medication in enumerate(MEDICATIONS):
-            medication_efficacy = medication['efficacy'] * config.getfloat('opportunistic_screening', 'adherence')
             affected_population = event.affected_population[event.affected_population.medication_count > medication_number]
+            medication_efficacy = medication['efficacy'] * event.affected_population.drug_adherence
             self.simulation.population.loc[affected_population.index, 'systolic_blood_pressure'] -= medication_efficacy
 
     def reset(self):

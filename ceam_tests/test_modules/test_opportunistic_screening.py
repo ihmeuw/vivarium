@@ -2,6 +2,7 @@ from datetime import timedelta
 
 import pytest
 
+import numpy as np
 import pandas as pd
 
 from ceam import config
@@ -21,7 +22,7 @@ def _population_factory():
 
     population.append((40, 140)) # Hypertensive, below 60
     population.append((40, 145)) # Hypertensive, below 60
-    population.append((60, 170)) # Hypertensive, exatly 60
+    population.append((60, 170)) # Hypertensive, exactly 60
     population.append((70, 150)) # Hypertensive, above 60
     population.append((70, 155)) # Hypertensive, above 60
 
@@ -32,6 +33,7 @@ def _population_factory():
     population['sex'] = 1
     population['alive'] = True
     population['medication_count'] = 0
+    population['drug_adherence'] = np.random.choice([0, 1], size=len(population))
     population['healthcare_followup_date'] = None
     population['healthcare_last_visit_date'] = None
     population['fractional_age'] = population['age']
@@ -59,16 +61,16 @@ def test_drug_effects():
     # Now everyone is on the first drug
     simulation.population['medication_count'] = 1
     module.adjust_blood_pressure(PopulationEvent('time_step', simulation.population))
-    assert (starting_sbp > simulation.population.systolic_blood_pressure).all()
-    efficacy = MEDICATIONS[0]['efficacy'] * config.getfloat('opportunistic_screening', 'adherence')
+    assert (starting_sbp[simulation.population.drug_adherence == 1] > simulation.population.systolic_blood_pressure[simulation.population.drug_adherence == 1]).all()
+    efficacy = MEDICATIONS[0]['efficacy'] * simulation.population.drug_adherence
     assert (starting_sbp == (simulation.population.systolic_blood_pressure + efficacy)).all()
 
     # Now everyone is on the first three drugs
     simulation.population['medication_count'] = 3
     simulation.population.systolic_blood_pressure = starting_sbp
     module.adjust_blood_pressure(PopulationEvent('time_step', simulation.population))
-    efficacy = sum(m['efficacy'] * config.getfloat('opportunistic_screening', 'adherence') for m in MEDICATIONS[:3])
-    assert (starting_sbp == (simulation.population.systolic_blood_pressure + efficacy)).all()
+    efficacy = sum(m['efficacy'] * simulation.population.drug_adherence for m in MEDICATIONS[:3])
+    assert (round(starting_sbp) == round(simulation.population.systolic_blood_pressure + efficacy)).all()
 
 def test_dependencies():
     # NOTE: This is kind of a silly test since it just verifies that the class is defined correctly but I did actually make that mistake. -Alec
