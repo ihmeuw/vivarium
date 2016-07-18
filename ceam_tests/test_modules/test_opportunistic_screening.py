@@ -98,7 +98,7 @@ def test_drug_cost():
     simulation.current_time += timedelta(days=361) # Force us into the next year
     module.emit_event(PopulationEvent('time_step', simulation.population))
     daily_cost_of_all_medication = sum(m['daily_cost'] for m in MEDICATIONS)
-    assert module.cost_by_year[simulation.current_time.year].round(5) == (daily_cost_of_all_medication * 30 * len(simulation.population)).round(5)
+    assert module.cost_by_year[simulation.current_time.year].round(5) == round(daily_cost_of_all_medication * 30 * len(simulation.population), 5)
 
 def test_blood_pressure_test_cost():
     simulation, module = screening_setup()
