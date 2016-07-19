@@ -80,19 +80,21 @@ class OpportunisticScreeningModule(SimulationModule):
         return population
 
     def _medication_costs(self, population):
+        current_time = pd.Timestamp(self.simulation.current_time)
         for medication_number, medication in enumerate(MEDICATIONS):
             affected_population = population[population.medication_count > medication_number]
             if not affected_population.empty:
-                supply_remaining = affected_population[medication['name']+'_supplied_until'] - pd.Timestamp(self.simulation.current_time)
+                supply_remaining = affected_population[medication['name']+'_supplied_until'] - current_time
                 supply_remaining = supply_remaining.fillna(pd.Timedelta(days=0))
-                supply_remaining[supply_remaining < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
+                supply_remaining.loc[supply_remaining < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
 
-                supply_needed = affected_population['healthcare_followup_date'] - pd.Timestamp(self.simulation.current_time)
+                supply_needed = affected_population['healthcare_followup_date'] - current_time
                 supply_needed.fillna(pd.Timedelta(days=0))
-                supply_needed[supply_needed < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
+                supply_needed.loc[supply_needed < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
 
-                self.simulation.population.loc[affected_population.index, medication['name']+'_supplied_until'] = affected_population['healthcare_followup_date']
-                self.cost_by_year[self.simulation.current_time.year] += (supply_needed - supply_remaining).sum().days * medication['daily_cost']
+                supplied_until = current_time + pd.DataFrame([supply_needed, supply_remaining]).T.max(axis=1)
+                self.simulation.population.loc[affected_population.index, medication['name']+'_supplied_until'] = supplied_until
+                self.cost_by_year[self.simulation.current_time.year] += max(0, (supply_needed - supply_remaining).dt.days.sum()) * medication['daily_cost']
 
     def general_blood_pressure_test(self, event):
         cost = len(event.affected_population) * config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')

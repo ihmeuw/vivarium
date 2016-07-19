@@ -85,8 +85,11 @@ def test_medication_cost():
     simulation, module = screening_setup()
 
     # No one is taking drugs yet so there should be no cost
+    simulation.population['healthcare_followup_date'] = simulation.current_time + timedelta(days=60)
     module._medication_costs(simulation.population)
     assert module.cost_by_year[simulation.current_time.year] == 0
+    for medication in MEDICATIONS:
+        assert np.all(simulation.population[medication['name']+'_supplied_until'].isnull())
 
     # Now everyone is on one drug
     simulation.population['medication_count'] = 1
@@ -96,6 +99,9 @@ def test_medication_cost():
 
     daily_cost_of_first_medication = MEDICATIONS[0]['daily_cost']
     assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_first_medication * 60 * len(simulation.population)
+    for medication in MEDICATIONS[1:]:
+        assert np.all(simulation.population[medication['name'] + '_supplied_until'].isnull())
+    assert np.all(simulation.population[MEDICATIONS[0]['name'] + '_supplied_until'] == simulation.current_time + timedelta(days=60))
 
     # Now everyone is on all the drugs
     simulation.population['medication_count'] = len(MEDICATIONS)
@@ -104,6 +110,8 @@ def test_medication_cost():
     module._medication_costs(simulation.population)
     daily_cost_of_all_medication = sum(m['daily_cost'] for m in MEDICATIONS)
     assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_all_medication * 60 * len(simulation.population)
+    for medication in MEDICATIONS[1:]:
+        assert np.all(simulation.population[medication['name'] + '_supplied_until'] == simulation.current_time + timedelta(days=60))
 
     #Now everyone comes back early so they don't need a full sized refill
     simulation.current_time += timedelta(days=45)
@@ -112,6 +120,29 @@ def test_medication_cost():
     module._medication_costs(simulation.population)
 
     assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_all_medication * 45 * len(simulation.population)
+    for medication in MEDICATIONS[1:]:
+        assert np.all(simulation.population[medication['name'] + '_supplied_until'] == simulation.current_time + timedelta(days=60))
+
+    # This time people come back early again and this time they get a shorter follow up than before.
+    simulation.current_time += timedelta(days=1)
+    simulation.population['healthcare_followup_date'] = simulation.current_time + timedelta(days=10)
+    module.cost_by_year[simulation.current_time.year] = 0
+    module._medication_costs(simulation.population)
+
+    # Cost should be zero because they have plenty of medication left
+    assert module.cost_by_year[simulation.current_time.year] == 0
+    for medication in MEDICATIONS[1:]:
+        assert np.all(simulation.population[medication['name'] + '_supplied_until'] == simulation.current_time + timedelta(days=59))
+
+    # Now they come back for their next appointment and they should have some drugs left over
+    simulation.current_time += timedelta(days=10)
+    simulation.population['healthcare_followup_date'] = simulation.current_time + timedelta(days=50)
+    module.cost_by_year[simulation.current_time.year] = 0
+    module._medication_costs(simulation.population)
+
+    assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_all_medication * 1 * len(simulation.population)
+    for medication in MEDICATIONS[1:]:
+        assert np.all(simulation.population[medication['name'] + '_supplied_until'] == simulation.current_time + timedelta(days=50))
 
 def test_blood_pressure_test_cost():
     simulation, module = screening_setup()
