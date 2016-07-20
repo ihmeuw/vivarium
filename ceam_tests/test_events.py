@@ -5,11 +5,15 @@ from unittest import TestCase
 import numpy as np
 import pandas as pd
 
-from ceam.events import EventHandler, Event, PopulationEvent, only_living
+from ceam.tree import Node
+from ceam.events import EventHandlerNode, Event, PopulationEvent, only_living
 
-class TestEventHandler(TestCase):
+class TestEventHandler(EventHandlerNode, Node):
+    pass
+
+class TestEventHandlerNode(TestCase):
     def test_listener_registration(self):
-        eh = EventHandler()
+        eh = TestEventHandler()
         trigger = [False]
         def listener(event):
             trigger[0] = True
@@ -23,7 +27,7 @@ class TestEventHandler(TestCase):
         self.assertFalse(trigger[0])
 
     def test_generic_listener(self):
-        eh = EventHandler()
+        eh = TestEventHandler()
         records = []
         eh.register_event_listener(lambda e: records.append('label'), 'test')
         eh.register_event_listener(lambda e: records.append('generic'))
@@ -35,7 +39,7 @@ class TestEventHandler(TestCase):
         self.assertListEqual(records, ['generic'])
 
     def test_listener_priority(self):
-        eh = EventHandler()
+        eh = TestEventHandler()
         records = []
         eh.register_event_listener(lambda e: records.append('second'), 'test', priority=1)
         eh.register_event_listener(lambda e: records.append('first'), 'test', priority=0)

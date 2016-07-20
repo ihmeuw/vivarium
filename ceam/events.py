@@ -5,7 +5,7 @@ from weakref import WeakKeyDictionary
 
 from ceam.util import auto_adapt_to_methods
 
-class Event(object):
+class Event:
     def __init__(self, label):
         self.label = label
 
@@ -14,9 +14,13 @@ class PopulationEvent(Event):
         super(PopulationEvent, self).__init__(label)
         self.affected_population = affected_population
 
-class EventHandler(object):
+class ConfigurationEvent(Event):
+    def __init__(self, label, config):
+        super(ConfigurationEvent, self).__init__(label)
+        self.config = config
+
+class EventHandlerNode:
     def __init__(self):
-        super(EventHandler, self).__init__()
         self._listeners_store = [defaultdict(set) for _ in range(10)]
 
     def _listeners(self, label):
@@ -42,6 +46,8 @@ class EventHandler(object):
     def emit_event(self, event):
         for listener in self._listeners(event.label):
             listener(event)
+        for child in [child for child in self.all_children(of_type=EventHandlerNode)]:
+            child.emit_event(event)
 
 
 #TODO: Ugly singleton global

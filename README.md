@@ -18,7 +18,8 @@ By default CEAM assumes that your filesystem is like the one on the cluster. If 
 Protip: You can override any configuration using this file. Take a look at ceam/config.cfg to get an idea what other configuration variables there are.
 
 ## Testing
-All tests are in the ceam_tests directory. Test files should correspond with the files they test. So, `ceam/engine.py` will have `ceam_tests/test_engine.py`. Run the tests by invoking `py.test`. Some of the data backed tests are slow, if that's irritating you can exclude them with `py.test -m "not data"`.
+All tests are in the ceam_tests directory. Test files should correspond with the files they test. So, `ceam/engine.py` will have `ceam_tests/test_engine.py`. Run the tests by invoking `py.test`. Some of the data backed tests are slow, if that's irritating you can exclude them with `py.test -m "not slow"`.
+To run just tests in a particular file:  `py.test tests/test_modules/test_module_registry.py`  (run from same directory).
 
 To measure test coverage, install pytest-cov with `pip install pytest-cov`, and then test with
 ```
