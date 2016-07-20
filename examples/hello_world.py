@@ -49,13 +49,10 @@ class SimpleMetrics(ceam.engine.SimulationModule):
 ### Setup simulation
 simulation = ceam.engine.Simulation()
 
-module = ceam.engine.BaseSimulationModule()  # what is the difference between SimulationModule and BaseSimulationModule here?
-module.setup()
-
 metrics_module = SimpleMetrics()
 metrics_module.setup()
 
-simulation.add_children([module, metrics_module])
+simulation.add_children([metrics_module])
 
 simulation.load_population()
 simulation.load_data()
