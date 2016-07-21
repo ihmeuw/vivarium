@@ -107,12 +107,6 @@ class Simulation(Node, ModuleRegistry):
             assert len(population) == len(self.population), "One of the lookup tables is missing rows or has duplicate rows"
             self.population = population
 
-    def incidence_mediation_factor(self, label):
-        factor = 1
-        for module in self.modules:
-            factor *= 1 - module.incidence_mediation_factors.get(label, 1)
-        return 1 - factor
-
     def emit_event(self, event):
         for module in self.modules:
             module.emit_event(event)
