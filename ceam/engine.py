@@ -162,10 +162,10 @@ class Simulation(Node, ModuleRegistry):
         return from_yearly(rates, self.last_time_step)
 
     def population_attributable_fraction(self, population, label):
-        # TODO: this is very clumsy
         try:
             paf = 1 - self._get_value(population, 'PAF', label)
         except ValueError:
+            # TODO: this is very clumsy
             self.modules[0].register_value_source(lambda population: pd.Series(1, index=population.index), 'PAF', label)
             paf = 1 - self._get_value(population, 'PAF', label)
         return paf

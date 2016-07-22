@@ -14,9 +14,10 @@ class SimpleDisease(SimulationModule):
         return pd.DataFrame([False]*population_size, columns=['sick'])
 
     def incidence_rates(self, population):
+        base_rates = pd.Series(0.0001, index=population.index)
         joint_mediated_paf = self.simulation.population_attributable_fraction(population, 'simple_disease')
 
-        return pd.Series(0.0001, index=population.index) * (1 - joint_mediated_paf)
+        return base_rates * (1 - joint_mediated_paf)
 
     def get_sick(self, event):
         incidence_rate = self.simulation.incidence_rates(event.affected_population, 'simple_disease')
