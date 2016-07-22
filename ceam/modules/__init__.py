@@ -8,10 +8,13 @@ from ceam import config
 from ceam.tree import Node
 from ceam.events import EventHandlerNode
 
+
 class ModuleException(Exception):
     pass
+
 class DependencyException(ModuleException):
     pass
+
 
 class ModuleRegistry:
     def __init__(self, base_module_class=None):
@@ -22,7 +25,6 @@ class ModuleRegistry:
             module.setup()
             self._base_module_id = module.module_id()
             self.add_child(module)
-
 
     @property
     def modules(self):
@@ -71,6 +73,7 @@ class ModuleRegistry:
 
         return sorted_modules
 
+
 class ValueMutationNode:
     def __init__(self):
         self._value_sources = defaultdict(lambda: defaultdict(lambda: None))
@@ -90,16 +93,20 @@ class ValueMutationNode:
     def deregister_value_source(self, value_type, label=None):
         del self._value_sources[value_type][label]
 
+
 class DisabilityWeightMixin:
     def disability_weight(self, population):
         return pd.Series(0.0, population.index)
+
 
 class LookupTableMixin:
     def lookup_columns(self, population, columns):
         return self.root.lookup_columns(population, columns, self)
 
+
 def _lookup_column_prefix(node):
     return str(node)
+
 
 class LookupTable:
     def __init__(self):
@@ -139,6 +146,7 @@ class LookupTable:
 
         results = self.lookup_table.ix[population.lookup_id, columns]
         return results.rename(columns=dict(zip(columns, origonal_columns)))
+
 
 class SimulationModule(LookupTableMixin, EventHandlerNode, ValueMutationNode, DisabilityWeightMixin, Node):
     DEPENDENCIES = set()

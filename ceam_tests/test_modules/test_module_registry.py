@@ -1,4 +1,4 @@
-# ~/ceam/tests/test_modules/test_module_registry.py
+# ~/ceam/ceam_tests/test_modules/test_module_registry.py
 
 # The dependency tree associated with the "big" tests below follows.  Classes are "above" those upon which they depend.
 # If BaseModule is included, then ALL classes depend upon it).
@@ -49,6 +49,7 @@ class IModule(SimulationModule):
 
 class TestModuleRegistry(Node, ModuleRegistry):
     pass
+
 
 class TestModuleRegistration(TestCase):
     def test_register(self):

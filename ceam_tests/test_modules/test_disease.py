@@ -1,3 +1,5 @@
+# ~/ceam/ceam_tests/test_modules/test_disease.py
+
 import pytest
 from unittest.mock import Mock
 
@@ -10,6 +12,7 @@ from ceam.util import from_yearly
 
 from ceam.state_machine import Transition, State
 from ceam.modules.disease import DiseaseState, IncidenceRateTransition, ExcessMortalityState, DiseaseModule
+
 
 def test_dwell_time():
     test_state = DiseaseState('test', 0.0, dwell_time=10)
@@ -32,6 +35,7 @@ def test_dwell_time():
     assert np.all(population.test_event_time == 20)
     assert np.all(population.test_event_count == 1)
 
+
 def test_mortality_rate():
     module = DiseaseModule('test_disease')
     healthy = State('healthy')
@@ -51,6 +55,7 @@ def test_mortality_rate():
     # Folks instantly transition to sick so now our mortality rate should be much higher
     assert np.all(initial_mortality + from_yearly(0.7, simulation.last_time_step) ==  simulation.mortality_rates(simulation.population))
 
+
 def test_incidence():
     module = DiseaseModule('test_disease')
     healthy = State('healthy')
@@ -63,6 +68,7 @@ def test_incidence():
     simulation = simulation_factory([module])
 
     assert np.all(from_yearly(0.7, simulation.last_time_step) == simulation.incidence_rates(simulation.population, 'test_incidence'))
+
 
 def test_load_population_default_columns():
     module = DiseaseModule('test_disease')
@@ -77,6 +83,7 @@ def test_load_population_default_columns():
     assert np.all(simulation.population.dwell_test_event_count == 0)
     assert np.all(simulation.population.dwell_test_event_time == 0)
 
+
 def test_load_population_custom_columns():
     module = DiseaseModule('test_disease')
     dwell_test = DiseaseState('dwell_test', disability_weight=0.0, dwell_time=10, event_time_column='special_test_time', event_count_column='special_test_count')
@@ -89,3 +96,6 @@ def test_load_population_custom_columns():
     assert 'special_test_count' in simulation.population
     assert np.all(simulation.population.special_test_count == 0)
     assert np.all(simulation.population.special_test_time == 0)
+
+
+# End.

@@ -2,6 +2,7 @@
 
 import numpy as np
 
+
 def from_yearly(value, time_step):
     return value * (time_step.total_seconds() / (60*60*24*365.0))
 
@@ -46,7 +47,6 @@ def auto_adapt_to_methods(decorator):
     def adapt(func):
         return _MethodDecoratorAdaptor(decorator, func)
     return adapt
-
 
 
 # End.

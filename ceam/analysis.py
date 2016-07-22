@@ -5,14 +5,17 @@ import argparse
 import pandas as pd
 import numpy as np
 
+
 def digits(x):
     if str(x) == 'nan':
         return 0
     if x == 0:
         return 1
     return int(np.ceil(np.log10(np.absolute(x))))
+
 def round_to_1(x):
     return np.round(x, -(digits(x)-1))
+
 def round_to_2(x):
     return np.round(x, -(digits(x)-2))
 
@@ -25,6 +28,7 @@ def difference_with_confidence(a, b):
     mean_diff = np.mean(a) - np.mean(b)
     interval = 1.96*np.sqrt(np.std(a)**2/len(a)+np.std(b)**2/len(b))
     return int(mean_diff), int(mean_diff-interval), int(mean_diff+interval)
+
 
 def analyze_results(results):
     intervention = results[results.intervention == True]
@@ -69,6 +73,7 @@ def load_results(paths):
     for path in paths:
         results = results.append(pd.read_csv(path))
     return results
+
 
 def main():
     import sys

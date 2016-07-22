@@ -1,3 +1,5 @@
+# ~/ceam/ceam_tests/test_state_machine.py
+
 import pytest
 
 import pandas as pd
@@ -18,6 +20,7 @@ def test_transition():
     agents = machine.transition(agents)
     assert np.all(agents.state == 'done')
 
+
 def test_choice():
     a_state = State('a')
     b_state = State('b')
@@ -33,6 +36,7 @@ def test_choice():
     a_count = (agents.state == 'a').sum()
     assert round(a_count/len(agents), 1) == 0.5
 
+
 def test_null_transition():
     a_state = State('a')
     start_state = State('start')
@@ -47,6 +51,7 @@ def test_null_transition():
     a_count = (agents.state == 'a').sum()
     assert round(a_count/len(agents), 1) == 0.5
 
+
 def test_null_transition_with_bad_probabilities():
     a_state = State('a')
     start_state = State('start')
@@ -59,6 +64,7 @@ def test_null_transition_with_bad_probabilities():
 
     with pytest.raises(ValueError):
         agents = machine.transition(agents)
+
 
 def test_no_null_transition():
     a_state = State('a')
@@ -75,6 +81,7 @@ def test_no_null_transition():
     agents = machine.transition(agents)
     a_count = (agents.state == 'a').sum()
     assert round(a_count/len(agents), 1) == 0.5
+
 
 def test_side_effects():
     class DoneState(State):
@@ -95,3 +102,6 @@ def test_side_effects():
     assert np.all(agents['count'] == 1)
     agents = machine.transition(agents)
     assert np.all(agents['count'] == 2)
+
+
+# End.

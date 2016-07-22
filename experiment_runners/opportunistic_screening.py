@@ -28,6 +28,7 @@ def make_hist(start, stop, step, name, data):
     names = ['%s_lt_%s'%(name, start)] + ['%s_%d_to_%d'%(name, i, i+step) for i in bins[1:-2]] + ['%s_gte_%d'%(name, stop-step)]
     return zip(names, np.histogram(data, bins)[0])
 
+
 def run_comparisons(simulation, test_modules, runs=10, verbose=False):
     def sequences(metrics):
         dalys = [m['ylls'] + m['ylds'] for m in metrics]

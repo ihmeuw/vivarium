@@ -5,6 +5,7 @@ from weakref import WeakKeyDictionary
 
 from ceam.util import auto_adapt_to_methods
 
+
 class Event:
     def __init__(self, label):
         self.label = label
@@ -18,6 +19,7 @@ class ConfigurationEvent(Event):
     def __init__(self, label, config):
         super(ConfigurationEvent, self).__init__(label)
         self.config = config
+
 
 class EventHandlerNode:
     def __init__(self):

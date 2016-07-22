@@ -1,3 +1,5 @@
+# ~/ceam/ceam/modules/opportunistic_screening.py
+
 from datetime import timedelta
 from collections import defaultdict
 
@@ -10,7 +12,8 @@ from ceam.events import only_living
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.healthcare_access import HealthcareAccessModule
 
-#TODO: This feels like configuration but is difficult to express in ini type files
+
+#TODO: This feels like configuration but is difficult to express in ini type files.
 MEDICATIONS = [
     {
         'name': 'Thiazide-type diuretics',
@@ -56,7 +59,7 @@ def _hypertensive_categories(population):
 class OpportunisticScreeningModule(SimulationModule):
     """
     Model an intervention where simulants have their blood pressure tested every time they access health care and are prescribed
-    blood pressure reducing medication if they are found to be hypertensive. Each simulant can be prescribed up to 
+    blood pressure reducing medication if they are found to be hypertensive. Each simulant can be prescribed up to
     `len(MEDICATIONS)` drugs. If they are still hypertensive while taking all the drugs then there is no further treatment.
     """
 
@@ -154,3 +157,6 @@ class OpportunisticScreeningModule(SimulationModule):
 
     def reset(self):
         self.cost_by_year = defaultdict(int)
+
+
+# End.

@@ -1,3 +1,5 @@
+# ~/ceam/ceam_tests/test_modules/test_opportunistic_screening.py
+
 from datetime import timedelta
 
 import pytest
@@ -13,6 +15,7 @@ from ceam_tests.util import simulation_factory, pump_simulation
 from ceam.modules.opportunistic_screening import _hypertensive_categories, OpportunisticScreeningModule, MEDICATIONS
 from ceam.modules.healthcare_access import HealthcareAccessModule
 from ceam.modules.blood_pressure import BloodPressureModule
+
 
 def _population_setup(population=None):
     if population is None:
@@ -51,6 +54,7 @@ def test_hypertensive_categories():
     assert len(hypertensive) == 5
     assert len(severe_hypertension) == 2
 
+
 def test_drug_effects():
     simulation, module = screening_setup()
 
@@ -74,12 +78,14 @@ def test_drug_effects():
     efficacy = sum(m['efficacy'] * simulation.population.drug_adherence for m in MEDICATIONS[:3])
     assert (starting_sbp.round() == (simulation.population.systolic_blood_pressure + efficacy).round()).all()
 
+
 def test_dependencies():
     # NOTE: This is kind of a silly test since it just verifies that the class is defined correctly but I did actually make that mistake. -Alec
     simulation, module = screening_setup()
     ordered_module_ids = [m.module_id() for m in simulation._ordered_modules]
     assert BloodPressureModule in ordered_module_ids
     assert HealthcareAccessModule in ordered_module_ids
+
 
 def test_medication_cost():
     simulation, module = screening_setup()
@@ -144,6 +150,7 @@ def test_medication_cost():
     for medication in MEDICATIONS[1:]:
         assert np.all(simulation.population[medication['name'] + '_supplied_until'] == simulation.current_time + timedelta(days=50))
 
+
 def test_blood_pressure_test_cost():
     simulation, module = screening_setup()
 
@@ -162,6 +169,7 @@ def test_blood_pressure_test_cost():
     cost_of_a_followup = cost_of_a_single_test + config.getfloat('appointments', 'cost')
     assert module.cost_by_year[simulation.current_time.year] == cost_of_a_followup * len(simulation.population)
 
+
 @pytest.fixture(scope="module")
 def screening_setup():
     module = OpportunisticScreeningModule()
@@ -173,7 +181,8 @@ def screening_setup():
     simulation.add_children([module])
     return simulation, module
 
-#NOTE: If these tests start breaking mysteriously, it's likely because something changed the order in which pytest is executing them.
+
+# NOTE: If these tests start breaking mysteriously, it's likely because something changed the order in which pytest is executing them.
 # They must run in the order shown here since they represent a sequence of events with state shared through the screening_setup fixture.
 def test_general_blood_pressure_test(screening_setup):
     simulation, module = screening_setup
@@ -186,6 +195,7 @@ def test_general_blood_pressure_test(screening_setup):
     assert (hypertensive.healthcare_followup_date == simulation.current_time + timedelta(days=30.5)).all()
     assert (severe_hypertension.medication_count == 2).all()
     assert (severe_hypertension.healthcare_followup_date == simulation.current_time + timedelta(days=30.5*6)).all()
+
 
 def test_first_followup_blood_pressure_test(screening_setup):
     simulation, module = screening_setup
@@ -200,6 +210,7 @@ def test_first_followup_blood_pressure_test(screening_setup):
     assert (severe_hypertension.medication_count == 3).all()
     assert (severe_hypertension.healthcare_followup_date == simulation.current_time + timedelta(days=30.5*6)).all()
 
+
 def test_second_followup_blood_pressure_test(screening_setup):
     simulation, module = screening_setup
     simulation.current_time += timedelta(days=30) # Tick forward without triggering any actual events
@@ -213,6 +224,7 @@ def test_second_followup_blood_pressure_test(screening_setup):
     assert (severe_hypertension.medication_count == 4).all()
     assert (severe_hypertension.healthcare_followup_date == simulation.current_time + timedelta(days=30.5*6)).all()
 
+
 def test_Nth_followup_blood_pressure_test(screening_setup):
     simulation, module = screening_setup
     for _ in range(10):
@@ -224,3 +236,6 @@ def test_Nth_followup_blood_pressure_test(screening_setup):
     assert (normotensive.medication_count == 0).all()
     assert (hypertensive.medication_count == len(MEDICATIONS)).all()
     assert (severe_hypertension.medication_count == len(MEDICATIONS)).all()
+
+
+# End.

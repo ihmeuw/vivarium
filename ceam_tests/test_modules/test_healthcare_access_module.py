@@ -1,3 +1,5 @@
+# ~/ceam/ceam_tests/test_modules/test_healthcare_access_module.py
+
 from datetime import datetime, timedelta
 
 import pytest
@@ -9,7 +11,9 @@ from ceam.engine import SimulationModule
 from ceam.modules.healthcare_access import HealthcareAccessModule
 
 import numpy as np
+
 np.random.seed(100)
+
 
 class MetricsModule(SimulationModule):
     def setup(self):
@@ -22,6 +26,7 @@ class MetricsModule(SimulationModule):
     def reset(self):
         self.access_count = 0
 
+
 @pytest.mark.slow
 def test_general_access():
     metrics = MetricsModule()
@@ -33,6 +38,7 @@ def test_general_access():
     assert_rate(simulation, config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count)
     simulation.population = initial_population[initial_population.sex == 2]
     assert_rate(simulation, config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count)
+
 
 @pytest.mark.slow
 def test_general_access_cost():
@@ -50,3 +56,6 @@ def test_general_access_cost():
     simulation._step(timestep)
 
     assert round(sum(access.cost_by_year.values()) / metrics.access_count, 5) == config.getfloat('appointments', 'cost')
+
+
+# End.

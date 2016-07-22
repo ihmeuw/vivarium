@@ -1,3 +1,5 @@
+# ~/ceam/ceam_tests/util.py
+
 import os.path
 from datetime import datetime, timedelta
 
@@ -7,6 +9,7 @@ import pytest
 
 from ceam.engine import Simulation
 from ceam.util import from_yearly, to_yearly
+
 
 def simulation_factory(modules):
     simulation = Simulation()
@@ -21,6 +24,7 @@ def simulation_factory(modules):
     timestep = timedelta(days=30)
     simulation._prepare_step(timestep)
     return simulation
+
 
 def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population), dummy_population=None):
     """ Asserts that the rate of change of some property in the simulation matches expectations.
@@ -64,6 +68,7 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
         total_expected_rate = from_yearly(expected_rate, timestep)*effective_population_size
         assert abs(total_expected_rate - total_true_rate)/total_expected_rate < 0.1
 
+
 def pump_simulation(simulation, duration=None, iterations=None, dummy_population=None):
     if dummy_population is None:
         simulation.reset_population()
@@ -90,3 +95,6 @@ def pump_simulation(simulation, duration=None, iterations=None, dummy_population
     while not should_stop():
         iteration_count += 1
         simulation._step(timestep)
+
+
+# End.

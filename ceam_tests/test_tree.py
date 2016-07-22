@@ -1,6 +1,9 @@
+# ~/ceam/ceam_tests/test_tree.py
+
 import pytest
 
 from ceam.tree import Node
+
 
 def test_tree_construction():
     a = Node()
@@ -25,6 +28,7 @@ def test_tree_construction():
     assert len(c.children) == 1
     assert b.root == a.root == c
 
+
 def test_tree_deconstruction():
     a = Node()
     b = Node()
@@ -48,8 +52,10 @@ def test_tree_deconstruction():
     assert c.parent is a
     assert d.root is b
 
+
 class FancyNode(Node):
     pass
+
 
 def test_decendent_filtering():
     a = Node()
@@ -66,6 +72,7 @@ def test_decendent_filtering():
     assert set(a.all_decendents(of_type=FancyNode)) == {c, d}
     assert set(a.all_decendents(with_attr='test_attribute')) == {b, c}
 
+
 def test_child_filtering():
     a = Node()
     b = Node()
@@ -78,3 +85,6 @@ def test_child_filtering():
     c.add_children([b,d])
 
     assert set(a.all_children()) == {c}
+
+
+# End.

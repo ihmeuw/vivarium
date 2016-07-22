@@ -1,5 +1,8 @@
+# ~/ceam/ceam/state_machine.py
+
 import pandas as pd
 import numpy as np
+
 
 class State:
     def __init__(self, state_id):
@@ -29,9 +32,9 @@ class State:
     def _transition_side_effect(self, agents, state_column):
         return agents
 
-
     def __str__(self):
         return 'State("{0}" ...)'.format(self.state_id)
+
 
 class TransitionSet(set):
     def __init__(self, allow_null_transition=True, *args, **kwargs):
@@ -58,6 +61,7 @@ class TransitionSet(set):
         groups = agents.groupby(output_indexes)
         return {outputs[i]:sub_group for i, sub_group in groups}
 
+
 class Transition:
     def __init__(self, output, probability_func=lambda agents: np.full(len(agents), 1, dtype=float)):
         self.output = output
@@ -65,6 +69,7 @@ class Transition:
 
     def __str__(self):
         return 'Transition("{0}" ...)'.format(self.output.state_id)
+
 
 class Machine:
     def __init__(self, state_column):
@@ -91,3 +96,5 @@ class Machine:
                 dot.edge(state.state_id, transition.output.state_id)
         return dot
 
+
+# End.

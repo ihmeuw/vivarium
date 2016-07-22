@@ -9,6 +9,7 @@ from scipy.stats import norm
 from ceam.engine import SimulationModule
 from ceam.events import only_living
 
+
 class BloodPressureModule(SimulationModule):
     """
     Model systolic blood pressure and it's effect on IHD and stroke

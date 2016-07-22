@@ -1,3 +1,6 @@
+# ~/ceam/ceam/tree.py
+
+
 class Node:
     @property
     def children(self):
@@ -62,3 +65,6 @@ class Node:
             while root.parent is not None:
                 root = root.parent
             return root
+
+
+# End.

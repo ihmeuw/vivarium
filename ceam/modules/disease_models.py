@@ -1,7 +1,10 @@
+# ~/ceam/ceam/modules/disease_models.py
+
 from datetime import timedelta
 
 from ceam.state_machine import Transition, State
 from ceam.modules.disease import DiseaseModule, DiseaseState, ExcessMortalityState, IncidenceRateTransition
+
 
 def heart_disease_factory():
     module = DiseaseModule('ihd')
@@ -34,6 +37,7 @@ def heart_disease_factory():
     module.states.update([healthy, heart_attack, mild_heart_failure, moderate_heart_failure, severe_heart_failure, angina])
     return module
 
+
 def simple_ihd_factory():
     module = DiseaseModule('ihd')
 
@@ -53,6 +57,7 @@ def simple_ihd_factory():
 
     return module
 
+
 def hemorrhagic_stroke_factory():
     module = DiseaseModule('hemorrhagic_stroke')
 
@@ -71,3 +76,6 @@ def hemorrhagic_stroke_factory():
     module.states.update([healthy, stroke, chronic_stroke])
 
     return module
+
+
+# End.

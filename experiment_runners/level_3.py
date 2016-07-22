@@ -20,10 +20,12 @@ def confidence(seq):
     interval = (1.96*std)/np.sqrt(runs)
     return mean, mean-interval, mean+interval
 
+
 def difference_with_confidence(a, b):
     mean_diff = np.mean(a) - np.mean(b)
     interval = 1.96*np.sqrt(np.std(a)/len(a)+np.std(b)/len(b))
     return mean_diff, int(mean_diff-interval), int(mean_diff+interval)
+
 
 def run_comparisons(simulation, test_modules, runs=10):
     def sequences(metrics):

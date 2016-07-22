@@ -16,6 +16,7 @@ from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, Event, only_living
 from ceam.modules import ModuleRegistry, SimulationModule, LookupTable, ValueMutationNode, DisabilityWeightMixin
 
+
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
         super(BaseSimulationModule, self).__init__()
@@ -68,7 +69,6 @@ class Simulation(Node, ModuleRegistry):
     def load_population(self, path_prefix=None):
         if path_prefix is None:
             path_prefix = config.get('general', 'population_data_directory')
-
 
         loaders = []
         for m in self.modules:

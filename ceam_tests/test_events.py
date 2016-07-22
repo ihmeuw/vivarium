@@ -1,4 +1,4 @@
-# ~/ceam/tests/test_events.py
+# ~/ceam/ceam_tests/test_events.py
 
 from unittest import TestCase
 
@@ -8,8 +8,10 @@ import pandas as pd
 from ceam.tree import Node
 from ceam.events import EventHandlerNode, Event, PopulationEvent, only_living
 
+
 class TestEventHandler(EventHandlerNode, Node):
     pass
+
 
 class TestEventHandlerNode(TestCase):
     def test_listener_registration(self):

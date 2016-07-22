@@ -1,3 +1,5 @@
+# ~/ceam/ceam/modules/disease.py
+
 import os.path
 from datetime import timedelta
 from functools import partial
@@ -14,6 +16,7 @@ from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
 
+
 def _rename_rate_column(table, col_name):
     columns = []
     for col in table.columns:
@@ -23,6 +26,7 @@ def _rename_rate_column(table, col_name):
         else:
             columns.append(col_name)
     return columns
+
 
 class DiseaseState(State, DisabilityWeightMixin, Node):
     def __init__(self, state_id, disability_weight, dwell_time=0, event_time_column=None, event_count_column=None):
@@ -86,6 +90,7 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
     def __str__(self):
         return 'ExcessMortalityState("{0}" ...)'.format(self.state_id, self.excess_mortality_table)
 
+
 class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationNode):
     def __init__(self, output, rate_label, incidence_rate_table):
         Transition.__init__(self, output, self.probability)
@@ -111,7 +116,6 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
 
     def __str__(self):
         return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id, self.rate_label, self.incidence_rate_table)
-
 
 
 class DiseaseModule(SimulationModule, Machine):
@@ -150,3 +154,6 @@ class DiseaseModule(SimulationModule, Machine):
         state_id_length = max(len(state.state_id) for state in self.states)
         population_columns = pd.DataFrame(np.full(population_size, 'healthy', dtype='<U{0}'.format(state_id_length)), columns=[self.condition])
         return population_columns
+
+
+# End.

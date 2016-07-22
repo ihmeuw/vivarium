@@ -1,11 +1,14 @@
+# ~/ceam/ceam/modules/sample_history.py
+
 import pandas as pd
 import numpy as np
 
 from ceam.engine import SimulationModule
 
+
 class SampleHistoryModule(SimulationModule):
     """
-    Collect a detailed record of events that happen to a sampled sub-population for use with vizualization
+    Collect a detailed record of events that happen to a sampled sub-population for use with visualization
     or analysis. The records are written to an HDF file.
     """
 
@@ -57,3 +60,6 @@ class SampleHistoryModule(SimulationModule):
     def configure_run(self, event):
         self.run_number = event.config['run_number']
         self.tests_active = event.config['tests_active']
+
+
+# End.

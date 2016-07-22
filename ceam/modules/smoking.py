@@ -7,6 +7,7 @@ import numpy as np
 
 from ceam.engine import SimulationModule
 
+
 class SmokingModule(SimulationModule):
     """
     Model smoking. Simulants will be smoking at any moment based on whether their `smoking_susceptibility` is less than

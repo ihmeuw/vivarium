@@ -1,4 +1,5 @@
-# ~/ceam/tests/test_util.py
+# ~/ceam/ceam_tests/test_util.py
+
 import pytest
 
 from datetime import timedelta
@@ -56,4 +57,6 @@ def test_filter_for_probability():
 
     sub_sub_pop = filter_for_probability(sub_pop, 0.5)
     assert round(len(sub_sub_pop)/len(sub_pop), 1) == 0.5
+
+
 # End.
