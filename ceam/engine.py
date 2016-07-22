@@ -125,11 +125,6 @@ class Simulation(Node, ModuleRegistry):
                      ]
         assert not duplicates, "Multiple sources for these values: %s"%duplicates
 
-        for module in self.all_decendents(of_type=ValueMutationNode):
-            for value_type, mmutators in module._value_mutators.items():
-                for label, mutators in mmutators.items():
-                    assert sources[value_type][label], "Missing source for mutator: {0}. Needed by: {1}".format((value_type, label), mutators)
-
     def _get_value(self, population, value_type, label=None):
         source = None
         value_nodes = self.all_decendents(of_type=ValueMutationNode)
@@ -137,7 +132,8 @@ class Simulation(Node, ModuleRegistry):
             if label in value_node._value_sources[value_type]:
                 source = value_node._value_sources[value_type][label]
                 break
-        assert source is not None, "No source for %s %s"%(value_type, label)
+        if source is None:
+            raise ValueError("No source for %s %s"%(value_type, label))
 
         mutators = set()
         for module in value_nodes:
@@ -154,7 +150,7 @@ class Simulation(Node, ModuleRegistry):
         for mutator in mutators:
             value = mutator(population, value)
             if fixed_length is not None:
-                assert len(value) == fixed_length, "%s is corrupting incidence rates"%mutator
+                assert len(value) == fixed_length, "%s is corrupting values"%mutator
         return value
 
     def mortality_rates(self, population):
@@ -164,6 +160,15 @@ class Simulation(Node, ModuleRegistry):
     def incidence_rates(self, population, label):
         rates = self._get_value(population, 'incidence_rates', label)
         return from_yearly(rates, self.last_time_step)
+
+    def population_attributable_fraction(self, population, label):
+        # TODO: this is very clumsy
+        try:
+            paf = 1 - self._get_value(population, 'PAF', label)
+        except ValueError:
+            self.modules[0].register_value_source(lambda population: pd.Series(1, index=population.index), 'PAF', label)
+            paf = 1 - self._get_value(population, 'PAF', label)
+        return paf
 
     def disability_weight(self):
         weights = 1

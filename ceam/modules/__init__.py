@@ -146,6 +146,7 @@ class SimulationModule(LookupTableMixin, EventHandlerNode, ValueMutationNode, Di
         EventHandlerNode.__init__(self)
         ValueMutationNode.__init__(self)
         Node.__init__(self)
+        self.mediation_factor = defaultdict(float)
 
     @property
     def simulation(self):
