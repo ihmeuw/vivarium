@@ -59,7 +59,9 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
                     metrics.update(m.metrics)
                     break
             metrics['ihd_count'] = sum(simulation.population.ihd != 'healthy')
+            metrics['heart_attack_event_count'] = simulation.population.heart_attack_event_count.sum()
             metrics['hemorrhagic_stroke_count'] = sum(simulation.population.hemorrhagic_stroke != 'healthy')
+            metrics['hemorrhagic_stroke_count_event_count'] = simulation.population.hemorrhagic_stroke_event_count.sum()
 
             for name, count in make_hist(110, 180, 10, 'sbp', simulation.population.systolic_blood_pressure):
                 metrics[name] = count
