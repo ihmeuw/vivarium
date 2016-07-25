@@ -57,7 +57,7 @@ class ChronicConditionModule(SimulationModule):
     A generic module that can handle any simple condition which has an incidence rate, chronic mortality rate and, optionally, an acute mortality rate
     """
 
-    def __init__(self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=timedelta(days=28), acute_mortality_table_name=None,chronic_me_id,acute_me_id):
+    def __init__(chronic_me_id, acute_me_id, self, condition, chronic_mortality_table_name, incidence_table_name, disability_weight, initial_column_table_name=None, acute_phase_duration=timedelta(days=28), acute_mortality_table_name=None):
         """
         Parameters
         ----------

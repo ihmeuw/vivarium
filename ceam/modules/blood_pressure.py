@@ -4,7 +4,8 @@ import os.path
 
 import pandas as pd
 import numpy as np
-from scipy.stats import norm
+# Will need to import scipy here as well
+# from scipy.stats import norm
 
 from ceam.engine import SimulationModule
 from ceam.events import only_living
@@ -27,7 +28,7 @@ class BloodPressureModule(SimulationModule):
 	# we really need to determine where the SBP_dist.csv came from
         # then we need to bring in load_data_from_cache to bring in the correct data
 	
-	dists = pd.read_csv(os.path.join(path_prefix, 'SBP_dist.csv'))
+        dists = pd.read_csv(os.path.join(path_prefix, 'SBP_dist.csv'))
         self.lookup_table = dists[dists.Parameter == 'sd'].merge(dists[dists.Parameter == 'mean'], on=['Age', 'Year', 'sex'])
         self.lookup_table.drop(['Parameter_x', 'Parameter_y'], axis=1, inplace=True)
         self.lookup_table.columns = ['age', 'year', 'std', 'sex', 'mean']

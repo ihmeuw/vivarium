@@ -27,11 +27,11 @@ class SmokingModule(SimulationModule):
         # TODO: Where does prevalence data come from?
 	# The exposure comes from the central comp get draws function (see Everett if there are other questions)
         self.lookup_table = load_data_from_cache(get_exposures,config.getint('simulation_parameters','location_id'),config.getint('simulation_parameters','year_start'),config.getint('simulation_parameters','year_end'),166) 
-	self.lookup_table.columns = ['row', 'age', 'year_id', 'prevalence', 'sex_id', 'parameter']
+        self.lookup_table.columns = ['row', 'age', 'year_id', 'prevalence', 'sex_id', 'parameter']
 
         # STEAL THE TEST BELOW TO PUT INTO THE FUNCTION
 	# "Pre-conditions check"
-	expected_rows = set((age, sex, year) for age in range(1, 104)
+        expected_rows = set((age, sex, year) for age in range(1, 104)
                             for sex in [1, 2]
                             for year in range(1990, 2011))
         missing_rows = expected_rows.difference(set(tuple(row)

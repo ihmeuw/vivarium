@@ -97,8 +97,8 @@ def main():
     screening_module = OpportunisticScreeningModule()
     modules = [
             screening_module,
-            ChronicConditionModule('ihd', 'ihd_mortality_rate.csv', 'ihd_incidence_rates.csv', 0.08, acute_mortality_table_name='mi_acute_excess_mortality.csv'),
-            ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316, acute_mortality_table_name='acute_hem_stroke_excess_mortality.csv'),
+            # ChronicConditionModule(condition='ihd', chronic_mortality_table_name='ihd_mortality_rate.csv',incidence_table_name='ihd_incidence_rates.csv',disability_weight= 0.08, acute_mortality_table_name='mi_acute_excess_mortality.csv', acute_me_id=1814),
+            #ChronicConditionModule(con'hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316, acute_mortality_table_name='acute_hem_stroke_excess_mortality.csv'),
             HealthcareAccessModule(),
             BloodPressureModule(),
             SmokingModule(),
