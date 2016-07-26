@@ -4,8 +4,7 @@ import os.path
 
 import pandas as pd
 import numpy as np
-# Will need to import scipy here as well
-# from scipy.stats import norm
+from scipy.stats import norm
 
 from ceam.engine import SimulationModule
 from ceam.events import only_living

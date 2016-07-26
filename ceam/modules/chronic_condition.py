@@ -10,6 +10,7 @@ from ceam.engine import SimulationModule
 from ceam.util import filter_for_rate
 from ceam.events import only_living
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
+from ceam.gbd_data.gbd_ms_functions import get_modelable_entity_draws
 
 def _calculate_time_spent_in_phases(onset_times, acute_phase_duration, current_time, current_time_step):
     """

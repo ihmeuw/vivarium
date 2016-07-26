@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
 from ceam import config
+from ceam.gbd_data.gbd_ms_functions import get_exposures
 
 from ceam.engine import SimulationModule
 
@@ -26,8 +27,8 @@ class SmokingModule(SimulationModule):
     def load_data(self, path_prefix):
         # TODO: Where does prevalence data come from?
 	# The exposure comes from the central comp get draws function (see Everett if there are other questions)
-        self.lookup_table = load_data_from_cache(get_exposures,config.getint('simulation_parameters','location_id'),config.getint('simulation_parameters','year_start'),config.getint('simulation_parameters','year_end'),166) 
-        self.lookup_table.columns = ['row', 'age', 'year_id', 'prevalence', 'sex_id', 'parameter']
+        self.lookup_table = load_data_from_cache(get_exposures, 'draw', config.getint('simulation_parameters', 'location_id'), config.getint('simulation_parameters', 'year_start'), config.getint('simulation_parameters', 'year_end'), 166) 
+        self.lookup_table.columns = ['age', 'year_id', 'sex_id', 'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
 
         # STEAL THE TEST BELOW TO PUT INTO THE FUNCTION
 	# "Pre-conditions check"

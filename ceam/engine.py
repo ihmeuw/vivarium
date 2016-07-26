@@ -6,7 +6,7 @@ from collections import defaultdict
 
 import pandas as pd
 import numpy as np
-np.seterr(all='raise')
+# np.seterr(all='raise')
 pd.set_option('mode.chained_assignment', 'raise')
 
 from ceam import config
@@ -14,6 +14,7 @@ from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, Event, only_living
 from ceam.modules import ModuleRegistry, SimulationModule
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
+from ceam.gbd_data.gbd_ms_functions import get_cause_deleted_mortality_rate
 
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
@@ -29,7 +30,7 @@ class BaseSimulationModule(SimulationModule):
         self.register_value_source(self.mortality_rates, 'mortality_rates')
 
     def load_data(self, path_prefix):
-        self.lookup_table = load_data_from_cache(get_cause_deleted_mortality_rate,config.getint('simulation_parameters', 'location_id'),config.getint('simulation_parameters', 'year_start'),config.getint('simulation_parameters', 'year_end'))
+        self.lookup_table = load_data_from_cache(get_cause_deleted_mortality_rate, 'cause_deleted_mortality_rate', config.getint('simulation_parameters', 'location_id'),config.getint('simulation_parameters', 'year_start'),config.getint('simulation_parameters', 'year_end'))
         
     def mortality_rates(self, population):
         return self.lookup_columns(population, ['cause_deleted_mortality_rate_{i}'.format(i=config.getint('simulation_parameters','draw_number'))])['cause_deleted_mortality_rate_{i}'.format(i=config.getint('simulation_parameters','draw_number'))].values
@@ -67,16 +68,9 @@ class Simulation(ModuleRegistry):
         lookup_table = pd.DataFrame()
 
         
-	# IS THE COLUMN_PREFIXER SECTION BELOW STILL NECESSARY NOW THAT THE FUNCTIONS PRODUCE MORE RELIABLE OUTPUT?
-	#TODO: This is ugly. There must be a better way
-        def column_prefixer(column, prefix):
-            if column not in ['age', 'year', 'sex']:
-                return prefix + '_' + column
-            return column
-
         for module in self._ordered_modules:
             if not module.lookup_table.empty:
-                prefixed_table = module.lookup_table.rename(columns=lambda c: column_prefixer(c, module.lookup_column_prefix))
+                prefixed_table = module.lookup_table
                 assert prefixed_table.duplicated(['age', 'sex_id', 'year_id']).sum() == 0, "%s has a lookup table with duplicate rows"%(module.module_id())
 
                 if lookup_table.empty:
