@@ -18,11 +18,13 @@ def round_to_1(x):
 
 def round_to_2(x):
     return np.round(x, -(digits(x)-2))
+def round_to_4(x):
+    return np.round(x, -(digits(x)-4))
 
 def confidence(seq):
     t = pd.Series(seq)
     t = t.describe(percentiles=[0.025, 0.975])
-    return '{:>10.0f} ({:.0f}, {:.0f})'.format(round_to_2(t['mean']), round_to_2(t['2.5%']), round_to_2(t['97.5%']))
+    return '{:>10.0f} ({:.0f}, {:.0f})'.format(round_to_4(t['mean']), round_to_4(t['2.5%']), round_to_4(t['97.5%']))
 
 def difference_with_confidence(a, b):
     mean_diff = np.mean(a) - np.mean(b)
@@ -62,7 +64,12 @@ Min runtime: {duration:.0f} seconds
     print('    Stroke Count (intervention):', confidence(intervention.hemorrhagic_stroke_count))
     print()
     print('Healthcare per year (non-intervention):', confidence((non_intervention.general_healthcare_access+non_intervention.followup_healthcare_access)/20))
+    print('        General:', confidence((non_intervention.general_healthcare_access)/20))
+    print('        Followup:', confidence((non_intervention.followup_healthcare_access)/20))
     print('    Healthcare per year (intervention):', confidence((intervention.general_healthcare_access+intervention.followup_healthcare_access)/20))
+    print('        General:', confidence((intervention.general_healthcare_access)/20))
+    print('        Followup:', confidence((intervention.followup_healthcare_access)/20))
+    print('    Treated Individuals (intervention):', confidence(intervention.treated_individuals))
 
 
 def dump_results(results, path):

@@ -78,6 +78,7 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False):
             if intervention:
                 metrics['intervention_cost'] = sum(test_modules[0].cost_by_year.values())
                 metrics['intervention'] = True
+                metrics['treated_individuals'] = (simulation.population.medication_count > 0).sum()
             else:
                 metrics['intervention_cost'] = 0.0
                 metrics['intervention'] = False
