@@ -66,7 +66,7 @@ class DiseaseState(State, DisabilityWeightMixin, Node):
         return agents
 
     def disability_weight(self, population):
-        return pd.Series(self._disability_weight, index=population.loc[population[self.parent.condition] == self.state_id].index)
+        return self._disability_weight * (population[self.parent.condition] == self.state_id)
 
 
 class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
