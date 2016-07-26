@@ -64,11 +64,11 @@ Min runtime: {duration:.0f} seconds
     print('    Stroke Count (intervention):', confidence(intervention.hemorrhagic_stroke_count))
     print()
     print('Healthcare per year (non-intervention):', confidence((non_intervention.general_healthcare_access+non_intervention.followup_healthcare_access)/20))
-    print('        General:', confidence((non_intervention.general_healthcare_access)/20))
-    print('        Followup:', confidence((non_intervention.followup_healthcare_access)/20))
+    print('                               General:', confidence((non_intervention.general_healthcare_access)/20))
+    print('                              Followup:', confidence((non_intervention.followup_healthcare_access)/20))
     print('    Healthcare per year (intervention):', confidence((intervention.general_healthcare_access+intervention.followup_healthcare_access)/20))
-    print('        General:', confidence((intervention.general_healthcare_access)/20))
-    print('        Followup:', confidence((intervention.followup_healthcare_access)/20))
+    print('                               General:', confidence((intervention.general_healthcare_access)/20))
+    print('                              Followup:', confidence((intervention.followup_healthcare_access)/20))
     print('    Treated Individuals (intervention):', confidence(intervention.treated_individuals))
 
 
