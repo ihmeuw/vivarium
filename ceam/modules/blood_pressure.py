@@ -57,12 +57,12 @@ class BloodPressureModule(SimulationModule):
         self.simulation.population.loc[event.affected_population.index, 'systolic_blood_pressure'] = new_sbp
 
     def ihd_incidence_rates(self, population, rates):
-        blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
+        blood_pressure_adjustment = np.maximum(1.5**((population.systolic_blood_pressure - 112.5) / 10), 1)
         return rates * blood_pressure_adjustment
 
     def hemorrhagic_stroke_incidence_rates(self, population, rates):
         # TODO: get the real model for the effect of SBP on stroke from Reed
-        blood_pressure_adjustment = np.maximum(1.1**((population.systolic_blood_pressure - 112.5) / 10), 1)
+        blood_pressure_adjustment = np.maximum(1.5**((population.systolic_blood_pressure - 112.5) / 10), 1)
         return rates * blood_pressure_adjustment
 
 
