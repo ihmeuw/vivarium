@@ -56,7 +56,10 @@ Min runtime: {duration:.0f} seconds
     print('  Total Cost (non-intervention):', confidence(non_intervention.intervention_cost))
     print('      Total Cost (intervention):', confidence(intervention.intervention_cost))
     print('                 Change in Cost:', confidence(intervention.intervention_cost - non_intervention.intervention_cost))
-    print('          Cost per DALY averted:', confidence((intervention.intervention_cost - non_intervention.intervention_cost)/(ni_dalys - i_dalys)))
+    if np.all(ni_dalys - i_dalys == 0):
+        print('          Cost per DALY averted: NA')
+    else:
+        print('          Cost per DALY averted:', confidence((intervention.intervention_cost - non_intervention.intervention_cost)/(ni_dalys - i_dalys)))
     print()
     print('   IHD Count (non-intervention):', confidence(non_intervention.ihd_count))
     print('       IHD Count (intervention):', confidence(intervention.ihd_count))

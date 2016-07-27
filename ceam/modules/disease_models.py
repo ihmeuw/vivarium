@@ -20,21 +20,21 @@ def heart_disease_factory():
 
     heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', 'ihd_incidence_rates.csv')
     angina_transition = IncidenceRateTransition(angina, 'angina', 'ihd_incidence_rates.csv')
-    healthy.transition_set.add(heart_attack_transition)
-    healthy.transition_set.add(angina_transition)
+    healthy.transition_set.append(heart_attack_transition)
+    healthy.transition_set.append(angina_transition)
 
     heart_attack.transition_set.allow_null_transition=False
-    heart_attack.transition_set.add(Transition(mild_heart_failure))
-    heart_attack.transition_set.add(Transition(moderate_heart_failure))
-    heart_attack.transition_set.add(Transition(severe_heart_failure))
-    heart_attack.transition_set.add(Transition(angina))
+    heart_attack.transition_set.append(Transition(mild_heart_failure))
+    heart_attack.transition_set.append(Transition(moderate_heart_failure))
+    heart_attack.transition_set.append(Transition(severe_heart_failure))
+    heart_attack.transition_set.append(Transition(angina))
 
-    mild_heart_failure.transition_set.add(heart_attack_transition)
-    moderate_heart_failure.transition_set.add(heart_attack_transition)
-    severe_heart_failure.transition_set.add(heart_attack_transition)
-    angina.transition_set.add(heart_attack_transition)
+    mild_heart_failure.transition_set.append(heart_attack_transition)
+    moderate_heart_failure.transition_set.append(heart_attack_transition)
+    severe_heart_failure.transition_set.append(heart_attack_transition)
+    angina.transition_set.append(heart_attack_transition)
 
-    module.states.update([healthy, heart_attack, mild_heart_failure, moderate_heart_failure, severe_heart_failure, angina])
+    module.states.extend([healthy, heart_attack, mild_heart_failure, moderate_heart_failure, severe_heart_failure, angina])
     return module
 
 
@@ -47,13 +47,13 @@ def simple_ihd_factory():
     chronic_ihd = ExcessMortalityState('chronic_ihd', disability_weight=0.08, excess_mortality_table='ihd_mortality_rate.csv')
 
     heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', 'ihd_incidence_rates.csv')
-    healthy.transition_set.add(heart_attack_transition)
+    healthy.transition_set.append(heart_attack_transition)
 
-    heart_attack.transition_set.add(Transition(chronic_ihd))
+    heart_attack.transition_set.append(Transition(chronic_ihd))
 
-    chronic_ihd.transition_set.add(heart_attack_transition)
+    chronic_ihd.transition_set.append(heart_attack_transition)
 
-    module.states.update([healthy, heart_attack, chronic_ihd])
+    module.states.extend([healthy, heart_attack, chronic_ihd])
 
     return module
 
@@ -67,13 +67,13 @@ def hemorrhagic_stroke_factory():
     chronic_stroke = ExcessMortalityState('chronic_stroke', disability_weight=0.31, excess_mortality_table='chronic_hem_stroke_excess_mortality.csv')
 
     stroke_transition = IncidenceRateTransition(stroke, 'hemorrhagic_stroke', 'hem_stroke_incidence_rates.csv')
-    healthy.transition_set.add(stroke_transition)
+    healthy.transition_set.append(stroke_transition)
 
-    stroke.transition_set.add(Transition(chronic_stroke))
+    stroke.transition_set.append(Transition(chronic_stroke))
 
-    chronic_stroke.transition_set.add(stroke_transition)
+    chronic_stroke.transition_set.append(stroke_transition)
 
-    module.states.update([healthy, stroke, chronic_stroke])
+    module.states.extend([healthy, stroke, chronic_stroke])
 
     return module
 

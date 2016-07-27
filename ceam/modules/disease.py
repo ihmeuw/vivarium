@@ -124,7 +124,7 @@ class DiseaseModule(SimulationModule, Machine):
         Machine.__init__(self, condition)
 
     def module_id(self):
-        return (self.__class__, self.state_column)
+        return str((self.__class__, self.state_column))
 
     @property
     def condition(self):

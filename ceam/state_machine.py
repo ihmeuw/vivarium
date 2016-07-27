@@ -3,6 +3,8 @@
 import pandas as pd
 import numpy as np
 
+from ceam.util import get_draw
+
 
 class State:
     def __init__(self, state_id):
@@ -16,7 +18,7 @@ class State:
         groups = self.transition_set.groupby_new_state(agents)
 
         results = []
-        for state, affected_agents in groups.items():
+        for state, affected_agents in sorted(groups.items(), key=lambda x:str(x[0])):
             if state != 'null_transition':
                 results.append(state.transition_effect(affected_agents, state_column))
             else:
@@ -36,7 +38,7 @@ class State:
         return 'State("{0}" ...)'.format(self.state_id)
 
 
-class TransitionSet(set):
+class TransitionSet(list):
     def __init__(self, allow_null_transition=True, *args, **kwargs):
         super(TransitionSet, self).__init__(*args, **kwargs)
         self.allow_null_transition = allow_null_transition
@@ -55,7 +57,7 @@ class TransitionSet(set):
                 probabilities = np.concatenate([probabilities, [(1-total)]])
                 outputs.append('null_transition')
 
-        draw = np.random.rand(probabilities.shape[1])
+        draw = np.array(get_draw(agents))
         sums = probabilities.cumsum(axis=0)
         output_indexes = (draw >= sums).sum(axis=0)
         groups = agents.groupby(output_indexes)
@@ -73,7 +75,7 @@ class Transition:
 
 class Machine:
     def __init__(self, state_column):
-        self.states = set()
+        self.states = list()
         self.state_column = state_column
 
     def transition(self, agents):

@@ -145,9 +145,9 @@ class Simulation(Node, ModuleRegistry):
                 break
         assert source is not None, "No source for %s %s"%(value_type, label)
 
-        mutators = set()
+        mutators = []
         for module in value_nodes:
-            mutators.update(module._value_mutators[value_type][label])
+            mutators.extend(module._value_mutators[value_type][label])
 
         value = source(population)
 
@@ -200,6 +200,7 @@ class Simulation(Node, ModuleRegistry):
     def run(self, start_time, end_time, time_step):
         self._validate(start_time, end_time)
         self.reset_population()
+        config.set('simulation_parameters', 'population_size', str(len(self.population)))
 
         self.current_time = start_time
         self.emit_event(Event('simulation_begin'))

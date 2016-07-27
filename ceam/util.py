@@ -1,6 +1,9 @@
 # ~/ceam/ceam/util.py
 
+import pandas as pd
 import numpy as np
+
+from ceam import config
 
 
 def from_yearly(value, time_step):
@@ -18,8 +21,15 @@ def probability_to_rate(probability):
 def filter_for_rate(population, rate):
     return filter_for_probability(population, rate_to_probability(rate))
 
+def get_draw(population):
+    draw = pd.Series(np.random.random(size=config.getint('simulation_parameters', 'population_size')))
+    # This assures that each index in the draw list is associated with the
+    # same simulant on every evocation
+    return draw.reindex(population.simulant_id)
+
 def filter_for_probability(population, probability):
-    draw = np.random.random(size=len(population))
+    draw = get_draw(population)
+
     mask = draw < probability
     if not isinstance(mask, np.ndarray):
         # TODO: Something less awkward

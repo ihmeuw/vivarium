@@ -46,6 +46,8 @@ class ModuleRegistry:
             else:
                 i = 0
                 for dependency in current.DEPENDENCIES:
+                    # TODO: This breaks if any dependency is a parameterized module but so far that hasn't come up
+                    dependency = str(dependency)
                     if dependency not in modules_by_id:
                         d = dependency()
                         self.add_child(d)
@@ -58,13 +60,13 @@ class ModuleRegistry:
                         i = max(i, sorted_modules.index(modules_by_id[dependency]))
                 return sorted_modules[0:i+1] + [current] + sorted_modules[i+1:]
 
-        to_sort = set(modules_by_id.values())
+        to_sort = sorted(set(modules_by_id.values()), key=lambda x:x.module_id())
 
         if self._base_module_id is not None:
             to_sort.remove(modules_by_id[self._base_module_id])
 
         sorted_modules = []
-        while to_sort.difference(sorted_modules):
+        while set(to_sort).difference(sorted_modules):
             current = to_sort.pop()
             sorted_modules = inner_sort(sorted_modules, current)
 
@@ -77,10 +79,10 @@ class ModuleRegistry:
 class ValueMutationNode:
     def __init__(self):
         self._value_sources = defaultdict(lambda: defaultdict(lambda: None))
-        self._value_mutators = defaultdict(lambda: defaultdict(set))
+        self._value_mutators = defaultdict(lambda: defaultdict(list))
 
     def register_value_mutator(self, mutator, value_type, label=None):
-        self._value_mutators[value_type][label].add(mutator)
+        self._value_mutators[value_type][label].append(mutator)
 
     def deregister_value_mutator(self, mutator, value_type, label=None):
         self._value_mutators[value_type][label].remove(mutator)
@@ -167,10 +169,10 @@ class SimulationModule(LookupTableMixin, EventHandlerNode, ValueMutationNode, Di
         pass
 
     def module_id(self):
-        return self.__class__
+        return str(self.__class__)
 
     def __str__(self):
-        return str(self.module_id())
+        return self.module_id()
 
 
 # End.
