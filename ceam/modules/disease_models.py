@@ -24,7 +24,7 @@ def heart_disease_factory():
 
     heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', 'ihd_incidence_rates.csv')
     healthy.transition_set.append(heart_attack_transition)
-    healthy.transition_set.append(IncidenceRateTransition(angina, 'non_mi_angina', 'non_mi_angina_incidence.csv')
+    healthy.transition_set.append(IncidenceRateTransition(angina, 'non_mi_angina', 'non_mi_angina_incidence.csv'))
 
     heart_attack.transition_set.allow_null_transition=False
     heart_attack.transition_set.append(Transition(mild_heart_failure))

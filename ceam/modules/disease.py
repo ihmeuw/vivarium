@@ -21,8 +21,8 @@ def _rename_rate_column(table, col_name):
     columns = []
     for col in table.columns:
         col = col.lower()
-        if col in ['age', 'sex', 'year']:
-            columns.append(col)
+        if col in ['age_id', 'sex_id', 'year_id', 'age', 'sex', 'year']:
+            columns.append(col.replace('_id', ''))
         else:
             columns.append(col_name)
     return columns
@@ -80,6 +80,7 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
 
     def load_data(self, prefix_path):
         lookup_table = pd.read_csv(os.path.join(prefix_path, self.excess_mortality_table))
+        lookup_table = lookup_table.drop(set(lookup_table.columns).difference({'year_id', 'sex_id', 'draw_0', 'age_id', 'age'}), axis=1)
         lookup_table.columns = _rename_rate_column(lookup_table, 'rate')
         lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
         return lookup_table
@@ -103,6 +104,7 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
 
     def load_data(self, prefix_path):
         lookup_table = pd.read_csv(os.path.join(prefix_path, self.incidence_rate_table))
+        lookup_table = lookup_table.drop(set(lookup_table.columns).difference({'year_id', 'sex_id', 'draw_0', 'age_id', 'age'}), axis=1)
         lookup_table.columns = _rename_rate_column(lookup_table, 'rate')
         lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
         return lookup_table
