@@ -9,6 +9,7 @@ import argparse
 import pandas as pd
 import numpy as np
 
+from ceam.util import draw_count
 from ceam.engine import Simulation, SimulationModule
 from ceam.events import only_living, ConfigurationEvent
 from ceam.modules.disease_models import heart_disease_factory, hemorrhagic_stroke_factory
@@ -57,6 +58,8 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False, seed=100):
 
             np.random.seed(seed)
             simulation.run(datetime(1990, 1, 1), datetime(2010, 12, 1), timedelta(days=30.5))
+            metrics['draw_count'] = draw_count[0]
+            draw_count[0] = 0
             for m in simulation.modules:
                 if isinstance(m, MetricsModule):
                     metrics.update(m.metrics)
@@ -90,7 +93,7 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False, seed=100):
             simulation.reset()
             if verbose:
                 print('RUN:',run)
-                analyze_results(pd.DataFrame(all_metrics))
+                analyze_results(all_metrics)
     return pd.DataFrame(all_metrics)
 
 

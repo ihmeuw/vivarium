@@ -12,7 +12,7 @@ class State:
         self.transition_set = TransitionSet()
 
     def next_state(self, agents, state_column):
-        if len(self.transition_set) == 0 or agents.empty:
+        if len(self.transition_set) == 0:
             return agents
 
         groups = self.transition_set.groupby_new_state(agents)
@@ -82,11 +82,8 @@ class Machine:
         groups = agents.groupby(self.state_column, group_keys=False)
         state_map = {state.state_id:state for state in self.states}
         def transformer(agents):
-            if not agents.empty:
-                state = state_map[agents.iloc[0][self.state_column]]
-                return state.next_state(agents, self.state_column)
-            else:
-                return agents
+            state = state_map[agents.iloc[0][self.state_column]]
+            return state.next_state(agents, self.state_column)
         return groups.apply(transformer)
 
     def to_dot(self):

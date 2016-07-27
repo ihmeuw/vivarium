@@ -7,6 +7,7 @@ import numpy as np
 
 import pytest
 
+from ceam import config
 from ceam.engine import Simulation
 from ceam.util import from_yearly, to_yearly
 
@@ -19,6 +20,7 @@ def simulation_factory(modules):
     data_path = os.path.join(str(pytest.config.rootdir), 'ceam_tests', 'test_data')
     simulation.load_data(data_path)
     simulation.load_population(os.path.join(data_path, 'population_columns'))
+    config.set('simulation_parameters', 'population_size', str(len(simulation.population)))
     start_time = datetime(1990, 1, 1)
     simulation.current_time = start_time
     timestep = timedelta(days=30)
