@@ -47,17 +47,16 @@ class ModuleRegistry:
                 i = 0
                 for dependency in current.DEPENDENCIES:
                     # TODO: This breaks if any dependency is a parameterized module but so far that hasn't come up
-                    dependency = str(dependency)
-                    if dependency not in modules_by_id:
+                    if str(dependency) not in modules_by_id:
                         d = dependency()
                         self.add_child(d)
                         modules_by_id[d.module_id()] = d
 
                     try:
-                        i = max(i, sorted_modules.index(modules_by_id[dependency]))
+                        i = max(i, sorted_modules.index(modules_by_id[str(dependency)]))
                     except ValueError:
-                        sorted_modules = inner_sort(sorted_modules, modules_by_id[dependency])
-                        i = max(i, sorted_modules.index(modules_by_id[dependency]))
+                        sorted_modules = inner_sort(sorted_modules, modules_by_id[str(dependency)])
+                        i = max(i, sorted_modules.index(modules_by_id[str(dependency)]))
                 return sorted_modules[0:i+1] + [current] + sorted_modules[i+1:]
 
         to_sort = sorted(set(modules_by_id.values()), key=lambda x:x.module_id())

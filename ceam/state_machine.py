@@ -26,7 +26,7 @@ class State:
                     results.append(affected_agents)
 
             return pd.concat(results)
-        return pd.DataFrame()
+        return pd.DataFrame(columns=agents.columns)
 
     def transition_effect(self, agents, state_column):
         agents[state_column] = self.state_id

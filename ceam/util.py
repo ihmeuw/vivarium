@@ -29,7 +29,10 @@ def get_draw(population):
         count = config.getint('simulation_parameters', 'population_size')
     else:
         warnings.warn('Unknown global population size. Using supplied population instead.')
-        count = len(population)
+        if population.empty:
+            count = 0
+        else:
+            count = population.index.max() + 1
     draw = pd.Series(np.random.random(size=count))
     # This assures that each index in the draw list is associated with the
     # same simulant on every evocation
