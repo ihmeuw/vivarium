@@ -1,8 +1,11 @@
+# ~/ceam/ceam/tree.py
+
+
 class Node:
     @property
     def children(self):
         if not hasattr(self, '_children'):
-            self._children = set()
+            self._children = list()
         return self._children
 
     @property
@@ -16,8 +19,9 @@ class Node:
         self._parent = value
 
     def add_child(self, node):
-        self.children.add(node)
-        node.added_to(self)
+        if node not in self.children:
+            self.children.append(node)
+            node.added_to(self)
 
     def add_children(self, nodes):
         for node in nodes:
@@ -62,3 +66,6 @@ class Node:
             while root.parent is not None:
                 root = root.parent
             return root
+
+
+# End.

@@ -5,6 +5,7 @@ from weakref import WeakKeyDictionary
 
 from ceam.util import auto_adapt_to_methods
 
+
 class Event:
     def __init__(self, label):
         self.label = label
@@ -19,9 +20,10 @@ class ConfigurationEvent(Event):
         super(ConfigurationEvent, self).__init__(label)
         self.config = config
 
+
 class EventHandlerNode:
     def __init__(self):
-        self._listeners_store = [defaultdict(set) for _ in range(10)]
+        self._listeners_store = [defaultdict(list) for _ in range(10)]
 
     def _listeners(self, label):
         listeners = []
@@ -35,7 +37,7 @@ class EventHandlerNode:
         assert callable(listener), "Listener must be callable"
         assert priority in range(10), "Priority must be 0-9"
 
-        self._listeners_store[priority][label].add(listener)
+        self._listeners_store[priority][label].append(listener)
 
     def deregister_event_listener(self, listener, label=None):
         for priority_level in self._listeners_store:

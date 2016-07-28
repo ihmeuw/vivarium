@@ -1,3 +1,5 @@
+# ~/ceam/ceam_tests/test_state_machine.py
+
 import pytest
 
 import pandas as pd
@@ -10,13 +12,14 @@ def test_transition():
     done_state = State('done')
     start_state = State('start')
     done_transition = Transition(done_state, lambda agents: np.full(len(agents), 1.0))
-    start_state.transition_set.add(done_transition)
-    agents = pd.DataFrame(dict(state=['start']*100))
+    start_state.transition_set.append(done_transition)
+    agents = pd.DataFrame(dict(state=['start']*100, simulant_id=range(100)))
     machine = Machine('state')
-    machine.states.update([start_state, done_state])
+    machine.states.extend([start_state, done_state])
 
     agents = machine.transition(agents)
     assert np.all(agents.state == 'done')
+
 
 def test_choice():
     a_state = State('a')
@@ -24,41 +27,44 @@ def test_choice():
     start_state = State('start')
     a_transition = Transition(a_state, lambda agents: np.full(len(agents), 0.5))
     b_transition = Transition(b_state, lambda agents: np.full(len(agents), 0.5))
-    start_state.transition_set.update((a_transition, b_transition))
-    agents = pd.DataFrame(dict(state=['start']*10000))
+    start_state.transition_set.extend((a_transition, b_transition))
+    agents = pd.DataFrame(dict(state=['start']*10000, simulant_id=range(10000)))
     machine = Machine('state')
-    machine.states.update([start_state, a_state, b_state])
+    machine.states.extend([start_state, a_state, b_state])
 
     agents = machine.transition(agents)
     a_count = (agents.state == 'a').sum()
     assert round(a_count/len(agents), 1) == 0.5
+
 
 def test_null_transition():
     a_state = State('a')
     start_state = State('start')
     a_transition = Transition(a_state, lambda agents: np.full(len(agents), 0.5))
 
-    start_state.transition_set.add(a_transition)
-    agents = pd.DataFrame(dict(state=['start']*10000))
+    start_state.transition_set.append(a_transition)
+    agents = pd.DataFrame(dict(state=['start']*10000, simulant_id=range(10000)))
     machine = Machine('state')
-    machine.states.update([start_state, a_state])
+    machine.states.extend([start_state, a_state])
 
     agents = machine.transition(agents)
     a_count = (agents.state == 'a').sum()
     assert round(a_count/len(agents), 1) == 0.5
+
 
 def test_null_transition_with_bad_probabilities():
     a_state = State('a')
     start_state = State('start')
     a_transition = Transition(a_state, lambda agents: np.full(len(agents), 5))
 
-    start_state.transition_set.add(a_transition)
-    agents = pd.DataFrame(dict(state=['start']*10000))
+    start_state.transition_set.append(a_transition)
+    agents = pd.DataFrame(dict(state=['start']*10000, simulant_id=range(10000)))
     machine = Machine('state')
-    machine.states.update([start_state, a_state])
+    machine.states.extend([start_state, a_state])
 
     with pytest.raises(ValueError):
         agents = machine.transition(agents)
+
 
 def test_no_null_transition():
     a_state = State('a')
@@ -67,14 +73,15 @@ def test_no_null_transition():
     a_transition = Transition(a_state)
     b_transition = Transition(b_state)
     start_state.transition_set.allow_null_transition = False
-    start_state.transition_set.update((a_transition, b_transition))
-    agents = pd.DataFrame(dict(state=['start']*10000))
+    start_state.transition_set.extend((a_transition, b_transition))
+    agents = pd.DataFrame(dict(state=['start']*10000, simulant_id=range(10000)))
     machine = Machine('state')
-    machine.states.update([start_state, a_state, b_state])
+    machine.states.extend([start_state, a_state, b_state])
 
     agents = machine.transition(agents)
     a_count = (agents.state == 'a').sum()
     assert round(a_count/len(agents), 1) == 0.5
+
 
 def test_side_effects():
     class DoneState(State):
@@ -84,14 +91,17 @@ def test_side_effects():
     done_state = DoneState('done')
     start_state = State('start')
     done_transition = Transition(done_state, lambda agents: np.full(len(agents), 1.0))
-    start_state.transition_set.add(done_transition)
-    done_state.transition_set.add(done_transition)
+    start_state.transition_set.append(done_transition)
+    done_state.transition_set.append(done_transition)
 
-    agents = pd.DataFrame(dict(state=['start']*100, count=[0]*100))
+    agents = pd.DataFrame(dict(state=['start']*100, count=[0]*100, simulant_id=range(100)))
     machine = Machine('state')
-    machine.states.update([start_state, done_state])
+    machine.states.extend([start_state, done_state])
 
     agents = machine.transition(agents)
     assert np.all(agents['count'] == 1)
     agents = machine.transition(agents)
     assert np.all(agents['count'] == 2)
+
+
+# End.

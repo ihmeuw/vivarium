@@ -1,3 +1,5 @@
+# ~/ceam/ceam_tests/test_modules/test_blood_pressure.py
+
 import pytest
 from datetime import timedelta
 
@@ -6,7 +8,9 @@ from ceam_tests.util import simulation_factory, pump_simulation
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.disease_models import simple_ihd_factory, hemorrhagic_stroke_factory
 import numpy as np
+
 np.random.seed(100)
+
 
 @pytest.mark.slow
 def test_basic_SBP_bounds():
@@ -28,6 +32,7 @@ def test_basic_SBP_bounds():
     assert simulation.population.systolic_blood_pressure.mean() > initial_mean_sbp
     # And that there's still no one wildly out of bounds
     assert ((simulation.population.systolic_blood_pressure > (sbp_mean+interval)) | ( simulation.population.systolic_blood_pressure < (sbp_mean-interval))).sum() == 0
+
 
 @pytest.mark.parametrize('condition_module, rate_label', [(simple_ihd_factory(), 'heart_attack'), (hemorrhagic_stroke_factory(), 'hemorrhagic_stroke')])
 @pytest.mark.slow
@@ -53,3 +58,6 @@ def test_blood_pressure_effect_on_incidince(condition_module, rate_label):
 
     # Increase in incidence should rise over time as the cohort ages and SBP increases
     assert bp_incidence.mean() < simulation.incidence_rates(simulation.population, rate_label).mean()
+
+
+# End.

@@ -1,3 +1,5 @@
+# ~/ceam/ceam/modules/disease.py
+
 import os.path
 from datetime import timedelta
 from functools import partial
@@ -14,15 +16,17 @@ from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
 
+
 def _rename_rate_column(table, col_name):
     columns = []
     for col in table.columns:
         col = col.lower()
-        if col in ['age', 'sex', 'year']:
-            columns.append(col)
+        if col in ['age_id', 'sex_id', 'year_id', 'age', 'sex', 'year']:
+            columns.append(col.replace('_id', ''))
         else:
             columns.append(col_name)
     return columns
+
 
 class DiseaseState(State, DisabilityWeightMixin, Node):
     def __init__(self, state_id, disability_weight, dwell_time=0, event_time_column=None, event_count_column=None):
@@ -62,7 +66,7 @@ class DiseaseState(State, DisabilityWeightMixin, Node):
         return agents
 
     def disability_weight(self, population):
-        return pd.Series(self._disability_weight, index=population.loc[population[self.parent.condition] == self.state_id].index)
+        return self._disability_weight * (population[self.parent.condition] == self.state_id)
 
 
 class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
@@ -76,6 +80,7 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
 
     def load_data(self, prefix_path):
         lookup_table = pd.read_csv(os.path.join(prefix_path, self.excess_mortality_table))
+        lookup_table = lookup_table.drop(set(lookup_table.columns).difference({'year_id', 'sex_id', 'draw_0', 'age_id', 'age'}), axis=1)
         lookup_table.columns = _rename_rate_column(lookup_table, 'rate')
         lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
         return lookup_table
@@ -85,6 +90,7 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
 
     def __str__(self):
         return 'ExcessMortalityState("{0}" ...)'.format(self.state_id, self.excess_mortality_table)
+
 
 class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationNode):
     def __init__(self, output, rate_label, incidence_rate_table):
@@ -98,6 +104,7 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
 
     def load_data(self, prefix_path):
         lookup_table = pd.read_csv(os.path.join(prefix_path, self.incidence_rate_table))
+        lookup_table = lookup_table.drop(set(lookup_table.columns).difference({'year_id', 'sex_id', 'draw_0', 'age_id', 'age'}), axis=1)
         lookup_table.columns = _rename_rate_column(lookup_table, 'rate')
         lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
         return lookup_table
@@ -112,14 +119,13 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
         return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id, self.rate_label, self.incidence_rate_table)
 
 
-
 class DiseaseModule(SimulationModule, Machine):
     def __init__(self, condition):
         SimulationModule.__init__(self)
         Machine.__init__(self, condition)
 
     def module_id(self):
-        return (self.__class__, self.state_column)
+        return str((self.__class__, self.state_column))
 
     @property
     def condition(self):
@@ -149,3 +155,6 @@ class DiseaseModule(SimulationModule, Machine):
         state_id_length = max(len(state.state_id) for state in self.states)
         population_columns = pd.DataFrame(np.full(population_size, 'healthy', dtype='<U{0}'.format(state_id_length)), columns=[self.condition])
         return population_columns
+
+
+# End.

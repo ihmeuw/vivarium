@@ -16,6 +16,7 @@ from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, Event, only_living
 from ceam.modules import ModuleRegistry, SimulationModule, LookupTable, ValueMutationNode, DisabilityWeightMixin
 
+
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
         super(BaseSimulationModule, self).__init__()
@@ -68,7 +69,6 @@ class Simulation(Node, ModuleRegistry):
     def load_population(self, path_prefix=None):
         if path_prefix is None:
             path_prefix = config.get('general', 'population_data_directory')
-
 
         loaders = []
         for m in self.modules:
@@ -135,9 +135,9 @@ class Simulation(Node, ModuleRegistry):
         if source is None:
             raise ValueError("No source for %s %s"%(value_type, label))
 
-        mutators = set()
+        mutators = []
         for module in value_nodes:
-            mutators.update(module._value_mutators[value_type][label])
+            mutators.extend(module._value_mutators[value_type][label])
 
         value = source(population)
 
@@ -199,6 +199,7 @@ class Simulation(Node, ModuleRegistry):
     def run(self, start_time, end_time, time_step):
         self._validate(start_time, end_time)
         self.reset_population()
+        config.set('simulation_parameters', 'population_size', str(len(self.population)))
 
         self.current_time = start_time
         self.emit_event(Event('simulation_begin'))

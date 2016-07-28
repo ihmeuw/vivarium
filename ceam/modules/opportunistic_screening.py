@@ -1,3 +1,5 @@
+# ~/ceam/ceam/modules/opportunistic_screening.py
+
 from datetime import timedelta
 from collections import defaultdict
 
@@ -10,7 +12,8 @@ from ceam.events import only_living
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.healthcare_access import HealthcareAccessModule
 
-#TODO: This feels like configuration but is difficult to express in ini type files
+
+#TODO: This feels like configuration but is difficult to express in ini type files.
 MEDICATIONS = [
     {
         'name': 'Thiazide-type diuretics',
@@ -56,7 +59,7 @@ def _hypertensive_categories(population):
 class OpportunisticScreeningModule(SimulationModule):
     """
     Model an intervention where simulants have their blood pressure tested every time they access health care and are prescribed
-    blood pressure reducing medication if they are found to be hypertensive. Each simulant can be prescribed up to 
+    blood pressure reducing medication if they are found to be hypertensive. Each simulant can be prescribed up to
     `len(MEDICATIONS)` drugs. If they are still hypertensive while taking all the drugs then there is no further treatment.
     """
 
@@ -64,6 +67,7 @@ class OpportunisticScreeningModule(SimulationModule):
     def __init__(self):
         SimulationModule.__init__(self)
         self.cost_by_year = defaultdict(int)
+        self.active = True
 
     def setup(self):
         self.register_event_listener(self.general_blood_pressure_test, 'general_healthcare_access')
@@ -93,7 +97,8 @@ class OpportunisticScreeningModule(SimulationModule):
                 supply_needed.loc[supply_needed < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
 
                 supplied_until = current_time + pd.DataFrame([supply_needed, supply_remaining]).T.max(axis=1)
-                self.simulation.population.loc[affected_population.index, medication['name']+'_supplied_until'] = supplied_until
+                if self.active:
+                    self.simulation.population.loc[affected_population.index, medication['name']+'_supplied_until'] = supplied_until
                 self.cost_by_year[self.simulation.current_time.year] += max(0, (supply_needed - supply_remaining).dt.days.sum()) * medication['daily_cost']
 
     def general_blood_pressure_test(self, event):
@@ -104,16 +109,17 @@ class OpportunisticScreeningModule(SimulationModule):
 
         normotensive, hypertensive, severe_hypertension = _hypertensive_categories(event.affected_population)
 
-        # Normotensive simulants get a 60 month followup and no drugs
-        self.simulation.population.loc[normotensive.index, 'healthcare_followup_date'] = self.simulation.current_time + timedelta(days=30.5*60)
+        if self.active:
+            # Normotensive simulants get a 60 month followup and no drugs
+            self.simulation.population.loc[normotensive.index, 'healthcare_followup_date'] = self.simulation.current_time + timedelta(days=30.5*60)
 
-        # Hypertensive simulants get a 1 month followup and no drugs
-        self.simulation.population.loc[hypertensive.index, 'healthcare_followup_date'] = self.simulation.current_time + timedelta(days=30.5)
+            # Hypertensive simulants get a 1 month followup and no drugs
+            self.simulation.population.loc[hypertensive.index, 'healthcare_followup_date'] = self.simulation.current_time + timedelta(days=30.5)
 
-        # Severe hypertensive simulants get a 1 month followup and two drugs
-        self.simulation.population.loc[severe_hypertension.index, 'healthcare_followup_date'] = self.simulation.current_time + timedelta(days=30.5*6)
+            # Severe hypertensive simulants get a 1 month followup and two drugs
+            self.simulation.population.loc[severe_hypertension.index, 'healthcare_followup_date'] = self.simulation.current_time + timedelta(days=30.5*6)
 
-        self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension['medication_count'] + 2, len(MEDICATIONS))
+            self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension['medication_count'] + 2, len(MEDICATIONS))
 
         self._medication_costs(event.affected_population)
 
@@ -130,18 +136,21 @@ class OpportunisticScreeningModule(SimulationModule):
 
         # Unmedicated normotensive simulants get a 60 month followup
         follow_up = self.simulation.current_time + timedelta(days=30.5*60)
-        self.simulation.population.loc[nonmedicated_normotensive.index, 'healthcare_followup_date'] = follow_up
+        if self.active:
+            self.simulation.population.loc[nonmedicated_normotensive.index, 'healthcare_followup_date'] = follow_up
 
         # Medicated normotensive simulants get an 11 month followup
         follow_up = self.simulation.current_time + timedelta(days=30.5*11)
-        self.simulation.population.loc[medicated_normotensive.index, 'healthcare_followup_date'] = follow_up
+        if self.active:
+            self.simulation.population.loc[medicated_normotensive.index, 'healthcare_followup_date'] = follow_up
 
         # Hypertensive simulants get a 6 month followup and go on one drug
         follow_up = self.simulation.current_time + timedelta(days=30.5*6)
-        self.simulation.population.loc[hypertensive.index, 'healthcare_followup_date'] = follow_up
-        self.simulation.population.loc[hypertensive.index, 'medication_count'] = np.minimum(hypertensive['medication_count'] + 1, len(MEDICATIONS))
-        self.simulation.population.loc[severe_hypertension.index, 'healthcare_followup_date'] = follow_up
-        self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension.medication_count + 1, len(MEDICATIONS))
+        if self.active:
+            self.simulation.population.loc[hypertensive.index, 'healthcare_followup_date'] = follow_up
+            self.simulation.population.loc[hypertensive.index, 'medication_count'] = np.minimum(hypertensive['medication_count'] + 1, len(MEDICATIONS))
+            self.simulation.population.loc[severe_hypertension.index, 'healthcare_followup_date'] = follow_up
+            self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension.medication_count + 1, len(MEDICATIONS))
 
         self._medication_costs(event.affected_population)
 
@@ -150,7 +159,11 @@ class OpportunisticScreeningModule(SimulationModule):
         for medication_number, medication in enumerate(MEDICATIONS):
             affected_population = event.affected_population[event.affected_population.medication_count > medication_number]
             medication_efficacy = medication['efficacy'] * event.affected_population.drug_adherence
-            self.simulation.population.loc[affected_population.index, 'systolic_blood_pressure'] -= medication_efficacy
+            if self.active:
+                self.simulation.population.loc[affected_population.index, 'systolic_blood_pressure'] -= medication_efficacy
 
     def reset(self):
         self.cost_by_year = defaultdict(int)
+
+
+# End.
