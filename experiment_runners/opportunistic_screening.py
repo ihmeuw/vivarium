@@ -93,7 +93,7 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False, seed=100):
             simulation.reset()
             if verbose:
                 print('RUN:',run)
-                analyze_results(all_metrics)
+                analyze_results([all_metrics])
     return pd.DataFrame(all_metrics)
 
 
@@ -140,7 +140,7 @@ def main():
         dump_results(results, os.path.join(args.stats_path, '%d_stats'%args.n))
 
     if not args.v:
-        analyze_results(results)
+        analyze_results([results])
 
 
 if __name__ == '__main__':
