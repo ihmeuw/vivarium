@@ -38,14 +38,16 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False, seed=100):
         hemorrhagic_stroke_counts = [m['hemorrhagic_stroke_count'] for m in metrics]
         return dalys, cost, ihd_counts, hemorrhagic_stroke_counts
     all_metrics = []
+
+    start_time = datetime(config.getint('simulation_parameters', 'year_start'), 1, 1)
+    end_time = datetime(config.getint('simulation_parameters', 'year_end'), 12, 1)
+    time_step = timedelta(days=config.getfloat('simulation_parameters', 'time_step'))
     for run in range(runs):
         for intervention in [True, False]:
             if intervention:
                 test_modules[0].active = True
-                #simulation.add_children(test_modules)
             else:
                 test_modules[0].active = False
-                #simulation.remove_children(test_modules)
 
             simulation.emit_event(ConfigurationEvent('configure_run', {'run_number': run, 'tests_active': intervention}))
             start = time()
@@ -57,7 +59,7 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False, seed=100):
                 metrics[name] = count
 
             np.random.seed(seed)
-            simulation.run(datetime(1990, 1, 1), datetime(2010, 12, 1), timedelta(days=30.5))
+            simulation.run(start_time, end_time, time_step)
             metrics['draw_count'] = draw_count[0]
             draw_count[0] = 0
             for m in simulation.modules:

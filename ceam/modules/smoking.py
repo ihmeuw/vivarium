@@ -39,19 +39,19 @@ class SmokingModule(SimulationModule):
 
     def load_data(self, path_prefix):
         # TODO: Where does prevalence data come from?
-	# The exposure comes from the central comp get draws function (see Everett if there are other questions)
+        # The exposure comes from the central comp get draws function (see Everett if there are other questions)
         lookup_table = load_data_from_cache(get_exposures, 'draw', config.getint('simulation_parameters', 'location_id'), config.getint('simulation_parameters', 'year_start'), config.getint('simulation_parameters', 'year_end'), 166) 
         lookup_table.columns = ['age', 'year_id', 'sex_id', 'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
 
         # STEAL THE TEST BELOW TO PUT INTO THE FUNCTION
-	# "Pre-conditions check"
+        # "Pre-conditions check"
         expected_rows = set((age, sex, year) for age in range(1, 104)
                             for sex in [1, 2]
                             for year in range(1990, 2011))
         missing_rows = expected_rows.difference(set(tuple(row)
                                                     for row in lookup_table[['age', 'sex_id', 'year_id']].values.tolist()))
         missing_rows = [(age, sex, year, 0) for age, sex, year in missing_rows]
-        return = lookup_table.append(pd.DataFrame(missing_rows, columns=['age', 'sex_id', 'year_id', 'prevalence']))
+        return lookup_table.append(pd.DataFrame(missing_rows, columns=['age', 'sex_id', 'year_id', 'prevalence']))
 
     def incidence_rates(self, population, rates):
         smokers = population.smoking_susceptibility < self.lookup_columns(population, ['prevalence'])['prevalence']

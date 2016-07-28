@@ -36,7 +36,11 @@ class BaseSimulationModule(SimulationModule):
         return population_columns
 
     def load_data(self, path_prefix):
-        return = load_data_from_cache(get_cause_deleted_mortality_rate, 'cause_deleted_mortality_rate', config.getint('simulation_parameters', 'location_id'),config.getint('simulation_parameters', 'year_start'),config.getint('simulation_parameters', 'year_end'))
+        return load_data_from_cache(get_cause_deleted_mortality_rate, \
+                'cause_deleted_mortality_rate', \
+                config.getint('simulation_parameters', 'location_id'), \
+                config.getint('simulation_parameters', 'year_start'), \
+                config.getint('simulation_parameters', 'year_end'))
 
     def mortality_rates(self, population):
         return self.lookup_columns(population, ['cause_deleted_mortality_rate_{i}'.format(i=config.getint('simulation_parameters','draw_number'))])['cause_deleted_mortality_rate_{i}'.format(i=config.getint('simulation_parameters','draw_number'))].values
