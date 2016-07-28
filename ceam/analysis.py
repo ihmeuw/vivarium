@@ -62,8 +62,10 @@ def analyze_results(results):
 """
  Total runs: {runs}
 Min runtime: {duration:.0f} seconds
+Mean runtime: {mean_duration} seconds
 """.format(runs=len(intervention),
-           duration=mixed_results.duration.min()))
+           duration=mixed_results.duration.min(),
+           mean_duration=confidence(mixed_results.duration)))
     print('       DALYs (non-intervention):', confidence(ni_dalys))
     print('           DALYs (intervention):', confidence(i_dalys))
     print('                  DALYs averted:', confidence(dalys_averted))
@@ -72,7 +74,7 @@ Min runtime: {duration:.0f} seconds
     print('  Total Cost (non-intervention):', confidence(non_intervention.intervention_cost))
     print('      Total Cost (intervention):', confidence(intervention.intervention_cost))
     print('                 Change in Cost:', confidence(intervention.intervention_cost - non_intervention.intervention_cost))
-    if np.all(dalys_averted == 0):
+    if np.all(pd.Series(dalys_averted) == 0):
         print('          Cost per DALY averted: NA')
     else:
         print('          Cost per DALY averted:', confidence((intervention.intervention_cost - non_intervention.intervention_cost)/(dalys_averted)))
