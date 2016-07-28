@@ -5,7 +5,8 @@ from weakref import WeakKeyDictionary
 
 from ceam.util import auto_adapt_to_methods
 
-class Event(object):
+
+class Event:
     def __init__(self, label):
         self.label = label
 
@@ -17,12 +18,12 @@ class PopulationEvent(Event):
 class ConfigurationEvent(Event):
     def __init__(self, label, config):
         super(ConfigurationEvent, self).__init__(label)
-        config = config
+        self.config = config
 
-class EventHandler(object):
+
+class EventHandlerNode:
     def __init__(self):
-        super(EventHandler, self).__init__()
-        self._listeners_store = [defaultdict(set) for _ in range(10)]
+        self._listeners_store = [defaultdict(list) for _ in range(10)]
 
     def _listeners(self, label):
         listeners = []
@@ -36,7 +37,7 @@ class EventHandler(object):
         assert callable(listener), "Listener must be callable"
         assert priority in range(10), "Priority must be 0-9"
 
-        self._listeners_store[priority][label].add(listener)
+        self._listeners_store[priority][label].append(listener)
 
     def deregister_event_listener(self, listener, label=None):
         for priority_level in self._listeners_store:
@@ -47,6 +48,8 @@ class EventHandler(object):
     def emit_event(self, event):
         for listener in self._listeners(event.label):
             listener(event)
+        for child in [child for child in self.all_children(of_type=EventHandlerNode)]:
+            child.emit_event(event)
 
 
 #TODO: Ugly singleton global

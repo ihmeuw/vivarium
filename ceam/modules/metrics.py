@@ -11,6 +11,10 @@ from ceam.events import only_living
 
 
 class MetricsModule(SimulationModule):
+    """
+    Accumulate various metrics as the simulation runs.
+    """
+
     def __init__(self):
         super(MetricsModule, self).__init__()
         self.metrics = defaultdict(int)

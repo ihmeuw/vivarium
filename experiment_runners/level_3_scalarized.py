@@ -1,4 +1,4 @@
-# ~/ceam/experiment_runners/level_3.py
+# ~/ceam/experiment_runners/level_3_scalarized.py
 
 from __future__ import print_function                                   # So 'print("Foo:", 5)' prints "Foo: 5" in both Python2 and Python3.
 
@@ -7,7 +7,7 @@ from time import time
 from datetime import datetime, timedelta
 
 from ceam.engine import Simulation
-from ceam.modules.chronic_condition import ChronicConditionModule
+from ceam.modules.disease_models import heart_disease_factory, hemorrhagic_stroke_factory
 from ceam.modules.level3intervention_scalarized import Level3InterventionScalarizedModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.metrics import MetricsModule
@@ -20,10 +20,12 @@ def confidence(seq):
     interval = (1.96*std)/np.sqrt(runs)
     return mean, mean-interval, mean+interval
 
+
 def difference_with_confidence(a, b):
     mean_diff = np.mean(a) - np.mean(b)
     interval = 1.96*np.sqrt(np.std(a)/len(a)+np.std(b)/len(b))
     return mean_diff, int(mean_diff-interval), int(mean_diff+interval)
+
 
 def run_comparisons(simulation, test_modules, runs=10):
     def sequences(metrics):
@@ -37,9 +39,9 @@ def run_comparisons(simulation, test_modules, runs=10):
     for run in range(runs):
         for do_test in [True, False]:
             if do_test:
-                simulation.register_modules(test_modules)
+                simulation.add_children(test_modules)
             else:
-                simulation.deregister_modules(test_modules)
+                simulation.remove_children(test_modules)
 
             start = time()
             simulation.run(datetime(1990, 1, 1), datetime(2010, 12, 31), timedelta(days=30.5)) #TODO: Is 30.5 days a good enough approximation of one month? -Alec
@@ -77,15 +79,15 @@ def main():
     simulation = Simulation()
 
     modules = [
-               ChronicConditionModule('ihd', 'ihd_mortality_rate.csv', 'IHD incidence rates.csv', 0.08),
-               ChronicConditionModule('hemorrhagic_stroke', 'chronic_hem_stroke_excess_mortality.csv', 'hem_stroke_incidence_rates.csv', 0.316),
+               heart_disease_factory(),
+               hemorrhagic_stroke_factory(),
                MetricsModule(),
               ]
     screening_module = Level3InterventionScalarizedModule()
     modules.append(screening_module)
     for module in modules:
         module.setup()
-    simulation.register_modules(modules)
+    simulation.add_children(modules)
 
     simulation.load_population()
     simulation.load_data()
