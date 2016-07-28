@@ -83,8 +83,8 @@ def test_dependencies():
     # NOTE: This is kind of a silly test since it just verifies that the class is defined correctly but I did actually make that mistake. -Alec
     simulation, module = screening_setup()
     ordered_module_ids = [m.module_id() for m in simulation._ordered_modules]
-    assert BloodPressureModule in ordered_module_ids
-    assert HealthcareAccessModule in ordered_module_ids
+    assert str(BloodPressureModule) in ordered_module_ids
+    assert str(HealthcareAccessModule) in ordered_module_ids
 
 
 def test_medication_cost():
