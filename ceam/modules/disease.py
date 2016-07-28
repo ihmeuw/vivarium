@@ -70,20 +70,16 @@ class DiseaseState(State, DisabilityWeightMixin, Node):
 
 
 class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
-    def __init__(self, state_id, excess_mortality_table, **kwargs):
+    def __init__(self, state_id, modelable_entity_id, **kwargs):
         DiseaseState.__init__(self, state_id, **kwargs)
         ValueMutationNode.__init__(self)
 
-        self.excess_mortality_table = excess_mortality_table
+        self.modelable_entity_id = modelable_entity_id
 
         self.register_value_mutator(self.mortality_rates, 'mortality_rates')
 
     def load_data(self, prefix_path):
-        lookup_table = pd.read_csv(os.path.join(prefix_path, self.excess_mortality_table))
-        lookup_table = lookup_table.drop(set(lookup_table.columns).difference({'year_id', 'sex_id', 'draw_0', 'age_id', 'age'}), axis=1)
-        lookup_table.columns = _rename_rate_column(lookup_table, 'rate')
-        lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
-        return lookup_table
+        return load_data_from_cache(get_modelable_entity_draws,config.getint('simulation_parameters', 'location_id'), config.getint('simulation_parameters', 'year_start'), config.getint('simulation_parameters', 'year_end'), 9, self.modelable_entity_id)
 
     def mortality_rates(self, population, rates):
         return rates + self.lookup_columns(population, ['rate'])['rate'].values * (population[self.parent.condition] == self.state_id)
@@ -93,21 +89,18 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
 
 
 class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationNode):
-    def __init__(self, output, rate_label, incidence_rate_table):
+    def __init__(self, output, rate_label, modelable_entity_id):
         Transition.__init__(self, output, self.probability)
         Node.__init__(self)
         ValueMutationNode.__init__(self)
 
         self.rate_label = rate_label
-        self.incidence_rate_table = incidence_rate_table
+        self.modelable_entity_id = modelable_entity_id
         self.register_value_source(self.incidence_rates, 'incidence_rates', rate_label)
 
     def load_data(self, prefix_path):
-        lookup_table = pd.read_csv(os.path.join(prefix_path, self.incidence_rate_table))
-        lookup_table = lookup_table.drop(set(lookup_table.columns).difference({'year_id', 'sex_id', 'draw_0', 'age_id', 'age'}), axis=1)
-        lookup_table.columns = _rename_rate_column(lookup_table, 'rate')
-        lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
-        return lookup_table
+        # TODO: this is getting mortality instead
+        return load_data_from_cache(get_modelable_entity_draws,config.getint('simulation_parameters', 'location_id'), config.getint('simulation_parameters', 'year_start'), config.getint('simulation_parameters', 'year_end'), 9, self.modelable_entity_id)
 
     def probability(self, agents):
         return rate_to_probability(self.root.incidence_rates(agents, self.rate_label))

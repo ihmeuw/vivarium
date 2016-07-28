@@ -30,7 +30,7 @@ class BaseSimulationModule(SimulationModule):
     def load_population_columns(self, path_prefix, population_size):
         population_columns = pd.read_csv(os.path.join(path_prefix, 'age.csv'))
         population_columns = population_columns.assign(fractional_age=population_columns.age.astype(float))
-        population_columns = population_columns.join(pd.read_csv(os.path.join(path_prefix, 'sex.csv')))
+        population_columns = population_columns.join(pd.read_csv(os.path.join(path_prefix, 'sex.csv'))).astype('category')
         population_columns['alive'] = np.full(len(population_columns), True, dtype=bool)
         population_columns['simulant_id'] = range(0, len(population_columns))
         return population_columns
@@ -107,7 +107,7 @@ class Simulation(Node, ModuleRegistry):
         if not self.lookup_table.lookup_table.empty:
             if 'lookup_id' in self.population:
                 self.population.drop('lookup_id', 1, inplace=True)
-            population = self.population.merge(self.lookup_table[['year_id', 'age', 'sex_id', 'lookup_id']], on=['year_id', 'age', 'sex_id'])
+            population = self.population.merge(self.lookup_table[['year', 'age', 'sex', 'lookup_id']], on=['year', 'age', 'sex'])
             assert len(population) == len(self.population), "One of the lookup tables is missing rows or has duplicate rows"
             self.population = population
 

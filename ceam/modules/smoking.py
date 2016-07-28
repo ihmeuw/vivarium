@@ -40,8 +40,7 @@ class SmokingModule(SimulationModule):
     def load_data(self, path_prefix):
         # TODO: Where does prevalence data come from?
         # The exposure comes from the central comp get draws function (see Everett if there are other questions)
-        lookup_table = load_data_from_cache(get_exposures, 'draw', config.getint('simulation_parameters', 'location_id'), config.getint('simulation_parameters', 'year_start'), config.getint('simulation_parameters', 'year_end'), 166) 
-        lookup_table.columns = ['age', 'year_id', 'sex_id', 'draw_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]
+        lookup_table = load_data_from_cache(get_exposures, 'prevalence', config.getint('simulation_parameters', 'location_id'), config.getint('simulation_parameters', 'year_start'), config.getint('simulation_parameters', 'year_end'), 166) 
 
         # STEAL THE TEST BELOW TO PUT INTO THE FUNCTION
         # "Pre-conditions check"
