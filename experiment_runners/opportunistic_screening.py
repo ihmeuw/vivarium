@@ -23,6 +23,9 @@ from ceam.modules.opportunistic_screening import OpportunisticScreeningModule, M
 
 from ceam.analysis import analyze_results, dump_results
 
+import logging
+_log = logging.getLogger(__name__)
+
 
 def make_hist(start, stop, step, name, data):
     data = data[~data.isnull()]
@@ -94,9 +97,6 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False, seed=100):
             all_metrics.append(metrics)
             metrics['duration'] = time()-start
             simulation.reset()
-            if verbose:
-                print('RUN:',run)
-                analyze_results(all_metrics)
     return pd.DataFrame(all_metrics)
 
 
@@ -110,15 +110,18 @@ def main():
     parser.add_argument('--detailed_sample_size', type=int, default=0, help='Number of simulants to track at highest level of detail. Resulting data will be writtent to --stats_path (or /tmp if --stats_path is ommited) as history_{instance_number}.hdf Within the hdf the group identifier will be {run number}/{True|False indicating whether the test modules were active')
     args = parser.parse_args()
 
+    if args.v:
+        logging.basicConfig(level=logging.DEBUG)
+        _log.debug('Enabling DEBUG logging')
+
     np.random.seed(args.seed)
     simulation = Simulation()
 
     screening_module = OpportunisticScreeningModule()
     modules = [
             screening_module,
-            #heart_disease_factory(),
-            simple_ihd_factory(),
-            #hemorrhagic_stroke_factory(),
+            heart_disease_factory(),
+            hemorrhagic_stroke_factory(),
             HealthcareAccessModule(),
             BloodPressureModule(),
             SmokingModule(),
@@ -144,7 +147,7 @@ def main():
         dump_results(results, os.path.join(args.stats_path, '%d_stats'%args.n))
 
     if not args.v:
-        analyze_results(results)
+        analyze_results([results])
 
 
 if __name__ == '__main__':

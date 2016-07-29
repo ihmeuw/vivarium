@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from scipy.stats import norm
 
+from ceam import config
 from ceam.engine import SimulationModule
 from ceam.events import only_living
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
@@ -37,19 +38,23 @@ class BloodPressureModule(SimulationModule):
             })
 
     def load_data(self, path_prefix):
-	
-	# we really need to determine where the SBP_dist.csv came from
+
+        # we really need to determine where the SBP_dist.csv came from
         # then we need to bring in load_data_from_cache to bring in the correct data
-	
+
         dists = pd.read_csv(os.path.join(path_prefix, 'SBP_dist.csv'))
         lookup_table = dists[dists.Parameter == 'sd'].merge(dists[dists.Parameter == 'mean'], on=['Age', 'Year', 'sex'])
         lookup_table.drop(['Parameter_x', 'Parameter_y'], axis=1, inplace=True)
         lookup_table.columns = ['age', 'year', 'std', 'sex', 'mean']
+        lookup_table['sex'] = lookup_table.sex.map({1:'Male', 2:'Female'}).astype('category')
+
+        year_start = config.getint('simulation_parameters', 'year_start')
+        year_end = config.getint('simulation_parameters', 'year_end')
         rows = []
         # NOTE: We treat simulants under 25 as having no risk associated with SBP so we aren't even modeling it for them
         for age in range(0, 25):
-            for year in range(1990, 2014):
-                for sex in [1, 2]:
+            for year in range(year_start, year_end+1):
+                for sex in ['Male', 'Female']:
                     rows.append([age, year, 0.0000001, sex, 112])
         lookup_table = lookup_table.append(pd.DataFrame(rows, columns=['age', 'year', 'std', 'sex', 'mean']))
         lookup_table.drop_duplicates(['year', 'age', 'sex'], inplace=True)

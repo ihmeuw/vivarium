@@ -40,13 +40,16 @@ class SmokingModule(SimulationModule):
     def load_data(self, path_prefix):
         # TODO: Where does prevalence data come from?
         # The exposure comes from the central comp get draws function (see Everett if there are other questions)
-        lookup_table = load_data_from_cache(get_exposures, 'prevalence', config.getint('simulation_parameters', 'location_id'), config.getint('simulation_parameters', 'year_start'), config.getint('simulation_parameters', 'year_end'), 166) 
+        year_start = config.getint('simulation_parameters', 'year_start')
+        year_end = config.getint('simulation_parameters', 'year_end')
+        lookup_table = load_data_from_cache(get_exposures, 'prevalence', config.getint('simulation_parameters', 'location_id'), year_start, year_end, 166) 
 
         # STEAL THE TEST BELOW TO PUT INTO THE FUNCTION
         # "Pre-conditions check"
+
         expected_rows = set((age, sex, year) for age in range(1, 104)
                             for sex in ['Male', 'Female']
-                            for year in range(1990, 2011))
+                            for year in range(year_start, year_end+1))
         missing_rows = expected_rows.difference(set(tuple(row)
                                                     for row in lookup_table[['age', 'sex', 'year']].values.tolist()))
         missing_rows = [(age, sex, year, 0) for age, sex, year in missing_rows]

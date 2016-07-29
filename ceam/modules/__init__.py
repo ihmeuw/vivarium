@@ -129,15 +129,32 @@ class LookupTable:
             if table is None:
                 continue
             table = table.rename(columns=lambda c: column_prefixer(c, _lookup_column_prefix(node)))
+            assert table.year.max() > 1990
             assert table.duplicated(['age', 'sex', 'year']).sum() == 0, "{0} has a lookup table with duplicate rows".format(node)
+            assert self._validate_table(table), '{} has a lookup table with missing rows'.format(node)
             if not table.empty:
                 if lookup_table is not None:
                     lookup_table = lookup_table.merge(table, on=['age', 'sex', 'year'], how='inner')
                 else:
                     lookup_table = table
 
+        lookup_table['sex'] = lookup_table.sex.astype('category')
+
         lookup_table['lookup_id'] = range(0, len(lookup_table))
         self.lookup_table = lookup_table
+
+    def _validate_table(self, table):
+        rows = []
+        start_year = config.getint('simulation_parameters', 'year_start')
+        end_year = config.getint('simulation_parameters', 'year_start')
+        for age in range(1, 104):
+            for year in range(start_year, end_year+1):
+                for sex in ['Male', 'Female']:
+                    rows.append([age, year, sex])
+        expected_index = pd.DataFrame(rows, columns=['age', 'year', 'sex']).set_index(['age', 'year', 'sex']).index
+        actual_index = table.set_index(['age', 'year', 'sex']).index
+
+        return len(expected_index.difference(actual_index)) == 0
 
     def lookup_columns(self, population, columns, node):
         origonal_columns = columns

@@ -18,6 +18,8 @@ from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
 from ceam.gbd_data.gbd_ms_functions import get_cause_deleted_mortality_rate
 from ceam.modules import ModuleRegistry, SimulationModule, LookupTable, ValueMutationNode, DisabilityWeightMixin
 
+import logging
+_log = logging.getLogger(__name__)
 
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
@@ -44,7 +46,7 @@ class BaseSimulationModule(SimulationModule):
                 config.getint('simulation_parameters', 'year_end'))
 
     def mortality_rates(self, population):
-        return self.lookup_columns(population, ['cause_deleted_mortality_rate_{i}'.format(i=config.getint('simulation_parameters','draw_number'))])['cause_deleted_mortality_rate_{i}'.format(i=config.getint('simulation_parameters','draw_number'))].values
+        return self.lookup_columns(population, ['cause_deleted_mortality_rate'])['cause_deleted_mortality_rate'].values
 
     @only_living
     def mortality_handler(self, event):
@@ -52,7 +54,7 @@ class BaseSimulationModule(SimulationModule):
         affected_population = filter_for_rate(event.affected_population, mortality_rate)
         if not affected_population.empty:
             self.simulation.population.loc[affected_population.index, 'alive'] = False
-            self.simulation.emit_event(PopulationEvent('deaths', affected_population))
+        self.simulation.emit_event(PopulationEvent('deaths', affected_population))
 
 
 class Simulation(Node, ModuleRegistry):
@@ -108,7 +110,7 @@ class Simulation(Node, ModuleRegistry):
         if not self.lookup_table.lookup_table.empty:
             if 'lookup_id' in self.population:
                 self.population.drop('lookup_id', 1, inplace=True)
-            population = self.population.merge(self.lookup_table[['year', 'age', 'sex', 'lookup_id']], on=['year', 'age', 'sex'])
+            population = self.population.merge(self.lookup_table.lookup_table[['year', 'age', 'sex', 'lookup_id']], on=['year', 'age', 'sex'])
             assert len(population) == len(self.population), "One of the lookup tables is missing rows or has duplicate rows"
             self.population = population
 
@@ -188,13 +190,14 @@ class Simulation(Node, ModuleRegistry):
         self._validate_value_nodes()
 
     def _prepare_step(self, time_step):
-        self.population['year_id'] = self.current_time.year
+        self.population['year'] = self.current_time.year
         self.population.loc[self.population.alive == True, 'fractional_age'] += time_step.days/365.0
         self.population['age'] = self.population.fractional_age.astype(int)
         self.index_population()
         self.last_time_step = time_step
 
     def _step(self, time_step):
+        _log.debug('Current time: %s', self.current_time)
         self._prepare_step(time_step)
 
         self.emit_event(PopulationEvent('time_step__continuous', self.population))

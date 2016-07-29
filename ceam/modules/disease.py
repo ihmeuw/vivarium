@@ -7,26 +7,14 @@ from functools import partial
 import pandas as pd
 import numpy as np
 
-from ceam import config
-
 from ceam.tree import Node
 from ceam.modules import LookupTableMixin, ValueMutationNode, DisabilityWeightMixin
 from ceam.events import only_living
 from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
-from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, get_modelable_entity_draws
+from ceam.gbd_data import get_excess_mortality, get_incidence
 
-
-def _rename_rate_column(table, col_name):
-    columns = []
-    for col in table.columns:
-        col = col.lower()
-        if col in ['age_id', 'sex_id', 'year_id', 'age', 'sex', 'year']:
-            columns.append(col.replace('_id', ''))
-        else:
-            columns.append(col_name)
-    return columns
 
 
 class DiseaseState(State, DisabilityWeightMixin, Node):
@@ -80,7 +68,7 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
         self.register_value_mutator(self.mortality_rates, 'mortality_rates')
 
     def load_data(self, prefix_path):
-        return load_data_from_cache(get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=9, me_id=self.modelable_entity_id)
+        return get_excess_mortality(self.modelable_entity_id)
 
     def mortality_rates(self, population, rates):
         return rates + self.lookup_columns(population, ['rate'])['rate'].values * (population[self.parent.condition] == self.state_id)
@@ -100,8 +88,7 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
         self.register_value_source(self.incidence_rates, 'incidence_rates', rate_label)
 
     def load_data(self, prefix_path):
-        # TODO: this is getting mortality instead
-        return load_data_from_cache(get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=6, me_id=self.modelable_entity_id)
+        return get_incidence(self.modelable_entity_id)
 
     def probability(self, agents):
         return rate_to_probability(self.root.incidence_rates(agents, self.rate_label))
