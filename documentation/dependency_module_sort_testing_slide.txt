@@ -1,0 +1,75 @@
+
+
+        Here is a typical "dependency tree" showing which modules depend upon which others.
+        In this example, all modules depend upon the same Base-Module.
+
+
+                                 GG
+                               /    \
+                             EE      FF
+                            /  \    /  \
+                           AA  BB  CC  DD
+                            \  |   |   /
+                            Base-Module
+
+
+
+        Here is the definition of module sorting order:.
+
+            class BaseModule(SimulationModule):
+                LEVEL = 0
+
+            class AModule(SimulationModule):
+                LEVEL = 1
+
+            class BModule(SimulationModule):
+                LEVEL = 1
+
+            class CModule(SimulationModule):
+                LEVEL = 1
+
+            class DModule(SimulationModule):
+                LEVEL = 1
+
+            class EModule(SimulationModule):
+                LEVEL = 2
+                DEPENDENCIES = (AModule, BModule)
+
+            class FModule(SimulationModule):
+                LEVEL = 2
+                DEPENDENCIES = (CModule, DModule)
+
+            class GModule(SimulationModule):
+                LEVEL = 3
+                DEPENDENCIES = (EModule, FModule)
+
+
+
+        Here is a test for module sorting correctness:
+
+            def test_big_sort_depth_first_with_base_module(self):
+                registry = ModuleRegistry(BaseModule)
+                module_a = AModule()
+                module_b = BModule()
+                module_c = CModule()
+                module_d = DModule()
+                module_e = EModule()
+                module_f = FModule()
+                module_g = GModule()
+                #
+                registry.register_modules([module_a, module_b, module_e, module_g])
+                output = registry._ordered_modules
+                #
+                self.assertIn(output, [[BaseModule, module_a, module_b, module_e, module_c, module_d, module_f, module_g],
+                                       [BaseModule, module_b, module_a, module_e, module_c, module_d, module_f, module_g],
+                                       [BaseModule, module_a, module_b, module_e, module_d, module_c, module_f, module_g],
+                                       [BaseModule, module_b, module_a, module_e, module_d, module_c, module_f, module_g],
+                                       [BaseModule, module_c, module_d, module_f, module_a, module_b, module_e, module_g],
+                                       [BaseModule, module_c, module_d, module_f, module_b, module_a, module_e, module_g],
+                                       [BaseModule, module_d, module_c, module_f, module_a, module_b, module_e, module_g],
+                                       [BaseModule, module_d, module_c, module_f, module_b, module_a, module_e, module_g]])
+
+        This function tests that the sorted modules are ordered as any one of the eight ordered lists specified above.
+        This is one of several tests that run automatically both once per day (at midnight) and whenever new program code
+        is checked into the repository.
+
