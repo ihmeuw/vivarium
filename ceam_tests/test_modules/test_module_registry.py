@@ -18,33 +18,38 @@ from ceam.engine import SimulationModule
 
 
 class BaseModule(SimulationModule):
-    pass
+    LEVEL = 0
 
 class AModule(SimulationModule):
-    pass
+    LEVEL = 1
 
 class BModule(SimulationModule):
-    pass
+    LEVEL = 1
 
 class CModule(SimulationModule):
-    pass
+    LEVEL = 1
 
 class DModule(SimulationModule):
-    pass
+    LEVEL = 1
 
 class EModule(SimulationModule):
+    LEVEL = 2
     DEPENDENCIES = (AModule, BModule)
 
 class FModule(SimulationModule):
+    LEVEL = 2
     DEPENDENCIES = (CModule, DModule)
 
 class GModule(SimulationModule):
+    LEVEL = 3
     DEPENDENCIES = (EModule, FModule)
 
 class HModule(SimulationModule):
+    LEVEL = 2
     DEPENDENCIES = (BModule, CModule)
 
 class IModule(SimulationModule):
+    LEVEL = 3
     DEPENDENCIES = (AModule, BModule, FModule)
 
 class TestModuleRegistry(Node, ModuleRegistry):

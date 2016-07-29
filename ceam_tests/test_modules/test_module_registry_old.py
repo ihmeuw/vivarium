@@ -35,6 +35,7 @@
 
 from unittest import TestCase
 
+from ceam.tree import Node
 from ceam.modules import ModuleRegistry, DependencyException
 from ceam.engine import SimulationModule
 
@@ -66,41 +67,52 @@ class GModule(SimulationModule):
     LEVEL = 3
     DEPENDENCIES = (EModule, FModule)
 
+class TestModuleRegistry(Node, ModuleRegistry):
+    pass
+
 
 class TestModuleRegistration(TestCase):
     def test_register(self):
-        registry = ModuleRegistry()
+        registry = TestModuleRegistry()
         #
         # Registered modules are actually added to the internal store.
-        registry.register_modules([AModule()])
+        registry.add_children([AModule()])
         self.assertSetEqual({m.__class__ for m in registry.modules}, {AModule})
         #
-        registry.register_modules([BModule()])
+        registry.add_children([BModule()])
         self.assertSetEqual({m.__class__ for m in registry.modules}, {AModule, BModule})
         #
         # Reregistering the same module is idempotent.
-        registry.register_modules([BModule()])
+        registry.add_children([BModule()])
         self.assertEqual(len(registry.modules), 2)
         #
         # Registering a module without it's dependencies implicitly registers those dependencies.
-        registry.register_modules([GModule()])
+        registry.add_children([GModule()])
         self.assertSetEqual({m.__class__ for m in registry.modules}, {AModule, BModule, CModule, DModule, EModule, FModule, GModule})
+
+    def insert_modules_in_order(self, output):
+        resultset = set()
+        for module in output:
+            self.assertNotIn(module, resultset)
+            for dependency in module.DEPENDENCIES:
+                self.assertIn(dependency, resultset)
+            resultset.add(module.__class__)
 
     # There is only a single test here since level-only and depth-first strictness are equivalent in this case.  Includes 2 levels only; no BaseModule.
     def test_small_sort_without_base_module(self):
-        registry = ModuleRegistry()
+        registry = TestModuleRegistry()
         module_a = AModule()
         module_b = BModule()
         module_e = EModule()
         #
-        registry.register_modules([module_a, module_b, module_e])
-        output = registry._ordered_modules
+        registry.add_children([module_a, module_b, module_e])
+        output = registry.modules
         #
-        self.assertListEqual(output, [module_a, module_b, module_e])
+        self.insert_modules_in_order(output)
 
     # The level-only test here is a less strict specification for the sort than the depth-first strictness requirement.  Includes 3 levels (lacking BaseModule).
     def test_big_sort_level_only_without_base_module(self):
-        registry = ModuleRegistry()
+        registry = TestModuleRegistry()
         module_a = AModule()
         module_b = BModule()
         module_c = CModule()
@@ -110,15 +122,15 @@ class TestModuleRegistration(TestCase):
         module_g = GModule()
         #
         # Note that modules C, D, and F are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of G.
-        registry.register_modules([module_a, module_b, module_e, module_g])
-        output = registry._ordered_modules
+        registry.add_children([module_a, module_b, module_e, module_g])
+        output = registry.modules
         levels = [cls.LEVEL for cls in output]
         #
         self.assertListEqual(levels, [1, 1, 1, 1, 2, 2, 3]
 
     # The depth-first strictness test here is a stricter specification for the sort than the level-only requirement.  Includes 3 levels (lacking BaseModule).
     def test_big_sort_depth_first_without_base_module(self):
-        registry = ModuleRegistry()
+        registry = TestModuleRegistry()
         module_a = AModule()
         module_b = BModule()
         module_c = CModule()
@@ -128,8 +140,8 @@ class TestModuleRegistration(TestCase):
         module_g = GModule()
         #
         # Note that modules C, D, and F are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of G.
-        registry.register_modules([module_a, module_b, module_e, module_g])
-        output = registry._ordered_modules
+        registry.add_children([module_a, module_b, module_e, module_g])
+        output = registry.modules
         #
         self.assertIn(output, [[module_a, module_b, module_e, module_c, module_d, module_f, module_g],
                                [module_b, module_a, module_e, module_c, module_d, module_f, module_g],
@@ -142,7 +154,7 @@ class TestModuleRegistration(TestCase):
 
     # The level-only test here is a less strict specification for the sort than the depth-first strictness requirement.  Includes 4 levels (including BaseModule).
     def test_big_sort_level_only_with_base_module(self):
-        registry = ModuleRegistry(BaseModule)
+        registry = TestModuleRegistry(BaseModule)
         module_a = AModule()
         module_b = BModule()
         module_c = CModule()
@@ -152,8 +164,8 @@ class TestModuleRegistration(TestCase):
         module_g = GModule()
         #
         # Note that modules C, D, and F are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of G.
-        registry.register_modules([module_a, module_b, module_e, module_g])
-        output = registry._ordered_modules
+        registry.add_children([module_a, module_b, module_e, module_g])
+        output = registry.modules
         levels = [cls.LEVEL for cls in output]
         #
         self.assertListEqual(levels, [0, 1, 1, 1, 1, 2, 2, 3]
@@ -168,7 +180,7 @@ class TestModuleRegistration(TestCase):
 
     # The depth-first strictness test here is a stricter specification for the sort than the level-only requirement.  Includes 4 levels (including BaseModule).
     def test_big_sort_depth_first_with_base_module(self):
-        registry = ModuleRegistry(BaseModule)
+        registry = TestModuleRegistry(BaseModule)
         module_a = AModule()
         module_b = BModule()
         module_c = CModule()
@@ -178,8 +190,8 @@ class TestModuleRegistration(TestCase):
         module_g = GModule()
         #
         # Note that modules C, D, and F are not registered EXPLICITLY but should be registered IMPLICITLY because they are dependencies of G.
-        registry.register_modules([module_a, module_b, module_e, module_g])
-        output = registry._ordered_modules
+        registry.add_children([module_a, module_b, module_e, module_g])
+        output = registry.modules
         #
         self.assertIn(output, [[BaseModule, module_a, module_b, module_e, module_c, module_d, module_f, module_g],
                                [BaseModule, module_b, module_a, module_e, module_c, module_d, module_f, module_g],
