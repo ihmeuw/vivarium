@@ -129,7 +129,6 @@ class LookupTable:
             if table is None:
                 continue
             table = table.rename(columns=lambda c: column_prefixer(c, _lookup_column_prefix(node)))
-            assert table.year.max() > 1990
             assert table.duplicated(['age', 'sex', 'year']).sum() == 0, "{0} has a lookup table with duplicate rows".format(node)
             assert self._validate_table(table), '{} has a lookup table with missing rows'.format(node)
             if not table.empty:

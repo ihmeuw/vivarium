@@ -167,7 +167,8 @@ class Simulation(Node, ModuleRegistry):
         for mutator in mutators:
             value = mutator(population, value)
             if fixed_length is not None:
-                assert len(value) == fixed_length, "%s is corrupting incidence rates"%mutator
+                assert len(value) == fixed_length, "{} is corrupting rates".format(mutator)
+                assert value.isnull().sum() ==0, "{} is corrupting rates".format(mutator)
         return value
 
     def mortality_rates(self, population):

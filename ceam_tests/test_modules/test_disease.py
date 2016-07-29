@@ -1,12 +1,12 @@
 # ~/ceam/ceam_tests/test_modules/test_disease.py
 
 import pytest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pandas as pd
 import numpy as np
 
-from ceam_tests.util import simulation_factory, pump_simulation
+from ceam_tests.util import simulation_factory, pump_simulation, build_table
 
 from ceam.util import from_yearly
 
@@ -35,11 +35,12 @@ def test_dwell_time():
     assert np.all(population.test_event_time == 20)
     assert np.all(population.test_event_count == 1)
 
-
-def test_mortality_rate():
+@patch('ceam.modules.disease.get_excess_mortality')
+def test_mortality_rate(mock_get_excess_mortality):
+    mock_get_excess_mortality.side_effect = lambda meid: build_table(0.7)
     module = DiseaseModule('test_disease')
     healthy = State('healthy')
-    mortality_state = ExcessMortalityState('sick', excess_mortality_table='mortality_0.7.csv', disability_weight=0.1)
+    mortality_state = ExcessMortalityState('sick', modelable_entity_id=0, disability_weight=0.1)
 
     healthy.transition_set.append(Transition(mortality_state))
 
@@ -56,12 +57,14 @@ def test_mortality_rate():
     assert np.all(((initial_mortality + from_yearly(0.7, simulation.last_time_step)).round(4) ==  simulation.mortality_rates(simulation.population).round(4)))
 
 
-def test_incidence():
+@patch('ceam.modules.disease.get_incidence')
+def test_incidence(mock_get_incidence):
+    mock_get_incidence.side_effect = lambda meid: build_table(0.7)
     module = DiseaseModule('test_disease')
     healthy = State('healthy')
     sick = State('sick')
 
-    healthy.transition_set.append(IncidenceRateTransition(sick, 'test_incidence', 'incidence_0.7.csv'))
+    healthy.transition_set.append(IncidenceRateTransition(sick, 'test_incidence', modelable_entity_id=0))
 
     module.states.extend([healthy, sick])
 
