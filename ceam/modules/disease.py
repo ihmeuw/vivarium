@@ -15,6 +15,7 @@ from ceam.events import only_living
 from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
+from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, get_modelable_entity_draws
 
 
 def _rename_rate_column(table, col_name):
@@ -79,13 +80,13 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
         self.register_value_mutator(self.mortality_rates, 'mortality_rates')
 
     def load_data(self, prefix_path):
-        return load_data_from_cache(get_modelable_entity_draws,config.getint('simulation_parameters', 'location_id'), config.getint('simulation_parameters', 'year_start'), config.getint('simulation_parameters', 'year_end'), 9, self.modelable_entity_id)
+        return load_data_from_cache(get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=9, me_id=self.modelable_entity_id)
 
     def mortality_rates(self, population, rates):
         return rates + self.lookup_columns(population, ['rate'])['rate'].values * (population[self.parent.condition] == self.state_id)
 
     def __str__(self):
-        return 'ExcessMortalityState("{0}" ...)'.format(self.state_id, self.excess_mortality_table)
+        return 'ExcessMortalityState("{}", "{}" ...)'.format(self.state_id, self.modelable_entity_id)
 
 
 class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationNode):
@@ -100,7 +101,7 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
 
     def load_data(self, prefix_path):
         # TODO: this is getting mortality instead
-        return load_data_from_cache(get_modelable_entity_draws,config.getint('simulation_parameters', 'location_id'), config.getint('simulation_parameters', 'year_start'), config.getint('simulation_parameters', 'year_end'), 9, self.modelable_entity_id)
+        return load_data_from_cache(get_modelable_entity_draws, 'rate', location_id=config.getint('simulation_parameters', 'location_id'), year_start=config.getint('simulation_parameters', 'year_start'), year_end=config.getint('simulation_parameters', 'year_end'), measure=6, me_id=self.modelable_entity_id)
 
     def probability(self, agents):
         return rate_to_probability(self.root.incidence_rates(agents, self.rate_label))
@@ -110,7 +111,7 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
         return pd.Series(self.lookup_columns(population, ['rate'])['rate'].values * mediation_factor, index=population.index)
 
     def __str__(self):
-        return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id, self.rate_label, self.incidence_rate_table)
+        return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id, self.rate_label, self.modelable_entity_id)
 
 
 class DiseaseModule(SimulationModule, Machine):

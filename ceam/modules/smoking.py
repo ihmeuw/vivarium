@@ -45,12 +45,14 @@ class SmokingModule(SimulationModule):
         # STEAL THE TEST BELOW TO PUT INTO THE FUNCTION
         # "Pre-conditions check"
         expected_rows = set((age, sex, year) for age in range(1, 104)
-                            for sex in [1, 2]
+                            for sex in ['Male', 'Female']
                             for year in range(1990, 2011))
         missing_rows = expected_rows.difference(set(tuple(row)
-                                                    for row in lookup_table[['age', 'sex_id', 'year_id']].values.tolist()))
+                                                    for row in lookup_table[['age', 'sex', 'year']].values.tolist()))
         missing_rows = [(age, sex, year, 0) for age, sex, year in missing_rows]
-        return lookup_table.append(pd.DataFrame(missing_rows, columns=['age', 'sex_id', 'year_id', 'prevalence']))
+        missing_rows = pd.DataFrame(missing_rows, columns=['age', 'sex', 'year', 'prevalence'])
+        missing_rows['sex'] = missing_rows.sex.astype('category')
+        return lookup_table.append(missing_rows)
 
     def incidence_rates(self, population, rates):
         smokers = population.smoking_susceptibility < self.lookup_columns(population, ['prevalence'])['prevalence']

@@ -46,10 +46,10 @@ def simple_ihd_factory():
 
     healthy = State('healthy')
     # TODO: disability weight for heart attack
-    heart_attack = ExcessMortalityState('heart_attack', disability_weight=0.439, dwell_time=timedelta(days=28), excess_mortality_table='mi_acute_excess_mortality.csv')
-    chronic_ihd = ExcessMortalityState('chronic_ihd', disability_weight=0.08, excess_mortality_table='ihd_mortality_rate.csv')
+    heart_attack = ExcessMortalityState('heart_attack', disability_weight=0.439, dwell_time=timedelta(days=28), modelable_entity_id=1814)
+    chronic_ihd = ExcessMortalityState('chronic_ihd', disability_weight=0.08, modelable_entity_id=1814)
 
-    heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', 'ihd_incidence_rates.csv')
+    heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', modelable_entity_id=1814)
     healthy.transition_set.append(heart_attack_transition)
 
     heart_attack.transition_set.append(Transition(chronic_ihd))
