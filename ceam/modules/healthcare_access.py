@@ -41,9 +41,12 @@ class HealthcareAccessModule(SimulationModule):
         male_utilization = config.getfloat('appointments', 'male_utilization_rate')
         female_utilization = config.getfloat('appointments', 'male_utilization_rate')
         rows = []
-        for year in range(1990, 2014):
+
+        start_year = config.getint('simulation_parameters', 'year_start')
+        end_year = config.getint('simulation_parameters', 'year_end')
+        for year in range(start_year, end_year+1):
             for age in range(1, 104):
-                for sex in [1, 2]:
+                for sex in ['Male', 'Female']:
                     rows.append([year, age, sex, male_utilization if sex == 1 else female_utilization])
         return pd.DataFrame(rows, columns=['year', 'age', 'sex', 'rate'])
 

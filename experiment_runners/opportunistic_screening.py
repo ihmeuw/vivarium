@@ -9,10 +9,11 @@ import argparse
 import pandas as pd
 import numpy as np
 
+from ceam import config
 from ceam.util import draw_count
 from ceam.engine import Simulation, SimulationModule
 from ceam.events import only_living, ConfigurationEvent
-from ceam.modules.disease_models import heart_disease_factory, hemorrhagic_stroke_factory
+from ceam.modules.disease_models import heart_disease_factory, hemorrhagic_stroke_factory, simple_ihd_factory
 from ceam.modules.healthcare_access import HealthcareAccessModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.smoking import SmokingModule
@@ -21,6 +22,9 @@ from ceam.modules.sample_history import SampleHistoryModule
 from ceam.modules.opportunistic_screening import OpportunisticScreeningModule, MEDICATIONS
 
 from ceam.analysis import analyze_results, dump_results
+
+import logging
+_log = logging.getLogger(__name__)
 
 
 def make_hist(start, stop, step, name, data):
@@ -38,14 +42,16 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False, seed=100):
         hemorrhagic_stroke_counts = [m['hemorrhagic_stroke_count'] for m in metrics]
         return dalys, cost, ihd_counts, hemorrhagic_stroke_counts
     all_metrics = []
+
+    start_time = datetime(config.getint('simulation_parameters', 'year_start'), 1, 1)
+    end_time = datetime(config.getint('simulation_parameters', 'year_end'), 12, 1)
+    time_step = timedelta(days=config.getfloat('simulation_parameters', 'time_step'))
     for run in range(runs):
         for intervention in [True, False]:
             if intervention:
                 test_modules[0].active = True
-                #simulation.add_children(test_modules)
             else:
                 test_modules[0].active = False
-                #simulation.remove_children(test_modules)
 
             simulation.emit_event(ConfigurationEvent('configure_run', {'run_number': run, 'tests_active': intervention}))
             start = time()
@@ -57,7 +63,7 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False, seed=100):
                 metrics[name] = count
 
             np.random.seed(seed)
-            simulation.run(datetime(1990, 1, 1), datetime(2010, 12, 1), timedelta(days=30.5))
+            simulation.run(start_time, end_time, time_step)
             metrics['draw_count'] = draw_count[0]
             draw_count[0] = 0
             for m in simulation.modules:
@@ -91,9 +97,6 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False, seed=100):
             all_metrics.append(metrics)
             metrics['duration'] = time()-start
             simulation.reset()
-            if verbose:
-                print('RUN:',run)
-                analyze_results([all_metrics])
     return pd.DataFrame(all_metrics)
 
 
@@ -103,11 +106,17 @@ def main():
     parser.add_argument('-n', type=int, default=1, help='Instance number for this process')
     parser.add_argument('-v', action='store_true', help='Verbose logging')
     parser.add_argument('--seed', type=int, default=100, help='Random seed to use for each run')
+    parser.add_argument('--draw', type=int, default=0, help='Which GBD draw to use')
     parser.add_argument('--stats_path', type=str, default=None, help='Output file directory. No file is written if this argument is missing')
     parser.add_argument('--detailed_sample_size', type=int, default=0, help='Number of simulants to track at highest level of detail. Resulting data will be writtent to --stats_path (or /tmp if --stats_path is ommited) as history_{instance_number}.hdf Within the hdf the group identifier will be {run number}/{True|False indicating whether the test modules were active')
     args = parser.parse_args()
 
+    if args.v:
+        logging.basicConfig(level=logging.DEBUG)
+        _log.debug('Enabling DEBUG logging')
+
     np.random.seed(args.seed)
+    config.set('run_configuration', 'draw_number', str(args.draw))
     simulation = Simulation()
 
     screening_module = OpportunisticScreeningModule()
@@ -139,8 +148,7 @@ def main():
     if args.stats_path:
         dump_results(results, os.path.join(args.stats_path, '%d_stats'%args.n))
 
-    if not args.v:
-        analyze_results([results])
+    analyze_results([results])
 
 
 if __name__ == '__main__':

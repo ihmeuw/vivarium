@@ -14,17 +14,17 @@ def heart_disease_factory():
     # TODO: This assumes a 30.5 day timestep which isn't guarenteed
     # TODO: This doesn't account for the fact that our timestep is longer than 28 days
     weight = 0.43*(2/30.5) + 0.07*(28/30.5)
-    heart_attack = ExcessMortalityState('heart_attack', disability_weight=weight, dwell_time=timedelta(days=28), excess_mortality_table='mi_acute_excess_mortality.csv')
+    heart_attack = ExcessMortalityState('heart_attack', disability_weight=weight, dwell_time=timedelta(days=28), modelable_entity_id=1814)
 
-    mild_heart_failure = ExcessMortalityState('mild_heart_failure', disability_weight=0.04, excess_mortality_table='ihd_mortality_rate.csv')
-    moderate_heart_failure = ExcessMortalityState('moderate_heart_failure', disability_weight=0.07, excess_mortality_table='ihd_mortality_rate.csv')
-    severe_heart_failure = ExcessMortalityState('severe_heart_failure', disability_weight=0.18, excess_mortality_table='ihd_mortality_rate.csv')
+    mild_heart_failure = ExcessMortalityState('mild_heart_failure', disability_weight=0.04, modelable_entity_id=2412)
+    moderate_heart_failure = ExcessMortalityState('moderate_heart_failure', disability_weight=0.07, modelable_entity_id=2412)
+    severe_heart_failure = ExcessMortalityState('severe_heart_failure', disability_weight=0.18, modelable_entity_id=2412)
 
-    angina = ExcessMortalityState('angina', disability_weight=0.08, excess_mortality_table='ihd_mortality_rate.csv')
+    angina = ExcessMortalityState('angina', disability_weight=0.08, modelable_entity_id=1817)
 
-    heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', 'ihd_incidence_rates.csv')
+    heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', modelable_entity_id=1814)
     healthy.transition_set.append(heart_attack_transition)
-    healthy.transition_set.append(IncidenceRateTransition(angina, 'non_mi_angina', 'non_mi_angina_incidence.csv'))
+    healthy.transition_set.append(IncidenceRateTransition(angina, 'non_mi_angina', modelable_entity_id=1814))
 
     heart_attack.transition_set.allow_null_transition=False
     heart_attack.transition_set.append(Transition(mild_heart_failure))
@@ -46,10 +46,10 @@ def simple_ihd_factory():
 
     healthy = State('healthy')
     # TODO: disability weight for heart attack
-    heart_attack = ExcessMortalityState('heart_attack', disability_weight=0.439, dwell_time=timedelta(days=28), excess_mortality_table='mi_acute_excess_mortality.csv')
-    chronic_ihd = ExcessMortalityState('chronic_ihd', disability_weight=0.08, excess_mortality_table='ihd_mortality_rate.csv')
+    heart_attack = ExcessMortalityState('heart_attack', disability_weight=0.439, dwell_time=timedelta(days=28), modelable_entity_id=1814)
+    chronic_ihd = ExcessMortalityState('chronic_ihd', disability_weight=0.08, modelable_entity_id=2412)
 
-    heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', 'ihd_incidence_rates.csv')
+    heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', modelable_entity_id=1814)
     healthy.transition_set.append(heart_attack_transition)
 
     heart_attack.transition_set.append(Transition(chronic_ihd))
@@ -66,10 +66,10 @@ def hemorrhagic_stroke_factory():
 
     healthy = State('healthy')
     # TODO: disability weight for stroke
-    stroke = ExcessMortalityState('hemorrhagic_stroke', disability_weight=0.32, dwell_time=timedelta(days=28), excess_mortality_table='acute_hem_stroke_excess_mortality.csv')
-    chronic_stroke = ExcessMortalityState('chronic_stroke', disability_weight=0.32, excess_mortality_table='chronic_hem_stroke_excess_mortality.csv')
+    stroke = ExcessMortalityState('hemorrhagic_stroke', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=9311)
+    chronic_stroke = ExcessMortalityState('chronic_stroke', disability_weight=0.32, modelable_entity_id=9312)
 
-    stroke_transition = IncidenceRateTransition(stroke, 'hemorrhagic_stroke', 'hem_stroke_incidence_rates.csv')
+    stroke_transition = IncidenceRateTransition(stroke, 'hemorrhagic_stroke', modelable_entity_id=9311)
     healthy.transition_set.append(stroke_transition)
 
     stroke.transition_set.append(Transition(chronic_stroke))

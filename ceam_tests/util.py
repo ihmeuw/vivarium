@@ -3,6 +3,7 @@
 import os.path
 from datetime import datetime, timedelta
 
+import pandas as pd
 import numpy as np
 
 import pytest
@@ -98,5 +99,15 @@ def pump_simulation(simulation, duration=None, iterations=None, dummy_population
         iteration_count += 1
         simulation._step(timestep)
 
+
+def build_table(rate):
+    rows = []
+    start_year = config.getint('simulation_parameters', 'year_start')
+    end_year = config.getint('simulation_parameters', 'year_start')
+    for age in range(1, 104):
+        for year in range(start_year, end_year+1):
+            for sex in ['Male', 'Female']:
+                rows.append([age, year, sex, rate])
+    return pd.DataFrame(rows, columns=['age', 'year', 'sex', 'rate'])
 
 # End.
