@@ -1,6 +1,11 @@
 # ~/ceam/ceam/util.py
 
+import warnings
+
+import pandas as pd
 import numpy as np
+
+from ceam import config
 
 
 def from_yearly(value, time_step):
@@ -18,8 +23,25 @@ def probability_to_rate(probability):
 def filter_for_rate(population, rate):
     return filter_for_probability(population, rate_to_probability(rate))
 
+draw_count = [0]
+def get_draw(population):
+    if 'simulation_parameters' in config and 'population_size' in config['simulation_parameters']:
+        count = config.getint('simulation_parameters', 'population_size')
+    else:
+        warnings.warn('Unknown global population size. Using supplied population instead.')
+        if population.empty:
+            count = 0
+        else:
+            count = population.index.max() + 1
+    draw = pd.Series(np.random.random(size=count))
+    # This assures that each index in the draw list is associated with the
+    # same simulant on every evocation
+    draw_count[0] += 1
+    return draw.reindex(population.simulant_id)
+
 def filter_for_probability(population, probability):
-    draw = np.random.random(size=len(population))
+    draw = get_draw(population)
+
     mask = draw < probability
     if not isinstance(mask, np.ndarray):
         # TODO: Something less awkward

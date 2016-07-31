@@ -50,7 +50,7 @@ def test_rate_to_probablity_vectorizability():
     assert round(np.sum(rate), 5) == round(np.sum(probability_to_rate(prob)), 5)
 
 def test_filter_for_probability():
-    pop = pd.DataFrame(dict(age=[0]*10000))
+    pop = pd.DataFrame(dict(age=[0]*10000, simulant_id=range(10000)))
 
     sub_pop = filter_for_probability(pop, 0.5)
     assert round(len(sub_pop)/len(pop), 1) == 0.5

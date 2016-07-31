@@ -7,25 +7,14 @@ from functools import partial
 import pandas as pd
 import numpy as np
 
-from ceam import config
-
 from ceam.tree import Node
 from ceam.modules import LookupTableMixin, ValueMutationNode, DisabilityWeightMixin
 from ceam.events import only_living
 from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
+from ceam.gbd_data import get_excess_mortality, get_incidence
 
-
-def _rename_rate_column(table, col_name):
-    columns = []
-    for col in table.columns:
-        col = col.lower()
-        if col in ['age', 'sex', 'year']:
-            columns.append(col)
-        else:
-            columns.append(col_name)
-    return columns
 
 
 class DiseaseState(State, DisabilityWeightMixin, Node):
@@ -70,42 +59,36 @@ class DiseaseState(State, DisabilityWeightMixin, Node):
 
 
 class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
-    def __init__(self, state_id, excess_mortality_table, **kwargs):
+    def __init__(self, state_id, modelable_entity_id, **kwargs):
         DiseaseState.__init__(self, state_id, **kwargs)
         ValueMutationNode.__init__(self)
 
-        self.excess_mortality_table = excess_mortality_table
+        self.modelable_entity_id = modelable_entity_id
 
         self.register_value_mutator(self.mortality_rates, 'mortality_rates')
 
     def load_data(self, prefix_path):
-        lookup_table = pd.read_csv(os.path.join(prefix_path, self.excess_mortality_table))
-        lookup_table.columns = _rename_rate_column(lookup_table, 'rate')
-        lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
-        return lookup_table
+        return get_excess_mortality(self.modelable_entity_id)
 
     def mortality_rates(self, population, rates):
         return rates + self.lookup_columns(population, ['rate'])['rate'].values * (population[self.parent.condition] == self.state_id)
 
     def __str__(self):
-        return 'ExcessMortalityState("{0}" ...)'.format(self.state_id, self.excess_mortality_table)
+        return 'ExcessMortalityState("{}", "{}" ...)'.format(self.state_id, self.modelable_entity_id)
 
 
 class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationNode):
-    def __init__(self, output, rate_label, incidence_rate_table):
+    def __init__(self, output, rate_label, modelable_entity_id):
         Transition.__init__(self, output, self.probability)
         Node.__init__(self)
         ValueMutationNode.__init__(self)
 
         self.rate_label = rate_label
-        self.incidence_rate_table = incidence_rate_table
+        self.modelable_entity_id = modelable_entity_id
         self.register_value_source(self.incidence_rates, 'incidence_rates', rate_label)
 
     def load_data(self, prefix_path):
-        lookup_table = pd.read_csv(os.path.join(prefix_path, self.incidence_rate_table))
-        lookup_table.columns = _rename_rate_column(lookup_table, 'rate')
-        lookup_table.drop_duplicates(['age', 'year', 'sex'], inplace=True)
-        return lookup_table
+        return get_incidence(self.modelable_entity_id)
 
     def probability(self, agents):
         return rate_to_probability(self.root.incidence_rates(agents, self.rate_label))
@@ -115,7 +98,7 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
         return pd.Series(self.lookup_columns(population, ['rate'])['rate'].values * mediation_factor, index=population.index)
 
     def __str__(self):
-        return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id, self.rate_label, self.incidence_rate_table)
+        return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id, self.rate_label, self.modelable_entity_id)
 
 
 class DiseaseModule(SimulationModule, Machine):
@@ -124,7 +107,7 @@ class DiseaseModule(SimulationModule, Machine):
         Machine.__init__(self, condition)
 
     def module_id(self):
-        return (self.__class__, self.state_column)
+        return str((self.__class__, self.state_column))
 
     @property
     def condition(self):
