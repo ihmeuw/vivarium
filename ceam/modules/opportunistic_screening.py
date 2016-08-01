@@ -39,19 +39,21 @@ MEDICATIONS = [
 
 
 def _hypertensive_categories(population):
+    hypertensive_threshold = config.getint('opportunistic_screening', 'hypertensive_threshold')
+    severe_hypertensive_threshold = config.getint('opportunistic_screening', 'severe_hypertensive_threshold')
     under_60 = population.age < 60
     over_60 = population.age >= 60
-    under_140 = population.systolic_blood_pressure < 140
-    under_150 = population.systolic_blood_pressure < 150
-    under_180 = population.systolic_blood_pressure < 180
+    under_hypertensive = population.systolic_blood_pressure < hypertensive_threshold
+    under_hypertensive_older = population.systolic_blood_pressure < hypertensive_threshold+10
+    under_severe_hypertensive = population.systolic_blood_pressure < severe_hypertensive_threshold
 
-    normotensive = under_60 & (under_140)
-    normotensive |= over_60 & (under_150)
+    normotensive = under_60 & (under_hypertensive)
+    normotensive |= over_60 & (under_hypertensive_older)
 
-    hypertensive = under_60 & (~under_140) & (under_180)
-    hypertensive |= over_60 & (~under_150) & (under_180)
+    hypertensive = under_60 & (~under_hypertensive) & (under_severe_hypertensive)
+    hypertensive |= over_60 & (~under_hypertensive_older) & (under_severe_hypertensive)
 
-    severe_hypertension = (~under_180)
+    severe_hypertension = (~under_severe_hypertensive)
 
     return (population.loc[normotensive], population.loc[hypertensive], population.loc[severe_hypertension])
 
@@ -60,7 +62,7 @@ class OpportunisticScreeningModule(SimulationModule):
     """
     Model an intervention where simulants have their blood pressure tested every time they access health care and are prescribed
     blood pressure reducing medication if they are found to be hypertensive. Each simulant can be prescribed up to
-    `len(MEDICATIONS)` drugs. If they are still hypertensive while taking all the drugs then there is no further treatment.
+    `config.getint('opportunistic_screening', 'max_medications')` drugs. If they are still hypertensive while taking all the drugs then there is no further treatment.
     """
 
     DEPENDENCIES = (BloodPressureModule, HealthcareAccessModule,)
@@ -73,6 +75,8 @@ class OpportunisticScreeningModule(SimulationModule):
         self.register_event_listener(self.general_blood_pressure_test, 'general_healthcare_access')
         self.register_event_listener(self.followup_blood_pressure_test, 'followup_healthcare_access')
         self.register_event_listener(self.adjust_blood_pressure, 'time_step__continuous')
+
+        assert config.getint('opportunistic_screening', 'max_medications') <= len(MEDICATIONS)
 
     def load_population_columns(self, path_prefix, population_size):
         #TODO: Some people will start out taking medications?
@@ -102,12 +106,16 @@ class OpportunisticScreeningModule(SimulationModule):
                 self.cost_by_year[self.simulation.current_time.year] += max(0, (supply_needed - supply_remaining).dt.days.sum()) * medication['daily_cost']
 
     def general_blood_pressure_test(self, event):
-        cost = len(event.affected_population) * config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
-        self.cost_by_year[self.simulation.current_time.year] += cost
-
         #TODO: Model blood pressure testing error
 
-        normotensive, hypertensive, severe_hypertension = _hypertensive_categories(event.affected_population)
+        minimum_age_to_screen = config.getint('opportunistic_screening', 'minimum_age_to_screen')
+        affected_population = event.affected_population.loc[event.affected_population.age >= minimum_age_to_screen]
+
+        cost = len(affected_population) * config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
+        self.cost_by_year[self.simulation.current_time.year] += cost
+
+
+        normotensive, hypertensive, severe_hypertension = _hypertensive_categories(affected_population)
 
         if self.active:
             # Normotensive simulants get a 60 month followup and no drugs
@@ -119,9 +127,9 @@ class OpportunisticScreeningModule(SimulationModule):
             # Severe hypertensive simulants get a 1 month followup and two drugs
             self.simulation.population.loc[severe_hypertension.index, 'healthcare_followup_date'] = self.simulation.current_time + timedelta(days=30.5*6)
 
-            self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension['medication_count'] + 2, len(MEDICATIONS))
+            self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension['medication_count'] + 2, config.getint('opportunistic_screening', 'max_medications'))
 
-        self._medication_costs(event.affected_population)
+        self._medication_costs(affected_population)
 
     def followup_blood_pressure_test(self, event):
         appointment_cost = config.getfloat('appointments', 'cost')
@@ -148,9 +156,9 @@ class OpportunisticScreeningModule(SimulationModule):
         follow_up = self.simulation.current_time + timedelta(days=30.5*6)
         if self.active:
             self.simulation.population.loc[hypertensive.index, 'healthcare_followup_date'] = follow_up
-            self.simulation.population.loc[hypertensive.index, 'medication_count'] = np.minimum(hypertensive['medication_count'] + 1, len(MEDICATIONS))
+            self.simulation.population.loc[hypertensive.index, 'medication_count'] = np.minimum(hypertensive['medication_count'] + 1, config.getint('opportunistic_screening', 'max_medications'))
             self.simulation.population.loc[severe_hypertension.index, 'healthcare_followup_date'] = follow_up
-            self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension.medication_count + 1, len(MEDICATIONS))
+            self.simulation.population.loc[severe_hypertension.index, 'medication_count'] = np.minimum(severe_hypertension.medication_count + 1, config.getint('opportunistic_screening', 'max_medications'))
 
         self._medication_costs(event.affected_population)
 
