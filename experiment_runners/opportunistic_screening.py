@@ -13,7 +13,7 @@ from ceam import config
 from ceam.util import draw_count
 from ceam.engine import Simulation, SimulationModule
 from ceam.events import only_living, ConfigurationEvent
-from ceam.modules.disease_models import heart_disease_factory, hemorrhagic_stroke_factory, simple_ihd_factory
+from ceam.modules.disease_models import heart_disease_factory, stroke_factory
 from ceam.modules.healthcare_access import HealthcareAccessModule
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.smoking import SmokingModule
@@ -123,7 +123,7 @@ def main():
     modules = [
             screening_module,
             heart_disease_factory(),
-            hemorrhagic_stroke_factory(),
+            stroke_factory(),
             HealthcareAccessModule(),
             BloodPressureModule(),
             SmokingModule(),

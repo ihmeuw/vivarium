@@ -61,22 +61,25 @@ def simple_ihd_factory():
     return module
 
 
-def hemorrhagic_stroke_factory():
+def stroke_factory():
     module = DiseaseModule('hemorrhagic_stroke')
 
     healthy = State('healthy')
     # TODO: disability weight for stroke
-    stroke = ExcessMortalityState('hemorrhagic_stroke', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=9311)
+    hemorrhagic_stroke = ExcessMortalityState('hemorrhagic_stroke', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=9311)
+    ischemic_stroke = ExcessMortalityState('ischemic_stroke', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=9310)
     chronic_stroke = ExcessMortalityState('chronic_stroke', disability_weight=0.32, modelable_entity_id=9312)
 
-    stroke_transition = IncidenceRateTransition(stroke, 'hemorrhagic_stroke', modelable_entity_id=9311)
-    healthy.transition_set.append(stroke_transition)
+    hemorrhagic_transition = IncidenceRateTransition(hemorrhagic_stroke, 'hemorrhagic_stroke', modelable_entity_id=9311)
+    ischemic_transition = IncidenceRateTransition(ischemic_stroke, 'ischemic_stroke', modelable_entity_id=9310)
+    healthy.transition_set.extend([hemorrhagic_transition, ischemic_transition])
 
-    stroke.transition_set.append(Transition(chronic_stroke))
+    hemorrhagic_stroke.transition_set.append(Transition(chronic_stroke))
+    ischemic_stroke.transition_set.append(Transition(chronic_stroke))
 
-    chronic_stroke.transition_set.append(stroke_transition)
+    chronic_stroke.transition_set.extend([hemorrhagic_transition, ischemic_transition])
 
-    module.states.extend([healthy, stroke, chronic_stroke])
+    module.states.extend([healthy, hemorrhagic_stroke, ischemic_stroke, chronic_stroke])
 
     return module
 
