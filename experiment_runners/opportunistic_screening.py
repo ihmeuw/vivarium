@@ -109,7 +109,11 @@ def main():
     parser.add_argument('--draw', type=int, default=0, help='Which GBD draw to use')
     parser.add_argument('--stats_path', type=str, default=None, help='Output file directory. No file is written if this argument is missing')
     parser.add_argument('--detailed_sample_size', type=int, default=0, help='Number of simulants to track at highest level of detail. Resulting data will be writtent to --stats_path (or /tmp if --stats_path is ommited) as history_{instance_number}.hdf Within the hdf the group identifier will be {run number}/{True|False indicating whether the test modules were active')
+    parser.add_argument('--config', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
     args = parser.parse_args()
+
+    if args.config:
+        config.read(args.config)
 
     if args.v:
         logging.basicConfig(level=logging.DEBUG)
