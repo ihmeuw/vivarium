@@ -5,10 +5,10 @@ import pytest
 from ceam_tests.util import simulation_factory, pump_simulation
 
 from ceam.modules.smoking import SmokingModule
-from ceam.modules.disease_models import simple_ihd_factory, hemorrhagic_stroke_factory
+from ceam.modules.disease_models import heart_disease_factory, stroke_factory
 
 
-@pytest.mark.parametrize('condition_module, rate_label', [(simple_ihd_factory(), 'heart_attack'), (hemorrhagic_stroke_factory(), 'hemorrhagic_stroke')])
+@pytest.mark.parametrize('condition_module, rate_label', [(heart_disease_factory(), 'heart_attack'), (stroke_factory(), 'hemorrhagic_stroke'), (stroke_factory(), 'ischemic_stroke'),])
 def test_incidence_rate_effect(condition_module, rate_label):
     smoking_module = SmokingModule()
     simulation = simulation_factory([smoking_module, condition_module])
