@@ -30,6 +30,7 @@ class BloodPressureModule(SimulationModule):
         self.incidence_mediation_factors['hemorrhagic_stroke'] = 0.3
         self.register_value_mutator(self.ihd_incidence_rates, 'incidence_rates', 'heart_attack')
         self.register_value_mutator(self.hemorrhagic_stroke_incidence_rates, 'incidence_rates', 'hemorrhagic_stroke')
+        self.register_value_mutator(self.ischemic_stroke_incidence_rates, 'incidence_rates', 'ischemic_stroke')
 
     def load_population_columns(self, path_prefix, population_size):
         return pd.DataFrame({
@@ -71,6 +72,11 @@ class BloodPressureModule(SimulationModule):
         return rates * blood_pressure_adjustment
 
     def hemorrhagic_stroke_incidence_rates(self, population, rates):
+        # TODO: get the real model for the effect of SBP on stroke from Reed
+        blood_pressure_adjustment = np.maximum(1.5**((population.systolic_blood_pressure - 112.5) / 10), 1)
+        return rates * blood_pressure_adjustment
+
+    def ischemic_stroke_incidence_rates(self, population, rates):
         # TODO: get the real model for the effect of SBP on stroke from Reed
         blood_pressure_adjustment = np.maximum(1.5**((population.systolic_blood_pressure - 112.5) / 10), 1)
         return rates * blood_pressure_adjustment

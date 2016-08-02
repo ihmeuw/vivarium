@@ -7,7 +7,7 @@ import pandas as pd
 from ceam import config
 from ceam.engine import SimulationModule
 from ceam.events import PopulationEvent, only_living
-from ceam.util import filter_for_rate, filter_for_probability, from_yearly
+from ceam.util import filter_for_rate, filter_for_probability, from_yearly, get_draw
 
 
 class HealthcareAccessModule(SimulationModule):
@@ -60,7 +60,13 @@ class HealthcareAccessModule(SimulationModule):
     @only_living
     def followup_access(self, event):
         affected_population = event.affected_population.loc[(event.affected_population.healthcare_followup_date > self.simulation.current_time-self.simulation.last_time_step) & (event.affected_population.healthcare_followup_date <= self.simulation.current_time)]
-        affected_population = filter_for_probability(affected_population, config.getfloat('appointments', 'adherence'))
+
+        adherence = pd.Series(1, index=affected_population.index)
+        adherence[affected_population.adherence_category == 'non-adherent'] = 0
+        semi_adherents = affected_population.loc[affected_population.adherence_category == 'semi-adherent']
+        adherence[semi_adherents.index] = 0.4*get_draw(semi_adherents)
+
+        affected_population = filter_for_probability(affected_population, adherence)
 
         # TODO: Cost will probably need to be much more complex.
         self.cost_by_year[self.simulation.current_time.year] += len(affected_population) * config.getfloat('appointments', 'cost')

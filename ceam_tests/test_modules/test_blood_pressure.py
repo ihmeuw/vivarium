@@ -6,7 +6,7 @@ from datetime import timedelta
 from ceam_tests.util import simulation_factory, pump_simulation
 
 from ceam.modules.blood_pressure import BloodPressureModule
-from ceam.modules.disease_models import simple_ihd_factory, hemorrhagic_stroke_factory
+from ceam.modules.disease_models import heart_disease_factory, stroke_factory
 import numpy as np
 
 np.random.seed(100)
@@ -34,7 +34,7 @@ def test_basic_SBP_bounds():
     assert ((simulation.population.systolic_blood_pressure > (sbp_mean+interval)) | ( simulation.population.systolic_blood_pressure < (sbp_mean-interval))).sum() == 0
 
 
-@pytest.mark.parametrize('condition_module, rate_label', [(simple_ihd_factory(), 'heart_attack'), (hemorrhagic_stroke_factory(), 'hemorrhagic_stroke')])
+@pytest.mark.parametrize('condition_module, rate_label', [(heart_disease_factory(), 'heart_attack'), (stroke_factory(), 'hemorrhagic_stroke'), (stroke_factory(), 'ischemic_stroke'), ])
 @pytest.mark.slow
 def test_blood_pressure_effect_on_incidince(condition_module, rate_label):
     bp_module = BloodPressureModule()
