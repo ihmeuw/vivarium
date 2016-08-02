@@ -81,6 +81,11 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False, seed=100):
             for name, count in make_hist(110, 180, 10, 'sbp', simulation.population.systolic_blood_pressure):
                 metrics[name] = count
 
+            living_simulants = simulation.population[simulation.population.alive]
+            metrics['mean_sbp'] = living_simulants.systolic_blood_pressure.mean()
+            metrics['treated_mean_sbp'] = living_simulants[living_simulants.medication_count > 0].systolic_blood_pressure.mean()
+            metrics['treated_count'] = (living_simulants.medication_count > 0).sum()
+
             for i, medication in enumerate(MEDICATIONS):
                 if intervention:
                     metrics[medication['name']] = (simulation.population.medication_count > i).sum()
