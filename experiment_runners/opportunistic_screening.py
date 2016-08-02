@@ -49,8 +49,11 @@ def run_comparisons(simulation, test_modules, runs=10, verbose=False, seed=100):
     for run in range(runs):
         for intervention in [True, False]:
             if intervention:
+                _log.debug('Starting intervention run')
                 test_modules[0].active = True
             else:
+                _log.debug('Starting non-intervention run')
+                test_modules[0].active = True
                 test_modules[0].active = False
 
             simulation.emit_event(ConfigurationEvent('configure_run', {'run_number': run, 'tests_active': intervention}))

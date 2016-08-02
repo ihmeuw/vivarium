@@ -66,17 +66,21 @@ def test_drug_effects():
 
     # Now everyone is on the first drug
     simulation.population['medication_count'] = 1
+    for medication in MEDICATIONS:
+        simulation.population[medication['name']+'_supplied_until'] = simulation.current_time
     module.adjust_blood_pressure(PopulationEvent('time_step', simulation.population))
-    assert (starting_sbp[simulation.population.drug_adherence == 1] > simulation.population.systolic_blood_pressure[simulation.population.drug_adherence == 1]).all()
-    efficacy = MEDICATIONS[0]['efficacy'] * simulation.population.drug_adherence
-    assert (starting_sbp == (simulation.population.systolic_blood_pressure + efficacy)).all()
+    assert (starting_sbp[simulation.population.adherence_category == 'adherent'] > simulation.population.systolic_blood_pressure[simulation.population.adherence_category == 'adherent']).all()
+    efficacy = MEDICATIONS[0]['efficacy']
+    adherent_population = simulation.population[simulation.population.adherence_category == 'adherent']
+    assert (starting_sbp[adherent_population.index] == (adherent_population.systolic_blood_pressure + efficacy)).all()
 
     # Now everyone is on the first three drugs
     simulation.population['medication_count'] = 3
     simulation.population.systolic_blood_pressure = starting_sbp
     module.adjust_blood_pressure(PopulationEvent('time_step', simulation.population))
-    efficacy = sum(m['efficacy'] * simulation.population.drug_adherence for m in MEDICATIONS[:3])
-    assert (starting_sbp.round() == (simulation.population.systolic_blood_pressure + efficacy).round()).all()
+    efficacy = sum(m['efficacy'] for m in MEDICATIONS[:3])
+    adherent_population = simulation.population[simulation.population.adherence_category == 'adherent']
+    assert (starting_sbp[adherent_population.index].round() == (adherent_population.systolic_blood_pressure + efficacy).round()).all()
 
 
 def test_dependencies():
