@@ -34,7 +34,8 @@ def difference_with_confidence(a, b):
 
 def analyze_results_to_df(results):
     mixed_results = pd.DataFrame()
-    for r in results:
+    for i, r in enumerate(results):
+        r['iteration'] = i
         mixed_results = mixed_results.append(r)
 
     intervention = mixed_results[mixed_results.intervention == True].reset_index(drop=True)
@@ -81,7 +82,7 @@ def analyze_results_to_df(results):
             'Treated Individuals (intervention)': intervention.treated_individuals,
             }
     data = {k:[np.mean(v)] for k,v in data.items()}
-    return pd.DataFrame(data)
+    return mixed_results, pd.DataFrame(data)
 
 
 def analyze_results(results):
@@ -152,7 +153,7 @@ def dump_results(results, path):
 
 def load_results(paths):
     results = []
-    for path in paths:
+    for path in sorted(paths):
         results.append(pd.read_csv(path))
     return results
 
