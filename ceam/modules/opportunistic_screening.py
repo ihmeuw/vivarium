@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from ceam import config
+from ceam.util import get_draw
 from ceam.engine import SimulationModule
 from ceam.events import only_living
 from ceam.modules.blood_pressure import BloodPressureModule
@@ -80,9 +81,7 @@ class OpportunisticScreeningModule(SimulationModule):
 
     def load_population_columns(self, path_prefix, population_size):
         #TODO: Some people will start out taking medications?
-        adherence = config.getfloat('opportunistic_screening', 'adherence')
-        population = pd.DataFrame({'drug_adherence': np.random.choice([1, 0], p=[adherence, 1-adherence], size=population_size)})
-        population['medication_count'] = np.zeros(population_size)
+        population = pd.DataFrame({'medication_count': np.zeros(population_size)})
         for medication in MEDICATIONS:
             population[medication['name']+'_supplied_until'] = pd.NaT
         return population
@@ -165,8 +164,13 @@ class OpportunisticScreeningModule(SimulationModule):
     @only_living
     def adjust_blood_pressure(self, event):
         for medication_number, medication in enumerate(MEDICATIONS):
-            affected_population = event.affected_population[event.affected_population.medication_count > medication_number]
-            medication_efficacy = medication['efficacy'] * event.affected_population.drug_adherence
+            affected_population = event.affected_population[(event.affected_population.medication_count > medication_number) & (event.affected_population[medication['name']+'_supplied_until'] >= self.simulation.current_time)]
+            adherence = pd.Series(1, index=affected_population.index)
+            adherence[affected_population.adherence_category == 'non-adherent'] = 0
+            semi_adherents = affected_population.loc[affected_population.adherence_category == 'semi-adherent']
+            adherence[semi_adherents.index] = 0.4*get_draw(semi_adherents)
+
+            medication_efficacy = medication['efficacy'] * adherence
             if self.active:
                 self.simulation.population.loc[affected_population.index, 'systolic_blood_pressure'] -= medication_efficacy
 
