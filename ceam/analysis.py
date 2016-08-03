@@ -32,6 +32,59 @@ def difference_with_confidence(a, b):
     return int(mean_diff), int(mean_diff-interval), int(mean_diff+interval)
 
 
+def analyze_results_to_df(results):
+    mixed_results = pd.DataFrame()
+    for i, r in enumerate(results):
+        r['iteration'] = i
+        mixed_results = mixed_results.append(r)
+
+    intervention = mixed_results[mixed_results.intervention == True].reset_index(drop=True)
+    non_intervention = mixed_results[mixed_results.intervention == False].reset_index(drop=True)
+
+    i_dalys = intervention.ylds + intervention.ylls
+    ni_dalys = non_intervention.ylds + non_intervention.ylls
+
+    i_dalys.index = range(len(i_dalys))
+    ni_dalys.index = range(len(i_dalys))
+    non_intervention.intervention_cost.index = range(len(i_dalys))
+    intervention.intervention_cost.index = range(len(i_dalys))
+
+    dalys_averted = []
+    ylds_averted = []
+    ylls_averted = []
+    for r in results:
+        lintervention = r[r.intervention == True].reset_index(drop=True)
+        lnon_intervention = r[r.intervention == False].reset_index(drop=True)
+        dalys_averted.extend((lnon_intervention.ylds + lnon_intervention.ylls) - (lintervention.ylds + lintervention.ylls))
+        ylls_averted.extend((lnon_intervention.ylls) - (lintervention.ylls))
+        ylds_averted.extend((lnon_intervention.ylds) - (lintervention.ylds))
+
+    data = {
+            'DALYs (non-intervention)': ni_dalys,
+            'DALYs (intervention)': i_dalys,
+            'DALYs averted': dalys_averted,
+            'YLLs averted': ylls_averted,
+            'YLDs averted': ylds_averted,
+            'Total Cost (non-intervention)': non_intervention.intervention_cost,
+            'Total Cost (intervention)': intervention.intervention_cost,
+            'Change in Cost': intervention.intervention_cost - non_intervention.intervention_cost,
+            'Cost per DALY averted': (intervention.intervention_cost - non_intervention.intervention_cost)/(dalys_averted),
+            'IHD Count (non-intervention)': non_intervention.ihd_count,
+            'IHD Count (intervention)': intervention.ihd_count,
+            'Stroke Count (non-intervention)': non_intervention.hemorrhagic_stroke_count,
+            'Stroke Count (intervention)': intervention.hemorrhagic_stroke_count,
+            'Healthcare per year (non-intervention)': (non_intervention.general_healthcare_access+non_intervention.followup_healthcare_access)/20,
+            'Healthcare per year (non-intervention): General': (non_intervention.general_healthcare_access)/20,
+            'Healthcare per year (non-intervention): Followup': (non_intervention.followup_healthcare_access)/20,
+            'Healthcare per year (intervention)': (intervention.general_healthcare_access+intervention.followup_healthcare_access)/20,
+            'Healthcare per year (intervention): General': (intervention.general_healthcare_access)/20,
+            'Healthcare per year (intervention): Followup': (intervention.followup_healthcare_access)/20,
+            'Treated Individuals (intervention)': intervention.treated_individuals,
+            }
+    data = {k:[np.mean(v)] for k,v in data.items()}
+    return mixed_results, pd.DataFrame(data)
+
+
 def analyze_results(results):
     mixed_results = pd.DataFrame()
     for r in results:
@@ -58,6 +111,7 @@ def analyze_results(results):
         ylls_averted.extend((lnon_intervention.ylls) - (lintervention.ylls))
         ylds_averted.extend((lnon_intervention.ylds) - (lintervention.ylds))
 
+    
     print(
 """
  Total runs: {runs}
@@ -99,7 +153,7 @@ def dump_results(results, path):
 
 def load_results(paths):
     results = []
-    for path in paths:
+    for path in sorted(paths):
         results.append(pd.read_csv(path))
     return results
 

@@ -33,6 +33,7 @@ class SmokingModule(SimulationModule):
         self.incidence_mediation_factors['heart_attack'] = paf_smok * (1 - self.mediation_factor)
         self.register_value_mutator(self.incidence_rates, 'incidence_rates', 'heart_attack')
         self.register_value_mutator(self.incidence_rates, 'incidence_rates', 'hemorrhagic_stroke')
+        self.register_value_mutator(self.incidence_rates, 'incidence_rates', 'ischemic_stroke')
 
     def load_population_columns(self, path_prefix, population_size):
         return pd.DataFrame(np.random.uniform(low=0.01, high=0.99, size=population_size), columns=['smoking_susceptibility'])

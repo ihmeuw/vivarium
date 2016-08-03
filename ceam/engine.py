@@ -36,6 +36,8 @@ class BaseSimulationModule(SimulationModule):
         population_columns['sex'] = population_columns['sex'].map({1: 'Male', 2: 'Female'}).astype('category')
         population_columns['alive'] = np.full(len(population_columns), True, dtype=bool)
         population_columns['simulant_id'] = range(0, len(population_columns))
+        population_columns['adherence_category'] = np.random.choice(['adherent', 'semi-adherent', 'non-adherent'], p=[0.6, 0.25, 0.15], size=len(population_columns))
+        population_columns['adherence_category'] = population_columns['adherence_category'].astype('category')
         return population_columns
 
     def load_data(self, path_prefix):
