@@ -7,6 +7,7 @@ from functools import partial
 import pandas as pd
 import numpy as np
 
+from ceam import config
 from ceam.tree import Node
 from ceam.modules import LookupTableMixin, ValueMutationNode, DisabilityWeightMixin
 from ceam.events import only_living
@@ -14,6 +15,7 @@ from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
 from ceam.gbd_data import get_excess_mortality, get_incidence
+from ceam.gbd_data.gbd_ms_functions import generate_ceam_population, load_data_from_cache, assign_cause_at_beginning_of_simulation
 
 
 
@@ -135,7 +137,18 @@ class DiseaseModule(SimulationModule, Machine):
     def load_population_columns(self, path_prefix, population_size):
         # TODO: Load real data and integrate with state machine
         state_id_length = max(len(state.state_id) for state in self.states)
-        population_columns = pd.DataFrame(np.full(population_size, 'healthy', dtype='<U{0}'.format(state_id_length)), columns=[self.condition])
+        
+        location_id = config.getint('simulation_parameters', 'location_id')
+        year_start = config.getint('simulation_parameters', 'year_start')
+
+        state_map = {s.state_id:s.modelable_entity_id for s in self.all_decendents(of_type=DiseaseState, with_attr='modelable_entity_id')}
+
+        condition_column = assign_cause_at_beginning_of_simulation(simulants_df=self.simulation.population, location_id=location_id, year_start=year_start, states=state_map)
+
+        population = self.simulation.population.merge(condition_column, on='simulant_id')
+        
+        population_columns = pd.DataFrame()
+        population_columns[self.condition] = population['condition_state'].fillna('healthy')
         return population_columns
 
 
