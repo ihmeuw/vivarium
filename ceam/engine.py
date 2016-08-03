@@ -16,6 +16,8 @@ from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, Event, only_living
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
 from ceam.gbd_data.gbd_ms_functions import get_cause_deleted_mortality_rate
+from ceam.gbd_data.gbd_ms_functions import generate_ceam_population, load_data_from_cache, assign_cause_at_beginning_of_simulation
+
 from ceam.modules import ModuleRegistry, SimulationModule, LookupTable, ValueMutationNode, DisabilityWeightMixin
 
 import logging
@@ -30,15 +32,18 @@ class BaseSimulationModule(SimulationModule):
         self.register_value_source(self.mortality_rates, 'mortality_rates')
 
     def load_population_columns(self, path_prefix, population_size):
-        population_columns = pd.read_csv(os.path.join(path_prefix, 'age.csv'))
-        population_columns = population_columns.assign(fractional_age=population_columns.age.astype(float))
-        population_columns = population_columns.join(pd.read_csv(os.path.join(path_prefix, 'sex.csv')))
-        population_columns['sex'] = population_columns['sex'].map({1: 'Male', 2: 'Female'}).astype('category')
-        population_columns['alive'] = np.full(len(population_columns), True, dtype=bool)
-        population_columns['simulant_id'] = range(0, len(population_columns))
-        population_columns['adherence_category'] = np.random.choice(['adherent', 'semi-adherent', 'non-adherent'], p=[0.6, 0.25, 0.15], size=len(population_columns))
-        population_columns['adherence_category'] = population_columns['adherence_category'].astype('category')
-        return population_columns
+        population_size = config.getint('simulation_parameters', 'population_size')
+        location_id = config.getint('simulation_parameters', 'location_id')
+        year_start = config.getint('simulation_parameters', 'year_start')
+        population = load_data_from_cache(generate_ceam_population, col_name=None, location_id=location_id, year_start=year_start, number_of_simulants=population_size)
+
+        population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'}).astype('category')
+        population['alive'] = True
+        population['fractional_age'] = population.age
+
+        population['adherence_category'] = np.random.choice(['adherent', 'semi-adherent', 'non-adherent'], p=[0.6, 0.25, 0.15], size=population_size)
+        population['adherence_category'] = population['adherence_category'].astype('category')
+        return population
 
     def load_data(self, path_prefix):
         return load_data_from_cache(get_cause_deleted_mortality_rate, \
@@ -87,6 +92,7 @@ class Simulation(Node, ModuleRegistry):
         #NOTE: This will always be BaseSimulationModule which loads the core population definition and thus can discover what the population size is
         loader = loaders[0]
         population = [loader.load_population_columns(path_prefix, 0)]
+        self.population = population[0]
         population_size = len(population[0])
 
         for loader in loaders[1:]:
