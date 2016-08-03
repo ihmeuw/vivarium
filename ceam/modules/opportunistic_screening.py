@@ -95,7 +95,7 @@ class OpportunisticScreeningModule(SimulationModule):
                 supply_remaining = supply_remaining.fillna(pd.Timedelta(days=0))
                 supply_remaining.loc[supply_remaining < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
 
-                supply_needed = affected_population['healthcare_followup_date'] - current_time
+                supply_needed = self.simulation.population.loc[affected_population.index, 'healthcare_followup_date'] - current_time
                 supply_needed.fillna(pd.Timedelta(days=0))
                 supply_needed.loc[supply_needed < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
 
@@ -164,11 +164,11 @@ class OpportunisticScreeningModule(SimulationModule):
     @only_living
     def adjust_blood_pressure(self, event):
         for medication_number, medication in enumerate(MEDICATIONS):
-            affected_population = event.affected_population[(event.affected_population.medication_count > medication_number) & (event.affected_population[medication['name']+'_supplied_until'] >= self.simulation.current_time)]
+            affected_population = event.affected_population[(event.affected_population.medication_count > medication_number) & (event.affected_population[medication['name']+'_supplied_until'] >= self.simulation.current_time - self.simulation.last_time_step)]
             adherence = pd.Series(1, index=affected_population.index)
             adherence[affected_population.adherence_category == 'non-adherent'] = 0
             semi_adherents = affected_population.loc[affected_population.adherence_category == 'semi-adherent']
-            adherence[semi_adherents.index] = 0.4*get_draw(semi_adherents)
+            adherence[semi_adherents.index] = 0.4
 
             medication_efficacy = medication['efficacy'] * adherence
             if self.active:
