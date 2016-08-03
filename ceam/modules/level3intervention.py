@@ -30,7 +30,8 @@ class Level3InterventionModule(SimulationModule):
         # for i in range(len(rates)):
         #     rates[i] *= 1.0 - ( ((population.year.iat[i] >= 1995) & (population.age.iat[i] >= 25)) * 0.5 )
         #
-        # Vectorized version: the multiplication by 1.0 if conditions eval to False or by 0.5 if conditions eval to True is vectorized (performed on EACH member of the vector "rates").
+        # Vectorized version: the multiplication by 1.0 if conditions evaluate to False or by 0.5 if conditions evaluate to True
+        # is vectorized (performed on EACH member of the vector "rates").
         rates *= 1.0 - ( ((population.year >= 1995) & (population.age >= 25)) * 0.5 )
         #
         return rates
