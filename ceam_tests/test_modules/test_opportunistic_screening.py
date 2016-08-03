@@ -73,6 +73,10 @@ def test_drug_effects():
     efficacy = MEDICATIONS[0]['efficacy']
     adherent_population = simulation.population[simulation.population.adherence_category == 'adherent']
     assert (starting_sbp[adherent_population.index] == (adherent_population.systolic_blood_pressure + efficacy)).all()
+    non_adherent_population = simulation.population[simulation.population.adherence_category == 'non-adherent']
+    assert (starting_sbp[non_adherent_population.index] == non_adherent_population.systolic_blood_pressure).all()
+    semi_adherent_population = simulation.population[simulation.population.adherence_category == 'semi-adherent']
+    assert (starting_sbp[semi_adherent_population.index] == (semi_adherent_population.systolic_blood_pressure + efficacy*0.4)).all()
 
     # Now everyone is on the first three drugs
     simulation.population['medication_count'] = 3
@@ -81,6 +85,10 @@ def test_drug_effects():
     efficacy = sum(m['efficacy'] for m in MEDICATIONS[:3])
     adherent_population = simulation.population[simulation.population.adherence_category == 'adherent']
     assert (starting_sbp[adherent_population.index].round() == (adherent_population.systolic_blood_pressure + efficacy).round()).all()
+    non_adherent_population = simulation.population[simulation.population.adherence_category == 'non-adherent']
+    assert (starting_sbp[non_adherent_population.index] == non_adherent_population.systolic_blood_pressure).all()
+    semi_adherent_population = simulation.population[simulation.population.adherence_category == 'semi-adherent']
+    assert (starting_sbp[semi_adherent_population.index].round(4) == (semi_adherent_population.systolic_blood_pressure + efficacy*0.4).round(4)).all()
 
 
 def test_dependencies():
