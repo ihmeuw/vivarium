@@ -67,6 +67,8 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
 
         self.modelable_entity_id = modelable_entity_id
         if prevalence_meid:
+            # We may be calculating initial prevalence based on a different
+            # modelable_entity_id than we use for the mortality rate
             self.prevalence_meid = prevalence_meid
         else:
             self.prevalence_meid = modelable_entity_id
