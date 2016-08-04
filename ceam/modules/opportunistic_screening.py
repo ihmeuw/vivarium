@@ -12,7 +12,7 @@ from ceam.engine import SimulationModule
 from ceam.events import only_living
 from ceam.modules.blood_pressure import BloodPressureModule
 from ceam.modules.healthcare_access import HealthcareAccessModule
-
+import ceam.modules.healthcare_access
 
 #TODO: This feels like configuration but is difficult to express in ini type files.
 MEDICATIONS = [
@@ -68,6 +68,11 @@ class OpportunisticScreeningModule(SimulationModule):
     Model an intervention where simulants have their blood pressure tested every time they access health care and are prescribed
     blood pressure reducing medication if they are found to be hypertensive. Each simulant can be prescribed up to
     `config.getint('opportunistic_screening', 'max_medications')` drugs. If they are still hypertensive while taking all the drugs then there is no further treatment.
+
+    Population Columns
+    ------------------
+    medication_count : int
+    MEDICATION_supplied_until : pd.Timestamp
     """
 
     DEPENDENCIES = (BloodPressureModule, HealthcareAccessModule,)
@@ -87,11 +92,15 @@ class OpportunisticScreeningModule(SimulationModule):
         
 
     def setup(self):
-        self.register_event_listener(self.general_blood_pressure_test, 'general_healthcare_access')
-        self.register_event_listener(self.followup_blood_pressure_test, 'followup_healthcare_access')
+         # time_step__continuous happens first, and SBP needs to be
+         # updated before everything else which runs during time_step
         self.register_event_listener(self.adjust_blood_pressure, 'time_step__continuous')
 
-        assert config.getint('opportunistic_screening', 'max_medications') <= len(MEDICATIONS)
+        # *_healthcare_access is emitted by HealthcareAccessModule
+        self.register_event_listener(self.general_blood_pressure_test, 'general_healthcare_access') 
+        self.register_event_listener(self.followup_blood_pressure_test, 'followup_healthcare_access')
+
+        assert config.getint('opportunistic_screening', 'max_medications') <= len(MEDICATIONS), 'cannot model more medications than we have data for'
 
     def load_population_columns(self, path_prefix, population_size):
         #TODO: Some people will start out taking medications?
@@ -107,11 +116,11 @@ class OpportunisticScreeningModule(SimulationModule):
             if not affected_population.empty:
                 supply_remaining = affected_population[medication['name']+'_supplied_until'] - current_time
                 supply_remaining = supply_remaining.fillna(pd.Timedelta(days=0))
-                supply_remaining.loc[supply_remaining < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
+                supply_remaining[supply_remaining < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
 
                 supply_needed = self.simulation.population.loc[affected_population.index, 'healthcare_followup_date'] - current_time
-                supply_needed.fillna(pd.Timedelta(days=0))
-                supply_needed.loc[supply_needed < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
+                supply_needed = supply_needed.fillna(pd.Timedelta(days=0))
+                supply_needed[supply_needed < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
 
                 supplied_until = current_time + pd.DataFrame([supply_needed, supply_remaining]).T.max(axis=1)
                 if self.active:
@@ -122,11 +131,12 @@ class OpportunisticScreeningModule(SimulationModule):
         #TODO: Model blood pressure testing error
 
         minimum_age_to_screen = config.getint('opportunistic_screening', 'minimum_age_to_screen')
-        affected_population = event.affected_population.loc[event.affected_population.age >= minimum_age_to_screen]
+        affected_population = event.affected_population[event.affected_population.age >= minimum_age_to_screen]
 
-        cost = len(affected_population) * config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
-        self.cost_by_year[self.simulation.current_time.year] += cost
-
+        year = self.simulation.current_time.year
+        appointment_cost = ceam.modules.healthcare_access.appointment_cost[year]
+        cost_per_simulant = appointment_cost * 0.25  # see CE-94 for discussion
+        self.cost_by_year[year] += cost_per_simulant * len(affected_population)
 
         normotensive, hypertensive, severe_hypertension = _hypertensive_categories(affected_population)
 
@@ -145,11 +155,11 @@ class OpportunisticScreeningModule(SimulationModule):
         self._medication_costs(affected_population)
 
     def followup_blood_pressure_test(self, event):
-        appointment_cost = config.getfloat('appointments', 'cost')
-        test_cost = config.getfloat('opportunistic_screening', 'blood_pressure_test_cost')
-        cost_per_simulant = appointment_cost + test_cost
+        year = self.simulation.current_time.year
+        appointment_cost = ceam.modules.healthcare_access.appointment_cost[year]
+        cost_per_simulant = appointment_cost
 
-        self.cost_by_year[self.simulation.current_time.year] += cost_per_simulant * len(event.affected_population)
+        self.cost_by_year[year] += cost_per_simulant * len(event.affected_population)
         normotensive, hypertensive, severe_hypertension = _hypertensive_categories(event.affected_population)
 
         nonmedicated_normotensive = normotensive.loc[normotensive.medication_count == 0]

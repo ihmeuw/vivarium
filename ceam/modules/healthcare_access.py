@@ -10,6 +10,14 @@ from ceam.events import PopulationEvent, only_living
 from ceam.util import filter_for_rate, filter_for_probability, from_yearly, get_draw
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, get_modelable_entity_draws
 
+# draw random costs for doctor visit (time-specific)
+draw = config.getint('run_configuration', 'draw_number')
+assert config.getint('simulation_parameters', 'location_id') == 180, 'FIXME: currently cost data for Kenya only'
+
+cost_df = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/doctor_visit_cost_KEN_20160804.csv', index_col=0)
+cost_df.index = cost_df.year_id
+appointment_cost = cost_df['draw_{}'.format(draw)]
+
 
 class HealthcareAccessModule(SimulationModule):
     """Model health care utilization. This includes access events due to
@@ -31,16 +39,6 @@ class HealthcareAccessModule(SimulationModule):
 
     def __init__(self):
         super(HealthcareAccessModule, self).__init__()
-
-        # draw random costs for doctor visit (time-specific)
-        draw = config.getint('run_configuration', 'draw_number')
-
-        assert config.getint('simulation_parameters', 'location_id') == 180, 'FIXME: currently cost data for Kenya only'
-
-        cost_df = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/doctor_visit_cost_KEN_20160804.csv', index_col=0)
-        cost_df.index = cost_df.year_id
-        self.appointment_cost = cost_df['draw_{}'.format(draw)]
-        
         self.reset()
 
     def reset(self):
@@ -76,7 +74,7 @@ class HealthcareAccessModule(SimulationModule):
         self.simulation.emit_event(PopulationEvent('general_healthcare_access', affected_population))
 
         year = self.simulation.current_time.year
-        self.cost_by_year[year] += len(affected_population) * self.appointment_cost[year]
+        self.cost_by_year[year] += len(affected_population) * appointment_cost[year]
 
     @only_living
     def followup_access(self, event):
@@ -97,7 +95,7 @@ class HealthcareAccessModule(SimulationModule):
         self.simulation.emit_event(PopulationEvent('followup_healthcare_access', affected_population))
 
         year = self.simulation.current_time.year
-        self.cost_by_year[year] += len(affected_population) * self.appointment_cost[year]
+        self.cost_by_year[year] += len(affected_population) * appointment_cost[year]
 
 
 # End.
