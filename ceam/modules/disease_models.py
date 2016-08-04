@@ -14,13 +14,13 @@ def heart_disease_factory():
     # TODO: This assumes a 30.5 day timestep which isn't guarenteed
     # TODO: This doesn't account for the fact that our timestep is longer than 28 days
     weight = 0.43*(2/30.5) + 0.07*(28/30.5)
-    heart_attack = ExcessMortalityState('heart_attack', disability_weight=weight, dwell_time=timedelta(days=28), modelable_entity_id=1814)
+    heart_attack = ExcessMortalityState('heart_attack', disability_weight=weight, dwell_time=timedelta(days=28), modelable_entity_id=1814, prevalence_meid=1814)
 
-    mild_heart_failure = ExcessMortalityState('mild_heart_failure', disability_weight=0.04, modelable_entity_id=1821)
-    moderate_heart_failure = ExcessMortalityState('moderate_heart_failure', disability_weight=0.07, modelable_entity_id=1822)
-    severe_heart_failure = ExcessMortalityState('severe_heart_failure', disability_weight=0.18, modelable_entity_id=1823)
+    mild_heart_failure = ExcessMortalityState('mild_heart_failure', disability_weight=0.04, modelable_entity_id=2412, prevalence_meid=1821)
+    moderate_heart_failure = ExcessMortalityState('moderate_heart_failure', disability_weight=0.07, modelable_entity_id=2412, prevalence_meid=1822)
+    severe_heart_failure = ExcessMortalityState('severe_heart_failure', disability_weight=0.18, modelable_entity_id=2412, prevalence_meid=1823)
 
-    angina = ExcessMortalityState('angina', disability_weight=0.08, modelable_entity_id=1819)
+    angina = ExcessMortalityState('angina', disability_weight=0.08, modelable_entity_id=2412, prevalence_meid=1819)
 
     heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', modelable_entity_id=1814)
     healthy.transition_set.append(heart_attack_transition)
