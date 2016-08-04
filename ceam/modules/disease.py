@@ -61,11 +61,15 @@ class DiseaseState(State, DisabilityWeightMixin, Node):
 
 
 class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
-    def __init__(self, state_id, modelable_entity_id, **kwargs):
+    def __init__(self, state_id, modelable_entity_id, prevalence_meid=None, **kwargs):
         DiseaseState.__init__(self, state_id, **kwargs)
         ValueMutationNode.__init__(self)
 
         self.modelable_entity_id = modelable_entity_id
+        if prevalence_meid:
+            self.prevalence_meid = prevalence_meid
+        else:
+            self.prevalence_meid = modelable_entity_id
 
         self.register_value_mutator(self.mortality_rates, 'mortality_rates')
 
@@ -141,9 +145,9 @@ class DiseaseModule(SimulationModule, Machine):
         location_id = config.getint('simulation_parameters', 'location_id')
         year_start = config.getint('simulation_parameters', 'year_start')
 
-        state_map = {s.state_id:s.modelable_entity_id for s in self.all_decendents(of_type=DiseaseState, with_attr='modelable_entity_id')}
+        state_map = {s.state_id:s.prevalence_meid for s in self.all_decendents(of_type=DiseaseState, with_attr='prevalence_meid')}
 
-        condition_column = assign_cause_at_beginning_of_simulation(simulants_df=self.simulation.population, location_id=location_id, year_start=year_start, states=state_map)
+        condition_column = load_data_from_cache(assign_cause_at_beginning_of_simulation, col_name=None, simulants_df=self.simulation.population, location_id=location_id, year_start=year_start, states=state_map)
 
         population = self.simulation.population.merge(condition_column, on='simulant_id')
         
