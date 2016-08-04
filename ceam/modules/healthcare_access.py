@@ -8,6 +8,7 @@ from ceam import config
 from ceam.engine import SimulationModule
 from ceam.events import PopulationEvent, only_living
 from ceam.util import filter_for_rate, filter_for_probability, from_yearly, get_draw
+from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, get_modelable_entity_draws
 
 
 class HealthcareAccessModule(SimulationModule):
@@ -37,22 +38,18 @@ class HealthcareAccessModule(SimulationModule):
         return pd.DataFrame({'healthcare_followup_date': [pd.NaT]*population_size, 'healthcare_last_visit_date': [pd.NaT]*population_size})
 
     def load_data(self, path_prefix):
-        # TODO: Refine these rates. Possibly include age effects, though Marcia says they are small
-        male_utilization = config.getfloat('appointments', 'male_utilization_rate')
-        female_utilization = config.getfloat('appointments', 'male_utilization_rate')
-        rows = []
-
-        start_year = config.getint('simulation_parameters', 'year_start')
-        end_year = config.getint('simulation_parameters', 'year_end')
-        for year in range(start_year, end_year+1):
-            for age in range(1, 104):
-                for sex in ['Male', 'Female']:
-                    rows.append([year, age, sex, male_utilization if sex == 1 else female_utilization])
-        return pd.DataFrame(rows, columns=['year', 'age', 'sex', 'rate'])
+        year_start = config.getint('simulation_parameters', 'year_start')
+        year_end = config.getint('simulation_parameters', 'year_end')
+        location_id = config.getint('simulation_parameters', 'location_id')
+        # me_id 9458 is 'out patient visits'
+        # measure 9 is 'Proportion'
+        # TODO: Currently this is monthly not anually
+        lookup_table = load_data_from_cache(get_modelable_entity_draws, col_name='utilization_proportion', year_start=year_start, year_end=year_end, location_id=location_id, measure=18, me_id=9458)
+        return lookup_table
 
     @only_living
     def general_access(self, event):
-        affected_population = filter_for_rate(event.affected_population, from_yearly(self.lookup_columns(event.affected_population, ['rate'])['rate'], self.simulation.last_time_step))
+        affected_population = filter_for_probability(event.affected_population, self.lookup_columns(event.affected_population, ['utilization_proportion'])['utilization_proportion'])
         self.simulation.population.loc[affected_population.index, 'healthcare_last_visit_date'] = self.simulation.current_time
         self.simulation.emit_event(PopulationEvent('general_healthcare_access', affected_population))
         self.cost_by_year[self.simulation.current_time.year] += len(affected_population) * config.getfloat('appointments', 'cost')
