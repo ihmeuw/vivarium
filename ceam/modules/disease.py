@@ -14,8 +14,8 @@ from ceam.events import only_living
 from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
-from ceam.gbd_data import get_excess_mortality, get_incidence
-from ceam.gbd_data.gbd_ms_functions import generate_ceam_population, load_data_from_cache, assign_cause_at_beginning_of_simulation
+from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_states
+from ceam.gbd_data.gbd_ms_functions import generate_ceam_population, load_data_from_cache
 
 
 
@@ -143,18 +143,15 @@ class DiseaseModule(SimulationModule, Machine):
     def load_population_columns(self, path_prefix, population_size):
         # TODO: Load real data and integrate with state machine
         state_id_length = max(len(state.state_id) for state in self.states)
-        
-        location_id = config.getint('simulation_parameters', 'location_id')
-        year_start = config.getint('simulation_parameters', 'year_start')
 
         state_map = {s.state_id:s.prevalence_meid for s in self.all_decendents(of_type=DiseaseState, with_attr='prevalence_meid')}
 
-        condition_column = load_data_from_cache(assign_cause_at_beginning_of_simulation, col_name=None, simulants_df=self.simulation.population, location_id=location_id, year_start=year_start, states=state_map)
+        condition_column = get_disease_states(self.simulation.population, state_map)
 
         population = self.simulation.population.merge(condition_column, on='simulant_id')
         
         population_columns = pd.DataFrame()
-        population_columns[self.condition] = population['condition_state'].fillna('healthy')
+        population_columns[self.condition] = population['condition_state']
         return population_columns
 
 
