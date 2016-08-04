@@ -11,7 +11,9 @@ def heart_disease_factory():
 
     healthy = State('healthy')
 
-    # TODO: This assumes a 30.5 day timestep which isn't guarenteed
+    # Calculate an adjusted disability weight for the acute heart attack phase that
+    # accounts for the fact that our timestep is longer than the phase length
+    # TODO: This assumes a 30.5 day timestep which isn't guaranteed
     # TODO: This doesn't account for the fact that our timestep is longer than 28 days
     weight = 0.43*(2/30.5) + 0.07*(28/30.5)
     heart_attack = ExcessMortalityState('heart_attack', disability_weight=weight, dwell_time=timedelta(days=28), modelable_entity_id=1814, prevalence_meid=1814)
