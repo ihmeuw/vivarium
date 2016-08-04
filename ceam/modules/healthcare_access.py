@@ -34,6 +34,9 @@ class HealthcareAccessModule(SimulationModule):
 
         # draw random costs for doctor visit (time-specific)
         draw = config.getint('run_configuration', 'draw_number')
+
+        assert config.getint('simulation_parameters', 'location_id') == 180, 'FIXME: currently cost data for Kenya only'
+
         cost_df = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/doctor_visit_cost_KEN_20160804.csv', index_col=0)
         cost_df.index = cost_df.year_id
         self.appointment_cost = cost_df['draw_{}'.format(draw)]
