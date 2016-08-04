@@ -63,8 +63,8 @@ class BloodPressureModule(SimulationModule):
 
     @only_living
     def update_systolic_blood_pressure(self, event):
-        distribution = self.lookup_columns(event.affected_population, ['mean', 'std'])
-        new_sbp = norm.ppf(event.affected_population.systolic_blood_pressure_percentile, loc=distribution['mean'], scale=distribution['std'])
+        distribution = self.lookup_columns(event.affected_population, ['log_mean_{i}'.format(i=config.getint('run_configuration', 'draw_number')), 'log_sd_{i}'.format(i=config.getint('run_configuration', 'draw_number'))])
+        new_sbp = norm.ppf(event.affected_population.systolic_blood_pressure_percentile, loc=distribution['log_mean_{i}'.format(i=config.getint('run_configuration', 'draw_number'))], scale=distribution['log_sd_{i}'.format(i=config.getint('run_configuration', 'draw_number'))])
         self.simulation.population.loc[event.affected_population.index, 'systolic_blood_pressure'] = new_sbp
 
     def ihd_incidence_rates(self, population, rates):
