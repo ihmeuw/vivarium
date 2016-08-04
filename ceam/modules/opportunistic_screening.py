@@ -19,22 +19,26 @@ MEDICATIONS = [
     {
         'name': 'Thiazide-type diuretics',
         'daily_cost': 0.009,
-        'efficacy': 8.8,
+        'efficacy_mean': 8.8,
+        'efficacy_sd': .281,
     },
     {
         'name': 'Calcium-channel blockers',
         'daily_cost': 0.166,
-        'efficacy': 8.8,
+        'efficacy_mean': 8.8,
+        'efficacy_sd': .23,
     },
     {
         'name': 'ACE Inhibitors',
         'daily_cost': 0.059,
-        'efficacy': 10.3,
+        'efficacy_mean': 10.3,
+        'efficacy_sd': .281,
     },
     {
         'name': 'Beta blockers',
         'daily_cost': 0.048,
-        'efficacy': 9.2,
+        'efficacy_mean': 9.2,
+        'efficacy_sd': .332,
     },
 ]
 
@@ -71,6 +75,16 @@ class OpportunisticScreeningModule(SimulationModule):
         SimulationModule.__init__(self)
         self.cost_by_year = defaultdict(int)
         self.active = True
+
+        # draw random costs and effects for medications
+        draw = config.getint('run_configuration', 'draw_number')
+        r = np.random.RandomState(12345+draw)
+        cost_df = pd.read_csv('/home/j/Project/Cost_Effectiveness/dev/data_processed/higashi_drug_costs_20160804.csv', index_col='name')
+
+        for med in MEDICATIONS:
+            med['efficacy'] = r.normal(loc=med['efficacy_mean'], scale=med['efficacy_sd'])
+            med['daily_cost'] = cost_df.loc[med['name'], 'draw_{}'.format(draw)]
+        
 
     def setup(self):
         self.register_event_listener(self.general_blood_pressure_test, 'general_healthcare_access')

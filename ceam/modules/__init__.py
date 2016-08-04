@@ -130,12 +130,12 @@ class LookupTable:
                 continue
             table = table.rename(columns=lambda c: column_prefixer(c, _lookup_column_prefix(node)))
             assert table.duplicated(['age', 'sex', 'year']).sum() == 0, "{0} has a lookup table with duplicate rows".format(node)
-            assert self._validate_table(table), '{} has a lookup table with missing rows'.format(node)
             if not table.empty:
                 if lookup_table is not None:
                     lookup_table = lookup_table.merge(table, on=['age', 'sex', 'year'], how='inner')
                 else:
                     lookup_table = table
+            assert self._validate_table(lookup_table), '{} has a lookup table with missing rows'.format(node)
 
         lookup_table['sex'] = lookup_table.sex.astype('category')
 

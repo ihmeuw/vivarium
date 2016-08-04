@@ -116,7 +116,7 @@ def test_medication_cost():
     module._medication_costs(simulation.population)
 
     daily_cost_of_first_medication = MEDICATIONS[0]['daily_cost']
-    assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_first_medication * 60 * len(simulation.population)
+    assert np.allclose(module.cost_by_year[simulation.current_time.year], daily_cost_of_first_medication * 60 * len(simulation.population))
     for medication in MEDICATIONS[1:]:
         assert np.all(simulation.population[medication['name'] + '_supplied_until'].isnull())
     assert np.all(simulation.population[MEDICATIONS[0]['name'] + '_supplied_until'] == simulation.current_time + timedelta(days=60))
@@ -127,7 +127,7 @@ def test_medication_cost():
     simulation.population['healthcare_followup_date'] = simulation.current_time + timedelta(days=60)
     module._medication_costs(simulation.population)
     daily_cost_of_all_medication = sum(m['daily_cost'] for m in MEDICATIONS)
-    assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_all_medication * 60 * len(simulation.population)
+    assert np.allclose(module.cost_by_year[simulation.current_time.year], daily_cost_of_all_medication * 60 * len(simulation.population))
     for medication in MEDICATIONS[1:]:
         assert np.all(simulation.population[medication['name'] + '_supplied_until'] == simulation.current_time + timedelta(days=60))
 
@@ -158,7 +158,7 @@ def test_medication_cost():
     module.cost_by_year[simulation.current_time.year] = 0
     module._medication_costs(simulation.population)
 
-    assert module.cost_by_year[simulation.current_time.year] == daily_cost_of_all_medication * 1 * len(simulation.population)
+    assert np.allclose(module.cost_by_year[simulation.current_time.year], daily_cost_of_all_medication * 1 * len(simulation.population))
     for medication in MEDICATIONS[1:]:
         assert np.all(simulation.population[medication['name'] + '_supplied_until'] == simulation.current_time + timedelta(days=50))
 
