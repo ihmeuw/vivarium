@@ -14,8 +14,8 @@ from ceam.events import only_living
 from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
-from ceam.gbd_data import get_excess_mortality, get_incidence
-from ceam.gbd_data.gbd_ms_functions import generate_ceam_population, load_data_from_cache, assign_cause_at_beginning_of_simulation
+from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_states
+from ceam.gbd_data.gbd_ms_functions import generate_ceam_population, load_data_from_cache
 
 
 
@@ -61,11 +61,17 @@ class DiseaseState(State, DisabilityWeightMixin, Node):
 
 
 class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
-    def __init__(self, state_id, modelable_entity_id, **kwargs):
+    def __init__(self, state_id, modelable_entity_id, prevalence_meid=None, **kwargs):
         DiseaseState.__init__(self, state_id, **kwargs)
         ValueMutationNode.__init__(self)
 
         self.modelable_entity_id = modelable_entity_id
+        if prevalence_meid:
+            # We may be calculating initial prevalence based on a different
+            # modelable_entity_id than we use for the mortality rate
+            self.prevalence_meid = prevalence_meid
+        else:
+            self.prevalence_meid = modelable_entity_id
 
         self.register_value_mutator(self.mortality_rates, 'mortality_rates')
 
@@ -137,18 +143,15 @@ class DiseaseModule(SimulationModule, Machine):
     def load_population_columns(self, path_prefix, population_size):
         # TODO: Load real data and integrate with state machine
         state_id_length = max(len(state.state_id) for state in self.states)
-        
-        location_id = config.getint('simulation_parameters', 'location_id')
-        year_start = config.getint('simulation_parameters', 'year_start')
 
-        state_map = {s.state_id:s.modelable_entity_id for s in self.all_decendents(of_type=DiseaseState, with_attr='modelable_entity_id')}
+        state_map = {s.state_id:s.prevalence_meid for s in self.all_decendents(of_type=DiseaseState, with_attr='prevalence_meid')}
 
-        condition_column = assign_cause_at_beginning_of_simulation(simulants_df=self.simulation.population, location_id=location_id, year_start=year_start, states=state_map)
+        condition_column = get_disease_states(self.simulation.population, state_map)
 
         population = self.simulation.population.merge(condition_column, on='simulant_id')
         
         population_columns = pd.DataFrame()
-        population_columns[self.condition] = population['condition_state'].fillna('healthy')
+        population_columns[self.condition] = population['condition_state']
         return population_columns
 
 

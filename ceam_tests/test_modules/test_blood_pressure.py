@@ -18,7 +18,7 @@ def test_basic_SBP_bounds():
 
     sbp_mean = 138 # Mean across all demographics
     sbp_std = 15 # Standard deviation across all demographics
-    interval = sbp_std * 3.5
+    interval = sbp_std * 4
     pump_simulation(simulation, iterations=1) # Get blood pressure stablaized
 
     #Check that no one is wildly out of range

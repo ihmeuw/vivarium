@@ -10,6 +10,7 @@ from ceam_tests.util import simulation_factory, pump_simulation, build_table
 
 from ceam.util import from_yearly
 
+from ceam.engine import BaseSimulationModule
 from ceam.state_machine import Transition, State
 from ceam.modules.disease import DiseaseState, IncidenceRateTransition, ExcessMortalityState, DiseaseModule
 
@@ -36,17 +37,19 @@ def test_dwell_time():
     assert np.all(population.test_event_count == 1)
 
 @patch('ceam.modules.disease.get_excess_mortality')
+@patch.object(BaseSimulationModule, 'load_data', lambda self, path_prefix: build_table(0.0, ['age', 'year', 'sex', 'cause_deleted_mortality_rate']))
 def test_mortality_rate(mock_get_excess_mortality):
     mock_get_excess_mortality.side_effect = lambda meid: build_table(0.7)
     module = DiseaseModule('test_disease')
     healthy = State('healthy')
-    mortality_state = ExcessMortalityState('sick', modelable_entity_id=0, disability_weight=0.1)
+    mortality_state = ExcessMortalityState('sick', modelable_entity_id=2412, disability_weight=0.1)
 
     healthy.transition_set.append(Transition(mortality_state))
 
     module.states.extend([healthy, mortality_state])
 
     simulation = simulation_factory([module])
+    simulation.population.test_disease = 'healthy'
 
     # Initial mortality should just be the base rates because everybody starts healthy
     initial_mortality = simulation.mortality_rates(simulation.population)
@@ -58,13 +61,15 @@ def test_mortality_rate(mock_get_excess_mortality):
 
 
 @patch('ceam.modules.disease.get_incidence')
-def test_incidence(mock_get_incidence):
+@patch('ceam.modules.disease.get_disease_states')
+def test_incidence(mock_assign_cause, mock_get_incidence):
     mock_get_incidence.side_effect = lambda meid: build_table(0.7)
+    mock_assign_cause.side_effect = lambda population, states: pd.DataFrame({'condition_state': ['healthy']*len(population), 'simulant_id': population.simulant_id})
     module = DiseaseModule('test_disease')
     healthy = State('healthy')
     sick = State('sick')
 
-    healthy.transition_set.append(IncidenceRateTransition(sick, 'test_incidence', modelable_entity_id=0))
+    healthy.transition_set.append(IncidenceRateTransition(sick, 'test_incidence', modelable_entity_id=2412))
 
     module.states.extend([healthy, sick])
 
@@ -73,7 +78,9 @@ def test_incidence(mock_get_incidence):
     assert np.all(from_yearly(0.7, simulation.last_time_step) == simulation.incidence_rates(simulation.population, 'test_incidence'))
 
 
-def test_load_population_default_columns():
+@patch('ceam.modules.disease.get_disease_states')
+def test_load_population_default_columns(mock_assign_cause):
+    mock_assign_cause.side_effect = lambda population, states: pd.DataFrame({'condition_state': ['healthy']*len(population), 'simulant_id': population.simulant_id})
     module = DiseaseModule('test_disease')
     dwell_test = DiseaseState('dwell_test', disability_weight=0.0, dwell_time=10)
 
@@ -87,7 +94,9 @@ def test_load_population_default_columns():
     assert np.all(simulation.population.dwell_test_event_time == 0)
 
 
-def test_load_population_custom_columns():
+@patch('ceam.modules.disease.get_disease_states')
+def test_load_population_custom_columns(mock_assign_cause):
+    mock_assign_cause.side_effect = lambda population, states: pd.DataFrame({'condition_state': ['healthy']*len(population), 'simulant_id': population.simulant_id})
     module = DiseaseModule('test_disease')
     dwell_test = DiseaseState('dwell_test', disability_weight=0.0, dwell_time=10, event_time_column='special_test_time', event_count_column='special_test_count')
 

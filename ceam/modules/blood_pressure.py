@@ -9,7 +9,7 @@ from scipy.stats import norm
 from ceam import config
 from ceam.engine import SimulationModule
 from ceam.events import only_living
-from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
+from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, normalize_for_simulation, get_relative_risks
 
 
 class BloodPressureModule(SimulationModule):
@@ -59,6 +59,20 @@ class BloodPressureModule(SimulationModule):
                     rows.append([age, year, 0.0000001, sex, 112])
         lookup_table = lookup_table.append(pd.DataFrame(rows, columns=['age', 'year', 'std', 'sex', 'mean']))
         lookup_table.drop_duplicates(['year', 'age', 'sex'], inplace=True)
+
+        draw_number = config.getint('run_configuration', 'draw_number')
+        ihd_rr =  normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=180, year_start=1990, year_end=2010, risk_id=107, cause_id=493)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
+        hem_stroke_rr =  normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=180, year_start=1990, year_end=2010, risk_id=107, cause_id=496)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
+        isc_stroke_rr =  normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=180, year_start=1990, year_end=2010, risk_id=107, cause_id=495)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
+        
+        ihd_rr = ihd_rr.rename(columns={'rr_{}'.format(draw_number): 'ihd_rr'})
+        hem_stroke_rr = hem_stroke_rr.rename(columns={'rr_{}'.format(draw_number): 'hem_stroke_rr'})
+        isc_stroke_rr = isc_stroke_rr.rename(columns={'rr_{}'.format(draw_number): 'isc_stroke_rr'})
+
+        lookup_table = lookup_table.merge(ihd_rr, on=['age', 'year', 'sex'])
+        lookup_table = lookup_table.merge(hem_stroke_rr, on=['age', 'year', 'sex'])
+        lookup_table = lookup_table.merge(isc_stroke_rr, on=['age', 'year', 'sex'])
+        
         return lookup_table
 
     @only_living
@@ -68,17 +82,18 @@ class BloodPressureModule(SimulationModule):
         self.simulation.population.loc[event.affected_population.index, 'systolic_blood_pressure'] = new_sbp
 
     def ihd_incidence_rates(self, population, rates):
-        blood_pressure_adjustment = np.maximum(1.5**((population.systolic_blood_pressure - 112.5) / 10), 1)
+        rr = self.lookup_columns(population, ['ihd_rr'])['ihd_rr']
+        blood_pressure_adjustment = np.maximum(rr.values**((population.systolic_blood_pressure - 112.5) / 10).values, 1)
         return rates * blood_pressure_adjustment
 
     def hemorrhagic_stroke_incidence_rates(self, population, rates):
-        # TODO: get the real model for the effect of SBP on stroke from Reed
-        blood_pressure_adjustment = np.maximum(1.5**((population.systolic_blood_pressure - 112.5) / 10), 1)
+        rr = self.lookup_columns(population, ['hem_stroke_rr'])['hem_stroke_rr']
+        blood_pressure_adjustment = np.maximum(rr.values**((population.systolic_blood_pressure - 112.5) / 10).values, 1)
         return rates * blood_pressure_adjustment
 
     def ischemic_stroke_incidence_rates(self, population, rates):
-        # TODO: get the real model for the effect of SBP on stroke from Reed
-        blood_pressure_adjustment = np.maximum(1.5**((population.systolic_blood_pressure - 112.5) / 10), 1)
+        rr = self.lookup_columns(population, ['isc_stroke_rr'])['isc_stroke_rr']
+        blood_pressure_adjustment = np.maximum(rr.values**((population.systolic_blood_pressure - 112.5) / 10).values, 1)
         return rates * blood_pressure_adjustment
 
 
