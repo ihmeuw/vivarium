@@ -55,7 +55,8 @@ def test_general_access_cost():
     simulation._step(timestep)
     simulation._step(timestep)
 
-    assert round(sum(access.cost_by_year.values()) / metrics.access_count, 5) == config.getfloat('appointments', 'cost')
+    assert np.allclose(sum(access.cost_by_year.values()) / metrics.access_count, access.appointment_cost[1990])
+    
 
 
 # End.
