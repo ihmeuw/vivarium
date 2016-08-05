@@ -18,6 +18,7 @@ def heart_disease_factory():
     weight = 0.43*(2/30.5) + 0.07*(28/30.5)
     heart_attack = ExcessMortalityState('heart_attack', disability_weight=weight, dwell_time=timedelta(days=28), modelable_entity_id=1814, prevalence_meid=1814)
 
+    # 
     mild_heart_failure = ExcessMortalityState('mild_heart_failure', disability_weight=0.04, modelable_entity_id=2412, prevalence_meid=1821)
     moderate_heart_failure = ExcessMortalityState('moderate_heart_failure', disability_weight=0.07, modelable_entity_id=2412, prevalence_meid=1822)
     severe_heart_failure = ExcessMortalityState('severe_heart_failure', disability_weight=0.18, modelable_entity_id=2412, prevalence_meid=1823)
@@ -35,17 +36,17 @@ def heart_disease_factory():
 
     heart_failure_buckets = TransitionSet(allow_null_transition=False)
     heart_failure_buckets.extend([
-        ProportionTransition(mild_heart_failure, proportion=1),
-        ProportionTransition(moderate_heart_failure, proportion=1),
-        ProportionTransition(severe_heart_failure, proportion=1),
+        ProportionTransition(mild_heart_failure, proportion=0.182074),
+        ProportionTransition(moderate_heart_failure, proportion=0.149771),
+        ProportionTransition(severe_heart_failure, proportion=0.402838),
         ])
 
     angina_buckets = TransitionSet(allow_null_transition=False)
     angina_buckets.extend([
-        ProportionTransition(asymptomatic_angina, proportion=1),
-        ProportionTransition(mild_angina, proportion=1),
-        ProportionTransition(moderate_angina, proportion=1),
-        ProportionTransition(severe_angina, proportion=1),
+        ProportionTransition(asymptomatic_angina, proportion=0.304553),
+        ProportionTransition(mild_angina, proportion=0.239594),
+        ProportionTransition(moderate_angina, proportion=0.126273),
+        ProportionTransition(severe_angina, proportion=0.32958),
         ])
     healthy.transition_set.append(IncidenceRateTransition(angina_buckets, 'non_mi_angina', modelable_entity_id=1817))
 
@@ -87,102 +88,24 @@ def simple_ihd_factory():
     return module
 
 
-def ischemic_stroke():
-    module = DiseaseModule('ischemic_stroke')
-
-    healthy = State('healthy')
-    acute_1 = ExcessMortalityState('acute_ischemic_stroke_level_1', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=1827)
-    acute_2 = ExcessMortalityState('acute_ischemic_stroke_level_2', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=1828)
-    acute_3 = ExcessMortalityState('acute_ischemic_stroke_level_3', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=1829)
-    acute_4 = ExcessMortalityState('acute_ischemic_stroke_level_4', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=1830)
-    acute_5 = ExcessMortalityState('acute_ischemic_stroke_level_5', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=1831)
-
-    acute_buckets = TransitionSet(allow_null_transition=False)
-    acute_buckets.extend([
-        ProportionTransition(acute_1, proportion=1),
-        ProportionTransition(acute_2, proportion=1),
-        ProportionTransition(acute_3, proportion=1),
-        ProportionTransition(acute_4, proportion=1),
-        ProportionTransition(acute_5, proportion=1),
-        ])
-
-
-    chronic_1 = ExcessMortalityState('chronic_ischemic_stroke_level_1', disability_weight=0.32, modelable_entity_id=1833)
-    chronic_2 = ExcessMortalityState('chronic_ischemic_stroke_level_2', disability_weight=0.32, modelable_entity_id=1834)
-    chronic_3 = ExcessMortalityState('chronic_ischemic_stroke_level_3', disability_weight=0.32, modelable_entity_id=1835)
-    chronic_4 = ExcessMortalityState('chronic_ischemic_stroke_level_4', disability_weight=0.32, modelable_entity_id=1836)
-    chronic_5 = ExcessMortalityState('chronic_ischemic_stroke_level_5', disability_weight=0.32, modelable_entity_id=1837)
-    chronic_asymp = ExcessMortalityState('chronic_ischemic_stroke_asymptomatic', disability_weight=0.0, modelable_entity_id=3095)
-
-    chronic_buckets = TransitionSet(allow_null_transition=False)
-    chronic_buckets.extend([
-        ProportionTransition(chronic_1, proportion=1),
-        ProportionTransition(chronic_2, proportion=1),
-        ProportionTransition(chronic_3, proportion=1),
-        ProportionTransition(chronic_4, proportion=1),
-        ProportionTransition(chronic_5, proportion=1),
-        ProportionTransition(chronic_asymp, proportion=1),
-        ])
-
-    for acute in [acute_1, acute_2, acute_3, acute_4, acute_5]:
-        acute.transition_set = chronic_buckets
-
-    event_transition = IncidenceRateTransition(acute_buckets, 'ischemic_stroke', modelable_entity_id=9310)
-    healthy.transition_set.append(event_transition)
-
-    for chronic in [chronic_1, chronic_2, chronic_3, chronic_4, chronic_5, chronic_asymp]:
-        chronic.transition_set.append(event_transition)
-
-    module.states.extend([healthy, acute_1, acute_2, acute_3, acute_4, acute_5, chronic_1, chronic_2, chronic_3, chronic_4, chronic_5, chronic_asymp])
-
-    return module
-
-def hemorrhagic_stroke():
+def stroke_factory():
     module = DiseaseModule('hemorrhagic_stroke')
 
     healthy = State('healthy')
+    # TODO: disability weight for stroke
+    hemorrhagic_stroke = ExcessMortalityState('hemorrhagic_stroke', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=9311)
+    ischemic_stroke = ExcessMortalityState('ischemic_stroke', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=9310)
+    chronic_stroke = ExcessMortalityState('chronic_stroke', disability_weight=0.32, modelable_entity_id=9312)
 
-    acute_1 = ExcessMortalityState('acute_hemorrhagic_stroke_level_1', disability_weight=0.019, dwell_time=timedelta(days=28), modelable_entity_id=1827)
-    acute_2 = ExcessMortalityState('acute_hemorrhagic_stroke_level_2', disability_weight=0.07, dwell_time=timedelta(days=28), modelable_entity_id=1828)
-    acute_3 = ExcessMortalityState('acute_hemorrhagic_stroke_level_3', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=1829)
-    acute_4 = ExcessMortalityState('acute_hemorrhagic_stroke_level_4', disability_weight=0.55, dwell_time=timedelta(days=28), modelable_entity_id=1830)
-    acute_5 = ExcessMortalityState('acute_hemorrhagic_stroke_level_5', disability_weight=0.59, dwell_time=timedelta(days=28), modelable_entity_id=1831)
+    hemorrhagic_transition = IncidenceRateTransition(hemorrhagic_stroke, 'hemorrhagic_stroke', modelable_entity_id=9311)
+    ischemic_transition = IncidenceRateTransition(ischemic_stroke, 'ischemic_stroke', modelable_entity_id=9310)
+    healthy.transition_set.extend([hemorrhagic_transition, ischemic_transition])
 
-    acute_buckets = TransitionSet(allow_null_transition=False)
-    acute_buckets.extend([
-        ProportionTransition(acute_1, proportion=1),
-        ProportionTransition(acute_2, proportion=1),
-        ProportionTransition(acute_3, proportion=1),
-        ProportionTransition(acute_4, proportion=1),
-        ProportionTransition(acute_5, proportion=1),
-        ])
+    hemorrhagic_stroke.transition_set.append(Transition(chronic_stroke))
+    ischemic_stroke.transition_set.append(Transition(chronic_stroke))
 
-    chronic_1 = ExcessMortalityState('chronic_hemorrhagic_stroke_level_1', disability_weight=0.019, modelable_entity_id=1845)
-    chronic_2 = ExcessMortalityState('chronic_hemorrhagic_stroke_level_2', disability_weight=0.07, modelable_entity_id=1846)
-    chronic_3 = ExcessMortalityState('chronic_hemorrhagic_stroke_level_3', disability_weight=0.316, modelable_entity_id=1847)
-    chronic_4 = ExcessMortalityState('chronic_hemorrhagic_stroke_level_4', disability_weight=0.552, modelable_entity_id=1848)
-    chronic_5 = ExcessMortalityState('chronic_hemorrhagic_stroke_level_5', disability_weight=0.588, modelable_entity_id=1849)
-    chronic_asymp = ExcessMortalityState('chronic_hemorrhagic_stroke_asymptomatic', disability_weight=0.0, modelable_entity_id=3096)
+    chronic_stroke.transition_set.extend([hemorrhagic_transition, ischemic_transition])
 
-    chronic_buckets = TransitionSet(allow_null_transition=False)
-    chronic_buckets.extend([
-        ProportionTransition(chronic_1, proportion=1),
-        ProportionTransition(chronic_2, proportion=1),
-        ProportionTransition(chronic_3, proportion=1),
-        ProportionTransition(chronic_4, proportion=1),
-        ProportionTransition(chronic_5, proportion=1),
-        ProportionTransition(chronic_asymp, proportion=1),
-        ])
-
-    for acute in [acute_1, acute_2, acute_3, acute_4, acute_5]:
-        acute.transition_set = chronic_buckets
-
-    event_transition = IncidenceRateTransition(acute_buckets, 'hemorrhagic_stroke', modelable_entity_id=9311)
-    healthy.transition_set.append(event_transition)
-
-    for chronic in [chronic_1, chronic_2, chronic_3, chronic_4, chronic_5, chronic_asymp]:
-        chronic.transition_set.append(event_transition)
-
-    module.states.extend([healthy, acute_1, acute_2, acute_3, acute_4, acute_5, chronic_1, chronic_2, chronic_3, chronic_4, chronic_5, chronic_asymp])
+    module.states.extend([healthy, hemorrhagic_stroke, ischemic_stroke, chronic_stroke])
 
     return module
