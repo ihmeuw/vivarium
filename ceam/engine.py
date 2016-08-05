@@ -41,7 +41,19 @@ class BaseSimulationModule(SimulationModule):
         population['alive'] = True
         population['fractional_age'] = population.age
 
-        population['adherence_category'] = np.random.choice(['adherent', 'semi-adherent', 'non-adherent'], p=[0.6, 0.25, 0.15], size=population_size)
+        # use PRNG with seed set by draw_number for reproducibility
+        draw_number = config.getint('run_configuration', 'draw_number')
+        r = np.random.RandomState(1234567+draw_number)
+
+        # use a dirichlet distribution with means matching Marcia's
+        # paper and sum chosen to provide standard deviation on first
+        # term also matching paper
+        alpha = np.array([0.6, 0.25, 0.15]) * 100
+        p = r.dirichlet(alpha)
+
+        # then use these probabilities to generate adherence
+        # categories for all simulants
+        population['adherence_category'] = r.choice(['adherent', 'semi-adherent', 'non-adherent'], p=p, size=population_size)
         population['adherence_category'] = population['adherence_category'].astype('category')
         return population
 
