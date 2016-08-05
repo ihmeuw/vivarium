@@ -13,11 +13,11 @@ def _next_state(agents, transition_set, state_column):
 
     if groups:
         results = []
-        for output, affected_agents in sorted(groups.items(), key=lambda x:str(x[0])):
+        for output, affected_agents in sorted(groups, key=lambda x:str(x[0])):
             if output == 'null_transition':
                 results.append(affected_agents)
             elif isinstance(output, State):
-                results.append(state.transition_effect(affected_agents, state_column))
+                results.append(output.transition_effect(affected_agents, state_column))
             elif isinstance(output, TransitionSet):
                 results.append(_next_state(affected_agents, output, state_column))
             else:
@@ -72,7 +72,7 @@ class TransitionSet(list):
         sums = probabilities.cumsum(axis=0)
         output_indexes = (draw >= sums).sum(axis=0)
         groups = agents.groupby(output_indexes)
-        return {outputs[i]:sub_group for i, sub_group in groups}
+        return [(outputs[i],sub_group) for i, sub_group in groups]
 
 
 class Transition:

@@ -51,9 +51,9 @@ def heart_disease_factory():
     healthy.transition_set.append(IncidenceRateTransition(angina_buckets, 'non_mi_angina', modelable_entity_id=1817))
 
     heart_attack.transition_set.allow_null_transition=False
-    heart_attack.transition_set.append(ProportionTransition(heart_failure_buckets, 0.01))
-    heart_attack.transition_set.append(ProportionTransition(angina_buckets, 0.15))
-    heart_attack.transition_set.append(ProportionTransition(asymptomatic_ihd, 0.84))
+    heart_attack.transition_set.append(ProportionTransition(heart_failure_buckets, proportion=0.01))
+    heart_attack.transition_set.append(ProportionTransition(angina_buckets, proportion=0.15))
+    heart_attack.transition_set.append(ProportionTransition(asymptomatic_ihd, proportion=0.84))
 
     mild_heart_failure.transition_set.append(heart_attack_transition)
     moderate_heart_failure.transition_set.append(heart_attack_transition)
