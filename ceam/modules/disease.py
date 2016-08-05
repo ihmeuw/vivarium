@@ -81,6 +81,9 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
     def mortality_rates(self, population, rates):
         return rates + self.lookup_columns(population, ['rate'])['rate'].values * (population[self.parent.condition] == self.state_id)
 
+    def name(self):
+        return '{} ({}, {})'.format(self.state_id, self.modelable_entity_id, self.prevalence_meid)
+
     def __str__(self):
         return 'ExcessMortalityState("{}", "{}" ...)'.format(self.state_id, self.modelable_entity_id)
 
@@ -111,21 +114,37 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
         return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id, self.rate_label, self.modelable_entity_id)
 
 class ProportionTransition(LookupTableMixin, Transition, Node, ValueMutationNode):
-    def __init__(self, output, modelable_entity_id):
+    def __init__(self, output, modelable_entity_id=None, proportion=None):
         Transition.__init__(self, output, self.probability)
         Node.__init__(self)
         ValueMutationNode.__init__(self)
 
+        if modelable_entity_id and proportion:
+            raise ValueError("Must supply modelable_entity_id or proportion but not both")
+        elif not (modelable_entity_id or proportion):
+            raise ValueError("Must supply either modelable_entity_id or proportion")
+
         self.modelable_entity_id = modelable_entity_id
+        self.proportion = proportion
 
     def load_data(self, prefix_path):
-        return get_proportion(self.modelable_entity_id)
+        if self.modelable_entity_id:
+            return get_proportion(self.modelable_entity_id)
 
     def probability(self, agents):
-        return self.lookup_columns(agents, ['proportion'])['proportion']
+        if self.modelable_entity_id:
+            return self.lookup_columns(agents, ['proportion'])['proportion']
+        else:
+            return pd.Series(self.proportion, index=agents.index)
+
+    def label(self):
+        if self.modelable_entity_id:
+            return str(self.modelable_entity_id)
+        else:
+            return str(self.proportion)
 
     def __str__(self):
-        return 'ProportionTransition("{}", "{}")'.format(self.output.state_id, self.modelable_entity_id)
+        return 'ProportionTransition("{}", "{}", "{}")'.format(self.output.state_id, self.modelable_entity_id, self.proportion)
 
 
 class DiseaseModule(SimulationModule, Machine):

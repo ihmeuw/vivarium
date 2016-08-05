@@ -44,10 +44,11 @@ class SampleHistoryModule(SimulationModule):
         self.sample_index = np.random.choice(range(population_size), size=self.sample_size, replace=False)
 
     def record(self, event):
-        sample = event.affected_population.loc[event.affected_population.simulant_id.isin(self.sample_index)]
+        #if self.simulation.current_time.year in [1990, 2010] and self.simulation.current_time.month == 1:
+            sample = event.affected_population.loc[event.affected_population.simulant_id.isin(self.sample_index)]
 
-        self.sample_frames[self.simulation.current_time] = sample
-        self.sample_frames[self.simulation.current_time].set_index('simulant_id', inplace=True)
+            self.sample_frames[self.simulation.current_time] = sample
+            self.sample_frames[self.simulation.current_time].set_index('simulant_id', inplace=True)
 
     def dump(self, event):
         # NOTE: I'm suppressing two very noisy warnings about HDF writing that I don't think are relevant to us
