@@ -111,7 +111,6 @@ def analyze_results(results):
         ylls_averted.extend((lnon_intervention.ylls) - (lintervention.ylls))
         ylds_averted.extend((lnon_intervention.ylds) - (lintervention.ylds))
 
-    
     print(
 """
  Total runs: {runs}

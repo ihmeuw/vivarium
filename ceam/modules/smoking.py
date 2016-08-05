@@ -51,13 +51,13 @@ class SmokingModule(SimulationModule):
         year_end = config.getint('simulation_parameters', 'year_end')
         location_id = config.getint('simulation_parameters', 'location_id')
 
-        lookup_table = load_data_from_cache(get_exposures, 'prevalence', config.getint('simulation_parameters', 'location_id'), year_start, year_end, 166) 
+        lookup_table = load_data_from_cache(get_exposures, 'prevalence', config.getint('simulation_parameters', 'location_id'), year_start, year_end, 166)
 
         draw_number = config.getint('run_configuration', 'draw_number')
         ihd_rr =  normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=180, year_start=1990, year_end=2010, risk_id=166, cause_id=493)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
         hem_stroke_rr = normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=180, year_start=1990, year_end=2010, risk_id=166, cause_id=496)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
         isc_stroke_rr = normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=180, year_start=1990, year_end=2010, risk_id=166, cause_id=495)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
-        
+
         ihd_rr = ihd_rr.rename(columns={'rr_{}'.format(draw_number): 'ihd_rr'})
         hem_stroke_rr = hem_stroke_rr.rename(columns={'rr_{}'.format(draw_number): 'hem_stroke_rr'})
         isc_stroke_rr = isc_stroke_rr.rename(columns={'rr_{}'.format(draw_number): 'isc_stroke_rr'})

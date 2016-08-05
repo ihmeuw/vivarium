@@ -151,7 +151,7 @@ class DiseaseModule(SimulationModule, Machine):
         condition_column = get_disease_states(self.simulation.population, state_map)
 
         population = self.simulation.population.merge(condition_column, on='simulant_id')
-        
+
         population_columns = pd.DataFrame()
         population_columns[self.condition] = population['condition_state']
         return population_columns
