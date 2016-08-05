@@ -93,6 +93,10 @@ class Simulation(Node, ModuleRegistry):
         loader = loaders[0]
         population = [loader.load_population_columns(path_prefix, 0)]
         self.population = population[0]
+        # HACK: don't know why sex col is sometimes missing, but if it is missing, make it exist
+        if 'sex' not in self.population and 'sex_id' in self.population:
+            self.population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'})
+        self.population.sex = self.population.sex.astype('category')
         population_size = len(population[0])
 
         for loader in loaders[1:]:

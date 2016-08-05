@@ -135,7 +135,7 @@ class LookupTable:
                     lookup_table = lookup_table.merge(table, on=['age', 'sex', 'year'], how='inner')
                 else:
                     lookup_table = table
-            assert self._validate_table(lookup_table), '{} has a lookup table with missing rows'.format(node)
+            self._validate_table(lookup_table)
 
         lookup_table['sex'] = lookup_table.sex.astype('category')
 
@@ -153,16 +153,16 @@ class LookupTable:
         expected_index = pd.DataFrame(rows, columns=['age', 'year', 'sex']).set_index(['age', 'year', 'sex']).index
         actual_index = table.set_index(['age', 'year', 'sex']).index
 
-        return len(expected_index.difference(actual_index)) == 0
+        assert len(expected_index.difference(actual_index)) == 0, '{} has a lookup table with missing rows'.format(node)
 
     def lookup_columns(self, population, columns, node):
-        origonal_columns = columns
+        original_columns = columns
         columns = [_lookup_column_prefix(node) + '_' + c for c in columns]
-        for column, origonal_column in zip(columns, origonal_columns):
-            assert column in self.lookup_table, 'Tried to lookup non-existent column: {0} from node {1}'.format(origonal_column, node)
+        for column, original_column in zip(columns, original_columns):
+            assert column in self.lookup_table, 'Tried to lookup non-existent column: {0} from node {1}'.format(original_column, node)
 
         results = self.lookup_table.ix[population.lookup_id, columns]
-        return results.rename(columns=dict(zip(columns, origonal_columns)))
+        return results.rename(columns=dict(zip(columns, original_columns)))
 
 
 class SimulationModule(LookupTableMixin, EventHandlerNode, ValueMutationNode, DisabilityWeightMixin, Node):
