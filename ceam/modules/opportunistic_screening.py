@@ -23,10 +23,10 @@ MEDICATIONS = [
         'efficacy_sd': .281,
     },
     {
-        'name': 'Calcium-channel blockers',
-        'daily_cost': 0.166,
-        'efficacy_mean': 8.8,
-        'efficacy_sd': .23,
+        'name': 'Beta blockers',
+        'daily_cost': 0.048,
+        'efficacy_mean': 9.2,
+        'efficacy_sd': .332,
     },
     {
         'name': 'ACE Inhibitors',
@@ -35,10 +35,10 @@ MEDICATIONS = [
         'efficacy_sd': .281,
     },
     {
-        'name': 'Beta blockers',
-        'daily_cost': 0.048,
-        'efficacy_mean': 9.2,
-        'efficacy_sd': .332,
+        'name': 'Calcium-channel blockers',
+        'daily_cost': 0.166,
+        'efficacy_mean': 8.8,
+        'efficacy_sd': .23,
     },
 ]
 
