@@ -122,12 +122,6 @@ class Simulation(Node, ModuleRegistry):
             assert len(population) == len(self.population), "One of the lookup tables is missing rows or has duplicate rows"
             self.population = population
 
-    def incidence_mediation_factor(self, label):
-        factor = 1
-        for module in self.modules:
-            factor *= 1 - module.incidence_mediation_factors.get(label, 1)
-        return 1 - factor
-
     def emit_event(self, event):
         for module in self.modules:
             module.emit_event(event)
@@ -149,7 +143,14 @@ class Simulation(Node, ModuleRegistry):
         for module in self.all_decendents(of_type=ValueMutationNode):
             for value_type, mmutators in module._value_mutators.items():
                 for label, mutators in mmutators.items():
-                    assert sources[value_type][label], "Missing source for mutator: {0}. Needed by: {1}".format((value_type, label), mutators)
+                    if not sources[value_type][label]:
+                        if value_type != 'PAF':
+                            raise ValueError("Missing source for mutator: {0}. Needed by: {1}".format((value_type, label), mutators))
+                        else:
+                            # TODO: this is very clumsy
+                            func = lambda population: pd.Series(1, index=population.index)
+                            self.modules[0].register_value_source(func, 'PAF', label)
+                            sources[value_type][label] = func
 
     def _get_value(self, population, value_type, label=None):
         source = None
@@ -158,7 +159,8 @@ class Simulation(Node, ModuleRegistry):
             if label in value_node._value_sources[value_type]:
                 source = value_node._value_sources[value_type][label]
                 break
-        assert source is not None, "No source for %s %s"%(value_type, label)
+        if source is None:
+            raise ValueError("No source for %s %s"%(value_type, label))
 
         mutators = []
         for module in value_nodes:
@@ -186,6 +188,15 @@ class Simulation(Node, ModuleRegistry):
     def incidence_rates(self, population, label):
         rates = self._get_value(population, 'incidence_rates', label)
         return from_yearly(rates, self.last_time_step)
+
+    def population_attributable_fraction(self, population, label):
+        try:
+            paf = 1 - self._get_value(population, 'PAF', label)
+        except ValueError:
+            # TODO: this is very clumsy
+            self.modules[0].register_value_source(lambda population: pd.Series(1, index=population.index), 'PAF', label)
+            paf = 1 - self._get_value(population, 'PAF', label)
+        return paf
 
     def disability_weight(self):
         weights = 1
