@@ -42,6 +42,9 @@ class HealthcareAccessModule(SimulationModule):
         self.reset()
 
     def reset(self):
+        draw_number = config.getint('run_configuration', 'draw_number')
+        r = np.random.RandomState(123456+draw)
+        self.semi_adherent_pr = r.normal(0.4, 0.0485)
         self.cost_by_year = defaultdict(float)
 
     def setup(self):
@@ -87,7 +90,7 @@ class HealthcareAccessModule(SimulationModule):
         adherence = pd.Series(1, index=affected_population.index)
         adherence[affected_population.adherence_category == 'non-adherent'] = 0
         semi_adherents = affected_population.loc[affected_population.adherence_category == 'semi-adherent']
-        adherence[semi_adherents.index] = 0.4*get_draw(semi_adherents)
+        adherence[semi_adherents.index] = self.semi_adherent_pr
         affected_population = filter_for_probability(affected_population, adherence)
 
         # for those who show up, emit_event that the visit has happened, and tally the cost

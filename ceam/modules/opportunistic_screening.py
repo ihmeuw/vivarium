@@ -90,6 +90,7 @@ class OpportunisticScreeningModule(SimulationModule):
             med['efficacy'] = r.normal(loc=med['efficacy_mean'], scale=med['efficacy_sd'])
             med['daily_cost'] = cost_df.loc[med['name'], 'draw_{}'.format(draw)]
         
+        self.semi_adherent_efficacy = r.normal(0.4, 0.0485)
 
     def setup(self):
          # time_step__continuous happens first, and SBP needs to be
@@ -193,7 +194,7 @@ class OpportunisticScreeningModule(SimulationModule):
             adherence = pd.Series(1, index=affected_population.index)
             adherence[affected_population.adherence_category == 'non-adherent'] = 0
             semi_adherents = affected_population.loc[affected_population.adherence_category == 'semi-adherent']
-            adherence[semi_adherents.index] = 0.4
+            adherence[semi_adherents.index] = self.semi_adherent_efficacy
 
             medication_efficacy = medication['efficacy'] * adherence
             if self.active:
