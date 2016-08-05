@@ -36,6 +36,7 @@ def test_dwell_time():
     assert np.all(population.test_event_time == 20)
     assert np.all(population.test_event_count == 1)
 
+
 @patch('ceam.modules.disease.get_excess_mortality')
 @patch.object(BaseSimulationModule, 'load_data', lambda self, path_prefix: build_table(0.0, ['age', 'year', 'sex', 'cause_deleted_mortality_rate']))
 def test_mortality_rate(mock_get_excess_mortality):

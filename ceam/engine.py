@@ -23,6 +23,7 @@ from ceam.modules import ModuleRegistry, SimulationModule, LookupTable, ValueMut
 import logging
 _log = logging.getLogger(__name__)
 
+
 class BaseSimulationModule(SimulationModule):
     def __init__(self):
         super(BaseSimulationModule, self).__init__()
@@ -257,7 +258,6 @@ class Simulation(Node, ModuleRegistry):
             module.reset()
         self.reset_population()
         self.current_time = None
-
 
 
 # End.

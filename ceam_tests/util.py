@@ -119,4 +119,5 @@ def build_table(rate, columns=['age', 'year', 'sex', 'rate']):
                 rows.append([age, year, sex, rate])
     return pd.DataFrame(rows, columns=columns)
 
+
 # End.
