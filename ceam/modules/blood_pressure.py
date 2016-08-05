@@ -53,18 +53,19 @@ class BloodPressureModule(SimulationModule):
         year_end = config.getint('simulation_parameters', 'year_end')
         draw_number =config.getint('run_configuration', 'draw_number')
 
-        lookup_table = load_data_from_cache(get_sbp_mean_sd, col_name=None, location_id = 180, year_start = 1990, year_end = 1992)
-        lookup_table.columns = ['year', 'age', 'log_mean', 'log_sd', 'sex_id']
+        lookup_table = load_data_from_cache(get_sbp_mean_sd, col_name=None,
+                            location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number)
         lookup_table['sex'] = lookup_table.sex_id.map({1:'Male', 2:'Female'}).astype('category')
         lookup_table = lookup_table.drop('sex_id', 1)
+        lookup_table = lookup_table.rename(columns={'year_id': 'year'})
+        assert len(lookup_table.age.unique()) > 101
 
         rows = []
         # NOTE: We treat simulants under 25 as having no risk associated with SBP so we aren't even modeling it for them
         for age in range(0, 25):
             for year in range(year_start, year_end+1):
                 for sex in ['Male', 'Female']:
-                    rows.append([year, age, 112, 0.0000001, sex])
-        
+                    rows.append([year, age, np.log(112), 0.001, sex])
         lookup_table = lookup_table.append(pd.DataFrame(rows, columns=['year', 'age', 'log_mean', 'log_sd', 'sex']))
 
         ihd_rr =  normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=493)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
@@ -96,8 +97,9 @@ class BloodPressureModule(SimulationModule):
 
     @only_living
     def update_systolic_blood_pressure(self, event):
-        distribution = self.lookup_columns(event.affected_population, ['log_mean_{i}'.format(i=config.getint('run_configuration', 'draw_number')), 'log_sd_{i}'.format(i=config.getint('run_configuration', 'draw_number'))])
-        new_sbp = np.exp(norm.ppf(event.affected_population.systolic_blood_pressure_percentile, loc=distribution['log_mean_{i}'.format(i=config.getint('run_configuration', 'draw_number'))], scale=distribution['log_sd_{i}'.format(i=config.getint('run_configuration', 'draw_number'))]))
+        distribution = self.lookup_columns(event.affected_population, ['log_mean', 'log_sd'])
+        new_sbp = np.exp(norm.ppf(event.affected_population.systolic_blood_pressure_percentile,
+                                  loc=distribution['log_mean'], scale=distribution['log_sd']))
         self.simulation.population.loc[event.affected_population.index, 'systolic_blood_pressure'] = new_sbp
 
     def ihd_incidence_rates(self, population, rates):
