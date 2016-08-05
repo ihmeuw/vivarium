@@ -43,7 +43,7 @@ class BaseSimulationModule(SimulationModule):
 
         # use PRNG with seed set by draw_number for reproducibility
         draw_number = config.getint('run_configuration', 'draw_number')
-        r = np.random.RandomState(1234567+draw)
+        r = np.random.RandomState(1234567+draw_number)
 
         # use a dirichlet distribution with means matching Marcia's
         # paper and sum chosen to provide standard deviation on first

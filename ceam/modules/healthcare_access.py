@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 
-import pandas as pd
+import numpy as np, pandas as pd
 
 from ceam import config
 from ceam.engine import SimulationModule
