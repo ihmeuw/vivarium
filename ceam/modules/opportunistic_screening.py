@@ -89,7 +89,7 @@ class OpportunisticScreeningModule(SimulationModule):
         for med in MEDICATIONS:
             med['efficacy'] = r.normal(loc=med['efficacy_mean'], scale=med['efficacy_sd'])
             med['daily_cost'] = cost_df.loc[med['name'], 'draw_{}'.format(draw)]
-        
+
         self.semi_adherent_efficacy = r.normal(0.4, 0.0485)
 
     def setup(self):
@@ -98,7 +98,7 @@ class OpportunisticScreeningModule(SimulationModule):
         self.register_event_listener(self.adjust_blood_pressure, 'time_step__continuous')
 
         # *_healthcare_access is emitted by HealthcareAccessModule
-        self.register_event_listener(self.general_blood_pressure_test, 'general_healthcare_access') 
+        self.register_event_listener(self.general_blood_pressure_test, 'general_healthcare_access')
         self.register_event_listener(self.followup_blood_pressure_test, 'followup_healthcare_access')
 
         assert config.getint('opportunistic_screening', 'max_medications') <= len(MEDICATIONS), 'cannot model more medications than we have data for'

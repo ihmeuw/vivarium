@@ -57,7 +57,6 @@ def test_general_access(utilization_rate_mock):
 #    simulation._step(timestep)
 #
 #    assert np.allclose(sum(access.cost_by_year.values()) / metrics.access_count, access.appointment_cost[1990])
-    
 
 
 # End.

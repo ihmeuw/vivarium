@@ -71,7 +71,7 @@ class HealthcareAccessModule(SimulationModule):
         # determine population who accesses care
         t = self.lookup_columns(event.affected_population, ['utilization_proportion'])
         affected_population = filter_for_probability(event.affected_population, t['utilization_proportion'])  # FIXME: currently assumes timestep is one month
-        
+
         # for those who show up, emit_event that the visit has happened, and tally the cost
         self.simulation.population.loc[affected_population.index, 'healthcare_last_visit_date'] = self.simulation.current_time
         self.simulation.emit_event(PopulationEvent('general_healthcare_access', affected_population))
