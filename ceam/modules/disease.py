@@ -14,7 +14,7 @@ from ceam.events import only_living
 from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
-from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_states
+from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_states, get_proportion
 from ceam.gbd_data.gbd_ms_functions import generate_ceam_population, load_data_from_cache
 
 
@@ -109,6 +109,23 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
 
     def __str__(self):
         return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id, self.rate_label, self.modelable_entity_id)
+
+class ProportionTransition(LookupTableMixin, Transition, Node, ValueMutationNode):
+    def __init__(self, output, modelable_entity_id):
+        Transition.__init__(self, output, self.probability)
+        Node.__init__(self)
+        ValueMutationNode.__init__(self)
+
+        self.modelable_entity_id = modelable_entity_id
+
+    def load_data(self, prefix_path):
+        return get_proportion(self.modelable_entity_id)
+
+    def probability(self, agents):
+        return self.lookup_columns(agents, ['proportion'])['proportion']
+
+    def __str__(self):
+        return 'ProportionTransition("{}", "{}")'.format(self.output.state_id, self.modelable_entity_id)
 
 
 class DiseaseModule(SimulationModule, Machine):

@@ -3,7 +3,7 @@
 from datetime import timedelta
 
 from ceam.state_machine import Transition, State
-from ceam.modules.disease import DiseaseModule, DiseaseState, ExcessMortalityState, IncidenceRateTransition
+from ceam.modules.disease import DiseaseModule, DiseaseState, ExcessMortalityState, IncidenceRateTransition, ProportionTransition
 
 
 def heart_disease_factory():
@@ -29,10 +29,10 @@ def heart_disease_factory():
     healthy.transition_set.append(IncidenceRateTransition(angina, 'non_mi_angina', modelable_entity_id=1817))
 
     heart_attack.transition_set.allow_null_transition=False
-    heart_attack.transition_set.append(Transition(mild_heart_failure))
-    heart_attack.transition_set.append(Transition(moderate_heart_failure))
-    heart_attack.transition_set.append(Transition(severe_heart_failure))
-    heart_attack.transition_set.append(Transition(angina))
+    heart_attack.transition_set.append(ProportionTransition(mild_heart_failure, modelable_entity_id=1821))
+    heart_attack.transition_set.append(ProportionTransition(moderate_heart_failure, modelable_entity_id=1822))
+    heart_attack.transition_set.append(ProportionTransition(severe_heart_failure, modelable_entity_id=1823))
+    heart_attack.transition_set.append(ProportionTransition(angina, modelable_entity_id=1819))
 
     mild_heart_failure.transition_set.append(heart_attack_transition)
     moderate_heart_failure.transition_set.append(heart_attack_transition)
