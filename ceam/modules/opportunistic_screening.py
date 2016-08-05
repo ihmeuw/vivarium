@@ -116,7 +116,8 @@ class OpportunisticScreeningModule(SimulationModule):
             if not affected_population.empty:
                 supply_remaining = affected_population[medication['name']+'_supplied_until'] - current_time
                 supply_remaining = supply_remaining.fillna(pd.Timedelta(days=0))
-                supply_remaining[supply_remaining < pd.Timedelta(days=0)] = pd.Timedelta(days=0)
+                idx = supply_remaining < pd.Timedelta(days=0)
+                supply_remaining[idx] = pd.Series([pd.Timedelta(days=0)]*idx.sum())
 
                 supply_needed = self.simulation.population.loc[affected_population.index, 'healthcare_followup_date'] - current_time
                 supply_needed = supply_needed.fillna(pd.Timedelta(days=0))
