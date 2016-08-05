@@ -10,8 +10,7 @@ from scipy.stats import norm
 from ceam import config
 from ceam.engine import SimulationModule
 from ceam.events import only_living
-from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, normalize_for_simulation, get_relative_risks, get_pafs
-
+from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, normalize_for_simulation, get_relative_risks, get_pafs, get_sbp_mean_sd
 
 class BloodPressureModule(SimulationModule):
     """
@@ -54,19 +53,20 @@ class BloodPressureModule(SimulationModule):
         year_end = config.getint('simulation_parameters', 'year_end')
         draw_number =config.getint('run_configuration', 'draw_number')
 
-        dists = get_sbp_mean_sd(location_id, year_start, year_end)
-        lookup_table.columns = ['age', 'year_id', 'log_mean_{i}'.format(i=draw_number), 'sex_id', 'log_mean_{i}'.format(i=draw_number)]
-        lookup_table['sex'] = lookup_table.sex.map({1:'Male', 2:'Female'}).astype('category')
+        lookup_table = load_data_from_cache(get_sbp_mean_sd, col_name=None, location_id = 180, year_start = 1990, year_end = 1992)
+        lookup_table.columns = ['year', 'age', 'log_mean', 'log_sd', 'sex_id']
+        lookup_table['sex'] = lookup_table.sex_id.map({1:'Male', 2:'Female'}).astype('category')
+        lookup_table = lookup_table.drop('sex_id', 1)
 
         rows = []
         # NOTE: We treat simulants under 25 as having no risk associated with SBP so we aren't even modeling it for them
         for age in range(0, 25):
             for year in range(year_start, year_end+1):
                 for sex in ['Male', 'Female']:
-                    rows.append([age, year, 0.0000001, sex, 112])
-        lookup_table = lookup_table.append(pd.DataFrame(rows, columns=['age', 'year_id', 'log_sd_{i}'.format(i=draw_number), 'sex_id', 'mean_log_{i}'.format(i=draw_number)]))
+                    rows.append([year, age, 112, 0.0000001, sex])
+        
+        lookup_table = lookup_table.append(pd.DataFrame(rows, columns=['year', 'age', 'log_mean', 'log_sd', 'sex']))
 
-        draw_number = config.getint('run_configuration', 'draw_number')
         ihd_rr =  normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=493)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
         hem_stroke_rr =  normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=496)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
         isc_stroke_rr =  normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=495)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
