@@ -41,7 +41,19 @@ class BaseSimulationModule(SimulationModule):
         population['alive'] = True
         population['fractional_age'] = population.age
 
-        population['adherence_category'] = np.random.choice(['adherent', 'semi-adherent', 'non-adherent'], p=[0.6, 0.25, 0.15], size=population_size)
+        # use PRNG with seed set by draw_number for reproducibility
+        draw_number = config.getint('run_configuration', 'draw_number')
+        r = np.random.RandomState(1234567+draw_number)
+
+        # use a dirichlet distribution with means matching Marcia's
+        # paper and sum chosen to provide standard deviation on first
+        # term also matching paper
+        alpha = np.array([0.6, 0.25, 0.15]) * 100
+        p = r.dirichlet(alpha)
+
+        # then use these probabilities to generate adherence
+        # categories for all simulants
+        population['adherence_category'] = r.choice(['adherent', 'semi-adherent', 'non-adherent'], p=p, size=population_size)
         population['adherence_category'] = population['adherence_category'].astype('category')
         return population
 
@@ -93,6 +105,10 @@ class Simulation(Node, ModuleRegistry):
         loader = loaders[0]
         population = [loader.load_population_columns(path_prefix, 0)]
         self.population = population[0]
+        # HACK: don't know why sex col is sometimes missing, but if it is missing, make it exist
+        if 'sex' not in self.population and 'sex_id' in self.population:
+            self.population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'})
+        self.population.sex = self.population.sex.astype('category')
         population_size = len(population[0])
 
         for loader in loaders[1:]:
@@ -122,12 +138,6 @@ class Simulation(Node, ModuleRegistry):
             assert len(population) == len(self.population), "One of the lookup tables is missing rows or has duplicate rows"
             self.population = population
 
-    def incidence_mediation_factor(self, label):
-        factor = 1
-        for module in self.modules:
-            factor *= 1 - module.incidence_mediation_factors.get(label, 1)
-        return 1 - factor
-
     def emit_event(self, event):
         for module in self.modules:
             module.emit_event(event)
@@ -149,7 +159,14 @@ class Simulation(Node, ModuleRegistry):
         for module in self.all_decendents(of_type=ValueMutationNode):
             for value_type, mmutators in module._value_mutators.items():
                 for label, mutators in mmutators.items():
-                    assert sources[value_type][label], "Missing source for mutator: {0}. Needed by: {1}".format((value_type, label), mutators)
+                    if not sources[value_type][label]:
+                        if value_type != 'PAF':
+                            raise ValueError("Missing source for mutator: {0}. Needed by: {1}".format((value_type, label), mutators))
+                        else:
+                            # TODO: this is very clumsy
+                            func = lambda population: pd.Series(1, index=population.index)
+                            self.modules[0].register_value_source(func, 'PAF', label)
+                            sources[value_type][label] = func
 
     def _get_value(self, population, value_type, label=None):
         source = None
@@ -158,7 +175,8 @@ class Simulation(Node, ModuleRegistry):
             if label in value_node._value_sources[value_type]:
                 source = value_node._value_sources[value_type][label]
                 break
-        assert source is not None, "No source for %s %s"%(value_type, label)
+        if source is None:
+            raise ValueError("No source for %s %s"%(value_type, label))
 
         mutators = []
         for module in value_nodes:
@@ -186,6 +204,15 @@ class Simulation(Node, ModuleRegistry):
     def incidence_rates(self, population, label):
         rates = self._get_value(population, 'incidence_rates', label)
         return from_yearly(rates, self.last_time_step)
+
+    def population_attributable_fraction(self, population, label):
+        try:
+            paf = 1 - self._get_value(population, 'PAF', label)
+        except ValueError:
+            # TODO: this is very clumsy
+            self.modules[0].register_value_source(lambda population: pd.Series(1, index=population.index), 'PAF', label)
+            paf = 1 - self._get_value(population, 'PAF', label)
+        return paf
 
     def disability_weight(self):
         weights = 1

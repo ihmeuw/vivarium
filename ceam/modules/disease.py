@@ -102,8 +102,10 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
         return rate_to_probability(self.root.incidence_rates(agents, self.rate_label))
 
     def incidence_rates(self, population):
-        mediation_factor = self.root.incidence_mediation_factor(self.parent.condition)
-        return pd.Series(self.lookup_columns(population, ['rate'])['rate'].values * mediation_factor, index=population.index)
+        base_rates = self.lookup_columns(population, ['rate'])['rate']
+        joint_mediated_paf = self.root.population_attributable_fraction(population, self.rate_label)
+
+        return pd.Series(base_rates.values * (1 - joint_mediated_paf.values), index=population.index)
 
     def __str__(self):
         return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id, self.rate_label, self.modelable_entity_id)
