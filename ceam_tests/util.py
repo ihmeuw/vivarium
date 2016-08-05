@@ -2,18 +2,27 @@
 
 import os.path
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pandas as pd
 import numpy as np
 
 import pytest
 
+from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
 from ceam import config
 from ceam.engine import Simulation
 from ceam.util import from_yearly, to_yearly
 
+def _cache_loader(func, *args, **kwargs):
+    if func.__name__ == 'generate_ceam_population':
+        return build_table(0.0, ['age', 'year', 'sex_id', 'rate'])
+    else:
+        return load_data_from_cache(func, *args, **kwargs)
 
-def simulation_factory(modules):
+#@patch('ceam.engine.load_data_from_cache')
+def simulation_factory(modules):#, patched_mrate):
+    #patched_mrate.side_effect = _cache_loader
     simulation = Simulation()
     for module in modules:
         module.setup()
@@ -78,7 +87,7 @@ def pump_simulation(simulation, duration=None, iterations=None, dummy_population
     else:
         simulation.population = dummy_population.copy()
 
-    timestep = timedelta(days=30)
+    timestep = timedelta(days=30.5)
     start_time = datetime(1990, 1, 1)
     simulation.current_time = start_time
     iteration_count = 0
@@ -100,14 +109,14 @@ def pump_simulation(simulation, duration=None, iterations=None, dummy_population
         simulation._step(timestep)
 
 
-def build_table(rate):
+def build_table(rate, columns=['age', 'year', 'sex', 'rate']):
     rows = []
     start_year = config.getint('simulation_parameters', 'year_start')
-    end_year = config.getint('simulation_parameters', 'year_start')
+    end_year = config.getint('simulation_parameters', 'year_end')
     for age in range(1, 104):
         for year in range(start_year, end_year+1):
             for sex in ['Male', 'Female']:
                 rows.append([age, year, sex, rate])
-    return pd.DataFrame(rows, columns=['age', 'year', 'sex', 'rate'])
+    return pd.DataFrame(rows, columns=columns)
 
 # End.

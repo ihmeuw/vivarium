@@ -1,11 +1,12 @@
 # ~/ceam/ceam_tests/test_modules/test_healthcare_access_module.py
 
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 
 from ceam import config
-from ceam_tests.util import simulation_factory, assert_rate
+from ceam_tests.util import simulation_factory, assert_rate, build_table
 from ceam.engine import SimulationModule
 
 from ceam.modules.healthcare_access import HealthcareAccessModule
@@ -28,16 +29,15 @@ class MetricsModule(SimulationModule):
 
 
 @pytest.mark.slow
-def test_general_access():
+@patch('ceam.modules.healthcare_access.load_data_from_cache')
+def test_general_access(utilization_rate_mock):
+    utilization_rate_mock.side_effect = lambda *args, **kwargs: build_table(0.1, ['age', 'year', 'sex', 'utilization_proportion'])
     metrics = MetricsModule()
     simulation = simulation_factory([metrics, HealthcareAccessModule()])
     initial_population = simulation.population
 
-    # Men and women have different utilization rates
-    simulation.population = initial_population[initial_population.sex == 1]
-    assert_rate(simulation, config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count)
-    simulation.population = initial_population[initial_population.sex == 2]
-    assert_rate(simulation, config.getfloat('appointments', 'male_utilization_rate'), lambda s: metrics.access_count)
+    # 1.2608717447575932 == a monthly probability 0.1 as a yearly rate
+    assert_rate(simulation, 1.2608717447575932, lambda s: metrics.access_count)
 
 
 @pytest.mark.slow
