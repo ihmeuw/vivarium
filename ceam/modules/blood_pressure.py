@@ -12,6 +12,7 @@ from ceam.engine import SimulationModule
 from ceam.events import only_living
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, normalize_for_simulation, get_relative_risks, get_pafs, get_sbp_mean_sd
 
+
 class BloodPressureModule(SimulationModule):
     """
     Model systolic blood pressure and it's effect on IHD and stroke

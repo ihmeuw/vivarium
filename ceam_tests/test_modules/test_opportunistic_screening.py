@@ -164,6 +164,7 @@ def test_medication_cost():
     for medication in MEDICATIONS[1:]:
         assert np.all(simulation.population[medication['name'] + '_supplied_until'] == simulation.current_time + timedelta(days=50))
 
+
 # TODO: We need a fixture for the cost table to be able to test this effectively
 #def test_blood_pressure_test_cost():
 #    simulation, module = screening_setup()

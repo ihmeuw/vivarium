@@ -18,7 +18,6 @@ from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_state
 from ceam.gbd_data.gbd_ms_functions import generate_ceam_population, load_data_from_cache
 
 
-
 class DiseaseState(State, DisabilityWeightMixin, Node):
     def __init__(self, state_id, disability_weight, dwell_time=0, event_time_column=None, event_count_column=None):
         Node.__init__(self)
