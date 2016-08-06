@@ -5,6 +5,30 @@ import numpy as np
 
 from ceam.util import get_draw
 
+def _next_state(agents, transition_set, state_column):
+    if len(transition_set) == 0:
+        return agents
+
+    groups = transition_set.groupby_new_state(agents)
+
+    if groups:
+        results = []
+        for output, affected_agents in sorted(groups, key=lambda x:str(x[0])):
+            if output == 'null_transition':
+                results.append(affected_agents)
+            elif isinstance(output, State):
+                results.append(output.transition_effect(affected_agents, state_column))
+            elif isinstance(output, TransitionSet):
+                results.append(_next_state(affected_agents, output, state_column))
+            else:
+                raise ValueError('Invalid transition output: {}'.format(output))
+
+        results = [r for r in results if not r.empty]
+        if results:
+            return pd.concat(results)
+        else:
+            return agents
+    return pd.DataFrame(columns=agents.columns)
 
 class State:
     def __init__(self, state_id):
@@ -12,21 +36,7 @@ class State:
         self.transition_set = TransitionSet()
 
     def next_state(self, agents, state_column):
-        if len(self.transition_set) == 0:
-            return agents
-
-        groups = self.transition_set.groupby_new_state(agents)
-
-        if groups:
-            results = []
-            for state, affected_agents in sorted(groups.items(), key=lambda x:str(x[0])):
-                if state != 'null_transition':
-                    results.append(state.transition_effect(affected_agents, state_column))
-                else:
-                    results.append(affected_agents)
-
-            return pd.concat(results)
-        return pd.DataFrame(columns=agents.columns)
+        return _next_state(agents, self.transition_set, state_column)
 
     def transition_effect(self, agents, state_column):
         agents[state_column] = self.state_id
@@ -35,6 +45,9 @@ class State:
 
     def _transition_side_effect(self, agents, state_column):
         return agents
+
+    def name(self):
+        return self.state_id
 
     def __str__(self):
         return 'State("{0}" ...)'.format(self.state_id)
@@ -63,7 +76,15 @@ class TransitionSet(list):
         sums = probabilities.cumsum(axis=0)
         output_indexes = (draw >= sums).sum(axis=0)
         groups = agents.groupby(output_indexes)
-        return {outputs[i]:sub_group for i, sub_group in groups}
+        results =  [(outputs[i],sub_group) for i, sub_group in groups]
+        selected_outputs = [o for o,_ in results]
+        for output in outputs:
+            if output not in selected_outputs:
+                results.append((output, pd.DataFrame([], columns=agents.columns)))
+        return results
+
+    def __str__(self):
+        return str([str(x) for x in self])
 
 
 class Transition:
@@ -71,9 +92,11 @@ class Transition:
         self.output = output
         self.probability = probability_func
 
+    def label(self):
+        return ''
+
     def __str__(self):
         return 'Transition("{0}" ...)'.format(self.output.state_id)
-
 
 class Machine:
     def __init__(self, state_column):
@@ -81,12 +104,6 @@ class Machine:
         self.state_column = state_column
 
     def transition(self, agents):
-        #groups = agents.groupby(self.state_column, group_keys=False)
-        #state_map = {state.state_id:state for state in self.states}
-        #def transformer(agents):
-        #    state = state_map[agents.iloc[0][self.state_column]]
-        #    return state.next_state(agents, self.state_column)
-        #return groups.apply(transformer)
         result = []
         for state in self.states:
             affected_agents = agents[agents[self.state_column] == state.state_id]
@@ -96,10 +113,21 @@ class Machine:
     def to_dot(self):
         from graphviz import Digraph
         dot = Digraph(format='png')
+        done = set()
         for state in self.states:
-            dot.node(state.state_id)
+            dot.node(state.name())
             for transition in state.transition_set:
-                dot.edge(state.state_id, transition.output.state_id)
+                if isinstance(transition.output, TransitionSet):
+                    key = str(id(transition.output))
+                    dot.node(key, '')
+                    dot.edge(state.name(), key, transition.label())
+                    if key in done:
+                        continue
+                    done.add(key)
+                    for transition in transition.output:
+                        dot.edge(key, transition.output.name(), transition.label())
+                else:
+                    dot.edge(state.name(), transition.output.name(), transition.label())
         return dot
 
 

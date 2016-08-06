@@ -14,7 +14,7 @@ from ceam.events import only_living
 from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
-from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_states
+from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_states, get_proportion
 from ceam.gbd_data.gbd_ms_functions import generate_ceam_population, load_data_from_cache
 
 
@@ -80,6 +80,9 @@ class ExcessMortalityState(LookupTableMixin, DiseaseState, ValueMutationNode):
     def mortality_rates(self, population, rates):
         return rates + self.lookup_columns(population, ['rate'])['rate'].values * (population[self.parent.condition] == self.state_id)
 
+    def name(self):
+        return '{} ({}, {})'.format(self.state_id, self.modelable_entity_id, self.prevalence_meid)
+
     def __str__(self):
         return 'ExcessMortalityState("{}", "{}" ...)'.format(self.state_id, self.modelable_entity_id)
 
@@ -107,7 +110,40 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
         return pd.Series(base_rates.values * (1 - joint_mediated_paf.values), index=population.index)
 
     def __str__(self):
-        return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id, self.rate_label, self.modelable_entity_id)
+        return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id if hasattr(self.output, 'state_id') else [str(x) for x in self.output], self.rate_label, self.modelable_entity_id)
+
+class ProportionTransition(LookupTableMixin, Transition, Node, ValueMutationNode):
+    def __init__(self, output, modelable_entity_id=None, proportion=None):
+        Transition.__init__(self, output, self.probability)
+        Node.__init__(self)
+        ValueMutationNode.__init__(self)
+
+        if modelable_entity_id and proportion:
+            raise ValueError("Must supply modelable_entity_id or proportion but not both")
+        elif not (modelable_entity_id or proportion):
+            raise ValueError("Must supply either modelable_entity_id or proportion")
+
+        self.modelable_entity_id = modelable_entity_id
+        self.proportion = proportion
+
+    def load_data(self, prefix_path):
+        if self.modelable_entity_id:
+            return get_proportion(self.modelable_entity_id)
+
+    def probability(self, agents):
+        if self.modelable_entity_id:
+            return self.lookup_columns(agents, ['proportion'])['proportion']
+        else:
+            return pd.Series(self.proportion, index=agents.index)
+
+    def label(self):
+        if self.modelable_entity_id:
+            return str(self.modelable_entity_id)
+        else:
+            return str(self.proportion)
+
+    def __str__(self):
+        return 'ProportionTransition("{}", "{}", "{}")'.format(self.output.state_id if hasattr(self.output, 'state_id') else [str(x) for x in self.output], self.modelable_entity_id, self.proportion)
 
 
 class DiseaseModule(SimulationModule, Machine):
