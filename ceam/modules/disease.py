@@ -111,7 +111,7 @@ class IncidenceRateTransition(LookupTableMixin, Transition, Node, ValueMutationN
         return pd.Series(base_rates.values * (1 - joint_mediated_paf.values), index=population.index)
 
     def __str__(self):
-        return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id if hasattr(self.output, 'state_id') else self.output, self.rate_label, self.modelable_entity_id)
+        return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id if hasattr(self.output, 'state_id') else [str(x) for x in self.output], self.rate_label, self.modelable_entity_id)
 
 class ProportionTransition(LookupTableMixin, Transition, Node, ValueMutationNode):
     def __init__(self, output, modelable_entity_id=None, proportion=None):
@@ -144,7 +144,7 @@ class ProportionTransition(LookupTableMixin, Transition, Node, ValueMutationNode
             return str(self.proportion)
 
     def __str__(self):
-        return 'ProportionTransition("{}", "{}", "{}")'.format(self.output.state_id, self.modelable_entity_id, self.proportion)
+        return 'ProportionTransition("{}", "{}", "{}")'.format(self.output.state_id if hasattr(self.output, 'state_id') else [str(x) for x in self.output], self.modelable_entity_id, self.proportion)
 
 
 class DiseaseModule(SimulationModule, Machine):

@@ -23,7 +23,11 @@ def _next_state(agents, transition_set, state_column):
             else:
                 raise ValueError('Invalid transition output: {}'.format(output))
 
-        return pd.concat(results)
+        results = [r for r in results if not r.empty]
+        if results:
+            return pd.concat(results)
+        else:
+            return agents
     return pd.DataFrame(columns=agents.columns)
 
 class State:
@@ -72,7 +76,15 @@ class TransitionSet(list):
         sums = probabilities.cumsum(axis=0)
         output_indexes = (draw >= sums).sum(axis=0)
         groups = agents.groupby(output_indexes)
-        return [(outputs[i],sub_group) for i, sub_group in groups]
+        results =  [(outputs[i],sub_group) for i, sub_group in groups]
+        selected_outputs = [o for o,_ in results]
+        for output in outputs:
+            if output not in selected_outputs:
+                results.append((output, pd.DataFrame([], columns=agents.columns)))
+        return results
+
+    def __str__(self):
+        return str([str(x) for x in self])
 
 
 class Transition:
