@@ -1,6 +1,7 @@
 # ~/ceam/ceam/analysis.py
 
 import argparse
+import os.path
 
 import pandas as pd
 import numpy as np
@@ -35,7 +36,6 @@ def difference_with_confidence(a, b):
 def analyze_results_to_df(results):
     mixed_results = pd.DataFrame()
     for i, r in enumerate(results):
-        r['iteration'] = i
         mixed_results = mixed_results.append(r)
 
     intervention = mixed_results[mixed_results.intervention == True].reset_index(drop=True)
@@ -153,7 +153,9 @@ def dump_results(results, path):
 def load_results(paths):
     results = []
     for path in sorted(paths):
-        results.append(pd.read_csv(path))
+        result = pd.read_csv(path)
+        result['iteration'] = int(os.path.basename(path).split('_')[0])
+        results.append(result)
     return results
 
 
