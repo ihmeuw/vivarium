@@ -15,7 +15,6 @@ from ceam.util import rate_to_probability
 from ceam.state_machine import Machine, State, Transition
 from ceam.engine import SimulationModule
 from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_states, get_proportion
-from ceam.gbd_data.gbd_ms_functions import generate_ceam_population, load_data_from_cache
 
 
 class DiseaseState(State, DisabilityWeightMixin, Node):
