@@ -153,6 +153,8 @@ def dump_results(results, path):
 def load_results(paths):
     results = []
     for path in sorted(paths):
+        if 'cfg' in path:
+            continue
         result = pd.read_csv(path)
         result['iteration'] = int(os.path.basename(path).split('_')[0])
         results.append(result)
