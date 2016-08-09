@@ -68,27 +68,6 @@ def heart_disease_factory():
     module.states.extend([healthy, heart_attack, mild_heart_failure, moderate_heart_failure, severe_heart_failure, asymptomatic_angina, mild_angina, moderate_angina, severe_angina, asymptomatic_ihd])
     return module
 
-
-def simple_ihd_factory():
-    module = DiseaseModule('ihd')
-
-    healthy = State('healthy')
-    # TODO: disability weight for heart attack
-    heart_attack = ExcessMortalityState('heart_attack', disability_weight=0.439, dwell_time=timedelta(days=28), modelable_entity_id=1814)
-    chronic_ihd = ExcessMortalityState('chronic_ihd', disability_weight=0.08, modelable_entity_id=2412)
-
-    heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', modelable_entity_id=1814)
-    healthy.transition_set.append(heart_attack_transition)
-
-    heart_attack.transition_set.append(Transition(chronic_ihd))
-
-    chronic_ihd.transition_set.append(heart_attack_transition)
-
-    module.states.extend([healthy, heart_attack, chronic_ihd])
-
-    return module
-
-
 def stroke_factory():
     module = DiseaseModule('hemorrhagic_stroke')
 

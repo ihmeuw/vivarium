@@ -169,15 +169,11 @@ class DiseaseModule(SimulationModule, Machine):
 
     @only_living
     def time_step_handler(self, event):
-        # TODO: I shouldn't need this lookup into simulation.population. Somehow this method is
-        # poisoning @only_living's cache and this copy prevents that.
-        affected_population = self.simulation.population.ix[event.affected_population.index]
-        affected_population = self.transition(affected_population)
+        affected_population = self.transition(event.affected_population)
         self.simulation.population.loc[affected_population.index] = affected_population
 
 
     def load_population_columns(self, path_prefix, population_size):
-        # TODO: Load real data and integrate with state machine
         state_id_length = max(len(state.state_id) for state in self.states)
 
         state_map = {s.state_id:s.prevalence_meid for s in self.all_decendents(of_type=DiseaseState, with_attr='prevalence_meid')}

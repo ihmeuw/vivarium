@@ -45,8 +45,6 @@ class SmokingModule(SimulationModule):
         return pd.DataFrame(np.random.uniform(low=0.01, high=0.99, size=population_size), columns=['smoking_susceptibility'])
 
     def load_data(self, path_prefix):
-        # TODO: Where does prevalence data come from?
-        # The exposure comes from the central comp get draws function (see Everett if there are other questions)
         year_start = config.getint('simulation_parameters', 'year_start')
         year_end = config.getint('simulation_parameters', 'year_end')
         location_id = config.getint('simulation_parameters', 'location_id')
