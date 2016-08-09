@@ -16,7 +16,7 @@ from ceam.util import from_yearly, filter_for_rate
 from ceam.events import PopulationEvent, Event, only_living
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
 from ceam.gbd_data.gbd_ms_functions import get_cause_deleted_mortality_rate
-from ceam.gbd_data.gbd_ms_functions import generate_ceam_population, load_data_from_cache, assign_cause_at_beginning_of_simulation
+from ceam.gbd_data.gbd_ms_functions import generate_ceam_population
 
 from ceam.modules import ModuleRegistry, SimulationModule, LookupTable, ValueMutationNode, DisabilityWeightMixin
 
