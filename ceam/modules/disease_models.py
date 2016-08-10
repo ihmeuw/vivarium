@@ -29,7 +29,6 @@ def heart_disease_factory():
     moderate_angina = ExcessMortalityState('moderate_angina', disability_weight=0.08, modelable_entity_id=1817, prevalence_meid=1819)
     severe_angina = ExcessMortalityState('severe_angina', disability_weight=0.17, modelable_entity_id=1817, prevalence_meid=1820)
 
-
     asymptomatic_ihd = ExcessMortalityState('asymptomatic_ihd', disability_weight=0.08, modelable_entity_id=3233, prevalence_meid=3233)
 
     heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', modelable_entity_id=1814)
