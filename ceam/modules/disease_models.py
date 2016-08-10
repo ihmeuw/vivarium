@@ -89,3 +89,6 @@ def stroke_factory():
     module.states.extend([healthy, hemorrhagic_stroke, ischemic_stroke, chronic_stroke])
 
     return module
+
+
+# End.
