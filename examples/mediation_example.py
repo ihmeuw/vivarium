@@ -78,7 +78,7 @@ def main():
     simulation.load_data()
 
     start_time = pd.Timestamp('1/1/1990')
-    end_time = pd.Timestamp('12/31/2013')
+    end_time = pd.Timestamp('12/31/1995')
     time_step = pd.Timedelta(days=30.5)
 
     simulation.run(start_time, end_time, time_step)
