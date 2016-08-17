@@ -13,7 +13,7 @@ class SimpleIntervention(ceam.engine.SimulationModule):
 
     def track_cost(self, event):
         local_pop = event.affected_population
-        rows = local_pop.eval(self.intervention_group, engine='python')                            # engine='python' should not be necessary, but something seems wrong in pandsa/numexpr right not
+        rows = local_pop.eval(self.intervention_group, engine='python')                            # engine='python' should not be necessary, but something seems wrong in pandas/numexpr right now.
         self.cumulative_cost += 2.0 * np.sum(rows) * (self.simulation.last_time_step.days / 365.0) # FIXME: charge full price once per year?
 
     def mortality_rates(self, population, rates):
