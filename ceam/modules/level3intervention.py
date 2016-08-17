@@ -22,16 +22,18 @@ class Level3InterventionModule(SimulationModule):
     def incidence_rates(self, population, rates):
         # If conditions (year >= 1995 and age >= 25) are satisfied, then incidence is reduced to half (multiplied by 0.5) for each simulant.
         #
-        # Vectorized versus scalar-looping speed comparison.  Swapping the following two segments changes total run-time for a full simulation by a factor of about 40.
-        # This may not be true if the Python source is compiled (ie, Cython); this aspect bears further investigation (because there are other advantages to non-vectorized
-        # code if there is not speed penalty thereof).
+        # Vectorized versus scalar-looping speed comparison.  Swapping the following two segments changes total run-time for a full simulation
+        # by a factor of about 40.  This may not be true if the Python source is compiled (ie, Cython); this aspect bears further investigation.
+        # because there are other advantages to non-vectorized code if there is not speed penalty thereof.
         #
-        # Scalar-looping version:
+        # Scalar-looping version (commented-out here):
+        #
         # for i in range(len(rates)):
         #     rates[i] *= 1.0 - ( ((population.year.iat[i] >= 1995) & (population.age.iat[i] >= 25)) * 0.5 )
         #
-        # Vectorized version: the multiplication by 1.0 if conditions evaluate to False or by 0.5 if conditions evaluate to True
-        # is vectorized (performed on EACH member of the vector "rates").
+        # Vectorized version -- the multiplication by 1.0 if conditions evaluate to False or by 0.5 if conditions evaluate to True
+        # is vectorized (performed on EACH member of the vector "rates") (included here):
+        #
         rates *= 1.0 - ( ((population.year >= 1995) & (population.age >= 25)) * 0.5 )
         #
         return rates
