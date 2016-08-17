@@ -63,7 +63,7 @@ simulation.load_data()
 
 ### Run business-as-usual scenario
 start_time = pd.Timestamp('1/1/1990')
-end_time = pd.Timestamp('12/31/2013')
+end_time = pd.Timestamp('12/31/2010')
 time_step = pd.Timedelta(days=30.5)                                     # TODO: Is 30.5 days a good enough approximation of one month? -Alec
 np.random.seed(123456)                                                  # set random seed for reproducibility
 simulation.run(start_time, end_time, time_step)
