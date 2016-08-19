@@ -1,11 +1,18 @@
 from importlib import import_module
 import json
 
-def read_component_list(path):
+def read_component_configuration(path):
     if path.endswith('.json'):
         with open(path) as f:
             config = json.load(f)
-        return config['components']
+        base_components = config['components']
+        if 'comparisons' in config:
+            comparisons = config['comparisons']
+            for comparison in comparisons:
+                comparison['components'] = base_components + comparison['components']
+        else:
+            comparisons = {'name': 'base', 'components': base_components}
+        return comparisons
     else:
         raise ValueError("Unknown components configuration type: {}".format(path))
 

@@ -5,46 +5,37 @@ import numpy as np
 
 from .util import get_draw
 
-def _next_state(agents, transition_set, state_column):
+def _next_state(index, transition_set, population_view):
     if len(transition_set) == 0:
-        return agents
+        return
 
-    groups = transition_set.groupby_new_state(agents)
+    groups = transition_set.groupby_new_state(index)
 
     if groups:
-        results = []
-        for output, affected_agents in sorted(groups, key=lambda x:str(x[0])):
+        for output, affected_index in sorted(groups, key=lambda x:str(x[0])):
             if output == 'null_transition':
-                results.append(affected_agents)
+                pass
             elif isinstance(output, State):
-                results.append(output.transition_effect(affected_agents, state_column))
+                output.transition_effect(affected_index, population_view)
             elif isinstance(output, TransitionSet):
-                results.append(_next_state(affected_agents, output, state_column))
+                _next_state(affected_index, output, population_view)
             else:
                 raise ValueError('Invalid transition output: {}'.format(output))
-
-        results = [r for r in results if not r.empty]
-        if results:
-            return pd.concat(results)
-        else:
-            return agents
-    return pd.DataFrame(columns=agents.columns)
 
 class State:
     def __init__(self, state_id):
         self.state_id = state_id
         self.transition_set = TransitionSet()
 
-    def next_state(self, agents, state_column):
-        return _next_state(agents, self.transition_set, state_column)
+    def next_state(self, index, population_view):
+        return _next_state(index, self.transition_set, population_view)
 
-    def transition_effect(self, agents, state_column):
-        agents[state_column] = self.state_id
-        agents = self._transition_side_effect(agents, state_column)
-        return agents
+    def transition_effect(self, index, population_view):
+        population_view.update(pd.Series(self.state_id, index=index))
+        self._transition_side_effect(index)
 
-    def _transition_side_effect(self, agents, state_column):
-        return agents
+    def _transition_side_effect(self, index):
+        pass
 
     def name(self):
         return self.state_id
@@ -58,8 +49,8 @@ class TransitionSet(list):
         super(TransitionSet, self).__init__(*args, **kwargs)
         self.allow_null_transition = allow_null_transition
 
-    def groupby_new_state(self, agents):
-        outputs, probabilities = zip(*[(t.output, np.array(t.probability(agents))) for t in self])
+    def groupby_new_state(self, index):
+        outputs, probabilities = zip(*[(t.output, np.array(t.probability(index))) for t in self])
         outputs = list(outputs)
 
         total = np.sum(probabilities, axis=0)
@@ -72,15 +63,15 @@ class TransitionSet(list):
                 probabilities = np.concatenate([probabilities, [(1-total)]])
                 outputs.append('null_transition')
 
-        draw = np.array(get_draw(agents))
+        draw = np.array(get_draw(index))
         sums = probabilities.cumsum(axis=0)
         output_indexes = (draw >= sums).sum(axis=0)
-        groups = agents.groupby(output_indexes)
+        groups = pd.Series(index).groupby(output_indexes)
         results =  [(outputs[i],sub_group) for i, sub_group in groups]
         selected_outputs = [o for o,_ in results]
         for output in outputs:
             if output not in selected_outputs:
-                results.append((output, pd.DataFrame([], columns=agents.columns)))
+                results.append((output, pd.Index([])))
         return results
 
     def __str__(self):
@@ -88,7 +79,7 @@ class TransitionSet(list):
 
 
 class Transition:
-    def __init__(self, output, probability_func=lambda agents: np.full(len(agents), 1, dtype=float)):
+    def __init__(self, output, probability_func=lambda index: np.full(len(index), 1, dtype=float)):
         self.output = output
         self.probability = probability_func
 
@@ -102,13 +93,15 @@ class Machine:
     def __init__(self, state_column):
         self.states = list()
         self.state_column = state_column
+    
+    def setup(self, builder):
+        self.population_view = builder.population_view([self.state_column])
 
-    def transition(self, agents):
-        result = []
+    def transition(self, index):
+        population = self.population_view.get(index)
         for state in self.states:
-            affected_agents = agents[agents[self.state_column] == state.state_id]
-            result.append(state.next_state(affected_agents, self.state_column))
-        return pd.concat(result)
+            affected = population[population[self.state_column] == state.state_id]
+            state.next_state(affected.index, self.population_view)
 
     def to_dot(self):
         from graphviz import Digraph

@@ -1,3 +1,5 @@
+import os.path
+
 import pandas as pd
 
 from ceam.gbd_data.gbd_ms_functions import generate_ceam_population
@@ -40,6 +42,8 @@ class Mortality:
         self.mortality_rate_lookup = builder.lookup(self.load_all_cause_mortality())
         self.mortality_rate = builder.value('mortality_rate')
         self.death_emitter = builder.emitter('deaths')
+        j_drive = config.get('general', 'j_drive')
+        self.life_table = builder.lookup(pd.read_csv(os.path.join(j_drive, 'WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv')), index=('age',))
 
     def load_all_cause_mortality(self):
         location_id = config.getint('simulation_parameters', 'location_id')
@@ -51,9 +55,13 @@ class Mortality:
                 year_start,
                 year_end)
 
+    @listens_for('generate_population')
+    @population_view(['death_day'])
+    def death_day_column(self, event, population_view):
+        population_view.update(pd.Series(pd.NaT, name='death_day', index=event.index))
 
     @listens_for('time_step')
-    @population_view(['alive'], 'alive')
+    @population_view(['alive', 'death_day'], 'alive')
     def mortality_handler(self, event, population_view):
         pop = population_view.get(event.index)
         rate = self.mortality_rate(pop.index)
@@ -61,8 +69,16 @@ class Mortality:
 
         self.death_emitter(event.split(index))
 
-        population_view.update(pd.Series(False, index=index))
+        population_view.update(pd.DataFrame({'alive': False, 'death_day': event.time}, index=index))
 
     @produces_value('mortality_rate')
     def mortality_rate_source(self, population):
         return self.mortality_rate_lookup(population)
+
+    @modifies_value('metrics')
+    @population_view(['alive', 'age'])
+    def metrics(self, index, metrics, population_view):
+        population = population_view.get(index)
+        metrics['deaths'] = (~population.alive).sum()
+        metrics['years_of_life_lost'] = self.life_table(index).sum()
+        return metrics

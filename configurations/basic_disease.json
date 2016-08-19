@@ -4,6 +4,17 @@
          "ceam.components.base_population.age_simulants",
          "ceam.components.base_population.Mortality",
          "ceam.components.disease_models.heart_disease_factory()",
-         "ceam.components.disease_models.stroke_factory()"
+         "ceam.components.disease_models.stroke_factory()",
+         "ceam.components.metrics.Metrics"
+    ],
+    "comparisons": [
+        {
+            "name": "base",
+            "components": []
+        },
+        {
+            "name": "intervention",
+            "components": []
+        }
     ]
 }

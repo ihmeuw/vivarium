@@ -37,7 +37,7 @@ class EventManager:
         _set_injector(self.emitter_injector)
         for component in components:
             listeners = [(v, component, i) for priority in _listens_for(component) for i,v in enumerate(priority)]
-            listeners += [(v, getattr(component, att), i) for att in sorted(dir(component)) for priority in _listens_for(getattr(component, att)) for i,v in enumerate(priority)]
+            listeners += [(v, getattr(component, att), i) for att in sorted(dir(component)) for i,vs in enumerate(_listens_for(getattr(component, att))) for v in vs]
 
             for event, listener, priority in listeners:
                 self.__event_types[event].listeners[priority].append(listener)

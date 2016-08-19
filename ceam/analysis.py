@@ -38,8 +38,12 @@ def analyze_results_to_df(results):
     for i, r in enumerate(results):
         mixed_results = mixed_results.append(r)
 
-    intervention = mixed_results[mixed_results.intervention == True].reset_index(drop=True)
-    non_intervention = mixed_results[mixed_results.intervention == False].reset_index(drop=True)
+    comparisons = list(set(mixed_results.comparison.unique()) - {'base'})
+    if len(comparisons) != 1:
+        raise ValueError("Don't know what to do with more that one non-base comparison")
+
+    intervention = mixed_results[mixed_results.comparison == comparisons[0]].reset_index(drop=True)
+    non_intervention = mixed_results[mixed_results.comparison == 'base'].reset_index(drop=True)
 
     i_dalys = intervention.ylds + intervention.ylls
     ni_dalys = non_intervention.ylds + non_intervention.ylls
@@ -90,11 +94,15 @@ def analyze_results(results):
     for r in results:
         mixed_results = mixed_results.append(r)
 
-    intervention = mixed_results[mixed_results.intervention == True].reset_index(drop=True)
-    non_intervention = mixed_results[mixed_results.intervention == False].reset_index(drop=True)
+    comparisons = list(set(mixed_results.comparison.unique()) - {'base'})
+    if len(comparisons) != 1:
+        raise ValueError("Don't know what to do with more that one non-base comparison")
 
-    i_dalys = intervention.ylds + intervention.ylls
-    ni_dalys = non_intervention.ylds + non_intervention.ylls
+    intervention = mixed_results[mixed_results.comparison == comparisons[0]].reset_index(drop=True)
+    non_intervention = mixed_results[mixed_results.comparison == 'base'].reset_index(drop=True)
+
+    i_dalys = intervention.years_lived_with_disabiliy + intervention.years_of_life_lost
+    ni_dalys = non_intervention.years_lived_with_disability + non_intervention.years_of_life_lost
 
     i_dalys.index = range(len(i_dalys))
     ni_dalys.index = range(len(i_dalys))
@@ -107,9 +115,9 @@ def analyze_results(results):
     for r in results:
         lintervention = r[r.intervention == True].reset_index(drop=True)
         lnon_intervention = r[r.intervention == False].reset_index(drop=True)
-        dalys_averted.extend((lnon_intervention.ylds + lnon_intervention.ylls) - (lintervention.ylds + lintervention.ylls))
-        ylls_averted.extend((lnon_intervention.ylls) - (lintervention.ylls))
-        ylds_averted.extend((lnon_intervention.ylds) - (lintervention.ylds))
+        dalys_averted.extend((lnon_intervention.years_lived_with_disability + lnon_intervention.years_of_life_lost) - (lintervention.years_lived_with_disabiliy + lintervention.years_of_life_lost))
+        ylls_averted.extend((lnon_intervention.years_of_life_lost) - (lintervention.years_of_life_lost))
+        ylds_averted.extend((lnon_intervention.years_lived_with_disability) - (lintervention.years_lived_with_disability))
 
     print(
 """
@@ -124,13 +132,13 @@ Mean runtime: {mean_duration} seconds
     print('                  DALYs averted:', confidence(dalys_averted))
     print('                  YLLs averted:', confidence(ylls_averted))
     print('                  YLDs averted:', confidence(ylds_averted))
-    print('  Total Cost (non-intervention):', confidence(non_intervention.intervention_cost))
-    print('      Total Cost (intervention):', confidence(intervention.intervention_cost))
-    print('                 Change in Cost:', confidence(intervention.intervention_cost - non_intervention.intervention_cost))
+    print('  Total Cost (non-intervention):', confidence(non_intervention.cost))
+    print('      Total Cost (intervention):', confidence(intervention.cost))
+    print('                 Change in Cost:', confidence(intervention.cost - non_intervention.cost))
     if np.all(pd.Series(dalys_averted) == 0):
         print('          Cost per DALY averted: NA')
     else:
-        print('          Cost per DALY averted:', confidence((intervention.intervention_cost - non_intervention.intervention_cost)/(dalys_averted)))
+        print('          Cost per DALY averted:', confidence((intervention.cost - non_intervention.cost)/(dalys_averted)))
     print()
     print('   IHD Count (non-intervention):', confidence(non_intervention.ihd_count))
     print('       IHD Count (intervention):', confidence(intervention.ihd_count))

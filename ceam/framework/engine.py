@@ -1,16 +1,19 @@
 import argparse
 import re
 from datetime import datetime, timedelta
+from pprint import pformat
 
 import pandas as pd
 
 from ceam import config
 
+from ceam.analysis import analyze_results
+
 from ceam.framework.values import ValuesManager, joint_value_combiner, joint_value_post_processor
 from ceam.framework.event import EventManager, Event, emits
 from ceam.framework.population import PopulationManager
 from ceam.framework.lookup import MergedTableManager
-from ceam.framework.components import load, read_component_list
+from ceam.framework.components import load, read_component_configuration
 
 import logging
 _log = logging.getLogger(__name__)
@@ -34,9 +37,9 @@ class SimulationContext:
         self.current_time = None
 
     def setup(self):
-        self.values.declare_pipeline('disability_weight', combiner=joint_value_combiner, post_processing=joint_value_post_processor)
-        self.values.declare_pipeline(re.compile('paf\..*'), combiner=joint_value_combiner, post_processing=joint_value_post_processor, source=lambda index: pd.Series(1.0, index=index))
-        self.values.declare_pipeline('metrics', source=lambda index: {})
+        self.values.declare_pipeline('disability_weight', combiner=joint_value_combiner, post_processor=joint_value_post_processor, source=lambda index: pd.Series(1.0, index=index))
+        self.values.declare_pipeline(re.compile('paf\..*'), combiner=joint_value_combiner, post_processor=joint_value_post_processor, source=lambda index: pd.Series(1.0, index=index))
+        self.values.declare_pipeline('metrics', post_processor=None, source=lambda index: {})
         builder = Builder(self)
         components = list(self.components)
         i = 0
@@ -54,10 +57,12 @@ class SimulationContext:
 
 @emits('time_step')
 @emits('time_step__prepare')
-def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter):
+@emits('time_step__cleanup')
+def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, time_step__cleanup_emitter):
     _log.debug(simulation.current_time)
     time_step__prepare_emitter.emit(Event(simulation.current_time, simulation.population.population.index))
     time_step_emitter.emit(Event(simulation.current_time, simulation.population.population.index))
+    time_step__cleanup_emitter.emit(Event(simulation.current_time, simulation.population.population.index))
     simulation.current_time += time_step
 
 @emits('generate_population')
@@ -82,13 +87,13 @@ def event_loop(simulation, generate_emitter, end_emitter):
     end_emitter.emit(Event(simulation.current_time, simulation.population.population.index))
 
 def run_simulation(components):
-    component_paths = read_component_list(components)
-
-    simulation = SimulationContext(load(component_paths + [_step, event_loop]))
+    simulation = SimulationContext(load(components + [_step, event_loop]))
 
     simulation.setup()
 
     event_loop(simulation)
+
+    return simulation.values.get_pipeline('metrics')(simulation.population.population.index)
 
 def main():
     parser = argparse.ArgumentParser()
@@ -109,7 +114,15 @@ def main():
     config.set('run_configuration', 'draw_number', str(args.draw))
     config.set('run_configuration', 'process_number', str(args.process_number))
 
-    run_simulation(args.components)
+    component_configurations = read_component_configuration(args.components)
+    all_metrics = []
+    for configuration in component_configurations:
+        _log.debug('Starting comparison: {}'.format(configuration['name']))
+        metrics = run_simulation(configuration['components'])
+        metrics['comparison'] = configuration['name']
+        _log.debug(pformat(metrics))
+        all_metrics.append(metrics)
+    analyze_results([pd.DataFrame(all_metrics)])
 
 if __name__ == '__main__':
     main()

@@ -50,21 +50,27 @@ class DiseaseState(State):
             population_size = len(event.index)
             self.population_view.update(pd.DataFrame({self.event_time_column: np.zeros(population_size), self.event_count_column: np.zeros(population_size)}, index=event.index))
 
-    def next_state(self, population, state_column):
+    def next_state(self, index, population_view):
         if self.dwell_time > 0:
-            population = self.population_view.get(population.index)
-            eligible_population = population.loc[population[self.event_time_column] < self.clock().timestamp() - self.dwell_time]
+            population = self.population_view.get(index)
+            eligible_index = population.loc[population[self.event_time_column] < self.clock().timestamp() - self.dwell_time].index
         else:
-            eligible_population = population
-        return super(DiseaseState, self).next_state(eligible_population, state_column)
+            eligible_index = index
+        return super(DiseaseState, self).next_state(eligible_index, population_view)
 
-    def _transition_side_effect(self, agents, state_column):
+    def _transition_side_effect(self, index):
         if self.dwell_time > 0:
-            pop = self.population_view.get(agents.index)
+            pop = self.population_view.get(index)
             pop[self.event_time_column] = self.clock().timestamp()
             pop[self.event_count_column] += 1
             self.population_view.update(pop)
-        return agents
+
+    @modifies_value('metrics')
+    def metrics(self, index, metrics):
+        if self.dwell_time > 0:
+            population = self.population_view.get(index)
+            metrics[self.event_count_column] = population[self.event_count_column].sum()
+        return metrics
 
     @modifies_value('disability_weight')
     def disability_weight(self, index, weight):
@@ -113,8 +119,8 @@ class IncidenceRateTransition(Transition):
         self.joint_paf = builder.value('paf.{}'.format(self.rate_label))
         self.base_incidence = builder.lookup(get_incidence(self.modelable_entity_id))
 
-    def probability(self, agents):
-        return rate_to_probability(self.effective_incidence(agents))
+    def probability(self, index):
+        return rate_to_probability(self.effective_incidence(index))
 
     def incidence_rates(self, index):
         base_rates = self.base_incidence(index)
@@ -141,11 +147,11 @@ class ProportionTransition(Transition):
         if self.modelable_entity_id:
             self.proportion = builder.lookup(get_proportion(self.modelable_entity_id))
 
-    def probability(self, agents):
+    def probability(self, index):
         if self.modelable_entity_id:
-            return self.proportion(agents)
+            return self.proportion(index)
         else:
-            return pd.Series(self.proportion, index=agents.index)
+            return pd.Series(self.proportion, index=index)
 
     def label(self):
         if self.modelable_entity_id:
@@ -182,8 +188,7 @@ class DiseaseModel(Machine):
 
     @listens_for('time_step')
     def time_step_handler(self, event):
-        population = self.population_view.get(event.index)
-        self.transition(population)
+        self.transition(event.index)
 
 
     @listens_for('generate_population')
@@ -200,7 +205,7 @@ class DiseaseModel(Machine):
 
     @modifies_value('metrics')
     def metrics(self, index, metrics):
-        population = self.population_view(index)
+        population = self.population_view.get(index)
         metrics[self.condition + '_count'] = (population[self.condition] != 'healthy').sum()
         return metrics
 # End.
