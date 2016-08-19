@@ -76,9 +76,9 @@ class Mortality:
         return self.mortality_rate_lookup(population)
 
     @modifies_value('metrics')
-    @uses_columns(['alive', 'age'])
+    @uses_columns(['alive', 'age'], 'not alive')
     def metrics(self, index, metrics, population_view):
         population = population_view.get(index)
-        metrics['deaths'] = (~population.alive).sum()
-        metrics['years_of_life_lost'] = self.life_table(index).sum()
+        metrics['deaths'] = len(population)
+        metrics['years_of_life_lost'] = self.life_table(population.index).sum()
         return metrics

@@ -9,7 +9,7 @@ from ceam import config
 
 from ceam.analysis import analyze_results
 
-from ceam.framework.values import ValuesManager, joint_value_combiner, joint_value_post_processor
+from ceam.framework.values import ValuesManager, joint_value_combiner, joint_value_post_processor, rescale_post_processor
 from ceam.framework.event import EventManager, Event, emits
 from ceam.framework.population import PopulationManager
 from ceam.framework.lookup import MergedTableManager
@@ -38,8 +38,16 @@ class SimulationContext:
         self.current_time = None
 
     def setup(self):
-        self.values.declare_pipeline('disability_weight', combiner=joint_value_combiner, post_processor=joint_value_post_processor, source=lambda index: pd.Series(1.0, index=index))
-        self.values.declare_pipeline(re.compile('paf\..*'), combiner=joint_value_combiner, post_processor=joint_value_post_processor, source=lambda index: pd.Series(1.0, index=index))
+        self.values.declare_pipeline('disability_weight',
+                combiner=joint_value_combiner,
+                post_processor=lambda a: rescale_post_processor(joint_value_post_processor(a)),
+                source=lambda index: pd.Series(1.0, index=index))
+
+        self.values.declare_pipeline(re.compile('paf\..*'),
+                combiner=joint_value_combiner,
+                post_processor=joint_value_post_processor,
+                source=lambda index: pd.Series(1.0, index=index))
+
         self.values.declare_pipeline('metrics', post_processor=None, source=lambda index: {})
         builder = Builder(self)
         components = list(self.components)

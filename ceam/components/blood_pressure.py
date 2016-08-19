@@ -33,9 +33,9 @@ class BloodPressure:
         self.load_relative_risks(builder)
         self.load_pafs(builder)
 
-        builder.modifies_value(lambda index, other: self.ihd_paf(index), 'paf.heart_attack')
-        builder.modifies_value(lambda index, other: self.hemorrhagic_stroke_paf(index), 'paf.hemorrhagic_stroke')
-        builder.modifies_value(lambda index, other: self.ischemic_stroke_paf(index), 'paf.ischemic_stroke')
+        builder.modifies_value(lambda index: self.ihd_paf(index), 'paf.heart_attack')
+        builder.modifies_value(lambda index: self.hemorrhagic_stroke_paf(index), 'paf.hemorrhagic_stroke')
+        builder.modifies_value(lambda index: self.ischemic_stroke_paf(index), 'paf.ischemic_stroke')
 
     @listens_for('generate_population')
     @uses_columns(['systolic_blood_pressure_percentile', 'systolic_blood_pressure'])
@@ -89,9 +89,9 @@ class BloodPressure:
         self.hemorrhagic_stroke_paf = builder.lookup(hem_stroke_paf)
         self.ischemic_stroke_paf = builder.lookup(isc_stroke_paf)
 
-    def population_attributable_fraction(self, population, other_paf, paf_lookup):
+    def population_attributable_fraction(self, population, paf_lookup):
         paf = self.lookup_columns(population, [cause+'_PAF'])[cause+'_PAF'].values
-        return other_paf * (1 - paf)
+        return paf
 
     @listens_for('time_step__prepare', priority=9)
     @uses_columns(['systolic_blood_pressure', 'systolic_blood_pressure_percentile'], 'alive')

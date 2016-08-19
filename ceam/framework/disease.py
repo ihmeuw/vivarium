@@ -41,7 +41,7 @@ class DiseaseState(State):
         columns = [self.condition]
         if self.dwell_time > 0:
             columns += [self.event_time_column, self.event_count_column]
-        self.population_view = builder.population_view(columns)
+        self.population_view = builder.population_view(columns, 'alive')
         self.clock = builder.clock()
 
     @listens_for('generate_population')
@@ -73,7 +73,7 @@ class DiseaseState(State):
         return metrics
 
     @modifies_value('disability_weight')
-    def disability_weight(self, index, weight):
+    def disability_weight(self, index):
         population = self.population_view.get(index)
         return self._disability_weight * (population[self.condition] == self.state_id)
 

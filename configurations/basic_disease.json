@@ -5,6 +5,8 @@
          "ceam.components.base_population.Mortality",
          "ceam.components.disease_models.heart_disease_factory()",
          "ceam.components.disease_models.stroke_factory()",
+	 "ceam.components.blood_pressure.BloodPressure",
+	 "ceam.components.smoking.Smoking",
          "ceam.components.metrics.Metrics"
     ],
     "comparisons": [

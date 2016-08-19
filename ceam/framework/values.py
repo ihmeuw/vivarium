@@ -11,11 +11,13 @@ from .event import listens_for
 produces_value, _values_produced = marker_factory('value_system__produces')
 modifies_value, _values_modified = marker_factory('value_system__modifies', with_priority=True)
 
-def replace_combiner(a, b):
-    return b
+def replace_combiner(value, mutator, *args, **kwargs):
+    args = list(args) + [value]
+    return mutator(*args, **kwargs)
 
-def joint_value_combiner(a, b):
-    return (1-a) * (1-b)
+def joint_value_combiner(value, mutator, *args, **kwargs):
+    new_value = mutator(*args, **kwargs)
+    return value * (1-new_value)
 
 def rescale_post_processor(a):
     time_step = config.getfloat('simulation_parameters', 'time_step')
@@ -35,8 +37,7 @@ class Pipeline:
         value = self.source(*args, **kwargs)
         for priority_bucket in self.mutators:
             for mutator in priority_bucket:
-                new_args = list(args) + [value]
-                value = self.combiner(value, mutator(*new_args, **kwargs))
+                value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor:
             return self.post_processor(value)
         else:
