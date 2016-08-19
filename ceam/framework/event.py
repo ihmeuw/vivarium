@@ -6,13 +6,12 @@ listens_for, _listens_for = marker_factory('event_system__listens_for', with_pri
 emits, _set_injector = resource_injector('event_system__emits')
 
 class Event:
-    def __init__(self, time, time_step, affected_index):
+    def __init__(self, time, index):
         self.time = time
-        self.time_step = time_step
-        self.affected_index = affected_index
+        self.index = index
 
     def split(self, new_index):
-        return Event(self.time, self.time_step, new_index)
+        return Event(self.time, new_index)
 
 class EventChannel:
     def __init__(self):

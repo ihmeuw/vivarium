@@ -3,7 +3,7 @@
 import pandas as pd
 import numpy as np
 
-from ceam.util import get_draw
+from .util import get_draw
 
 def _next_state(agents, transition_set, state_column):
     if len(transition_set) == 0:

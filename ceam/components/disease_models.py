@@ -3,12 +3,12 @@
 from datetime import timedelta
 
 from ceam import config
-from ceam.state_machine import Transition, State, TransitionSet
-from ceam.modules.disease import DiseaseModule, DiseaseState, ExcessMortalityState, IncidenceRateTransition, ProportionTransition
+from ceam.framework.state_machine import Transition, State, TransitionSet
+from ceam.framework.disease import DiseaseModel, DiseaseState, ExcessMortalityState, IncidenceRateTransition, ProportionTransition
 
 
 def heart_disease_factory():
-    module = DiseaseModule('ihd')
+    module = DiseaseModel('ihd')
 
     healthy = State('healthy')
 
@@ -68,7 +68,7 @@ def heart_disease_factory():
     return module
 
 def stroke_factory():
-    module = DiseaseModule('hemorrhagic_stroke')
+    module = DiseaseModel('hemorrhagic_stroke')
 
     healthy = State('healthy')
     # TODO: disability weight for stroke

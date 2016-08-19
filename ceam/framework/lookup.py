@@ -66,7 +66,7 @@ class MergedTableManager:
                     merge_index = list(set(index) - {'year'})
                 else:
                     merge_index = list(index)
-                affected_population = population_view.get(event.affected_index)
+                affected_population = population_view.get(event.index)
                 current_table = base_table.merge(affected_population[merge_index], on=merge_index)
                 current_table['simulant_id'] = affected_population.index
                 current_table = current_table.set_index('simulant_id').sort_index()

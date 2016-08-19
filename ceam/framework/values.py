@@ -1,4 +1,7 @@
 from collections import defaultdict
+import re
+
+from ceam import config
 
 from ceam.util import from_yearly
 from .util import marker_factory
@@ -7,8 +10,21 @@ from .event import listens_for
 produces_value, _values_produced = marker_factory('value_system__produces')
 modifies_value, _values_modified = marker_factory('value_system__modifies', with_priority=True)
 
+def replace_combiner(a, b):
+    return b
+
+def joint_value_combiner(a, b):
+    return (1-a) * (1-b)
+
+def rescale_post_processor(a):
+    time_step = config.getfloat('simulation_parameters', 'time_step')
+    return from_yearly(a, timedelta(days=time_step))
+
+def joint_value_post_processor(a):
+    return 1-a
+
 class Pipeline:
-    def __init__(self):
+    def __init__(self, combiner=replace_combiner, post_processing=rescale_post_processor):
         self.source = None
         self.mutators = [[] for i in range(10)]
 
@@ -23,7 +39,7 @@ class Pipeline:
 class ValuesManager:
     def __init__(self):
         self.__pipelines = defaultdict(Pipeline)
-        self._time_step = None
+        self.__pipeline_templates = {}
 
     def produces(self, label):
         def wrapper(provider):
@@ -45,14 +61,23 @@ class ValuesManager:
             return inner
         return wrapper
 
-    def get_pipeline(self, label, rescale_to_timestep=True):
-        def getter(*args, **kwargs):
-            value = self.__pipelines[label](*args, **kwargs)
-            if rescale_to_timestep:
-                return from_yearly(value, self.time_step)
-            else:
-                return value
-        return getter
+    def get_pipeline(self, label):
+        if label not in self.__pipelines:
+            for label_template, (combiner, post_processing, source) in self.__pipeline_templates.items():
+                if label_template.match(label):
+                    self.__pipelines[label] = Pipeline(combiner=combiner, post_processing=post_processing)
+                    if source:
+                        self.__pipelines[label].source = source
+        return self.__pipelines[label]
+
+    def declare_pipeline(self, label, combiner=replace_combiner, post_processing=rescale_post_processor, source=None):
+        if hasattr(label, 'match'):
+            # This is a compiled regular expression
+            self.__pipeline_templates[label] = (combiner, post_processing, source)
+        else:
+            self.__pipelines[label] = Pipeline(combiner=combiner, post_processing=post_processing)
+            if source:
+                self.__pipelines[label].source = source
 
     def setup_components(self, components):
         for component in components:
@@ -67,7 +92,3 @@ class ValuesManager:
 
             for value, mutator, priority in values_modified:
                 self.__pipelines[value].mutators[priority].append(mutator)
-
-    @listens_for('time_step__prepare')
-    def track_time_step(self, event):
-        self.time_step = event.time_step

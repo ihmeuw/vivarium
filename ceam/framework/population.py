@@ -28,8 +28,9 @@ class PopulationView:
             else:
                 affected_columns = set(pop.columns)
 
+            affected_columns = set(affected_columns).intersection(self.columns)
             if self.manager.column_lock:
-                affected_columns = set(affected_columns).intersection(self.columns)
+                affected_columns = set(affected_columns).intersection(self.manager._population.columns)
 
             for c in affected_columns:
                 if c in self.manager._population:
@@ -52,9 +53,12 @@ class PopulationManager:
         self._population = pd.DataFrame()
         self.column_lock = True
 
+    def get_view(self, columns, query=None):
+        return PopulationView(self, columns, query)
+
     def setup_components(self, components):
         def injector(args, columns, query=None):
-            return list(args) + [PopulationView(self, columns, query)]
+            return list(args) + [self.get_view(columns, query)]
         _view_injector(injector)
 
     @property

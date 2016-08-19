@@ -2,6 +2,8 @@ import time, os
 
 import pandas as pd
 
+from ceam import config
+
 from ceam.framework.event import listens_for
 from ceam.framework.values import modifies_value
 from ceam.framework.population import population_view
@@ -18,8 +20,9 @@ class SimpleIntervention:
     def track_cost(self, event, population_view):
         self.year = event.time.year
         if event.time.year >= 1995:
-            local_pop = population_view.get(event.affected_index)
-            self.cumulative_cost += 2.0 * len(local_pop) * (event.time_step.days / 365.0) # FIXME: charge full price once per year?
+            time_step = config.getfloat('simulation_parameters', 'time_step')
+            local_pop = population_view.get(event.index)
+            self.cumulative_cost += 2.0 * len(local_pop) * (time_step / 365.0) # FIXME: charge full price once per year?
 
     @modifies_value('mortality_rate')
     @population_view(['age'], intervention_group)
@@ -44,9 +47,9 @@ class SimpleMetrics:
 
     @listens_for('deaths')
     def count_deaths_and_ylls(self, event):
-        self.deaths += len(event.affected_index)
+        self.deaths += len(event.index)
 
-        t = self.life_table(event.affected_index)
+        t = self.life_table(event.index)
         self.ylls += t.sum()
 
     def reset(self):

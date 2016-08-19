@@ -17,7 +17,7 @@ from ceam import config
 def generate_base_population(event, population_view):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
-    population_size = len(event.affected_index)
+    population_size = len(event.index)
 
     population = load_data_from_cache(generate_ceam_population, col_name=None, location_id=location_id, year_start=year_start, number_of_simulants=population_size)
     population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'}).astype('category')
@@ -29,8 +29,9 @@ def generate_base_population(event, population_view):
 @listens_for('time_step')
 @population_view(['age', 'fractional_age'], 'alive')
 def age_simulants(event, population_view):
-    population = population_view.get(event.affected_index)
-    population['fractional_age'] += event.time_step.days/365.0
+    population = population_view.get(event.index)
+    time_step = config.getfloat('simulation_parameters', 'time_step')
+    population['fractional_age'] += time_step/365.0
     population['age'] = population.fractional_age.astype(int)
     population_view.update(population)
 
@@ -54,13 +55,13 @@ class Mortality:
     @listens_for('time_step')
     @population_view(['alive'], 'alive')
     def mortality_handler(self, event, population_view):
-        pop = population_view.get(event.affected_index)
+        pop = population_view.get(event.index)
         rate = self.mortality_rate(pop.index)
-        affected_index = filter_for_rate(pop.index, rate)
+        index = filter_for_rate(pop.index, rate)
 
-        self.death_emitter(event.split(affected_index))
+        self.death_emitter(event.split(index))
 
-        population_view.update(pd.Series(False, index=affected_index))
+        population_view.update(pd.Series(False, index=index))
 
     @produces_value('mortality_rate')
     def mortality_rate_source(self, population):
