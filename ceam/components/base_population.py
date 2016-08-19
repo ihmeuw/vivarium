@@ -1,6 +1,7 @@
 import os.path
 
 import pandas as pd
+import numpy as np
 
 from ceam.gbd_data.gbd_ms_functions import generate_ceam_population
 from ceam.gbd_data.gbd_ms_functions import get_cause_deleted_mortality_rate
@@ -27,6 +28,21 @@ def generate_base_population(event, population_view):
     population['fractional_age'] = population.age.astype(float)
 
     population_view.update(population)
+
+@listens_for('generate_population')
+@uses_columns(['adherence_category'])
+def adherence(event, population_view):
+        population_size = len(event.index)
+        # use a dirichlet distribution with means matching Marcia's
+        # paper and sum chosen to provide standard deviation on first
+        # term also matching paper
+        draw_number = config.getint('run_configuration', 'draw_number')
+        r = np.random.RandomState(1234567+draw_number)
+        alpha = np.array([0.6, 0.25, 0.15]) * 100
+        p = r.dirichlet(alpha)
+        # then use these probabilities to generate adherence
+        # categories for all simulants
+        population_view.update(pd.Series(r.choice(['adherent', 'semi-adherent', 'non-adherent'], p=p, size=population_size), dtype='category'))
 
 @listens_for('time_step')
 @uses_columns(['age', 'fractional_age'], 'alive')

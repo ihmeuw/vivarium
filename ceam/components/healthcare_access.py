@@ -1,13 +1,18 @@
 # ~/ceam/ceam/modules/healthcare_access.py
 
 from collections import defaultdict
+from datetime import timedelta
 
 import numpy as np, pandas as pd
 
 from ceam import config
-from ceam.engine import SimulationModule
-from ceam.events import PopulationEvent, only_living
-from ceam.util import filter_for_rate, filter_for_probability, from_yearly, get_draw
+
+from ceam.framework.event import listens_for
+from ceam.util import from_yearly
+from ceam.framework.population import uses_columns
+from ceam.framework.values import modifies_value
+from ceam.framework.util import filter_for_rate, filter_for_probability, get_draw
+
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, get_modelable_entity_draws
 
 # draw random costs for doctor visit (time-specific)
@@ -19,7 +24,7 @@ cost_df.index = cost_df.year_id
 appointment_cost = cost_df['draw_{}'.format(draw)]
 
 
-class HealthcareAccessModule(SimulationModule):
+class HealthcareAccess:
     """Model health care utilization. This includes access events due to
     chance (broken arms, flu, etc.) and those due to follow up
     appointments, which are affected by adherence rate. This module
@@ -37,25 +42,21 @@ class HealthcareAccessModule(SimulationModule):
         next scheduled follow-up appointment
     """
 
-    def __init__(self):
-        super(HealthcareAccessModule, self).__init__()
-        self.reset()
-
-    def reset(self):
+    def setup(self, builder):
         draw_number = config.getint('run_configuration', 'draw_number')
         r = np.random.RandomState(123456+draw)
         self.semi_adherent_pr = r.normal(0.4, 0.0485)
+
         self.cost_by_year = defaultdict(float)
+        self.general_access_count = 0
+        self.followup_access_count = 0
 
-    def setup(self):
-        self.register_event_listener(self.general_access, 'time_step')
-        self.register_event_listener(self.followup_access, 'time_step')
+        self.general_healthcare_access_emitter = builder.emitter('general_healthcare_access')
+        self.followup_healthcare_access_emitter = builder.emitter('followup_healthcare_access')
 
-    def load_population_columns(self, path_prefix, population_size):
-        return pd.DataFrame({'healthcare_followup_date': [pd.NaT]*population_size,
-                             'healthcare_last_visit_date': [pd.NaT]*population_size})
+        self.load_utilization(builder)
 
-    def load_data(self, path_prefix):
+    def load_utilization(self, builder):
         year_start = config.getint('simulation_parameters', 'year_start')
         year_end = config.getint('simulation_parameters', 'year_end')
         location_id = config.getint('simulation_parameters', 'location_id')
@@ -64,27 +65,40 @@ class HealthcareAccessModule(SimulationModule):
         # TODO: Currently this is monthly, not anually
         lookup_table = load_data_from_cache(get_modelable_entity_draws, col_name='utilization_proportion',
                                             year_start=year_start, year_end=year_end, location_id=location_id, measure=18, me_id=9458)
-        return lookup_table
+        self.utilization_proportion = builder.lookup(lookup_table)
 
-    @only_living
-    def general_access(self, event):
+    @listens_for('generate_population')
+    @uses_columns(['healthcare_followup_date', 'healthcare_last_visit_date'])
+    def load_population_columns(self, event, population_view):
+        population_size = len(event.index)
+        population_view.update(pd.DataFrame({'healthcare_followup_date': [pd.NaT]*population_size,
+                             'healthcare_last_visit_date': [pd.NaT]*population_size}))
+
+    @listens_for('time_step')
+    @uses_columns(['healthcare_last_visit_date'], 'alive')
+    def general_access(self, event, population_view):
         # determine population who accesses care
-        t = self.lookup_columns(event.affected_population, ['utilization_proportion'])
-        affected_population = filter_for_probability(event.affected_population, t['utilization_proportion'])  # FIXME: currently assumes timestep is one month
+        affected_population = population_view.get(event.index)
+        t = self.utilization_proportion(affected_population.index)
+        affected_population = filter_for_probability(affected_population, t)  # FIXME: currently assumes timestep is one month
 
         # for those who show up, emit_event that the visit has happened, and tally the cost
-        self.simulation.population.loc[affected_population.index, 'healthcare_last_visit_date'] = self.simulation.current_time
-        self.simulation.emit_event(PopulationEvent('general_healthcare_access', affected_population))
+        population_view.update(pd.Series(event.time, index=affected_population.index))
+        self.general_healthcare_access_emitter(event.split(affected_population.index))
+        self.general_access_count += len(affected_population)
 
-        year = self.simulation.current_time.year
+        year = event.time.year
         self.cost_by_year[year] += len(affected_population) * appointment_cost[year]
 
-    @only_living
-    def followup_access(self, event):
+    @listens_for('time_step')
+    @uses_columns(['healthcare_last_visit_date', 'healthcare_followup_date', 'adherence_category'], 'alive')
+    def followup_access(self, event, population_view):
+        affected_population = population_view.get(event.index)
+        time_step = timedelta(days=config.getfloat('simulation_parameters', 'time_step'))
         # determine population due for a follow-up appointment
-        rows = (event.affected_population.healthcare_followup_date > self.simulation.current_time-self.simulation.last_time_step) \
-               & (event.affected_population.healthcare_followup_date <= self.simulation.current_time)
-        affected_population = event.affected_population[rows]
+        rows = (affected_population.healthcare_followup_date > event.time-time_step) \
+               & (affected_population.healthcare_followup_date <= event.time)
+        affected_population = affected_population[rows]
 
         # of them, determine who shows up for their follow-up appointment
         adherence = pd.Series(1, index=affected_population.index)
@@ -94,11 +108,19 @@ class HealthcareAccessModule(SimulationModule):
         affected_population = filter_for_probability(affected_population, adherence)
 
         # for those who show up, emit_event that the visit has happened, and tally the cost
-        self.simulation.population.loc[affected_population.index, 'healthcare_last_visit_date'] = self.simulation.current_time
-        self.simulation.emit_event(PopulationEvent('followup_healthcare_access', affected_population))
+        population_view.update(pd.Series(event.time, index=affected_population.index, name='healthcare_last_visit_date'))
+        self.followup_healthcare_access_emitter(event.split(affected_population.index))
+        self.followup_access_count += len(affected_population)
 
-        year = self.simulation.current_time.year
+        year = event.time.year
         self.cost_by_year[year] += len(affected_population) * appointment_cost[year]
+
+    @modifies_value('metrics')
+    def metrics(self, index, metrics):
+        metrics['healthcare_access_cost'] = sum(self.cost_by_year.values())
+        metrics['general_healthcare_access'] = self.general_access_count
+        metrics['followup_healthcare_access'] = self.followup_access_count
+        return metrics
 
 
 # End.
