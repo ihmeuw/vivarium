@@ -6,7 +6,7 @@ from ceam import config
 
 from ceam.framework.event import listens_for
 from ceam.framework.values import modifies_value
-from ceam.framework.population import population_view
+from ceam.framework.population import uses_columns
 
 class SimpleIntervention:
     intervention_group = 'age >= 25 and alive == True'
@@ -16,7 +16,7 @@ class SimpleIntervention:
         self.year = 1990 # TODO: better plumbing for this information
 
     @listens_for('time_step')
-    @population_view(['age', 'alive'], intervention_group)
+    @uses_columns(['age', 'alive'], intervention_group)
     def track_cost(self, event, population_view):
         self.year = event.time.year
         if event.time.year >= 1995:
@@ -25,7 +25,7 @@ class SimpleIntervention:
             self.cumulative_cost += 2.0 * len(local_pop) * (time_step / 365.0) # FIXME: charge full price once per year?
 
     @modifies_value('mortality_rate')
-    @population_view(['age'], intervention_group)
+    @uses_columns(['age'], intervention_group)
     def mortality_rates(self, index, rates, population_view):
         if self.year >= 1995:
             pop = population_view.get(index)

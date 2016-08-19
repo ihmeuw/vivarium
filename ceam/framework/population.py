@@ -3,6 +3,7 @@ import pandas as pd
 from .util import resource_injector
 
 population_view, _view_injector = resource_injector('population_system_population_view')
+uses_columns = population_view
 
 class PopulationView:
     def __init__(self, manager, columns, query):

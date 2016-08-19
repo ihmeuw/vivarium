@@ -8,14 +8,14 @@ from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
 
 from ceam.framework.event import listens_for
 from ceam.framework.values import produces_value, modifies_value
-from ceam.framework.population import population_view
+from ceam.framework.population import uses_columns
 
 from ceam.framework.util import filter_for_rate
 
 from ceam import config
 
 @listens_for('generate_population', priority=0)
-@population_view(['age', 'fractional_age', 'sex', 'alive'])
+@uses_columns(['age', 'fractional_age', 'sex', 'alive'])
 def generate_base_population(event, population_view):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
@@ -29,7 +29,7 @@ def generate_base_population(event, population_view):
     population_view.update(population)
 
 @listens_for('time_step')
-@population_view(['age', 'fractional_age'], 'alive')
+@uses_columns(['age', 'fractional_age'], 'alive')
 def age_simulants(event, population_view):
     population = population_view.get(event.index)
     time_step = config.getfloat('simulation_parameters', 'time_step')
@@ -56,12 +56,12 @@ class Mortality:
                 year_end)
 
     @listens_for('generate_population')
-    @population_view(['death_day'])
+    @uses_columns(['death_day'])
     def death_day_column(self, event, population_view):
         population_view.update(pd.Series(pd.NaT, name='death_day', index=event.index))
 
     @listens_for('time_step')
-    @population_view(['alive', 'death_day'], 'alive')
+    @uses_columns(['alive', 'death_day'], 'alive')
     def mortality_handler(self, event, population_view):
         pop = population_view.get(event.index)
         rate = self.mortality_rate(pop.index)
@@ -76,7 +76,7 @@ class Mortality:
         return self.mortality_rate_lookup(population)
 
     @modifies_value('metrics')
-    @population_view(['alive', 'age'])
+    @uses_columns(['alive', 'age'])
     def metrics(self, index, metrics, population_view):
         population = population_view.get(index)
         metrics['deaths'] = (~population.alive).sum()

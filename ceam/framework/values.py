@@ -47,25 +47,9 @@ class ValuesManager:
         self._pipelines = defaultdict(Pipeline)
         self.__pipeline_templates = {}
 
-    def produces(self, label):
-        def wrapper(provider):
-            self._pipelines[label].source = provider
-            return provider
-        return wrapper
-
-    def modifies(self, label, priority=5):
-        def wrapper(mutator):
-            self._pipelines[label].mutators[priority].append(mutator)
-            return mutator
-        return wrapper
-
-    def consumes(self, label):
-        def wrapper(consumer):
-            def inner(*args, **kwargs):
-                args = list(args) + [self._pipelines[label]]
-                return consumer(*args, **kwargs)
-            return inner
-        return wrapper
+    def mutator(self, mutator, label, priority=5):
+        pipeline = self.get_pipeline(label)
+        pipeline.mutators[priority].append(mutator)
 
     def get_pipeline(self, label):
         if label not in self._pipelines:
@@ -91,10 +75,12 @@ class ValuesManager:
             values_produced += [(v, getattr(component, att)) for att in sorted(dir(component)) for v in _values_produced(getattr(component, att))]
 
             for value, producer in values_produced:
-                self._pipelines[value].source = producer
+                pipeline = self.get_pipeline(value)
+                pipeline.source = producer
 
             values_modified = [(v, component, i) for priority in _values_modified(component) for i,v in enumerate(priority)]
             values_modified += [(v, getattr(component, att), i) for att in sorted(dir(component)) for i,vs in enumerate(_values_modified(getattr(component, att))) for v in vs]
 
             for value, mutator, priority in values_modified:
-                self._pipelines[value].mutators[priority].append(mutator)
+                pipeline = self.get_pipeline(value)
+                pipeline.mutators[priority].append(mutator)

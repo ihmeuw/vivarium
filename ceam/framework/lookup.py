@@ -5,7 +5,7 @@ from collections import defaultdict
 import pandas as pd
 
 from .event import listens_for
-from .population import population_view
+from .population import uses_columns
 
 class TableView:
     def __init__(self, manager, key, index, columns):
@@ -18,7 +18,7 @@ class TableView:
             index = pop
         else:
             index = pop.index
-        result = self.manager._current_table[self.index].ix[index, list(self.column_map.values())]
+        result = self.manager._current_table[self.index].ix[index, list(self.column_map.keys())]
 
         if len(result.columns) > 1:
             return result.rename(columns=self.column_map)
@@ -45,6 +45,7 @@ class MergedTableManager:
         index = tuple(index)
         table = data
         key = str(uuid.uuid4())
+        columns = table.columns
         column_map = {c:key + '_' + c for c in table.columns if c not in index}
         table = table.rename(columns=column_map)
         if 'sex' in table:
@@ -54,10 +55,10 @@ class MergedTableManager:
         else:
             self._base_table[index] = self._base_table[index].merge(table, on=index, how='inner')
 
-        return TableView(self, key, index, [c for c in table.columns if c not in index])
+        return TableView(self, key, index, [c for c in columns if c not in index])
 
     @listens_for('time_step__prepare')
-    @population_view(['age', 'sex'])
+    @uses_columns(['age', 'sex'])
     def track_year(self, event, population_view):
         if self.last_year is None or self.last_year < event.time.year:
             for index, base_table in self._base_table.items():

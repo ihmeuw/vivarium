@@ -116,6 +116,7 @@ class IncidenceRateTransition(Transition):
     def setup(self, builder):
         self.incidence_rates = produces_value('incidence_rate.{}'.format(self.rate_label))(self.incidence_rates)
         self.effective_incidence = builder.value('incidence_rate.{}'.format(self.rate_label))
+        self.effective_incidence.source = self.incidence_rates
         self.joint_paf = builder.value('paf.{}'.format(self.rate_label))
         self.base_incidence = builder.lookup(get_incidence(self.modelable_entity_id))
 
@@ -126,7 +127,7 @@ class IncidenceRateTransition(Transition):
         base_rates = self.base_incidence(index)
         joint_mediated_paf = self.joint_paf(index)
 
-        return pd.Series(base_rates.values * (1 - joint_mediated_paf.values), index=index)
+        return pd.Series(base_rates.values * joint_mediated_paf.values, index=index)
 
     def __str__(self):
         return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id if hasattr(self.output, 'state_id') else [str(x) for x in self.output], self.rate_label, self.modelable_entity_id)
