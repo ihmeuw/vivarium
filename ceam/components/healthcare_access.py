@@ -120,6 +120,11 @@ class HealthcareAccess:
         metrics['healthcare_access_cost'] = sum(self.cost_by_year.values())
         metrics['general_healthcare_access'] = self.general_access_count
         metrics['followup_healthcare_access'] = self.followup_access_count
+
+        if 'cost' in metrics:
+            metrics['cost'] += metrics['healthcare_access_cost']
+        else:
+            metrics['cost'] = metrics['healthcare_access_cost']
         return metrics
 
 

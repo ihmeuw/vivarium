@@ -18,7 +18,9 @@
         },
         {
             "name": "intervention",
-            "components": []
+            "components": [
+                "ceam.components.opportunistic_screening.OpportunisticScreening"
+            ]
         }
     ]
 }

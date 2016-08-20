@@ -93,7 +93,7 @@ class BloodPressure:
         paf = self.lookup_columns(population, [cause+'_PAF'])[cause+'_PAF'].values
         return paf
 
-    @listens_for('time_step__prepare', priority=9)
+    @listens_for('time_step__prepare', priority=8)
     @uses_columns(['systolic_blood_pressure', 'systolic_blood_pressure_percentile'], 'alive')
     def update_systolic_blood_pressure(self, event, population_view):
         population = population_view.get(event.index)

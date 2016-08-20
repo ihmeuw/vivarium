@@ -101,21 +101,19 @@ def analyze_results(results):
     intervention = mixed_results[mixed_results.comparison == comparisons[0]].reset_index(drop=True)
     non_intervention = mixed_results[mixed_results.comparison == 'base'].reset_index(drop=True)
 
-    i_dalys = intervention.years_lived_with_disabiliy + intervention.years_of_life_lost
+    i_dalys = intervention.years_lived_with_disability + intervention.years_of_life_lost
     ni_dalys = non_intervention.years_lived_with_disability + non_intervention.years_of_life_lost
 
     i_dalys.index = range(len(i_dalys))
     ni_dalys.index = range(len(i_dalys))
-    non_intervention.intervention_cost.index = range(len(i_dalys))
-    intervention.intervention_cost.index = range(len(i_dalys))
 
     dalys_averted = []
     ylds_averted = []
     ylls_averted = []
     for r in results:
-        lintervention = r[r.intervention == True].reset_index(drop=True)
-        lnon_intervention = r[r.intervention == False].reset_index(drop=True)
-        dalys_averted.extend((lnon_intervention.years_lived_with_disability + lnon_intervention.years_of_life_lost) - (lintervention.years_lived_with_disabiliy + lintervention.years_of_life_lost))
+        lintervention = r[r.comparison != 'base'].reset_index(drop=True)
+        lnon_intervention = r[r.comparison == 'base'].reset_index(drop=True)
+        dalys_averted.extend((lnon_intervention.years_lived_with_disability + lnon_intervention.years_of_life_lost) - (lintervention.years_lived_with_disability + lintervention.years_of_life_lost))
         ylls_averted.extend((lnon_intervention.years_of_life_lost) - (lintervention.years_of_life_lost))
         ylds_averted.extend((lnon_intervention.years_lived_with_disability) - (lintervention.years_lived_with_disability))
 
