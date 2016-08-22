@@ -150,7 +150,7 @@ Mean runtime: {mean_duration} seconds
     print('                               General:', confidence((intervention.general_healthcare_access)/20))
     print('                              Followup:', confidence((intervention.followup_healthcare_access)/20))
     print('    Treated Individuals (intervention):', confidence(intervention.treated_individuals))
-    print('    Draw count:', confidence(mixed_results.draw_count))
+    #print('    Draw count:', confidence(mixed_results.draw_count))
 
 
 def dump_results(results, path):

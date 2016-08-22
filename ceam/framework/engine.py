@@ -1,4 +1,5 @@
 import argparse
+from time import time
 import re
 from datetime import datetime, timedelta
 from pprint import pformat
@@ -96,13 +97,16 @@ def event_loop(simulation, generate_emitter, end_emitter):
     end_emitter.emit(Event(simulation.current_time, simulation.population.population.index))
 
 def run_simulation(components):
+    start = time()
     simulation = SimulationContext(load(components + [_step, event_loop]))
 
     simulation.setup()
 
     event_loop(simulation)
 
-    return simulation.values.get_pipeline('metrics')(simulation.population.population.index)
+    metrics = simulation.values.get_pipeline('metrics')(simulation.population.population.index)
+    metrics['duration'] = time() - start
+    return metrics
 
 def main():
     parser = argparse.ArgumentParser()

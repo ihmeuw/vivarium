@@ -213,6 +213,8 @@ class OpportunisticScreening:
             metrics['cost'] += metrics['medication_cost']
         else:
             metrics['cost'] = metrics['medication_cost']
+        pop = self.population_view.get(index)
+        metrics['treated_individuals'] = (pop.medication_count > 0).sum()
         return metrics
 
 
