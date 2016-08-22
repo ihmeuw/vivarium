@@ -11,7 +11,6 @@ from ceam.framework.event import listens_for
 from ceam.util import from_yearly
 from ceam.framework.population import uses_columns
 from ceam.framework.values import modifies_value
-from ceam.framework.util import filter_for_rate, filter_for_probability, get_draw
 
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, get_modelable_entity_draws
 
@@ -56,6 +55,9 @@ class HealthcareAccess:
 
         self.load_utilization(builder)
 
+        self.general_random = builder.randomness('healthcare_general_acess')
+        self.followup_random = builder.randomness('healthcare_followup_acess')
+
     def load_utilization(self, builder):
         year_start = config.getint('simulation_parameters', 'year_start')
         year_end = config.getint('simulation_parameters', 'year_end')
@@ -80,7 +82,7 @@ class HealthcareAccess:
         # determine population who accesses care
         affected_population = population_view.get(event.index)
         t = self.utilization_proportion(affected_population.index)
-        affected_population = filter_for_probability(affected_population, t)  # FIXME: currently assumes timestep is one month
+        affected_population = self.general_random.filter_for_probability(affected_population, t)  # FIXME: currently assumes timestep is one month
 
         # for those who show up, emit_event that the visit has happened, and tally the cost
         population_view.update(pd.Series(event.time, index=affected_population.index))
@@ -105,7 +107,7 @@ class HealthcareAccess:
         adherence[affected_population.adherence_category == 'non-adherent'] = 0
         semi_adherents = affected_population.loc[affected_population.adherence_category == 'semi-adherent']
         adherence[semi_adherents.index] = self.semi_adherent_pr
-        affected_population = filter_for_probability(affected_population, adherence)
+        affected_population = self.followup_random.filter_for_probability(affected_population, adherence)
 
         # for those who show up, emit_event that the visit has happened, and tally the cost
         population_view.update(pd.Series(event.time, index=affected_population.index, name='healthcare_last_visit_date'))

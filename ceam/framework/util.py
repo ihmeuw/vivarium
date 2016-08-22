@@ -1,6 +1,8 @@
 from functools import wraps
+import sys
 
 import numpy as np
+
 
 def marker_factory(marker_attribute, with_priority=False):
     if with_priority:
@@ -53,20 +55,3 @@ def rate_to_probability(rate):
 def probability_to_rate(probability):
     return -np.log(1-probability)
 
-def filter_for_rate(population, rate):
-    return filter_for_probability(population, rate_to_probability(rate))
-
-def get_draw(index):
-    return np.random.random(size=len(index))
-
-def choice(a, index, p=None):
-    return pd.Series(np.random.choice(a, p=p, size=len(index)), index=index)
-
-def filter_for_probability(population, probability):
-    draw = np.random.random(size=len(population))
-
-    mask = draw < probability
-    if not isinstance(mask, np.ndarray):
-        # TODO: Something less awkward
-        mask = mask.values
-    return population[mask]

@@ -11,8 +11,6 @@ from ceam.framework.event import listens_for
 from ceam.framework.values import produces_value, modifies_value
 from ceam.framework.population import uses_columns
 
-from ceam.framework.util import filter_for_rate
-
 from ceam import config
 
 @listens_for('generate_population', priority=0)
@@ -60,6 +58,7 @@ class Mortality:
         self.death_emitter = builder.emitter('deaths')
         j_drive = config.get('general', 'j_drive')
         self.life_table = builder.lookup(pd.read_csv(os.path.join(j_drive, 'WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv')), index=('age',))
+        self.random = builder.randomness('mortality_handler')
 
     def load_all_cause_mortality(self):
         location_id = config.getint('simulation_parameters', 'location_id')
@@ -81,7 +80,7 @@ class Mortality:
     def mortality_handler(self, event, population_view):
         pop = population_view.get(event.index)
         rate = self.mortality_rate(pop.index)
-        index = filter_for_rate(pop.index, rate)
+        index = self.random.filter_for_rate(pop.index, rate)
 
         self.death_emitter(event.split(index))
 

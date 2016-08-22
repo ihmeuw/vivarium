@@ -4,6 +4,7 @@ import re
 from datetime import datetime, timedelta
 from pprint import pformat
 
+import numpy as np
 import pandas as pd
 
 from ceam import config
@@ -15,6 +16,7 @@ from ceam.framework.event import EventManager, Event, emits
 from ceam.framework.population import PopulationManager
 from ceam.framework.lookup import MergedTableManager
 from ceam.framework.components import load, read_component_configuration
+from ceam.framework.randomness import RandomnessStream
 
 import logging
 _log = logging.getLogger(__name__)
@@ -27,6 +29,8 @@ class Builder:
         self.emitter = context.events.get_emitter
         self.population_view = context.population.get_view
         self.clock = lambda: lambda: context.current_time
+        draw_number = config.getint('run_configuration', 'draw_number')
+        self.randomness = lambda key: RandomnessStream(key, self.clock(), draw_number)
 
 class SimulationContext:
     def __init__(self, components):

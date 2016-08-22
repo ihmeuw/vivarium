@@ -12,7 +12,7 @@ from ceam import config
 from .event import listens_for
 from .values import modifies_value, produces_value
 from .util import rate_to_probability
-from .state_machine import Machine, State, Transition
+from .state_machine import Machine, State, Transition, TransitionSet
 
 from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_states, get_proportion
 
@@ -183,8 +183,11 @@ class DiseaseModel(Machine):
         for state in self.states:
             state.condition = self.condition
             sub_components.append(state)
+            sub_components.append(state.transition_set)
             for transition in state.transition_set:
                 sub_components.append(transition)
+                if isinstance(transition.output, TransitionSet):
+                    sub_components.append(transition.output)
         return sub_components
 
     @listens_for('time_step')

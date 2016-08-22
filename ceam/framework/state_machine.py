@@ -3,7 +3,6 @@
 import pandas as pd
 import numpy as np
 
-from .util import get_draw
 
 def _next_state(index, transition_set, population_view):
     if len(transition_set) == 0:
@@ -49,6 +48,9 @@ class TransitionSet(list):
         super(TransitionSet, self).__init__(*args, **kwargs)
         self.allow_null_transition = allow_null_transition
 
+    def setup(self, builder):
+        self.random = builder.randomness('state_machine') #TODO: this randomness_stream identifier _must_ be more specific
+
     def groupby_new_state(self, index):
         outputs, probabilities = zip(*[(t.output, np.array(t.probability(index))) for t in self])
         outputs = list(outputs)
@@ -63,7 +65,7 @@ class TransitionSet(list):
                 probabilities = np.concatenate([probabilities, [(1-total)]])
                 outputs.append('null_transition')
 
-        draw = np.array(get_draw(index))
+        draw = np.array(self.random.get_draw(index))
         sums = probabilities.cumsum(axis=0)
         output_indexes = (draw >= sums).sum(axis=0)
         groups = pd.Series(index).groupby(output_indexes)

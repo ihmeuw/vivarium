@@ -9,7 +9,6 @@ import pandas as pd
 
 from ceam import config
 
-from ceam.framework.util import get_draw
 from ceam.framework.event import listens_for
 from ceam.framework.values import modifies_value
 
