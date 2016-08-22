@@ -26,6 +26,9 @@ class State:
         self.state_id = state_id
         self.transition_set = TransitionSet()
 
+    def setup(self, builder):
+        return [self.transition_set]
+
     def next_state(self, index, population_view):
         return _next_state(index, self.transition_set, population_view)
 
@@ -50,6 +53,7 @@ class TransitionSet(list):
 
     def setup(self, builder):
         self.random = builder.randomness('state_machine') #TODO: this randomness_stream identifier _must_ be more specific
+        return list(self)
 
     def groupby_new_state(self, index):
         outputs, probabilities = zip(*[(t.output, np.array(t.probability(index))) for t in self])
@@ -95,9 +99,10 @@ class Machine:
     def __init__(self, state_column):
         self.states = list()
         self.state_column = state_column
-    
+
     def setup(self, builder):
         self.population_view = builder.population_view([self.state_column])
+        return self.states
 
     def transition(self, index):
         population = self.population_view.get(index)
