@@ -8,8 +8,7 @@ from unittest.mock import Mock
 import numpy as np
 import pandas as pd
 
-from ceam.engine import SimulationModule
-from ceam.util import from_yearly, to_yearly, rate_to_probability, probability_to_rate, filter_for_probability
+from ceam.framework.util import from_yearly, to_yearly, rate_to_probability, probability_to_rate
 
 
 # Simple regression tests for rate functions
@@ -48,15 +47,6 @@ def test_rate_to_probablity_vectorizability():
     prob = rate_to_probability(rate)
     assert round(prob[10], 5) == round(0.00099950016662497809, 5)
     assert round(np.sum(rate), 5) == round(np.sum(probability_to_rate(prob)), 5)
-
-def test_filter_for_probability():
-    pop = pd.DataFrame(dict(age=[0]*10000, simulant_id=range(10000)))
-
-    sub_pop = filter_for_probability(pop, 0.5)
-    assert round(len(sub_pop)/len(pop), 1) == 0.5
-
-    sub_sub_pop = filter_for_probability(sub_pop, 0.5)
-    assert round(len(sub_sub_pop)/len(sub_pop), 1) == 0.5
 
 
 # End.
