@@ -58,7 +58,7 @@ def pump_simulation(simulation, duration=None, iterations=None):
 
 
 
-def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population), dummy_population=None):
+def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population.population), dummy_population=None):
     """ Asserts that the rate of change of some property in the simulation matches expectations.
 
     Parameters
@@ -74,22 +74,16 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
         A function that takes in a population and returns a subset of it which will be used for the test
     """
 
-    if dummy_population is None:
-        simulation.reset_population()
-    else:
-        simulation.population = dummy_population.copy()
-
     timestep = timedelta(days=30)
     start_time = datetime(1990, 1, 1)
     simulation.current_time = start_time
-    simulation.last_time_step = timestep
 
     count = value_func(simulation)
     total_true_rate = 0
     effective_population_size = 0
     for _ in range(10*12):
         effective_population_size += effective_population_func(simulation)
-        simulation._step(timestep)
+        _step(simulation, timestep)
         new_count = value_func(simulation)
         total_true_rate += new_count - count
         count = new_count

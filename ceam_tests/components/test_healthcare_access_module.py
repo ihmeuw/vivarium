@@ -6,35 +6,36 @@ from unittest.mock import patch
 import pytest
 
 from ceam import config
-from ceam_tests.util import simulation_factory, assert_rate, build_table
-from ceam.engine import SimulationModule
+from ceam_tests.util import setup_simulation, assert_rate, build_table
 
-from ceam.modules.healthcare_access import HealthcareAccessModule
+from ceam.framework.event import listens_for
+
+from ceam.components.healthcare_access import HealthcareAccess
+from ceam.components.base_population import generate_base_population, adherence
 
 import numpy as np
 
 np.random.seed(100)
 
 
-class MetricsModule(SimulationModule):
-    def setup(self):
-        self.register_event_listener(self.count_access, 'general_healthcare_access')
+class Metrics:
+    def setup(self, builder):
         self.access_count = 0
 
+    @listens_for('general_healthcare_access')
     def count_access(self, event):
-        self.access_count += len(event.affected_population)
+        self.access_count += len(event.index)
 
     def reset(self):
         self.access_count = 0
 
 
 @pytest.mark.slow
-@patch('ceam.modules.healthcare_access.load_data_from_cache')
+@patch('ceam.components.healthcare_access.load_data_from_cache')
 def test_general_access(utilization_rate_mock):
     utilization_rate_mock.side_effect = lambda *args, **kwargs: build_table(0.1, ['age', 'year', 'sex', 'utilization_proportion'])
-    metrics = MetricsModule()
-    simulation = simulation_factory([metrics, HealthcareAccessModule()])
-    initial_population = simulation.population
+    metrics = Metrics()
+    simulation = setup_simulation([generate_base_population, adherence, metrics, HealthcareAccess()])
 
     # 1.2608717447575932 == a monthly probability 0.1 as a yearly rate
     assert_rate(simulation, 1.2608717447575932, lambda s: metrics.access_count)
