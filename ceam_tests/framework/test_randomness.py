@@ -1,10 +1,21 @@
+import pytest
+from datetime import datetime
+
+import pandas as pd
+
+from ceam.framework.randomness import RandomnessStream
 
 def test_filter_for_probability():
-    pop = pd.DataFrame(dict(age=[0]*10000, simulant_id=range(10000)))
+    clock = [datetime(1990, 1, 1)]
+    r = RandomnessStream('test', lambda: clock[0], 1)
 
-    sub_pop = filter_for_probability(pop, 0.5)
-    assert round(len(sub_pop)/len(pop), 1) == 0.5
+    index = pd.Index(range(10000))
 
-    sub_sub_pop = filter_for_probability(sub_pop, 0.5)
-    assert round(len(sub_sub_pop)/len(sub_pop), 1) == 0.5
+    sub_index = r.filter_for_probability(index, 0.5)
+    assert round(len(sub_index)/len(index), 1) == 0.5
+
+    clock[0] = datetime(1991, 1, 1)
+
+    sub_sub_index = r.filter_for_probability(sub_index, 0.5)
+    assert round(len(sub_sub_index)/len(sub_index), 1) == 0.5
 
