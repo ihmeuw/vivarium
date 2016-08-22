@@ -3,35 +3,36 @@
 import pytest
 from datetime import timedelta
 
-from ceam_tests.util import simulation_factory, pump_simulation
+from ceam_tests.util import setup_simulation, pump_simulation
 
-from ceam.modules.blood_pressure import BloodPressureModule
-from ceam.modules.disease_models import heart_disease_factory, stroke_factory
+from ceam.components.blood_pressure import BloodPressure
+from ceam.components.base_population import generate_base_population
+from ceam.components.disease_models import heart_disease_factory, stroke_factory
+
 import numpy as np
 
 np.random.seed(100)
 
-
 @pytest.mark.slow
 def test_basic_SBP_bounds():
-    simulation = simulation_factory([BloodPressureModule()])
+    simulation = setup_simulation([generate_base_population, BloodPressure()])
 
     sbp_mean = 138 # Mean across all demographics
     sbp_std = 15 # Standard deviation across all demographics
     interval = sbp_std * 4
-    pump_simulation(simulation, iterations=1) # Get blood pressure stablaized
+    pump_simulation(simulation, iterations=1) # Get blood pressure stabilized
 
     #Check that no one is wildly out of range
-    assert ((simulation.population.systolic_blood_pressure > (sbp_mean+2*interval)) | ( simulation.population.systolic_blood_pressure < (sbp_mean-interval))).sum() == 0
+    assert ((simulation.population.population.systolic_blood_pressure > (sbp_mean+2*interval)) | ( simulation.population.population.systolic_blood_pressure < (sbp_mean-interval))).sum() == 0
 
-    initial_mean_sbp = simulation.population.systolic_blood_pressure.mean()
+    initial_mean_sbp = simulation.population.population.systolic_blood_pressure.mean()
 
     pump_simulation(simulation, duration=timedelta(days=5*365))
 
     # Check that blood pressure goes up over time as our cohort ages
-    assert simulation.population.systolic_blood_pressure.mean() > initial_mean_sbp
+    assert simulation.population.population.systolic_blood_pressure.mean() > initial_mean_sbp
     # And that there's still no one wildly out of bounds
-    assert ((simulation.population.systolic_blood_pressure > (sbp_mean+2*interval)) | ( simulation.population.systolic_blood_pressure < (sbp_mean-interval))).sum() == 0
+    assert ((simulation.population.population.systolic_blood_pressure > (sbp_mean+2*interval)) | ( simulation.population.population.systolic_blood_pressure < (sbp_mean-interval))).sum() == 0
 
 
 #TODO: The change to risk deleted incidence rates breaks these tests. We need a new way of checking face validity

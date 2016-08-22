@@ -11,7 +11,7 @@ from ceam import config
 
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
 
-from ceam.framework.engine import SimulationContext
+from ceam.framework.engine import SimulationContext, _step
 from ceam.framework.event import Event
 from ceam.framework.util import from_yearly, to_yearly
 
@@ -33,6 +33,30 @@ def setup_simulation(components, population_size = 100):
     simulation.population.column_lock = True
 
     return simulation
+
+def pump_simulation(simulation, duration=None, iterations=None):
+    timestep = timedelta(days=30.5)
+    start_time = datetime(1990, 1, 1)
+    simulation.current_time = start_time
+    iteration_count = 0
+
+    def should_stop():
+        if duration is not None:
+            if simulation.current_time - start_time >= duration:
+                return True
+        elif iterations is not None:
+            if iteration_count >= iterations:
+                return True
+        else:
+            raise ValueError('Must supply either duration or iterations')
+
+        return False
+
+    while not should_stop():
+        iteration_count += 1
+        _step(simulation, timestep)
+
+
 
 def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population), dummy_population=None):
     """ Asserts that the rate of change of some property in the simulation matches expectations.
