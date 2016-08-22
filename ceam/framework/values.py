@@ -4,8 +4,7 @@ from datetime import timedelta
 
 from ceam import config
 
-from ceam.util import from_yearly
-from .util import marker_factory
+from .util import marker_factory, from_yearly
 from .event import listens_for
 
 produces_value, _values_produced = marker_factory('value_system__produces')

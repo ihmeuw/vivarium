@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from ceam import config
-from ceam.util import rate_to_probability
+from .util import rate_to_probability
 
 class RandomnessStream:
     def __init__(self, key, clock, seed):

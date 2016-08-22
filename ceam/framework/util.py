@@ -49,6 +49,12 @@ def resource_injector(marker_attribute):
 
     return decorator, set_injector
 
+def from_yearly(value, time_step):
+    return value * (time_step.total_seconds() / (60*60*24*365.0))
+
+def to_yearly(value, time_step):
+    return value / (time_step.total_seconds() / (60*60*24*365.0))
+
 def rate_to_probability(rate):
         return 1-np.exp(-rate)
 
