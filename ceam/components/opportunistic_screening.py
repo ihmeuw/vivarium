@@ -191,8 +191,8 @@ class OpportunisticScreening:
     @listens_for('time_step__prepare', priority=9)
     def adjust_blood_pressure(self, event):
         time_step = timedelta(days=config.getfloat('simulation_parameters', 'time_step'))
-        initial_affected_population = self.population_view.get(event.index)
         for medication_number, medication in enumerate(MEDICATIONS):
+            initial_affected_population = self.population_view.get(event.index)
             affected_population = initial_affected_population[(initial_affected_population.medication_count > medication_number) & (initial_affected_population[medication['name']+'_supplied_until'] >= event.time - time_step)]
             adherence = pd.Series(1, index=affected_population.index)
             adherence[affected_population.adherence_category == 'non-adherent'] = 0
