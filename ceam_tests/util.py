@@ -31,6 +31,7 @@ def setup_simulation(components, population_size = 100):
     simulation.population.column_lock = False
     generate_emitter(Event(start, range(population_size)))
     simulation.population.column_lock = True
+    simulation.current_time = start
 
     return simulation
 
