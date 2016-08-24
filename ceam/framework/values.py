@@ -2,6 +2,8 @@ from collections import defaultdict
 import re
 from datetime import timedelta
 
+import pandas as pd
+
 from ceam import config
 
 from .util import marker_factory, from_yearly
@@ -10,20 +12,30 @@ from .event import listens_for
 produces_value, _values_produced = marker_factory('value_system__produces')
 modifies_value, _values_modified = marker_factory('value_system__modifies', with_priority=True)
 
+class NullValue:
+    def __init__(self, index):
+        self.index = index
+
 def replace_combiner(value, mutator, *args, **kwargs):
     args = list(args) + [value]
     return mutator(*args, **kwargs)
 
 def joint_value_combiner(value, mutator, *args, **kwargs):
     new_value = mutator(*args, **kwargs)
-    return value * (1-new_value)
+    if isinstance(value, NullValue):
+        return new_value
+    else:
+        return value * (1-new_value)
 
 def rescale_post_processor(a):
     time_step = config.getfloat('simulation_parameters', 'time_step')
     return from_yearly(a, timedelta(days=time_step))
 
 def joint_value_post_processor(a):
-    return 1-a
+    if isinstance(a, NullValue):
+        return pd.Series(1, index=a.index)
+    else:
+        return 1-a
 
 class Pipeline:
     def __init__(self, combiner=replace_combiner, post_processor=rescale_post_processor):
