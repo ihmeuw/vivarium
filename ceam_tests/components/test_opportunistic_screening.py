@@ -23,8 +23,7 @@ from ceam.components.base_population import adherence, generate_base_population
 
 @listens_for('generate_population')
 @uses_columns(['systolic_blood_pressure', 'age', 'fractional_age'])
-def _population_setup(event, population_view):
-    population = pd.DataFrame(index=event.index)
+def _population_setup(event):
 
     age_sbps = []
     age_sbps.append((40, 130.0)) # Normotensive, below 60
@@ -41,12 +40,13 @@ def _population_setup(event, population_view):
     age_sbps.append((70, 185.0)) # Severe hypertensive, above 60
 
     ages, sbps = zip(*age_sbps)
+    population = pd.DataFrame(index=event.index)
     population['age'] = ages
     population['systolic_blood_pressure'] = sbps
 
     population['fractional_age'] = population['age']
 
-    population_view.update(population)
+    event.population_view.update(population)
 
 def test_hypertensive_categories():
     simulation, module = screening_setup()

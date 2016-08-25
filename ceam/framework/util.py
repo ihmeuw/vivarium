@@ -27,8 +27,9 @@ def marker_factory(marker_attribute, with_priority=False):
             return []
         else:
             return getattr(func, marker_attribute)
+    decorator.finder = finder
 
-    return decorator, finder
+    return decorator
 
 def resource_injector(marker_attribute):
     injector = [lambda args, *injector_args, **injector_kwargs: args]
@@ -39,15 +40,16 @@ def resource_injector(marker_attribute):
 
             @wraps(func)
             def inner(*args, **kwargs):
-                args = injector[0](args, *injector_args, **injector_kwargs)
+                args, kwargs = injector[0](func, args, kwargs, *injector_args, **injector_kwargs)
                 return func(*args, **kwargs)
             return inner
         return wrapper
 
     def set_injector(func):
         injector[0] = func
+    decorator.set_injector = set_injector
 
-    return decorator, set_injector
+    return decorator
 
 def from_yearly(value, time_step):
     return value * (time_step.total_seconds() / (60*60*24*365.0))

@@ -17,12 +17,11 @@ class SimpleIntervention:
 
     @listens_for('time_step')
     @uses_columns(['age', 'alive'], intervention_group)
-    def track_cost(self, event, population_view):
+    def track_cost(self, event):
         self.year = event.time.year
         if event.time.year >= 1995:
             time_step = config.getfloat('simulation_parameters', 'time_step')
-            local_pop = population_view.get(event.index)
-            self.cumulative_cost += 2.0 * len(local_pop) * (time_step / 365.0) # FIXME: charge full price once per year?
+            self.cumulative_cost += 2.0 * len(event.index) * (time_step / 365.0) # FIXME: charge full price once per year?
 
     @modifies_value('mortality_rate')
     @uses_columns(['age'], intervention_group)

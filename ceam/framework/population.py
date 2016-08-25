@@ -1,8 +1,9 @@
 import pandas as pd
 
 from .util import resource_injector
+from .event import listens_for, Event
 
-population_view, _view_injector = resource_injector('population_system_population_view')
+population_view = resource_injector('population_system_population_view')
 uses_columns = population_view
 
 class PopulationView:
@@ -30,7 +31,7 @@ class PopulationView:
                 affected_columns = set(pop.columns)
 
             affected_columns = set(affected_columns).intersection(self.columns)
-            if self.manager.column_lock:
+            if self.manager.initialized:
                 affected_columns = set(affected_columns).intersection(self.manager._population.columns)
 
             for c in affected_columns:
@@ -48,19 +49,51 @@ class PopulationView:
                         v = pop[c].values
                 self.manager._population[c] = v
 
+class PopulationEvent(Event):
+    def __init__(self, time, index, population, population_view):
+        super(PopulationEvent, self).__init__(time, index)
+        self.population = population
+        self.population_view = population_view
+
+    @staticmethod
+    def from_event(event, population_view):
+        if population_view.manager.initialized:
+            population = population_view.get(event.index)
+            return PopulationEvent(event.time, population.index, population, population_view)
+        else:
+            return PopulationEvent(event.time, event.index, None, population_view)
+
 
 class PopulationManager:
     def __init__(self):
         self._population = pd.DataFrame()
-        self.column_lock = True
+        self.initialized = False
 
     def get_view(self, columns, query=None):
         return PopulationView(self, columns, query)
 
+    def _injector(self, func, args, kwargs, columns, query=None):
+        view = self.get_view(columns, query)
+        found = False
+        if 'event' in kwargs:
+            kwargs['event'] = PopulationEvent.from_event(kwargs['event'], view)
+        else:
+            new_args = []
+            for arg in args:
+                if isinstance(arg, Event):
+                    arg = PopulationEvent.from_event(arg, view)
+                    found = True
+                new_args.append(arg)
+            args = new_args
+
+        if not found:
+            # This function is not receiving an event. Inject a PopulationView directly.
+            args = list(args) + [view]
+
+        return args, kwargs
+
     def setup_components(self, components):
-        def injector(args, columns, query=None):
-            return list(args) + [self.get_view(columns, query)]
-        _view_injector(injector)
+        population_view.set_injector(self._injector)
 
     @property
     def population(self):

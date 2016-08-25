@@ -28,9 +28,8 @@ def setup_simulation(components, population_size = 100):
     start = datetime(1990, 1, 1)
     generate_emitter = simulation.events.get_emitter('generate_population')
 
-    simulation.population.column_lock = False
     generate_emitter(Event(start, range(population_size)))
-    simulation.population.column_lock = True
+    simulation.population.initialized = True
     simulation.current_time = start
 
     return simulation

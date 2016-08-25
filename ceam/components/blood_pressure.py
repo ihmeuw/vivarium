@@ -39,9 +39,9 @@ class BloodPressure:
 
     @listens_for('generate_population')
     @uses_columns(['systolic_blood_pressure_percentile', 'systolic_blood_pressure'])
-    def load_population_columns(self, event, population_view):
+    def load_population_columns(self, event):
         population_size = len(event.index)
-        population_view.update(pd.DataFrame({
+        event.population_view.update(pd.DataFrame({
             'systolic_blood_pressure_percentile': np.random.uniform(low=0.01, high=0.99, size=population_size),
             'systolic_blood_pressure': np.full(population_size, 112),
             }))
@@ -95,12 +95,11 @@ class BloodPressure:
 
     @listens_for('time_step__prepare', priority=8)
     @uses_columns(['systolic_blood_pressure', 'systolic_blood_pressure_percentile'], 'alive')
-    def update_systolic_blood_pressure(self, event, population_view):
-        population = population_view.get(event.index)
-        distribution = self.sbp_distribution(population.index)
-        new_sbp = np.exp(norm.ppf(population.systolic_blood_pressure_percentile,
+    def update_systolic_blood_pressure(self, event):
+        distribution = self.sbp_distribution(event.index)
+        new_sbp = np.exp(norm.ppf(event.population.systolic_blood_pressure_percentile,
                                   loc=distribution['log_mean'], scale=distribution['log_sd']))
-        population_view.update(pd.Series(new_sbp, name='systolic_blood_pressure', index=population.index))
+        event.population_view.update(pd.Series(new_sbp, name='systolic_blood_pressure', index=event.index))
 
     @modifies_value('incidence_rate.ihd')
     @uses_columns(['systolic_blood_pressure'])

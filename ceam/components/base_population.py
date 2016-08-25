@@ -15,7 +15,7 @@ from ceam import config
 
 @listens_for('generate_population', priority=0)
 @uses_columns(['age', 'fractional_age', 'sex', 'alive'])
-def generate_base_population(event, population_view):
+def generate_base_population(event):
     location_id = config.getint('simulation_parameters', 'location_id')
     year_start = config.getint('simulation_parameters', 'year_start')
     population_size = len(event.index)
@@ -25,11 +25,11 @@ def generate_base_population(event, population_view):
     population['alive'] = True
     population['fractional_age'] = population.age.astype(float)
 
-    population_view.update(population)
+    event.population_view.update(population)
 
 @listens_for('generate_population')
 @uses_columns(['adherence_category'])
-def adherence(event, population_view):
+def adherence(event):
         population_size = len(event.index)
         # use a dirichlet distribution with means matching Marcia's
         # paper and sum chosen to provide standard deviation on first
@@ -40,16 +40,15 @@ def adherence(event, population_view):
         p = r.dirichlet(alpha)
         # then use these probabilities to generate adherence
         # categories for all simulants
-        population_view.update(pd.Series(r.choice(['adherent', 'semi-adherent', 'non-adherent'], p=p, size=population_size), dtype='category'))
+        event.population_view.update(pd.Series(r.choice(['adherent', 'semi-adherent', 'non-adherent'], p=p, size=population_size), dtype='category'))
 
 @listens_for('time_step')
 @uses_columns(['age', 'fractional_age'], 'alive')
-def age_simulants(event, population_view):
-    population = population_view.get(event.index)
+def age_simulants(event):
     time_step = config.getfloat('simulation_parameters', 'time_step')
-    population['fractional_age'] += time_step/365.0
-    population['age'] = population.fractional_age.astype(int)
-    population_view.update(population)
+    event.population['fractional_age'] += time_step/365.0
+    event.population['age'] = population.fractional_age.astype(int)
+    event.population_view.update(population)
 
 class Mortality:
     def setup(self, builder):
@@ -72,19 +71,18 @@ class Mortality:
 
     @listens_for('generate_population')
     @uses_columns(['death_day'])
-    def death_day_column(self, event, population_view):
-        population_view.update(pd.Series(pd.NaT, name='death_day', index=event.index))
+    def death_day_column(self, event):
+        event.population_view.update(pd.Series(pd.NaT, name='death_day', index=event.index))
 
     @listens_for('time_step')
     @uses_columns(['alive', 'death_day'], 'alive')
-    def mortality_handler(self, event, population_view):
-        pop = population_view.get(event.index)
-        rate = self.mortality_rate(pop.index)
-        index = self.random.filter_for_rate(pop.index, rate)
+    def mortality_handler(self, event):
+        rate = self.mortality_rate(event.index)
+        index = self.random.filter_for_rate(event.index, rate)
 
         self.death_emitter(event.split(index))
 
-        population_view.update(pd.DataFrame({'alive': False, 'death_day': event.time}, index=index))
+        event.population_view.update(pd.DataFrame({'alive': False, 'death_day': event.time}, index=index))
 
     @produces_value('mortality_rate')
     def mortality_rate_source(self, population):

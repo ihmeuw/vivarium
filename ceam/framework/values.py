@@ -9,8 +9,8 @@ from ceam import config
 from .util import marker_factory, from_yearly
 from .event import listens_for
 
-produces_value, _values_produced = marker_factory('value_system__produces')
-modifies_value, _values_modified = marker_factory('value_system__modifies', with_priority=True)
+produces_value = marker_factory('value_system__produces')
+modifies_value = marker_factory('value_system__modifies', with_priority=True)
 
 class NullValue:
     def __init__(self, index):
@@ -83,15 +83,15 @@ class ValuesManager:
 
     def setup_components(self, components):
         for component in components:
-            values_produced = [(v, component) for v in _values_produced(component)]
-            values_produced += [(v, getattr(component, att)) for att in sorted(dir(component)) for v in _values_produced(getattr(component, att))]
+            values_produced = [(v, component) for v in produces_value.finder(component)]
+            values_produced += [(v, getattr(component, att)) for att in sorted(dir(component)) for v in produces_value.finder(getattr(component, att))]
 
             for value, producer in values_produced:
                 pipeline = self.get_pipeline(value)
                 pipeline.source = producer
 
-            values_modified = [(v, component, i) for priority in _values_modified(component) for i,v in enumerate(priority)]
-            values_modified += [(v, getattr(component, att), i) for att in sorted(dir(component)) for i,vs in enumerate(_values_modified(getattr(component, att))) for v in vs]
+            values_modified = [(v, component, i) for priority in modifies_value.finder(component) for i,v in enumerate(priority)]
+            values_modified += [(v, getattr(component, att), i) for att in sorted(dir(component)) for i,vs in enumerate(modifies_value.finder(getattr(component, att))) for v in vs]
 
             for value, mutator, priority in values_modified:
                 pipeline = self.get_pipeline(value)

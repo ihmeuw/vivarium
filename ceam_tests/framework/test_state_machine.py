@@ -14,8 +14,8 @@ from ceam.framework.state_machine import Machine, State, Transition
 def _population_fixture(column, initial_value):
     @listens_for('generate_population')
     @uses_columns([column])
-    def inner(event, population_view):
-        population_view.update(pd.Series(initial_value, index=event.index))
+    def inner(event):
+        event.population_view.update(pd.Series(initial_value, index=event.index))
     return inner
 
 def test_transition():

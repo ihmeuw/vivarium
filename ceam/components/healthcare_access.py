@@ -71,36 +71,34 @@ class HealthcareAccess:
 
     @listens_for('generate_population')
     @uses_columns(['healthcare_followup_date', 'healthcare_last_visit_date'])
-    def load_population_columns(self, event, population_view):
+    def load_population_columns(self, event):
         population_size = len(event.index)
-        population_view.update(pd.DataFrame({'healthcare_followup_date': [pd.NaT]*population_size,
+        event.population_view.update(pd.DataFrame({'healthcare_followup_date': [pd.NaT]*population_size,
                              'healthcare_last_visit_date': [pd.NaT]*population_size}))
 
     @listens_for('time_step')
     @uses_columns(['healthcare_last_visit_date'], 'alive')
-    def general_access(self, event, population_view):
+    def general_access(self, event):
         # determine population who accesses care
-        affected_population = population_view.get(event.index)
-        t = self.utilization_proportion(affected_population.index)
-        affected_population = self.general_random.filter_for_probability(affected_population, t)  # FIXME: currently assumes timestep is one month
+        t = self.utilization_proportion(event.index)
+        index = self.general_random.filter_for_probability(event.index, t)  # FIXME: currently assumes timestep is one month
 
         # for those who show up, emit_event that the visit has happened, and tally the cost
-        population_view.update(pd.Series(event.time, index=affected_population.index))
-        self.general_healthcare_access_emitter(event.split(affected_population.index))
-        self.general_access_count += len(affected_population)
+        event.population_view.update(pd.Series(event.time, index=index))
+        self.general_healthcare_access_emitter(event.split(index))
+        self.general_access_count += len(index)
 
         year = event.time.year
-        self.cost_by_year[year] += len(affected_population) * appointment_cost[year]
+        self.cost_by_year[year] += len(index) * appointment_cost[year]
 
     @listens_for('time_step')
     @uses_columns(['healthcare_last_visit_date', 'healthcare_followup_date', 'adherence_category'], 'alive')
-    def followup_access(self, event, population_view):
-        affected_population = population_view.get(event.index)
+    def followup_access(self, event):
         time_step = timedelta(days=config.getfloat('simulation_parameters', 'time_step'))
         # determine population due for a follow-up appointment
-        rows = (affected_population.healthcare_followup_date > event.time-time_step) \
-               & (affected_population.healthcare_followup_date <= event.time)
-        affected_population = affected_population[rows]
+        rows = (event.population.healthcare_followup_date > event.time-time_step) \
+               & (event.population.healthcare_followup_date <= event.time)
+        affected_population = event.population[rows]
 
         # of them, determine who shows up for their follow-up appointment
         adherence = pd.Series(1, index=affected_population.index)
@@ -110,7 +108,7 @@ class HealthcareAccess:
         affected_population = self.followup_random.filter_for_probability(affected_population, adherence)
 
         # for those who show up, emit_event that the visit has happened, and tally the cost
-        population_view.update(pd.Series(event.time, index=affected_population.index, name='healthcare_last_visit_date'))
+        event.population_view.update(pd.Series(event.time, index=affected_population.index, name='healthcare_last_visit_date'))
         self.followup_healthcare_access_emitter(event.split(affected_population.index))
         self.followup_access_count += len(affected_population)
 

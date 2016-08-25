@@ -89,10 +89,9 @@ def event_loop(simulation, generate_emitter, end_emitter):
     time_step = config.getfloat('simulation_parameters', 'time_step')
     time_step = timedelta(days=time_step)
 
-    simulation.population.column_lock = False
     population_size = config.getint('simulation_parameters', 'population_size')
     generate_emitter.emit(Event(start, range(population_size)))
-    simulation.population.column_lock = True
+    simulation.population.initialized = True
 
     simulation.current_time = start
     while simulation.current_time < stop:

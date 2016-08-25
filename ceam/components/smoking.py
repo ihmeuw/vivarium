@@ -47,8 +47,8 @@ class Smoking:
 
     @listens_for('generate_population')
     @uses_columns(['smoking_susceptibility'])
-    def load_susceptibility(self, event, population_view):
-        population_view.update(pd.Series(np.random.uniform(low=0.01, high=0.99, size=len(event.index)), name='smoking_susceptibility'))
+    def load_susceptibility(self, event):
+        event.population_view.update(pd.Series(np.random.uniform(low=0.01, high=0.99, size=len(event.index)), name='smoking_susceptibility'))
 
     def load_prevelence(self, builder):
         year_start = config.getint('simulation_parameters', 'year_start')
