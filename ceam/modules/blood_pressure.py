@@ -55,7 +55,9 @@ class BloodPressureModule(SimulationModule):
         draw_number =config.getint('run_configuration', 'draw_number')
 
         lookup_table = load_data_from_cache(get_sbp_mean_sd, col_name=None,
-                            location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number)
+                            location_id=location_id, year_start=year_start, year_end=year_end)
+        lookup_table = lookup_table.rename(columns={'log_mean_{}'.format(draw_number): 'log_mean'})
+        lookup_table = lookup_table.rename(columns={'log_sd_{}'.format(draw_number): 'log_sd'}) 
         lookup_table['sex'] = lookup_table.sex_id.map({1:'Male', 2:'Female'}).astype('category')
         lookup_table = lookup_table.drop('sex_id', 1)
         lookup_table = lookup_table.rename(columns={'year_id': 'year'})
