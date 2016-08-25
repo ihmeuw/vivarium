@@ -11,7 +11,7 @@ from ceam import config
 
 from ceam.analysis import analyze_results
 
-from ceam.framework.values import ValuesManager, joint_value_combiner, joint_value_post_processor, rescale_post_processor, NullValue
+from ceam.framework.values import ValuesManager, set_combiner, joint_value_combiner, joint_value_post_processor, rescale_post_processor, NullValue
 from ceam.framework.event import EventManager, Event, emits
 from ceam.framework.population import PopulationManager
 from ceam.framework.lookup import MergedTableManager
@@ -53,6 +53,11 @@ class SimulationContext:
                 post_processor=joint_value_post_processor,
                 source=lambda index: NullValue(index))
 
+        self.values.declare_pipeline(re.compile('modelable_entity_ids\..*'),
+                combiner=set_combiner,
+                post_processor=None,
+                source=lambda: set())
+
         self.values.declare_pipeline('metrics', post_processor=None, source=lambda index: {})
         builder = Builder(self)
         components = list(self.components)
@@ -69,6 +74,8 @@ class SimulationContext:
         self.population.setup_components(components)
         self.tables.setup_components(components)
 
+        self.events.get_emitter('post_setup')(None)
+
 @emits('time_step')
 @emits('time_step__prepare')
 @emits('time_step__cleanup')
@@ -80,8 +87,9 @@ def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, 
     simulation.current_time += time_step
 
 @emits('generate_population')
+@emits('post_setup')
 @emits('simulation_end')
-def event_loop(simulation, generate_emitter, end_emitter):
+def event_loop(simulation, generate_emitter, post_setup_emitter, end_emitter):
     start = config.getint('simulation_parameters', 'year_start')
     start = datetime(start, 1, 1)
     stop = config.getint('simulation_parameters', 'year_end')

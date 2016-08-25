@@ -20,6 +20,10 @@ def replace_combiner(value, mutator, *args, **kwargs):
     args = list(args) + [value]
     return mutator(*args, **kwargs)
 
+def set_combiner(value, mutator, *args, **kwargs):
+    value.add(mutator(*args, **kwargs))
+    return value
+
 def joint_value_combiner(value, mutator, *args, **kwargs):
     new_value = mutator(*args, **kwargs)
     if isinstance(value, NullValue):

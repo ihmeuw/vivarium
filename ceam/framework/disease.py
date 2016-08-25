@@ -99,6 +99,10 @@ class ExcessMortalityState(DiseaseState):
         population = self.population_view.get(index)
         return rates + self.mortality(population.index) * (population[self.condition] == self.state_id)
 
+    @modifies_value('modelable_entity_ids.mortality')
+    def mmeids(self):
+        return self.modelable_entity_id
+
     def name(self):
         return '{} ({}, {})'.format(self.state_id, self.modelable_entity_id, self.prevalence_meid)
 

@@ -47,19 +47,29 @@ def adherence(event):
 def age_simulants(event):
     time_step = config.getfloat('simulation_parameters', 'time_step')
     event.population['fractional_age'] += time_step/365.0
-    event.population['age'] = population.fractional_age.astype(int)
-    event.population_view.update(population)
+    event.population['age'] = event.population.fractional_age.astype(int)
+    event.population_view.update(event.population)
 
 class Mortality:
     def setup(self, builder):
-        self.mortality_rate_lookup = builder.lookup(self.load_all_cause_mortality())
+        self._mortality_rate_builder = lambda: builder.lookup(self.load_all_cause_mortality())
         self.mortality_rate = builder.value('mortality_rate')
         self.death_emitter = builder.emitter('deaths')
         j_drive = config.get('general', 'j_drive')
         self.life_table = builder.lookup(pd.read_csv(os.path.join(j_drive, 'WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv')), index=('age',))
         self.random = builder.randomness('mortality_handler')
+        self.mortality_meids = builder.value('modelable_entity_ids.mortality')
+
+    @listens_for('post_setup')
+    def post_step(self, event):
+        # This is being loaded after the main setup phase because it needs to happen after all disease models
+        # have completed their setup phase which isn't guaranteed (or even likely) during this component's
+        # normal setup.
+        self.mortality_rate_lookup = self._mortality_rate_builder()
 
     def load_all_cause_mortality(self):
+        meids = self.mortality_meids()
+        print(meids)
         location_id = config.getint('simulation_parameters', 'location_id')
         year_start = config.getint('simulation_parameters', 'year_start')
         year_end = config.getint('simulation_parameters', 'year_end')
