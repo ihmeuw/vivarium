@@ -11,7 +11,7 @@ def test_get_sbp_mean_sd_Kenya_2000():
     year_end = 2015
 
     # load the sbp data
-    df = ceam.gbd_data.gbd_ms_functions.get_sbp_mean_sd(location_id, year_start, year_end, 0)
+    df = ceam.gbd_data.gbd_ms_functions.get_sbp_mean_sd(location_id, year_start, year_end)
 
     # reshape it so it is easy to access
     df = df.groupby(['year_id', 'sex_id', 'age']).first()
