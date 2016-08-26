@@ -69,7 +69,6 @@ class Mortality:
 
     def load_all_cause_mortality(self):
         meids = self.mortality_meids()
-        print(meids)
         location_id = config.getint('simulation_parameters', 'location_id')
         year_start = config.getint('simulation_parameters', 'year_start')
         year_end = config.getint('simulation_parameters', 'year_end')
