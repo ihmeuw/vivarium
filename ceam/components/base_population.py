@@ -76,7 +76,8 @@ class Mortality:
                 'cause_deleted_mortality_rate', \
                 location_id,
                 year_start,
-                year_end)
+                year_end,
+                meids)
 
     @listens_for('generate_population')
     @uses_columns(['death_day'])
