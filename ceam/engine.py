@@ -17,6 +17,7 @@ from ceam.events import PopulationEvent, Event, only_living
 from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
 from ceam.gbd_data.gbd_ms_functions import get_cause_deleted_mortality_rate
 from ceam.gbd_data.gbd_ms_functions import generate_ceam_population
+from ceam.gbd_data.gbd_ms_auxiliary_functions import normalize_for_simulation
 
 from ceam.modules import ModuleRegistry, SimulationModule, LookupTable, ValueMutationNode, DisabilityWeightMixin
 
@@ -59,11 +60,21 @@ class BaseSimulationModule(SimulationModule):
         return population
 
     def load_data(self, path_prefix):
-        return load_data_from_cache(get_cause_deleted_mortality_rate, \
-                'cause_deleted_mortality_rate', \
-                config.getint('simulation_parameters', 'location_id'), \
-                config.getint('simulation_parameters', 'year_start'), \
-                config.getint('simulation_parameters', 'year_end'))
+        cause_del_mr = load_data_from_cache(get_cause_deleted_mortality_rate, \
+                       col_name = None, \
+                       location_id = config.getint('simulation_parameters', 'location_id'), \
+                       year_start = config.getint('simulation_parameters', 'year_start'), \
+                       year_end = config.getint('simulation_parameters', 'year_end'))
+        
+        cause_del_mr = cause_del_mr[['year_id', 'age', 'sex_id', 'cause_deleted_mortality_rate_{}'.format(
+                                     config.getint('run_configuration', 'draw_number'))]]
+        
+        cause_del_mr_df = normalize_for_simulation(cause_del_mr)
+      
+        cause_del_mr_df = cause_del_mr_df.rename(columns={'cause_deleted_mortality_rate_{}'.format(config.getint('run_configuration', 'draw_number')): 
+                                                    'cause_deleted_mortality_rate'})
+        
+        return cause_del_mr_df
 
     def mortality_rates(self, population):
         return self.lookup_columns(population, ['cause_deleted_mortality_rate'])['cause_deleted_mortality_rate'].values
