@@ -1,3 +1,5 @@
+import os
+import os.path
 import argparse
 from time import time
 import re
@@ -9,7 +11,7 @@ import pandas as pd
 
 from ceam import config
 
-from ceam.analysis import analyze_results
+from ceam.analysis import analyze_results, dump_results
 
 from ceam.framework.values import ValuesManager, set_combiner, joint_value_combiner, joint_value_post_processor, rescale_post_processor, NullValue
 from ceam.framework.event import EventManager, Event, emits
@@ -119,6 +121,43 @@ def run_simulation(components):
     metrics['duration'] = time() - start
     return metrics
 
+def configure(draw_number=0, verbose=False, simulation_config=None):
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG)
+        _log.debug('Enabling DEBUG logging')
+
+    if simulation_config:
+        if isinstance(config, dict):
+            config.read_dict(config)
+        else:
+            config.read(simulation_config)
+
+    config.set('run_configuration', 'draw_number', str(draw_number))
+
+def run_comparison(component_config, results_path=None):
+    component_configurations = read_component_configuration(component_config)
+    all_metrics = []
+    for configuration in component_configurations.items():
+        _log.debug('Starting comparison: {}'.format(configuration['name']))
+        metrics = run_simulation(configuration['components'])
+        metrics['comparison'] = configuration['name']
+        _log.debug(pformat(metrics))
+        all_metrics.append(metrics)
+    analyze_results([pd.DataFrame(all_metrics)])
+
+def run_configuration(component_config, results_path=None, sub_configuration_name='base'):
+    component_configurations = read_component_configuration(component_config)
+    configuration = component_configurations[sub_configuration_name]
+    metrics = run_simulation(configuration['components'])
+    metrics['comparison'] = configuration['name']
+    if results_path:
+        try:
+            os.makedirs(os.path.dirname(results_path))
+        except FileExistsError:
+            # Directory already exists, which is fine
+            pass
+        dump_results(pd.DataFrame([metrics]), results_path)
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('components', type=str)
@@ -128,25 +167,8 @@ def main():
     parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
     args = parser.parse_args()
 
-    if args.verbose:
-        logging.basicConfig(level=logging.DEBUG)
-        _log.debug('Enabling DEBUG logging')
-
-    if args.config:
-        config.read(args.config)
-
-    config.set('run_configuration', 'draw_number', str(args.draw))
-    config.set('run_configuration', 'process_number', str(args.process_number))
-
-    component_configurations = read_component_configuration(args.components)
-    all_metrics = []
-    for configuration in component_configurations:
-        _log.debug('Starting comparison: {}'.format(configuration['name']))
-        metrics = run_simulation(configuration['components'])
-        metrics['comparison'] = configuration['name']
-        _log.debug(pformat(metrics))
-        all_metrics.append(metrics)
-    analyze_results([pd.DataFrame(all_metrics)])
+    configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
+    run_comparison(args.components, results_path=args.results_path)
 
 if __name__ == '__main__':
     main()

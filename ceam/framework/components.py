@@ -7,11 +7,11 @@ def read_component_configuration(path):
             config = json.load(f)
         base_components = config['components']
         if 'comparisons' in config:
-            comparisons = config['comparisons']
-            for comparison in comparisons:
+            comparisons = {c['name']:c for c in config['comparisons']}
+            for comparison in comparisons.values():
                 comparison['components'] = base_components + comparison['components']
         else:
-            comparisons = {'name': 'base', 'components': base_components}
+            comparisons = {'base': {'name': 'base', 'components': base_components}}
         return comparisons
     else:
         raise ValueError("Unknown components configuration type: {}".format(path))
