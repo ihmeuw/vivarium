@@ -47,7 +47,6 @@ The file setup.py should look like this:
 ```python
 from setuptools import setup, find_packages
 
-
 setup(name='ceam_tutorial',
         version='0.1',
         packages=find_packages(),
@@ -59,3 +58,5 @@ Next setup your python environment so we can import code inside this ceam_tutori
 ```sh
 > python setup.py develop
 ```
+
+You're done with the setup. Time to move on to the next [section](./1_Death.md)
