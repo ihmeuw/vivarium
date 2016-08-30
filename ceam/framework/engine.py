@@ -137,7 +137,7 @@ def configure(draw_number=0, verbose=False, simulation_config=None):
 def run_comparison(component_config, results_path=None):
     component_configurations = read_component_configuration(component_config)
     all_metrics = []
-    for configuration in component_configurations.items():
+    for configuration in component_configurations.values():
         _log.debug('Starting comparison: {}'.format(configuration['name']))
         metrics = run_simulation(configuration['components'])
         metrics['comparison'] = configuration['name']
@@ -165,6 +165,7 @@ def main():
     parser.add_argument('--config', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
     parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
     parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
+    parser.add_argument('--results_path', '-o', type=str, default=None, help='File to put output in')
     args = parser.parse_args()
 
     configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
