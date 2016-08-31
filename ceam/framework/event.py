@@ -41,3 +41,13 @@ class EventManager:
 
             for event, listener, priority in listeners:
                 self.__event_types[event].listeners[priority].append(listener)
+
+            emitters = [(v, component) for v in emits.finder(component)]
+            emitters += [(v, getattr(component, att)) for att in sorted(dir(component)) for v in emits.finder(getattr(component, att))]
+
+            # Pre create the EventChannels for know emitters
+            for (args, kwargs), emitter in emitters:
+                self.get_emitter(*args, **kwargs)
+
+    def list_events(self):
+        return list(self.__event_types.keys())

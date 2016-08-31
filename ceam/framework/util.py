@@ -37,6 +37,7 @@ def resource_injector(marker_attribute):
         def wrapper(func):
             if not hasattr(func, marker_attribute):
                 func.__dict__[marker_attribute] = []
+            getattr(func, marker_attribute).append((injector_args, injector_kwargs))
 
             @wraps(func)
             def inner(*args, **kwargs):
@@ -48,6 +49,13 @@ def resource_injector(marker_attribute):
     def set_injector(func):
         injector[0] = func
     decorator.set_injector = set_injector
+
+    def finder(func):
+        if not hasattr(func, marker_attribute):
+            return []
+        else:
+            return getattr(func, marker_attribute)
+    decorator.finder = finder
 
     return decorator
 

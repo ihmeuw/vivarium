@@ -109,11 +109,15 @@ def event_loop(simulation, generate_emitter, post_setup_emitter, end_emitter):
 
     end_emitter.emit(Event(simulation.current_time, simulation.population.population.index))
 
-def run_simulation(components):
-    start = time()
+def setup_simulation(components):
+    if not components:
+        components = []
     simulation = SimulationContext(load(components + [_step, event_loop]))
-
     simulation.setup()
+    return simulation
+
+def run_simulation(simulation):
+    start = time()
 
     event_loop(simulation)
 
@@ -139,7 +143,8 @@ def run_comparison(component_config, results_path=None):
     all_metrics = []
     for configuration in component_configurations.values():
         _log.debug('Starting comparison: {}'.format(configuration['name']))
-        metrics = run_simulation(configuration['components'])
+        simulation = setup_simulation(configuration['components'])
+        metrics = run_simulation(simulation)
         metrics['comparison'] = configuration['name']
         _log.debug(pformat(metrics))
         all_metrics.append(metrics)
@@ -148,7 +153,8 @@ def run_comparison(component_config, results_path=None):
 def run_configuration(component_config, results_path=None, sub_configuration_name='base'):
     component_configurations = read_component_configuration(component_config)
     configuration = component_configurations[sub_configuration_name]
-    metrics = run_simulation(configuration['components'])
+    simulation = setup_simulation(configuration['components'])
+    metrics = run_simulation(simulation)
     metrics['comparison'] = configuration['name']
     if results_path:
         try:
@@ -160,7 +166,8 @@ def run_configuration(component_config, results_path=None, sub_configuration_nam
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('components', type=str)
+    parser.add_argument('command', choices=['run', 'list_events'])
+    parser.add_argument('components', nargs='?', default=None, type=str)
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--config', '-c', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
     parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
@@ -168,8 +175,12 @@ def main():
     parser.add_argument('--results_path', '-o', type=str, default=None, help='File to write output to')
     args = parser.parse_args()
 
-    configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
-    run_comparison(args.components, results_path=args.results_path)
+    if args.command == 'run':
+        configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
+        run_comparison(args.components, results_path=args.results_path)
+    elif args.command == 'list_events':
+        simulation = setup_simulation(None)
+        print(simulation.events.list_events())
 
 if __name__ == '__main__':
     main()
