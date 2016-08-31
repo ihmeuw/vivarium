@@ -14,6 +14,33 @@ Our First Component
 
 We're going to use the convention that every component is contained inside a it's own python file (a single module) so we'll need a file for our population generator. Let's call the file `initial_population.py` and put it in the `components` directory.
 
+Here's what the file should look like. We'll talk about it line by line.
+
+```python
+import pandas as pd
+import numpy as np
+
+from ceam.framework.event import listens_for
+from ceam.framework.population import uses_columns
+
+@listens_for('generate_population', priority=0)
+@uses_columns(['age', 'sex', 'alive'])
+def make_population(event):
+    population_size = len(event.index)
+
+    ages = np.random.randint(1, 100, size=population_size)
+    sexes = np.random.choice(['Male', 'Female'], size=population_size)
+    alive = [True] * population_size
+
+    population = pd.DataFrame({
+        'age': ages,
+        'sex': sexes,
+        'alive': alive
+        }, index=event.index)
+
+    event.population_view.update(population)
+```
+
 First we need to import some tools:
 
 ```python
@@ -45,8 +72,8 @@ def my_function():
 Here's the beginning of our population generation function:
 
 ```python
-@uses_columns(['age', 'sex', 'alive'])
 @listens_for('generate_population', priority=0)
+@uses_columns(['age', 'sex', 'alive'])
 def make_population(event):
 ```
 
@@ -100,7 +127,7 @@ And that's it, we can now respond to the 'generate_population' event and inject 
 
 You can then run `simulate` like this:
 ```sh
-> simulate configuration.json -v
+> simulate run configuration.json -v
 ```
 
 You should see the simulation rapidly step through a number of years and then exit. Not super interesting but that's because nothing is happening yet which we'll fix in the [next tutorial](./2_Death.md).
