@@ -59,4 +59,4 @@ Next setup your python environment so we can import the ceam_tutorial package:
 > python setup.py develop
 ```
 
-You're done with the setup. Time to move on to the next [section](./0_Death.md)
+You're done with the setup. Time to move on to the next [section](./0_Life.md)
