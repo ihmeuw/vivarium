@@ -162,9 +162,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('components', type=str)
     parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--config', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
+    parser.add_argument('--config', '-c', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
     parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
     parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
+    parser.add_argument('--results_path', '-o', type=str, default=None, help='File to write output to')
     args = parser.parse_args()
 
     configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
