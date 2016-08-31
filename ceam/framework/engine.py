@@ -148,7 +148,13 @@ def run_comparison(component_config, results_path=None):
         metrics['comparison'] = configuration['name']
         _log.debug(pformat(metrics))
         all_metrics.append(metrics)
-    analyze_results([pd.DataFrame(all_metrics)])
+    if results_path:
+        try:
+            os.makedirs(os.path.dirname(results_path))
+        except FileExistsError:
+            # Directory already exists, which is fine
+            pass
+        dump_results(pd.DataFrame([all_metrics]), results_path)
 
 def run_configuration(component_config, results_path=None, sub_configuration_name='base'):
     component_configurations = read_component_configuration(component_config)

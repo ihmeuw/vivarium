@@ -49,11 +49,58 @@ Here's the beginning of our population generation function:
 @listens_for('generate_population', priority=0)
 def make_population(event):
 ```
-The first decorator we use is `uses_columns` which tells the simulation which columns of the population store our function will use, modify or, in our case, create. `uses_columns` (and a couple of closely related methods we won't be using here) is the only way to modify the population in a CEAM simulation.
 
-The second decorator is `listens_for` which tells the simulation that our function should be called when a 'generate_population' event happens. The `priority=0` says that we would like our function to be called before other functions that also listen for 'generate_population'.
+The first decorator is `listens_for` which tells the simulation that our function should be called when a 'generate_population' event happens. The `priority=0` says that we would like our function to be called before other functions that also listen for 'generate_population'. When `CEAM` calls `make_population` in response to the 'generate_population' event it will provide an `Event` object which contains information about context of the event (when it happened and which simulants where involved).
 
 The event system is a very important part of `CEAM`. Everything that happens in the simulation is driven by events and most of the functions you write will be called by `CEAM` in response to events that your code `listens_for`. The main event in the simulation is 'time_step' which happens every time the simulation moves the clock forward (in 30.5 day increments by default). Other events, like 'generate_population' happen before simulation time begins passing in order to give components a chance to do any preparation they need. Components can create new events related to the things that they model, for example an event when simulants enter the hospital. You can get a list of all the events in the core `CEAM` system by running the command:
 ```sh
-simulate list_events
+> simulate list_events
 ```
+
+The second decorator we use is `uses_columns` which tells the simulation which columns of the population store our function will use, modify or, in our case, create. `uses_columns` (and a couple of closely related methods we won't be using here) is the only way to modify the population in a `CEAM` simulation.
+
+Next we need to know how many simulants to generate. The `Event` contains an index which we can use to answer this question. The index is a `pandas.Index` object which in this case will be the full index of the population `DataFrame` that `CEAM` is using our code to fill with data. So we check the length of that index to find out how many simulants there will be:
+
+```python
+    population_size = len(event.index)
+```
+
+Then we use `numpy` to make up a random age and sex for each simulant. We also flag them all as alive.
+
+```python
+    ages = np.random.randint(1, 100, size=population_size)
+    sexes = np.random.choice(['Male', 'Female'], size=population_size)
+    alive = [True] * population_size
+```
+
+Next we combine all this data into a single `pandas.DataFrame`. Notice that we tell `pandas` to use the index from the event so our data will line up with the simulations internal population store.
+
+```python
+    population = pd.DataFrame({
+        'age': ages,
+        'sex': sexes,
+        'alive': alive
+        }, index=event.index)
+```
+
+Finally we need to pass our population back to the simulation. We do that by using the event's `population_view`. This is only available when we've declared that we will want to effect the population by using the `uses_columns` decorator.
+
+```python
+    event.population_view.update(population)
+```
+
+And that's it, we can now respond to the 'generate_population' event and inject our initial population data into the simulation. Let's run the simulation and see what happens. `CEAM` includes an executable called `simulate` which does handles the actual running of the simulation. It needs a configuration file to tell it which components to use. Create a file called 'configuration.json' and make it look like this:
+```json
+{
+    "components": [
+        "ceam_tutorial.components.initial_population.make_population"
+    ]
+}
+```
+
+You can then run `simulate` like this:
+```sh
+> simulate configuration.json -v
+```
+
+You should see the simulation rapidly step through a number of years and then exit. Not super interesting but that's because nothing is happening yet which we'll fix in the [next tutorial](./2_Death.md).
