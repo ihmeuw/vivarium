@@ -1,22 +1,22 @@
-Tutorial 0: Setup
+Tutorial Zero: Setup
 =================
 
 Install git
 -----------
 
-CEAM uses git for source control. Follow the [instructions](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) for your operating system to install git.
+`CEAM` uses git for source control. Follow the [instructions](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) for your operating system to install git.
 
 Install Anaconda
 ----------------
 
-To do any development on CEAM you'll need a Python environment with some basic scientific computing packages installed. The easiest way to do that is to install Anaconda. Follow the [instructions](https://docs.continuum.io/anaconda/install) for your operating system. CEAM uses Python 3, so make sure you get that version of the installer.
+To do any development on `CEAM` you'll need a Python environment with some basic scientific computing packages installed. The easiest way to do that is to install Anaconda. Follow the [instructions](https://docs.continuum.io/anaconda/install) for your operating system. `CEAM` uses Python 3, so make sure you get that version of the installer.
 
-Install CEAM
+Install `CEAM`
 -------------
 
-For this tutorial, we'll be using CEAM but not modifying the core code so we're just going to install CEAM as a library. If you want to learn about modifying CEAM itself, take a look at #TODO: future tutorial#.
+For this tutorial, we'll be using `CEAM` but not modifying the core code so we're just going to install `CEAM` as a library. If you want to learn about modifying `CEAM` itself, take a look at #TODO: future tutorial#.
 
-To install CEAM as a library, use this `pip` command and enter your stash username and password as prompted.
+To install `CEAM` as a library, use this `pip` command and enter your stash username and password as prompted.
 
 ```sh
 pip install git+https://stash.ihme.washington.edu/scm/cste/ceam.git
@@ -53,10 +53,10 @@ setup(name='ceam_tutorial',
      )
 ```
 
-Next setup your python environment so we can import code inside this ceam_tutorial package:
+Next setup your python environment so we can import the ceam_tutorial package:
 
 ```sh
 > python setup.py develop
 ```
 
-You're done with the setup. Time to move on to the next [section](./1_Death.md)
+You're done with the setup. Time to move on to the next [section](./0_Death.md)
