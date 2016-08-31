@@ -179,7 +179,12 @@ def main():
         configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
         run_comparison(args.components, results_path=args.results_path)
     elif args.command == 'list_events':
-        simulation = setup_simulation(None)
+        if args.components:
+            component_configurations = read_component_configuration(args.components)
+            components = component_configurations['base']['components']
+        else:
+            components = None
+        simulation = setup_simulation(components)
         print(simulation.events.list_events())
 
 if __name__ == '__main__':

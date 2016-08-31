@@ -53,7 +53,7 @@ The first decorator we use is `uses_columns` which tells the simulation which co
 
 The second decorator is `listens_for` which tells the simulation that our function should be called when a 'generate_population' event happens. The `priority=0` says that we would like our function to be called before other functions that also listen for 'generate_population'.
 
-The event system is a very important part of `CEAM`. Everything that happens in the simulation is driven by events and most of the functions you write will be called by `CEAM` in response to events that your code `listens_for`. The main event in the simulation is 'time_step' which happens every time the simulation moves the clock forward (in 30.5 day increments by default). Other events, like 'generate_population' happen before simulation time begins passing in order to give components a chance to do any preparation they need. You can get a list of all the events in the core `CEAM` system by running the command:
+The event system is a very important part of `CEAM`. Everything that happens in the simulation is driven by events and most of the functions you write will be called by `CEAM` in response to events that your code `listens_for`. The main event in the simulation is 'time_step' which happens every time the simulation moves the clock forward (in 30.5 day increments by default). Other events, like 'generate_population' happen before simulation time begins passing in order to give components a chance to do any preparation they need. Components can create new events related to the things that they model, for example an event when simulants enter the hospital. You can get a list of all the events in the core `CEAM` system by running the command:
 ```sh
 simulate list_events
 ```
