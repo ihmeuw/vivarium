@@ -4,13 +4,16 @@ from datetime import timedelta
 
 import pandas as pd
 
-from ceam import config
+from ceam import config, CEAMError
 
 from .util import marker_factory, from_yearly
 from .event import listens_for
 
 produces_value = marker_factory('value_system__produces')
 modifies_value = marker_factory('value_system__modifies', with_priority=True)
+
+class MutableValueError(CEAMError):
+    pass
 
 class NullValue:
     def __init__(self, index):
@@ -49,6 +52,8 @@ class Pipeline:
         self.post_processor = post_processor
 
     def __call__(self, *args, **kwargs):
+        if self.source is None:
+            raise MutableValueError('No source for value.')
         value = self.source(*args, **kwargs)
         for priority_bucket in self.mutators:
             for mutator in priority_bucket:
