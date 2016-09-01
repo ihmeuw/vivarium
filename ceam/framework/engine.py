@@ -164,6 +164,7 @@ def main():
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--config', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
     parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
+    parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
     parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
     args = parser.parse_args()
 
