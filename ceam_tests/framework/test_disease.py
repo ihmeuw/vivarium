@@ -75,7 +75,7 @@ def test_mortality_rate():
 
     mortality_state.mortality = simulation.tables.build_table(build_table(0.7))
 
-    mortality_rate = simulation.values.get_pipeline('mortality_rate')
+    mortality_rate = simulation.values.get_rate_pipeline('mortality_rate')
     mortality_rate.source = simulation.tables.build_table(build_table(0.0))
 
     pump_simulation(simulation, iterations=1)
@@ -104,7 +104,7 @@ def test_incidence(get_disease_states_mock):
 
     transition.base_incidence = simulation.tables.build_table(build_table(0.7))
 
-    incidence_rate = simulation.values.get_pipeline('incidence_rate.test_incidence')
+    incidence_rate = simulation.values.get_rate_pipeline('incidence_rate.test_incidence')
 
     pump_simulation(simulation, iterations=1)
 
