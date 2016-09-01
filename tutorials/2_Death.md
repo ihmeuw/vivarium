@@ -124,7 +124,7 @@ In the [next tutorial](./3_The_Part_In_Between.md) we'll make this all a bit mor
 Another Exercise For The Reader
 --------------------------------
 
-Now that you've seen an implementation of mortality you should be able to build out a simple model of a disease where people start healthy and get sick at a fixed rate just like our fixed mortality rate. Look back at the last tutorial where we created the 'age', 'sex' and 'alive' columns. You can add a listener for the 'generate_population' event to your disease component that creates a column to record whether or not people are sick, just like the 'alive' column records whether or not they are alive.
+Now that you've seen an implementation of mortality you should be able to build out a simple model of a disease where people start healthy and get sick at a fixed rate just like our fixed mortality rate. Look back at the last tutorial where we created the 'age', 'sex' and 'alive' columns. You can add a listener for the 'generate_population' event to your disease component that creates a column to record whether or not people are sick, just like the 'alive' column records whether or not they are alive. We'll talk about dynamic rate mutators in the next tutorial but take a second to think about how you could have your disease model effect the mortality.
 
 And An Extension To The Last One
 --------------------------------
