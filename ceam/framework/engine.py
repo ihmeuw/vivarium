@@ -137,7 +137,7 @@ def configure(draw_number=0, verbose=False, simulation_config=None):
 def run_comparison(component_config, results_path=None):
     component_configurations = read_component_configuration(component_config)
     all_metrics = []
-    for configuration in component_configurations.items():
+    for configuration in component_configurations.values():
         _log.debug('Starting comparison: {}'.format(configuration['name']))
         metrics = run_simulation(configuration['components'])
         metrics['comparison'] = configuration['name']
