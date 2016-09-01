@@ -106,7 +106,6 @@ def test_get_pafs():
 
 # get_exposures
 def test_get_exposures():
-def test_get_pafs():
     df = get_exposures(180, 1990, 1990, 107)
 
     # pick a random draw to test

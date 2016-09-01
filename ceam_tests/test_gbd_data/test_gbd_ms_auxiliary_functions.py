@@ -19,19 +19,13 @@ def test_set_age_year_index():
     
     indexer_test = set_age_year_index(input_df, 0, 10, 1800, 1805)
 
-    assert indexer_test.columns.ravel() == 'qty_of_interest'
-    
-    # assert indexer_test.index.get_level_values('age') == np.repeat(np.arange(0, 11), 6)
+    assert indexer_test.columns.ravel() == 'qty_of_interest', 'make sure age and year were moved to the index'
 
-    assert indexer_test.index.get_level_values('year_id') == np.repeat(np.arange(1800, 1806), 11)
+    assert indexer_test.index.get_level_values('year_id').tolist() == np.repeat(np.arange(1800, 1806), 11).tolist(), 'set_age_year_index needs to properly expand the indexes'
     
     # assert that qty_of_interest is not null for age 0-5
-    initial_ages = indexer_test[indexer_test.notnull(indexer_test['qty_of_interest'])]
-    assert initial_ages.age.values.ravel() == np.arange(0, 5)
-
-    # assert that qty_of_interest is null for ages outside of age 0-5
-    post_index_ages = indexer_test[indexer_test.isnull(indexer_test['qty_of_interest'])]
-    assert post_index_ages.age.values.ravel() == np.arage(6, 10)
+    initial_ages = indexer_test[pd.notnull(indexer_test['qty_of_interest'])]
+    assert initial_ages.index.get_level_values('age').tolist() == [x for x in range(0, 6)], 'make sure set_age_year_index did not overwrite inital values'
 
 
 # 2. interpolate_linearly_over_years_then_ages
@@ -96,7 +90,7 @@ def test_expand_grid():
 
     df = expand_grid(ages, years)
     
-    assert df.year_id.tolist() == np.repeat([1990, 1991, 1992], 6), "expand_grid should expand a df to get row for each age/year combo"
+    assert df.year_id.tolist() == np.repeat([1990, 1991, 1992], 6).tolist(), "expand_grid should expand a df to get row for each age/year combo"
     assert df.age.tolist() == [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5] + [0, 1, 2, 3, 4, 5], "expand_grid should expand a df to get row for each age/year combo"
 
 
