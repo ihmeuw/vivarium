@@ -27,6 +27,7 @@ class Builder:
     def __init__(self, context):
         self.lookup = context.tables.build_table
         self.value = context.values.get_pipeline
+        self.rate = context.values.get_rate_pipeline
         self.modifies_value = context.values.mutator
         self.emitter = context.events.get_emitter
         self.population_view = context.population.get_view

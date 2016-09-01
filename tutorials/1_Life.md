@@ -132,8 +132,18 @@ You can then run `simulate` like this:
 
 You should see the simulation rapidly step through a number of years and then exit. Not super interesting but that's because nothing is happening yet which we'll fix in the [next tutorial](./2_Death.md).
 
+Save Your Work
+--------------
+
+I won't keep needling you about this but you should keep doing it. Every time you finish a significant change, you should commit it to the repository. You can commit the work from this tutorial like this (you'll need to adjust the paths if you're on Windows):
+
+```sh
+> git add ceam_tutorial/ceam_tutorial/components/initial_population.py configuration.json
+> git commit -m"Finished with Tutorial 1"
+```
+
 
 An Exercise For The Reader
 --------------------------
 
-At this point you should be familiar enough with the `CEAM` system to make a new component that responds to 'generate_population' after `make_population` and adds a height column to the population with a random height for each simulant. Try it out. Think about what would be necessary to make the heights more realistic.
+At this point you should be familiar enough with the `CEAM` system to make a new component that responds to 'generate_population' after `make_population` and adds a height column with a random height for each simulant. Try it out. Think about what would be necessary to make the heights more realistic.

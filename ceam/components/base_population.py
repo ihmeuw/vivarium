@@ -53,7 +53,7 @@ def age_simulants(event):
 class Mortality:
     def setup(self, builder):
         self._mortality_rate_builder = lambda: builder.lookup(self.load_all_cause_mortality())
-        self.mortality_rate = builder.value('mortality_rate')
+        self.mortality_rate = builder.rate('mortality_rate')
         self.death_emitter = builder.emitter('deaths')
         j_drive = config.get('general', 'j_drive')
         self.life_table = builder.lookup(pd.read_csv(os.path.join(j_drive, 'WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv')), index=('age',))

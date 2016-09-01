@@ -59,4 +59,20 @@ Next setup your python environment so we can import the ceam_tutorial package:
 > python setup.py develop
 ```
 
-You're done with the setup. Time to move on to the next [section](./0_Life.md)
+Save Your Work
+--------------
+
+Any non-trivial software development project, including this tutorial should use version control. This will keep a record of what you've done and let you revert to previous versions when you make a mistake. You can turn your new tutorial directory into a git repository by navigating to the outer ceam_tutorial directory and typing:
+
+```sh
+> git init
+```
+
+You can then check in your changes by going:
+
+```sh
+> git add .
+> git commit -m"Initial checkin"
+```
+
+You're done with the setup. Time to move on to the next [section](./1_Life.md)

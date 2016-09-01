@@ -45,7 +45,7 @@ def joint_value_post_processor(a):
         return 1-a
 
 class Pipeline:
-    def __init__(self, combiner=replace_combiner, post_processor=rescale_post_processor):
+    def __init__(self, combiner=replace_combiner, post_processor=None):
         self.source = None
         self.mutators = [[] for i in range(10)]
         self.combiner = combiner
@@ -72,14 +72,21 @@ class ValuesManager:
         pipeline = self.get_pipeline(label)
         pipeline.mutators[priority].append(mutator)
 
-    def get_pipeline(self, label):
+    def get_pipeline(self, label, preferred_combiner=None, preferred_post_processor=None):
         if label not in self._pipelines:
+            found_template = False
             for label_template, (combiner, post_processor, source) in self.__pipeline_templates.items():
                 if label_template.match(label):
+                    found_template = True
                     self._pipelines[label] = Pipeline(combiner=combiner, post_processor=post_processor)
                     if source:
                         self._pipelines[label].source = source
+            if not found_template and (preferred_combiner or preferred_post_processor):
+                self._pipelines[label] = Pipeline(combiner=preferred_combiner, post_processor=preferred_post_processor)
         return self._pipelines[label]
+
+    def get_rate_pipeline(self, label):
+        return self.get_pipeline(label, preferred_combiner=replace_combiner, preferred_post_processor=rescale_post_processor)
 
     def declare_pipeline(self, label, combiner=replace_combiner, post_processor=rescale_post_processor, source=None):
         if hasattr(label, 'match'):
