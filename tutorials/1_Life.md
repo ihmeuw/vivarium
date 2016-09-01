@@ -48,7 +48,7 @@ import numpy as np
 mport pandas as pd
 ```
 
-`numpy` is a library for doing high performance numerical computing in python. `pandas` is a set of tools built on top of `numpy` that allow for fast data base style querying and aggregating of data. `CEAM` uses `pandas` `DataFrame` objects (similar to R's Data Frames) to store much of it's data so `pandas` is very important for using `CEAM`.
+`numpy` is a library for doing high performance numerical computing in python. `pandas` is a set of tools built on top of `numpy` that allow for fast database style querying and aggregating of data. `CEAM` uses `pandas` `DataFrame` objects (similar to R's Data Frames) to store much of it's data so `pandas` is very important for using `CEAM`.
 
 Next we import some decorators from `CEAM`:
 
@@ -135,10 +135,10 @@ You should see the simulation rapidly step through a number of years and then ex
 Save Your Work
 --------------
 
-I won't keep needling you about this but you should keep doing it. Every time you finish a significant change, you should commit it to the repository. You can commit the work from this tutorial like this (you'll need to adjust the paths if you're on Windows):
+I won't keep needling you about this but you should keep doing it. Every time you finish a significant change, you should commit it to the repository. You can commit the work from this tutorial like so:
 
 ```sh
-> git add ceam_tutorial/ceam_tutorial/components/initial_population.py configuration.json
+> git add .
 > git commit -m"Finished with Tutorial 1"
 ```
 
