@@ -99,6 +99,7 @@ class Pipeline:
         self.mutators = [[] for i in range(10)]
         self.combiner = combiner
         self.post_processor = post_processor
+        self.configured = False
 
     def __call__(self, *args, **kwargs):
         if self.source is None:
@@ -150,8 +151,15 @@ class ValuesManager:
                     self._pipelines[name] = Pipeline(combiner=combiner, post_processor=post_processor)
                     if source:
                         self._pipelines[name].source = source
-            if not found_template and (preferred_combiner or preferred_post_processor):
-                self._pipelines[name] = Pipeline(combiner=preferred_combiner, post_processor=preferred_post_processor)
+                    self._pipelines[name].configured = True
+
+        if not self._pipelines[name].configured:
+            if preferred_combiner:
+                self._pipelines[name].combiner = preferred_combiner
+            if preferred_post_processor:
+                self._pipelines[name].post_processor = preferred_post_processor
+
+        self._pipelines[name].configured = True
         return self._pipelines[name]
 
     def get_rate(self, name):
@@ -173,13 +181,11 @@ class ValuesManager:
             values_produced = [(v, component) for v in produces_value.finder(component)]
             values_produced += [(v, getattr(component, att)) for att in sorted(dir(component)) for v in produces_value.finder(getattr(component, att))]
 
-            for value, producer in values_produced:
-                pipeline = self.get_value(value)
-                pipeline.source = producer
+            for name, producer in values_produced:
+                self._pipelines[name].source = producer
 
             values_modified = [(v, component, i) for priority in modifies_value.finder(component) for i,v in enumerate(priority)]
             values_modified += [(v, getattr(component, att), i) for att in sorted(dir(component)) for i,vs in enumerate(modifies_value.finder(getattr(component, att))) for v in vs]
 
-            for value, mutator, priority in values_modified:
-                pipeline = self.get_value(value)
-                pipeline.mutators[priority].append(mutator)
+            for name, mutator, priority in values_modified:
+                self._pipelines[name].mutators[priority].append(mutator)
