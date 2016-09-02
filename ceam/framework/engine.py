@@ -1,3 +1,7 @@
+'''
+The engine
+'''
+
 import os
 import os.path
 import argparse
@@ -26,8 +30,8 @@ _log = logging.getLogger(__name__)
 class Builder:
     def __init__(self, context):
         self.lookup = context.tables.build_table
-        self.value = context.values.get_pipeline
-        self.rate = context.values.get_rate_pipeline
+        self.value = context.values.get_value
+        self.rate = context.values.get_rate
         self.modifies_value = context.values.mutator
         self.emitter = context.events.get_emitter
         self.population_view = context.population.get_view
@@ -36,6 +40,9 @@ class Builder:
         self.randomness = lambda key: RandomnessStream(key, self.clock(), draw_number)
 
 class SimulationContext:
+    '''
+    context
+    '''
     def __init__(self, components):
         self.components = components
         self.values = ValuesManager()
@@ -122,7 +129,7 @@ def run_simulation(simulation):
 
     event_loop(simulation)
 
-    metrics = simulation.values.get_pipeline('metrics')(simulation.population.population.index)
+    metrics = simulation.values.get_value('metrics')(simulation.population.population.index)
     metrics['duration'] = time() - start
     return metrics
 

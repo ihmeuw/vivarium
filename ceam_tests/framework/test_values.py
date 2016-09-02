@@ -9,7 +9,7 @@ def test_replace_combiner():
     manager = ValuesManager()
     manager.declare_pipeline('test', combiner=replace_combiner, post_processor=None, source=lambda: 1)
 
-    value = manager.get_pipeline('test')
+    value = manager.get_value('test')
     assert value() == 1
 
     manager.mutator(lambda value: 42, 'test')
@@ -22,7 +22,7 @@ def test_joint_value_combiner():
     manager = ValuesManager()
     manager.declare_pipeline('test', combiner=joint_value_combiner, post_processor=None, source=lambda: 1)
 
-    value = manager.get_pipeline('test')
+    value = manager.get_value('test')
     assert value() == 1
 
     manager.mutator(lambda: 0.5, 'test')
@@ -38,7 +38,7 @@ def test_joint_value():
 
     index = pd.Index(range(10))
 
-    value = manager.get_pipeline('test')
+    value = manager.get_value('test')
     assert np.all(value(index) == 1)
 
     manager.mutator(lambda index: pd.Series(0.5, index=index), 'test')
@@ -52,7 +52,7 @@ def test_set_combiner():
     manager = ValuesManager()
     manager.declare_pipeline('test', combiner=set_combiner, post_processor=None, source=lambda: set())
 
-    value = manager.get_pipeline('test')
+    value = manager.get_value('test')
     assert value() == set()
 
     manager.mutator(lambda: 'thing one', 'test')
