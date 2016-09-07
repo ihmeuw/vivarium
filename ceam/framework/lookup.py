@@ -18,6 +18,10 @@ class TableView:
     Returns
     -------
     pandas.DataFrame
+
+    Notes
+    -----
+    These cannot be created directly. Use the `lookup` method on the builder during setup.
     """
     def __init__(self, manager, prefix, table_group, columns):
         self._manager = manager
