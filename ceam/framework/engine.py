@@ -187,7 +187,7 @@ def main():
     parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
     parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
     parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
-    parser.add_argument('--results_path', '-o', type=str, default=None, help='File to write output to')
+    parser.add_argument('--results_path', '-o', type=str, default=None, help='File to put output in')
     args = parser.parse_args()
 
     if args.command == 'run':
