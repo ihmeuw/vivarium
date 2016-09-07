@@ -167,6 +167,7 @@ def run_comparison(component_config, results_path=None):
 def run_configuration(component_config, results_path=None, sub_configuration_name='base'):
     component_configurations = read_component_configuration(component_config)
     configuration = component_configurations[sub_configuration_name]
+    config['run_configuration']['sub_configuration_name'] = sub_configuration_name
     simulation = setup_simulation(configuration['components'])
     metrics = run_simulation(simulation)
     metrics['comparison'] = configuration['name']
@@ -187,7 +188,6 @@ def main():
     parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
     parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
     parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
-    parser.add_argument('--results_path', '-o', type=str, default=None, help='File to put output in')
     args = parser.parse_args()
 
     if args.command == 'run':
