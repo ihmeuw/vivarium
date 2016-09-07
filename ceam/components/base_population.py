@@ -56,7 +56,7 @@ class Mortality:
         self.mortality_rate = builder.rate('mortality_rate')
         self.death_emitter = builder.emitter('deaths')
         j_drive = config.get('general', 'j_drive')
-        self.life_table = builder.lookup(pd.read_csv(os.path.join(j_drive, 'WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv')), index=('age',))
+        self.life_table = builder.lookup(pd.read_csv(os.path.join(j_drive, 'WORK/10_gbd/01_dalynator/02_inputs/YLLs/usable/FINAL_min_pred_ex.csv')), key_columns=('age',))
         self.random = builder.randomness('mortality_handler')
         self.mortality_meids = builder.value('modelable_entity_ids.mortality')
 
