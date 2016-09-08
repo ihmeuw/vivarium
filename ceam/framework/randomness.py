@@ -36,7 +36,7 @@ class RandomnessStream:
     def get_draw(self, index):
         keys = index.astype(str) + '_'.join([self.key, str(self.clock())])
         return pd.Series([
-            randomness_hash(k, self.seed)
+            randomness_hash((k, self.seed))
             for k in keys], index=index)
 
     def filter_for_rate(self, population, rate):
