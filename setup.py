@@ -14,7 +14,6 @@ setup(name='ceam',
             'numpy',
             'scipy',
             'joblib',
-            'mmh3'
         ]
      )
 
