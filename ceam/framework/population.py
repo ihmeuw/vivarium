@@ -73,7 +73,10 @@ class PopulationView:
         pop = self.manager._population.ix[index]
         if self._query:
             pop = pop.query(self._query)
-        return pop[self._columns].copy()
+        if self._columns is None:
+            return pop.copy()
+        else:
+            return pop[self._columns].copy()
 
     def update(self, pop):
         """Update the simulation's state to match ``pop``

@@ -19,16 +19,22 @@ def read_component_configuration(path):
 def load(component_list):
     components = []
     for component in component_list:
-        if isinstance(component, str):
-            if component.endswith('()'):
+        if isinstance(component, str) or isinstance(component, list):
+            if isinstance(component, list):
+                component, args, kwargs = component
                 call = True
+            elif component.endswith('()'):
                 component = component[:-2]
+                args = ()
+                kwargs = {}
+                call = True
             else:
                 call = False
+
             module_path, _, component_name = component.rpartition('.')
             component = getattr(import_module(module_path), component_name)
             if call:
-                component = component()
+                component = component(*args, **kwargs)
         if isinstance(component, type):
             component = component()
         components.append(component)

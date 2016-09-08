@@ -6,20 +6,23 @@
          "ceam.components.base_population.Mortality",
          "ceam.components.disease_models.heart_disease_factory()",
          "ceam.components.disease_models.stroke_factory()",
-	 "ceam.components.blood_pressure.BloodPressure",
-	 "ceam.components.smoking.Smoking",
-	 "ceam.components.healthcare_access.HealthcareAccess",
-         "ceam.components.metrics.Metrics"
+         "ceam.components.blood_pressure.BloodPressure",
+         "ceam.components.smoking.Smoking",
+         "ceam.components.healthcare_access.HealthcareAccess",
+         "ceam.components.metrics.Metrics",
+         "ceam.components.sample_history.SampleHistory"
     ],
     "comparisons": [
         {
             "name": "base",
-            "components": []
+            "components": [
+                ["ceam.components.opportunistic_screening.OpportunisticScreening", [false], {}]
+            ]
         },
         {
             "name": "intervention",
             "components": [
-                "ceam.components.opportunistic_screening.OpportunisticScreening"
+                ["ceam.components.opportunistic_screening.OpportunisticScreening", [true], {}]
             ]
         }
     ]

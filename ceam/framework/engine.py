@@ -151,6 +151,7 @@ def run_comparison(component_config, results_path=None):
     all_metrics = []
     for configuration in component_configurations.values():
         _log.debug('Starting comparison: {}'.format(configuration['name']))
+        config['run_configuration']['configuration_name'] = configuration['name']
         simulation = setup_simulation(configuration['components'])
         metrics = run_simulation(simulation)
         metrics['comparison'] = configuration['name']
@@ -167,7 +168,7 @@ def run_comparison(component_config, results_path=None):
 def run_configuration(component_config, results_path=None, sub_configuration_name='base'):
     component_configurations = read_component_configuration(component_config)
     configuration = component_configurations[sub_configuration_name]
-    config['run_configuration']['sub_configuration_name'] = sub_configuration_name
+    config['run_configuration']['configuration_name'] = sub_configuration_name
     simulation = setup_simulation(configuration['components'])
     metrics = run_simulation(simulation)
     metrics['comparison'] = configuration['name']

@@ -75,9 +75,11 @@ class OpportunisticScreening:
     MEDICATION_supplied_until : pd.Timestamp
     """
 
+    def __init__(self, active=True):
+        self.active = active
+
     def setup(self, builder):
         self.cost_by_year = defaultdict(int)
-        self.active = True
 
         # draw random costs and effects for medications
         draw = config.getint('run_configuration', 'draw_number')
