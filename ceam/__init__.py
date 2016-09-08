@@ -3,7 +3,10 @@
 from configparser import ConfigParser
 import os.path
 
-__all__ = ['config']
+__all__ = ['config', 'CEAMError']
+
+class CEAMError(Exception):
+    pass
 
 _config_path = os.path.abspath(os.path.dirname(__file__))
 config = ConfigParser()

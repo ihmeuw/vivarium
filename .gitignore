@@ -9,3 +9,4 @@ local.cfg
 .idea
 .swo
 *~
+docs/_build
