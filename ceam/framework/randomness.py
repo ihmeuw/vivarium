@@ -7,7 +7,19 @@ pseudo randomness where the key is the simulation time, the simulant's id, the d
 point which needs the randomness.
 """
 
-import mmh3
+try:
+    import mmh3
+    def randomness_hash(key):
+        key = str(key).encode('utf8')
+        return (mmh3.hash(key)+2147483647)/4294967294
+
+except ImportError:
+    import hashlib
+    import warnings
+    warnings.warn('Falling back to known-bad hash algorithm. Please install mmh3')
+    def randomness_hash(key):
+        key = str(key).encode('utf8')
+        return int(hashlib.sha1(key).hexdigest(), 16) / (2**160)
 
 import numpy as np
 import pandas as pd
@@ -24,7 +36,7 @@ class RandomnessStream:
     def get_draw(self, index):
         keys = index.astype(str) + '_'.join([self.key, str(self.clock())])
         return pd.Series([
-            (mmh3.hash(k, self.seed)+2147483647)/4294967294
+            randomness_hash(k, self.seed)
             for k in keys], index=index)
 
     def filter_for_rate(self, population, rate):
