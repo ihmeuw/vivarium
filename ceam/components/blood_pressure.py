@@ -50,10 +50,10 @@ class BloodPressure:
         location_id = config.getint('simulation_parameters', 'location_id')
         year_start = config.getint('simulation_parameters', 'year_start')
         year_end = config.getint('simulation_parameters', 'year_end')
-        draw_number =config.getint('run_configuration', 'draw_number')
 
-        distribution = normalize_for_simulation(load_data_from_cache(get_sbp_mean_sd, col_name=None,
-                            location_id=location_id, year_start=year_start, year_end=year_end, draw_number=draw_number))
+        distribution = load_data_from_cache(get_sbp_mean_sd, col_name=['log_mean', 'log_sd'],
+                            src_column=['log_mean_{draw}', 'log_sd_{draw}'],
+                            location_id=location_id, year_start=year_start, year_end=year_end)
 
         rows = []
         # NOTE: We treat simulants under 25 as having no risk associated with SBP so we aren't even modeling it for them
@@ -67,10 +67,9 @@ class BloodPressure:
         location_id = config.getint('simulation_parameters', 'location_id')
         year_start = config.getint('simulation_parameters', 'year_start')
         year_end = config.getint('simulation_parameters', 'year_end')
-        draw_number =config.getint('run_configuration', 'draw_number')
-        ihd_rr =  normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=493)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
-        hem_stroke_rr =  normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=496)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
-        isc_stroke_rr =  normalize_for_simulation(load_data_from_cache(get_relative_risks, col_name=None, location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=495)[['year_id', 'sex_id', 'age', 'rr_{}'.format(draw_number)]])
+        ihd_rr =  load_data_from_cache(get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=493)
+        hem_stroke_rr =  load_data_from_cache(get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=496)
+        isc_stroke_rr =  load_data_from_cache(get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=495)
 
         self.ihd_rr = builder.lookup(ihd_rr)
         self.hemorrhagic_stroke_rr = builder.lookup(hem_stroke_rr)
