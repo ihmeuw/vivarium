@@ -19,3 +19,13 @@ def test_filter_for_probability():
     sub_sub_index = r.filter_for_probability(sub_index, 0.5)
     assert round(len(sub_sub_index)/len(sub_index), 1) == 0.5
 
+def test_choice__equal_weights():
+    clock = [datetime(1990, 1, 1)]
+    r = RandomnessStream('test', lambda: clock[0], 1)
+
+    index = pd.Index(range(10000))
+
+    chosen = r.choice(index, ['a', 'small', 'bird'])
+
+    print(chosen.value_counts())
+    assert False

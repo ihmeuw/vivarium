@@ -15,14 +15,16 @@ import pandas as pd
 from ceam import config
 from .util import rate_to_probability
 
+RESIDUAL_CHOICE = object()
+
 class RandomnessStream:
     def __init__(self, key, clock, seed):
         self.key = key
         self.clock = clock
         self.seed = seed
 
-    def get_draw(self, index):
-        keys = index.astype(str) + '_'.join([self.key, str(self.clock())])
+    def get_draw(self, index, additional_key=None):
+        keys = index.astype(str) + '_'.join([self.key, str(self.clock()), str(additional_key)])
         return pd.Series([
             (mmh3.hash(k, self.seed)+2147483647)/4294967294
             for k in keys], index=index)
@@ -42,3 +44,29 @@ class RandomnessStream:
             # TODO: Something less awkward
             mask = mask.values
         return population[mask]
+
+    def choice(self, index, choices, p=None):
+        if p:
+            try:
+                i = p.index(RESIDUAL_CHOICE)
+                p[i] = 0
+                residual_p = 1 - np.sum(p, axis=1)
+                if residual_p < 0:
+                    raise RandomnessError('Residual choice supplied with weights that summed to more than 1. Weights: {}'.format(p))
+                p[i] = residual_p
+            except ValueError:
+                # No residual choice, that's fine.
+                pass
+        else:
+            p = pd.DataFrame([[1]*len(choices)]*len(index), index=index)
+
+        result = pd.Series(None, index=index)
+        effective_p = p / np.cumsum(p, axis=1)[::-1]
+        for i, (choice, p) in enumerate(zip(choices, effective_p.T.values)):
+            if len(index) == 0:
+                break
+            draw = self.get_draw(index, additional_key=i)
+            chosen = draw < p[index]
+            result[chosen] = choice
+            index = index[~chosen]
+        return result
