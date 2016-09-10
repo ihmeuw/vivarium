@@ -2,6 +2,7 @@ import pytest
 from datetime import datetime
 
 import pandas as pd
+import numpy as np
 
 from ceam.framework.randomness import RandomnessStream
 
@@ -23,9 +24,10 @@ def test_choice__equal_weights():
     clock = [datetime(1990, 1, 1)]
     r = RandomnessStream('test', lambda: clock[0], 1)
 
-    index = pd.Index(range(10000))
+    index = pd.Index(range(1000))
 
     chosen = r.choice(index, ['a', 'small', 'bird'])
 
-    print(chosen.value_counts())
-    assert False
+    count = chosen.value_counts()
+    for k,c in count.items():
+        assert np.allclose(c/len(index), 1/3, atol=0.005)

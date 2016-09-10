@@ -61,12 +61,12 @@ class RandomnessStream:
             p = pd.DataFrame([[1]*len(choices)]*len(index), index=index)
 
         result = pd.Series(None, index=index)
-        effective_p = p / np.cumsum(p, axis=1)[::-1]
+        effective_p = (p / np.cumsum(p, axis=1)).loc[:,::-1]
         for i, (choice, p) in enumerate(zip(choices, effective_p.T.values)):
             if len(index) == 0:
                 break
             draw = self.get_draw(index, additional_key=i)
             chosen = draw < p[index]
-            result[chosen] = choice
+            result[index[chosen]] = choice
             index = index[~chosen]
         return result
