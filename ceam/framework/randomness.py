@@ -52,14 +52,19 @@ class RandomnessStream:
         if p:
             p = np.array(p)
             if len(np.shape(p)) == 1:
+                p = np.array(np.broadcast_to(p, (len(index), np.shape(p)[0])))
+            try:
                 i = p == RESIDUAL_CHOICE
-                if i.sum() == 1:
+                if i.sum() > 1:
                     p[i] = 0
-                    residual_p = 1 - np.sum(p)
+                    p = p.astype(float)
+                    residual_p = 1 - np.sum(p, axis=1)
                     if np.any(residual_p < 0):
                         raise RandomnessError('Residual choice supplied with weights that summed to more than 1. Weights: {}'.format(p))
                     p[i] = residual_p
-                p = np.array(np.broadcast_to(p, (len(index), np.shape(p)[0])))
+            except ValueError:
+                # No residual choice, that's fine.
+                pass
             p = p.astype(float)
         else:
             p = np.zeros((len(index),len(choices))) + 1
