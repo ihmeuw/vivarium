@@ -24,7 +24,7 @@ def test_choice__default_weights():
     clock = [datetime(1990, 1, 1)]
     r = RandomnessStream('test', lambda: clock[0], 1)
 
-    index = pd.Index(range(1000))
+    index = pd.Index(range(100000))
 
     chosen = r.choice(index, ['a', 'small', 'bird'])
 
@@ -36,7 +36,7 @@ def test_choice__homogenious_weights():
     clock = [datetime(1990, 1, 1)]
     r = RandomnessStream('test', lambda: clock[0], 1)
 
-    index = pd.Index(range(1000))
+    index = pd.Index(range(100000))
 
     chosen = r.choice(index, ['a', 'small', 'bird'], [10, 10, 10])
 
