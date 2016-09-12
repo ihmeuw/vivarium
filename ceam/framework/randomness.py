@@ -12,8 +12,11 @@ import mmh3
 import numpy as np
 import pandas as pd
 
-from ceam import config
+from ceam import config, CEAMError
 from .util import rate_to_probability
+
+class RandomnessError(CEAMError):
+    pass
 
 RESIDUAL_CHOICE = object()
 
@@ -47,22 +50,23 @@ class RandomnessStream:
 
     def choice(self, index, choices, p=None):
         if p:
-            try:
-                i = p.index(RESIDUAL_CHOICE)
-                p[i] = 0
-                residual_p = 1 - np.sum(p, axis=1)
-                if residual_p < 0:
-                    raise RandomnessError('Residual choice supplied with weights that summed to more than 1. Weights: {}'.format(p))
-                p[i] = residual_p
-            except ValueError:
-                # No residual choice, that's fine.
-                pass
+            p = np.array(p)
+            if len(np.shape(p)) == 1:
+                i = p == RESIDUAL_CHOICE
+                if i.sum() == 1:
+                    p[i] = 0
+                    residual_p = 1 - np.sum(p)
+                    if np.any(residual_p < 0):
+                        raise RandomnessError('Residual choice supplied with weights that summed to more than 1. Weights: {}'.format(p))
+                    p[i] = residual_p
+                p = np.array(np.broadcast_to(p, (len(index), np.shape(p)[0])))
+            p = p.astype(float)
         else:
-            p = pd.DataFrame([[1]*len(choices)]*len(index), index=index)
+            p = np.zeros((len(index),len(choices))) + 1
 
         result = pd.Series(None, index=index)
-        effective_p = (p / np.cumsum(p, axis=1)).loc[:,::-1]
-        for i, (choice, p) in enumerate(zip(choices, effective_p.T.values)):
+        effective_p = (p[:,::-1] / np.cumsum(p[:,::-1], axis=1))[:,::-1]
+        for i, (choice, p) in enumerate(zip(choices, effective_p.T)):
             if len(index) == 0:
                 break
             draw = self.get_draw(index, additional_key=i)
