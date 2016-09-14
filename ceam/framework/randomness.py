@@ -61,7 +61,7 @@ class RandomnessStream:
         return population[mask]
 
     def choice(self, index, choices, p=None):
-        if p:
+        if p is not None:
             p = np.array(p)
             if len(np.shape(p)) == 1:
                 p = np.array(np.broadcast_to(p, (len(index), np.shape(p)[0])))

@@ -13,7 +13,7 @@ from ceam.framework.population import uses_columns
 
 from ceam import config
 
-@listens_for('generate_population', priority=0)
+@listens_for('initialize_simulants', priority=0)
 @uses_columns(['age', 'fractional_age', 'sex', 'alive'])
 def generate_base_population(event):
     location_id = config.getint('simulation_parameters', 'location_id')
@@ -21,26 +21,27 @@ def generate_base_population(event):
     population_size = len(event.index)
 
     population = load_data_from_cache(generate_ceam_population, col_name=None, location_id=location_id, year_start=year_start, number_of_simulants=population_size)
+    population.index = event.index
     population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'}).astype('category')
     population['alive'] = True
     population['fractional_age'] = population.age.astype(float)
 
     event.population_view.update(population)
 
-@listens_for('generate_population')
+@listens_for('initialize_simulants')
 @uses_columns(['adherence_category'])
 def adherence(event):
-        population_size = len(event.index)
-        # use a dirichlet distribution with means matching Marcia's
-        # paper and sum chosen to provide standard deviation on first
-        # term also matching paper
-        draw_number = config.getint('run_configuration', 'draw_number')
-        r = np.random.RandomState(1234567+draw_number)
-        alpha = np.array([0.6, 0.25, 0.15]) * 100
-        p = r.dirichlet(alpha)
-        # then use these probabilities to generate adherence
-        # categories for all simulants
-        event.population_view.update(pd.Series(r.choice(['adherent', 'semi-adherent', 'non-adherent'], p=p, size=population_size), dtype='category'))
+    population_size = len(event.index)
+    # use a dirichlet distribution with means matching Marcia's
+    # paper and sum chosen to provide standard deviation on first
+    # term also matching paper
+    draw_number = config.getint('run_configuration', 'draw_number')
+    r = np.random.RandomState(1234567+draw_number)
+    alpha = np.array([0.6, 0.25, 0.15]) * 100
+    p = r.dirichlet(alpha)
+    # then use these probabilities to generate adherence
+    # categories for all simulants
+    event.population_view.update(pd.Series(r.choice(['adherent', 'semi-adherent', 'non-adherent'], p=p, size=population_size), dtype='category'))
 
 @listens_for('time_step')
 @uses_columns(['age', 'fractional_age'], 'alive')
@@ -77,9 +78,10 @@ class Mortality:
                 location_id,
                 year_start,
                 year_end,
-                meids)
+                meids,
+                src_column='cause_deleted_mortality_rate_{draw}')
 
-    @listens_for('generate_population')
+    @listens_for('initialize_simulants')
     @uses_columns(['death_day'])
     def death_day_column(self, event):
         event.population_view.update(pd.Series(pd.NaT, name='death_day', index=event.index))
@@ -92,7 +94,9 @@ class Mortality:
 
         self.death_emitter(event.split(index))
 
-        event.population_view.update(pd.DataFrame({'alive': False, 'death_day': event.time}, index=index))
+        pop = pd.DataFrame(False, index=index, columns=['alive'], dtype=bool)
+        pop['death_day'] = event.time
+        event.population_view.update(pop)
 
     @produces_value('mortality_rate')
     def mortality_rate_source(self, population):

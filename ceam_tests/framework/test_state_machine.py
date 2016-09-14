@@ -12,7 +12,7 @@ from ceam.framework.event import listens_for
 from ceam.framework.state_machine import Machine, State, Transition
 
 def _population_fixture(column, initial_value):
-    @listens_for('generate_population')
+    @listens_for('initialize_simulants')
     @uses_columns([column])
     def inner(event):
         event.population_view.update(pd.Series(initial_value, index=event.index))

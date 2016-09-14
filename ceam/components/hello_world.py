@@ -42,7 +42,7 @@ class SimpleMetrics:
     def setup(self, builder):
         self.reset()
         path_prefix = '/home/j/Project/Cost_Effectiveness/dev/data_processed'
-        self.life_table = builder.lookup(pd.read_csv(os.path.join(path_prefix, 'interpolated_reference_life_table.csv')), index=('age',))
+        self.life_table = builder.lookup(pd.read_csv(os.path.join(path_prefix, 'interpolated_reference_life_table.csv')), key_columns=('age',))
 
     @listens_for('deaths')
     def count_deaths_and_ylls(self, event):

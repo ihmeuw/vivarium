@@ -19,7 +19,7 @@ from ceam.analysis import analyze_results, dump_results
 
 from ceam.framework.values import ValuesManager, set_combiner, joint_value_combiner, joint_value_post_processor, rescale_post_processor, NullValue
 from ceam.framework.event import EventManager, Event, emits
-from ceam.framework.population import PopulationManager
+from ceam.framework.population import PopulationManager, creates_simulants
 from ceam.framework.lookup import MergedTableManager
 from ceam.framework.components import load, read_component_configuration
 from ceam.framework.randomness import RandomnessStream
@@ -91,15 +91,15 @@ class SimulationContext:
 @emits('time_step__cleanup')
 def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, time_step__cleanup_emitter):
     _log.debug(simulation.current_time)
-    time_step__prepare_emitter.emit(Event(simulation.current_time, simulation.population.population.index))
-    time_step_emitter.emit(Event(simulation.current_time, simulation.population.population.index))
-    time_step__cleanup_emitter.emit(Event(simulation.current_time, simulation.population.population.index))
+    time_step__prepare_emitter(Event(simulation.current_time, simulation.population.population.index))
+    time_step_emitter(Event(simulation.current_time, simulation.population.population.index))
+    time_step__cleanup_emitter(Event(simulation.current_time, simulation.population.population.index))
     simulation.current_time += time_step
 
-@emits('generate_population')
+@creates_simulants
 @emits('post_setup')
 @emits('simulation_end')
-def event_loop(simulation, generate_emitter, post_setup_emitter, end_emitter):
+def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
     start = config.getint('simulation_parameters', 'year_start')
     start = datetime(start, 1, 1)
     stop = config.getint('simulation_parameters', 'year_end')
@@ -108,14 +108,13 @@ def event_loop(simulation, generate_emitter, post_setup_emitter, end_emitter):
     time_step = timedelta(days=time_step)
 
     population_size = config.getint('simulation_parameters', 'population_size')
-    generate_emitter.emit(Event(start, range(population_size)))
-    simulation.population.initialized = True
+    simulant_creator(population_size)
 
     simulation.current_time = start
     while simulation.current_time < stop:
         _step(simulation, time_step)
 
-    end_emitter.emit(Event(simulation.current_time, simulation.population.population.index))
+    end_emitter(Event(simulation.current_time, simulation.population.population.index))
 
 def setup_simulation(components):
     if not components:

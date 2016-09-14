@@ -101,10 +101,10 @@ class OpportunisticScreening:
             columns.append(medication['name']+'_supplied_until')
         self.population_view = builder.population_view(columns)
 
-    @listens_for('generate_population')
+    @listens_for('initialize_simulants')
     def load_population_columns(self, event):
         #TODO: Some people will start out taking medications?
-        population = pd.DataFrame({'medication_count': np.zeros(len(event.index))})
+        population = pd.DataFrame({'medication_count': np.zeros(len(event.index), dtype=int)})
         for medication in MEDICATIONS:
             population[medication['name']+'_supplied_until'] = pd.NaT
         self.population_view.update(population)

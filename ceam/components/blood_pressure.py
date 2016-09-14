@@ -37,7 +37,7 @@ class BloodPressure:
         builder.modifies_value(lambda index: self.hemorrhagic_stroke_paf(index), 'paf.hemorrhagic_stroke')
         builder.modifies_value(lambda index: self.ischemic_stroke_paf(index), 'paf.ischemic_stroke')
 
-    @listens_for('generate_population')
+    @listens_for('initialize_simulants')
     @uses_columns(['systolic_blood_pressure_percentile', 'systolic_blood_pressure'])
     def load_population_columns(self, event):
         population_size = len(event.index)

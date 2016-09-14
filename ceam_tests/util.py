@@ -26,10 +26,8 @@ def setup_simulation(components, population_size = 100):
     simulation.setup()
 
     start = datetime(1990, 1, 1)
-    generate_emitter = simulation.events.get_emitter('generate_population')
+    simulation.population._create_simulants(population_size)
 
-    generate_emitter(Event(start, range(population_size)))
-    simulation.population.initialized = True
     simulation.current_time = start
 
     return simulation

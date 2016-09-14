@@ -5,7 +5,7 @@ import pandas as pd
 from ceam import CEAMError
 
 from .util import resource_injector
-from .event import listens_for, Event
+from .event import listens_for, emits, Event
 
 uses_columns = resource_injector('population_system_population_view')
 uses_columns.__doc__ = """Mark a function as a user of columns from the population table. If the
@@ -21,13 +21,20 @@ query   : str
           to this function. This effects both the ``population`` and the ``index`` attributes of PopulationEvents
 """
 
+_creates_simulants = resource_injector('population_system_simulant_creater')
+creates_simulants = _creates_simulants()
+creates_simulants.__doc__ = """Mark a function as a source of new simulants. The function will have a callable
+injected into its arguments which takes a count of new simulants, creates space for them in the population table
+and emits a 'initialize_simulants' event to fill in the table.
+"""
+
 class PopulationError(CEAMError):
     pass
 
 class PopulationView:
     """A PopulationView provides access to the simulations population table. It can be used to both read and write
     the state of the population. A PopulationView can only read and write columns for which it is configured. Attempts
-    to write to non-existent columns are ignored except during resolution of the ``generate_population`` event when new
+    to write to non-existent columns are ignored except during resolution of the ``initialize_simulants`` event when new
     columns are allowed to be created.
 
     Attributes
@@ -102,7 +109,7 @@ class PopulationView:
                 affected_columns = set(pop.columns)
 
             affected_columns = set(affected_columns).intersection(self._columns)
-            if self.manager.initialized:
+            if not self.manager.growing:
                 affected_columns = set(affected_columns).intersection(self.manager._population.columns)
 
             for c in affected_columns:
@@ -113,6 +120,14 @@ class PopulationView:
                     else:
                         v2 = pop[c].values
                     v[pop.index] = v2
+
+                    if v.dtype != v2.dtype:
+                        # This happens when the population is being grown because extending
+                        # the index forces columns that don't have a natural null type
+                        # to become 'object'
+                        if not self.manager.growing:
+                            raise PopulationError('Component corrupting population table. Old column type: {} New column type: {}'.format(v.dtype, v2.dtype))
+                        v = v.astype(v2.dtype)
                 else:
                     if isinstance(pop, pd.Series):
                         v = pop.values
@@ -142,7 +157,7 @@ class PopulationEvent(Event):
 
     @staticmethod
     def from_event(event, population_view):
-        if population_view.manager.initialized:
+        if not population_view.manager.growing:
             population = population_view.get(event.index)
             return PopulationEvent(event.time, population.index, population, population_view)
         else:
@@ -161,7 +176,10 @@ class PopulationManager:
 
     def __init__(self):
         self._population = pd.DataFrame()
-        self.initialized = False
+        self.growing = False
+
+    def setup(self, builder):
+        self.clock = builder.clock()
 
     def get_view(self, columns, query=None):
         """Return a configured PopulationView
@@ -176,7 +194,17 @@ class PopulationManager:
 
         return PopulationView(self, columns, query)
 
-    def _injector(self, func, args, kwargs, columns, query=None):
+    @emits('initialize_simulants')
+    def _create_simulants(self, count, emitter):
+        new_index = range(len(self._population) + count)
+        new_population = self._population.reindex(new_index)
+        index = new_population.index.difference(self._population.index)
+        self._population = new_population
+        self.growing = True
+        emitter(Event(self.clock(), index))
+        self.growing = False
+
+    def _population_view_injector(self, func, args, kwargs, columns, query=None):
         view = self.get_view(columns, query)
         found = False
         if 'event' in kwargs:
@@ -196,8 +224,12 @@ class PopulationManager:
 
         return args, kwargs
 
+    def _creates_simulants_injector(self, func, args, kwargs):
+        return list(args) + [self._create_simulants], kwargs
+
     def setup_components(self, components):
-        uses_columns.set_injector(self._injector)
+        uses_columns.set_injector(self._population_view_injector)
+        _creates_simulants.set_injector(self._creates_simulants_injector)
 
     @property
     def population(self):

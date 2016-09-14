@@ -78,7 +78,7 @@ class EventManager:
         return self.__event_types[name].emit
 
     def _emitter_injector(self, func, args, kwargs, label):
-        return list(args) + [self.__event_types[label]], kwargs
+        return list(args) + [self.__event_types[label].emit], kwargs
 
     def setup_components(self, components):
         emits.set_injector(self._emitter_injector)

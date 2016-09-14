@@ -21,7 +21,7 @@ from ceam.components.healthcare_access import HealthcareAccess
 from ceam.components.blood_pressure import BloodPressure
 from ceam.components.base_population import adherence, generate_base_population
 
-@listens_for('generate_population')
+@listens_for('initialize_simulants')
 @uses_columns(['systolic_blood_pressure', 'age', 'fractional_age'])
 def _population_setup(event):
 

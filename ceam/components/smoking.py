@@ -45,7 +45,7 @@ class Smoking:
         builder.modifies_value(partial(self.population_attributable_fraction, paf_lookup=self.hemorrhagic_stroke_paf), 'paf.hemorrhagic_stroke')
         builder.modifies_value(partial(self.population_attributable_fraction, paf_lookup=self.ischemic_stroke_paf), 'paf.ischemic_stroke')
 
-    @listens_for('generate_population')
+    @listens_for('initialize_simulants')
     @uses_columns(['smoking_susceptibility'])
     def load_susceptibility(self, event):
         event.population_view.update(pd.Series(np.random.uniform(low=0.01, high=0.99, size=len(event.index)), name='smoking_susceptibility'))

@@ -44,7 +44,7 @@ class DiseaseState(State):
         self.population_view = builder.population_view(columns, 'alive')
         self.clock = builder.clock()
 
-    @listens_for('generate_population')
+    @listens_for('initialize_simulants')
     def load_population_columns(self, event):
         if self.dwell_time > 0:
             population_size = len(event.index)
@@ -199,7 +199,7 @@ class DiseaseModel(Machine):
         self.transition(event.index)
 
 
-    @listens_for('generate_population')
+    @listens_for('initialize_simulants')
     def load_population_columns(self, event):
         population = self.initial_population_view.get(event.index)
 

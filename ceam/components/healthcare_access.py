@@ -69,7 +69,7 @@ class HealthcareAccess:
                                             year_start=year_start, year_end=year_end, location_id=location_id, measure=18, me_id=9458)
         self.utilization_proportion = builder.lookup(lookup_table)
 
-    @listens_for('generate_population')
+    @listens_for('initialize_simulants')
     @uses_columns(['healthcare_followup_date', 'healthcare_last_visit_date'])
     def load_population_columns(self, event):
         population_size = len(event.index)

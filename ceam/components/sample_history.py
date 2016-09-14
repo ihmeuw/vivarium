@@ -24,7 +24,7 @@ class SampleHistory:
         self.sample_index = []
 
 
-    @listens_for('generate_population')
+    @listens_for('initialize_simulants')
     def load_population_columns(self, event):
         if self.sample_size is None:
             self.sample_size = len(event.index)
