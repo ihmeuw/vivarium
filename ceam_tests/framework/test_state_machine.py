@@ -42,7 +42,7 @@ def test_choice():
     machine = Machine('state')
     machine.states.extend([start_state, a_state, b_state])
 
-    simulation = setup_simulation([machine, _population_fixture('state', 'start')])
+    simulation = setup_simulation([machine, _population_fixture('state', 'start')], population_size=10000)
 
     machine.transition(simulation.population.population.index)
     a_count = (simulation.population.population.state == 'a').sum()
@@ -58,7 +58,7 @@ def test_null_transition():
     machine = Machine('state')
     machine.states.extend([start_state, a_state])
 
-    simulation = setup_simulation([machine, _population_fixture('state', 'start')])
+    simulation = setup_simulation([machine, _population_fixture('state', 'start')], population_size=10000)
 
     machine.transition(simulation.population.population.index)
     a_count = (simulation.population.population.state == 'a').sum()
@@ -91,7 +91,7 @@ def test_no_null_transition():
     machine = Machine('state')
     machine.states.extend([start_state, a_state, b_state])
 
-    simulation = setup_simulation([machine, _population_fixture('state', 'start')])
+    simulation = setup_simulation([machine, _population_fixture('state', 'start')], population_size=10000)
 
     machine.transition(simulation.population.population.index)
     a_count = (simulation.population.population.state == 'a').sum()
