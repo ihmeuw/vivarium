@@ -28,14 +28,15 @@ class Event:
             An index into the population table containing all simulants effected by this event.
     """
 
-    def __init__(self, time, index):
+    def __init__(self, time, index, user_data={}):
         self.time = time
         self.index = index
+        self.user_data = user_data
 
     def split(self, new_index):
         """Create a new event which is a copy of this one but with a new index.
         """
-        return Event(self.time, new_index)
+        return Event(self.time, new_index, self.user_data)
 
 class _EventChannel:
     def __init__(self):

@@ -17,10 +17,12 @@ from ceam import config
 @uses_columns(['age', 'fractional_age', 'sex', 'alive'])
 def generate_base_population(event):
     location_id = config.getint('simulation_parameters', 'location_id')
-    year_start = config.getint('simulation_parameters', 'year_start')
+    year_start = event.time.year
     population_size = len(event.index)
 
-    population = load_data_from_cache(generate_ceam_population, col_name=None, location_id=location_id, year_start=year_start, number_of_simulants=population_size)
+    initial_age = event.user_data.get('initial_age', None)
+
+    population = load_data_from_cache(generate_ceam_population, col_name=None, location_id=location_id, year_start=year_start, number_of_simulants=population_size, initial_age=initial_age)
     population.index = event.index
     population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'}).astype('category')
     population['alive'] = True
@@ -103,9 +105,13 @@ class Mortality:
         return self.mortality_rate_lookup(population)
 
     @modifies_value('metrics')
-    @uses_columns(['alive', 'age'], 'not alive')
+    @uses_columns(['alive', 'age'])
     def metrics(self, index, metrics, population_view):
         population = population_view.get(index)
-        metrics['deaths'] = len(population)
-        metrics['years_of_life_lost'] = self.life_table(population.index).sum()
+        the_dead = population.query('not alive')
+        metrics['deaths'] = len(the_dead)
+        metrics['years_of_life_lost'] = self.life_table(the_dead.index).sum()
+        metrics['total_population'] = len(population)
+        metrics['total_population__living'] = len(population) - len(the_dead)
+        metrics['total_population__dead'] = len(the_dead)
         return metrics

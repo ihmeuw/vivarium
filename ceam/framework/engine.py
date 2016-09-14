@@ -107,10 +107,11 @@ def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
     time_step = config.getfloat('simulation_parameters', 'time_step')
     time_step = timedelta(days=time_step)
 
+    simulation.current_time = start
+
     population_size = config.getint('simulation_parameters', 'population_size')
     simulant_creator(population_size)
 
-    simulation.current_time = start
     while simulation.current_time < stop:
         _step(simulation, time_step)
 
