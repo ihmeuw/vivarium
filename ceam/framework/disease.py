@@ -10,6 +10,7 @@ import numpy as np
 from ceam import config
 
 from .event import listens_for
+from .population import uses_columns
 from .values import modifies_value, produces_value
 from .util import rate_to_probability
 from .state_machine import Machine, State, Transition, TransitionSet
