@@ -1,3 +1,8 @@
+"""
+Don't judge me. This is called state_machine2 because I want to play with it a bit before
+I commit to replacing the previous state_machine implementation but I don't want it to be
+trapped in a branch.
+"""
 import pandas as pd
 import numpy as np
 

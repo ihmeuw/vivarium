@@ -7,7 +7,7 @@ from ceam import config
 
 from ceam.framework.util import rate_to_probability, from_yearly
 
-from ceam.components.state_test import Transition, TransitionSet, record_event_time, active_after_delay, new_state_side_effect
+from ceam.framework.state_machine2 import Transition, TransitionSet, record_event_time, active_after_delay, new_state_side_effect
 from ceam.framework.event import listens_for
 from ceam.framework.population import uses_columns, creates_simulants
 
