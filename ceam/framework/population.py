@@ -64,13 +64,17 @@ class PopulationView:
     def query(self):
         return self._query
 
-    def get(self, index):
+    def get(self, index, omit_missing_columns=False):
         """For the rows in ``index`` get the columns from the simulation's population which this view is configured.
         The result may be further filtered by the view's query.
 
         Parameters
         ----------
         index : pandas.Index
+        omit_missing_columns : bool
+            Silently skip loading columns which are not present in the population table. In general you want this to
+            be False because that situation indicates an error but sometimes, like during population initialization,
+            it can be convenient to just load whatever data is actually available.
 
         Returns
         -------
@@ -78,12 +82,18 @@ class PopulationView:
         """
 
         pop = self.manager._population.ix[index]
+
         if self._query:
             pop = pop.query(self._query)
+
         if self._columns is None:
             return pop.copy()
         else:
-            return pop[self._columns].copy()
+            if omit_missing_columns:
+                columns = list(set(self._columns).intersection(pop.columns))
+            else:
+                columns = self._columns
+            return pop[columns].copy()
 
     def update(self, pop):
         """Update the simulation's state to match ``pop``
@@ -161,7 +171,8 @@ class PopulationEvent(Event):
             population = population_view.get(event.index)
             return PopulationEvent(event.time, population.index, population, population_view, event.user_data)
         else:
-            return PopulationEvent(event.time, event.index, None, population_view, event.user_data)
+            population = population_view.get(event.index, omit_missing_columns=True)
+            return PopulationEvent(event.time, event.index, population, population_view, event.user_data)
 
 
 class PopulationManager:

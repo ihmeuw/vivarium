@@ -30,8 +30,6 @@ class Fertility:
         self.transitions.table['pregnant'].append(birth)
         self.transitions.table['pregnant'].append(Transition.RESIDUAL)
 
-        self.initial_population_view = builder.population_view(['sex'])
-
         return [self.transitions]
 
     @listens_for('time_step')
@@ -43,7 +41,7 @@ class Fertility:
     @uses_columns(['sex', 'fertility'])
     def make_fertility_column(self, event):
         fertility = pd.Series(0.0, name='fertility', index=event.index)
-        women = self.initial_population_view.get(event.index).sex == 'Female'
+        women = event.population.sex == 'Female'
         fertility[women] = np.random.random(size=women.sum())*0.1
         event.population_view.update(fertility)
 

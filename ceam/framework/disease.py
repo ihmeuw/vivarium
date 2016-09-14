@@ -181,7 +181,6 @@ class DiseaseModel(Machine):
 
     def setup(self, builder):
         self.population_view = builder.population_view([self.condition], 'alive')
-        self.initial_population_view = builder.population_view(['age', 'sex'])
 
         sub_components = []
         for state in self.states:
@@ -200,8 +199,9 @@ class DiseaseModel(Machine):
 
 
     @listens_for('initialize_simulants')
+    @uses_columns(['age', 'sex'])
     def load_population_columns(self, event):
-        population = self.initial_population_view.get(event.index)
+        population = event.population
 
         state_map = {s.state_id:s.prevalence_meid for s in self.states if hasattr(s, 'prevalence_meid')}
 
