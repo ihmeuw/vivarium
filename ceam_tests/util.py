@@ -26,9 +26,9 @@ def setup_simulation(components, population_size = 100):
     simulation.setup()
 
     start = datetime(1990, 1, 1)
+    simulation.current_time = start
     simulation.population._create_simulants(population_size)
 
-    simulation.current_time = start
 
     return simulation
 
