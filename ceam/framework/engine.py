@@ -180,17 +180,7 @@ def run_configuration(component_config, results_path=None, sub_configuration_nam
             pass
         dump_results(pd.DataFrame([metrics]), results_path)
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['run', 'list_events'])
-    parser.add_argument('components', nargs='?', default=None, type=str)
-    parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--config', '-c', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
-    parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
-    parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
-    parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
-    args = parser.parse_args()
-
+def run(args):
     if args.command == 'run':
         configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
         run_comparison(args.components, results_path=args.results_path)
@@ -202,6 +192,24 @@ def main():
             components = None
         simulation = setup_simulation(components)
         print(simulation.events.list_events())
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('command', choices=['run', 'list_events'])
+    parser.add_argument('components', nargs='?', default=None, type=str)
+    parser.add_argument('--verbose', '-v', action='store_true')
+    parser.add_argument('--config', '-c', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
+    parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
+    parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
+    parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
+    parser.add_argument('--pdb', action='store_true', help='Run in the debugger')
+    args = parser.parse_args()
+
+    if args.pdb:
+        import pdb
+        pdb.runcall(lambda: run(args))
+    else:
+        run(args)
 
 if __name__ == '__main__':
     main()
