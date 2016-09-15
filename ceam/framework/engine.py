@@ -205,11 +205,16 @@ def main():
     parser.add_argument('--pdb', action='store_true', help='Run in the debugger')
     args = parser.parse_args()
 
-    if args.pdb:
-        import pdb
-        pdb.runcall(lambda: run(args))
-    else:
+    try:
         run(args)
+    except:
+        if args.pdb:
+            import pdb
+            import traceback
+            traceback.print_exc()
+            pdb.post_mortem()
+        else:
+            raise
 
 if __name__ == '__main__':
     main()
