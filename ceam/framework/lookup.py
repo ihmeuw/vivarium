@@ -106,7 +106,7 @@ class MergedTableManager:
                 current_table = base_table.merge(event.population[merge_index], on=merge_index)
 
                 if len(current_table) != len(event.index):
-                    raise LookupError("Error aligning reference tables for keys {}. This likely means that the keys in the reference table are not exhaustive".format(merge_on))
+                    raise LookupError("Error aligning reference tables for keys {}. This likely means that the keys in the reference table are not exhaustive".format(merge_index))
 
                 current_table['simulant_id'] = event.population.index
 
