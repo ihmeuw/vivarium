@@ -10,7 +10,6 @@
          "ceam.components.smoking.Smoking",
          "ceam.components.healthcare_access.HealthcareAccess",
          "ceam.components.metrics.Metrics",
-         "ceam.components.sample_history.SampleHistory"
     ],
     "comparisons": [
         {
