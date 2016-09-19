@@ -120,6 +120,6 @@ def test_get_exposures():
 
     exposure = df['draw_{}'.format(draw_number)].values[0]
 
-    assert exposure ==0, 'get_exposure should return exposure=0 for the ages for which we do not have GBD estimates'
+    assert exposure == 0, 'get_exposure should return exposure=0 for the ages for which we do not have GBD estimates'
 
 
