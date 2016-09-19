@@ -9,6 +9,7 @@ from time import time
 import re
 from datetime import datetime, timedelta
 from pprint import pformat
+import gc
 
 import numpy as np
 import pandas as pd
@@ -113,6 +114,7 @@ def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
     simulant_creator(population_size)
 
     while simulation.current_time < stop:
+        gc.collect() # TODO: Actually figure out where the memory leak is.
         _step(simulation, time_step)
 
     end_emitter(Event(simulation.current_time, simulation.population.population.index))
