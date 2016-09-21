@@ -5,6 +5,7 @@ from datetime import timedelta
 from ceam import config
 from ceam.framework.state_machine import Transition, State, TransitionSet
 from ceam.framework.disease import DiseaseModel, DiseaseState, ExcessMortalityState, IncidenceRateTransition, ProportionTransition
+# from ceam.gbd_data.gbd_ms_functions import get_angina_proportions, get_heart_failure_incidence_draws
 
 
 def heart_disease_factory():
@@ -29,7 +30,9 @@ def heart_disease_factory():
     moderate_angina = ExcessMortalityState('moderate_angina', disability_weight=0.08, modelable_entity_id=1817, prevalence_meid=1819)
     severe_angina = ExcessMortalityState('severe_angina', disability_weight=0.17, modelable_entity_id=1817, prevalence_meid=1820)
 
-    asymptomatic_ihd = ExcessMortalityState('asymptomatic_ihd', disability_weight=0.08, modelable_entity_id=3233, prevalence_meid=3233)
+    # em 9/21: asymptomatic diseases have a dis weight of 0
+    # @alecwd: do you know where the .08 came from?
+    asymptomatic_ihd = ExcessMortalityState('asymptomatic_ihd', disability_weight=0.00, modelable_entity_id=3233, prevalence_meid=3233)
 
     heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', modelable_entity_id=1814)
     healthy.transition_set.append(heart_attack_transition)
@@ -51,9 +54,13 @@ def heart_disease_factory():
     healthy.transition_set.append(IncidenceRateTransition(angina_buckets, 'non_mi_angina', modelable_entity_id=1817))
 
     heart_attack.transition_set.allow_null_transition=False
-    heart_attack.transition_set.append(ProportionTransition(heart_failure_buckets, proportion=0.01))
-    heart_attack.transition_set.append(ProportionTransition(angina_buckets, proportion=0.15))
-    heart_attack.transition_set.append(ProportionTransition(asymptomatic_ihd, proportion=0.84))
+
+    # post-mi transitions
+    # TODO: Figure out if we can pass in me_id here to get incidence for the correct cause of heart failure
+    # TODO: Figure out how to make asymptomatic ihd be equal to whatever is left after people get heart failure and angina
+    heart_attack.transition_set.append(ProportionTransition(heart_failure_buckets, get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id))
+    heart_attack.transition_set.append(ProportionTransition(angina_buckets, get_angina_proportions(start_year, end_year)))
+    heart_attack.transition_set.append(ProportionTransition(asymptomatic_ihd, proportion=)
 
     mild_heart_failure.transition_set.append(heart_attack_transition)
     moderate_heart_failure.transition_set.append(heart_attack_transition)
@@ -66,6 +73,7 @@ def heart_disease_factory():
 
     module.states.extend([healthy, heart_attack, mild_heart_failure, moderate_heart_failure, severe_heart_failure, asymptomatic_angina, mild_angina, moderate_angina, severe_angina, asymptomatic_ihd])
     return module
+
 
 def stroke_factory():
     module = DiseaseModel('hemorrhagic_stroke')

@@ -142,9 +142,9 @@ class ProportionTransition(Transition):
         Transition.__init__(self, output, self.probability)
 
         if modelable_entity_id and proportion:
-            raise ValueError("Must supply modelable_entity_id or proportion but not both")
+            raise ValueError("Must supply modelable_entity_id or proportion (proportion can be an int or df) but not both")
         elif not (modelable_entity_id or proportion):
-            raise ValueError("Must supply either modelable_entity_id or proportion")
+            raise ValueError("Must supply either modelable_entity_id or proportion (proportion can be int or df)")
 
         self.modelable_entity_id = modelable_entity_id
         self.proportion = proportion
@@ -152,9 +152,11 @@ class ProportionTransition(Transition):
     def setup(self, builder):
         if self.modelable_entity_id:
             self.proportion = builder.lookup(get_proportion(self.modelable_entity_id))
+        elif isinstance(self.proportion, number.Number):
+            self.proportion = builder.lookup(self.proportion)
 
     def probability(self, index):
-        if self.modelable_entity_id:
+        if self.modelable_entity_id or isinstance(self.proportion, number.Number):
             return self.proportion(index)
         else:
             return pd.Series(self.proportion, index=index)
