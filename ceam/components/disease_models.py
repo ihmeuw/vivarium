@@ -13,6 +13,8 @@ def heart_disease_factory():
 
     healthy = State('healthy', key='ihd')
 
+    cause_of_heart_failure_me_id = 2414
+
     # Calculate an adjusted disability weight for the acute heart attack phase that
     # accounts for the fact that our timestep is longer than the phase length
     # TODO: This doesn't account for the fact that our timestep is longer than 28 days
@@ -29,9 +31,6 @@ def heart_disease_factory():
     mild_angina = ExcessMortalityState('mild_angina', disability_weight=0.03, modelable_entity_id=1817, prevalence_meid=1818)
     moderate_angina = ExcessMortalityState('moderate_angina', disability_weight=0.08, modelable_entity_id=1817, prevalence_meid=1819)
     severe_angina = ExcessMortalityState('severe_angina', disability_weight=0.17, modelable_entity_id=1817, prevalence_meid=1820)
-
-    # em 9/21: asymptomatic diseases have a dis weight of 0
-    # @alecwd: do you know where the .08 came from?
     asymptomatic_ihd = ExcessMortalityState('asymptomatic_ihd', disability_weight=0.00, modelable_entity_id=3233, prevalence_meid=3233)
 
     heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', modelable_entity_id=1814)
@@ -55,12 +54,23 @@ def heart_disease_factory():
 
     heart_attack.transition_set.allow_null_transition=False
 
+    hf_prop_df = normalize_for_simulation(load_data_from_cache(get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id)))
+    angina_prop_df = normalize_for_simulation(load_data_from_cache(get_angina_proportions(start_year, end_year)))
+    asympt_prop_df = normalize_for_simulation(pd.merge(hf_prop_df, angina_prop_df, on=['age']))
+    for i in range(0, 1000):
+        asympt_prop_df['asympt_prop_{}'.format(i)] = 1 - asympt_prop_df['draw_{}'.format(i)] - asympt_prop_df['angina_prop']
+
+    keepcol = ['year_id', 'sex_id', 'age']
+    keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
+
+    asympt_prop_df = asympt_prop_df[keepcol]
+
     # post-mi transitions
     # TODO: Figure out if we can pass in me_id here to get incidence for the correct cause of heart failure
     # TODO: Figure out how to make asymptomatic ihd be equal to whatever is left after people get heart failure and angina
-    heart_attack.transition_set.append(ProportionTransition(heart_failure_buckets, get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id))
-    heart_attack.transition_set.append(ProportionTransition(angina_buckets, get_angina_proportions(start_year, end_year)))
-    heart_attack.transition_set.append(ProportionTransition(asymptomatic_ihd, proportion=)
+    heart_attack.transition_set.append(ProportionTransition(heart_failure_buckets, proportion=hf_prop_df))
+    heart_attack.transition_set.append(ProportionTransition(angina_buckets, proportion=angina_prop_df))
+    heart_attack.transition_set.append(ProportionTransition(asymptomatic_ihd, proportion=asympt_prop_df)
 
     mild_heart_failure.transition_set.append(heart_attack_transition)
     moderate_heart_failure.transition_set.append(heart_attack_transition)

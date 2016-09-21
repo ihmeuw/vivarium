@@ -137,6 +137,7 @@ class IncidenceRateTransition(Transition):
     def __str__(self):
         return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id if hasattr(self.output, 'state_id') else [str(x) for x in self.output], self.rate_label, self.modelable_entity_id)
 
+
 class ProportionTransition(Transition):
     def __init__(self, output, modelable_entity_id=None, proportion=None):
         Transition.__init__(self, output, self.probability)
