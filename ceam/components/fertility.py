@@ -34,6 +34,7 @@ class Fertility:
         self.transitions.table['pregnant'].append(Transition.RESIDUAL)
 
         self.conception_rate = builder.rate('fertility.conception_rate')
+        self.randomness = builder.randomness('initial_fertility')
 
         return [self.transitions]
 
@@ -55,7 +56,7 @@ class Fertility:
     def make_fertility_column(self, event):
         fertility = pd.Series(0.0, name='fertility', index=event.index)
         women = event.population.sex == 'Female'
-        fertility[women] = np.random.random(size=women.sum())
+        fertility[women] = self.randomness.get_draw(event.index[women])
         event.population_view.update(fertility)
 
     @listens_for('initialize_simulants')

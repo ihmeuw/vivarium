@@ -3,9 +3,8 @@ import os.path
 import pandas as pd
 import numpy as np
 
-from ceam.gbd_data.gbd_ms_functions import generate_ceam_population
-from ceam.gbd_data.gbd_ms_functions import get_cause_deleted_mortality_rate
-from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
+from ceam.gbd_data import generate_ceam_population
+from ceam.gbd_data import get_cause_deleted_mortality_rate
 
 from ceam.framework.event import listens_for
 from ceam.framework.values import produces_value, modifies_value
@@ -16,13 +15,12 @@ from ceam import config
 @listens_for('initialize_simulants', priority=0)
 @uses_columns(['age', 'fractional_age', 'sex', 'alive'])
 def generate_base_population(event):
-    location_id = config.getint('simulation_parameters', 'location_id')
     year_start = event.time.year
     population_size = len(event.index)
 
     initial_age = event.user_data.get('initial_age', None)
 
-    population = load_data_from_cache(generate_ceam_population, col_name=None, location_id=location_id, year_start=year_start, number_of_simulants=population_size, initial_age=initial_age)
+    population = generate_ceam_population(year_start=year_start, number_of_simulants=population_size, initial_age=initial_age)
     population.index = event.index
     population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'}).astype('category')
     population['alive'] = True
@@ -71,17 +69,7 @@ class Mortality:
         self.mortality_rate_lookup = self._mortality_rate_builder()
 
     def load_all_cause_mortality(self):
-        meids = self.mortality_meids()
-        location_id = config.getint('simulation_parameters', 'location_id')
-        year_start = config.getint('simulation_parameters', 'year_start')
-        year_end = config.getint('simulation_parameters', 'year_end')
-        return load_data_from_cache(get_cause_deleted_mortality_rate, \
-                'cause_deleted_mortality_rate', \
-                location_id,
-                year_start,
-                year_end,
-                meids,
-                src_column='cause_deleted_mortality_rate_{draw}')
+        return get_cause_deleted_mortality_rate(self.mortality_meids())
 
     @listens_for('initialize_simulants')
     @uses_columns(['death_day'])
