@@ -22,8 +22,6 @@ def generate_base_population(event):
 
     population = generate_ceam_population(year_start=year_start, number_of_simulants=population_size, initial_age=initial_age)
     population.index = event.index
-    population['sex'] = population['sex_id'].map({1:'Male', 2:'Female'}).astype('category')
-    population['alive'] = True
     population['fractional_age'] = population.age.astype(float)
 
     event.population_view.update(population)
