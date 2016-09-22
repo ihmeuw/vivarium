@@ -12,14 +12,15 @@
 By default CEAM assumes that your filesystem is like the one on the cluster. If that's not the case then you'll need to tell the system where to find the datafiles. Do this by creating a file called `ceam.cfg` in your home directory. It's contents should look like this:
 
     [general]
-    reference_data_directory=PATH_TO_THE_J_DRIVE/Project/Cost_Effectiveness/dev/data_processed
-    population_data_directory=PATH_TO_THE_J_DRIVE/Project/Cost_Effectiveness/dev/data_processed/population_columns
+    j_drive=PATH_TO_THE_J_DRIVE
+    [input_data]
+    intermediary_data_cache_path=PATH_TO_CACHE_DIRECTORY
 
 Protip: You can override any configuration using this file. Take a look at ceam/config.cfg to get an idea what other configuration variables there are.
 
 ## Testing
-All tests are in the ceam_tests directory. Test files should correspond with the files they test. So, `ceam/engine.py` will have `ceam_tests/test_engine.py`. Run the tests by invoking `py.test`. Some of the data backed tests are slow, if that's irritating you can exclude them with `py.test -m "not slow"`.
-To run just tests in a particular file:  `py.test tests/test_modules/test_module_registry.py`  (run from same directory).
+All tests are in the ceam_tests directory. Test files should correspond with the files they test. So, `ceam/framework/engine.py` will have `ceam_tests/framework/test_engine.py`. Run the tests by invoking `py.test`. Some of the data backed tests are slow, if that's irritating you can exclude them with `py.test -m "not slow"`.
+To run just tests in a particular file:  `py.test tests/framework/test_values.py`  (run from same directory).
 
 To measure test coverage, install pytest-cov with `pip install pytest-cov`, and then test with
 ```
@@ -52,7 +53,7 @@ Our basic development process will use a `master` branch for major releases (cor
 7. Once all your reviewers agree that things are good, use the pull request interface to merge your feature branch back into `develop`
 8. :partyhat:
 
-## Run it on the cluster
+## Run it on the cluster (CURRENTLY IN FLUX AND BROKEN)
 To run a test on the cluster use 'scripts/cluster_runner.py' This will launch and optionally monitor any number of simulation runs distributed across the cluster. Example usage:
     ```
     cluster_runner.py --runs 300 --runs_per_slot 10 --results_dir ~/ --watch_progress

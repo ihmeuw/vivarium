@@ -1,0 +1,9 @@
+{
+    "components": [
+         "ceam.components.base_population.generate_base_population",
+         "ceam.components.base_population.age_simulants",
+         "ceam.components.base_population.Mortality",
+         "ceam.components.hello_world.SimpleIntervention",
+         "ceam.components.hello_world.SimpleMetrics"
+    ]
+}
