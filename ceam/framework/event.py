@@ -44,7 +44,7 @@ class _EventChannel:
 
     def emit(self, *args, **kwargs):
         for priority_bucket in self.listeners:
-            for listener in priority_bucket:
+            for listener in sorted(priority_bucket, key=lambda x: x.__name__):
                 listener(*args, **kwargs)
 
 
@@ -93,7 +93,7 @@ class EventManager:
             emitters = [(v, component) for v in emits.finder(component)]
             emitters += [(v, getattr(component, att)) for att in sorted(dir(component)) for v in emits.finder(getattr(component, att))]
 
-            # Pre-create the EventChannels for know emitters
+            # Pre-create the EventChannels for known emitters
             for (args, kwargs), emitter in emitters:
                 self.get_emitter(*args, **kwargs)
 
