@@ -54,16 +54,9 @@ def heart_disease_factory():
 
     heart_attack.transition_set.allow_null_transition=False
 
-    hf_prop_df = normalize_for_simulation(load_data_from_cache(get_heart_failure_incidence_draws(location_id, year_start, year_end, me_id)))
+    hf_prop_df = normalize_for_simulation(load_data_from_cache(get_heart_failure_incidence_draws(location_id, year_start, year_end, cause_of_heart_failure_me_id)))
     angina_prop_df = normalize_for_simulation(load_data_from_cache(get_angina_proportions(start_year, end_year)))
-    asympt_prop_df = normalize_for_simulation(pd.merge(hf_prop_df, angina_prop_df, on=['age']))
-    for i in range(0, 1000):
-        asympt_prop_df['asympt_prop_{}'.format(i)] = 1 - asympt_prop_df['draw_{}'.format(i)] - asympt_prop_df['angina_prop']
-
-    keepcol = ['year_id', 'sex_id', 'age']
-    keepcol.extend(('asympt_prop_{i}'.format(i=i) for i in range(0, 1000)))
-
-    asympt_prop_df = asympt_prop_df[keepcol]
+    asympt_prop_df = get_post_mi_asympt_ihd_proportion(hf_prop_df, angina_prop_df)
 
     # post-mi transitions
     # TODO: Figure out if we can pass in me_id here to get incidence for the correct cause of heart failure
