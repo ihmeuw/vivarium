@@ -63,7 +63,7 @@ def heart_disease_factory():
     # TODO: Figure out how to make asymptomatic ihd be equal to whatever is left after people get heart failure and angina
     heart_attack.transition_set.append(ProportionTransition(heart_failure_buckets, proportion=hf_prop_df))
     heart_attack.transition_set.append(ProportionTransition(angina_buckets, proportion=angina_prop_df))
-    heart_attack.transition_set.append(ProportionTransition(asymptomatic_ihd, proportion=asympt_prop_df)
+    heart_attack.transition_set.append(ProportionTransition(asymptomatic_ihd, proportion=asympt_prop_df))
 
     mild_heart_failure.transition_set.append(heart_attack_transition)
     moderate_heart_failure.transition_set.append(heart_attack_transition)
