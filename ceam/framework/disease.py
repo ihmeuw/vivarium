@@ -144,7 +144,7 @@ class ProportionTransition(Transition):
 
         if modelable_entity_id and proportion:
             raise ValueError("Must supply modelable_entity_id or proportion (proportion can be an int or df) but not both")
-        elif not (modelable_entity_id or proportion):
+        elif not (modelable_entity_id or proportion).any():
             raise ValueError("Must supply either modelable_entity_id or proportion (proportion can be int or df)")
 
         self.modelable_entity_id = modelable_entity_id
@@ -176,7 +176,6 @@ class DiseaseModel(Machine):
     def __init__(self, condition):
         Machine.__init__(self, condition)
 
-    def module_id(self):
         return str((self.__class__, self.state_column))
 
     @property
