@@ -5,7 +5,8 @@ from datetime import timedelta
 from ceam import config
 from ceam.framework.state_machine import Transition, State, TransitionSet
 from ceam.framework.disease import DiseaseModel, DiseaseState, ExcessMortalityState, IncidenceRateTransition, ProportionTransition
-# from ceam.gbd_data.gbd_ms_functions import get_angina_proportions, get_heart_failure_incidence_draws
+from ceam.gbd_data.gbd_ms_functions import get_angina_proportions, get_heart_failure_incidence_draws, get_post_mi_asympt_ihd_proportion, load_data_from_cache
+from ceam.gbd_data.gbd_ms_auxiliary_functions import normalize_for_simulation
 
 
 def heart_disease_factory():
@@ -13,6 +14,13 @@ def heart_disease_factory():
 
     healthy = State('healthy', key='ihd')
 
+    location_id = config.getint('simulation_parameters', 'location_id') 
+    
+    year_start = config.getint('simulation_parameters', 'year_start')
+
+    year_end = config.getint('simulation_parameters', 'year_end')
+
+    # TODO: Need to find a good way to look up cause of heart failure me_ids
     cause_of_heart_failure_me_id = 2414
 
     # Calculate an adjusted disability weight for the acute heart attack phase that
@@ -54,9 +62,9 @@ def heart_disease_factory():
 
     heart_attack.transition_set.allow_null_transition=False
 
-    hf_prop_df = normalize_for_simulation(load_data_from_cache(get_heart_failure_incidence_draws(location_id, year_start, year_end, cause_of_heart_failure_me_id)))
-    angina_prop_df = normalize_for_simulation(load_data_from_cache(get_angina_proportions(start_year, end_year)))
-    asympt_prop_df = get_post_mi_asympt_ihd_proportion(hf_prop_df, angina_prop_df)
+    hf_prop_df = normalize_for_simulation(load_data_from_cache(get_heart_failure_incidence_draws(location_id, year_start, year_end, cause_of_heart_failure_me_id), col_name=None))
+    angina_prop_df = normalize_for_simulation(load_data_from_cache(get_angina_proportions(start_year, end_year)), col_name=None)
+    asympt_prop_df = load_data_from_cache(get_post_mi_asympt_ihd_proportion(hf_prop_df, angina_prop_df), col_name=None)
 
     # post-mi transitions
     # TODO: Figure out if we can pass in me_id here to get incidence for the correct cause of heart failure
