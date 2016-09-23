@@ -176,6 +176,7 @@ class DiseaseModel(Machine):
     def __init__(self, condition):
         Machine.__init__(self, condition)
 
+    def module_id(self):
         return str((self.__class__, self.state_column))
 
     @property
