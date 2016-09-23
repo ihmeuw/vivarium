@@ -14,6 +14,7 @@ from .population import uses_columns
 from .values import modifies_value, produces_value
 from .util import rate_to_probability
 from .state_machine import Machine, State, Transition, TransitionSet
+import numbers
 
 from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_states, get_proportion
 
@@ -144,8 +145,10 @@ class ProportionTransition(Transition):
 
         if modelable_entity_id and proportion:
             raise ValueError("Must supply modelable_entity_id or proportion (proportion can be an int or df) but not both")
-        elif not (modelable_entity_id or proportion).any():
-            raise ValueError("Must supply either modelable_entity_id or proportion (proportion can be int or df)")
+      
+        # @alecwd: had to change line below since it was erroring out when proportion is a dataframe. might be a cleaner way to do this that I don't know of
+        if modelable_entity_id is None and proportion is None:
+           raise ValueError("Must supply either modelable_entity_id or proportion (proportion can be int or df)")
 
         self.modelable_entity_id = modelable_entity_id
         self.proportion = proportion
@@ -153,11 +156,11 @@ class ProportionTransition(Transition):
     def setup(self, builder):
         if self.modelable_entity_id:
             self.proportion = builder.lookup(get_proportion(self.modelable_entity_id))
-        elif isinstance(self.proportion, number.Number):
+        elif not isinstance(self.proportion, numbers.Number):
             self.proportion = builder.lookup(self.proportion)
 
     def probability(self, index):
-        if self.modelable_entity_id or isinstance(self.proportion, number.Number):
+        if self.modelable_entity_id or isinstance(self.proportion, numbers.Number):
             return self.proportion(index)
         else:
             return pd.Series(self.proportion, index=index)
