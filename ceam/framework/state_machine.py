@@ -22,9 +22,9 @@ def _next_state(index, transition_set, population_view):
                 raise ValueError('Invalid transition output: {}'.format(output))
 
 class State:
-    def __init__(self, state_id):
+    def __init__(self, state_id, key='state'):
         self.state_id = state_id
-        self.transition_set = TransitionSet()
+        self.transition_set = TransitionSet(key='.'.join([str(key), str(state_id)]))
 
     def setup(self, builder):
         return [self.transition_set]
@@ -47,12 +47,13 @@ class State:
 
 
 class TransitionSet(list):
-    def __init__(self, allow_null_transition=True, *args, **kwargs):
+    def __init__(self, allow_null_transition=True, key='state_machine', *args, **kwargs):
         super(TransitionSet, self).__init__(*args, **kwargs)
         self.allow_null_transition = allow_null_transition
+        self.key = str(key)
 
     def setup(self, builder):
-        self.random = builder.randomness('state_machine') #TODO: this randomness_stream identifier _must_ be more specific
+        self.random = builder.randomness(self.key)
         return list(self)
 
     def groupby_new_state(self, index):

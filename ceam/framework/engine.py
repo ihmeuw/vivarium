@@ -9,6 +9,7 @@ from time import time
 import re
 from datetime import datetime, timedelta
 from pprint import pformat
+import gc
 
 import numpy as np
 import pandas as pd
@@ -101,7 +102,7 @@ def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, 
 @emits('simulation_end')
 def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
     start = config.getint('simulation_parameters', 'year_start')
-    start = datetime(start, 1, 1)
+    start = datetime(start, 6, 1)
     stop = config.getint('simulation_parameters', 'year_end')
     stop = datetime(stop, 12, 30)
     time_step = config.getfloat('simulation_parameters', 'time_step')
@@ -113,6 +114,7 @@ def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
     simulant_creator(population_size)
 
     while simulation.current_time < stop:
+        gc.collect() # TODO: Actually figure out where the memory leak is.
         _step(simulation, time_step)
 
     end_emitter(Event(simulation.current_time, simulation.population.population.index))
@@ -180,17 +182,7 @@ def run_configuration(component_config, results_path=None, sub_configuration_nam
             pass
         dump_results(pd.DataFrame([metrics]), results_path)
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['run', 'list_events'])
-    parser.add_argument('components', nargs='?', default=None, type=str)
-    parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--config', '-c', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
-    parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
-    parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
-    parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
-    args = parser.parse_args()
-
+def run(args):
     if args.command == 'run':
         configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
         run_comparison(args.components, results_path=args.results_path)
@@ -202,6 +194,29 @@ def main():
             components = None
         simulation = setup_simulation(components)
         print(simulation.events.list_events())
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('command', choices=['run', 'list_events'])
+    parser.add_argument('components', nargs='?', default=None, type=str)
+    parser.add_argument('--verbose', '-v', action='store_true')
+    parser.add_argument('--config', '-c', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
+    parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
+    parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
+    parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
+    parser.add_argument('--pdb', action='store_true', help='Run in the debugger')
+    args = parser.parse_args()
+
+    try:
+        run(args)
+    except:
+        if args.pdb:
+            import pdb
+            import traceback
+            traceback.print_exc()
+            pdb.post_mortem()
+        else:
+            raise
 
 if __name__ == '__main__':
     main()

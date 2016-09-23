@@ -23,12 +23,17 @@ class SampleHistory:
         self.sample_frames = {}
         self.sample_index = []
 
+    def setup(self, builder):
+        self.randomness = builder.randomness('sample_history')
+
 
     @listens_for('initialize_simulants')
     def load_population_columns(self, event):
-        if self.sample_size is None:
+        if self.sample_size is None or self.sample_size > len(event.index):
             self.sample_size = len(event.index)
-        self.sample_index = np.random.choice(event.index, size=self.sample_size, replace=False)
+        draw = self.randomness.get_draw(event.index)
+        priority_index = [i for d,i in sorted(zip(draw,event.index), key=lambda x:x[0])]
+        self.sample_index = priority_index[:self.sample_size]
 
     @listens_for('time_step__cleanup')
     @uses_columns(None)

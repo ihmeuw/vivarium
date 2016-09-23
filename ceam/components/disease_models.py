@@ -10,7 +10,7 @@ from ceam.framework.disease import DiseaseModel, DiseaseState, ExcessMortalitySt
 def heart_disease_factory():
     module = DiseaseModel('ihd')
 
-    healthy = State('healthy')
+    healthy = State('healthy', key='ihd')
 
     # Calculate an adjusted disability weight for the acute heart attack phase that
     # accounts for the fact that our timestep is longer than the phase length
@@ -34,14 +34,14 @@ def heart_disease_factory():
     heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', modelable_entity_id=1814)
     healthy.transition_set.append(heart_attack_transition)
 
-    heart_failure_buckets = TransitionSet(allow_null_transition=False)
+    heart_failure_buckets = TransitionSet(allow_null_transition=False, key="heart_failure_split")
     heart_failure_buckets.extend([
         ProportionTransition(mild_heart_failure, proportion=0.182074),
         ProportionTransition(moderate_heart_failure, proportion=0.149771),
         ProportionTransition(severe_heart_failure, proportion=0.402838),
         ])
 
-    angina_buckets = TransitionSet(allow_null_transition=False)
+    angina_buckets = TransitionSet(allow_null_transition=False, key="angina_split")
     angina_buckets.extend([
         ProportionTransition(asymptomatic_angina, proportion=0.304553),
         ProportionTransition(mild_angina, proportion=0.239594),
@@ -70,7 +70,7 @@ def heart_disease_factory():
 def stroke_factory():
     module = DiseaseModel('hemorrhagic_stroke')
 
-    healthy = State('healthy')
+    healthy = State('healthy', key='hemorrhagic_stroke')
     # TODO: disability weight for stroke
     hemorrhagic_stroke = ExcessMortalityState('hemorrhagic_stroke', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=9311)
     ischemic_stroke = ExcessMortalityState('ischemic_stroke', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=9310)

@@ -13,7 +13,8 @@ from ceam.framework.event import listens_for
 from ceam.framework.population import uses_columns
 from ceam.framework.values import modifies_value
 
-from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, normalize_for_simulation, get_relative_risks, get_pafs, get_sbp_mean_sd
+from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, normalize_for_simulation, get_sbp_mean_sd
+from ceam.gbd_data import get_relative_risks, get_pafs
 
 
 class BloodPressure:
@@ -36,13 +37,14 @@ class BloodPressure:
         builder.modifies_value(lambda index: self.ihd_paf(index), 'paf.heart_attack')
         builder.modifies_value(lambda index: self.hemorrhagic_stroke_paf(index), 'paf.hemorrhagic_stroke')
         builder.modifies_value(lambda index: self.ischemic_stroke_paf(index), 'paf.ischemic_stroke')
+        self.randomness = builder.randomness('blood_pressure')
 
     @listens_for('initialize_simulants')
     @uses_columns(['systolic_blood_pressure_percentile', 'systolic_blood_pressure'])
     def load_population_columns(self, event):
         population_size = len(event.index)
         event.population_view.update(pd.DataFrame({
-            'systolic_blood_pressure_percentile': np.random.uniform(low=0.01, high=0.99, size=population_size),
+            'systolic_blood_pressure_percentile': self.randomness.get_draw(event.index)*0.98+0.01,
             'systolic_blood_pressure': np.full(population_size, 112),
             }))
 
@@ -64,29 +66,14 @@ class BloodPressure:
         return distribution.append(pd.DataFrame(rows, columns=['year', 'age', 'log_mean', 'log_sd', 'sex']))
 
     def load_relative_risks(self, builder):
-        location_id = config.getint('simulation_parameters', 'location_id')
-        year_start = config.getint('simulation_parameters', 'year_start')
-        year_end = config.getint('simulation_parameters', 'year_end')
-        ihd_rr =  load_data_from_cache(get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=493)
-        hem_stroke_rr =  load_data_from_cache(get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=496)
-        isc_stroke_rr =  load_data_from_cache(get_relative_risks, col_name='rr', src_column='rr_{draw}', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=495)
-
-        self.ihd_rr = builder.lookup(ihd_rr)
-        self.hemorrhagic_stroke_rr = builder.lookup(hem_stroke_rr)
-        self.ischemic_stroke_rr = builder.lookup(isc_stroke_rr)
+        self.ihd_rr = builder.lookup(get_relative_risks(risk_id=107, cause_id=493))
+        self.hemorrhagic_stroke_rr = builder.lookup(get_relative_risks(risk_id=107, cause_id=496))
+        self.ischemic_stroke_rr = builder.lookup(get_relative_risks(risk_id=107, cause_id=495))
 
     def load_pafs(self, builder):
-        location_id = config.getint('simulation_parameters', 'location_id')
-        year_start = config.getint('simulation_parameters', 'year_start')
-        year_end = config.getint('simulation_parameters', 'year_end')
-        ihd_paf = load_data_from_cache(get_pafs, col_name='heart_attack_PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=493)
-        hem_stroke_paf = load_data_from_cache(get_pafs, col_name='hemorrhagic_stroke_PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=496)
-        isc_stroke_paf = load_data_from_cache(get_pafs, col_name='ischemic_stroke_PAF', location_id=location_id, year_start=year_start, year_end=year_end, risk_id=107, cause_id=495)
-
-
-        self.ihd_paf = builder.lookup(ihd_paf)
-        self.hemorrhagic_stroke_paf = builder.lookup(hem_stroke_paf)
-        self.ischemic_stroke_paf = builder.lookup(isc_stroke_paf)
+        self.ihd_paf = builder.lookup(get_pafs(risk_id=107, cause_id=493))
+        self.hemorrhagic_stroke_paf = builder.lookup(get_pafs(risk_id=107, cause_id=496))
+        self.ischemic_stroke_paf = builder.lookup(get_pafs(risk_id=107, cause_id=495))
 
     def population_attributable_fraction(self, population, paf_lookup):
         paf = self.lookup_columns(population, [cause+'_PAF'])[cause+'_PAF'].values

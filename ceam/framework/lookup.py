@@ -4,8 +4,13 @@ from collections import defaultdict
 
 import pandas as pd
 
+from ceam import CEAMError
+
 from .event import listens_for
 from .population import uses_columns
+
+class LookupError(CEAMError):
+    pass
 
 class TableView:
     """A callable that looks up columns in the merged lookup table for simulant in an index
@@ -98,8 +103,14 @@ class MergedTableManager:
                     merge_index = list(set(index) - {'year'})
                 else:
                     merge_index = list(index)
-                current_table = base_table.merge(event.population[merge_index], on=merge_index)
-                current_table['simulant_id'] = event.population.index
+                population = event.population
+                population['simulant_id'] = population.index
+                current_table = base_table.merge(population[merge_index + ['simulant_id']], on=merge_index)
+
+                if len(current_table) != len(event.index):
+                    raise LookupError("Error aligning reference tables for keys {}. This likely means that the keys in the reference table are not exhaustive".format(merge_index))
+
+
                 current_table = current_table.set_index('simulant_id').sort_index()
                 self._current_table[index] = current_table
             self.last_year = event.time.year
