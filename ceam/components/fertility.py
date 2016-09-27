@@ -19,14 +19,23 @@ class Fertility:
         time_step = config.getfloat('simulation_parameters', 'time_step')
         time_step = timedelta(days=time_step)
 
-        self.transitions = TransitionSet(builder.randomness('fertility'))
-        conception = Transition(self.conception_probability,
-                                [record_event_time('last_conception_time', builder.clock()), new_state_side_effect('pregnancy', 'pregnant')]
-                                )
-        birth      = Transition(1,
-                                [record_event_time('last_birth_time', builder.clock()), new_state_side_effect('pregnancy', 'not_pregnant'), self.add_child],
-                                [active_after_delay(timedelta(days=9*30.5), 'last_conception_time', builder.clock())]
-                                )
+        self.transitions = TransitionSet('fertility')
+        conception = Transition(probability=self.conception_probability,
+                                side_effect_functions=[
+                                    record_event_time('last_conception_time', builder.clock()),
+                                    new_state_side_effect('pregnancy', 'pregnant')
+                                ]
+                     )
+        birth      = Transition(probability=1,
+                                side_effect_functions=[
+                                    record_event_time('last_birth_time', builder.clock()),
+                                    new_state_side_effect('pregnancy', 'not_pregnant'),
+                                    self.add_child
+                                ],
+                                activation_functions=[
+                                    active_after_delay(timedelta(days=9*30.5), 'last_conception_time', builder.clock())
+                                ]
+                     )
 
         self.transitions.table['not_pregnant'].append(conception)
         self.transitions.table['not_pregnant'].append(Transition.RESIDUAL)
