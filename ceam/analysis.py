@@ -161,7 +161,7 @@ def load_results(paths):
         if 'cfg' in path:
             continue
         result = pd.read_csv(path)
-        result['iteration'] = int(os.path.basename(path).split('_')[0])
+        result['iteration'] = int(os.path.basename(path).split('_')[1])
         results.append(result)
     return results
 
