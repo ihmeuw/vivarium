@@ -1,4 +1,5 @@
 .cache
+.tox
 *.pyc
 *.swp
 .coverage
