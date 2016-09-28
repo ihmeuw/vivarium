@@ -99,7 +99,7 @@ class OpportunisticScreening:
 
         for medication in MEDICATIONS:
             columns.append(medication['name']+'_supplied_until')
-        self.population_view = builder.population_view(columns)
+        self.population_view = builder.population_view(columns, query='alive')
 
     @listens_for('initialize_simulants')
     def load_population_columns(self, event):

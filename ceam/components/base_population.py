@@ -74,7 +74,7 @@ class Mortality:
     def death_day_column(self, event):
         event.population_view.update(pd.Series(pd.NaT, name='death_day', index=event.index))
 
-    @listens_for('time_step')
+    @listens_for('time_step', priority=0)
     @uses_columns(['alive', 'death_day'], 'alive')
     def mortality_handler(self, event):
         rate = self.mortality_rate(event.index)
