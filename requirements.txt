@@ -3,3 +3,4 @@ pandas
 mock
 scipy
 joblib
+-e git+ssh://git@stash.ihme.washington.edu:7999/cc/db_tools.git#egg=db_tools
