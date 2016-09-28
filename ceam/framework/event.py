@@ -78,6 +78,9 @@ class EventManager:
 
         return self.__event_types[name].emit
 
+    def register_listener(self, name, listener, priority=5):
+        self.__event_types[name].listeners[priority].append(listener)
+
     def _emitter_injector(self, func, args, kwargs, label):
         return list(args) + [self.__event_types[label].emit], kwargs
 
@@ -88,7 +91,7 @@ class EventManager:
             listeners += [(v, getattr(component, att), i) for att in sorted(dir(component)) for i,vs in enumerate(listens_for.finder(getattr(component, att))) for v in vs]
 
             for event, listener, priority in listeners:
-                self.__event_types[event].listeners[priority].append(listener)
+                self.register_listener(event, listener, priority)
 
             emitters = [(v, component) for v in emits.finder(component)]
             emitters += [(v, getattr(component, att)) for att in sorted(dir(component)) for v in emits.finder(getattr(component, att))]

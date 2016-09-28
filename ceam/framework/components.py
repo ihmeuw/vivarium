@@ -5,16 +5,19 @@ def read_component_configuration(path):
     if path.endswith('.json'):
         with open(path) as f:
             config = json.load(f)
-        base_components = config['components']
-        if 'comparisons' in config:
-            comparisons = {c['name']:c for c in config['comparisons']}
-            for comparison in comparisons.values():
-                comparison['components'] = base_components + comparison['components']
-        else:
-            comparisons = {'base': {'name': 'base', 'components': base_components}}
-        return comparisons
+            return apply_defaults(config)
     else:
         raise ValueError("Unknown components configuration type: {}".format(path))
+
+def apply_defaults(config):
+    base_components = config['components']
+    if 'comparisons' in config:
+        comparisons = {c['name']:c for c in config['comparisons']}
+        for comparison in comparisons.values():
+            comparison['components'] = base_components + comparison['components']
+    else:
+        comparisons = {'base': {'name': 'base', 'components': base_components}}
+    return comparisons
 
 def load(component_list):
     components = []
