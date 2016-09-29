@@ -157,6 +157,7 @@ def run_comparison(component_config, results_path=None):
         simulation = setup_simulation(configuration['components'])
         metrics = run_simulation(simulation)
         metrics['comparison'] = configuration['name']
+        metrics['draw'] =  config.getint('run_configuration', 'draw_number')
         _log.debug(pformat(metrics))
         all_metrics.append(metrics)
     if results_path:
@@ -165,7 +166,7 @@ def run_comparison(component_config, results_path=None):
         except FileExistsError:
             # Directory already exists, which is fine
             pass
-        dump_results(pd.DataFrame([all_metrics]), results_path)
+        dump_results(pd.DataFrame(all_metrics), results_path)
 
 def run_configuration(component_config, results_path=None, sub_configuration_name='base'):
     component_configurations = read_component_configuration(component_config)

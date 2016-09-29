@@ -96,5 +96,7 @@ class TransitionSet:
                 func(group_index)
 
     def setup(self, builder):
+        if not hasattr(self.randomness, 'get_draw'):
+            self.randomness = builder.randomness(self.randomness)
         return [t for ts in self.table.values() for t in ts]
 
