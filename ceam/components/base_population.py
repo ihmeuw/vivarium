@@ -21,6 +21,7 @@ def generate_base_population(event):
     initial_age = event.user_data.get('initial_age', None)
 
     population = generate_ceam_population(year_start=year_start, number_of_simulants=population_size, initial_age=initial_age)
+    population['age'] = population.age.astype(int)
     population.index = event.index
     population['fractional_age'] = population.age.astype(float)
 
