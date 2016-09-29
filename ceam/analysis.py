@@ -6,6 +6,8 @@ import os.path
 import pandas as pd
 import numpy as np
 
+import filelock
+
 
 def digits(x):
     if str(x) == 'nan':
@@ -153,7 +155,13 @@ Mean runtime: {mean_duration} seconds
 
 
 def dump_results(results, path):
-    results.to_csv(path)
+    results = pd.DataFrame(results)
+    with filelock.FileLock(path+'.lock'):
+        hdf = pd.HDFStore(path)
+        if os.path.exists(path):
+            hdf.append('results', results)
+        else:
+            hdf.put('results', results)
 
 def load_results(paths):
     results = []
