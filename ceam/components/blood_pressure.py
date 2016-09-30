@@ -58,11 +58,7 @@ class BloodPressure:
                             location_id=location_id, year_start=year_start, year_end=year_end)
 
         rows = []
-        # NOTE: We treat simulants under 25 as having no risk associated with SBP so we aren't even modeling it for them
-        for age in range(0, 25):
-            for year in range(year_start, year_end+1):
-                for sex in ['Male', 'Female']:
-                    rows.append([year, age, np.log(112), 0.001, sex])
+        
         return distribution.append(pd.DataFrame(rows, columns=['year', 'age', 'log_mean', 'log_sd', 'sex']))
 
     def load_relative_risks(self, builder):
