@@ -102,7 +102,7 @@ def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, 
 @emits('simulation_end')
 def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
     start = config.getint('simulation_parameters', 'year_start')
-    start = datetime(start, 1, 1)
+    start = datetime(start, 6, 1)
     stop = config.getint('simulation_parameters', 'year_end')
     stop = datetime(stop, 12, 30)
     time_step = config.getfloat('simulation_parameters', 'time_step')
@@ -157,6 +157,7 @@ def run_comparison(component_config, results_path=None):
         simulation = setup_simulation(configuration['components'])
         metrics = run_simulation(simulation)
         metrics['comparison'] = configuration['name']
+        metrics['draw'] =  config.getint('run_configuration', 'draw_number')
         _log.debug(pformat(metrics))
         all_metrics.append(metrics)
     if results_path:
@@ -165,7 +166,7 @@ def run_comparison(component_config, results_path=None):
         except FileExistsError:
             # Directory already exists, which is fine
             pass
-        dump_results(pd.DataFrame([all_metrics]), results_path)
+        dump_results(pd.DataFrame(all_metrics), results_path)
 
 def run_configuration(component_config, results_path=None, sub_configuration_name='base'):
     component_configurations = read_component_configuration(component_config)

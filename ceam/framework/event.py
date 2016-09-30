@@ -44,7 +44,7 @@ class _EventChannel:
 
     def emit(self, *args, **kwargs):
         for priority_bucket in self.listeners:
-            for listener in priority_bucket:
+            for listener in sorted(priority_bucket, key=lambda x: x.__name__):
                 listener(*args, **kwargs)
 
 
@@ -78,22 +78,25 @@ class EventManager:
 
         return self.__event_types[name].emit
 
+    def register_listener(self, name, listener, priority=5):
+        self.__event_types[name].listeners[priority].append(listener)
+
     def _emitter_injector(self, func, args, kwargs, label):
         return list(args) + [self.__event_types[label].emit], kwargs
 
     def setup_components(self, components):
         emits.set_injector(self._emitter_injector)
         for component in components:
-            listeners = [(v, component, i) for priority in listens_for.finder(component) for i,v in enumerate(priority)]
+            listeners = [(v, component, i) for i,priority in enumerate(listens_for.finder(component)) for v in priority]
             listeners += [(v, getattr(component, att), i) for att in sorted(dir(component)) for i,vs in enumerate(listens_for.finder(getattr(component, att))) for v in vs]
 
             for event, listener, priority in listeners:
-                self.__event_types[event].listeners[priority].append(listener)
+                self.register_listener(event, listener, priority)
 
             emitters = [(v, component) for v in emits.finder(component)]
             emitters += [(v, getattr(component, att)) for att in sorted(dir(component)) for v in emits.finder(getattr(component, att))]
 
-            # Pre-create the EventChannels for know emitters
+            # Pre-create the EventChannels for known emitters
             for (args, kwargs), emitter in emitters:
                 self.get_emitter(*args, **kwargs)
 

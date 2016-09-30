@@ -24,7 +24,6 @@ from ceam.components.base_population import adherence, generate_base_population
 @listens_for('initialize_simulants')
 @uses_columns(['systolic_blood_pressure', 'age', 'fractional_age'])
 def _population_setup(event):
-
     age_sbps = []
     age_sbps.append((40, 130.0)) # Normotensive, below 60
     age_sbps.append((60, 145.0)) # Normotensive, exactly 60

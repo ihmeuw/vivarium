@@ -1,4 +1,3 @@
-# em's first pass at unit testing
 # 1. set_age_year_index
 from ceam.gbd_data.gbd_ms_auxiliary_functions import set_age_year_index
 from ceam.gbd_data.gbd_ms_auxiliary_functions import interpolate_linearly_over_years_then_ages
@@ -9,23 +8,24 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import normalize_for_simulation
 from ceam.gbd_data.gbd_ms_auxiliary_functions import expand_grid
 from ceam.gbd_data.gbd_ms_auxiliary_functions import extrapolate_ages
 from ceam.gbd_data.gbd_ms_auxiliary_functions import assign_sex_id
+
 from scipy import stats
 import pandas as pd
 import numpy as np
 
 
 def test_set_age_year_index():
-    input_df = pd.DataFrame({'age' : np.arange(0, 6), 'year_id': np.arange(1800, 1806), "qty_of_interest" : np.random.randint(100, size =6)})
+    input_df = pd.DataFrame({'age' : np.arange(1, 4, .5), 'year_id': np.arange(1800, 1806), "qty_of_interest" : np.random.randint(100, size =6)})
     
-    indexer_test = set_age_year_index(input_df, 0, 10, 1800, 1805)
+    indexer_test = set_age_year_index(input_df, 'early neonatal', 10, 1800, 1805)
 
     assert indexer_test.columns.ravel() == 'qty_of_interest', 'make sure age and year were moved to the index'
 
-    assert indexer_test.index.get_level_values('year_id').tolist() == np.repeat(np.arange(1800, 1806), 11).tolist(), 'set_age_year_index needs to properly expand the indexes'
+    assert indexer_test.index.get_level_values('year_id').tolist() == np.repeat(np.arange(1800, 1806), 22).tolist(), 'set_age_year_index needs to properly expand the indexes'
     
     # assert that qty_of_interest is not null for age 0-5
     initial_ages = indexer_test[pd.notnull(indexer_test['qty_of_interest'])]
-    assert initial_ages.index.get_level_values('age').tolist() == [x for x in range(0, 6)], 'make sure set_age_year_index did not overwrite inital values'
+    assert initial_ages.index.get_level_values('age').tolist() == [x for x in np.arange(1, 4, .5)], 'make sure set_age_year_index did not overwrite inital values'
 
 
 # 2. interpolate_linearly_over_years_then_ages
@@ -37,15 +37,15 @@ def test_interpolate_linearly_over_years_then_ages():
     interp_test = get_age_from_age_group_id(interp_test)
     interp_test = interp_test.query("sex_id ==1 and measure_id ==5")
     interp_test = interp_test[interp_test.age.isin([10, 20])]
-    indexed_data = set_age_year_index(interp_test, 10, 20, 1990, 2015)
+    indexed_data = set_age_year_index(interp_test, 10, 20, 1990, 1990)
     interpolated_data = interpolate_linearly_over_years_then_ages(indexed_data, 'draw')[['draw_0']]
     interpolated_data.reset_index(level=0, inplace=True)
     interpolated_data.reset_index(level=1, inplace=True)
     value_at_fifteen = interpolated_data.query("age == 15 and year_id == 2015").draw_0.values
-    value_at_ten = interpolated_data.query("age == 10 and year_id == 2015").draw_0.values
-    value_at_twenty = interpolated_data.query("age == 20 and year_id == 2015").draw_0.values
+    value_at_twelve_and_a_half = interpolated_data.query("age == 12.5 and year_id == 2015").draw_0.values
+    value_at_seventeen_and_a_half = interpolated_data.query("age == 17.5 and year_id == 2015").draw_0.values
 
-    assert np.allclose(value_at_fifteen, (value_at_ten + value_at_twenty) *.5 ), "if interpolated correctly, these should be the same"    
+    assert np.allclose(value_at_fifteen, (value_at_twelve_and_a_half + value_at_seventeen_and_a_half) *.5 ), "if interpolated correctly, these should be the same"    
 
 # 3. create_age_column
 def test_create_age_column():
@@ -78,12 +78,10 @@ def test_normalize_for_simulation():
 def test_get_age_from_age_group_id():
     df = pd.DataFrame({'age_group_id': np.arange(2, 22)})
     df = get_age_from_age_group_id(df)
-    df.age = df.age.astype(int)
     assert df.columns.tolist() == ['age_group_id', 'age'], "get_age_from_age_group_id did not work. did not create an age column"
-    assert df.age.tolist() == [0, 0, 0, 1] + [ x for x in np.arange(5, 81, 5)], "get_age_from_age_group_id didn't return the expected values in the age column"
- 
+    assert df.age.tolist() == [(.01917808/2), ((0.01917808+0.07671233)/2), ((0.07671233+1)/2), 3] + [x for x in np.arange(7.5, 78, 5)] + [80], "get_age_from_age_group_id did not return the expect"
 
-# 6. expand_grid
+#6. expand_grid
 def test_expand_grid():
     ages = pd.Series([0, 1, 2, 3, 4, 5])
     years = pd.Series([1990, 1991, 1992])
@@ -121,4 +119,3 @@ def test_assign_sex_id():
 
 
 # End.
-

@@ -101,7 +101,13 @@ def build_table(rate, columns=['age', 'year', 'sex', 'rate']):
     for age in range(1, 104):
         for year in range(start_year, end_year+1):
             for sex in ['Male', 'Female']:
-                rows.append([age, year, sex, rate])
+                if rate is None:
+                    r = np.random.random()
+                elif callable(rate):
+                    r = rate(age, sex, year)
+                else:
+                    r = rate
+                rows.append([age, year, sex, r])
     return pd.DataFrame(rows, columns=columns)
 
 

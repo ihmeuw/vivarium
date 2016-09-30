@@ -21,6 +21,7 @@ def generate_base_population(event):
     initial_age = event.user_data.get('initial_age', None)
 
     population = generate_ceam_population(year_start=year_start, number_of_simulants=population_size, initial_age=initial_age)
+    population['age'] = population.age.astype(int)
     population.index = event.index
     population['fractional_age'] = population.age.astype(float)
 
@@ -74,7 +75,7 @@ class Mortality:
     def death_day_column(self, event):
         event.population_view.update(pd.Series(pd.NaT, name='death_day', index=event.index))
 
-    @listens_for('time_step')
+    @listens_for('time_step', priority=0)
     @uses_columns(['alive', 'death_day'], 'alive')
     def mortality_handler(self, event):
         rate = self.mortality_rate(event.index)
