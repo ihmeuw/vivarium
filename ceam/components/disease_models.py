@@ -20,16 +20,16 @@ def heart_disease_factory():
     heart_attack = ExcessMortalityState('heart_attack', disability_weight=weight, dwell_time=timedelta(days=28), modelable_entity_id=1814, prevalence_meid=1814)
 
     #
-    mild_heart_failure = ExcessMortalityState('mild_heart_failure', disability_weight=get_disability_weight(draws_modelable_entity_id=1821), modelable_entity_id=2412, prevalence_meid=1821)
-    moderate_heart_failure = ExcessMortalityState('moderate_heart_failure', disability_weight=get_disability_weight(draws_modelable_entity_id=1822), modelable_entity_id=2412, prevalence_meid=1822)
-    severe_heart_failure = ExcessMortalityState('severe_heart_failure', disability_weight=get_disability_weight(draws_modelable_entity_id=1823), modelable_entity_id=2412, prevalence_meid=1823)
+    mild_heart_failure = ExcessMortalityState('mild_heart_failure', disability_weight=get_disability_weight(dis_weight_modelable_entity_id=1821), modelable_entity_id=2412, prevalence_meid=1821)
+    moderate_heart_failure = ExcessMortalityState('moderate_heart_failure', disability_weight=get_disability_weight(dis_weight_modelable_entity_id=1822), modelable_entity_id=2412, prevalence_meid=1822)
+    severe_heart_failure = ExcessMortalityState('severe_heart_failure', disability_weight=get_disability_weight(dis_weight_modelable_entity_id=1823), modelable_entity_id=2412, prevalence_meid=1823)
 
-    asymptomatic_angina = ExcessMortalityState('asymptomatic_angina', disability_weight=get_disability_weight(draws_modelable_entity_id=1823), modelable_entity_id=1817, prevalence_meid=3102)
-    mild_angina = ExcessMortalityState('mild_angina', disability_weight=get_disability_weight(draws_modelable_entity_id=1818), modelable_entity_id=1817, prevalence_meid=1818)
-    moderate_angina = ExcessMortalityState('moderate_angina', disability_weight=get_disability_weight(draws_modelable_entity_id=1819), modelable_entity_id=1817, prevalence_meid=1819)
-    severe_angina = ExcessMortalityState('severe_angina', disability_weight=get_disability_weight(draws_modelable_entity_id=1820), modelable_entity_id=1817, prevalence_meid=1820)
+    asymptomatic_angina = ExcessMortalityState('asymptomatic_angina', disability_weight=get_disability_weight(dis_weight_modelable_entity_id=1823), modelable_entity_id=1817, prevalence_meid=3102)
+    mild_angina = ExcessMortalityState('mild_angina', disability_weight=get_disability_weight(dis_weight_modelable_entity_id=1818), modelable_entity_id=1817, prevalence_meid=1818)
+    moderate_angina = ExcessMortalityState('moderate_angina', disability_weight=get_disability_weight(dis_weight_modelable_entity_id=1819), modelable_entity_id=1817, prevalence_meid=1819)
+    severe_angina = ExcessMortalityState('severe_angina', disability_weight=get_disability_weight(dis_weight_modelable_entity_id=1820), modelable_entity_id=1817, prevalence_meid=1820)
 
-    asymptomatic_ihd = ExcessMortalityState('asymptomatic_ihd', disability_weight=get_disability_weight(draws_modelable_entity_id=3233), modelable_entity_id=3233, prevalence_meid=3233)
+    asymptomatic_ihd = ExcessMortalityState('asymptomatic_ihd', disability_weight=get_disability_weight(dis_weight_modelable_entity_id=3233), modelable_entity_id=3233, prevalence_meid=3233)
 
     heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', modelable_entity_id=1814)
     healthy.transition_set.append(heart_attack_transition)
