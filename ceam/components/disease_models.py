@@ -5,7 +5,7 @@ from datetime import timedelta
 from ceam import config
 from ceam.framework.state_machine import Transition, State, TransitionSet
 from ceam.framework.disease import DiseaseModel, DiseaseState, ExcessMortalityState, IncidenceRateTransition, ProportionTransition
-
+from ceam.gbd_data.gbd_ms_functions import get_healthstate_id_draws
 
 def heart_disease_factory():
     module = DiseaseModel('ihd')
@@ -22,7 +22,7 @@ def heart_disease_factory():
     #
     mild_heart_failure = ExcessMortalityState('mild_heart_failure', disability_weight=0.04, modelable_entity_id=2412, prevalence_meid=1821)
     moderate_heart_failure = ExcessMortalityState('moderate_heart_failure', disability_weight=0.07, modelable_entity_id=2412, prevalence_meid=1822)
-    severe_heart_failure = ExcessMortalityState('severe_heart_failure', disability_weight=0.18, modelable_entity_id=2412, prevalence_meid=1823)
+    severe_heart_failure = ExcessMortalityState('severe_heart_failure', disability_weight=get_healthstate_id_draws(draws_modelable_entity_id=1823), modelable_entity_id=2412, prevalence_meid=1823)
 
     asymptomatic_angina = ExcessMortalityState('asymptomatic_angina', disability_weight=0.0, modelable_entity_id=1817, prevalence_meid=3102)
     mild_angina = ExcessMortalityState('mild_angina', disability_weight=0.03, modelable_entity_id=1817, prevalence_meid=1818)
