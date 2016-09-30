@@ -8,7 +8,7 @@ from ceam.gbd_data.gbd_ms_auxiliary_functions import normalize_for_simulation
 from ceam.gbd_data.gbd_ms_auxiliary_functions import expand_grid
 from ceam.gbd_data.gbd_ms_auxiliary_functions import extrapolate_ages
 from ceam.gbd_data.gbd_ms_auxiliary_functions import assign_sex_id
-
+from ceam.gbd_data.gbd_ms_auxiliary_functions import get_healthstate_id
 from scipy import stats
 import pandas as pd
 import numpy as np
@@ -118,4 +118,10 @@ def test_assign_sex_id():
     assert np.allclose(grouped.proportion.tolist(), [x for x in np.arange(.25, 1.25, .25)] + [x for x in np.arange(0, 1.25, .25)][4:0:-1], .1), 'assign_sex_id needs to assign sexes so that they are correlated with age'
 
 
+# 9. get_healthstate_id
+def test_get_healthstate_id():
+    # modelable entity id 1823 = severe heart failure
+    val = get_healthstate_id(dis_weight_modelable_entity_id=1823)
+
+    assert val == 383, "modelable entity id 1823 should have a healthstate of 383 as of 9/30"
 # End.
