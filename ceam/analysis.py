@@ -2,12 +2,12 @@
 
 import argparse
 import os.path
+from datetime import timedelta
 
 import pandas as pd
 import numpy as np
 
-import filelock
-
+from flufl.lock import Lock
 
 def digits(x):
     if str(x) == 'nan':
@@ -156,12 +156,17 @@ Mean runtime: {mean_duration} seconds
 
 def dump_results(results, path):
     results = pd.DataFrame(results)
-    with filelock.FileLock(path+'.lock'):
+    lock = Lock(path+'.lock')
+    lock.lifetime = timedelta(minutes=5) # I'm not sure what the worst case write time here is
+    lock.lock()
+    try:
         hdf = pd.HDFStore(path)
         if os.path.exists(path):
             hdf.append('results', results)
         else:
             hdf.put('results', results)
+    finally:
+        lock.unlock()
 
 def load_results(paths):
     results = []
