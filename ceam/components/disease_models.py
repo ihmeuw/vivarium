@@ -5,7 +5,7 @@ from datetime import timedelta
 from ceam import config
 from ceam.framework.state_machine import Transition, State, TransitionSet
 from ceam.framework.disease import DiseaseModel, DiseaseState, ExcessMortalityState, IncidenceRateTransition, ProportionTransition
-from ceam.gbd_data.gbd_ms_functions import get_healthstate_id_draws
+from ceam.gbd_data import get_disability_weight
 
 def heart_disease_factory():
     module = DiseaseModel('ihd')
@@ -20,16 +20,16 @@ def heart_disease_factory():
     heart_attack = ExcessMortalityState('heart_attack', disability_weight=weight, dwell_time=timedelta(days=28), modelable_entity_id=1814, prevalence_meid=1814)
 
     #
-    mild_heart_failure = ExcessMortalityState('mild_heart_failure', disability_weight=0.04, modelable_entity_id=2412, prevalence_meid=1821)
-    moderate_heart_failure = ExcessMortalityState('moderate_heart_failure', disability_weight=0.07, modelable_entity_id=2412, prevalence_meid=1822)
-    severe_heart_failure = ExcessMortalityState('severe_heart_failure', disability_weight=get_healthstate_id_draws(draws_modelable_entity_id=1823), modelable_entity_id=2412, prevalence_meid=1823)
+    mild_heart_failure = ExcessMortalityState('mild_heart_failure', disability_weight=get_disability_weight(draws_modelable_entity_id=1821), modelable_entity_id=2412, prevalence_meid=1821)
+    moderate_heart_failure = ExcessMortalityState('moderate_heart_failure', disability_weight=get_disability_weight(draws_modelable_entity_id=1822), modelable_entity_id=2412, prevalence_meid=1822)
+    severe_heart_failure = ExcessMortalityState('severe_heart_failure', disability_weight=get_disability_weight(draws_modelable_entity_id=1823), modelable_entity_id=2412, prevalence_meid=1823)
 
-    asymptomatic_angina = ExcessMortalityState('asymptomatic_angina', disability_weight=0.0, modelable_entity_id=1817, prevalence_meid=3102)
-    mild_angina = ExcessMortalityState('mild_angina', disability_weight=0.03, modelable_entity_id=1817, prevalence_meid=1818)
-    moderate_angina = ExcessMortalityState('moderate_angina', disability_weight=0.08, modelable_entity_id=1817, prevalence_meid=1819)
-    severe_angina = ExcessMortalityState('severe_angina', disability_weight=0.17, modelable_entity_id=1817, prevalence_meid=1820)
+    asymptomatic_angina = ExcessMortalityState('asymptomatic_angina', disability_weight=get_disability_weight(draws_modelable_entity_id=1823), modelable_entity_id=3102, prevalence_meid=3102)
+    mild_angina = ExcessMortalityState('mild_angina', disability_weight=get_disability_weight(draws_modelable_entity_id=1818), modelable_entity_id=1817, prevalence_meid=1818)
+    moderate_angina = ExcessMortalityState('moderate_angina', disability_weight=get_disability_weight(draws_modelable_entity_id=1819), modelable_entity_id=1817, prevalence_meid=1819)
+    severe_angina = ExcessMortalityState('severe_angina', disability_weight=get_disability_weight(draws_modelable_entity_id=1820), modelable_entity_id=1817, prevalence_meid=1820)
 
-    asymptomatic_ihd = ExcessMortalityState('asymptomatic_ihd', disability_weight=0.08, modelable_entity_id=3233, prevalence_meid=3233)
+    asymptomatic_ihd = ExcessMortalityState('asymptomatic_ihd', disability_weight=get_disability_weight(draws_modelable_entity_id=3233), modelable_entity_id=3233, prevalence_meid=3233)
 
     heart_attack_transition = IncidenceRateTransition(heart_attack, 'heart_attack', modelable_entity_id=1814)
     healthy.transition_set.append(heart_attack_transition)
@@ -71,7 +71,8 @@ def stroke_factory():
     module = DiseaseModel('hemorrhagic_stroke')
 
     healthy = State('healthy', key='hemorrhagic_stroke')
-    # TODO: disability weight for stroke
+    # TODO: need to model severity splits for stroke. then we can bring in correct disability weights (dis weights
+    # correspond to healthstate ids which correspond to sequela) 
     hemorrhagic_stroke = ExcessMortalityState('hemorrhagic_stroke', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=9311)
     ischemic_stroke = ExcessMortalityState('ischemic_stroke', disability_weight=0.32, dwell_time=timedelta(days=28), modelable_entity_id=9310)
     chronic_stroke = ExcessMortalityState('chronic_stroke', disability_weight=0.32, modelable_entity_id=9312)
