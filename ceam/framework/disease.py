@@ -160,7 +160,8 @@ class ProportionTransition(Transition):
             self.proportion = builder.lookup(self.proportion)
 
     def probability(self, index):
-        if self.modelable_entity_id or isinstance(self.proportion, numbers.Number):
+        import pdb; pdb.set_trace()
+        if callable(self.proportion):
             return self.proportion(index)
         else:
             return pd.Series(self.proportion, index=index)
@@ -189,15 +190,15 @@ class DiseaseModel(Machine):
     def setup(self, builder):
         self.population_view = builder.population_view([self.condition], 'alive')
 
-        sub_components = []
+        sub_components = set()
         for state in self.states:
             state.condition = self.condition
-            sub_components.append(state)
-            sub_components.append(state.transition_set)
+            sub_components.add(state)
+            sub_components.add(state.transition_set)
             for transition in state.transition_set:
-                sub_components.append(transition)
+                sub_components.add(transition)
                 if isinstance(transition.output, TransitionSet):
-                    sub_components.append(transition.output)
+                    sub_components.add(transition.output)
         return sub_components
 
     @listens_for('time_step')

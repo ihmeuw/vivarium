@@ -72,11 +72,13 @@ class SimulationContext:
         self.values.declare_pipeline('metrics', post_processor=None, source=lambda index: {})
         builder = Builder(self)
         components = list(self.components)
+        done = set()
         i = 0
         while i < len(components):
             component = components[i]
-            if hasattr(component, 'setup'):
+            if hasattr(component, 'setup') and component not in done:
                 sub_components = component.setup(builder)
+                done.add(component)
                 if sub_components:
                     components.extend(sub_components)
             i += 1
