@@ -62,9 +62,9 @@ def heart_disease_factory():
 
     # TODO: Need to figure out best way to implemnet functions here
     # TODO: Need to figure out where transition from rates to probabilities needs to happen
-    hf_prop_df = load_data_from_cache(get_post_mi_heart_failure_proportion_draws, col_name='proportion', location_id=location_id, year_start=year_start, year_end=year_end, me_id=cause_of_heart_failure_me_id)
-    angina_prop_df = load_data_from_cache(get_angina_proportions, col_name='proportion', location_id=location_id, year_start=year_start, year_end=year_end, me_id=cause_of_heart_failure_me_id)
-    asympt_prop_df = load_data_from_cache(get_asympt_ihd_proportions, col_name='proportion', location_id=location_id, year_start=year_start, year_end=year_end, me_id=cause_of_heart_failure_me_id)
+    hf_prop_df = load_data_from_cache(get_post_mi_heart_failure_proportion_draws, col_name='proportion', src_column='draw_{draw}', location_id=location_id, year_start=year_start, year_end=year_end)
+    angina_prop_df = load_data_from_cache(get_angina_proportions, col_name='proportion', src_column='angina_prop_{draw}', year_start=year_start, year_end=year_end)
+    asympt_prop_df = load_data_from_cache(get_asympt_ihd_proportions, col_name='proportion', src_column='asympt_prop_{draw}', location_id=location_id, year_start=year_start, year_end=year_end)
 
     # post-mi transitions
     # TODO: Figure out if we can pass in me_id here to get incidence for the correct cause of heart failure
