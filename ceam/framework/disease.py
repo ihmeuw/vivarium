@@ -160,7 +160,6 @@ class ProportionTransition(Transition):
             self.proportion = builder.lookup(self.proportion)
 
     def probability(self, index):
-        import pdb; pdb.set_trace()
         if callable(self.proportion):
             return self.proportion(index)
         else:
