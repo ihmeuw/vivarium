@@ -123,7 +123,9 @@ def setup_simulation(components):
     if not components:
         components = []
     simulation = SimulationContext(load(components + [_step, event_loop]))
+
     simulation.setup()
+
     return simulation
 
 def run_simulation(simulation):
@@ -136,10 +138,6 @@ def run_simulation(simulation):
     return metrics
 
 def configure(draw_number=0, verbose=False, simulation_config=None):
-    if verbose:
-        logging.basicConfig(level=logging.DEBUG)
-        _log.debug('Enabling DEBUG logging')
-
     if simulation_config:
         if isinstance(config, dict):
             config.read_dict(config)
@@ -205,8 +203,12 @@ def main():
     parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
     parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
     parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
+    parser.add_argument('--log', type=str, default=None, help='Path to log file')
     parser.add_argument('--pdb', action='store_true', help='Run in the debugger')
     args = parser.parse_args()
+
+    log_level = logging.DEBUG if args.verbose else logging.ERROR
+    logging.basicConfig(filename=args.log,level=log_level)
 
     try:
         run(args)
@@ -217,6 +219,7 @@ def main():
             traceback.print_exc()
             pdb.post_mortem()
         else:
+            logging.exception("Uncaught exception")
             raise
 
 if __name__ == '__main__':
