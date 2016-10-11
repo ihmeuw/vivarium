@@ -18,9 +18,6 @@ def heart_disease_factory():
     year_start = config.getint('simulation_parameters', 'year_start')
     year_end = config.getint('simulation_parameters', 'year_end')
 
-    # TODO: Need to find a good way to look up cause of heart failure me_ids
-    cause_of_heart_failure_me_id = 2414
-
     # Calculate an adjusted disability weight for the acute heart attack phase that
     # accounts for the fact that our timestep is longer than the phase length
     # TODO: This doesn't account for the fact that our timestep is longer than 28 days
