@@ -84,6 +84,9 @@ class TransitionSet(list):
     def __str__(self):
         return str([str(x) for x in self])
 
+    def __hash__(self):
+        return hash(id(self))
+
 
 class Transition:
     def __init__(self, output, probability_func=lambda index: np.full(len(index), 1, dtype=float)):

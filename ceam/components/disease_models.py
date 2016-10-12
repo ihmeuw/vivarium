@@ -6,11 +6,18 @@ from ceam import config
 from ceam.framework.state_machine import Transition, State, TransitionSet
 from ceam.framework.disease import DiseaseModel, DiseaseState, ExcessMortalityState, IncidenceRateTransition, ProportionTransition
 from ceam.gbd_data import get_disability_weight
+from ceam.gbd_data.gbd_ms_functions import get_post_mi_heart_failure_proportion_draws, get_angina_proportions, get_asympt_ihd_proportions, load_data_from_cache
+from ceam.gbd_data.gbd_ms_auxiliary_functions import normalize_for_simulation
+
 
 def heart_disease_factory():
     module = DiseaseModel('ihd')
 
     healthy = State('healthy', key='ihd')
+
+    location_id = config.getint('simulation_parameters', 'location_id')
+    year_start = config.getint('simulation_parameters', 'year_start')
+    year_end = config.getint('simulation_parameters', 'year_end')
 
     # Calculate an adjusted disability weight for the acute heart attack phase that
     # accounts for the fact that our timestep is longer than the phase length
@@ -51,9 +58,19 @@ def heart_disease_factory():
     healthy.transition_set.append(IncidenceRateTransition(angina_buckets, 'non_mi_angina', modelable_entity_id=1817))
 
     heart_attack.transition_set.allow_null_transition=False
-    heart_attack.transition_set.append(ProportionTransition(heart_failure_buckets, proportion=0.01))
-    heart_attack.transition_set.append(ProportionTransition(angina_buckets, proportion=0.15))
-    heart_attack.transition_set.append(ProportionTransition(asymptomatic_ihd, proportion=0.84))
+
+    # TODO: Need to figure out best way to implemnet functions here
+    # TODO: Need to figure out where transition from rates to probabilities needs to happen
+    hf_prop_df = load_data_from_cache(get_post_mi_heart_failure_proportion_draws, col_name='proportion', src_column='draw_{draw}', location_id=location_id, year_start=year_start, year_end=year_end)
+    angina_prop_df = load_data_from_cache(get_angina_proportions, col_name='proportion', src_column='angina_prop_{draw}', year_start=year_start, year_end=year_end)
+    asympt_prop_df = load_data_from_cache(get_asympt_ihd_proportions, col_name='proportion', src_column='asympt_prop_{draw}', location_id=location_id, year_start=year_start, year_end=year_end)
+
+    # post-mi transitions
+    # TODO: Figure out if we can pass in me_id here to get incidence for the correct cause of heart failure
+    # TODO: Figure out how to make asymptomatic ihd be equal to whatever is left after people get heart failure and angina
+    heart_attack.transition_set.append(ProportionTransition(heart_failure_buckets, proportion=hf_prop_df))
+    heart_attack.transition_set.append(ProportionTransition(angina_buckets, proportion=angina_prop_df))
+    heart_attack.transition_set.append(ProportionTransition(asymptomatic_ihd, proportion=asympt_prop_df))
 
     mild_heart_failure.transition_set.append(heart_attack_transition)
     moderate_heart_failure.transition_set.append(heart_attack_transition)
@@ -66,6 +83,7 @@ def heart_disease_factory():
 
     module.states.extend([healthy, heart_attack, mild_heart_failure, moderate_heart_failure, severe_heart_failure, asymptomatic_angina, mild_angina, moderate_angina, severe_angina, asymptomatic_ihd])
     return module
+
 
 def stroke_factory():
     module = DiseaseModel('hemorrhagic_stroke')

@@ -14,6 +14,7 @@ from .population import uses_columns
 from .values import modifies_value, produces_value
 from .util import rate_to_probability
 from .state_machine import Machine, State, Transition, TransitionSet
+import numbers
 
 from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_states, get_proportion
 
@@ -137,14 +138,17 @@ class IncidenceRateTransition(Transition):
     def __str__(self):
         return 'IncidenceRateTransition("{0}", "{1}", "{2}")'.format(self.output.state_id if hasattr(self.output, 'state_id') else [str(x) for x in self.output], self.rate_label, self.modelable_entity_id)
 
+
 class ProportionTransition(Transition):
     def __init__(self, output, modelable_entity_id=None, proportion=None):
         Transition.__init__(self, output, self.probability)
 
         if modelable_entity_id and proportion:
-            raise ValueError("Must supply modelable_entity_id or proportion but not both")
-        elif not (modelable_entity_id or proportion):
-            raise ValueError("Must supply either modelable_entity_id or proportion")
+            raise ValueError("Must supply modelable_entity_id or proportion (proportion can be an int or df) but not both")
+      
+        # @alecwd: had to change line below since it was erroring out when proportion is a dataframe. might be a cleaner way to do this that I don't know of
+        if modelable_entity_id is None and proportion is None:
+           raise ValueError("Must supply either modelable_entity_id or proportion (proportion can be int or df)")
 
         self.modelable_entity_id = modelable_entity_id
         self.proportion = proportion
@@ -152,9 +156,11 @@ class ProportionTransition(Transition):
     def setup(self, builder):
         if self.modelable_entity_id:
             self.proportion = builder.lookup(get_proportion(self.modelable_entity_id))
+        elif not isinstance(self.proportion, numbers.Number):
+            self.proportion = builder.lookup(self.proportion)
 
     def probability(self, index):
-        if self.modelable_entity_id:
+        if callable(self.proportion):
             return self.proportion(index)
         else:
             return pd.Series(self.proportion, index=index)
@@ -183,15 +189,15 @@ class DiseaseModel(Machine):
     def setup(self, builder):
         self.population_view = builder.population_view([self.condition], 'alive')
 
-        sub_components = []
+        sub_components = set()
         for state in self.states:
             state.condition = self.condition
-            sub_components.append(state)
-            sub_components.append(state.transition_set)
+            sub_components.add(state)
+            sub_components.add(state.transition_set)
             for transition in state.transition_set:
-                sub_components.append(transition)
+                sub_components.add(transition)
                 if isinstance(transition.output, TransitionSet):
-                    sub_components.append(transition.output)
+                    sub_components.add(transition.output)
         return sub_components
 
     @listens_for('time_step')
