@@ -158,7 +158,7 @@ class InterpolatedDataManager:
     def setup_components(self, components):
         pass
 
-class UinterpolatedTableView(TableView):
+class UninterpolatedTableView(TableView):
     """A callable that looks up columns in the merged lookup table for simulant in an index
 
     Parameters
@@ -237,7 +237,7 @@ class MergedTableManager:
         else:
             self._base_table[key_columns] = self._base_table[key_columns].merge(table, on=key_columns, how='inner')
 
-        return UinterpolatedTableView(self, prefix, key_columns, [c for c in columns if c not in key_columns])
+        return UninterpolatedTableView(self, prefix, key_columns, [c for c in columns if c not in key_columns])
 
     @listens_for('time_step__prepare')
     @uses_columns(['age', 'sex'])
