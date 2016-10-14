@@ -85,12 +85,12 @@ def test_interpolated_tables():
 
 def test_interpolated_tables_without_uniterpolated_columns():
     years = build_table(lambda age, sex, year: year)
-    del years['age']
     del years['sex']
+    years = years.drop_duplicates()
 
     simulation = setup_simulation([generate_base_population], 10000)
     manager = simulation.tables
-    years = manager.build_table(years, key_columns=('year',), interpolatable_columns=('year',))
+    years = manager.build_table(years, key_columns=('year', 'age',), interpolatable_columns=('year', 'age',))
 
     result_years = years(simulation.population.population.index)
 
@@ -108,3 +108,14 @@ def test_interpolated_tables_without_uniterpolated_columns():
 
     assert np.allclose(result_years, fractional_year)
 
+def test_interpolated_tables__exact_values_at_input_points():
+    years = build_table(lambda age, sex, year: year)
+    input_years = years.year
+
+    simulation = setup_simulation([generate_base_population], 10000)
+    manager = simulation.tables
+    years = manager.build_table(years)
+
+    for year in input_years:
+        simulation.current_time = datetime(year=year, month=1, day=1)
+        assert np.allclose(years(simulation.population.population.index), simulation.current_time.year + 1/365, rtol=1.e-5)
