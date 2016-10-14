@@ -59,7 +59,7 @@ class InterpolatedTableView(TableView):
             for column, func in funcs.items():
                 interpolated_columns = tuple(sub_pop[k] if k != 'year' else fractional_year for k in self.interpolated_columns)
                 out = func(*interpolated_columns)
-                # This reshape is necessary because RectBivariateSpline and UnivariateSpline return results
+                # This reshape is necessary because RectBivariateSpline and InterpolatedUnivariateSpline return results
                 # in slightly different shapes and we need them to be consistent
                 if out.shape:
                     result.loc[sub_pop.index, column] = out.reshape((out.shape[0],))
@@ -120,7 +120,7 @@ class InterpolatedDataManager:
                 else:
                     x = table[interpolatable_columns[0]]
                     y = table[value_column]
-                    func = interpolate.UnivariateSpline(x, y, k=order)
+                    func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
                 interpolations[key][value_column] = func
 
         return InterpolatedTableView(interpolations, uninterpolated_columns, interpolated_columns, self._pop_view_builder(sorted(key_columns - {'year'})), self.clock)
