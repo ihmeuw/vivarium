@@ -21,7 +21,7 @@ from ceam.analysis import analyze_results, dump_results
 from ceam.framework.values import ValuesManager, set_combiner, joint_value_combiner, joint_value_post_processor, rescale_post_processor, NullValue
 from ceam.framework.event import EventManager, Event, emits
 from ceam.framework.population import PopulationManager, creates_simulants
-from ceam.framework.lookup import MergedTableManager
+from ceam.framework.lookup import InterpolatedDataManager
 from ceam.framework.components import load, read_component_configuration
 from ceam.framework.randomness import RandomnessStream
 
@@ -49,7 +49,7 @@ class SimulationContext:
         self.values = ValuesManager()
         self.events = EventManager()
         self.population = PopulationManager()
-        self.tables = MergedTableManager()
+        self.tables = InterpolatedDataManager()
         self.components.extend([self.tables, self.values, self.events, self.population])
         self.current_time = None
 
@@ -71,7 +71,7 @@ class SimulationContext:
 
         self.values.declare_pipeline('metrics', post_processor=None, source=lambda index: {})
         builder = Builder(self)
-        components = list(self.components)
+        components = [self.values, self.events, self.population, self.tables] + list(self.components)
         i = 0
         while i < len(components):
             component = components[i]
