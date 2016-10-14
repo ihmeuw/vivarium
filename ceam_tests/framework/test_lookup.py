@@ -110,7 +110,7 @@ def test_interpolated_tables_without_uniterpolated_columns():
 
 def test_interpolated_tables__exact_values_at_input_points():
     years = build_table(lambda age, sex, year: year)
-    input_years = years.year
+    input_years = years.year.unique()
 
     simulation = setup_simulation([generate_base_population], 10000)
     manager = simulation.tables
