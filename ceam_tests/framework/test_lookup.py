@@ -18,9 +18,9 @@ def test_uniterpolated_table_alignment():
     simulation = setup_simulation([generate_base_population], 10000)
 
     manager = simulation.tables
-    years = manager.build_table(years, interpolatable_columns=())
-    ages = manager.build_table(ages, interpolatable_columns=())
-    sexes = manager.build_table(sexes, interpolatable_columns=())
+    years = manager.build_table(years, key_columns=('age', 'sex', 'year'), parameter_columns=())
+    ages = manager.build_table(ages, key_columns=('age', 'sex', 'year'), parameter_columns=())
+    sexes = manager.build_table(sexes, key_columns=('age', 'sex', 'year'), parameter_columns=())
 
     emitter = simulation.events.get_emitter('time_step__prepare')
     emitter(Event(simulation.current_time, simulation.population.population.index))
@@ -56,7 +56,7 @@ def test_interpolated_tables():
     manager = simulation.tables
     years = manager.build_table(years)
     ages = manager.build_table(ages)
-    one_d_age = manager.build_table(one_d_age, key_columns=('age', 'sex',), interpolatable_columns=('age',))
+    one_d_age = manager.build_table(one_d_age, parameter_columns=('age',))
 
     result_years = years(simulation.population.population.index)
     result_ages = ages(simulation.population.population.index)
@@ -90,7 +90,7 @@ def test_interpolated_tables_without_uniterpolated_columns():
 
     simulation = setup_simulation([generate_base_population], 10000)
     manager = simulation.tables
-    years = manager.build_table(years, key_columns=('year', 'age',), interpolatable_columns=('year', 'age',))
+    years = manager.build_table(years, key_columns=(), parameter_columns=('year', 'age',))
 
     result_years = years(simulation.population.population.index)
 
