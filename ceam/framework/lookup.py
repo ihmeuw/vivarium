@@ -108,18 +108,18 @@ class InterpolatedDataManager:
 
         interpolations = {}
 
-        for key, table in sub_tables:
+        for key, base_table in sub_tables:
             interpolations[key] = {}
             for value_column in value_columns:
                 if len(interpolatable_columns) == 2:
-                    table = table.pivot(index=interpolated_columns[0], columns=interpolated_columns[1], values=value_column)
+                    table = base_table.pivot(index=interpolated_columns[0], columns=interpolated_columns[1], values=value_column)
                     x = table.index.values
                     y = table.columns.values
                     z = table.values
                     func = interpolate.RectBivariateSpline(x=x, y=y, z=z, ky=order, kx=order).ev
                 else:
-                    x = table[interpolatable_columns[0]]
-                    y = table[value_column]
+                    x = base_table[interpolatable_columns[0]]
+                    y = base_table[value_column]
                     func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
                 interpolations[key][value_column] = func
 

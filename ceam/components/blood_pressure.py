@@ -30,7 +30,7 @@ class BloodPressure:
     """
 
     def setup(self, builder):
-        self.sbp_distribution = builder.lookup(self.load_sbp_distribution(), key_columns=('age', 'sex',), interpolatable_columns=('age',))
+        self.sbp_distribution = builder.lookup(self.load_sbp_distribution(), key_columns=('age', 'sex', 'year'), interpolatable_columns=('age', 'year'))
         self.load_relative_risks(builder)
         self.load_pafs(builder)
 
