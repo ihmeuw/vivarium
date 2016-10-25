@@ -57,9 +57,8 @@ class BloodPressure:
                             src_column=['log_mean_{draw}', 'log_sd_{draw}'],
                             location_id=location_id, year_start=year_start, year_end=year_end)
 
-        rows = []
-        
-        return distribution.append(pd.DataFrame(rows, columns=['year', 'age', 'log_mean', 'log_sd', 'sex']))
+
+        return distribution
 
     def load_relative_risks(self, builder):
         self.ihd_rr = builder.lookup(get_relative_risks(risk_id=107, cause_id=493))
