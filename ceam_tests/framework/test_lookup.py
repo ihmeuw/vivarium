@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 
 from ceam_tests.util import build_table, setup_simulation
-from ceam.components.base_population import generate_base_population
+from ceam_public_health.components.base_population import generate_base_population
 
 from ceam.framework.event import Event
 

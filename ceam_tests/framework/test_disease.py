@@ -13,7 +13,7 @@ from ceam_tests.util import setup_simulation, pump_simulation, build_table
 
 from ceam.framework.util import from_yearly
 
-from ceam.components.base_population import generate_base_population
+from ceam_public_health.components.base_population import generate_base_population
 
 from ceam.framework.state_machine import Transition, State
 from ceam.framework.event import Event
