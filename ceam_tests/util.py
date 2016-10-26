@@ -9,7 +9,7 @@ import pytest
 
 from ceam import config
 
-from ceam.gbd_data.gbd_ms_functions import load_data_from_cache
+from ceam_inputs.gbd_ms_functions import load_data_from_cache
 
 from ceam.framework.engine import SimulationContext, _step
 from ceam.framework.event import Event

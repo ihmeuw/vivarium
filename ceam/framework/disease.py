@@ -16,7 +16,7 @@ from .util import rate_to_probability
 from .state_machine import Machine, State, Transition, TransitionSet
 import numbers
 
-from ceam.gbd_data import get_excess_mortality, get_incidence, get_disease_states, get_proportion
+from ceam_inputs import get_excess_mortality, get_incidence, get_disease_states, get_proportion
 
 
 class DiseaseState(State):

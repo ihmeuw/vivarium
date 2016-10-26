@@ -12,7 +12,7 @@ from ceam.framework.util import from_yearly
 from ceam.framework.population import uses_columns
 from ceam.framework.values import modifies_value
 
-from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, get_modelable_entity_draws
+from ceam_inputs.gbd_ms_functions import load_data_from_cache, get_modelable_entity_draws
 
 # draw random costs for doctor visit (time-specific)
 draw = config.getint('run_configuration', 'draw_number')

@@ -3,8 +3,8 @@ import os.path
 import pandas as pd
 import numpy as np
 
-from ceam.gbd_data import generate_ceam_population
-from ceam.gbd_data import get_cause_deleted_mortality_rate
+from ceam_inputs import generate_ceam_population
+from ceam_inputs import get_cause_deleted_mortality_rate
 
 from ceam.framework.event import listens_for
 from ceam.framework.values import produces_value, modifies_value

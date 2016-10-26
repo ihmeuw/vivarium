@@ -13,8 +13,8 @@ from ceam.framework.event import listens_for
 from ceam.framework.population import uses_columns
 from ceam.framework.values import modifies_value
 
-from ceam.gbd_data.gbd_ms_functions import load_data_from_cache, normalize_for_simulation, get_sbp_mean_sd
-from ceam.gbd_data import get_relative_risks, get_pafs
+from ceam_inputs.gbd_ms_functions import load_data_from_cache, normalize_for_simulation, get_sbp_mean_sd
+from ceam_inputs import get_relative_risks, get_pafs
 
 
 class BloodPressure:
