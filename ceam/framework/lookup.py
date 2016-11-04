@@ -3,9 +3,9 @@ from functools import partial
 from collections import defaultdict
 
 import pandas as pd
-from scipy import interpolate
 
 from ceam import CEAMError
+from ceam.interpolation import Interpolation
 
 from .event import listens_for
 from .population import uses_columns
@@ -16,6 +16,7 @@ class LookupError(CEAMError):
 class TableView:
     def __call__(self, index):
         raise NotImplementedError()
+
 
 class InterpolatedTableView(TableView):
     """A callable that returns the result of an interpolation function over
@@ -35,41 +36,21 @@ class InterpolatedTableView(TableView):
     These cannot be created directly. Use the `lookup` method on the builder during setup.
     """
 
-    def __init__(self, splines, key_columns, parameter_columns, population_view, clock):
-        self.splines = splines
-        self.key_columns = list(key_columns)
-        self.parameter_columns = list(parameter_columns)
+    def __init__(self, interpolation, population_view, clock=None):
+        self.interpolation = interpolation
         self.population_view = population_view
         self.clock = clock
 
     def __call__(self, index):
         pop = self.population_view.get(index)
-        current_time = self.clock()
-        fractional_year = current_time.year
-        fractional_year += current_time.timetuple().tm_yday / 365.25
 
-        if self.key_columns:
-            sub_tables = pop.groupby(self.key_columns)
-        else:
-            sub_tables = {None: pop}.items()
+        if self.clock:
+            current_time = self.clock()
+            fractional_year = current_time.year
+            fractional_year += current_time.timetuple().tm_yday / 365.25
+            pop['year'] = fractional_year
 
-        result = pd.DataFrame(index=pop.index)
-        for key, sub_pop in sub_tables:
-            funcs = self.splines[key]
-            for value_column, func in funcs.items():
-                parameters = tuple(sub_pop[k] if k != 'year' else fractional_year for k in self.parameter_columns)
-                out = func(*parameters)
-                # This reshape is necessary because RectBivariateSpline and InterpolatedUnivariateSpline return results
-                # in slightly different shapes and we need them to be consistent
-                if out.shape:
-                    result.loc[sub_pop.index, value_column] = out.reshape((out.shape[0],))
-                else:
-                    result.loc[sub_pop.index, ouput_column] = out
-
-        if len(result.columns) == 1:
-            return result[result.columns[0]]
-        else:
-            return result
+        return self.interpolation(pop)
 
 
 class InterpolatedDataManager:
@@ -92,46 +73,7 @@ class InterpolatedDataManager:
         return [self.uninterpolated_manager]
 
     def _build_interpolated_table(self, data, key_columns, parameter_columns, order=1):
-        key_columns = set(key_columns)
-        parameter_columns = set(parameter_columns)
-
-        if len(parameter_columns) not in [1, 2]:
-            raise NotImplementedError("Only interpolation over 1 or 2 variables is supported")
-
-        # These are the columns which the interpolation function will approximate
-        value_columns = sorted(data.columns.difference(key_columns|parameter_columns))
-
-        if key_columns:
-            # Since there are key_columns we need to group the table by those
-            # columns to get the sub-tables to fit
-            sub_tables = data.groupby(list(key_columns))
-        else:
-            # There are no key columns so we will fit the whole table
-            sub_tables = {None: data}.items()
-
-        interpolations = {}
-
-        for key, base_table in sub_tables:
-            # For each permutation of the key columns build interpolations
-            interpolations[key] = {}
-            for value_column in value_columns:
-                # For each value in the table build an interpolation function
-                if len(parameter_columns) == 2:
-                    # 2 variable interpolation
-                    index, column = parameter_columns
-                    table = base_table.pivot(index=index, columns=column, values=value_column)
-                    x = table.index.values
-                    y = table.columns.values
-                    z = table.values
-                    func = interpolate.RectBivariateSpline(x=x, y=y, z=z, ky=order, kx=order).ev
-                else:
-                    # 1 variable interpolation
-                    x = base_table[list(parameter_columns)[0]]
-                    y = base_table[value_column]
-                    func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
-                interpolations[key][value_column] = func
-
-        return InterpolatedTableView(interpolations, key_columns, parameter_columns, self._pop_view_builder(sorted((key_columns|parameter_columns) - {'year'})), self.clock)
+        return InterpolatedTableView(Interpolation(data, key_columns, parameter_columns, order=order), self._pop_view_builder(sorted((set(key_columns)|set(parameter_columns)) - {'year'})), self.clock if 'year' in parameter_columns else None)
 
     def build_table(self, data, key_columns=('sex',),
             parameter_columns=('age', 'year'), interpolation_order=1):
