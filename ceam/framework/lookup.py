@@ -73,7 +73,9 @@ class InterpolatedDataManager:
         return [self.uninterpolated_manager]
 
     def _build_interpolated_table(self, data, key_columns, parameter_columns, order=1):
-        return InterpolatedTableView(Interpolation(data, key_columns, parameter_columns, order=order), self._pop_view_builder(sorted((set(key_columns)|set(parameter_columns)) - {'year'})), self.clock if 'year' in parameter_columns else None)
+        if not isinstance(data, Interpolation):
+            data = Interpolation(data, key_columns, parameter_columns, order=order)
+        return InterpolatedTableView(data, self._pop_view_builder(sorted((set(key_columns)|set(parameter_columns)) - {'year'})), self.clock if 'year' in parameter_columns else None)
 
     def build_table(self, data, key_columns=('sex',),
             parameter_columns=('age', 'year'), interpolation_order=1):
