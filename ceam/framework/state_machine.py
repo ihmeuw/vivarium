@@ -61,14 +61,11 @@ class TransitionSet(list):
         outputs = list(outputs)
 
         total = np.sum(probabilities, axis=0)
-        if not self.allow_null_transition:
-            probabilities /= total
-        else:
-            if np.any(total > 1):
-                raise ValueError("Total transition probability greater than 1")
-            else:
-                probabilities = np.concatenate([probabilities, [(1-total)]])
-                outputs.append('null_transition')
+        # TODO: This explicitly scales probabilities till they sum to 1 which my hide errors
+        if self.allow_null_transition:
+            probabilities = np.concatenate([probabilities, [np.maximum(0, (1-total))]])
+            outputs.append('null_transition')
+        probabilities /= np.sum(probabilities, axis=0)
 
         draw = np.array(self.random.get_draw(index))
         sums = probabilities.cumsum(axis=0)

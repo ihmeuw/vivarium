@@ -65,21 +65,6 @@ def test_null_transition():
     assert round(a_count/len(simulation.population.population), 1) == 0.5
 
 
-def test_null_transition_with_bad_probabilities():
-    a_state = State('a')
-    start_state = State('start')
-    a_transition = Transition(a_state, lambda agents: np.full(len(agents), 5))
-
-    start_state.transition_set.append(a_transition)
-    machine = Machine('state')
-    machine.states.extend([start_state, a_state])
-
-    simulation = setup_simulation([machine, _population_fixture('state', 'start')])
-
-    with pytest.raises(ValueError):
-        machine.transition(simulation.population.population.index)
-
-
 def test_no_null_transition():
     a_state = State('a')
     b_state = State('b')
