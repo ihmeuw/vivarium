@@ -33,9 +33,12 @@ class RandomnessError(CEAMError):
 RESIDUAL_CHOICE = object()
 
 def random(key, index):
-    return pd.Series(
-            [randomness_hash((i, key)) for i in index.astype(str)],
-            index=index)
+    if len(index) > 0:
+        return pd.Series(
+                [randomness_hash((i, key)) for i in index.astype(str)],
+                index=index)
+    else:
+        return pd.Series(index=index)
 
 def choice(key, index, choices, p=None):
     if p is not None:
@@ -66,14 +69,19 @@ def choice(key, index, choices, p=None):
     result = pd.Series(np.choose(idx, choices), index=index)
     return result
 
-def filter_for_probability(key, index, probability):
+def filter_for_probability(key, population, probability):
+    if isinstance(population, pd.Index):
+        index = population
+    else:
+        index = population.index
+
     draw = random(key, index)
 
     mask = draw < probability
     if not isinstance(mask, np.ndarray):
         # TODO: Something less awkward
         mask = mask.values
-    return index[mask]
+    return population[mask]
 
 class RandomnessStream:
     def __init__(self, key, clock, seed):
