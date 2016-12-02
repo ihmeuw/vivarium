@@ -136,7 +136,7 @@ def run_simulation(simulation):
     event_loop(simulation)
 
     metrics = simulation.values.get_value('metrics')(simulation.population.population.index)
-    metrics['duration'] = time() - start
+    metrics['simulation_run_time'] = time() - start
     return metrics
 
 def configure(draw_number=0, verbose=False, simulation_config=None):
