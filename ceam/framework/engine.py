@@ -64,7 +64,7 @@ class SimulationContext:
                 post_processor=joint_value_post_processor,
                 source=lambda index: NullValue(index))
 
-        self.values.declare_pipeline(re.compile('modelable_entity_ids\..*'),
+        self.values.declare_pipeline(re.compile('excess_mortality_data'),
                 combiner=set_combiner,
                 post_processor=None,
                 source=lambda: set())
