@@ -38,6 +38,13 @@ def replace_combiner(value, mutator, *args, **kwargs):
     args = list(args) + [value]
     return mutator(*args, **kwargs)
 
+def list_combiner(value, mutator, *args, **kwargs):
+    """Expects the output of the source to be a list to which
+    the result of each mutator is added.
+    """
+    value.append(mutator(*args, **kwargs))
+    return value
+
 def set_combiner(value, mutator, *args, **kwargs):
     """Expects the output of the source to be a set to which
     the result of each mutator is added.
