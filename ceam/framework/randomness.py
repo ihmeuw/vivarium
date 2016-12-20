@@ -90,7 +90,7 @@ class RandomnessStream:
         self.seed = seed
 
     def _key(self, additional_key=None):
-        return '_'.join([self.key, str(self.clock()), str(additional_key)])
+        return '_'.join([self.key, str(self.clock()), str(additional_key), str(self.seed)])
 
     def get_draw(self, index, additional_key=None):
         return random(self._key(additional_key), index)

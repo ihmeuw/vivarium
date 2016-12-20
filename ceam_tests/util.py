@@ -1,5 +1,3 @@
-# ~/ceam/ceam_tests/util.py
-
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -21,11 +19,10 @@ def _cache_loader(func, *args, **kwargs):
     else:
         return load_data_from_cache(func, *args, **kwargs)
 
-def setup_simulation(components, population_size = 100):
+def setup_simulation(components, population_size = 100, start=datetime(1990, 1, 1)):
     simulation = SimulationContext(components)
     simulation.setup()
 
-    start = datetime(1990, 1, 1)
     simulation.current_time = start
     simulation.population._create_simulants(population_size)
 
@@ -109,6 +106,3 @@ def build_table(rate, columns=['age', 'year', 'sex', 'rate']):
                     r = rate
                 rows.append([age, year, sex, r])
     return pd.DataFrame(rows, columns=columns)
-
-
-# End.
