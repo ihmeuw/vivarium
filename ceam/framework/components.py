@@ -1,4 +1,5 @@
 from importlib import import_module
+from collections import Iterable
 import json
 
 def read_component_configuration(path):
@@ -40,6 +41,9 @@ def load(component_list):
                 component = component(*args, **kwargs)
         if isinstance(component, type):
             component = component()
-        components.append(component)
+        if isinstance(component, Iterable):
+            components.extend(component)
+        else:
+            components.append(component)
 
     return components
