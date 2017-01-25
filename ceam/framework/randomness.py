@@ -66,8 +66,7 @@ def choice(key, index, choices, p=None):
     effective_p = np.cumsum(p, axis=1)
     draw = random(key, index)
     idx = (draw.values[None].T > effective_p).sum(axis=1)
-    result = pd.Series(np.choose(idx, choices), index=index)
-    return result
+    return pd.Series(np.array(choices)[idx], index=index)
 
 def filter_for_probability(key, population, probability):
     if isinstance(population, pd.Index):
