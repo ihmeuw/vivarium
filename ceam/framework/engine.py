@@ -113,6 +113,8 @@ def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
     simulation.current_time = start
 
     population_size = config.getint('simulation_parameters', 'population_size')
+
+    # TODO: Check in config file with an initial age
     simulant_creator(population_size)
 
     while simulation.current_time < stop:
