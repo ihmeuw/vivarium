@@ -101,14 +101,14 @@ class Pipeline:
         self.post_processor = post_processor
         self.configured = False
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, skip_post=False, **kwargs):
         if self.source is None:
             raise DynamicValueError('No source for value.')
         value = self.source(*args, **kwargs)
         for priority_bucket in self.mutators:
             for mutator in priority_bucket:
                 value = self.combiner(value, mutator, *args, **kwargs)
-        if self.post_processor:
+        if not skip_post and self.post_processor:
             return self.post_processor(value)
         else:
             return value
