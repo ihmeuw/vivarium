@@ -45,6 +45,13 @@ def set_combiner(value, mutator, *args, **kwargs):
     value.add(mutator(*args, **kwargs))
     return value
 
+def list_combiner(value, mutator, *args, **kwargs):
+    """Expects the output of the source to be a list to which
+    the result of each mutator is appended.
+    """
+    value.append(mutator(*args, **kwargs))
+    return value
+
 def joint_value_combiner(value, mutator, *args, **kwargs):
     """Combines the output of the source or previous mutator with the output of
     the subsequent mutator using this formula: a * (1-b) Used for PAFs
