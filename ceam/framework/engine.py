@@ -115,11 +115,10 @@ def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
     population_size = config.getint('simulation_parameters', 'population_size')
 
     # TODO: Check in config file with an initial age
-    # if config.getint('simulation_parameters', 'initial_age'):
-    #    simulant_creator(population_size, population_configuration={'initial_age': config.getint('simulation_parameters', 'initial_age')})
-    # else:
-    #    simulant_creator(population_size)
-    simulant_creator(population_size)
+    if config.get('simulation_parameters', 'initial_age') != '':
+        simulant_creator(population_size, population_configuration={'initial_age': config.getfloat('simulation_parameters', 'initial_age')})
+    else:
+        simulant_creator(population_size)
 
     while simulation.current_time < stop:
         gc.collect() # TODO: Actually figure out where the memory leak is.
