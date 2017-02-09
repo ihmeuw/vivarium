@@ -12,8 +12,10 @@ from ceam import config
 from ceam_inputs.gbd_ms_functions import load_data_from_cache
 
 from ceam.framework.engine import SimulationContext, _step
-from ceam.framework.event import Event
+from ceam.framework.event import Event, listens_for
+from ceam.framework.population import uses_columns
 from ceam.framework.util import from_yearly, to_yearly
+from ceam.framework import randomness
 
 def _cache_loader(func, *args, **kwargs):
     if func.__name__ == 'generate_ceam_population':
@@ -110,5 +112,21 @@ def build_table(rate, columns=['age', 'year', 'sex', 'rate']):
                 rows.append([age, year, sex, r])
     return pd.DataFrame(rows, columns=columns)
 
+@listens_for('initialize_simulants', priority=0)
+@uses_columns(['age', 'fractional_age', 'sex', 'alive'])
+def generate_test_population(event):
+    population_size = len(event.index)
+    initial_age = event.user_data.get('initial_age', None)
 
-# End.
+    population = pd.DataFrame(index=range(population_size))
+    if initial_age:
+        population['age'] = initial_age
+    else:
+        population['age'] = randomness.random('test_population_age', population.index) * 100
+    population['fractional_age'] = population['age']
+
+    population['sex'] = randomness.choice('test_population_sex', population.index, ['Male', 'Female'])
+    population['alive'] = True
+
+    event.population_view.update(population)
+
