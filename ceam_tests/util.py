@@ -120,10 +120,10 @@ def generate_test_population(event):
 
     population = pd.DataFrame(index=range(population_size))
     if initial_age:
-        population['age'] = initial_age
+        population['fractional_age'] = initial_age
     else:
-        population['age'] = randomness.random('test_population_age', population.index) * 100
-    population['fractional_age'] = population['age']
+        population['fractional_age'] = randomness.random('test_population_age', population.index) * 100
+    population['age'] = population['fractional_age'].astype(int)
 
     population['sex'] = randomness.choice('test_population_sex', population.index, ['Male', 'Female'])
     population['alive'] = True
