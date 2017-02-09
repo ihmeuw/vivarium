@@ -70,6 +70,7 @@ def test_interpolated_tables():
 
     simulation.current_time += timedelta(days=30.5 * 125)
     simulation.population._population.age += 125/12
+    simulation.population._population.fractional_age += 125/12
 
     result_years = years(simulation.population.population.index)
     result_ages = ages(simulation.population.population.index)
