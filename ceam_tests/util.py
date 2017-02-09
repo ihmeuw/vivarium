@@ -9,7 +9,6 @@ import pytest
 
 from ceam import config
 
-from ceam_inputs.gbd_ms_functions import load_data_from_cache
 
 from ceam.framework.engine import SimulationContext, _step
 from ceam.framework.event import Event, listens_for
@@ -17,11 +16,6 @@ from ceam.framework.population import uses_columns
 from ceam.framework.util import from_yearly, to_yearly
 from ceam.framework import randomness
 
-def _cache_loader(func, *args, **kwargs):
-    if func.__name__ == 'generate_ceam_population':
-        return build_table(0.0, ['age', 'year', 'sex_id', 'rate'])
-    else:
-        return load_data_from_cache(func, *args, **kwargs)
 
 def setup_simulation(components, population_size = 100):
     simulation = SimulationContext(components)
