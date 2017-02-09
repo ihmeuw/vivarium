@@ -7,19 +7,9 @@ pseudo randomness where the key is the simulation time, the simulant's id, the d
 point which needs the randomness.
 """
 
-try:
-    import mmh3
-    def randomness_hash(key):
-        key = str(key).encode('utf8')
-        return (mmh3.hash(key)+2147483647)/4294967294
+import numpy as np
 
-except ImportError:
-    import hashlib
-    import warnings
-    warnings.warn('Falling back to known-bad hash algorithm. Please install mmh3')
-    def randomness_hash(key):
-        key = str(key).encode('utf8')
-        return int(hashlib.sha1(key).hexdigest(), 16) / (2**160)
+import hashlib
 
 import numpy as np
 import pandas as pd
@@ -34,8 +24,12 @@ RESIDUAL_CHOICE = object()
 
 def random(key, index):
     if len(index) > 0:
+        key_hash = int(hashlib.sha1(key.encode('utf8')).hexdigest(), 16) %4294967295
+        random_state = np.random.RandomState(seed=key_hash)
+        raw_draws = random_state.random_sample(index.max()+1)
+
         return pd.Series(
-                [randomness_hash((i, key)) for i in index.astype(str)],
+                raw_draws[index],
                 index=index)
     else:
         return pd.Series(index=index)
