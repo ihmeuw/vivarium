@@ -163,19 +163,20 @@ class PopulationEvent(Event):
                       The index of the underlying Event filtered by the PopulationView's query, if any.
     """
 
-    def __init__(self, time, index, population, population_view, user_data={}):
-        super(PopulationEvent, self).__init__(time, index, user_data)
+    def __init__(self, index, population, population_view, user_data={}, time=None):
+        super(PopulationEvent, self).__init__(index, user_data)
         self.population = population
         self.population_view = population_view
+        self.time=time
 
     @staticmethod
     def from_event(event, population_view):
         if not population_view.manager.growing:
             population = population_view.get(event.index)
-            return PopulationEvent(event.time, population.index, population, population_view, event.user_data)
+            return PopulationEvent(population.index, population, population_view, event.user_data, time=event.time)
         else:
             population = population_view.get(event.index, omit_missing_columns=True)
-            return PopulationEvent(event.time, event.index, population, population_view, event.user_data)
+            return PopulationEvent(event.index, population, population_view, event.user_data, time=event.time)
 
 
 class PopulationManager:
@@ -215,7 +216,7 @@ class PopulationManager:
         index = new_population.index.difference(self._population.index)
         self._population = new_population
         self.growing = True
-        emitter(Event(self.clock(), index, user_data=population_configuration))
+        emitter(Event(index, user_data=population_configuration))
         self.growing = False
 
     def _population_view_injector(self, func, args, kwargs, columns, query=None):

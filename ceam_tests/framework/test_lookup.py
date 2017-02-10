@@ -22,7 +22,7 @@ def test_uniterpolated_table_alignment():
     sexes = manager.build_table(sexes, key_columns=('age', 'sex', 'year'), parameter_columns=())
 
     emitter = simulation.events.get_emitter('time_step__prepare')
-    emitter(Event(simulation.current_time, simulation.population.population.index))
+    emitter(Event(simulation.population.population.index))
 
     result_years = years(simulation.population.population.index)
     result_ages = ages(simulation.population.population.index)
@@ -34,7 +34,7 @@ def test_uniterpolated_table_alignment():
 
     simulation.current_time = datetime(simulation.current_time.year+1, simulation.current_time.month, simulation.current_time.day)
     simulation.population._population.age += 1
-    emitter(Event(simulation.current_time, simulation.population.population.index))
+    emitter(Event(simulation.population.population.index))
 
     result_years = years(simulation.population.population.index)
     result_ages = ages(simulation.population.population.index)
