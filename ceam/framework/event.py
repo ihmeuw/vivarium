@@ -28,24 +28,32 @@ class Event:
             An index into the population table containing all simulants effected by this event.
     """
 
-    def __init__(self, time, index, user_data={}):
-        self.time = time
+    def __init__(self, index, user_data={}):
         self.index = index
         self.user_data = user_data
+
+        self.time = None
 
     def split(self, new_index):
         """Create a new event which is a copy of this one but with a new index.
         """
-        return Event(self.time, new_index, self.user_data)
+        new_event = Event(new_index, self.user_data)
+        new_event.time = self.time
+        return new_event
 
 class _EventChannel:
-    def __init__(self):
+    def __init__(self, manager):
+        self.manager = manager
+
         self.listeners = [[] for i in range(10)]
 
-    def emit(self, *args, **kwargs):
+    def emit(self, event):
+        if hasattr(event, 'time'):
+            event.time = self.manager.clock()
+
         for priority_bucket in self.listeners:
             for listener in sorted(priority_bucket, key=lambda x: x.__name__):
-                listener(*args, **kwargs)
+                listener(event)
 
 
 class EventManager:
@@ -59,7 +67,10 @@ class EventManager:
     """
 
     def __init__(self):
-        self.__event_types = defaultdict(_EventChannel)
+        self.__event_types = defaultdict(lambda :_EventChannel(self))
+
+    def setup(self, builder):
+        self.clock = builder.clock()
 
     def get_emitter(self, name):
         """Get an emitter function for the named event

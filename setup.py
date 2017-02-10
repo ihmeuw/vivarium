@@ -13,7 +13,6 @@ setup(name='ceam',
             'pandas',
             'numpy',
             'scipy',
-            'joblib',
         ]
      )
 

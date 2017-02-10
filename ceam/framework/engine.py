@@ -64,10 +64,10 @@ class SimulationContext:
                 post_processor=joint_value_post_processor,
                 source=NullValue)
 
-        self.values.declare_pipeline(re.compile('cause_specific_mortality_data'),
+        self.values.declare_pipeline(re.compile('csmr_data'),
                 combiner=list_combiner,
                 post_processor=None,
-                source=list)
+                source=lambda: list())
 
         self.values.declare_pipeline('metrics', post_processor=None, source=lambda index: {})
         builder = Builder(self)
@@ -94,9 +94,9 @@ class SimulationContext:
 @emits('time_step__cleanup')
 def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, time_step__cleanup_emitter):
     _log.debug(simulation.current_time)
-    time_step__prepare_emitter(Event(simulation.current_time, simulation.population.population.index))
-    time_step_emitter(Event(simulation.current_time, simulation.population.population.index))
-    time_step__cleanup_emitter(Event(simulation.current_time, simulation.population.population.index))
+    time_step__prepare_emitter(Event(simulation.population.population.index))
+    time_step_emitter(Event(simulation.population.population.index))
+    time_step__cleanup_emitter(Event(simulation.population.population.index))
     simulation.current_time += time_step
 
 @creates_simulants
@@ -124,7 +124,7 @@ def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
         gc.collect() # TODO: Actually figure out where the memory leak is.
         _step(simulation, time_step)
 
-    end_emitter(Event(simulation.current_time, simulation.population.population.index))
+    end_emitter(Event(simulation.population.population.index))
 
 def setup_simulation(components):
     if not components:

@@ -5,8 +5,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 
-from ceam_tests.util import build_table, setup_simulation
-from ceam_public_health.components.base_population import generate_base_population
+from ceam_tests.util import build_table, setup_simulation, generate_test_population
 
 from ceam.framework.event import Event
 
@@ -15,7 +14,7 @@ def test_uniterpolated_table_alignment():
     ages = build_table(lambda age, sex, year: age)
     sexes = build_table(lambda age, sex, year: sex)
 
-    simulation = setup_simulation([generate_base_population], 10000)
+    simulation = setup_simulation([generate_test_population], 10000)
 
     manager = simulation.tables
     years = manager.build_table(years, key_columns=('age', 'sex', 'year'), parameter_columns=())
@@ -23,7 +22,7 @@ def test_uniterpolated_table_alignment():
     sexes = manager.build_table(sexes, key_columns=('age', 'sex', 'year'), parameter_columns=())
 
     emitter = simulation.events.get_emitter('time_step__prepare')
-    emitter(Event(simulation.current_time, simulation.population.population.index))
+    emitter(Event(simulation.population.population.index))
 
     result_years = years(simulation.population.population.index)
     result_ages = ages(simulation.population.population.index)
@@ -35,7 +34,7 @@ def test_uniterpolated_table_alignment():
 
     simulation.current_time = datetime(simulation.current_time.year+1, simulation.current_time.month, simulation.current_time.day)
     simulation.population._population.age += 1
-    emitter(Event(simulation.current_time, simulation.population.population.index))
+    emitter(Event(simulation.population.population.index))
 
     result_years = years(simulation.population.population.index)
     result_ages = ages(simulation.population.population.index)
@@ -52,7 +51,7 @@ def test_interpolated_tables():
     del one_d_age['year']
     one_d_age = one_d_age.drop_duplicates()
 
-    simulation = setup_simulation([generate_base_population], 10000)
+    simulation = setup_simulation([generate_test_population], 10000)
     manager = simulation.tables
     years = manager.build_table(years)
     ages = manager.build_table(ages)
@@ -71,6 +70,7 @@ def test_interpolated_tables():
 
     simulation.current_time += timedelta(days=30.5 * 125)
     simulation.population._population.age += 125/12
+    simulation.population._population.fractional_age += 125/12
 
     result_years = years(simulation.population.population.index)
     result_ages = ages(simulation.population.population.index)
@@ -88,7 +88,7 @@ def test_interpolated_tables_without_uniterpolated_columns():
     del years['sex']
     years = years.drop_duplicates()
 
-    simulation = setup_simulation([generate_base_population], 10000)
+    simulation = setup_simulation([generate_test_population], 10000)
     manager = simulation.tables
     years = manager.build_table(years, key_columns=(), parameter_columns=('year', 'age',))
 
@@ -112,7 +112,7 @@ def test_interpolated_tables__exact_values_at_input_points():
     years = build_table(lambda age, sex, year: year)
     input_years = years.year.unique()
 
-    simulation = setup_simulation([generate_base_population], 10000)
+    simulation = setup_simulation([generate_test_population], 10000)
     manager = simulation.tables
     years = manager.build_table(years)
 

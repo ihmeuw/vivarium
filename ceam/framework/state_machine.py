@@ -109,7 +109,8 @@ class Machine:
         population = self.population_view.get(index)
         for state in self.states:
             affected = population[population[self.state_column] == state.state_id]
-            state.next_state(affected.index, self.population_view)
+            if not affected.empty:
+                state.next_state(affected.index, self.population_view)
 
     def to_dot(self):
         from graphviz import Digraph
