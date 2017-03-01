@@ -71,7 +71,6 @@ def filter_for_probability(key, population, probability):
 
     draw = random(key, index)
 
-    # TODO: where is draw coming from?
     mask = draw < probability
     if not isinstance(mask, np.ndarray):
         # TODO: Something less awkward
