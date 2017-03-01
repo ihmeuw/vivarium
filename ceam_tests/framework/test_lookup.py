@@ -9,7 +9,7 @@ from ceam_tests.util import build_table, setup_simulation, generate_test_populat
 
 from ceam.framework.event import Event
 
-def test_uniterpolated_table_alignment():
+def test_uninterpolated_table_alignment():
     years = build_table(lambda age, sex, year: year)
     ages = build_table(lambda age, sex, year: age)
     sexes = build_table(lambda age, sex, year: sex)
@@ -70,7 +70,6 @@ def test_interpolated_tables():
 
     simulation.current_time += timedelta(days=30.5 * 125)
     simulation.population._population.age += 125/12
-    simulation.population._population.fractional_age += 125/12
 
     result_years = years(simulation.population.population.index)
     result_ages = ages(simulation.population.population.index)
