@@ -62,6 +62,7 @@ def choice(key, index, choices, p=None):
     idx = (draw.values[None].T > effective_p).sum(axis=1)
     return pd.Series(np.array(choices)[idx], index=index)
 
+# TODO: Seems messy to have 2 functions -- "filter_for_probability" -- with the same name. I would propose changing the name of the first "filter_to_probability" to "compare_draw_to_probability" or something like that. --EM 2.16
 def filter_for_probability(key, population, probability):
     if isinstance(population, pd.Index):
         index = population
@@ -70,11 +71,28 @@ def filter_for_probability(key, population, probability):
 
     draw = random(key, index)
 
+    # TODO: where is draw coming from?
     mask = draw < probability
     if not isinstance(mask, np.ndarray):
         # TODO: Something less awkward
         mask = mask.values
     return population[mask]
+
+
+def filter_for_cause_specific_mortality_probability(key, population, probability, old_probability):
+    if isinstance(population, pd.Index):
+        index = population
+    else:
+        index = population.index
+
+    draw = random(key, index)
+
+    mask = (draw < probability) & (draw >= old_probability)
+    if not isinstance(mask, np.ndarray):
+        # TODO: Something less awkward
+        mask = mask.values
+    return population[mask]
+
 
 class RandomnessStream:
     def __init__(self, key, clock, seed):
@@ -93,6 +111,9 @@ class RandomnessStream:
 
     def filter_for_probability(self, index, probability):
         return filter_for_probability(self._key(), index, probability)
+
+    def filter_for_cause_specific_mortality_probability(self, index, probability, old_probability):
+        return filter_for_cause_specific_mortality_probability(self._key(), index, probability, old_probability)
 
     def choice(self, index, choices, p=None):
         return choice(self._key(), index, choices, p)
