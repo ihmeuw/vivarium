@@ -115,7 +115,7 @@ class Pipeline:
         for priority_bucket in self.mutators:
             for mutator in priority_bucket:
                 value = self.combiner(value, mutator, *args, **kwargs)
-        if self.post_processor and not skip_post_processor==True:
+        if self.post_processor and not skip_post_processor:
             return self.post_processor(value)
         else:
             return value
