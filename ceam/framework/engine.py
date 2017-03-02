@@ -62,7 +62,7 @@ class SimulationContext:
         self.values.declare_pipeline(re.compile('paf\..*'),
                 combiner=joint_value_combiner,
                 post_processor=joint_value_post_processor,
-                source=lambda index: NullValue(index))
+                source=NullValue)
 
         self.values.declare_pipeline(re.compile('csmr_data'),
                 combiner=list_combiner,
@@ -113,7 +113,11 @@ def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
     simulation.current_time = start
 
     population_size = config.getint('simulation_parameters', 'population_size')
-    simulant_creator(population_size)
+
+    if config.get('simulation_parameters', 'initial_age') != '':
+        simulant_creator(population_size, population_configuration={'initial_age': config.getfloat('simulation_parameters', 'initial_age')})
+    else:
+        simulant_creator(population_size)
 
     while simulation.current_time < stop:
         gc.collect() # TODO: Actually figure out where the memory leak is.
@@ -136,7 +140,7 @@ def run_simulation(simulation):
     event_loop(simulation)
 
     metrics = simulation.values.get_value('metrics')(simulation.population.population.index)
-    metrics['duration'] = time() - start
+    metrics['simulation_run_time'] = time() - start
     return metrics
 
 def configure(draw_number=0, verbose=False, simulation_config=None):

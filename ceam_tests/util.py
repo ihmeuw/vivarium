@@ -1,5 +1,3 @@
-# ~/ceam/ceam_tests/util.py
-
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -17,19 +15,18 @@ from ceam.framework.util import from_yearly, to_yearly
 from ceam.framework import randomness
 
 
-def setup_simulation(components, population_size = 100):
+def setup_simulation(components, population_size = 100, start=datetime(1990, 1, 1)):
     simulation = SimulationContext(components)
     simulation.setup()
 
-    start = datetime(1990, 1, 1)
     simulation.current_time = start
     simulation.population._create_simulants(population_size)
 
 
     return simulation
 
-def pump_simulation(simulation, duration=None, iterations=None):
-    timestep = timedelta(days=30.5)
+def pump_simulation(simulation, time_step_days=30.5, duration=None, iterations=None):
+    timestep = timedelta(days=time_step_days) 
     start_time = datetime(1990, 1, 1)
     simulation.current_time = start_time
     iteration_count = 0
@@ -124,3 +121,4 @@ def generate_test_population(event):
 
     event.population_view.update(population)
 
+# End.

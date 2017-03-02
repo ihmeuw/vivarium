@@ -62,6 +62,7 @@ def choice(key, index, choices, p=None):
     idx = (draw.values[None].T > effective_p).sum(axis=1)
     return pd.Series(np.array(choices)[idx], index=index)
 
+
 def filter_for_probability(key, population, probability):
     if isinstance(population, pd.Index):
         index = population
@@ -76,6 +77,7 @@ def filter_for_probability(key, population, probability):
         mask = mask.values
     return population[mask]
 
+
 class RandomnessStream:
     def __init__(self, key, clock, seed):
         self.key = key
@@ -83,7 +85,7 @@ class RandomnessStream:
         self.seed = seed
 
     def _key(self, additional_key=None):
-        return '_'.join([self.key, str(self.clock()), str(additional_key)])
+        return '_'.join([self.key, str(self.clock()), str(additional_key), str(self.seed)])
 
     def get_draw(self, index, additional_key=None):
         return random(self._key(additional_key), index)
