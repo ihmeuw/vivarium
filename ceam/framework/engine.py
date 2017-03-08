@@ -106,7 +106,7 @@ def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
     start = config.getint('simulation_parameters', 'year_start')
     start = datetime(start, 6, 1)
     stop = config.getint('simulation_parameters', 'year_end')
-    stop = datetime(stop, 12, 30)
+    stop = datetime(stop, 6, 1)
     time_step = config.getfloat('simulation_parameters', 'time_step')
     time_step = timedelta(days=time_step)
 
