@@ -18,7 +18,7 @@ from ceam import config
 
 from ceam.analysis import analyze_results, dump_results
 
-from ceam.framework.values import ValuesManager, list_combiner, joint_value_combiner, joint_value_post_processor, rescale_post_processor, NullValue
+from ceam.framework.values import ValuesManager, set_combiner, list_combiner, joint_value_combiner, joint_value_post_processor, rescale_post_processor, NullValue
 from ceam.framework.event import EventManager, Event, emits
 from ceam.framework.population import PopulationManager, creates_simulants
 from ceam.framework.lookup import InterpolatedDataManager
@@ -67,7 +67,7 @@ class SimulationContext:
         self.values.declare_pipeline(re.compile('csmr_data'),
                 combiner=list_combiner,
                 post_processor=None,
-                source=lambda: list())
+                source=list)
 
         self.values.declare_pipeline('metrics', post_processor=None, source=lambda index: {})
         builder = Builder(self)
