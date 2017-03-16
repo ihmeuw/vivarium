@@ -10,6 +10,7 @@ import re
 from datetime import datetime, timedelta
 from pprint import pformat
 import gc
+from bdb import BdbQuit
 
 import numpy as np
 import pandas as pd
@@ -218,6 +219,8 @@ def main():
 
     try:
         run(args)
+    except BdbQuit:
+        raise
     except:
         if args.pdb:
             import pdb
