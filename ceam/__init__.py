@@ -3,6 +3,9 @@
 from configparser import ConfigParser
 import os.path
 
+import numpy
+numpy.seterr(all='raise')
+
 __all__ = ['config', 'CEAMError']
 
 class CEAMError(Exception):

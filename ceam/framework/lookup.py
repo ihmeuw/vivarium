@@ -1,6 +1,7 @@
 import uuid
 from functools import partial
 from collections import defaultdict
+from numbers import Number
 
 import pandas as pd
 
@@ -52,6 +53,12 @@ class InterpolatedTableView(TableView):
 
         return self.interpolation(pop)
 
+class ScalarView(TableView):
+    def __init__(self, value):
+        self.value = value
+
+    def __call__(self, index):
+        return pd.Series(self.value, index=index)
 
 class InterpolatedDataManager:
     """Container for interpolation functions over input data. Interpolation can
@@ -73,7 +80,9 @@ class InterpolatedDataManager:
         return [self.uninterpolated_manager]
 
     def _build_interpolated_table(self, data, key_columns, parameter_columns, order=1):
-        if not isinstance(data, Interpolation):
+        if isinstance(data, Number):
+            return ScalarView(data)
+        elif not isinstance(data, Interpolation):
             data = Interpolation(data, key_columns, parameter_columns, order=order)
         return InterpolatedTableView(data, self._pop_view_builder(sorted((set(key_columns)|set(parameter_columns)) - {'year'})), self.clock if 'year' in parameter_columns else None)
 
