@@ -66,6 +66,12 @@ class PopulationView:
     def query(self):
         return self._query
 
+    def register_observer(self, column, observer):
+        self.manager.register_observer(column, observer)
+
+    def deregister_observer(self, column, observer):
+        self.manager.deregister_observer(column, observer)
+
     def get(self, index, omit_missing_columns=False):
         """For the rows in ``index`` get the columns from the simulation's population which this view is configured.
         The result may be further filtered by the view's query.
