@@ -1,5 +1,7 @@
 """
 """
+from collections import defaultdict
+
 import pandas as pd
 
 from ceam import CEAMError
@@ -148,6 +150,10 @@ class PopulationView:
                         v = pop[c].values
                 self.manager._population[c] = v
 
+                #Notify column observers
+                for observer in self.manager.observers[c]:
+                    observer()
+
 class PopulationEvent(Event):
     """A standard Event with additional population data. This is the type of event that functions decorated with both
     ``listens_for`` and ``uses_columns`` will receive.
@@ -192,6 +198,14 @@ class PopulationManager:
     def __init__(self):
         self._population = pd.DataFrame()
         self.growing = False
+        self.observers = defaultdict(set)
+
+    def register_observer(self, column, observer):
+        self.observers[column].add(observer)
+
+    def deregister_observer(self, column, observer):
+        if observer in self.observers[column]:
+            self.observers[column].remove(observer)
 
     def setup(self, builder):
         self.clock = builder.clock()
