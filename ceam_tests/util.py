@@ -25,9 +25,9 @@ def setup_simulation(components, population_size = 100, start=datetime(1990, 1, 
 
     return simulation
 
-def pump_simulation(simulation, time_step_days=30.5, duration=None, iterations=None):
+def pump_simulation(simulation, time_step_days=30.5, duration=None, iterations=None, year_start=1990):
     timestep = timedelta(days=time_step_days) 
-    start_time = datetime(1990, 1, 1)
+    start_time = datetime(year_start, 1, 1)
     simulation.current_time = start_time
     iteration_count = 0
 
@@ -115,6 +115,9 @@ def generate_test_population(event):
     else:
         population['fractional_age'] = randomness.random('test_population_age', population.index) * 100
     population['age'] = population['fractional_age'].astype(int)
+
+    population['age'] = 0
+    population['fractional_age'] = 0
 
     population['sex'] = randomness.choice('test_population_sex', population.index, ['Male', 'Female'])
     population['alive'] = True
