@@ -6,6 +6,7 @@ import os
 import os.path
 import argparse
 from time import time
+from collections import Iterable
 import re
 from datetime import datetime, timedelta
 from pprint import pformat
@@ -77,6 +78,9 @@ class SimulationContext:
         i = 0
         while i < len(components):
             component = components[i]
+            if isinstance(component, Iterable):
+                # Unpack lists of components so their constituent components get initialized
+                components.extend(component)
             if hasattr(component, 'setup') and component not in done:
                 sub_components = component.setup(builder)
                 done.add(component)
