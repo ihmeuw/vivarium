@@ -65,7 +65,7 @@ def joint_value_combiner(value, mutator, *args, **kwargs):
     """
     new_value = mutator(*args, **kwargs)
     if isinstance(value, NullValue):
-        return new_value
+        return 1 - new_value
     else:
         return value * (1-new_value)
 
