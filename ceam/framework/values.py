@@ -77,14 +77,25 @@ def rescale_post_processor(a):
     return from_yearly(a, timedelta(days=time_step))
 
 def joint_value_post_processor(a):
-    """The final step in calculating joint values like PAFs. If the combiner
-    is joint_value_combiner then the effective formula is:
+    """The final step in calculating joint values like dis weights. 
+    If the combiner is joint_value_combiner then the effective formula is:
     :math:`value(args) = 1 -  \prod_{i=1}^{mutator count} 1-mutator_{i}(args)`
     """
     if isinstance(a, NullValue):
         return pd.Series(1, index=a.index)
     else:
         return 1-a
+
+def joint_paf_post_processor(a):
+    """The final step in calculating joint PAFs. If there are multiple
+    risks in a simulation associated with a specific cause, then
+    effective_incidence = base inc * (1 - Joint PAF) where 
+    Joint PAF = 1 - (1 - PAF1) * (1 - PAF2) ... * (1 - PAFi)
+    """
+    if isinstance(a, NullValue):
+        return pd.Series(1, index=a.index)
+    else:
+        return 1-(1-a)
 
 class Pipeline:
     """A single mutable value.
