@@ -63,7 +63,7 @@ class SimulationContext:
 
         self.values.declare_pipeline(re.compile('paf\..*'),
                 combiner=joint_value_combiner,
-                post_processor=joint_value_post_processor,
+                post_processor=joint_paf_post_processor,
                 source=NullValue)
 
         self.values.declare_pipeline(re.compile('csmr_data'),
