@@ -33,7 +33,7 @@ def set_up_test_parameters(simulation, multiple_risks_test):
     incidence_rota = build_table(10, ['age', 'year', 'sex', 'rate'])
     simulation_incidence.source = simulation.tables.build_table(incidence_rota)
 
-    # Set PAF arbitrarily to .5 for stunting
+    # Set PAF arbitrarily to .75 for stunting
     stunting_paf = build_table(.75, ['age', 'year', 'sex', 'PAF'])
     simulation_stunting_paf = simulation.values.get_value('paf_of_stunting_on_diarrhea_due_to_rotaviral_entiritis')
     simulation_stunting_paf.source = simulation.tables.build_table(stunting_paf)
@@ -49,12 +49,12 @@ def set_up_test_parameters(simulation, multiple_risks_test):
 
     # If testing a simulation with 2 risk factors, set PAF and RR for unsafe_sanitation as well
     if multiple_risks_test:
-        # Set PAF arbitrarily to .5 for stunting
+        # Set PAF arbitrarily to .25 for unsafe sanitation
         unsafe_sanitation_paf = build_table(.25, ['age', 'year', 'sex', 'PAF'])
         simulation_unsafe_sanitation_paf = simulation.values.get_value('paf_of_unsafe_sanitation_on_diarrhea_due_to_rotaviral_entiritis')
         simulation_unsafe_sanitation_paf.source = simulation.tables.build_table(unsafe_sanitation_paf)
 
-        # Set RR arbitrarily to 2 for severe stunting, 1 for all other categories
+        # Set RR arbitrarily to 2 for severe unsafe_sanitation, 1 for all other categories
         unsafe_sanitation_rr = build_table(2, ['age', 'year', 'sex', 'cat1'])
         unsafe_sanitation_rr['cat2'] = 1
         unsafe_sanitation_rr['cat3'] = 1
