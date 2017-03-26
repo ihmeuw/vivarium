@@ -84,7 +84,7 @@ def joint_value_post_processor(a):
     if isinstance(a, NullValue):
         return pd.Series(1, index=a.index)
     else:
-        return 1-a
+        return 1-(1-a)
 
 class Pipeline:
     """A single mutable value.
