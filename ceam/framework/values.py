@@ -95,17 +95,6 @@ def joint_value_post_processor(a):
         joint_value = 1 - product
         return joint_value
 
-def joint_paf_post_processor(a):
-    """The final step in calculating joint PAFs. If there are multiple
-    risks in a simulation associated with a specific cause, then
-    effective_incidence = base inc * (1 - Joint PAF) where 
-    Joint PAF = 1 - (1 - PAF1) * (1 - PAF2) ... * (1 - PAFi)
-    """
-    if isinstance(a, NullValue):
-        return pd.Series(1, index=a.index)
-    else:
-        return 1-(1-a)
-
 class Pipeline:
     """A single mutable value.
 
