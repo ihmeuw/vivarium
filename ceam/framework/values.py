@@ -6,6 +6,7 @@ import re
 from datetime import timedelta
 
 import pandas as pd
+import numpy as np
 
 from ceam import config, CEAMError
 
@@ -81,10 +82,18 @@ def joint_value_post_processor(a):
     If the combiner is joint_value_combiner then the effective formula is:
     :math:`value(args) = 1 -  \prod_{i=1}^{mutator count} 1-mutator_{i}(args)`
     """
-    if isinstance(a, NullValue):
-        return pd.Series(1, index=a.index)
+    # if there is only one value, return the value
+    if len(a) == 1:
+        return a[0]
+
+    # if there are multiple values, calculate the joint value
     else:
-        return 1-a
+        product = 1
+        for v in a:
+            new_value = (1-v)
+            product = product * new_value
+        joint_value = 1 - product
+        return joint_value
 
 def joint_paf_post_processor(a):
     """The final step in calculating joint PAFs. If there are multiple
