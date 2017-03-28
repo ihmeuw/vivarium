@@ -249,6 +249,3 @@ def test_that_rrs_applied_correctly_with_multiple_risks():
         "In the case of this test the answer should be 7.5." + \
         "That is, (10 * [1 - Joint PAF] * 2 * 2) = 7.5." +\
         "Where Joint PAF = (1 - [1 - .75] * [1 - .25])"
-
-# End.
-

@@ -57,14 +57,14 @@ class SimulationContext:
 
     def setup(self):
         self.values.declare_pipeline('disability_weight',
-                combiner=joint_value_combiner,
+                combiner=list_combiner,
                 post_processor=lambda a: rescale_post_processor(joint_value_post_processor(a)),
-                source=lambda index: pd.Series(1.0, index=index))
+                source=lambda index: [pd.Series(0, index=index)])
 
         self.values.declare_pipeline(re.compile('paf\..*'),
-                combiner=joint_value_combiner,
+                combiner=list_combiner,
                 post_processor=joint_value_post_processor,
-                source=NullValue)
+                source=lambda index: [pd.Series(0, index=index)])
 
         self.values.declare_pipeline(re.compile('csmr_data'),
                 combiner=list_combiner,
