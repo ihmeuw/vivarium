@@ -77,14 +77,29 @@ def rescale_post_processor(a):
     return from_yearly(a, timedelta(days=time_step))
 
 def joint_value_post_processor(a):
-    """The final step in calculating joint values like PAFs. If the combiner
-    is joint_value_combiner then the effective formula is:
+    """The final step in calculating joint values like disability weights. 
+    If the combiner is joint_value_combiner then the effective formula is:
     :math:`value(args) = 1 -  \prod_{i=1}^{mutator count} 1-mutator_{i}(args)`
+
+    Parameters
+    ----------
+    a : list
+        a is a list of series, indexed on the population. Each series
+        corresponds to a different value in the pipeline and each row
+        in a series contains a value that applies to a specific simulant.
     """
-    if isinstance(a, NullValue):
-        return pd.Series(1, index=a.index)
+    # if there is only one value, return the value
+    if len(a) == 1:
+        return a[0]
+
+    # if there are multiple values, calculate the joint value
     else:
-        return 1-a
+        product = 1
+        for v in a:
+            new_value = (1-v)
+            product = product * new_value
+        joint_value = 1 - product
+        return joint_value
 
 class Pipeline:
     """A single mutable value.
