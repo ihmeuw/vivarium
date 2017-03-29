@@ -12,7 +12,6 @@ from ceam_public_health.components.risks.categorical_risk_handler import Categor
 ##########################################################
 
 
-@pytest.fixture
 def set_up_test_parameters(simulation, multiple_risks_test):
     """
     Fixture that sets up a base incidence, PAF, and RR.
@@ -76,7 +75,6 @@ def set_up_test_parameters(simulation, multiple_risks_test):
     return simulation
 
 
-@pytest.fixture
 def set_up_exposures(simulation, multiple_risks_test, full_exposure):
     """
     Parameters

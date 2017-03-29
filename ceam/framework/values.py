@@ -6,7 +6,6 @@ import re
 from datetime import timedelta
 
 import pandas as pd
-import numpy as np
 
 from ceam import config, CEAMError
 
@@ -78,7 +77,7 @@ def rescale_post_processor(a):
     return from_yearly(a, timedelta(days=time_step))
 
 def joint_value_post_processor(a):
-    """The final step in calculating joint values like dis weights. 
+    """The final step in calculating joint values like disability weights. 
     If the combiner is joint_value_combiner then the effective formula is:
     :math:`value(args) = 1 -  \prod_{i=1}^{mutator count} 1-mutator_{i}(args)`
 
