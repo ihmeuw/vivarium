@@ -165,8 +165,8 @@ def test_risk_deletion_with_one_risk():
         simulation.population.population.index)
 
     assert np.all(rota_inc_unexposed == 2.5), "risk deleted incidence rate" + \
-        "should be equal to base rate * (1-PAF). In the case of this test" + \
-        "the answer should be 2.5. That is, (10 * (1-.75)) = 2.5"
+        " should be equal to base rate * (1-PAF). In the case of this test" + \
+        " the answer should be 2.5. That is, (10 * (1-.75)) = 2.5"
 
 
 def test_that_rrs_applied_correctly_with_one_risk():
@@ -186,7 +186,7 @@ def test_that_rrs_applied_correctly_with_one_risk():
         simulation.population.population.index)
 
     assert np.all(rota_inc_exposed == 5), "incidence rate should be equal" + \
-        "to base rate * (1-PAF) * RR. In the case of this test the answer" + \
+        " to base rate * (1-PAF) * RR. In the case of this test the answer" + \
         " should be 5. (10 * (1-.75) * 2)"
 
 
@@ -213,10 +213,10 @@ def test_risk_deletion_with_multiple_risks():
         simulation.population.population.index)
 
     assert np.all(rota_inc_unexposed == 1.875), "risk deleted incidence" + \
-        "should be equal to base rate * (1 - (1 - PAF1) * (1 - PAF2))." + \
-        "In the case of this test the answer should be 1.875." + \
-        "That is, (10 * (1 - Joint PAF) = 1.875, where" + \
-        "Joint PAF = (1 - (1 - .75) * (1 - .25))"
+        " should be equal to base rate * (1 - (1 - PAF1) * (1 - PAF2))." + \
+        " In the case of this test the answer should be 1.875." + \
+        " That is, (10 * (1 - Joint PAF) = 1.875, where" + \
+        " Joint PAF = (1 - (1 - .75) * (1 - .25))"
 
 
 def test_that_rrs_applied_correctly_with_multiple_risks():
@@ -237,7 +237,7 @@ def test_that_rrs_applied_correctly_with_multiple_risks():
         simulation.population.population.index)
 
     assert np.all(rota_inc_exposed == 7.5), "risk deleted incidence rate" + \
-        "should be equal to base rate * (1 - (1 - PAF1) * (1 - PAF2))." + \
-        "In the case of this test the answer should be 7.5." + \
-        "That is, (10 * [1 - Joint PAF] * 2 * 2) = 7.5." +\
-        "Where Joint PAF = (1 - [1 - .75] * [1 - .25])"
+        " should be equal to base rate * (1 - (1 - PAF1) * (1 - PAF2))." + \
+        " In the case of this test the answer should be 7.5." + \
+        " That is, (10 * [1 - Joint PAF] * 2 * 2) = 7.5." +\
+        " Where Joint PAF = (1 - [1 - .75] * [1 - .25])"
