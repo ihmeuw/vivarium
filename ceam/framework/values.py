@@ -81,6 +81,13 @@ def joint_value_post_processor(a):
     """The final step in calculating joint values like dis weights. 
     If the combiner is joint_value_combiner then the effective formula is:
     :math:`value(args) = 1 -  \prod_{i=1}^{mutator count} 1-mutator_{i}(args)`
+
+    Parameters
+    ----------
+    a : list
+        a is a list of series, indexed on the population. Each series
+        corresponds to a different value in the pipeline and each row
+        in a series contains a value that applies to a specific simulant.
     """
     # if there is only one value, return the value
     if len(a) == 1:
