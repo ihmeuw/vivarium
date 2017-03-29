@@ -7,14 +7,14 @@ from ceam_public_health.components.diarrhea_disease_model import diarrhea_factor
 from ceam_public_health.components.risks.categorical_risk_handler import CategoricalRiskHandler
 
 
-##########################################################
-# Step 1. Create fixtures for risk deletion and rr tests #
-##########################################################
+###########################################################
+# Step 1. Create functions for risk deletion and rr tests #
+###########################################################
 
 
 def set_up_test_parameters(simulation, multiple_risks_test):
     """
-    Fixture that sets up a base incidence, PAF, and RR.
+    Function that sets up base incidence rates, PAFs, and RRs for tests below
 
     Parameters
     ----------
@@ -77,6 +77,8 @@ def set_up_test_parameters(simulation, multiple_risks_test):
 
 def set_up_exposures(simulation, multiple_risks_test, full_exposure):
     """
+    Function that sets up exposures for tests below
+
     Parameters
     ----------
     simulation: object
