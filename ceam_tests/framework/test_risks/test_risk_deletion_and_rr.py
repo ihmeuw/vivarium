@@ -12,7 +12,6 @@ from ceam_public_health.components.risks.categorical_risk_handler import Categor
 ##########################################################
 
 
-# FIXME: @alecwd: Is 'object' the correct way to classify 'simulation'?
 @pytest.fixture
 def set_up_test_parameters(simulation, multiple_risks_test):
     """
@@ -21,7 +20,7 @@ def set_up_test_parameters(simulation, multiple_risks_test):
     Parameters
     ----------
     simulation: object
-        CEAM simulation object
+        CEAM simulation object. Simulation is an instance of SimulationContext
 
     multiple_risks_test: Bool
         Set to true if testing a cause associated with multiple risk factors
@@ -77,14 +76,13 @@ def set_up_test_parameters(simulation, multiple_risks_test):
     return simulation
 
 
-# FIXME: @alecwd: Is 'object' the correct way to classify 'simulation'?
 @pytest.fixture
 def set_up_exposures(simulation, multiple_risks_test, full_exposure):
     """
     Parameters
     ----------
     simulation: object
-        CEAM simulation object
+        CEAM simulation object. Simulation is an instance of SimulationContext
 
     multiple_risks_test: Bool
         Set to true if doing a test of a simulation with multiple risk factors
