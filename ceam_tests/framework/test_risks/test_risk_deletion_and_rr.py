@@ -151,10 +151,7 @@ def set_up_exposures(simulation, multiple_risks_test, full_exposure):
 # Step 2. Conduct tests for a cause associated with only 1 risk factor #
 ########################################################################
 
-# FIXME: Expect one risk simulation tests to fail until the PAF pipeline is set
-#     up to return base incidence * (1 - PAF) for a cause with one risk
 
-@pytest.mark.xfail
 def test_risk_deletion_with_one_risk():
     simulation = setup_simulation(components=[generate_test_population,
                                               CategoricalRiskHandler(241, 'stunting')]
@@ -176,7 +173,6 @@ def test_risk_deletion_with_one_risk():
         "the answer should be 2.5. That is, (10 * (1-.75)) = 2.5"
 
 
-@pytest.mark.xfail
 def test_that_rrs_applied_correctly_with_one_risk():
     simulation = setup_simulation(components=[generate_test_population,
                                               CategoricalRiskHandler(241, 'stunting')]
