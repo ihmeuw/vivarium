@@ -9,7 +9,7 @@ def read_component_configuration(path):
         with open(path) as f:
             component_config = yaml.load(f)
         if 'configuration_defaults' in component_config:
-            config.read_dict(component_config['configuration_defaults'], layer='base', source=path)
+            config.read_dict(component_config['configuration_defaults'], layer='model_override', source=path)
 
         def process_level(level, prefix):
             component_list = []
