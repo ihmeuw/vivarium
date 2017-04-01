@@ -73,7 +73,7 @@ def rescale_post_processor(a):
     """Assumes that the value is an annual rate and rescales it to the 
     current time step.
     """
-    time_step = config.getfloat('simulation_parameters', 'time_step')
+    time_step = config.simulation_parameters.time_step
     return from_yearly(a, timedelta(days=time_step))
 
 def joint_value_post_processor(a):
@@ -163,10 +163,11 @@ class ValuesManager:
         if not self._pipelines[name].configured:
             if preferred_combiner:
                 self._pipelines[name].combiner = preferred_combiner
+                self._pipelines[name].configured = True
             if preferred_post_processor:
                 self._pipelines[name].post_processor = preferred_post_processor
+                self._pipelines[name].configured = True
 
-        self._pipelines[name].configured = True
         return self._pipelines[name]
 
     def get_rate(self, name):

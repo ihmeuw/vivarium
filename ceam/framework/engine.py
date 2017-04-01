@@ -35,11 +35,12 @@ class Builder:
         self.lookup = context.tables.build_table
         self.value = context.values.get_value
         self.rate = context.values.get_rate
+        self.declare_pipeline = context.values.declare_pipeline
         self.modifies_value = context.values.mutator
         self.emitter = context.events.get_emitter
         self.population_view = context.population.get_view
         self.clock = lambda: lambda: context.current_time
-        draw_number = config.getint('run_configuration', 'draw_number')
+        draw_number = config.run_configuration.draw_number
         self.randomness = lambda key: RandomnessStream(key, self.clock(), draw_number)
 
 class SimulationContext:
@@ -56,36 +57,26 @@ class SimulationContext:
         self.current_time = None
 
     def setup(self):
-        self.values.declare_pipeline('disability_weight',
-                combiner=joint_value_combiner,
-                post_processor=lambda a: rescale_post_processor(joint_value_post_processor(a)),
-                source=lambda index: pd.Series(1.0, index=index))
-
-        self.values.declare_pipeline(re.compile('paf\..*'),
-                combiner=joint_value_combiner,
-                post_processor=joint_value_post_processor,
-                source=NullValue)
-
-        self.values.declare_pipeline(re.compile('csmr_data'),
-                combiner=list_combiner,
-                post_processor=None,
-                source=list)
-
-        self.values.declare_pipeline('metrics', post_processor=None, source=lambda index: {})
         builder = Builder(self)
         components = [self.values, self.events, self.population, self.tables] + list(self.components)
         done = set()
+
         i = 0
         while i < len(components):
             component = components[i]
             if isinstance(component, Iterable):
                 # Unpack lists of components so their constituent components get initialized
                 components.extend(component)
-            if hasattr(component, 'setup') and component not in done:
-                sub_components = component.setup(builder)
-                done.add(component)
-                if sub_components:
-                    components.extend(sub_components)
+            if component not in done:
+                if hasattr(component, 'configuration_defaults'):
+                    # This reapplies configuration from some components but
+                    # that shouldn't be a problem.
+                    config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
+                if hasattr(component, 'setup'):
+                    sub_components = component.setup(builder)
+                    done.add(component)
+                    if sub_components:
+                        components.extend(sub_components)
             i += 1
         self.values.setup_components(components)
         self.events.setup_components(components)
@@ -108,19 +99,19 @@ def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, 
 @emits('post_setup')
 @emits('simulation_end')
 def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
-    start = config.getint('simulation_parameters', 'year_start')
+    start = config.simulation_parameters.year_start
     start = datetime(start, 6, 1)
-    stop = config.getint('simulation_parameters', 'year_end')
+    stop = config.simulation_parameters.year_end
     stop = datetime(stop, 6, 1)
-    time_step = config.getfloat('simulation_parameters', 'time_step')
+    time_step = config.simulation_parameters.time_step
     time_step = timedelta(days=time_step)
 
     simulation.current_time = start
 
-    population_size = config.getint('simulation_parameters', 'population_size')
+    population_size = config.simulation_parameters.population_size
 
-    if config.get('simulation_parameters', 'initial_age') != '':
-        simulant_creator(population_size, population_configuration={'initial_age': config.getfloat('simulation_parameters', 'initial_age')})
+    if config.simulation_parameters.initial_age != '':
+        simulant_creator(population_size, population_configuration={'initial_age': config.simulation_parameters.initial_age})
     else:
         simulant_creator(population_size)
 
@@ -144,7 +135,9 @@ def run_simulation(simulation):
 
     event_loop(simulation)
 
-    metrics = simulation.values.get_value('metrics')(simulation.population.population.index)
+    metrics = simulation.values.get_value('metrics')
+    metrics.source = lambda index: {}
+    metrics = metrics(simulation.population.population.index)
     metrics['simulation_run_time'] = time() - start
     return metrics
 
@@ -155,32 +148,29 @@ def configure(draw_number=0, verbose=False, simulation_config=None):
         else:
             config.read(simulation_config)
 
-    config.set('run_configuration', 'draw_number', str(draw_number))
+    config.run_configuration.set_with_metadata('draw_number', draw_number, layer='base', source='command_line_argument')
 
-def run_comparison(component_config, results_path=None):
-    component_configurations = read_component_configuration(component_config)
-    all_metrics = []
-    for configuration in component_configurations.values():
-        _log.debug('Starting comparison: {}'.format(configuration['name']))
-        config['run_configuration']['configuration_name'] = configuration['name']
-        simulation = setup_simulation(configuration['components'])
-        metrics = run_simulation(simulation)
-        metrics['comparison'] = configuration['name']
-        metrics['draw'] =  config.getint('run_configuration', 'draw_number')
-        _log.debug(pformat(metrics))
-        all_metrics.append(metrics)
+def run(component_config, results_path=None):
+    components = read_component_configuration(component_config)
+
+    simulation = setup_simulation(components)
+    metrics = run_simulation(simulation)
+    metrics['draw'] =  config.run_configuration.draw_number
+
+    _log.debug(pformat(metrics))
+
     if results_path:
         try:
             os.makedirs(os.path.dirname(results_path))
         except FileExistsError:
             # Directory already exists, which is fine
             pass
-        dump_results(pd.DataFrame(all_metrics), results_path)
+        dump_results(pd.DataFrame([metrics]), results_path)
 
 def run_configuration(component_config, results_path=None, sub_configuration_name='base'):
     component_configurations = read_component_configuration(component_config)
     configuration = component_configurations[sub_configuration_name]
-    config['run_configuration']['configuration_name'] = sub_configuration_name
+    config.run_configuration.configuration_name = sub_configuration_name
     simulation = setup_simulation(configuration['components'])
     metrics = run_simulation(simulation)
     metrics['comparison'] = configuration['name']
@@ -192,10 +182,10 @@ def run_configuration(component_config, results_path=None, sub_configuration_nam
             pass
         dump_results(pd.DataFrame([metrics]), results_path)
 
-def run(args):
+def do_command(args):
     if args.command == 'run':
         configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
-        run_comparison(args.components, results_path=args.results_path)
+        run(args.components, results_path=args.results_path)
     elif args.command == 'list_events':
         if args.components:
             component_configurations = read_component_configuration(args.components)
@@ -222,8 +212,8 @@ def main():
     logging.basicConfig(filename=args.log,level=log_level)
 
     try:
-        run(args)
-    except BdbQuit:
+        do_command(args)
+    except (BdbQuit, KeyboardInterrupt):
         raise
     except:
         if args.pdb:
