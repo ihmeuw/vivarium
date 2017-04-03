@@ -71,12 +71,35 @@ def test_source_metadata():
     d.read_dict({'test_key': 'test_value'}, layer='inner', source='initial_load')
     d.read_dict({'test_key': 'test_value2'}, layer='outer', source='update')
 
-    assert d.source('test_key') == [('inner', 'initial_load', 'test_value'), ('outer', 'update', 'test_value2')]
+    assert d.metadata('test_key') == [{'layer': 'inner', 'default': False, 'source': 'initial_load', 'value': 'test_value'}, {'layer': 'outer', 'default': True, 'source': 'update', 'value': 'test_value2'}]
 
 def test_exception_on_source_for_missing_key():
     d = ConfigTree(layers=['inner', 'outer'])
     d.read_dict({'test_key': 'test_value'}, layer='inner', source='initial_load')
 
     with pytest.raises(KeyError) as excinfo:
-        source = d.source('missing_key')
+        source = d.metadata('missing_key')
     assert 'missing_key' in str(excinfo.value)
+
+def test_drop_layer():
+    d = ConfigTree(layers=['a', 'b', 'c'])
+    d.set_with_metadata('test_key', 'test_value', 'a')
+    d.set_with_metadata('test_key', 'test_value2', 'b')
+    d.set_with_metadata('test_key', 'test_value3', 'c')
+
+    assert d.test_key == 'test_value3'
+    d.drop_layer('c')
+    assert d.test_key == 'test_value2'
+
+    with pytest.raises(KeyError):
+        d.drop_layer('c')
+
+def test_reset_layer():
+    d = ConfigTree(layers=['a', 'b', 'c'])
+    d.set_with_metadata('test_key', 'test_value', 'a')
+    d.set_with_metadata('test_key', 'test_value2', 'b')
+
+    assert d.test_key == 'test_value2'
+    d.reset_layer('b')
+    assert d.test_key == 'test_value'
+    d.set_with_metadata('test_key', 'test_value3', 'b')

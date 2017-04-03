@@ -1,4 +1,4 @@
-import os.path
+import os
 import yaml
 
 import numpy
@@ -12,4 +12,5 @@ class CEAMError(Exception):
     pass
 
 config = ConfigTree(layers=['base', 'component_configs', 'model_override', 'override'])
-config.load(os.path.expanduser('~/ceam.yaml'), layer='override', source=os.path.expanduser('~/ceam.yaml'))
+if os.path.exists(os.path.expanduser('~/ceam.yaml')):
+    config.load(os.path.expanduser('~/ceam.yaml'), layer='override', source=os.path.expanduser('~/ceam.yaml'))

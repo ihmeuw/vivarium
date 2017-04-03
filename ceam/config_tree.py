@@ -23,7 +23,7 @@ class ConfigNode:
     def get_value(self, layer=None):
         return self.get_value_with_source(layer)[1]
 
-    def source(self):
+    def metadata(self):
         result = []
         for layer in self._layers:
             if layer in self._values:
@@ -42,6 +42,13 @@ class ConfigNode:
         if not layer:
             layer = self._layers[-1]
         self._values[layer] = (source, value)
+
+    def drop_layer(self, layer):
+        self.reset_layer(layer)
+        self._layers.remove(layer)
+
+    def reset_layer(self, layer):
+        del self._values[layer]
 
 class ConfigTree:
     def __init__(self, data=None, layers=None):
@@ -86,11 +93,11 @@ class ConfigTree:
 
         if isinstance(value, dict):
             if name not in self._children or not isinstance(self._children[name], ConfigTree):
-                self._children[name] = ConfigTree(layers=self._layers)
+                self._children[name] = ConfigTree(layers=list(self._layers))
             self._children[name].read_dict(value, layer, source)
         else:
             if name not in self._children or not isinstance(self._children[name], ConfigNode):
-                self._children[name] = ConfigNode(self._layers)
+                self._children[name] = ConfigNode(list(self._layers))
             child = self._children[name]
             child.set_value(value, layer, source)
 
@@ -109,15 +116,25 @@ class ConfigTree:
             with open(f) as f:
                 self.loads(f.read(), layer=layer, source=source)
 
-    def source(self, key=None):
+    def metadata(self, key=None):
        if key in self._children:
-           return self._children[key].source()
+           return self._children[key].metadata()
        else:
            head, _, tail = key.partition('.')
            if head in self._children:
-               return self._children[head].source(source=tail)
+               return self._children[head].metadata(key=tail)
            else:
                raise KeyError(key)
+
+    def reset_layer(self, layer):
+        for child in self._children.values():
+            child.reset_layer(layer)
+
+    def drop_layer(self, layer):
+        for child in self._children.values():
+            print(child)
+            child.drop_layer(layer)
+        self._layers.remove(layer)
 
     def __len__(self):
         return len(self._children)
