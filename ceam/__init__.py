@@ -4,7 +4,7 @@ import yaml
 import numpy
 numpy.seterr(all='raise')
 
-from hconf import ConfigTree
+from ceam.config_tree import ConfigTree
 
 __all__ = ['config', 'CEAMError']
 
