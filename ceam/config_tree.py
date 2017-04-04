@@ -126,13 +126,19 @@ class ConfigTree:
            else:
                raise KeyError(key)
 
-    def reset_layer(self, layer):
-        for child in self._children.values():
-            child.reset_layer(layer)
+    def reset_layer(self, layer, preserve_keys=[]):
+        self._reset_layer(layer, [k.split('.') for k in preserve_keys], prefix=[])
+
+    def _reset_layer(self, layer, preserve_keys, prefix):
+        for key, child in self._children.items():
+            if prefix + [key] not in preserve_keys:
+                if isinstance(child, ConfigTree):
+                    child._reset_layer(layer, preserve_keys, prefix + [key])
+                else:
+                    child.reset_layer(layer)
 
     def drop_layer(self, layer):
         for child in self._children.values():
-            print(child)
             child.drop_layer(layer)
         self._layers.remove(layer)
 

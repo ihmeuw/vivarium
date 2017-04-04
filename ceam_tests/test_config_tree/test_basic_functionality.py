@@ -103,3 +103,31 @@ def test_reset_layer():
     d.reset_layer('b')
     assert d.test_key == 'test_value'
     d.set_with_metadata('test_key', 'test_value3', 'b')
+
+def test_reset_layer_with_preserved_keys():
+    d = ConfigTree(layers=['a', 'b', 'c'])
+    d.set_with_metadata('test_key', 'test_value', 'a')
+    d.set_with_metadata('test_key2', 'test_value2', 'a')
+    d.set_with_metadata('test_key3', 'test_value3', 'a')
+    d.set_with_metadata('test_key4', 'test_value4', 'a')
+    d.set_with_metadata('test_key', 'test_value5', 'b')
+    d.set_with_metadata('test_key2', 'test_value6', 'b')
+    d.set_with_metadata('test_key3', 'test_value7', 'b')
+    d.set_with_metadata('test_key4', 'test_value8', 'b')
+
+    d.reset_layer('b', preserve_keys=['test_key2', 'test_key3'])
+    assert d.test_key == 'test_value'
+    assert d.test_key2 == 'test_value6'
+    assert d.test_key3 == 'test_value7'
+    assert d.test_key4 == 'test_value4'
+
+def test_reset_layer_with_preserved_keys_at_depth():
+    d = ConfigTree(layers=['a', 'b', 'c'])
+    d.read_dict({'test_key': {'test_key2': 'test_value', 'test_key3': {'test_key4': 'test_value2'}}, 'test_key5': {'test_key6': 'test_value3', 'test_key7': 'test_value4'}}, layer='a')
+    d.read_dict({'test_key': {'test_key2': 'test_value5', 'test_key3': {'test_key4': 'test_value6'}}, 'test_key5': {'test_key6': 'test_value7', 'test_key7': 'test_value8'}}, layer='b')
+
+    d.reset_layer('b', preserve_keys=['test_key.test_key3', 'test_key.test_key5.test_key6'])
+    d.test_key.test_key2 == 'test_value'
+    d.test_key.test_key3.test_key4 == 'test_value6'
+    d.test_key5.test_key6 == 'test_value7'
+    d.test_key5.test_key7 == 'test_value4'
