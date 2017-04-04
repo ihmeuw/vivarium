@@ -70,7 +70,13 @@ class ConfigTree:
     def __setattr__(self, name, value):
         self.set_with_metadata(name, value, layer=None, source=None)
 
+    def __setitem__(self, name, value):
+        self.set_with_metadata(name, value, layer=None, source=None)
+
     def __getattr__(self, name):
+        return self.get_from_layer(name)
+
+    def __getitem__(self, name):
         return self.get_from_layer(name)
 
     def __contains__(self, name):

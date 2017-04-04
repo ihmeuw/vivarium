@@ -15,6 +15,14 @@ def test_single_layer():
     assert d.test_key2 == 'test_value3'
     assert d.test_key == 'test_value'
 
+def test_dictionary_style_access():
+    d = ConfigTree()
+    d.test_key = 'test_value'
+    d['test_key2'] = 'test_value2'
+
+    assert d['test_key'] == 'test_value'
+    assert d.test_key2 == 'test_value2'
+
 def test_get_missing():
     d = ConfigTree()
     d.test_key = 'test_value'
