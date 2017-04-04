@@ -13,6 +13,7 @@ setup(name='ceam',
             'pandas',
             'numpy',
             'scipy',
+            'yaml',
         ]
      )
 
