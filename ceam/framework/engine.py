@@ -159,6 +159,10 @@ def run(component_config, results_path=None):
 
     _log.debug(pformat(metrics))
 
+    unused_config_keys = config.unused_keys()
+    if unused_config_keys:
+        _log.debug("Some configuration keys not used during run: {}".format(unused_config_keys))
+
     if results_path:
         try:
             os.makedirs(os.path.dirname(results_path))
