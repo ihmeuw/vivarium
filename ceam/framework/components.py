@@ -43,8 +43,8 @@ def load(component_list):
             component = getattr(import_module(module_path), component_name)
 
             # Establish the initial configuration
-            if hasattr(component, 'model_configuration'):
-                config.read_dict(component.model_configuration, layer='component_configs', source=component)
+            if hasattr(component, 'configuration_defaults'):
+                config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
 
             if call:
                 component = component(*args)
