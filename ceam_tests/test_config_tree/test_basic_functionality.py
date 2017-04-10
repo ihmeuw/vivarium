@@ -139,3 +139,16 @@ def test_reset_layer_with_preserved_keys_at_depth():
     d.test_key.test_key3.test_key4 == 'test_value6'
     d.test_key5.test_key6 == 'test_value7'
     d.test_key5.test_key7 == 'test_value4'
+
+def test_unused_keys():
+    d = ConfigTree({'test_key': {'test_key2': 'test_value', 'test_key3': 'test_value2'}})
+
+    assert d.unused_keys() == {'test_key.test_key2', 'test_key.test_key3'}
+
+    _ = d.test_key.test_key2
+
+    assert d.unused_keys() == {'test_key.test_key3'}
+
+    _ = d.test_key.test_key3
+
+    assert not d.unused_keys()

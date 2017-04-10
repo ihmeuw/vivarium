@@ -30,6 +30,7 @@ class ConfigNode:
             self._layers = layers
         self._values = {}
         self._frozen = False
+        self._accessed = False
 
     def freeze(self):
         """Causes the node to become read only. This is useful for loading and then
@@ -73,6 +74,7 @@ class ConfigNode:
         KeyError
             If the value is not set for the specified layer
         """
+        self._accessed = True
         return self.get_value_with_source(layer)[1]
 
     def metadata(self):
@@ -385,6 +387,20 @@ class ConfigTree:
         for child in self._children.values():
             child.drop_layer(layer)
         self._layers.remove(layer)
+
+    def unused_keys(self):
+        """Lists all keys which are present in the ConfigTree but which have not been accessed.
+        """
+        unused = set()
+        for k, c in self._children.items():
+            if isinstance(c, ConfigNode):
+                if not c._accessed:
+                    unused.add(k)
+            else:
+                for ck in c.unused_keys():
+                    unused.add(k+'.'+ck)
+        return unused
+
 
     def __len__(self):
         return len(self._children)
