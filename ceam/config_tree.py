@@ -404,3 +404,6 @@ class ConfigTree:
 
     def __len__(self):
         return len(self._children)
+
+    def __dir__(self):
+        return self._children.keys()
