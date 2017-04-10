@@ -8,8 +8,8 @@ def read_component_configuration(path):
     if path.endswith('.yaml'):
         with open(path) as f:
             component_config = yaml.load(f)
-        if 'model_configuration' in component_config:
-            config.read_dict(component_config['model_configuration'], layer='model_override', source=path)
+        if 'configuration' in component_config:
+            config.read_dict(component_config['configuration'], layer='model_override', source=path)
 
         def process_level(level, prefix):
             component_list = []
