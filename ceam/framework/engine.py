@@ -68,10 +68,10 @@ class SimulationContext:
                 # Unpack lists of components so their constituent components get initialized
                 components.extend(component)
             if component not in done:
-                if hasattr(component, 'configuration_defaults'):
+                if hasattr(component, 'model_configuration'):
                     # This reapplies configuration from some components but
                     # that shouldn't be a problem.
-                    config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
+                    config.read_dict(component.model_configuration, layer='component_configs', source=component)
                 if hasattr(component, 'setup'):
                     sub_components = component.setup(builder)
                     done.add(component)

@@ -8,8 +8,8 @@ def read_component_configuration(path):
     if path.endswith('.yaml'):
         with open(path) as f:
             component_config = yaml.load(f)
-        if 'configuration_defaults' in component_config:
-            config.read_dict(component_config['configuration_defaults'], layer='model_override', source=path)
+        if 'model_configuration' in component_config:
+            config.read_dict(component_config['model_configuration'], layer='model_override', source=path)
 
         def process_level(level, prefix):
             component_list = []
@@ -43,8 +43,8 @@ def load(component_list):
             component = getattr(import_module(module_path), component_name)
 
             # Establish the initial configuration
-            if hasattr(component, 'configuration_defaults'):
-                config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
+            if hasattr(component, 'model_configuration'):
+                config.read_dict(component.model_configuration, layer='component_configs', source=component)
 
             if call:
                 component = component(*args)
