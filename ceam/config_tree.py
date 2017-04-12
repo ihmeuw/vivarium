@@ -201,7 +201,10 @@ class ConfigTree:
     def __getattr__(self, name):
         """Get a configuration value from the outermost layer in which it appears.
         """
-        return self.get_from_layer(name)
+        try:
+            return self.get_from_layer(name)
+        except KeyError:
+            raise AttributeError(name)
 
     def __getitem__(self, name):
         """Get a configuration value from the outermost layer in which it appears.
@@ -406,4 +409,5 @@ class ConfigTree:
         return len(self._children)
 
     def __dir__(self):
-        return self._children.keys()
+        return list(self._children.keys()) + super(ConfigTree, self).__dir__()
+
