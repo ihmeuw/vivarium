@@ -89,8 +89,8 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
 
 def build_table(rate, columns=['age', 'year', 'sex', 'rate']):
     rows = []
-    start_year = config.getint('simulation_parameters', 'year_start')
-    end_year = config.getint('simulation_parameters', 'year_end')
+    start_year = config.simulation_parameters.year_start
+    end_year = config.simulation_parameters.year_end
     for age in range(0, 140):
         for year in range(start_year, end_year+1):
             for sex in ['Male', 'Female']:
