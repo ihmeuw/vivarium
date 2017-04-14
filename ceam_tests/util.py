@@ -26,6 +26,7 @@ def setup_simulation(components, population_size = 100, start=datetime(1990, 1, 
     return simulation
 
 def pump_simulation(simulation, time_step_days=30.5, duration=None, iterations=None):
+    config.simulation_parameters.time_step = time_step_days
     timestep = timedelta(days=time_step_days) 
     start_time = datetime(1990, 1, 1)
     simulation.current_time = start_time
