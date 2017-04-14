@@ -96,9 +96,8 @@ def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, 
     simulation.current_time += time_step
 
 @creates_simulants
-@emits('post_setup')
 @emits('simulation_end')
-def event_loop(simulation, simulant_creator, post_setup_emitter, end_emitter):
+def event_loop(simulation, simulant_creator, end_emitter):
     start = config.simulation_parameters.year_start
     start = datetime(start, 6, 1)
     stop = config.simulation_parameters.year_end
