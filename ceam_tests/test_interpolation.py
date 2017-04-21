@@ -54,10 +54,11 @@ def test_interpolation_with_function():
 def test_order_zero_2d():
     a = np.mgrid[0:5,0:5][0].reshape(25)
     b = np.mgrid[0:5,0:5][1].reshape(25)
-    df = pd.DataFrame({'a': a + 0.5, 'b': b + 0.5, 'c': b*3})
+    df = pd.DataFrame({'a': a + 0.5, 'b': b + 0.5, 'c': b*3, 'garbage': ['test']*len(a)})
 
-    i = Interpolation(df, (), ('a', 'b'), order=0)
+    i = Interpolation(df, ('garbage',), ('a', 'b'), order=0)
 
-    query = pd.DataFrame({'a': np.arange(4, step=0.011), 'b': np.arange(4, step=0.011)})
+    column = np.arange(4, step=0.011)
+    query = pd.DataFrame({'a': column, 'b': column, 'garbage': ['test']*(len(column))})
 
     assert np.allclose(query.b.astype(int) * 3, i(query))

@@ -36,7 +36,7 @@ class Interpolation:
                     # 2 variable interpolation
                     if order == 0:
                         x = base_table[list(self.parameter_columns)]
-                        y = base_table[base_table.columns.difference(self.parameter_columns)]
+                        y = base_table[value_column]
                         func = interpolate.NearestNDInterpolator(x=x.values, y=y.values)
                     else:
                         index, column = self.parameter_columns
