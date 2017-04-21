@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 from scipy import interpolate
 
@@ -9,7 +10,9 @@ class Interpolation:
         self.func = func
 
         if len(self.parameter_columns) not in [1, 2]:
-            raise NotImplementedError("Only interpolation over 1 or 2 variables is supported")
+            raise ValueError("Only interpolation over 1 or 2 variables is supported")
+        if len(self.parameter_columns) == 1 and order == 0:
+            raise ValueError("Order 0 only supported for 2d interpolation")
 
         # These are the columns which the interpolation function will approximate
         value_columns = sorted(data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
@@ -31,12 +34,17 @@ class Interpolation:
                 # For each value in the table build an interpolation function
                 if len(self.parameter_columns) == 2:
                     # 2 variable interpolation
-                    index, column = self.parameter_columns
-                    table = base_table.pivot(index=index, columns=column, values=value_column)
-                    x = table.index.values
-                    y = table.columns.values
-                    z = table.values
-                    func = interpolate.RectBivariateSpline(x=x, y=y, z=z, ky=order, kx=order).ev
+                    if order == 0:
+                        x = base_table[list(self.parameter_columns)]
+                        y = base_table[base_table.columns.difference(self.parameter_columns)]
+                        func = interpolate.NearestNDInterpolator(x=x.values, y=y.values)
+                    else:
+                        index, column = self.parameter_columns
+                        table = base_table.pivot(index=index, columns=column, values=value_column)
+                        x = table.index.values
+                        y = table.columns.values
+                        z = table.values
+                        func = interpolate.RectBivariateSpline(x=x, y=y, z=z, ky=order, kx=order).ev
                 else:
                     # 1 variable interpolation
                     x = base_table[self.parameter_columns[0]]

@@ -88,20 +88,29 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
 
 
 
-def build_table(rate, columns=['age', 'year', 'sex', 'rate']):
+def build_table(value, columns=['age', 'year', 'sex', 'rate']):
+    value_columns = columns[3:]
+    if not isinstance(value, list):
+        value = [value]*len(value_columns)
+
+    if len(value) != len(value_columns):
+        raise ValueError('Number of values must match number of value columns')
+
     rows = []
     start_year = config.simulation_parameters.year_start
     end_year = config.simulation_parameters.year_end
     for age in range(0, 140):
         for year in range(start_year, end_year+1):
             for sex in ['Male', 'Female']:
-                if rate is None:
-                    r = np.random.random()
-                elif callable(rate):
-                    r = rate(age, sex, year)
-                else:
-                    r = rate
-                rows.append([age, year, sex, r])
+                r_values = []
+                for v in value:
+                    if v is None:
+                        r_values.append(np.random.random())
+                    elif callable(v):
+                        r_values.append(v(age, sex, year))
+                    else:
+                        r_values.append(v)
+                rows.append([age, year, sex] + r_values)
     return pd.DataFrame(rows, columns=columns)
 
 @listens_for('initialize_simulants', priority=0)

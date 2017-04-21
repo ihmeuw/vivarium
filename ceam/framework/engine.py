@@ -64,6 +64,9 @@ class SimulationContext:
         i = 0
         while i < len(components):
             component = components[i]
+            if component is None:
+                raise ValueError('None in component list. This likely indicates a bug in a factory function')
+
             if isinstance(component, Iterable):
                 # Unpack lists of components so their constituent components get initialized
                 components.extend(component)
