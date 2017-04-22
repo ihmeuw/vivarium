@@ -130,5 +130,3 @@ def generate_test_population(event):
     population['alive'] = True
 
     event.population_view.update(population)
-
-# End.
