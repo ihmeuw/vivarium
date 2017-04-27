@@ -117,9 +117,6 @@ def generate_test_population(event):
         population['fractional_age'] = randomness.random('test_population_age', population.index) * 100
     population['age'] = population['fractional_age'].astype(int)
 
-    population['age'] = 0.0
-    population['fractional_age'] = 0
-
     population['sex'] = randomness.choice('test_population_sex', population.index, ['Male', 'Female'])
     population['alive'] = True
 
