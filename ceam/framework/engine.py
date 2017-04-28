@@ -152,7 +152,7 @@ def configure(draw_number=0, verbose=False, simulation_config=None):
 
     config.run_configuration.set_with_metadata('draw_number', draw_number, layer='base', source='command_line_argument')
 
-def run(component_config, results_path=None):
+def run(component_config):
     components = read_component_configuration(component_config)
 
     simulation = setup_simulation(components)
@@ -165,33 +165,19 @@ def run(component_config, results_path=None):
     if unused_config_keys:
         _log.debug("Some configuration keys not used during run: {}".format(unused_config_keys))
 
-    if results_path:
-        try:
-            os.makedirs(os.path.dirname(results_path))
-        except FileExistsError:
-            # Directory already exists, which is fine
-            pass
-        dump_results(pd.DataFrame([metrics]), results_path)
-
-def run_configuration(component_config, results_path=None, sub_configuration_name='base'):
-    component_configurations = read_component_configuration(component_config)
-    configuration = component_configurations[sub_configuration_name]
-    config.run_configuration.configuration_name = sub_configuration_name
-    simulation = setup_simulation(configuration['components'])
-    metrics = run_simulation(simulation)
-    metrics['comparison'] = configuration['name']
-    if results_path:
-        try:
-            os.makedirs(os.path.dirname(results_path))
-        except FileExistsError:
-            # Directory already exists, which is fine
-            pass
-        dump_results(pd.DataFrame([metrics]), results_path)
+    return metrics
 
 def do_command(args):
     if args.command == 'run':
         configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
-        run(args.components, results_path=args.results_path)
+        results = run(args.components)
+        if args.results_path:
+            try:
+                os.makedirs(os.path.dirname(args.results_path))
+            except FileExistsError:
+                # Directory already exists, which is fine
+                pass
+            dump_results(pd.DataFrame([results]), args.results_path)
     elif args.command == 'list_events':
         if args.components:
             component_configurations = read_component_configuration(args.components)
