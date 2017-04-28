@@ -238,6 +238,7 @@ class PopulationManager:
         self.growing = True
         emitter(Event(index, user_data=population_configuration))
         self.growing = False
+        return index
 
     def _population_view_injector(self, func, args, kwargs, columns, query=None):
         view = self.get_view(columns, query)
