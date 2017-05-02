@@ -8,8 +8,13 @@ def read_component_configuration(path):
     if path.endswith('.yaml'):
         with open(path) as f:
             component_config = yaml.load(f)
+            return prepare_component_configuration(component_config)
+    else:
+        raise ValueError("Unknown components configuration type: {}".format(path))
+
+def prepare_component_configuration(component_config):
         if 'configuration' in component_config:
-            config.read_dict(component_config['configuration'], layer='model_override', source=path)
+            config.read_dict(component_config['configuration'], layer='model_override', source=component_config)
 
         def process_level(level, prefix):
             component_list = []
@@ -22,8 +27,6 @@ def read_component_configuration(path):
             return component_list
 
         return process_level(component_config['components'], [])
-    else:
-        raise ValueError("Unknown components configuration type: {}".format(path))
 
 def load(component_list):
     components = []

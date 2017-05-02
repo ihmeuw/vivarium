@@ -152,9 +152,7 @@ def configure(draw_number=0, verbose=False, simulation_config=None):
 
     config.run_configuration.set_with_metadata('draw_number', draw_number, layer='base', source='command_line_argument')
 
-def run(component_config):
-    components = read_component_configuration(component_config)
-
+def run(components):
     simulation = setup_simulation(components)
     metrics = run_simulation(simulation)
     metrics['draw'] =  config.run_configuration.draw_number
@@ -170,7 +168,8 @@ def run(component_config):
 def do_command(args):
     if args.command == 'run':
         configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
-        results = run(args.components)
+        components = read_component_configuration(args.components)
+        results = run(components)
         if args.results_path:
             try:
                 os.makedirs(os.path.dirname(args.results_path))
