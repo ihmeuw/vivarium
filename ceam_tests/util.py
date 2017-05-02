@@ -20,14 +20,19 @@ def setup_simulation(components, population_size = 100, start=datetime(1990, 1, 
     simulation.setup()
 
     simulation.current_time = start
-    simulation.population._create_simulants(population_size)
+
+    if config.get('simulation_parameters', 'initial_age').isdigit():
+        simulation.population._create_simulants(population_size, population_configuration={'initial_age': config.getfloat('simulation_parameters', 'initial_age')})
+    else:
+        simulation.population._create_simulants(population_size)
 
 
     return simulation
 
-def pump_simulation(simulation, time_step_days=30.5, duration=None, iterations=None, year_start=1990):
+def pump_simulation(simulation, time_step_days=30.5, duration=None, iterations=None):
     config.set('simulation_parameters', 'time_step', '{}'.format(time_step_days))
-    timestep = timedelta(days=time_step_days) 
+    timestep = timedelta(days=time_step_days)
+    year_start = config.getint('simulation_parameters', 'year_start')
     start_time = datetime(year_start, 1, 1)
     simulation.current_time = start_time
     iteration_count = 0
@@ -111,7 +116,7 @@ def generate_test_population(event):
     initial_age = event.user_data.get('initial_age', None)
 
     population = pd.DataFrame(index=range(population_size))
-    if initial_age:
+    if initial_age is not None:
         population['fractional_age'] = initial_age
     else:
         population['fractional_age'] = randomness.random('test_population_age', population.index) * 100
