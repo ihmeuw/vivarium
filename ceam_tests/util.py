@@ -31,9 +31,8 @@ def setup_simulation(components, population_size = 100):
 
     return simulation
 
-def pump_simulation(simulation, time_step_days=30.5, duration=None, iterations=None):
-    config.set('simulation_parameters', 'time_step', '{}'.format(time_step_days))
-    timestep = timedelta(days=time_step_days)
+def pump_simulation(simulation, duration=None, iterations=None):
+    time_step = timedelta(days=float(config.get('simulation_parameters', 'time_step')))
     year_start = config.getint('simulation_parameters', 'year_start')
     start_time = datetime(year_start, 1, 1)
     simulation.current_time = start_time
@@ -53,7 +52,7 @@ def pump_simulation(simulation, time_step_days=30.5, duration=None, iterations=N
 
     while not should_stop():
         iteration_count += 1
-        _step(simulation, timestep)
+        _step(simulation, time_step)
 
 
 
