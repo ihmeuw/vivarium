@@ -15,11 +15,13 @@ from ceam.framework.util import from_yearly, to_yearly
 from ceam.framework import randomness
 
 
-def setup_simulation(components, population_size = 100, start=datetime(1990, 1, 1)):
+def setup_simulation(components, population_size = 100):
     simulation = SimulationContext(components)
     simulation.setup()
 
-    simulation.current_time = start
+    year_start = config.getint('simulation_parameters', 'year_start')
+
+    simulation.current_time = datetime(year_start, 1, 1)
 
     if config.get('simulation_parameters', 'initial_age').isdigit():
         simulation.population._create_simulants(population_size, population_configuration={'initial_age': config.getfloat('simulation_parameters', 'initial_age')})
