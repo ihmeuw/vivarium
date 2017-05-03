@@ -56,8 +56,7 @@ def random(key, index):
 
     if len(index) > 0:
         # Use the provided key to produce a deterministically seeded numpy RandomState
-        key_hash = int(hashlib.sha1(key.encode('utf8')).hexdigest(), 16) % 4294967295
-        random_state = np.random.RandomState(seed=key_hash)
+        random_state = get_random_state(key)
 
         # Generate a random number for every simulant.
         #
@@ -81,6 +80,23 @@ def random(key, index):
     else:
         # If our index is empty return an empty series to act as a structured null value.
         return pd.Series(index=index)
+
+
+def get_random_state(key):
+    """Gets a random number generator associated with the provided key.
+    
+    Parameters
+    ----------
+    key : str
+        A string used to create a seed for the random number generator.
+    
+    Returns
+    -------
+    `numpy.random.RandomState`
+        A random number generator tied to to the provided key.
+    """
+    key_hash = int(hashlib.sha1(key.encode('utf8')).hexdigest(), 16) % 4294967295
+    return np.random.RandomState(seed=key_hash)
 
 
 def choice(key, index, choices, p=None):
@@ -126,7 +142,7 @@ def choice(key, index, choices, p=None):
         p = np.ones((len(index), len(choices)))
 
     # Divide each row by the sum of each row to normalize the weights.
-    p = p/p.sum(axis=1)[None].T
+    p = p/p.sum(axis=1)[np.newaxis].T
     # Hey look, we did need random numbers.
     draw = random(key, index)
 
@@ -148,7 +164,7 @@ def choice(key, index, choices, p=None):
     # corresponds to the choice we make in each row:
     # choice_index = [ 2  0  1 ].T
     p_bins = np.cumsum(p, axis=1)
-    choice_index = (draw.values[None].T > p_bins).sum(axis=1)
+    choice_index = (draw.values[np.newaxis].T > p_bins).sum(axis=1)
     # Finally, use the choice_index to generate a set of choices
     # and wrap it in a pandas series to associate each choice
     # with the appropriate index key:
@@ -288,6 +304,23 @@ class RandomnessStream:
             A series of random numbers indexed by the provided `pandas.Index`.
         """
         return random(self._key(additional_key), index)
+
+    def get_seed(self, additional_key=None):
+        """Get a randomly generated seed for use with external randomness tools. 
+
+        Parameters
+        ----------       
+        additional_key : object, optional
+            Any additional information used to seed random number generation.
+
+        Returns
+        -------
+        int
+            A series of random numbers indexed by the provided `pandas.Index`.
+        """
+        max_seed = 2**32 - 1
+        random_state = get_random_state(self._key(additional_key))
+        return random_state.randint(max_seed)
 
     def filter_for_rate(self, population, rate):
         """Decide an event outcome for each individual in a population from rates.
