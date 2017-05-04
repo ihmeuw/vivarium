@@ -6,17 +6,29 @@ in the base case in must be hit by that same truck in the counter-factual at exa
 the same moment unless the counter-factual explicitly deals with traffic accidents. 
 That means that the system can't rely on standard global randomness sources because 
 small changes to the number of bits consumed or the order in which randomness consuming 
-operations occur will cause the system to diverge. The current approach is to use 
-hash-based pseudo-randomness where the key is the simulation time, the simulant's id, 
-the draw number and a unique id for the decision point which needs the randomness.
+operations occur will cause the system to diverge. The current approach is to generate
+hash-based seeds where the key is the simulation time, the simulant's id, 
+the draw number and a unique id for the decision point which needs the randomness. 
+These seeds are then used to generate `numpy.random.RandomState` objects that 
+can be used to create pseudo-random numbers in a repeatable manner.
 
 Attributes
 ----------
 RESIDUAL_CHOICE : object
     A probability placeholder to be used in an un-normalized array of weights
     to absorb leftover weight so that the array sums to unity.
-    E.g.
+    For example::
+    
         [0.2, 0.2, RESIDUAL_CHOICE] => [0.2, 0.2, 0.6]
+        
+    Note
+    ----
+    Currently this object is only used in the `choice` function of this 
+    module and only when being used by the `state_machine2` module. 
+    
+    See Also
+    --------
+    state_machine2
 """
 
 import hashlib
@@ -38,16 +50,16 @@ RESIDUAL_CHOICE = object()
 def random(key, index):
     """Produces an indexed `pandas.Series` of uniformly distributed random numbers.
     
-    The index passed in typically corresponds to a subset of rows in a pandas
-    dataframe for which a probabilistic draw needs to be made.
+    The index passed in typically corresponds to a subset of rows in a 
+    `pandas.DataFrame` for which a probabilistic draw needs to be made.
     
     Parameters
     ----------
     key : str
         A string used to create a seed for the random number generation.
-    index : `pandas.Index` or similar
-        An pandas index whose length is the number of random draws made
-        and which indexes the returned `pandas.Series`.
+    index : `pandas.Index`
+        An index whose length is the number of random draws made
+        and which indexes the returned series.
     Returns
     -------
     `pandas.Series`
@@ -56,14 +68,14 @@ def random(key, index):
 
     if len(index) > 0:
         # Use the provided key to produce a deterministically seeded numpy RandomState
-        random_state = get_random_state(key)
+        random_state = np.random.RandomState(seed=get_hash(key))
 
         # Generate a random number for every simulant.
         #
-        # N.B.: We generate a full set of random numbers for the population
+        # NOTE: We generate a full set of random numbers for the population
         # even when we may only need a few.  This ensures consistency in outcomes
         # across simulations.
-        # See:
+        # See Also:
         # 1. https://en.wikipedia.org/wiki/Variance_reduction
         # 2. Untangling Uncertainty with Common Random Numbers: A Simulation Study; A.Flaxman, et. al., Summersim 2017
         #
@@ -82,8 +94,8 @@ def random(key, index):
         return pd.Series(index=index)
 
 
-def get_random_state(key):
-    """Gets a random number generator associated with the provided key.
+def get_hash(key):
+    """Gets a hash of the provided key.
     
     Parameters
     ----------
@@ -92,11 +104,10 @@ def get_random_state(key):
     
     Returns
     -------
-    `numpy.random.RandomState`
-        A random number generator tied to to the provided key.
+    int
+        A hash of the provided key.
     """
-    key_hash = int(hashlib.sha1(key.encode('utf8')).hexdigest(), 16) % 4294967295
-    return np.random.RandomState(seed=key_hash)
+    return int(hashlib.sha1(key.encode('utf8')).hexdigest(), 16) % 4294967295
 
 
 def choice(key, index, choices, p=None):
@@ -110,23 +121,30 @@ def choice(key, index, choices, p=None):
     ----------
     key : str
         A string used to create a seed for the random number generation.
-    index : `pandas.Index` or similar
-        An pandas index whose length is the number of random draws made
-        and which indexes the returned pandas.Series.
-    choices : tuple or list
+    index : `pandas.Index`
+        An index whose length is the number of random draws made
+        and which indexes the returned `pandas.Series`.
+    choices : array-like
         A set of options to choose from.
     p : array-like of floats
-        Either a 1-d array of the same size as choices or a 2-d array
-        of with `len(index)` rows and `len(choices)` columns.  Gives
-        the relative weight of each choice where the column index 
-        into the weights corresponds to the same index into choices.
-        A 2-d array allows for the specification of different sets of 
-        weights when the same decision needs to be made for differ
+        The relative weights of the choices.  Can be either a 1-d array of 
+        the same length as `choices` or a 2-d array with `len(index)` rows 
+        and `len(choices)` columns.  In the 1-d case, the same set of weights
+        are used to decide among the choices for every item in the `index`.
+        In the 2-d case, each row in `p` contains a separate set of weights
+        for every item in the `index`.    
     
     Returns
     -------
-    pandas.Series
-        An indexed set of decisions from among the available choices.    
+    `pandas.Series`
+        An indexed set of decisions from among the available `choices`.
+            
+    Raises
+    ------
+    `RandomnessError`
+        If any row in `p` contains `RESIDUAL_CHOICE` and the remaining
+        weights in the row are not normalized or any row of `p contains
+        more than one reference to `RESIDUAL_CHOICE`.
     """
     if p is not None:
         # Probably coming in as a pandas dataframe/series, so coerce.
@@ -157,9 +175,9 @@ def choice(key, index, choices, p=None):
     # Now create a binary array to evaluate where are draws are bigger
     # than the maximum value of the probability bins.
     # draw = [ .78 .21 .59 ].T
-    #                                   | 1  1  0 |
-    # => draw.values[None].T > p_bins = | 0  0  0 |
-    #                                   | 1  0  0 |
+    #                                         | 1  1  0 |
+    # => draw.values[np.newaxis].T > p_bins = | 0  0  0 |
+    #                                         | 1  0  0 |
     # We then sum across the rows to get an index vector which
     # corresponds to the choice we make in each row:
     # choice_index = [ 2  0  1 ].T
@@ -167,7 +185,7 @@ def choice(key, index, choices, p=None):
     choice_index = (draw.values[np.newaxis].T > p_bins).sum(axis=1)
     # Finally, use the choice_index to generate a set of choices
     # and wrap it in a pandas series to associate each choice
-    # with the appropriate index key:
+    # with the appropriate index:
     # decisions = pd.Series(np.array(choices)[choice_index])
     #           = [ id_1:'c', id_2:'a', id_3:'b' ]
     return pd.Series(np.array(choices)[choice_index], index=index)
@@ -189,6 +207,10 @@ def _set_residual_probability(p):
     # Grab a mask to indicate the positions of our placeholders
     residual_mask = (p == RESIDUAL_CHOICE)
     if residual_mask.any():  # I.E. if we have any placeholders.
+        # noinspection PyTypeChecker
+        if np.any(np.sum(residual_mask, axis=1) - 1):
+            raise RandomnessError(
+                'More than one residual choice supplied for a single set of weights. Weights: {}.'.format(p))
         # Replace the placeholders with 0, then compute the
         # actual residual probability by summing the existing weights
         # and using the fact that the total probability must sum to one.
@@ -207,9 +229,9 @@ def _set_residual_probability(p):
 def filter_for_probability(key, population, probability):
     """Decide an event outcome for each individual in a population from probabilities.
     
-    Given a population or its pandas index and an array of associated
-    probabilities for some event to happen, we create and return the 
-    pandas indices of the simulants for whom the event occurred.
+    Given a population or its index and an array of associated probabilities 
+    for some event to happen, we create and return the sub-population for whom 
+    the event occurred.
     
     Parameters
     ----------
@@ -218,15 +240,16 @@ def filter_for_probability(key, population, probability):
     population : `pandas.DataFrame` or `pandas.Series` or `pandas.Index`
         A view on the simulants for which we are determining the 
         outcome of an event.
-    probability : `numpy.ndarray` or `pandas.Series` or float
+    probability : array-like
         A 1d list of probabilities of the event under consideration 
-        occurring which corresponds (i.e. `len(population) == len(probability)`
-        to the population view passed in.
+        occurring which corresponds (i.e. `len(population) == len(probability)`)
+        to the population array passed in.
     
     Returns
     -------
-    `pandas.Index`
-        The pandas indices of the simulants for whom the event occurred.
+    `pandas.DataFrame` or `pandas.Series` or `pandas.Index`
+        The sub-population of the simulants for whom the event occurred. 
+        The return type will be the same as type(population)
     """
     index = population if isinstance(population, pd.Index) else population.index
     draw = random(key, index)
@@ -257,15 +280,15 @@ class RandomnessStream:
     
     Simulation components get `RandomnessStream` objects by requesting 
     them from the builder provided to them during the setup phase.
-    I.E.:
+    I.E.::
     
-    class CeamComponent:
-        def setup(self, builder):
-            self.randomness_stream = builder.randomness('stream_name')
+        class CeamComponent:        
+            def setup(self, builder):
+                self.randomness_stream = builder.randomness('stream_name')
             
     See Also
     --------
-    ceam.framework.engine.Builder    
+    `engine.Builder`    
     """
     def __init__(self, key, clock, seed):
         self.key = key
@@ -273,7 +296,7 @@ class RandomnessStream:
         self.seed = seed
 
     def _key(self, additional_key=None):
-        """Construct a key to encode information about when and how this stream is used.
+        """Construct a hashable key from this object's state.
         
         Parameters
         ----------
@@ -292,8 +315,8 @@ class RandomnessStream:
         
         Parameters
         ----------
-        index : `pandas.Index` or similar
-            An pandas index whose length is the number of random draws made
+        index : `pandas.Index`
+            An index whose length is the number of random draws made
             and which indexes the returned `pandas.Series`.
         additional_key : object, optional
             Any additional information used to seed random number generation.
@@ -311,23 +334,22 @@ class RandomnessStream:
         Parameters
         ----------       
         additional_key : object, optional
-            Any additional information used to seed random number generation.
+            Any additional information used to create the seed.
 
         Returns
         -------
         int
-            A series of random numbers indexed by the provided `pandas.Index`.
+            A seed for a random number generation that is linked to CEAM's
+            common random number framework.
         """
-        max_seed = 2**32 - 1
-        random_state = get_random_state(self._key(additional_key))
-        return random_state.randint(max_seed)
+        return get_hash(self._key(additional_key))
 
     def filter_for_rate(self, population, rate):
         """Decide an event outcome for each individual in a population from rates.
 
-        Given a population or its pandas index and an array of associated
-        rates for some event to happen, we create and return the pandas indices 
-        of the simulants for whom the event occurred.
+        Given a population or its index and an array of associated rates for 
+        some event to happen, we create and return the sub-population for whom 
+        the event occurred.
 
         Parameters
         ----------        
@@ -336,37 +358,45 @@ class RandomnessStream:
             outcome of an event.
         rate : `numpy.ndarray` or `pandas.Series`
             A 1d list of rates of the event under consideration occurring which 
-            corresponds (i.e. `len(population) == len(probability)` to the 
-            population view passed in.
+            corresponds (i.e. `len(population) == len(probability))` to the 
+            population view passed in. The rates must be scaled to the simulation
+            time-step size either manually or as a post-processing step in a 
+            rate pipeline.
 
         Returns
         -------
         `pandas.Index`
-            The pandas indices of the simulants for whom the event occurred.
+            The index of the simulants for whom the event occurred.
+            
+        See Also
+        --------
+        framework.values:
+            Value/rate pipeline management module.
         """
         return self.filter_for_probability(population, rate_to_probability(rate))
 
     def filter_for_probability(self, population, probability):
         """Decide an event outcome for each individual in a population from probabilities.
 
-        Given a population or its pandas index and an array of associated
-        probabilities for some event to happen, we create and return the 
-        pandas indices of the simulants for whom the event occurred.
+        Given a population or its index and an array of associated probabilities 
+        for some event to happen, we create and return the sub-population for whom 
+        the event occurred.
 
         Parameters
         ----------
         population : `pandas.DataFrame` or `pandas.Series` or `pandas.Index`
             A view on the simulants for which we are determining the 
             outcome of an event.
-        probability : `numpy.ndarray` or `pandas.Series` or float
+        probability : array-like
             A 1d list of probabilities of the event under consideration 
             occurring which corresponds (i.e. `len(population) == len(probability)`
             to the population view passed in.
 
         Returns
         -------
-        `pandas.Index`
-            The pandas indices of the simulants for whom the event occurred.
+        `pandas.DataFrame` or `pandas.Series` or `pandas.Index`
+            The sub-population of the simulants for whom the event occurred. 
+            The return type will be the same as type(population)
         """
         return filter_for_probability(self._key(), population, probability)
 
@@ -378,25 +408,35 @@ class RandomnessStream:
         simply a vectorized way to make decisions with some book-keeping. 
 
         Parameters
-        ----------        
-        index : `pandas.Index` or similar
-            An pandas index whose length is the number of random draws made
-            and which indexes the returned pandas.Series.
-        choices : tuple or list
+        ----------
+        index : `pandas.Index`
+            An index whose length is the number of random draws made
+            and which indexes the returned `pandas.Series`.
+        choices : array-like
             A set of options to choose from.
         p : array-like of floats
-            Either a 1-d array of the same size as choices or a 2-d array
-            of with `len(index)` rows and `len(choices)` columns.  Gives
-            the relative weight of each choice where the column index 
-            into the weights corresponds to the same index into choices.
-            A 2-d array allows for the specification of different sets of 
-            weights when the same decision needs to be made for differ
+            The relative weights of the choices.  Can be either a 1-d array of 
+            the same length as `choices` or a 2-d array with `len(index)` rows 
+            and `len(choices)` columns.  In the 1-d case, the same set of weights
+            are used to decide among the choices for every item in the `index`.
+            In the 2-d case, each row in `p` contains a separate set of weights
+            for every item in the `index`.    
 
         Returns
         -------
-        pandas.Series
-            An indexed set of decisions from among the available choices.  
+        `pandas.Series`
+            An indexed set of decisions from among the available `choices`.
+
+        Raises
+        ------
+        `RandomnessError`
+            If any row in `p` contains `RESIDUAL_CHOICE` and the remaining
+            weights in the row are not normalized or any row of `p contains
+            more than one reference to `RESIDUAL_CHOICE`.
         """
         return choice(self._key(), index, choices, p)
+
+    def __repr__(self):
+        return "RandomnessStream(key={!r}, clock={!r}, seed={!r})".format(self.key, self.clock(), self.seed)
 
 
