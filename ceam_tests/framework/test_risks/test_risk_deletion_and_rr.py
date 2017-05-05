@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import pytest
 from datetime import datetime
-from ceam_tests.util import build_table, setup_simulation, generate_test_population, pump_simulation
+from ceam_tests.util import build_table, setup_simulation, generate_test_population
 from ceam_public_health.components.diarrhea_disease_model import diarrhea_factory
 from ceam_public_health.components.risks.categorical_risk_handler import CategoricalRiskHandler
 
@@ -158,8 +158,8 @@ def set_up_exposures(simulation, multiple_risks_test, full_exposure):
 def test_risk_deletion_with_one_risk():
     simulation = setup_simulation(components=[generate_test_population,
                                               CategoricalRiskHandler(241, 'stunting')]
-                                              + diarrhea_factory(),
-                                              start=datetime(2005, 1, 1))
+                                              + diarrhea_factory())
+                                              
 
     simulation = set_up_test_parameters(simulation, multiple_risks_test=False)
 
@@ -180,8 +180,7 @@ def test_risk_deletion_with_one_risk():
 def test_that_rrs_applied_correctly_with_one_risk():
     simulation = setup_simulation(components=[generate_test_population,
                                               CategoricalRiskHandler(241, 'stunting')]
-                                              + diarrhea_factory(),
-                                              start=datetime(2005, 1, 1))
+                                              + diarrhea_factory())
 
     simulation = set_up_test_parameters(simulation, multiple_risks_test=False)
 
@@ -207,8 +206,7 @@ def test_risk_deletion_with_multiple_risks():
     simulation = setup_simulation(components=[generate_test_population,
                                               CategoricalRiskHandler(241, 'stunting'),
                                               CategoricalRiskHandler(84, 'unsafe_sanitation')]
-                                              + diarrhea_factory(),
-                                              start=datetime(2005, 1, 1))
+                                              + diarrhea_factory())
 
     simulation = set_up_test_parameters(simulation, multiple_risks_test=True)
 
@@ -231,8 +229,7 @@ def test_that_rrs_applied_correctly_with_multiple_risks():
     simulation = setup_simulation(components=[generate_test_population,
                                               CategoricalRiskHandler(241, 'stunting'),
                                               CategoricalRiskHandler(84, 'unsafe_sanitation')]
-                                              + diarrhea_factory(),
-                                              start=datetime(2005, 1, 1))
+                                              + diarrhea_factory())
 
     simulation = set_up_test_parameters(simulation, multiple_risks_test=True)
 
