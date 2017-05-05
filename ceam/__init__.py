@@ -1,19 +1,16 @@
-# ~/ceam/__init__.py
-
-from configparser import ConfigParser
-import os.path
+import os
+import yaml
 
 import numpy
 numpy.seterr(all='raise')
+
+from ceam.config_tree import ConfigTree
 
 __all__ = ['config', 'CEAMError']
 
 class CEAMError(Exception):
     pass
 
-_config_path = os.path.abspath(os.path.dirname(__file__))
-config = ConfigParser()
-config.read([os.path.join(_config_path, 'config.cfg'), os.path.join(_config_path, 'local.cfg'), os.path.expanduser('~/ceam.cfg')])
-
-
-# End.
+config = ConfigTree(layers=['base', 'component_configs', 'model_override', 'override'])
+if os.path.exists(os.path.expanduser('~/ceam.yaml')):
+    config.load(os.path.expanduser('~/ceam.yaml'), layer='override', source=os.path.expanduser('~/ceam.yaml'))

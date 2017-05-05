@@ -6,7 +6,6 @@ import re
 from datetime import timedelta
 
 import pandas as pd
-import numpy as np
 
 from ceam import config, CEAMError
 
@@ -74,13 +73,20 @@ def rescale_post_processor(a):
     """Assumes that the value is an annual rate and rescales it to the 
     current time step.
     """
-    time_step = config.getfloat('simulation_parameters', 'time_step')
+    time_step = config.simulation_parameters.time_step
     return from_yearly(a, timedelta(days=time_step))
 
 def joint_value_post_processor(a):
-    """The final step in calculating joint values like dis weights. 
+    """The final step in calculating joint values like disability weights. 
     If the combiner is joint_value_combiner then the effective formula is:
     :math:`value(args) = 1 -  \prod_{i=1}^{mutator count} 1-mutator_{i}(args)`
+
+    Parameters
+    ----------
+    a : list
+        a is a list of series, indexed on the population. Each series
+        corresponds to a different value in the pipeline and each row
+        in a series contains a value that applies to a specific simulant.
     """
     # if there is only one value, return the value
     if len(a) == 1:
@@ -94,17 +100,6 @@ def joint_value_post_processor(a):
             product = product * new_value
         joint_value = 1 - product
         return joint_value
-
-def joint_paf_post_processor(a):
-    """The final step in calculating joint PAFs. If there are multiple
-    risks in a simulation associated with a specific cause, then
-    effective_incidence = base inc * (1 - Joint PAF) where 
-    Joint PAF = 1 - (1 - PAF1) * (1 - PAF2) ... * (1 - PAFi)
-    """
-    if isinstance(a, NullValue):
-        return pd.Series(1, index=a.index)
-    else:
-        return 1-(1-a)
 
 class Pipeline:
     """A single mutable value.
@@ -183,10 +178,11 @@ class ValuesManager:
         if not self._pipelines[name].configured:
             if preferred_combiner:
                 self._pipelines[name].combiner = preferred_combiner
+                self._pipelines[name].configured = True
             if preferred_post_processor:
                 self._pipelines[name].post_processor = preferred_post_processor
+                self._pipelines[name].configured = True
 
-        self._pipelines[name].configured = True
         return self._pipelines[name]
 
     def get_rate(self, name):
