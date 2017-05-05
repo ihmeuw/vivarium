@@ -107,6 +107,8 @@ def get_hash(key):
     int
         A hash of the provided key.
     """
+    # 4294967295 == 2**32 - 1 which is the maximum allowable
+    # seed for a `numpy.random.RandomState`.
     return int(hashlib.sha1(key.encode('utf8')).hexdigest(), 16) % 4294967295
 
 
@@ -143,19 +145,13 @@ def choice(key, index, choices, p=None):
     ------
     `RandomnessError`
         If any row in `p` contains `RESIDUAL_CHOICE` and the remaining
-        weights in the row are not normalized or any row of `p contains
+        weights in the row are not normalized or any row of `p` contains
         more than one reference to `RESIDUAL_CHOICE`.
     """
     if p is not None:
-        # Probably coming in as a pandas dataframe/series, so coerce.
-        p = np.array(p)
-        # We got a 1-d array => same weights for every index.
-        if len(p.shape) == 1:
-            # Turn 1-d array into 2-d array with same weights in every row.
-            p = np.array(np.broadcast_to(p, (len(index), p.shape[0])))
         # Now, if we have some residual probability placeholders,
         # convert them to actual probabilities.
-        p = _set_residual_probability(p)
+        p = _set_residual_probability(_normalize_shape(p, index))
     else:
         p = np.ones((len(index), len(choices)))
 
@@ -191,6 +187,18 @@ def choice(key, index, choices, p=None):
     return pd.Series(np.array(choices)[choice_index], index=index)
 
 
+def _normalize_shape(p, index):
+    if not p:
+        raise ValueError('Cannot normalize none-type.')
+    # Probably coming in as a pandas dataframe/series, so coerce.
+    p = np.array(p)
+    # We got a 1-d array => same weights for every index.
+    if len(p.shape) == 1:
+        # Turn 1-d array into 2-d array with same weights in every row.
+        p = np.array(np.broadcast_to(p, (len(index), p.shape[0])))
+    return p
+
+
 def _set_residual_probability(p):
     """Turns any use of `RESIDUAL_CHOICE` into a residual probability.
     
@@ -205,9 +213,8 @@ def _set_residual_probability(p):
     2D `ndarray` of floats
         Array where each row is a set of normalized probability weights."""
     # Grab a mask to indicate the positions of our placeholders
-    residual_mask = (p == RESIDUAL_CHOICE)
+    residual_mask = p == RESIDUAL_CHOICE
     if residual_mask.any():  # I.E. if we have any placeholders.
-        # noinspection PyTypeChecker
         if np.any(np.sum(residual_mask, axis=1) - 1):
             raise RandomnessError(
                 'More than one residual choice supplied for a single set of weights. Weights: {}.'.format(p))
