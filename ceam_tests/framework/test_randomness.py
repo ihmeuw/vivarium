@@ -116,11 +116,3 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
 
         for k, c in count.items():
             assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
-
-
-
-
-
-
-
-

@@ -445,5 +445,3 @@ class RandomnessStream:
 
     def __repr__(self):
         return "RandomnessStream(key={!r}, clock={!r}, seed={!r})".format(self.key, self.clock(), self.seed)
-
-
