@@ -19,12 +19,12 @@ def setup_simulation(components, population_size = 100):
     simulation = SimulationContext(components)
     simulation.setup()
 
-    year_start = config.getint('simulation_parameters', 'year_start')
+    year_start = config.simulation_parameters.year_start
 
     simulation.current_time = datetime(year_start, 1, 1)
 
-    if config.get('simulation_parameters', 'initial_age').isdigit():
-        simulation.population._create_simulants(population_size, population_configuration={'initial_age': config.getfloat('simulation_parameters', 'initial_age')})
+    if config.simulation_parameters.initial_age:
+        simulation.population._create_simulants(population_size, population_configuration={'initial_age': config.simulation_parameters.initial_age})
     else:
         simulation.population._create_simulants(population_size)
 
@@ -32,8 +32,8 @@ def setup_simulation(components, population_size = 100):
     return simulation
 
 def pump_simulation(simulation, duration=None, iterations=None):
-    time_step = timedelta(days=float(config.get('simulation_parameters', 'time_step')))
-    year_start = config.getint('simulation_parameters', 'year_start')
+    time_step = timedelta(days=float(config.simulation_parameters.time_step))
+    year_start = config.simulation_parameters.year_start
     start_time = datetime(year_start, 1, 1)
     simulation.current_time = start_time
     iteration_count = 0
