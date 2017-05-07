@@ -143,14 +143,15 @@ def run_simulation(simulation):
     metrics['simulation_run_time'] = time() - start
     return metrics
 
-def configure(draw_number=0, verbose=False, simulation_config=None):
+def configure(draw_number=None, verbose=False, simulation_config=None):
     if simulation_config:
-        if isinstance(config, dict):
-            config.read_dict(config)
+        if isinstance(simulation_config, dict):
+            config.read_dict(simulation_config)
         else:
             config.read(simulation_config)
 
-    config.run_configuration.set_with_metadata('draw_number', draw_number, layer='base', source='command_line_argument')
+    if draw_number is not None:
+        config.run_configuration.set_with_metadata('draw_number', draw_number, layer='override', source='command_line_argument')
 
 def run(components):
     simulation = setup_simulation(components)

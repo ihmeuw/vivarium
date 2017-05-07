@@ -47,6 +47,7 @@ class Interpolation:
                         func = interpolate.RectBivariateSpline(x=x, y=y, z=z, ky=order, kx=order).ev
                 else:
                     # 1 variable interpolation
+                    base_table = base_table.sort_values(by=self.parameter_columns[0])
                     x = base_table[self.parameter_columns[0]]
                     y = base_table[value_column]
                     func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
