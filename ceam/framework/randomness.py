@@ -67,7 +67,6 @@ def random(key, index):
     """
 
     if len(index) > 0:
-        # Use the provided key to produce a deterministically seeded numpy RandomState
         random_state = np.random.RandomState(seed=get_hash(key))
 
         # Generate a random number for every simulant.
@@ -84,14 +83,9 @@ def random(key, index):
         # a disease that causes excess mortality in adults, and an intervention
         # against that disease.
         raw_draws = random_state.random_sample(index.max()+1)
-
-        # Return an indexed set of random draws.
-        return pd.Series(
-                raw_draws[index],
-                index=index)
+        return pd.Series(raw_draws[index], index=index)
     else:
-        # If our index is empty return an empty series to act as a structured null value.
-        return pd.Series(index=index)
+        return pd.Series(index=index)  # Structured null value
 
 
 def get_hash(key):
@@ -107,8 +101,7 @@ def get_hash(key):
     int
         A hash of the provided key.
     """
-    # 4294967295 == 2**32 - 1 which is the maximum allowable
-    # seed for a `numpy.random.RandomState`.
+    # 4294967295 == 2**32 - 1 which is the maximum allowable seed for a `numpy.random.RandomState`.
     return int(hashlib.sha1(key.encode('utf8')).hexdigest(), 16) % 4294967295
 
 
@@ -148,49 +141,20 @@ def choice(key, index, choices, p=None):
         weights in the row are not normalized or any row of `p` contains
         more than one reference to `RESIDUAL_CHOICE`.
     """
-    if p is not None:
-        # Now, if we have some residual probability placeholders,
-        # convert them to actual probabilities.
-        p = _set_residual_probability(_normalize_shape(p, index))
-    else:
-        p = np.ones((len(index), len(choices)))
+    # Convert p to normalized probabilities broadcasted over index.
+    p = _set_residual_probability(_normalize_shape(p, index)) if p else np.ones((len(index), len(choices)))
+    p = p/p.sum(axis=1, keepdims=True)
 
-    # Divide each row by the sum of each row to normalize the weights.
-    p = p/p.sum(axis=1)[np.newaxis].T
-    # Hey look, we did need random numbers.
     draw = random(key, index)
 
-    # Now we convert our direct probabilities into probability bins
-    # and then use our draw values to get indexes into the choice tuple.
-    # Example:
-    # First create bins associated with each choice.
-    # choices = (a, b, c)
-    #     | .2  .4  .4 |             | .2  .6  1 |
-    # p = | .3  .3  .4 | => p_bins = | .3  .6  1 |
-    #     | .1  .6  .3 |             | .1  .7  1 |
-    # Now create a binary array to evaluate where are draws are bigger
-    # than the maximum value of the probability bins.
-    # draw = [ .78 .21 .59 ].T
-    #                                         | 1  1  0 |
-    # => draw.values[np.newaxis].T > p_bins = | 0  0  0 |
-    #                                         | 1  0  0 |
-    # We then sum across the rows to get an index vector which
-    # corresponds to the choice we make in each row:
-    # choice_index = [ 2  0  1 ].T
     p_bins = np.cumsum(p, axis=1)
+    # Use the random draw to make a choice for every row in index.
     choice_index = (draw.values[np.newaxis].T > p_bins).sum(axis=1)
-    # Finally, use the choice_index to generate a set of choices
-    # and wrap it in a pandas series to associate each choice
-    # with the appropriate index:
-    # decisions = pd.Series(np.array(choices)[choice_index])
-    #           = [ id_1:'c', id_2:'a', id_3:'b' ]
+
     return pd.Series(np.array(choices)[choice_index], index=index)
 
 
 def _normalize_shape(p, index):
-    if not p:
-        raise ValueError('Cannot normalize none-type.')
-    # Probably coming in as a pandas dataframe/series, so coerce.
     p = np.array(p)
     # We got a 1-d array => same weights for every index.
     if len(p.shape) == 1:
@@ -212,23 +176,19 @@ def _set_residual_probability(p):
     -------
     2D `ndarray` of floats
         Array where each row is a set of normalized probability weights."""
-    # Grab a mask to indicate the positions of our placeholders
     residual_mask = p == RESIDUAL_CHOICE
     if residual_mask.any():  # I.E. if we have any placeholders.
         if np.any(np.sum(residual_mask, axis=1) - 1):
             raise RandomnessError(
                 'More than one residual choice supplied for a single set of weights. Weights: {}.'.format(p))
-        # Replace the placeholders with 0, then compute the
-        # actual residual probability by summing the existing weights
-        # and using the fact that the total probability must sum to one.
+
         p[residual_mask] = 0
-        residual_p = 1 - np.sum(p, axis=1)
+        residual_p = 1 - np.sum(p, axis=1)  # Probabilites sum to 1.
 
         if np.any(residual_p < 0):  # We got un-normalized probability weights.
             raise RandomnessError(
                 'Residual choice supplied with weights that summed to more than 1. Weights: {}.'.format(p))
 
-        # Finally replace the 0's we introduces with actual residual weights.
         p[residual_mask] = residual_p
     return p
 

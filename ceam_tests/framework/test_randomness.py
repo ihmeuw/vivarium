@@ -31,13 +31,9 @@ def weights_with_residuals(request):
     return request.param
 
 
-def test_normalize_shape(weights, index):
-    if weights is None:
-        with pytest.raises(ValueError):
-            random._normalize_shape(weights, index)
-    else:
-        p = random._normalize_shape(weights, index)
-        assert p.shape == (len(index), len(weights))
+def test_normalize_shape(weights_with_residuals, index):
+    p = random._normalize_shape(weights_with_residuals, index)
+    assert p.shape == (len(index), len(weights_with_residuals))
 
 
 def test__set_residual_probability(weights_with_residuals, index):
