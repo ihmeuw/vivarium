@@ -126,7 +126,7 @@ def generate_test_population(event):
     initial_age = event.user_data.get('initial_age', None)
 
     population = pd.DataFrame(index=range(population_size))
-    if initial_age is not None:
+    if initial_age:
         population['fractional_age'] = initial_age
     else:
         population['fractional_age'] = randomness.random('test_population_age', population.index) * 100
