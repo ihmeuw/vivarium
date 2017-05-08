@@ -142,7 +142,7 @@ def choice(key, index, choices, p=None):
         more than one reference to `RESIDUAL_CHOICE`.
     """
     # Convert p to normalized probabilities broadcasted over index.
-    p = _set_residual_probability(_normalize_shape(p, index)) if p else np.ones((len(index), len(choices)))
+    p = _set_residual_probability(_normalize_shape(p, index)) if p is not None else np.ones((len(index), len(choices)))
     p = p/p.sum(axis=1, keepdims=True)
 
     draw = random(key, index)
