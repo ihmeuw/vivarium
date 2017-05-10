@@ -23,7 +23,7 @@ def setup_simulation(components, population_size = 100):
 
     simulation.current_time = datetime(year_start, 1, 1)
 
-    if config.simulation_parameters.initial_age:
+    if config.simulation_parameters.initial_age is not None:
         simulation.population._create_simulants(population_size, population_configuration={'initial_age': config.simulation_parameters.initial_age})
     else:
         simulation.population._create_simulants(population_size)
