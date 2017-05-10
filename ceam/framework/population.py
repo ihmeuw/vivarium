@@ -104,7 +104,7 @@ class PopulationView:
             try:
                 return pop[columns].copy()
             except KeyError:
-                raise PopulationError('The columns requested ({}) do not exist in the population table ({}). Are you trying to read columns during simulant initization? You may be able to lower the priority of your handler so that it happens after the component that creates the column you need.'.format(columns, pop.columns))
+                raise PopulationError('The columns requested do not exist in the population table. Specifically, you requested {}, which do(es) not exist in the poplation table. Are you trying to read columns during simulant initization? You may be able to lower the priority of your handler so that it happens after the component that creates the column you need.'.format(set(columns) - set(pop.columns)))
 
     def update(self, pop):
         """Update the simulation's state to match ``pop``
