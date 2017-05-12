@@ -161,7 +161,6 @@ class ConfigNode:
             self._layers, self._values, self._frozen, self._accessed)
 
     def __str__(self):
-        #return repr(self)
         return '\n'.join(reversed(['{}: {}\n    source: {}'.format(layer, value[1], value[0])
                                    for layer, value in self._values.items()]))
 
