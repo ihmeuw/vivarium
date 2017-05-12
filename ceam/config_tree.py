@@ -1,6 +1,12 @@
-'''A configuration structure which supports cascading layers.
+"""A configuration structure which supports cascading layers.
 
-In CEAM it allows base configurations to be overridden by component level configurations which are in turn overridden by model level configuration which can be overridden by user supplied overrides. From the perspective of normal client code the cascading is hidden and configuration values are presented as attributes of the configuration object the values of which are the value of that key in the outermost layer of configuration where it appears.
+In CEAM it allows base configurations to be overridden by component level 
+configurations which are in turn overridden by model level configuration 
+which can be overridden by user supplied overrides. From the perspective 
+of normal client code the cascading is hidden and configuration values 
+are presented as attributes of the configuration object the values of 
+which are the value of that key in the outermost layer of configuration 
+where it appears.
 
 For example:
 >>> config = ConfigTree(layers=['inner_layer', 'middle_layer', 'outer_layer', 'user_overrides'])
@@ -16,8 +22,9 @@ For example:
 >>> config.section_b.item1 = 'value7'
 >>> config.section_b.item1
 'value7'
-'''
+"""
 import yaml
+
 
 class ConfigNode:
     """A single configuration value which may have different variants for different layers.
@@ -77,6 +84,16 @@ class ConfigNode:
         self._accessed = True
         return self.get_value_with_source(layer)[1]
 
+    def has_been_accessed(self):
+        """Returns whether this node has been accessed.
+        
+        Returns
+        -------
+        bool
+            Whether this node has been accessed
+        """
+        return self._accessed
+
     def metadata(self):
         """Returns all values and associated metadata for this node as a dict.
         The value which would be selected if the node's value was requested
@@ -98,9 +115,13 @@ class ConfigNode:
 
         Parameters
         ----------
+        value : str
+            Data to store in the node.
         layer : str
             Name of the layer to use. If None then the outermost where the value
             exists will be used.
+        source : str
+            Metadata indicating the source of this value (e.g. a file path)
 
         Raises
         ------
@@ -154,6 +175,15 @@ class ConfigNode:
         if self._frozen:
             raise TypeError('Frozen ConfigNode does not support modification')
         del self._values[layer]
+
+    def __repr__(self):
+        return 'ConfigNode(layers={}, values={}, frozen={}, accessed={})'.format(
+            self._layers, self._values, self._frozen, self._accessed)
+
+    def __str__(self):
+        return '\n'.join(reversed(['{}: {}\n    source: {}'.format(layer, value[1], value[0])
+                                   for layer, value in self._values.items()]))
+
 
 class ConfigTree:
     """A container for configuration information. Each configuration value is
@@ -244,10 +274,10 @@ class ConfigTree:
             The name of the value
         value
             The value to store
-        layer : str
+        layer : str, optional
             The name of the layer to store the value in. If none is supplied
             then the value will be stored in the outermost layer.
-        source : str
+        source : str, optional
             The source to attribute the value to.
 
         Raises
@@ -341,14 +371,14 @@ class ConfigTree:
             else:
                 raise KeyError(name)
 
-    def reset_layer(self, layer, preserve_keys=[]):
+    def reset_layer(self, layer, preserve_keys=()):
         """Removes any value and metadata associated with the named layer.
 
         Parameters
         ----------
         layer : str
             Name of the layer to reset.
-        preserve_keys : list
+        preserve_keys : list or tuple
             A list of keys to skip while removing data
 
         Raises
@@ -397,17 +427,23 @@ class ConfigTree:
         unused = set()
         for k, c in self._children.items():
             if isinstance(c, ConfigNode):
-                if not c._accessed:
+                if not c.has_been_accessed():
                     unused.add(k)
             else:
                 for ck in c.unused_keys():
                     unused.add(k+'.'+ck)
         return unused
 
-
     def __len__(self):
         return len(self._children)
 
     def __dir__(self):
-        return list(self._children.keys()) + super(ConfigTree, self).__dir__()
+        return list(self._children.keys()) + dir(super(ConfigTree, self))
 
+    def __repr__(self):
+        return 'ConfigTree(children={}, frozen={})'.format(
+            ' '.join([repr(c) for c in self._children.values()]), self._frozen)
+
+    def __str__(self):
+        return '\n'.join(['{}:\n    {}'.format(name, str(c).replace('\n', '\n    '))
+                          for name, c in self._children.items()])
