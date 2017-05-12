@@ -1,4 +1,4 @@
-'''A configuration structure which supports cascading layers.
+"""A configuration structure which supports cascading layers.
 
 In CEAM it allows base configurations to be overridden by component level configurations which are in turn overridden by model level configuration which can be overridden by user supplied overrides. From the perspective of normal client code the cascading is hidden and configuration values are presented as attributes of the configuration object the values of which are the value of that key in the outermost layer of configuration where it appears.
 
@@ -16,8 +16,9 @@ For example:
 >>> config.section_b.item1 = 'value7'
 >>> config.section_b.item1
 'value7'
-'''
+"""
 import yaml
+
 
 class ConfigNode:
     """A single configuration value which may have different variants for different layers.
@@ -154,6 +155,18 @@ class ConfigNode:
         if self._frozen:
             raise TypeError('Frozen ConfigNode does not support modification')
         del self._values[layer]
+
+    def __repr__(self):
+        return 'ConfigNode(layers={}, values={}, frozen={}, accessed={})'.format(
+            self._layers, self._values, self._frozen, self._accessed)
+
+    def __str__(self):
+        #return repr(self)
+        return '\n'.join(reversed(['{}: {}\n    source: {}'.format(layer, value[1], value[0])
+                                   for layer, value in self._values.items()]))
+
+
+
 
 class ConfigTree:
     """A container for configuration information. Each configuration value is
@@ -410,4 +423,13 @@ class ConfigTree:
 
     def __dir__(self):
         return list(self._children.keys()) + super(ConfigTree, self).__dir__()
+
+    def __repr__(self):
+        children = [repr(c) for c in self._children.values()]
+        return 'ConfigTree(children={}, frozen={})'.format(' '.join(children), self._frozen)
+
+    def __str__(self):
+        children = ['{}:\n    {}'.format(name, str(c).replace('\n', '\n    ')) for name, c in self._children.items()]
+        return '\n'.join(children)
+
 
