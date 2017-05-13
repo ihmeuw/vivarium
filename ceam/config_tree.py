@@ -246,6 +246,11 @@ class ConfigTree:
         """
         return name in self._children
 
+    def __iter__(self):
+        """Mimic dictionary like iteration."""
+        for name, child in self._children.items():
+            yield name, child
+
     def get_from_layer(self, name, layer=None):
         """Get a configuration value from the named layer.
         Parameters
