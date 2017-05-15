@@ -3,33 +3,34 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 
-import pytest
-
 from ceam import config
 
-
 from ceam.framework.engine import SimulationContext, _step
-from ceam.framework.event import Event, listens_for
+from ceam.framework.event import listens_for
 from ceam.framework.population import uses_columns
 from ceam.framework.util import from_yearly, to_yearly
 from ceam.framework import randomness
 
 
-def setup_simulation(components, population_size = 100):
+def setup_simulation(components, population_size=100, start=None):
     simulation = SimulationContext(components)
     simulation.setup()
 
-    year_start = config.simulation_parameters.year_start
+    if start:
+        simulation.current_time = start
+    else:
+        year_start = config.simulation_parameters.year_start
+        simulation.current_time = datetime(year_start, 1, 1)
 
-    simulation.current_time = datetime(year_start, 1, 1)
-
-    if config.simulation_parameters.initial_age is not None:
-        simulation.population._create_simulants(population_size, population_configuration={'initial_age': config.simulation_parameters.initial_age})
+    if config.simulation_parameters.initial_age:
+        simulation.population._create_simulants(population_size,
+                                                population_configuration={
+                                                    'initial_age': config.simulation_parameters.initial_age})
     else:
         simulation.population._create_simulants(population_size)
 
-
     return simulation
+
 
 def pump_simulation(simulation, duration=None, iterations=None):
     time_step = timedelta(days=float(config.simulation_parameters.time_step))
@@ -137,3 +138,4 @@ def generate_test_population(event):
     population['alive'] = True
 
     event.population_view.update(population)
+
