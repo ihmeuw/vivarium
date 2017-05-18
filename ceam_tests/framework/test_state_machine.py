@@ -1,13 +1,10 @@
-# ~/ceam/ceam_tests/framework/test_state_machine.py
-
-import pytest
-
 import pandas as pd
 import numpy as np
 
 from ceam_tests.util import setup_simulation
 from ceam.framework.population import uses_columns
 from ceam.framework.event import listens_for
+from ceam.framework.randomness import choice
 
 from ceam.framework.state_machine import Machine, State, Transition
 
@@ -16,6 +13,13 @@ def _population_fixture(column, initial_value):
     @uses_columns([column])
     def inner(event):
         event.population_view.update(pd.Series(initial_value, index=event.index))
+    return inner
+
+def _even_population_fixture(column, values):
+    @listens_for('initialize_simulants')
+    @uses_columns([column])
+    def inner(event):
+        event.population_view.update(choice('start', event.index, values))
     return inner
 
 def test_transition():
