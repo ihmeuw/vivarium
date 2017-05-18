@@ -1,6 +1,4 @@
 """A framework for generic state machines."""
-import types
-
 import pandas as pd
 import numpy as np
 
@@ -140,26 +138,21 @@ class State:
 class TransitionSet(list):
     """A container for state machine transitions.
     
-    Attributes
+    Parameters
     ----------
     args : iterable
         Any iterable whose elements are `Transition` objects.
     allow_null_transition : bool, optional
     key : object, optional
-        Typically a string labelling an instance of this class, but
-        any object will do.
+        Typically a string labelling an instance of this class, but any object will do.
     """
     def __init__(self, *args, allow_null_transition=True, key='state_machine'):
-        # Allows for list-comprehension like behavior.
-        if len(args) == 1 and isinstance(args[0], types.GeneratorType):
-            args = list(args[0])
+        super().__init__(*args)
 
-        if not all([isinstance(a, Transition) for a in args]):
+        if not all([isinstance(a, Transition) for a in self]):
             raise TypeError(
-                'TransitionSet must contain only Transition objects. Check constructor arguments: {}'.format(
-                    ', '.join([str(a) for a in args])))
+                'TransitionSet must contain only Transition objects. Check constructor arguments: {}'.format(self))
 
-        super().__init__(args)
         self.allow_null_transition = allow_null_transition
         self.key = str(key)
 
@@ -169,8 +162,8 @@ class TransitionSet(list):
         Parameters
         ----------
         builder : `engine.Builder`
-            Interface to several simulation tools including access to common random
-             number generation, in particular.
+            Interface to several simulation tools including access to common random 
+            number generation, in particular.
         
         Returns
         -------
