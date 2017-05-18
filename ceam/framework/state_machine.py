@@ -147,7 +147,7 @@ class TransitionSet(list):
         Typically a string labelling an instance of this class, but any object will do.
     """
     def __init__(self, *iterable, allow_null_transition=True, key='state_machine'):
-        super().__init__(*iterable)
+        super().__init__(iterable)
 
         if not all([isinstance(a, Transition) for a in self]):
             raise TypeError(
