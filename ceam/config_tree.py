@@ -211,40 +211,44 @@ class ConfigTree:
             self.read_dict(data, layer=self._layers[0], source='initial data')
 
     def freeze(self):
-        """Causes the ConfigTree to become read only. This is useful for loading and then
-        freezing configurations that should not be modified at runtime.
+        """Causes the ConfigTree to become read only. 
+        
+        This is useful for loading and then freezing configurations that should not be modified at runtime.
         """
         self.__dict__['_frozen'] = True
         for child in self._children.values():
             child.freeze()
 
     def __setattr__(self, name, value):
-        """Set a configuration value on the outermost layer.
-        """
+        """Set a configuration value on the outermost layer."""
         self.set_with_metadata(name, value, layer=None, source=None)
 
     def __setitem__(self, name, value):
-        """Set a configuration value on the outermost layer.
-        """
+        """Set a configuration value on the outermost layer."""
         self.set_with_metadata(name, value, layer=None, source=None)
 
     def __getattr__(self, name):
-        """Get a configuration value from the outermost layer in which it appears.
-        """
+        """Get a configuration value from the outermost layer in which it appears."""
         try:
             return self.get_from_layer(name)
         except KeyError:
             raise AttributeError(name)
 
     def __getitem__(self, name):
-        """Get a configuration value from the outermost layer in which it appears.
-        """
+        """Get a configuration value from the outermost layer in which it appears."""
         return self.get_from_layer(name)
 
     def __contains__(self, name):
-        """Test if a configuration key exists in any layer.
-        """
+        """Test if a configuration key exists in any layer."""
         return name in self._children
+
+    def __iter__(self):
+        """Dictionary-like iteration."""
+        return iter(self._children)
+
+    def items(self):
+        """Return a list of all (child_name, child) pairs."""
+        return self._children.items()
 
     def get_from_layer(self, name, layer=None):
         """Get a configuration value from the named layer.
