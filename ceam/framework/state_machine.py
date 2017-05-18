@@ -122,6 +122,14 @@ class State:
         population_view.update(pd.Series(self.state_id, index=index))
         self._transition_side_effect(index)
 
+    def add_transition(self, output):
+        """Builds a transition from this state to the given state.
+        
+        output : State
+            The end state after the transition.
+        """
+        self.transition_set.append(Transition(output))
+
     def _transition_side_effect(self, index):
         pass
 
