@@ -128,7 +128,9 @@ class State:
         output : State
             The end state after the transition.
         """
-        self.transition_set.append(Transition(output))
+        t = Transition(output)
+        self.transition_set.append(t)
+        return t
 
     def _transition_side_effect(self, index):
         pass
@@ -155,7 +157,7 @@ class TransitionSet(list):
         Typically a string labelling an instance of this class, but any object will do.
     """
     def __init__(self, *iterable, allow_null_transition=True, key='state_machine'):
-        super().__init__(*iterable)
+        super().__init__(iterable)
 
         if not all([isinstance(a, Transition) for a in self]):
             raise TypeError(
