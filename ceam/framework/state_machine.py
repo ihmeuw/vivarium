@@ -15,6 +15,7 @@ def _next_state(index, transition_set, population_view):
     population_view : `pandas.DataFrame`
         A view of the internal state of the simulation.
     """
+
     if len(transition_set) == 0:
         return
 
@@ -25,10 +26,10 @@ def _next_state(index, transition_set, population_view):
         for output, affected_index in sorted(groups, key=lambda x: str(x[0])):
             if output == 'null_transition':
                 pass
+            elif isinstance(output, TransientState):
+                _next_state(affected_index, output.transition_set, population_view)
             elif isinstance(output, State):
                 output.transition_effect(affected_index, population_view)
-            elif isinstance(output, TransitionSet):
-                _next_state(affected_index, output, population_view)
             else:
                 raise ValueError('Invalid transition output: {}'.format(output))
 
@@ -122,15 +123,18 @@ class State:
         population_view.update(pd.Series(self.state_id, index=index))
         self._transition_side_effect(index)
 
-    def add_transition(self, output):
+    def add_transition(self, output, triggered=False):
         """Builds a transition from this state to the given state.
         
         output : State
             The end state after the transition.
         """
-        t = Transition(output)
+        t = Transition(output, triggered=triggered)
         self.transition_set.append(t)
         return t
+
+    def allow_self_transitions(self):
+        self.transition_set.allow_null_transition = True
 
     def _transition_side_effect(self, index):
         pass
@@ -142,7 +146,11 @@ class State:
         return repr(self)
 
     def __repr__(self):
-        return 'State("{0}" ...)'.format(self.state_id)
+        return 'State({})'.format(self.state_id)
+
+
+class TransientState(State):
+    pass
 
 
 class TransitionSet(list):
@@ -156,7 +164,7 @@ class TransitionSet(list):
     key : object, optional
         Typically a string labelling an instance of this class, but any object will do.
     """
-    def __init__(self, *iterable, allow_null_transition=True, key='state_machine'):
+    def __init__(self, *iterable, allow_null_transition=False, key='state_machine'):
         super().__init__(iterable)
 
         if not all([isinstance(a, Transition) for a in self]):
@@ -232,8 +240,7 @@ class TransitionSet(list):
                     "Null transition requested with un-normalized probability weights: {}".format(probabilities))
             probabilities = np.concatenate([probabilities, (1-total)[:, np.newaxis]], axis=1)
             outputs.append('null_transition')
-
-        return outputs, probabilities/np.sum(probabilities, axis=1)[:, np.newaxis]
+        return outputs, probabilities/(np.sum(probabilities, axis=1)[:, np.newaxis])
 
     def __str__(self):
         return repr(self)
@@ -248,16 +255,40 @@ class TransitionSet(list):
 class Transition:
     """A process by which an entity might change into a particular state.
     
-    Attributes
+    Parameters
     ----------
     output : State
         The end state of the entity that undergoes the transition. 
-    probability : callable
+    probability_func : callable
         A method or function that describing the probability of this transition occurring.
     """
-    def __init__(self, output, probability_func=lambda index: np.ones(len(index), dtype=float)):
+    def __init__(self, output, probability_func=lambda index: pd.Series(1, index=index), triggered=False):
         self.output = output
-        self.probability = probability_func
+        self._probability = probability_func
+        self._active = pd.Index([]) if triggered else None
+
+    def set_active(self, index):
+        if self._active is None:
+            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
+        else:
+            self._active = self._active.union(pd.Index(index))
+
+    def set_inactive(self, index):
+        if self._active is None:
+            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
+        else:
+            self._active = self._active.difference(pd.Index(index))
+
+    def probability(self, index):
+        if self._active is None:
+            return self._probability(index)
+        else:
+            index = pd.Index(index)
+            activated_index = self._active.intersection(index)
+            null_index = index.difference(self._active)
+            activated = self._probability(activated_index)
+            null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
+            return activated.append(null)
 
     def label(self):
         """The name of this transition."""
@@ -267,7 +298,7 @@ class Transition:
         return repr(self)
 
     def __repr__(self):
-        return 'Transition("{0}" ...)'.format(self.output.state_id)
+        return 'Transition({})'.format(self.output)
 
 
 class Machine:
