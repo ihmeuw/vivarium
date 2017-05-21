@@ -123,13 +123,15 @@ class State:
         population_view.update(pd.Series(self.state_id, index=index))
         self._transition_side_effect(index)
 
-    def add_transition(self, output, triggered=False):
+    def add_transition(self, output,
+                       probability_func=lambda index: np.ones(len(index), dtype=float),
+                       triggered=False):
         """Builds a transition from this state to the given state.
         
         output : State
             The end state after the transition.
         """
-        t = Transition(output, triggered=triggered)
+        t = Transition(output, probability_func=probability_func, triggered=triggered)
         self.transition_set.append(t)
         return t
 
@@ -313,8 +315,8 @@ class Machine:
     population_view : `pandas.DataFrame`
         A view of the internal state of the simulation.
     """
-    def __init__(self, state_column):
-        self.states = list()
+    def __init__(self, state_column, states=None):
+        self.states = list(states) if states else list()
         self.state_column = state_column
 
     def setup(self, builder):
