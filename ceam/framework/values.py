@@ -1,16 +1,11 @@
 """The mutable value system
 """
-
 from collections import defaultdict
-import re
 from datetime import timedelta
-
-import pandas as pd
 
 from ceam import config, CEAMError
 
 from .util import marker_factory, from_yearly
-from .event import listens_for
 
 produces_value = marker_factory('value_system__produces')
 produces_value.__doc__ = """Mark a function as the producer of the named value."""
@@ -18,11 +13,13 @@ modifies_value = marker_factory('value_system__modifies', with_priority=True)
 modifies_value.__doc__ = """Mark a function as a mutator of the named value.
 Mutators will be evaluated in `priority` order (lower values happen first)"""
 
+
 class DynamicValueError(CEAMError):
     """Indicates that a value was invoked without being properly configured.
     i.e. no source specified.
     """
     pass
+
 
 class NullValue:
     """An empty value that can carry an index. Used by joint value pipelines
@@ -31,12 +28,14 @@ class NullValue:
     def __init__(self, index):
         self.index = index
 
+
 def replace_combiner(value, mutator, *args, **kwargs):
     """Replaces the output of the source or mutator with the output
     of the subsequent mutator. This is the default combiner.
     """
     args = list(args) + [value]
     return mutator(*args, **kwargs)
+
 
 def set_combiner(value, mutator, *args, **kwargs):
     """Expects the output of the source to be a set to which
@@ -45,12 +44,14 @@ def set_combiner(value, mutator, *args, **kwargs):
     value.add(mutator(*args, **kwargs))
     return value
 
+
 def list_combiner(value, mutator, *args, **kwargs):
     """Expects the output of the source to be a list to which
     the result of each mutator is appended.
     """
     value.append(mutator(*args, **kwargs))
     return value
+
 
 def joint_value_combiner(value, mutator, *args, **kwargs):
     """Combines the output of the source or previous mutator with the output of
@@ -69,12 +70,14 @@ def joint_value_combiner(value, mutator, *args, **kwargs):
     else:
         return value * (1-new_value)
 
+
 def rescale_post_processor(a):
     """Assumes that the value is an annual rate and rescales it to the 
     current time step.
     """
     time_step = config.simulation_parameters.time_step
     return from_yearly(a, timedelta(days=time_step))
+
 
 def joint_value_post_processor(a):
     """The final step in calculating joint values like disability weights. 
@@ -101,6 +104,7 @@ def joint_value_post_processor(a):
         joint_value = 1 - product
         return joint_value
 
+
 class Pipeline:
     """A single mutable value.
 
@@ -118,7 +122,7 @@ class Pipeline:
 
     def __init__(self, combiner=replace_combiner, post_processor=None):
         self.source = None
-        self.mutators = [[] for i in range(10)]
+        self.mutators = [[]*10]
         self.combiner = combiner
         self.post_processor = post_processor
         self.configured = False
@@ -134,6 +138,7 @@ class Pipeline:
             return self.post_processor(value)
         else:
             return value
+
 
 class ValuesManager:
     """The configuration of the dynamic values system.
@@ -165,11 +170,10 @@ class ValuesManager:
         preferred_post_processor : callable
                                    The post-processor to use if the value is not already configured
         """
+        # TODO : This method sets up value pipelines as well as getting them, which is pretty confusing when debugging.
         if name not in self._pipelines:
-            found_template = False
             for name_template, (combiner, post_processor, source) in self.__pipeline_templates.items():
                 if name_template.match(name):
-                    found_template = True
                     self._pipelines[name] = Pipeline(combiner=combiner, post_processor=post_processor)
                     if source:
                         self._pipelines[name].source = source
@@ -188,8 +192,11 @@ class ValuesManager:
     def get_rate(self, name):
         """Get a reference to the named dynamic rate which can be called to get it's effective value.
         """
-        return self.get_value(name, preferred_combiner=replace_combiner, preferred_post_processor=rescale_post_processor)
+        return self.get_value(name,
+                              preferred_combiner=replace_combiner,
+                              preferred_post_processor=rescale_post_processor)
 
+    # TODO: This is dead code.  Ask Alec about it.
     def declare_pipeline(self, label, combiner=replace_combiner, post_processor=rescale_post_processor, source=None):
         if hasattr(label, 'match'):
             # This is a compiled regular expression
@@ -202,13 +209,20 @@ class ValuesManager:
     def setup_components(self, components):
         for component in components:
             values_produced = [(v, component) for v in produces_value.finder(component)]
-            values_produced += [(v, getattr(component, att)) for att in sorted(dir(component)) for v in produces_value.finder(getattr(component, att))]
+            values_produced += [(v, getattr(component, att))
+                                for att in sorted(dir(component))
+                                for v in produces_value.finder(getattr(component, att))]
 
             for name, producer in values_produced:
                 self._pipelines[name].source = producer
 
-            values_modified = [(v, component, i) for priority in modifies_value.finder(component) for i,v in enumerate(priority)]
-            values_modified += [(v, getattr(component, att), i) for att in sorted(dir(component)) for i,vs in enumerate(modifies_value.finder(getattr(component, att))) for v in vs]
+            values_modified = [(v, component, i)
+                               for priority in modifies_value.finder(component)
+                               for i, v in enumerate(priority)]
+            values_modified += [(v, getattr(component, att), i)
+                                for att in sorted(dir(component))
+                                for i, vs in enumerate(modifies_value.finder(getattr(component, att)))
+                                for v in vs]
 
             for name, mutator, priority in values_modified:
                 self._pipelines[name].mutators[priority].append(mutator)
