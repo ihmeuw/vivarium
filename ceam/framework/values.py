@@ -122,7 +122,8 @@ class Pipeline:
 
     def __init__(self, combiner=replace_combiner, post_processor=None):
         self.source = None
-        self.mutators = [[]*10]
+        # TODO : What is even happening here? Pre-allocation? Why ten?
+        self.mutators = [[] for i in range(10)]
         self.combiner = combiner
         self.post_processor = post_processor
         self.configured = False
