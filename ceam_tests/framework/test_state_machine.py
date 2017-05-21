@@ -56,11 +56,10 @@ def test_choice():
 def test_null_transition():
     a_state = State('a')
     start_state = State('start')
-    a_transition = Transition(a_state, lambda agents: np.full(len(agents), 0.5))
+    start_state.add_transition(a_state, probability_func=lambda agents: np.full(len(agents), 0.5))
+    start_state.allow_self_transitions()
 
-    start_state.transition_set.append(a_transition)
-    machine = Machine('state')
-    machine.states.extend([start_state, a_state])
+    machine = Machine('state', states=[start_state, a_state])
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start')], population_size=10000)
 
