@@ -24,10 +24,14 @@ def _next_state(index, transition_set, population_view):
 
     if groups:
         for output, affected_index in sorted(groups, key=lambda x: str(x[0])):
+            if not affected_index.empty:
+                #print("To {} with {} simulants".format(output, len(affected_index)))
+                pass
             if output == 'null_transition':
                 pass
             elif isinstance(output, TransientState):
-                _next_state(affected_index, output.transition_set, population_view)
+                output.transition_effect(affected_index, population_view)
+                output.next_state(affected_index, population_view)
             elif isinstance(output, State):
                 output.transition_effect(affected_index, population_view)
             else:
@@ -81,6 +85,7 @@ class State:
     def __init__(self, state_id, key='state'):
         self.state_id = state_id
         self.transition_set = TransitionSet(key='.'.join([str(key), str(state_id)]))
+        self._model = None
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -108,6 +113,9 @@ class State:
         population_view : `pandas.DataFrame`
             A view of the internal state of the simulation.
         """
+        if not index.empty:
+            pass
+            #print("Transition from {}: {}".format(self._model, self.state_id))
         return _next_state(index, self.transition_set, population_view)
 
     def transition_effect(self, index, population_view):
@@ -120,7 +128,10 @@ class State:
         population_view : `pandas.DataFrame`
             A view of the internal state of the simulation.
         """
+        #print(population_view.get(index))
         population_view.update(pd.Series(self.state_id, index=index))
+        #print(population_view.get(index))
+        #print()
         self._transition_side_effect(index)
 
     def add_transition(self, output,
@@ -288,7 +299,7 @@ class Transition:
             index = pd.Index(index)
             activated_index = self._active.intersection(index)
             null_index = index.difference(self._active)
-            activated = self._probability(activated_index)
+            activated = pd.Series(self._probability(activated_index), index=activated_index)
             null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
             return activated.append(null)
 
@@ -316,8 +327,10 @@ class Machine:
         A view of the internal state of the simulation.
     """
     def __init__(self, state_column, states=None):
-        self.states = list(states) if states else list()
+        self.states = list()
         self.state_column = state_column
+        self.add_states(states)
+
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -336,6 +349,11 @@ class Machine:
         self.population_view = builder.population_view([self.state_column])
         return self.states
 
+    def add_states(self, states):
+        for state in states:
+            self.states.append(state)
+            state._model = self.state_column
+
     def transition(self, index):
         """Finds the population in each state and moves them to the next state.
         
@@ -344,6 +362,8 @@ class Machine:
         index : iterable of ints
             An iterable of integer labels for the simulants.
         """
+        #print()
+        #print("Model: {}".format(self.state_column))
         population = self.population_view.get(index)
         state_pops = [[state, population[population[self.state_column] == state.state_id]]
                       for state in self.states]
