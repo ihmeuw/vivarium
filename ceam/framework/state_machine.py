@@ -119,7 +119,7 @@ class State:
         ----------
         index : iterable of ints
             An iterable of integer labels for the simulants.    
-        population_view : `pandas.DataFrame`
+        population_view : `ceam.framework.population.PopulationView`
             A view of the internal state of the simulation.
         """
         population_view.update(pd.Series(self.state_id, index=index))
