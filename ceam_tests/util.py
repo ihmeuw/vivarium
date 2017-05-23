@@ -15,7 +15,6 @@ from ceam.framework import randomness
 def setup_simulation(components, population_size=100, start=None):
     simulation = SimulationContext(components)
     simulation.setup()
-    print(config.simulation_parameters)
     if start:
         simulation.current_time = start
     else:
