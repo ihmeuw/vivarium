@@ -126,13 +126,11 @@ def build_table(value, columns=['age', 'year', 'sex', 'rate']):
 def generate_test_population(event):
     population_size = len(event.index)
     initial_age = event.user_data.get('initial_age', None)
-    print(type(initial_age))
     population = pd.DataFrame(index=range(population_size))
     if initial_age is not None:
         population['fractional_age'] = initial_age
     else:
         population['fractional_age'] = randomness.random('test_population_age', population.index) * 100
-    print(population)
     population['fractional_age'] = population['fractional_age'].astype(float)
     population['age'] = population['fractional_age'].astype(int)
 
