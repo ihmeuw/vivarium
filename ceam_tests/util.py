@@ -15,14 +15,12 @@ from ceam.framework import randomness
 def setup_simulation(components, population_size=100, start=None):
     simulation = SimulationContext(components)
     simulation.setup()
-
     if start:
         simulation.current_time = start
     else:
         year_start = config.simulation_parameters.year_start
         simulation.current_time = datetime(year_start, 1, 1)
-
-    if config.simulation_parameters.initial_age:
+    if config.simulation_parameters.initial_age is not '':
         simulation.population._create_simulants(population_size,
                                                 population_configuration={
                                                     'initial_age': config.simulation_parameters.initial_age})
@@ -129,7 +127,7 @@ def generate_test_population(event):
     initial_age = event.user_data.get('initial_age', None)
 
     population = pd.DataFrame(index=range(population_size))
-    if initial_age:
+    if initial_age is not '':
         population['fractional_age'] = initial_age
     else:
         population['fractional_age'] = randomness.random('test_population_age', population.index) * 100
