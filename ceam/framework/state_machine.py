@@ -24,9 +24,6 @@ def _next_state(index, transition_set, population_view):
 
     if groups:
         for output, affected_index in sorted(groups, key=lambda x: str(x[0])):
-            if not affected_index.empty:
-                #print("To {} with {} simulants".format(output, len(affected_index)))
-                pass
             if output == 'null_transition':
                 pass
             elif isinstance(output, TransientState):
@@ -113,9 +110,6 @@ class State:
         population_view : `pandas.DataFrame`
             A view of the internal state of the simulation.
         """
-        if not index.empty:
-            pass
-            #print("Transition from {}: {}".format(self._model, self.state_id))
         return _next_state(index, self.transition_set, population_view)
 
     def transition_effect(self, index, population_view):
@@ -128,10 +122,7 @@ class State:
         population_view : `pandas.DataFrame`
             A view of the internal state of the simulation.
         """
-        #print(population_view.get(index))
         population_view.update(pd.Series(self.state_id, index=index))
-        #print(population_view.get(index))
-        #print()
         self._transition_side_effect(index)
 
     def add_transition(self, output,
@@ -163,6 +154,7 @@ class State:
 
 
 class TransientState(State):
+    """Used to tell _next_state to transition a second time."""
     pass
 
 
@@ -362,8 +354,6 @@ class Machine:
         index : iterable of ints
             An iterable of integer labels for the simulants.
         """
-        #print()
-        #print("Model: {}".format(self.state_column))
         population = self.population_view.get(index)
         state_pops = [[state, population[population[self.state_column] == state.state_id]]
                       for state in self.states]
