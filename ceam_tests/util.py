@@ -45,7 +45,7 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
 
     def should_stop():
         if duration is not None:
-            if simulation.current_time - start_time > duration:
+            if simulation.current_time - start_time >= duration:
                 return True
         elif iterations is not None:
             if iteration_count >= iterations:
@@ -59,6 +59,7 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
         iteration_count += 1
         _step(simulation, time_step)
 
+    return iteration_count
 
 
 def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population.population), dummy_population=None):
