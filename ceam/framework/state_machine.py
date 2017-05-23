@@ -319,9 +319,10 @@ class Machine:
         A view of the internal state of the simulation.
     """
     def __init__(self, state_column, states=None):
-        self.states = list()
+        self.states = []
         self.state_column = state_column
-        self.add_states(states)
+        if states:
+            self.add_states(states)
 
 
     def setup(self, builder):
