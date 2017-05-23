@@ -38,9 +38,7 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
         config.simulation_parameters.time_step = time_step_days
 
     time_step = timedelta(days=float(config.simulation_parameters.time_step))
-    year_start = config.simulation_parameters.year_start
-    start_time = datetime(year_start, 1, 1)
-    simulation.current_time = start_time
+    start_time = simulation.current_time
     iteration_count = 0
 
     def should_stop():
