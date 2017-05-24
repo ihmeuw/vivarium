@@ -122,7 +122,6 @@ class Pipeline:
 
     def __init__(self, combiner=replace_combiner, post_processor=None):
         self.source = None
-        # TODO : What is even happening here? Pre-allocation? Why ten?
         self.mutators = [[] for i in range(10)]
         self.combiner = combiner
         self.post_processor = post_processor
@@ -139,6 +138,11 @@ class Pipeline:
             return self.post_processor(value)
         else:
             return value
+
+    def __repr__(self):
+        return ("Pipeline(\nsource= {},\nmutators= {},\n".format(self.source, self.mutators)
+                + "combiner= {},\n post_processor= {},\n".format(self.combiner, self.post_processor)
+                + "configured = {})".format(self.configured))
 
 
 class ValuesManager:
@@ -227,3 +231,6 @@ class ValuesManager:
 
             for name, mutator, priority in values_modified:
                 self._pipelines[name].mutators[priority].append(mutator)
+
+    def __repr__(self):
+        return "ValuesManager(_pipelines= {})".format(self._pipelines)
