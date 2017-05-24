@@ -186,10 +186,16 @@ def do_command(args):
             components = None
         simulation = setup_simulation(components)
         print(simulation.events.list_events())
+    elif args.command == 'print_configuration':
+        configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
+        components = read_component_configuration(args.components)
+        load(components)
+        print(config)
+
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['run', 'list_events'])
+    parser.add_argument('command', choices=['run', 'list_events', 'print_configuration'])
     parser.add_argument('components', nargs='?', default=None, type=str)
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--config', '-c', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
