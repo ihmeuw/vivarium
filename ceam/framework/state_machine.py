@@ -155,7 +155,8 @@ class State:
 
 class TransientState(State):
     """Used to tell _next_state to transition a second time."""
-    pass
+    def __repr__(self):
+        return 'TransientState({})'.format(self.state_id)
 
 
 class TransitionSet(list):
@@ -300,10 +301,12 @@ class Transition:
         return ''
 
     def __str__(self):
-        return repr(self)
+        return 'Transition({})'.format(self.output)
 
     def __repr__(self):
-        return 'Transition({})'.format(self.output)
+        return 'Transition(output= {}, _probability={}, _active={})'.format(self.output,
+                                                                            self._probability,
+                                                                            self._active)
 
 
 class Machine:
@@ -389,3 +392,6 @@ class Machine:
                 else:
                     dot.edge(state.name(), transition.output.name(), transition.label())
         return dot
+
+    def __repr__(self):
+        return "Machine(states= {}, state_column= {})".format(self.states, self.state_column)
