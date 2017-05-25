@@ -11,3 +11,5 @@ local.cfg
 .swo
 *~
 docs/_build
+build
+dist
