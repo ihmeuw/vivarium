@@ -174,7 +174,8 @@ class ConfigNode:
         """
         if self._frozen:
             raise TypeError('Frozen ConfigNode does not support modification')
-        del self._values[layer]
+        if layer in self._values:
+            del self._values[layer]
 
     def __repr__(self):
         return 'ConfigNode(layers={}, values={}, frozen={}, accessed={})'.format(

@@ -15,14 +15,13 @@ from ceam.framework import randomness
 def setup_simulation(components, population_size=100, start=None):
     simulation = SimulationContext(components)
     simulation.setup()
-
     if start:
         simulation.current_time = start
     else:
         year_start = config.simulation_parameters.year_start
         simulation.current_time = datetime(year_start, 1, 1)
 
-    if config.simulation_parameters.initial_age is not None:
+    if 'initial_age' in config.simulation_parameters:
         simulation.population._create_simulants(population_size,
                                                 population_configuration={
                                                     'initial_age': config.simulation_parameters.initial_age})
@@ -34,14 +33,12 @@ def setup_simulation(components, population_size=100, start=None):
 
 def pump_simulation(simulation, duration=None, iterations=None):
     time_step = timedelta(days=float(config.simulation_parameters.time_step))
-    year_start = config.simulation_parameters.year_start
-    start_time = datetime(year_start, 1, 1)
-    simulation.current_time = start_time
+    start_time = simulation.current_time
     iteration_count = 0
 
     def should_stop():
         if duration is not None:
-            if simulation.current_time - start_time > duration:
+            if simulation.current_time - start_time >= duration:
                 return True
         elif iterations is not None:
             if iteration_count >= iterations:
@@ -55,6 +52,7 @@ def pump_simulation(simulation, duration=None, iterations=None):
         iteration_count += 1
         _step(simulation, time_step)
 
+    return iteration_count
 
 
 def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population.population), dummy_population=None):
@@ -125,9 +123,8 @@ def build_table(value, columns=['age', 'year', 'sex', 'rate']):
 def generate_test_population(event):
     population_size = len(event.index)
     initial_age = event.user_data.get('initial_age', None)
-
     population = pd.DataFrame(index=range(population_size))
-    if initial_age is not None:
+    if initial_age is not None and initial_age is not '':
         population['fractional_age'] = initial_age
     else:
         population['fractional_age'] = randomness.random('test_population_age', population.index) * 100
