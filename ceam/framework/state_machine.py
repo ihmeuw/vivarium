@@ -5,7 +5,7 @@ import numpy as np
 
 def _next_state(index, transition_set, population_view):
     """Moves a population between different states using information from a `TransitionSet`.
-    
+
     Parameters
     ----------
     index : iterable of ints
@@ -37,7 +37,7 @@ def _next_state(index, transition_set, population_view):
 
 def _groupby_new_state(index, outputs, decisions):
     """Groups the simulants in the index by their new output state.
-    
+
     Parameters
     ----------
     index : iterable of ints
@@ -46,7 +46,7 @@ def _groupby_new_state(index, outputs, decisions):
         A list of possible output states.
     decisions : `pandas.Series`
         A series containing the name of the next state for each simulant in the index.
-    
+
     Returns
     -------
     iterable of 2-tuples
@@ -65,14 +65,14 @@ def _groupby_new_state(index, outputs, decisions):
 
 class State:
     """An abstract representation of a particular position in a finite and discrete state space.
-    
+
     Attributes
     ----------
     state_id : str
         The name of this state.
     transition_set : `TransitionSet`
         A container for potential transitions out of this state.
-    
+
     Additional Parameters
     ---------------------
     key : object, optional
@@ -86,13 +86,13 @@ class State:
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
-        
+
         Parameters
         ----------
         builder : `engine.Builder`
             Interface to several simulation tools including access to common random
             number generation, in particular.
-        
+
         Returns
         -------
         iterable
@@ -101,24 +101,24 @@ class State:
         return [self.transition_set]
 
     def next_state(self, index, population_view):
-        """Moves a population between different states using information this state's `transition_set`.    
-        
+        """Moves a population between different states using information this state's `transition_set`.
+
         Parameters
         ----------
         index : iterable of ints
-            An iterable of integer labels for the simulants.    
+            An iterable of integer labels for the simulants.
         population_view : `pandas.DataFrame`
             A view of the internal state of the simulation.
         """
         return _next_state(index, self.transition_set, population_view)
 
     def transition_effect(self, index, population_view):
-        """Updates the simulation state and triggers any side-effects associated with this state.
-        
+        """Updates the simulation state and triggers any side-effects associated with entering this state.
+
         Parameters
         ----------
         index : iterable of ints
-            An iterable of integer labels for the simulants.    
+            An iterable of integer labels for the simulants.
         population_view : `ceam.framework.population.PopulationView`
             A view of the internal state of the simulation.
         """
@@ -129,7 +129,7 @@ class State:
                        probability_func=lambda index: np.ones(len(index), dtype=float),
                        triggered=False):
         """Builds a transition from this state to the given state.
-        
+
         output : State
             The end state after the transition.
         """
@@ -160,7 +160,7 @@ class TransientState(State):
 
 class TransitionSet(list):
     """A container for state machine transitions.
-    
+
     Parameters
     ----------
     iterable : iterable
@@ -181,13 +181,13 @@ class TransitionSet(list):
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
-        
+
         Parameters
         ----------
         builder : `engine.Builder`
-            Interface to several simulation tools including access to common random 
+            Interface to several simulation tools including access to common random
             number generation, in particular.
-        
+
         Returns
         -------
         iterable
@@ -198,12 +198,12 @@ class TransitionSet(list):
 
     def choose_new_state(self, index):
         """Chooses a new state for each simulant in the index.
-        
+
         Parameters
         ----------
         index : iterable of ints
             An iterable of integer labels for the simulants.
-        
+
         Returns
         -------
         outputs : list
@@ -219,7 +219,7 @@ class TransitionSet(list):
 
     def _normalize_probabilities(self, outputs, probabilities):
         """Normalize probabilities to sum to 1 and add a null transition if desired.
-        
+
         Parameters
         ----------
         outputs : iterable
@@ -227,15 +227,15 @@ class TransitionSet(list):
         probabilities : iterable of iterables
             A set of probability weights whose columns correspond to the end states in `outputs`
             and whose rows correspond to each simulant undergoing the transition.
-        
+
         Returns
         -------
         outputs: list
             The original output list expanded to include a null transition (a transition back
             to the starting state) if requested.
         probabilities : ndarray
-            The original probabilities rescaled to sum to 1 and potentially expanded to 
-            include a null transition weight.            
+            The original probabilities rescaled to sum to 1 and potentially expanded to
+            include a null transition weight.
         """
         outputs = list(outputs)
         total = np.sum(probabilities, axis=1)
@@ -259,11 +259,11 @@ class TransitionSet(list):
 
 class Transition:
     """A process by which an entity might change into a particular state.
-    
+
     Parameters
     ----------
     output : State
-        The end state of the entity that undergoes the transition. 
+        The end state of the entity that undergoes the transition.
     probability_func : callable
         A method or function that describing the probability of this transition occurring.
     """
@@ -308,7 +308,7 @@ class Transition:
 
 class Machine:
     """A collection of states and transitions between those states.
-    
+
     Attributes
     ----------
     states : iterable of `State` objects
@@ -327,7 +327,7 @@ class Machine:
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
-        
+
         Parameters
         ----------
         builder : `engine.Builder`
@@ -349,7 +349,7 @@ class Machine:
 
     def transition(self, index):
         """Finds the population in each state and moves them to the next state.
-        
+
         Parameters
         ----------
         index : iterable of ints
@@ -365,7 +365,7 @@ class Machine:
 
     def to_dot(self):
         """Produces a ball and stick graph of this state machine.
-        
+
         Returns
         -------
         `graphviz.Digraph`
