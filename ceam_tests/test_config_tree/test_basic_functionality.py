@@ -99,7 +99,7 @@ def test_drop_layer():
     d.drop_layer('c')
     assert d.test_key == 'test_value2'
 
-    with pytest.raises(KeyError):
+    with pytest.raises(ValueError):
         d.drop_layer('c')
 
 def test_reset_layer():
