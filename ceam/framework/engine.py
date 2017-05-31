@@ -43,6 +43,15 @@ class Builder:
         draw_number = config.run_configuration.draw_number
         self.randomness = lambda key: RandomnessStream(key, self.clock(), draw_number)
 
+    def __repr__(self):
+        return ("Builder(\nlookup: {},\nvalue: {},\nrate: {},\n".format(self.lookup, self.value, self.rate)
+                + "declare_pipeline: {},\nmodifies_value: {},\n".format(self.declare_pipeline, self.modifies_value)
+                + "emitter: {},\npopulation_view: {},\n".format(self.emitter, self.population_view)
+                + "clock: {},\nrandomness: {}\n)".format(self.clock, self.randomness))
+
+
+
+
 class SimulationContext:
     '''
     context
@@ -87,6 +96,11 @@ class SimulationContext:
         self.tables.setup_components(components)
 
         self.events.get_emitter('post_setup')(None)
+
+    def __repr__(self):
+        return ("SimulationContext(\ncomponents: {},\nvalues: {},\n".format(self.components, self.values)
+                + "events: {},\npopulation: {},\ntables: {},\n".format(self.events, self.population, self.tables)
+                + "current_time: {})".format(self.current_time))
 
 @emits('time_step')
 @emits('time_step__prepare')

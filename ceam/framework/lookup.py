@@ -18,6 +18,9 @@ class TableView:
     def __call__(self, index):
         raise NotImplementedError()
 
+    def __repr__(self):
+        return "TableView()"
+
 
 class InterpolatedTableView(TableView):
     """A callable that returns the result of an interpolation function over
@@ -53,12 +56,21 @@ class InterpolatedTableView(TableView):
 
         return self.interpolation(pop)
 
+    def __repr__(self):
+        return "InterpolatedTableView(interpolation= {}, population_view= {}, clock= {})".format(self.interpolation,
+                                                                                                 self.population_view,
+                                                                                                 self.clock)
+
+
 class ScalarView(TableView):
     def __init__(self, value):
         self.value = value
 
     def __call__(self, index):
         return pd.Series(self.value, index=index)
+
+    def __repr__(self):
+        return "ScalarView(value={})".format(self.value)
 
 class InterpolatedDataManager:
     """Container for interpolation functions over input data. Interpolation can
@@ -84,7 +96,10 @@ class InterpolatedDataManager:
             return ScalarView(data)
         elif not isinstance(data, Interpolation):
             data = Interpolation(data, key_columns, parameter_columns, order=order)
-        return InterpolatedTableView(data, self._pop_view_builder(sorted((set(key_columns)|set(parameter_columns)) - {'year'})), self.clock if 'year' in parameter_columns else None)
+        return InterpolatedTableView(data,
+                                     self._pop_view_builder(sorted((set(key_columns) | set(parameter_columns))
+                                                                   - {'year'})),
+                                     self.clock if 'year' in parameter_columns else None)
 
     def build_table(self, data, key_columns=('sex',),
             parameter_columns=('age', 'year'), interpolation_order=1):
@@ -125,6 +140,10 @@ class InterpolatedDataManager:
     def setup_components(self, components):
         pass
 
+    def __repr__(self):
+        return "InterpolatedDataManager(uniterpolated_manager= {}, clock= {})".format(self.uninterpolated_manager,
+                                                                                      self.clock)
+
 class UninterpolatedTableView(TableView):
     """A callable that looks up columns in the merged lookup table for simulant in an index
 
@@ -159,6 +178,11 @@ class UninterpolatedTableView(TableView):
             return result.rename(columns=self._column_map)
         else:
             return result[result.columns[0]]
+
+    def __repr__(self):
+        return "UniterpolatedTableView(_manager= {}, _table_group= {}, _column_map = {})".format(self._manager,
+                                                                                                 self._table_group,
+                                                                                                 self._column_map)
 
 class MergedTableManager:
     """Container for the merged lookup tables
@@ -221,7 +245,8 @@ class MergedTableManager:
                 current_table = base_table.merge(population[merge_index + ['simulant_id']], on=merge_index)
 
                 if len(current_table) != len(event.index):
-                    raise LookupError("Error aligning reference tables for keys {}. This likely means that the keys in the reference table are not exhaustive".format(merge_index))
+                    raise LookupError("Error aligning reference tables for keys {}. ".format(merge_index)
+                                      + "This likely means that the keys in the reference table are not exhaustive")
 
 
                 current_table = current_table.set_index('simulant_id').sort_index()
@@ -230,3 +255,8 @@ class MergedTableManager:
 
     def setup_components(self, components):
         pass
+
+    def __repr__(self):
+        return "MergedTableManager(_base_table= {}, _current_table = {}, last_year= {})".format(self._base_table,
+                                                                                                self._current_table,
+                                                                                                self.last_year)

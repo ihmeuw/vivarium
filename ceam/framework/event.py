@@ -41,6 +41,9 @@ class Event:
         new_event.time = self.time
         return new_event
 
+    def __repr__(self):
+        return "Event(index={}, user_data={}, time={})".format(self.index, self.user_data, self.time)
+
 class _EventChannel:
     def __init__(self, manager):
         self.manager = manager
@@ -54,6 +57,9 @@ class _EventChannel:
         for priority_bucket in self.listeners:
             for listener in sorted(priority_bucket, key=lambda x: x.__name__):
                 listener(event)
+
+    def __repr__(self):
+        return "_EventChannel(manager: {}, listeners: {})".format(self.manager, self.listeners)
 
 
 class EventManager:
@@ -125,3 +131,6 @@ class EventManager:
         """
 
         return list(self.__event_types.keys())
+
+    def __repr__(self):
+        return "EventManager(event_types: {})".format(self.__event_types)
