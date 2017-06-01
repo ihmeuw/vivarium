@@ -1,5 +1,3 @@
-# ~/ceam/ceam_tests/test_util.py
-
 import pytest
 
 from datetime import timedelta
@@ -47,6 +45,3 @@ def test_rate_to_probablity_vectorizability():
     prob = rate_to_probability(rate)
     assert round(prob[10], 5) == round(0.00099950016662497809, 5)
     assert round(np.sum(rate), 5) == round(np.sum(probability_to_rate(prob)), 5)
-
-
-# End.

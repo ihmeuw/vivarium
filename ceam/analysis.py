@@ -1,5 +1,3 @@
-# ~/ceam/ceam/analysis.py
-
 import argparse
 import os.path
 from datetime import timedelta
@@ -178,6 +176,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-# End.

@@ -107,6 +107,3 @@ def test_side_effects():
     assert np.all(simulation.population.population['count'] == 1)
     machine.transition(simulation.population.population.index)
     assert np.all(simulation.population.population['count'] == 2)
-
-
-# End.
