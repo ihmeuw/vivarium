@@ -1,5 +1,3 @@
-# ~/ceam/examples/simple_idh.py
-
 import os, time
 import numpy as np, pandas as pd
 import ceam, ceam.engine, ceam.modules.disease_models, ceam.modules.blood_pressure
@@ -105,6 +103,3 @@ print('YLLs:', metrics_module.ylls)
 print('AMIs:', metrics_module.ami_count)
 print('Cost:', intervention.cumulative_cost)
 print('Run time:', metrics_module.run_time())
-
-
-# End.

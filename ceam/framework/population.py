@@ -160,6 +160,12 @@ class PopulationView:
                 for observer in self.manager.observers[c]:
                     observer()
 
+    def __repr__(self):
+        return "PopulationView(manager= {} , _columns= {}, _query= {})".format(self.manager,
+                                                                               self._columns,
+                                                                               self._query)
+
+
 class PopulationEvent(Event):
     """A standard Event with additional population data. This is the type of event that functions decorated with both
     ``listens_for`` and ``uses_columns`` will receive.
@@ -179,7 +185,7 @@ class PopulationEvent(Event):
         super(PopulationEvent, self).__init__(index, user_data)
         self.population = population
         self.population_view = population_view
-        self.time=time
+        self.time = time
 
     @staticmethod
     def from_event(event, population_view):
@@ -189,6 +195,12 @@ class PopulationEvent(Event):
         else:
             population = population_view.get(event.index, omit_missing_columns=True)
             return PopulationEvent(event.index, population, population_view, event.user_data, time=event.time)
+
+    def __repr__(self):
+        return "PopulationEvent(population= {}, population_view= {}, time= {})".format(self.population,
+                                                                                       self.population_view,
+                                                                                       self.time)
+
 
 
 class PopulationManager:
@@ -270,3 +282,8 @@ class PopulationManager:
     @property
     def population(self):
         return self._population.copy()
+
+    def __repr__(self):
+        return "PopulationManager(_population= {}, growing= {}, observers= {})".format(self._population,
+                                                                                       self.growing,
+                                                                                       self.observers)
