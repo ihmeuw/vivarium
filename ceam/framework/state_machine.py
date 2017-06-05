@@ -376,21 +376,13 @@ class Machine:
         """
         from graphviz import Digraph
         dot = Digraph(format='png')
-        done = set()
         for state in self.states:
-            dot.node(state.name())
+            if isinstance(state, TransientState):
+                dot.node(state.name(), style='dashed')
+            else:
+                dot.node(state.name())
             for transition in state.transition_set:
-                if isinstance(transition.output, TransitionSet):
-                    key = str(id(transition.output))
-                    dot.node(key, '')
-                    dot.edge(state.name(), key, transition.label())
-                    if key in done:
-                        continue
-                    done.add(key)
-                    for transition in transition.output:
-                        dot.edge(key, transition.output.name(), transition.label())
-                else:
-                    dot.edge(state.name(), transition.output.name(), transition.label())
+                dot.edge(state.name(), transition.output.name(), transition.label())
         return dot
 
     def __repr__(self):
