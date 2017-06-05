@@ -173,7 +173,6 @@ def run(components):
     config.set_with_metadata('run_configuration.run_key', {'draw': config.run_configuration.draw_number}, layer='base')
     simulation = setup_simulation(components)
     metrics = run_simulation(simulation)
-    import pdb; pdb.set_trace()
     for k,v in collapse_nested_dict(config.run_configuration.run_key.to_dict()):
         metrics[k] = v
 
