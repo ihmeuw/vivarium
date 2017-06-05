@@ -26,6 +26,7 @@ from ceam.framework.population import PopulationManager, creates_simulants
 from ceam.framework.lookup import InterpolatedDataManager
 from ceam.framework.components import load, read_component_configuration
 from ceam.framework.randomness import RandomnessStream
+from ceam.framework.util import collapse_nested_dict
 
 import logging
 _log = logging.getLogger(__name__)
@@ -168,9 +169,13 @@ def configure(draw_number=None, verbose=False, simulation_config=None):
         config.run_configuration.set_with_metadata('draw_number', draw_number, layer='override', source='command_line_argument')
 
 def run(components):
+    config.set_with_metadata('run_configuration.run_id', str(time()), layer='base')
+    config.set_with_metadata('run_configuration.run_key', {'draw': config.run_configuration.draw_number}, layer='base')
     simulation = setup_simulation(components)
     metrics = run_simulation(simulation)
-    metrics['draw'] =  config.run_configuration.draw_number
+    import pdb; pdb.set_trace()
+    for k,v in collapse_nested_dict(config.run_configuration.run_key.to_dict()):
+        metrics[k] = v
 
     _log.debug(pformat(metrics))
 
