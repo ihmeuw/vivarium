@@ -354,6 +354,15 @@ class ConfigTree:
             with open(f) as f:
                 self.loads(f.read(), layer=layer, source=source)
 
+    def to_dict(self):
+        result = {}
+        for k,v in self._children.items():
+            if isinstance(v, ConfigNode):
+                result[k] = v.get_value()
+            else:
+                result[k] = v.to_dict()
+        return result 
+
     def metadata(self, name):
         """Return value and metadata associated with the named value
 
