@@ -7,7 +7,7 @@ import pandas as pd
 from ceam import CEAMError
 
 from .util import resource_injector
-from .event import listens_for, emits, Event
+from .event import emits, Event
 
 uses_columns = resource_injector('population_system_population_view')
 uses_columns.__doc__ = """Mark a function as a user of columns from the population table. If the
@@ -30,8 +30,10 @@ injected into its arguments which takes a count of new simulants, creates space 
 and emits a 'initialize_simulants' event to fill in the table.
 """
 
+
 class PopulationError(CEAMError):
     pass
+
 
 class PopulationView:
     """A PopulationView provides access to the simulations population table. It can be used to both read and write
@@ -104,7 +106,12 @@ class PopulationView:
             try:
                 return pop[columns].copy()
             except KeyError:
-                raise PopulationError('The columns requested do not exist in the population table. Specifically, you requested {}, which do(es) not exist in the poplation table. Are you trying to read columns during simulant initization? You may be able to lower the priority of your handler so that it happens after the component that creates the column you need.'.format(set(columns) - set(pop.columns)))
+                non_existent_columns = set(columns) - set(pop.columns)
+                raise PopulationError('The columns requested do not exist in the population table. Specifically, you '
+                                      + 'requested {}, which do(es) not exist in the '.format(non_existent_columns)
+                                      + 'population table. Are you trying to read columns during simulant '
+                                      + 'initialization? You may be able to lower the priority of your handler so '
+                                      + 'that it happens after the component that creates the column you need.')
 
     def update(self, pop):
         """Update the simulation's state to match ``pop``
@@ -125,7 +132,8 @@ class PopulationView:
                 elif len(self._columns) == 1:
                     affected_columns = self._columns
                 else:
-                    raise PopulationError('Cannot update with a Series unless the series name equals a column name or there is only a single column in the view')
+                    raise PopulationError('Cannot update with a Series unless the series name equals a column '
+                                          'name or there is only a single column in the view')
             else:
                 affected_columns = set(pop.columns)
 
@@ -147,7 +155,8 @@ class PopulationView:
                         # the index forces columns that don't have a natural null type
                         # to become 'object'
                         if not self.manager.growing:
-                            raise PopulationError('Component corrupting population table. Old column type: {} New column type: {}'.format(v.dtype, v2.dtype))
+                            raise PopulationError('Component corrupting population table. '
+                                                  'Old column type: {} New column type: {}'.format(v.dtype, v2.dtype))
                         v = v.astype(v2.dtype)
                 else:
                     if isinstance(pop, pd.Series):
@@ -156,7 +165,7 @@ class PopulationView:
                         v = pop[c].values
                 self.manager._population[c] = v
 
-                #Notify column observers
+                # Notify column observers
                 for observer in self.manager.observers[c]:
                     observer()
 
@@ -200,7 +209,6 @@ class PopulationEvent(Event):
         return "PopulationEvent(population= {}, population_view= {}, time= {})".format(self.population,
                                                                                        self.population_view,
                                                                                        self.time)
-
 
 
 class PopulationManager:

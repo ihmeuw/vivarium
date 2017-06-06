@@ -1,13 +1,21 @@
-import pytest
-
+import os
 from datetime import datetime, timedelta
 
-import pandas as pd
 import numpy as np
 
+from ceam import config
 from ceam_tests.util import build_table, setup_simulation, generate_test_population
-
 from ceam.framework.event import Event
+
+
+def setup():
+    config.simulation_parameters.set_with_metadata('year_start', 1990, layer='override',
+                                                   source=os.path.realpath(__file__))
+    config.simulation_parameters.set_with_metadata('year_end', 2010, layer='override',
+                                                   source=os.path.realpath(__file__))
+    config.simulation_parameters.set_with_metadata('time_step', 30.5, layer='override',
+                                                   source=os.path.realpath(__file__))
+
 
 def test_uninterpolated_table_alignment():
     years = build_table(lambda age, sex, year: year)
@@ -32,7 +40,8 @@ def test_uninterpolated_table_alignment():
     assert np.all(result_ages == simulation.population.population.age)
     assert np.all(result_sexes == simulation.population.population.sex)
 
-    simulation.current_time = datetime(simulation.current_time.year+1, simulation.current_time.month, simulation.current_time.day)
+    simulation.current_time = datetime(simulation.current_time.year+1,
+                                       simulation.current_time.month, simulation.current_time.day)
     simulation.population._population.age += 1
     emitter(Event(simulation.population.population.index))
 
@@ -43,6 +52,7 @@ def test_uninterpolated_table_alignment():
     assert np.all(result_years == simulation.current_time.year)
     assert np.all(result_ages == simulation.population.population.age)
     assert np.all(result_sexes == simulation.population.population.sex)
+
 
 def test_interpolated_tables():
     years = build_table(lambda age, sex, year: year)
@@ -82,6 +92,7 @@ def test_interpolated_tables():
     assert np.allclose(result_ages, simulation.population.population.age)
     assert np.allclose(result_ages_1d, simulation.population.population.age)
 
+
 def test_interpolated_tables_without_uniterpolated_columns():
     years = build_table(lambda age, sex, year: year)
     del years['sex']
@@ -107,6 +118,7 @@ def test_interpolated_tables_without_uniterpolated_columns():
 
     assert np.allclose(result_years, fractional_year)
 
+
 def test_interpolated_tables__exact_values_at_input_points():
     years = build_table(lambda age, sex, year: year)
     input_years = years.year.unique()
@@ -117,4 +129,5 @@ def test_interpolated_tables__exact_values_at_input_points():
 
     for year in input_years:
         simulation.current_time = datetime(year=year, month=1, day=1)
-        assert np.allclose(years(simulation.population.population.index), simulation.current_time.year + 1/365, rtol=1.e-5)
+        assert np.allclose(years(simulation.population.population.index),
+                           simulation.current_time.year + 1/365, rtol=1.e-5)
