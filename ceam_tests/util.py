@@ -20,6 +20,7 @@ def setup_simulation(components, population_size=100, start=None):
     else:
         year_start = config.simulation_parameters.year_start
         simulation.current_time = datetime(year_start, 1, 1)
+
     if 'initial_age' in config.simulation_parameters:
         simulation.population._create_simulants(population_size,
                                                 population_configuration={
@@ -31,10 +32,8 @@ def setup_simulation(components, population_size=100, start=None):
 
 
 def pump_simulation(simulation, time_step_days=None, duration=None, iterations=None):
-
     if time_step_days:
         config.simulation_parameters.time_step = time_step_days
-
     time_step = timedelta(days=float(config.simulation_parameters.time_step))
     start_time = simulation.current_time
     iteration_count = 0
