@@ -94,7 +94,6 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
         assert abs(total_expected_rate - total_true_rate)/total_expected_rate < 0.1
 
 
-
 def build_table(value, columns=['age', 'year', 'sex', 'rate']):
     value_columns = columns[3:]
     if not isinstance(value, list):
@@ -120,8 +119,9 @@ def build_table(value, columns=['age', 'year', 'sex', 'rate']):
                 rows.append([age, year, sex] + r_values)
     return pd.DataFrame(rows, columns=columns)
 
+
 @listens_for('initialize_simulants', priority=0)
-@uses_columns(['age', 'fractional_age', 'sex', 'alive'])
+@uses_columns(['age', 'fractional_age', 'sex', 'location', 'alive'])
 def generate_test_population(event):
     population_size = len(event.index)
     initial_age = event.user_data.get('initial_age', None)
@@ -135,6 +135,10 @@ def generate_test_population(event):
 
     population['sex'] = randomness.choice('test_population_sex', population.index, ['Male', 'Female'])
     population['alive'] = True
+    if 'location_id' in config.simulation_parameters:
+        population['location'] = config.simulation_parameters.location_id
+    else:
+        population['location'] = 180
 
     event.population_view.update(population)
 
