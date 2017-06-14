@@ -116,10 +116,22 @@ def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, 
 @creates_simulants
 @emits('simulation_end')
 def event_loop(simulation, simulant_creator, end_emitter):
+
     start = config.simulation_parameters.year_start
-    start = datetime(start, 6, 1)
+    if config.simulation_parameters.month_start and config.simulation_parameters.day_start:
+        start = datetime(start, config.simulation_parameters.month_start, config.simulation_parameters.day_start)
+    elif config.simulation_parameters.month_start and not config.simulation_parameters.day_start or config.simulation_parameters.day_start and not config.simulation_parameters.month_start:
+        raise ValueError("you must either specificy both a month start and a day start or neither")
+    else:
+        start = datetime(start, 7, 2)
+
     stop = config.simulation_parameters.year_end
-    stop = datetime(stop, 6, 1)
+    if config.simulation_parameters.month_end and config.simulation_parameters.day_end:
+        stop = datetime(stop, config.simulation_parameters.month_end, config.simulation_parameters.day_end)
+    elif config.simulation_parameters.month_end and not config.simulation_parameters.day_end or config.simulation_parameters.day_end and not config.simulation_parameters.month_end:
+        raise ValueError("you must either specificy both a month end and a day end or neither")
+    else:
+        stop = datetime(stop, 7, 2)
     time_step = config.simulation_parameters.time_step
     time_step = timedelta(days=time_step)
 
