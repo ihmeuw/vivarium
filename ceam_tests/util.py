@@ -129,11 +129,11 @@ def generate_test_population(event):
     if initial_age is not None and initial_age is not '':
         population['fractional_age'] = initial_age
     else:
-        population['fractional_age'] = randomness.random('test_population_age', population.index) * 100
+        population['fractional_age'] = randomness.random('test_population_age'+str(config.run_configuration.draw_number), population.index) * (config.simulation_parameters.pop_age_end - config.simulation_parameters.pop_age_start) + config.simulation_parameters.pop_age_start
     population['fractional_age'] = population['fractional_age'].astype(float)
     population['age'] = population['fractional_age'].astype(int)
 
-    population['sex'] = randomness.choice('test_population_sex', population.index, ['Male', 'Female'])
+    population['sex'] = randomness.choice('test_population_sex'+str(config.run_configuration.draw_number), population.index, ['Male', 'Female'])
     population['alive'] = True
     if 'location_id' in config.simulation_parameters:
         population['location'] = config.simulation_parameters.location_id
