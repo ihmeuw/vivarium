@@ -153,3 +153,11 @@ def generate_test_population(event):
 
     event.population_view.update(population)
 
+
+def make_dummy_column(name, initial_value):
+    @listens_for('initialize_simulants')
+    @uses_columns([name])
+    def make_column(event):
+        event.population_view.update(pd.Series(initial_value, index=event.index, name=name))
+    return make_column
+
