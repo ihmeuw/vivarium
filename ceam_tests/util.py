@@ -126,10 +126,21 @@ def generate_test_population(event):
     population_size = len(event.index)
     initial_age = event.user_data.get('initial_age', None)
     population = pd.DataFrame(index=range(population_size))
+
+    if 'pop_age_start' in config.simulation_parameters:
+        age_start = config.simulation_parameters.pop_age_start
+    else:
+        age_start = 0
+
+    if 'pop_age_end' in config.simulation_parameters:
+        age_end = config.simulation_parameters.pop_age_end
+    else:
+        age_end = 100
+
     if initial_age is not None and initial_age is not '':
         population['fractional_age'] = initial_age
     else:
-        population['fractional_age'] = randomness.random('test_population_age'+str(config.run_configuration.draw_number), population.index) * (config.simulation_parameters.pop_age_end - config.simulation_parameters.pop_age_start) + config.simulation_parameters.pop_age_start
+        population['fractional_age'] = randomness.random('test_population_age'+str(config.run_configuration.draw_number), population.index) * (age_end - age_start) + age_start
     population['fractional_age'] = population['fractional_age'].astype(float)
     population['age'] = population['fractional_age'].astype(int)
 
