@@ -121,17 +121,16 @@ def build_table(value, columns=['age', 'year', 'sex', 'rate']):
 
 
 @listens_for('initialize_simulants', priority=0)
-@uses_columns(['age', 'fractional_age', 'sex', 'location', 'alive'])
+@uses_columns(['age', 'sex', 'location', 'alive'])
 def generate_test_population(event):
     population_size = len(event.index)
     initial_age = event.user_data.get('initial_age', None)
     population = pd.DataFrame(index=range(population_size))
     if initial_age is not None and initial_age is not '':
-        population['fractional_age'] = initial_age
+        population['age'] = initial_age
+        population['age'] = population['age'].astype(float)
     else:
-        population['fractional_age'] = randomness.random('test_population_age', population.index) * 100
-    population['fractional_age'] = population['fractional_age'].astype(float)
-    population['age'] = population['fractional_age'].astype(int)
+        population['age'] = randomness.random('test_population_age', population.index) * 100
 
     population['sex'] = randomness.choice('test_population_sex', population.index, ['Male', 'Female'])
     population['alive'] = True
