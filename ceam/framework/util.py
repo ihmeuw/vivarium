@@ -107,7 +107,7 @@ def expand_branch_templates(templates):
     expanded_branches = []
 
     for branch in templates:
-        branch = collapse_nested_dict(branch)
+        branch = sorted(collapse_nested_dict(branch))
         branch = [(k,v if isinstance(v, list) else [v]) for k,v in branch]
         expanded_size = np.product([len(v) for k,v in branch])
         new_branches = []
