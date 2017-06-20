@@ -1,26 +1,21 @@
-'''
-The engine
-'''
-
+"""The engine."""
 import os
 import os.path
 import argparse
 from time import time
 from collections import Iterable
-import re
 from datetime import datetime, timedelta
 from pprint import pformat
 import gc
 from bdb import BdbQuit
 
-import numpy as np
 import pandas as pd
 
 from ceam import config
 
-from ceam.analysis import analyze_results, dump_results
+from ceam.analysis import dump_results
 
-from ceam.framework.values import ValuesManager, set_combiner, list_combiner, joint_value_combiner, joint_value_post_processor, rescale_post_processor, NullValue
+from ceam.framework.values import ValuesManager
 from ceam.framework.event import EventManager, Event, emits
 from ceam.framework.population import PopulationManager, creates_simulants
 from ceam.framework.lookup import InterpolatedDataManager
@@ -30,6 +25,7 @@ from ceam.framework.util import collapse_nested_dict
 
 import logging
 _log = logging.getLogger(__name__)
+
 
 class Builder:
     def __init__(self, context):
@@ -51,12 +47,8 @@ class Builder:
                 + "clock: {},\nrandomness: {}\n)".format(self.clock, self.randomness))
 
 
-
-
 class SimulationContext:
-    '''
-    context
-    '''
+    """context"""
     def __init__(self, components):
         self.components = components
         self.values = ValuesManager()
@@ -94,7 +86,6 @@ class SimulationContext:
         self.values.setup_components(components)
         self.events.setup_components(components)
         self.population.setup_components(components)
-        self.tables.setup_components(components)
 
         self.events.get_emitter('post_setup')(None)
 
@@ -102,6 +93,7 @@ class SimulationContext:
         return ("SimulationContext(\ncomponents: {},\nvalues: {},\n".format(self.components, self.values)
                 + "events: {},\npopulation: {},\ntables: {},\n".format(self.events, self.population, self.tables)
                 + "current_time: {})".format(self.current_time))
+
 
 @emits('time_step')
 @emits('time_step__prepare')
@@ -113,25 +105,23 @@ def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, 
     time_step__cleanup_emitter(Event(simulation.population.population.index))
     simulation.current_time += time_step
 
+
+def _get_time(suffix):
+    params = config.simulation_parameters
+    month, day = 'month' + suffix, 'day' + suffix
+    if month in params or day in params:
+        if not (month in params and day in params):
+            raise ValueError("you must either specify both a month {0} and a day {0} or neither".format(suffix))
+        return datetime(params['year_{}'.format(suffix)], params[month], params.day_start)
+    else:
+        return datetime(params['year_{}'.format(suffix)], 7, 2)
+
+
 @creates_simulants
 @emits('simulation_end')
 def event_loop(simulation, simulant_creator, end_emitter):
-
-    start = config.simulation_parameters.year_start
-    if config.simulation_parameters.month_start and config.simulation_parameters.day_start:
-        start = datetime(start, config.simulation_parameters.month_start, config.simulation_parameters.day_start)
-    elif config.simulation_parameters.month_start and not config.simulation_parameters.day_start or config.simulation_parameters.day_start and not config.simulation_parameters.month_start:
-        raise ValueError("you must either specificy both a month start and a day start or neither")
-    else:
-        start = datetime(start, 7, 2)
-
-    stop = config.simulation_parameters.year_end
-    if config.simulation_parameters.month_end and config.simulation_parameters.day_end:
-        stop = datetime(stop, config.simulation_parameters.month_end, config.simulation_parameters.day_end)
-    elif config.simulation_parameters.month_end and not config.simulation_parameters.day_end or config.simulation_parameters.day_end and not config.simulation_parameters.month_end:
-        raise ValueError("you must either specificy both a month end and a day end or neither")
-    else:
-        stop = datetime(stop, 7, 2)
+    start = _get_time('start')
+    stop = _get_time('end')
     time_step = config.simulation_parameters.time_step
     time_step = timedelta(days=time_step)
 
@@ -140,15 +130,17 @@ def event_loop(simulation, simulant_creator, end_emitter):
     population_size = config.simulation_parameters.population_size
 
     if config.simulation_parameters.initial_age != '':
-        simulant_creator(population_size, population_configuration={'initial_age': config.simulation_parameters.initial_age})
+        simulant_creator(population_size, population_configuration={
+            'initial_age': config.simulation_parameters.initial_age})
     else:
         simulant_creator(population_size)
 
     while simulation.current_time < stop:
-        gc.collect() # TODO: Actually figure out where the memory leak is.
+        gc.collect()  # TODO: Actually figure out where the memory leak is.
         _step(simulation, time_step)
 
     end_emitter(Event(simulation.population.population.index))
+
 
 def setup_simulation(components):
     if not components:
@@ -158,6 +150,7 @@ def setup_simulation(components):
     simulation.setup()
 
     return simulation
+
 
 def run_simulation(simulation):
     start = time()
@@ -170,6 +163,7 @@ def run_simulation(simulation):
     metrics['simulation_run_time'] = time() - start
     return metrics
 
+
 def configure(draw_number=None, verbose=False, simulation_config=None):
     if simulation_config:
         if isinstance(simulation_config, dict):
@@ -178,14 +172,16 @@ def configure(draw_number=None, verbose=False, simulation_config=None):
             config.read(simulation_config)
 
     if draw_number is not None:
-        config.run_configuration.set_with_metadata('draw_number', draw_number, layer='override', source='command_line_argument')
+        config.run_configuration.set_with_metadata('draw_number', draw_number,
+                                                   layer='override', source='command_line_argument')
+
 
 def run(components):
     config.set_with_metadata('run_configuration.run_id', str(time()), layer='base')
     config.set_with_metadata('run_configuration.run_key', {'draw': config.run_configuration.draw_number}, layer='base')
     simulation = setup_simulation(components)
     metrics = run_simulation(simulation)
-    for k,v in collapse_nested_dict(config.run_configuration.run_key.to_dict()):
+    for k, v in collapse_nested_dict(config.run_configuration.run_key.to_dict()):
         metrics[k] = v
 
     _log.debug(pformat(metrics))
@@ -195,6 +191,7 @@ def run(components):
         _log.debug("Some configuration keys not used during run: {}".format(unused_config_keys))
 
     return metrics
+
 
 def do_command(args):
     if args.command == 'run':
@@ -228,7 +225,8 @@ def main():
     parser.add_argument('command', choices=['run', 'list_events', 'print_configuration'])
     parser.add_argument('components', nargs='?', default=None, type=str)
     parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--config', '-c', type=str, default=None, help='Path to a config file to load which will take presidence over all other configs')
+    parser.add_argument('--config', '-c', type=str, default=None,
+                        help='Path to a config file to load which will take precedence over all other configs')
     parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
     parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
     parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
@@ -237,20 +235,20 @@ def main():
     args = parser.parse_args()
 
     log_level = logging.DEBUG if args.verbose else logging.ERROR
-    logging.basicConfig(filename=args.log,level=log_level)
+    logging.basicConfig(filename=args.log, level=log_level)
 
     try:
         do_command(args)
     except (BdbQuit, KeyboardInterrupt):
         raise
-    except:
+    except Exception as e:
         if args.pdb:
             import pdb
             import traceback
             traceback.print_exc()
             pdb.post_mortem()
         else:
-            logging.exception("Uncaught exception")
+            logging.exception("Uncaught exception {}".format(e))
             raise
 
 if __name__ == '__main__':
