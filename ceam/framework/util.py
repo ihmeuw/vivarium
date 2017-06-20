@@ -81,3 +81,56 @@ def collapse_nested_dict(d, prefix=None):
             results.append((cur_prefix, v))
     return results
 
+def expand_branch_templates(templates):
+    """
+    Take a list of dictionaries of configuration values (like the ones used in
+    experiment branch configurations) and expand it by taking any values which
+    are lists and creating a new set of branches which is made up of the
+    product of all those lists plus all non-list values.
+
+    For example this:
+
+    {'a': {'b': [1,2], 'c': 3, 'd': [4,5,6]}}
+
+    becomes this:
+
+    [
+        {'a': {'b': 1, 'c': 3, 'd': 4}},
+        {'a': {'b': 2, 'c': 3, 'd': 5}},
+        {'a': {'b': 1, 'c': 3, 'd': 6}},
+        {'a': {'b': 2, 'c': 3, 'd': 4}},
+        {'a': {'b': 1, 'c': 3, 'd': 5}},
+        {'a': {'b': 2, 'c': 3, 'd': 6}}
+    ]
+
+    """
+    expanded_branches = []
+
+    for branch in templates:
+        branch = sorted(collapse_nested_dict(branch))
+        branch = [(k,v if isinstance(v, list) else [v]) for k,v in branch]
+        expanded_size = np.product([len(v) for k,v in branch])
+        new_branches = []
+        for i in range(expanded_size):
+            new_branch = []
+            for k,v in branch:
+                new_branch.append((k,v[i%len(v)]))
+            new_branches.append(new_branch)
+        expanded_branches.extend(new_branches)
+
+    final_branches = []
+    for branch in expanded_branches:
+        root = {}
+        final_branches.append(root)
+        for k,v in branch:
+            current = root
+            *ks, k = k.split('.')
+            for sub_k in ks:
+                if sub_k in current:
+                    current = current[sub_k]
+                else:
+                    current[sub_k] = {}
+                    current = current[sub_k]
+            current[k] = v
+
+    return final_branches

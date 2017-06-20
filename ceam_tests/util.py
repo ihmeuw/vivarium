@@ -126,13 +126,24 @@ def generate_test_population(event):
     population_size = len(event.index)
     initial_age = event.user_data.get('initial_age', None)
     population = pd.DataFrame(index=range(population_size))
+
+    if 'pop_age_start' in config.simulation_parameters:
+        age_start = config.simulation_parameters.pop_age_start
+    else:
+        age_start = 0
+
+    if 'pop_age_end' in config.simulation_parameters:
+        age_end = config.simulation_parameters.pop_age_end
+    else:
+        age_end = 100
+
     if initial_age is not None and initial_age is not '':
         population['age'] = initial_age
         population['age'] = population['age'].astype(float)
     else:
         population['age'] = randomness.random('test_population_age', population.index) * 100
 
-    population['sex'] = randomness.choice('test_population_sex', population.index, ['Male', 'Female'])
+    population['sex'] = randomness.choice('test_population_sex'+str(config.run_configuration.draw_number), population.index, ['Male', 'Female'])
     population['alive'] = True
     if 'location_id' in config.simulation_parameters:
         population['location'] = config.simulation_parameters.location_id
@@ -140,4 +151,12 @@ def generate_test_population(event):
         population['location'] = 180
 
     event.population_view.update(population)
+
+
+def make_dummy_column(name, initial_value):
+    @listens_for('initialize_simulants')
+    @uses_columns([name])
+    def make_column(event):
+        event.population_view.update(pd.Series(initial_value, index=event.index, name=name))
+    return make_column
 
