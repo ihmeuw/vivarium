@@ -17,43 +17,6 @@ def setup():
                                                    source=os.path.realpath(__file__))
 
 
-def test_uninterpolated_table_alignment():
-    years = build_table(lambda age, sex, year: year)
-    ages = build_table(lambda age, sex, year: age)
-    sexes = build_table(lambda age, sex, year: sex)
-
-    simulation = setup_simulation([generate_test_population], 10000)
-
-    manager = simulation.tables
-    years = manager.build_table(years, key_columns=('age', 'sex', 'year'), parameter_columns=())
-    ages = manager.build_table(ages, key_columns=('age', 'sex', 'year'), parameter_columns=())
-    sexes = manager.build_table(sexes, key_columns=('age', 'sex', 'year'), parameter_columns=())
-
-    emitter = simulation.events.get_emitter('time_step__prepare')
-    emitter(Event(simulation.population.population.index))
-
-    result_years = years(simulation.population.population.index)
-    result_ages = ages(simulation.population.population.index)
-    result_sexes = sexes(simulation.population.population.index)
-
-    assert np.all(result_years == simulation.current_time.year)
-    assert np.all(result_ages == simulation.population.population.age)
-    assert np.all(result_sexes == simulation.population.population.sex)
-
-    simulation.current_time = datetime(simulation.current_time.year+1,
-                                       simulation.current_time.month, simulation.current_time.day)
-    simulation.population._population.age += 1
-    emitter(Event(simulation.population.population.index))
-
-    result_years = years(simulation.population.population.index)
-    result_ages = ages(simulation.population.population.index)
-    result_sexes = sexes(simulation.population.population.index)
-
-    assert np.all(result_years == simulation.current_time.year)
-    assert np.all(result_ages == simulation.population.population.age)
-    assert np.all(result_sexes == simulation.population.population.sex)
-
-
 def test_interpolated_tables():
     years = build_table(lambda age, sex, year: year)
     ages = build_table(lambda age, sex, year: age)
