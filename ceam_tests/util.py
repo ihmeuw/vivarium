@@ -142,7 +142,7 @@ def generate_test_population(event):
         population['age'] = population['age'].astype(float)
     else:
         population['age'] = (randomness.random('test_population_age', population.index)
-                             * (age_start - age_end) + age_start)
+                             * (age_end - age_start) + age_start)
 
     population['sex'] = randomness.choice('test_population_sex'+str(config.run_configuration.draw_number),
                                           population.index, ['Male', 'Female'])
