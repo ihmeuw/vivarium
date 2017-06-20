@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import numpy as np
 import pandas as pd
 
-from ceam.framework.util import from_yearly, to_yearly, rate_to_probability, probability_to_rate
+from ceam.framework.util import from_yearly, to_yearly, rate_to_probability, probability_to_rate, collapse_nested_dict, expand_branch_templates
 
 
 # Simple regression tests for rate functions
@@ -45,3 +45,28 @@ def test_rate_to_probablity_vectorizability():
     prob = rate_to_probability(rate)
     assert round(prob[10], 5) == round(0.00099950016662497809, 5)
     assert round(np.sum(rate), 5) == round(np.sum(probability_to_rate(prob)), 5)
+
+def test_collapse_nested_dict():
+    source = {'a': {'b': {'c': 1, 'd': 2}}, 'e': 3}
+    result = collapse_nested_dict(source)
+    assert set(result) == {
+            ('a.b.c', 1),
+            ('a.b.d', 2),
+            ('e', 3),
+            }
+
+def test_expand_branch_template():
+    source = [{'a': {'b': [1,2], 'c': 3, 'd': [4,5,6]}}, {'a': {'b': 10, 'c': 30, 'd': 40}}]
+    result = expand_branch_templates(source)
+
+    # TODO: this is fragile because it depends on sort order which isn't actually a property
+    # of the function we want to test.
+    assert result == [
+            {'a': {'b': 1, 'c': 3, 'd': 4}},
+            {'a': {'b': 2, 'c': 3, 'd': 5}},
+            {'a': {'b': 1, 'c': 3, 'd': 6}},
+            {'a': {'b': 2, 'c': 3, 'd': 4}},
+            {'a': {'b': 1, 'c': 3, 'd': 5}},
+            {'a': {'b': 2, 'c': 3, 'd': 6}},
+            {'a': {'b': 10, 'c': 30, 'd': 40}}
+        ]
