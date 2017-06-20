@@ -141,19 +141,11 @@ def generate_test_population(event):
         population['age'] = initial_age
         population['age'] = population['age'].astype(float)
     else:
-<<<<<<< HEAD
-<<<<<<< HEAD
-        population['age'] = randomness.random('test_population_age', population.index) * 100
-=======
-        population['fractional_age'] = randomness.random('test_population_age'+str(config.run_configuration.draw_number), population.index) * (age_end - age_start) + age_start
-    population['fractional_age'] = population['fractional_age'].astype(float)
-    population['age'] = population['fractional_age'].astype(int)
->>>>>>> 4d079c5f7ec40c162a0794935929a98228e49d47
-=======
-        population['age'] = randomness.random('test_population_age', population.index) * 100
->>>>>>> 10d0f8d1b7be8b26e21e8aa5d1be8d40039bfba1
+        population['age'] = (randomness.random('test_population_age', population.index)
+                             * (age_start - age_end) + age_start)
 
-    population['sex'] = randomness.choice('test_population_sex'+str(config.run_configuration.draw_number), population.index, ['Male', 'Female'])
+    population['sex'] = randomness.choice('test_population_sex'+str(config.run_configuration.draw_number),
+                                          population.index, ['Male', 'Female'])
     population['alive'] = True
     if 'location_id' in config.simulation_parameters:
         population['location'] = config.simulation_parameters.location_id
