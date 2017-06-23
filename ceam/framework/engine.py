@@ -188,7 +188,7 @@ def run(components):
 
     unused_config_keys = config.unused_keys()
     if unused_config_keys:
-        _log.debug("Some configuration keys not used during run: {}".format(unused_config_keys))
+        _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
 
     return metrics
 
