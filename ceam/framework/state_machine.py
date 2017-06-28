@@ -325,6 +325,7 @@ class TransitionSet(list):
             if np.any(total > 1+1e-08):  # Accommodate rounding errors
                 raise ValueError(
                     "Null transition requested with un-normalized probability weights: {}".format(probabilities))
+            total[total > 1] = 1  # Correct allowed rounding errors.
             probabilities = np.concatenate([probabilities, (1-total)[:, np.newaxis]], axis=1)
             outputs.append('null_transition')
         return outputs, probabilities/(np.sum(probabilities, axis=1)[:, np.newaxis])
