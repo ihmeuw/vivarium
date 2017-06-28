@@ -164,15 +164,18 @@ def run_simulation(simulation):
     return metrics
 
 
-def configure(draw_number=None, verbose=False, simulation_config=None):
+def configure(input_draw_number=None, model_draw_number=None, verbose=False, simulation_config=None):
     if simulation_config:
         if isinstance(simulation_config, dict):
             config.read_dict(simulation_config)
         else:
             config.read(simulation_config)
 
-    if draw_number is not None:
-        config.run_configuration.set_with_metadata('draw_number', draw_number,
+    if input_draw_number is not None:
+        config.run_configuration.set_with_metadata('draw_number', input_draw_number,
+                                                   layer='override', source='command_line_argument')
+    if model_draw_number is not None:
+        config.run_configuration.set_with_metadata('model_draw_number', model_draw_number,
                                                    layer='override', source='command_line_argument')
 
 
@@ -195,7 +198,7 @@ def run(components):
 
 def do_command(args):
     if args.command == 'run':
-        configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
+        configure(input_draw_number=args.input_draw, verbose=args.verbose, simulation_config=args.config)
         components = read_component_configuration(args.components)
         results = run(components)
         if args.results_path:
@@ -214,7 +217,7 @@ def do_command(args):
         simulation = setup_simulation(components)
         print(simulation.events.list_events())
     elif args.command == 'print_configuration':
-        configure(draw_number=args.draw, verbose=args.verbose, simulation_config=args.config)
+        configure(input_draw_number=args.input_draw, verbose=args.verbose, simulation_config=args.config)
         components = read_component_configuration(args.components)
         load(components)
         print(config)
@@ -227,7 +230,8 @@ def main():
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--config', '-c', type=str, default=None,
                         help='Path to a config file to load which will take precedence over all other configs')
-    parser.add_argument('--draw', '-d', type=int, default=0, help='Which GBD draw to use')
+    parser.add_argument('--input_draw', '-d', type=int, default=0, help='Which GBD draw to use')
+    parser.add_argument('--model_draw', type=int, default=0, help="Which draw from the model's own variation to use")
     parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
     parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
     parser.add_argument('--log', type=str, default=None, help='Path to log file')
