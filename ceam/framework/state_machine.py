@@ -1,4 +1,6 @@
 """A framework for generic state machines."""
+from enum import Enum
+
 import pandas as pd
 import numpy as np
 
@@ -63,6 +65,78 @@ def _groupby_new_state(index, outputs, decisions):
     return results
 
 
+class Trigger(Enum):
+    NOT_TRIGGERED = 0
+    START_INACTIVE = 1
+    START_ACTIVE = 2
+
+
+def _process_trigger(trigger):
+    if trigger == Trigger.NOT_TRIGGERED:
+        return None, False
+    elif trigger == Trigger.START_INACTIVE:
+        return pd.Index([]), False
+    elif trigger == Trigger.START_ACTIVE:
+        return pd.Index([]), True
+    else:
+        raise ValueError("Invalid trigger state provided: {}".format(trigger))
+
+
+class Transition:
+    """A process by which an entity might change into a particular state.
+
+    Parameters
+    ----------
+    output : State
+        The end state of the entity that undergoes the transition.
+    probability_func : callable
+        A method or function that describing the probability of this transition occurring.
+    """
+    def __init__(self, output, probability_func=lambda index: pd.Series(1, index=index),
+                 triggered=Trigger.NOT_TRIGGERED):
+        self.output = output
+        self._probability = probability_func
+        self._active_index, self.start_active = _process_trigger(triggered)
+
+    def setup(self, builder):
+        pass
+
+    def set_active(self, index):
+        if self._active_index is None:
+            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
+        else:
+            self._active_index = self._active_index.union(pd.Index(index))
+
+    def set_inactive(self, index):
+        if self._active_index is None:
+            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
+        else:
+            self._active_index = self._active_index.difference(pd.Index(index))
+
+    def probability(self, index):
+        if self._active_index is None:
+            return self._probability(index)
+        else:
+            index = pd.Index(index)
+            activated_index = self._active_index.intersection(index)
+            null_index = index.difference(self._active_index)
+            activated = pd.Series(self._probability(activated_index), index=activated_index)
+            null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
+            return activated.append(null)
+
+    def label(self):
+        """The name of this transition."""
+        return ''
+
+    def __str__(self):
+        return 'Transition({})'.format(self.output)
+
+    def __repr__(self):
+        return 'Transition(output= {}, _probability={}, _active={})'.format(self.output,
+                                                                            self._probability,
+                                                                            self._active_index)
+
+
 class State:
     """An abstract representation of a particular position in a finite and discrete state space.
 
@@ -98,6 +172,7 @@ class State:
         iterable
             This component's sub-components.
         """
+
         return [self.transition_set]
 
     def next_state(self, index, population_view):
@@ -125,9 +200,12 @@ class State:
         population_view.update(pd.Series(self.state_id, index=index))
         self._transition_side_effect(index)
 
+    def cleanup_effect(self, index):
+        self._cleanup_effect(index)
+
     def add_transition(self, output,
                        probability_func=lambda index: np.ones(len(index), dtype=float),
-                       triggered=False):
+                       triggered=Trigger.NOT_TRIGGERED):
         """Builds a transition from this state to the given state.
 
         output : State
@@ -141,6 +219,9 @@ class State:
         self.transition_set.allow_null_transition = True
 
     def _transition_side_effect(self, index):
+        pass
+
+    def _cleanup_effect(self, index):
         pass
 
     def name(self):
@@ -241,9 +322,10 @@ class TransitionSet(list):
         outputs = list(outputs)
         total = np.sum(probabilities, axis=1)
         if self.allow_null_transition:
-            if np.any(total > 1+1e-08): #Accommodate rounding errors
+            if np.any(total > 1+1e-08):  # Accommodate rounding errors
                 raise ValueError(
                     "Null transition requested with un-normalized probability weights: {}".format(probabilities))
+            total[total > 1] = 1  # Correct allowed rounding errors.
             probabilities = np.concatenate([probabilities, (1-total)[:, np.newaxis]], axis=1)
             outputs.append('null_transition')
         return outputs, probabilities/(np.sum(probabilities, axis=1)[:, np.newaxis])
@@ -256,57 +338,6 @@ class TransitionSet(list):
 
     def __hash__(self):
         return hash(id(self))
-
-
-class Transition:
-    """A process by which an entity might change into a particular state.
-
-    Parameters
-    ----------
-    output : State
-        The end state of the entity that undergoes the transition.
-    probability_func : callable
-        A method or function that describing the probability of this transition occurring.
-    """
-    def __init__(self, output, probability_func=lambda index: pd.Series(1, index=index), triggered=False):
-        self.output = output
-        self._probability = probability_func
-        self._active = pd.Index([]) if triggered else None
-
-    def set_active(self, index):
-        if self._active is None:
-            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
-        else:
-            self._active = self._active.union(pd.Index(index))
-
-    def set_inactive(self, index):
-        if self._active is None:
-            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
-        else:
-            self._active = self._active.difference(pd.Index(index))
-
-    def probability(self, index):
-        if self._active is None:
-            return self._probability(index)
-        else:
-            index = pd.Index(index)
-            activated_index = self._active.intersection(index)
-            null_index = index.difference(self._active)
-            activated = pd.Series(self._probability(activated_index), index=activated_index)
-            null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
-            return activated.append(null)
-
-    def label(self):
-        """The name of this transition."""
-        return ''
-
-    def __str__(self):
-        return 'Transition({})'.format(self.output)
-
-    def __repr__(self):
-        return 'Transition(output= {}, _probability={}, _active={})'.format(self.output,
-                                                                            self._probability,
-                                                                            self._active)
 
 
 class Machine:
@@ -326,7 +357,6 @@ class Machine:
         self.state_column = state_column
         if states:
             self.add_states(states)
-
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -358,13 +388,14 @@ class Machine:
         index : iterable of ints
             An iterable of integer labels for the simulants.
         """
-        population = self.population_view.get(index)
-        state_pops = [[state, population[population[self.state_column] == state.state_id]]
-                      for state in self.states]
-
-        for state, affected in state_pops:
+        for state, affected in self._get_state_pops(index):
             if not affected.empty:
                 state.next_state(affected.index, self.population_view)
+
+    def cleanup(self, index):
+        for state, affected in self._get_state_pops(index):
+            if not affected.empty:
+                state.cleanup_effect(affected.index)
 
     def to_dot(self):
         """Produces a ball and stick graph of this state machine.
@@ -384,6 +415,10 @@ class Machine:
             for transition in state.transition_set:
                 dot.edge(state.name(), transition.output.name(), transition.label())
         return dot
+
+    def _get_state_pops(self, index):
+        population = self.population_view.get(index)
+        return [[state, population[population[self.state_column] == state.state_id]] for state in self.states]
 
     def __repr__(self):
         return "Machine(states= {}, state_column= {})".format(self.states, self.state_column)
