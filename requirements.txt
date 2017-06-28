@@ -1,3 +1,4 @@
+graphviz
 numpy
 pandas
 mock
