@@ -1,4 +1,6 @@
 """A framework for generic state machines."""
+from enum import Enum
+
 import pandas as pd
 import numpy as np
 
@@ -61,6 +63,78 @@ def _groupby_new_state(index, outputs, decisions):
         if output not in selected_outputs:
             results.append((output, pd.Index([])))
     return results
+
+
+class Trigger(Enum):
+    NOT_TRIGGERED = 0
+    START_INACTIVE = 1
+    START_ACTIVE = 2
+
+
+def _process_trigger(trigger):
+    if trigger == Trigger.NOT_TRIGGERED:
+        return None, False
+    elif trigger == Trigger.START_INACTIVE:
+        return pd.Index([]), False
+    elif trigger == Trigger.START_ACTIVE:
+        return pd.Index([]), True
+    else:
+        raise ValueError("Invalid trigger state provided: {}".format(trigger))
+
+
+class Transition:
+    """A process by which an entity might change into a particular state.
+
+    Parameters
+    ----------
+    output : State
+        The end state of the entity that undergoes the transition.
+    probability_func : callable
+        A method or function that describing the probability of this transition occurring.
+    """
+    def __init__(self, output, probability_func=lambda index: pd.Series(1, index=index),
+                 triggered=Trigger.NOT_TRIGGERED):
+        self.output = output
+        self._probability = probability_func
+        self._active_index, self.start_active = _process_trigger(triggered)
+
+    def setup(self, builder):
+        pass
+
+    def set_active(self, index):
+        if self._active_index is None:
+            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
+        else:
+            self._active_index = self._active_index.union(pd.Index(index))
+
+    def set_inactive(self, index):
+        if self._active_index is None:
+            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
+        else:
+            self._active_index = self._active_index.difference(pd.Index(index))
+
+    def probability(self, index):
+        if self._active_index is None:
+            return self._probability(index)
+        else:
+            index = pd.Index(index)
+            activated_index = self._active_index.intersection(index)
+            null_index = index.difference(self._active_index)
+            activated = pd.Series(self._probability(activated_index), index=activated_index)
+            null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
+            return activated.append(null)
+
+    def label(self):
+        """The name of this transition."""
+        return ''
+
+    def __str__(self):
+        return 'Transition({})'.format(self.output)
+
+    def __repr__(self):
+        return 'Transition(output= {}, _probability={}, _active={})'.format(self.output,
+                                                                            self._probability,
+                                                                            self._active_index)
 
 
 class State:
@@ -131,7 +205,7 @@ class State:
 
     def add_transition(self, output,
                        probability_func=lambda index: np.ones(len(index), dtype=float),
-                       triggered=False):
+                       triggered=Trigger.NOT_TRIGGERED):
         """Builds a transition from this state to the given state.
 
         output : State
@@ -263,65 +337,6 @@ class TransitionSet(list):
 
     def __hash__(self):
         return hash(id(self))
-
-
-class Transition:
-    """A process by which an entity might change into a particular state.
-
-    Parameters
-    ----------
-    output : State
-        The end state of the entity that undergoes the transition.
-    probability_func : callable
-        A method or function that describing the probability of this transition occurring.
-    """
-    def __init__(self, output, probability_func=lambda index: pd.Series(1, index=index),
-                 triggered=False, start_active=False):
-        self.output = output
-        self._probability = probability_func
-        self._active_index = pd.Index([]) if triggered else None
-        if start_active and not triggered:
-            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
-
-        self.start_active = start_active
-
-    def setup(self, builder):
-        pass
-
-    def set_active(self, index):
-        if self._active_index is None:
-            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
-        else:
-            self._active_index = self._active_index.union(pd.Index(index))
-
-    def set_inactive(self, index):
-        if self._active_index is None:
-            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
-        else:
-            self._active_index = self._active_index.difference(pd.Index(index))
-
-    def probability(self, index):
-        if self._active_index is None:
-            return self._probability(index)
-        else:
-            index = pd.Index(index)
-            activated_index = self._active_index.intersection(index)
-            null_index = index.difference(self._active_index)
-            activated = pd.Series(self._probability(activated_index), index=activated_index)
-            null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
-            return activated.append(null)
-
-    def label(self):
-        """The name of this transition."""
-        return ''
-
-    def __str__(self):
-        return 'Transition({})'.format(self.output)
-
-    def __repr__(self):
-        return 'Transition(output= {}, _probability={}, _active={})'.format(self.output,
-                                                                            self._probability,
-                                                                            self._active_index)
 
 
 class Machine:
