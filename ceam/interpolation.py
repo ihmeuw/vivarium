@@ -71,6 +71,8 @@ class Interpolation:
 
         result = pd.DataFrame(index=df.index)
         for key, sub_table in sub_tables:
+            if sub_table.empty:
+                continue
             funcs = self.interpolations[key]
             parameters = tuple(sub_table[k] for k in self.parameter_columns)
             for value_column, func in funcs.items():
