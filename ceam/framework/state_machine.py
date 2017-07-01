@@ -18,7 +18,7 @@ def _next_state(index, transition_set, population_view):
         A view of the internal state of the simulation.
     """
 
-    if len(transition_set) == 0:
+    if len(transition_set) == 0 or index.empty:
         return
 
     outputs, decisions = transition_set.choose_new_state(index)
