@@ -129,7 +129,7 @@ def event_loop(simulation, simulant_creator, end_emitter):
 
     population_size = config.simulation_parameters.population_size
 
-    if config.simulation_parameters.initial_age != '' and config.simulation_parameters.pop_age_start == '':
+    if config.simulation_parameters.initial_age is not None and config.simulation_parameters.pop_age_start is None:
         simulant_creator(population_size, population_configuration={
             'initial_age': config.simulation_parameters.initial_age})
     else:
