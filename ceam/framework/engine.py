@@ -37,8 +37,9 @@ class Builder:
         self.emitter = context.events.get_emitter
         self.population_view = context.population.get_view
         self.clock = lambda: lambda: context.current_time
-        draw_number = config.run_configuration.draw_number
-        self.randomness = lambda key: RandomnessStream(key, self.clock(), draw_number)
+        input_draw_number = config.run_configuration.draw_number
+        model_draw_number = config.run_configuration.model_draw_number
+        self.randomness = lambda key: RandomnessStream(key, self.clock(), (input_draw_number, model_draw_number))
 
     def __repr__(self):
         return ("Builder(\nlookup: {},\nvalue: {},\nrate: {},\n".format(self.lookup, self.value, self.rate)

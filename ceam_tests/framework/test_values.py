@@ -3,7 +3,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from ceam.framework.values import replace_combiner, set_combiner, list_combiner, joint_value_combiner, rescale_post_processor, joint_value_post_processor, Pipeline, ValuesManager, NullValue
+from ceam.framework.values import replace_combiner, set_combiner, list_combiner, rescale_post_processor, joint_value_post_processor, Pipeline, ValuesManager
 
 def test_replace_combiner():
     manager = ValuesManager()
@@ -17,19 +17,6 @@ def test_replace_combiner():
 
     manager.mutator(lambda value: 84, 'test')
     assert value() == 84
-
-def test_joint_value_combiner():
-    manager = ValuesManager()
-    manager.declare_pipeline('test', combiner=joint_value_combiner, post_processor=None, source=lambda: 1)
-
-    value = manager.get_value('test')
-    assert value() == 1
-
-    manager.mutator(lambda: 0.5, 'test')
-    assert value() == 0.5
-
-    manager.mutator(lambda: 0.5, 'test')
-    assert value() == 0.25
 
 def test_joint_value():
     # This is the normal configuration for PAF and disability weight type values

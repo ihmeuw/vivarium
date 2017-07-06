@@ -262,6 +262,9 @@ class RandomnessStream:
         self.clock = clock
         self.seed = seed
 
+    def copy_with_additional_key(self, key):
+        return RandomnessStream('_'.join([self.key, key]), self.clock, self.seed)
+
     def _key(self, additional_key=None):
         """Construct a hashable key from this object's state.
 

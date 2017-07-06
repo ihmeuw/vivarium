@@ -21,14 +21,6 @@ class DynamicValueError(CEAMError):
     pass
 
 
-class NullValue:
-    """An empty value that can carry an index. Used by joint value pipelines
-    as their source value.
-    """
-    def __init__(self, index):
-        self.index = index
-
-
 def replace_combiner(value, mutator, *args, **kwargs):
     """Replaces the output of the source or mutator with the output
     of the subsequent mutator. This is the default combiner.
@@ -53,26 +45,8 @@ def list_combiner(value, mutator, *args, **kwargs):
     return value
 
 
-def joint_value_combiner(value, mutator, *args, **kwargs):
-    """Combines the output of the source or previous mutator with the output of
-    the subsequent mutator using this formula: a * (1-b) Used for PAFs
-    and disability weights.
-
-    Notes
-    -----
-    If the input value is NullValue then the output of the mutator is returned
-    unmodified. This is useful when there is no meaningful source, as when
-    calculating PAFs.
-    """
-    new_value = mutator(*args, **kwargs)
-    if isinstance(value, NullValue):
-        return 1 - new_value
-    else:
-        return value * (1-new_value)
-
-
 def rescale_post_processor(a):
-    """Assumes that the value is an annual rate and rescales it to the 
+    """Assumes that the value is an annual rate and rescales it to the
     current time step.
     """
     time_step = config.simulation_parameters.time_step
@@ -80,8 +54,8 @@ def rescale_post_processor(a):
 
 
 def joint_value_post_processor(a):
-    """The final step in calculating joint values like disability weights. 
-    If the combiner is joint_value_combiner then the effective formula is:
+    """The final step in calculating joint values like disability weights.
+    If the combiner is list_combiner then the effective formula is:
     :math:`value(args) = 1 -  \prod_{i=1}^{mutator count} 1-mutator_{i}(args)`
 
     Parameters
@@ -104,6 +78,8 @@ def joint_value_post_processor(a):
         joint_value = 1 - product
         return joint_value
 
+def _dummy_source(*args, **kwargs):
+    raise DynamicValueError('No source for value.')
 
 class Pipeline:
     """A single mutable value.
@@ -121,23 +97,21 @@ class Pipeline:
     """
 
     def __init__(self, combiner=replace_combiner, post_processor=None):
-        self.source = None
+        self.source = _dummy_source
         self.mutators = [[] for i in range(10)]
         self.combiner = combiner
         self.post_processor = post_processor
         self.configured = False
 
     def __call__(self, *args, skip_post_processor=False, **kwargs):
-        if self.source is None:
-            raise DynamicValueError('No source for value.')
         value = self.source(*args, **kwargs)
         for priority_bucket in self.mutators:
             for mutator in priority_bucket:
                 value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
             return self.post_processor(value)
-        else:
-            return value
+
+        return value
 
     def __repr__(self):
         return ("Pipeline(\nsource= {},\nmutators= {},\n".format(self.source, self.mutators)
