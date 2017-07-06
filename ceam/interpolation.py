@@ -28,6 +28,8 @@ class Interpolation:
         self.interpolations = {}
 
         for key, base_table in sub_tables:
+            if base_table.empty:
+                continue
             # For each permutation of the key columns build interpolations
             self.interpolations[key] = {}
             for value_column in value_columns:
@@ -69,6 +71,8 @@ class Interpolation:
 
         result = pd.DataFrame(index=df.index)
         for key, sub_table in sub_tables:
+            if sub_table.empty:
+                continue
             funcs = self.interpolations[key]
             parameters = tuple(sub_table[k] for k in self.parameter_columns)
             for value_column, func in funcs.items():

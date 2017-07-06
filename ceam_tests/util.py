@@ -121,11 +121,11 @@ def build_table(value, columns=['age', 'year', 'sex', 'rate']):
 
 
 @listens_for('initialize_simulants', priority=0)
-@uses_columns(['age', 'sex', 'location', 'alive'])
+@uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
 def generate_test_population(event):
     population_size = len(event.index)
     initial_age = event.user_data.get('initial_age', None)
-    population = pd.DataFrame(index=range(population_size))
+    population = pd.DataFrame(index=event.index)
 
     if 'pop_age_start' in config.simulation_parameters:
         age_start = config.simulation_parameters.pop_age_start
@@ -146,11 +146,14 @@ def generate_test_population(event):
 
     population['sex'] = randomness.choice('test_population_sex'+str(config.run_configuration.draw_number),
                                           population.index, ['Male', 'Female'])
-    population['alive'] = True
+    population['alive'] = 'alive'
     if 'location_id' in config.simulation_parameters:
         population['location'] = config.simulation_parameters.location_id
     else:
         population['location'] = 180
+
+    population['entrance_time'] = pd.Timestamp(event.time)
+    population['exit_time'] = pd.NaT
 
     event.population_view.update(population)
 
