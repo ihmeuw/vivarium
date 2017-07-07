@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from ceam_tests.util import setup_simulation
+from ceam.test_util import setup_simulation
 from ceam.framework.population import uses_columns
 from ceam.framework.event import listens_for
 from ceam.framework.randomness import choice

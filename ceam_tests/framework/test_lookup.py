@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from ceam import config
-from ceam_tests.util import build_table, setup_simulation, generate_test_population
+from ceam.test_util import build_table, setup_simulation, generate_test_population
 from ceam.framework.event import Event
 
 
