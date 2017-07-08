@@ -13,8 +13,6 @@ import pandas as pd
 
 from ceam import config
 
-from ceam.analysis import dump_results
-
 from ceam.framework.values import ValuesManager
 from ceam.framework.event import EventManager, Event, emits
 from ceam.framework.population import PopulationManager, creates_simulants
@@ -208,7 +206,7 @@ def do_command(args):
             except FileExistsError:
                 # Directory already exists, which is fine
                 pass
-            dump_results(pd.DataFrame([results]), args.results_path)
+            pd.DataFrame([results]).to_hdf(args.results_path, 'data')
     elif args.command == 'list_events':
         if args.components:
             component_configurations = read_component_configuration(args.components)
