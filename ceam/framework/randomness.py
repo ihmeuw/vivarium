@@ -65,7 +65,6 @@ def random(key, index):
     `pandas.Series`
         A series of random numbers indexed by the provided `pandas.Index`.
     """
-
     if len(index) > 0:
         random_state = np.random.RandomState(seed=get_hash(key))
 
@@ -218,6 +217,9 @@ def filter_for_probability(key, population, probability):
         The sub-population of the simulants for whom the event occurred.
         The return type will be the same as type(population)
     """
+    if population.empty:
+        return population
+
     index = population if isinstance(population, pd.Index) else population.index
     draw = random(key, index)
     mask = np.array(draw < probability)
