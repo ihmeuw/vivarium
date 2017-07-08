@@ -24,11 +24,7 @@ RESIDUAL_CHOICE : object
     Note
     ----
     Currently this object is only used in the `choice` function of this
-    module and only when being used by the `state_machine2` module.
-
-    See Also
-    --------
-    state_machine2
+    module.
 """
 
 import hashlib
