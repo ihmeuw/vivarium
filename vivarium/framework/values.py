@@ -3,7 +3,7 @@
 from collections import defaultdict
 from datetime import timedelta
 
-from ceam import config, CEAMError
+from vivarium import config, VivariumError
 
 from .util import marker_factory, from_yearly
 
@@ -14,7 +14,7 @@ modifies_value.__doc__ = """Mark a function as a mutator of the named value.
 Mutators will be evaluated in `priority` order (lower values happen first)"""
 
 
-class DynamicValueError(CEAMError):
+class DynamicValueError(VivariumError):
     """Indicates that a value was invoked without being properly configured.
     i.e. no source specified.
     """

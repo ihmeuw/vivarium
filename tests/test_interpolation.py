@@ -5,7 +5,7 @@ import random
 import pandas as pd
 import numpy as np
 
-from ceam.interpolation import Interpolation
+from vivarium.interpolation import Interpolation
 
 def test_1d_interpolation():
     df = pd.DataFrame({'a': np.arange(100), 'b': np.arange(100), 'c': np.arange(100, 0, -1)})

@@ -2,7 +2,7 @@ import pytest
 
 import pandas as pd
 
-from ceam.framework.population import PopulationManager
+from vivarium.framework.population import PopulationManager
 
 def test_column_observers():
     manager = PopulationManager()

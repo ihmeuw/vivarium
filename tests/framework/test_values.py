@@ -3,7 +3,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from ceam.framework.values import replace_combiner, set_combiner, list_combiner, rescale_post_processor, joint_value_post_processor, Pipeline, ValuesManager
+from vivarium.framework.values import replace_combiner, set_combiner, list_combiner, rescale_post_processor, joint_value_post_processor, Pipeline, ValuesManager
 
 def test_replace_combiner():
     manager = ValuesManager()

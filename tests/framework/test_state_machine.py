@@ -1,12 +1,12 @@
 import pandas as pd
 import numpy as np
 
-from ceam.test_util import setup_simulation
-from ceam.framework.population import uses_columns
-from ceam.framework.event import listens_for
-from ceam.framework.randomness import choice
+from vivarium.test_util import setup_simulation
+from vivarium.framework.population import uses_columns
+from vivarium.framework.event import listens_for
+from vivarium.framework.randomness import choice
 
-from ceam.framework.state_machine import Machine, State, Transition
+from vivarium.framework.state_machine import Machine, State, Transition
 
 def _population_fixture(column, initial_value):
     @listens_for('initialize_simulants')

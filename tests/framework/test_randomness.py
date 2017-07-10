@@ -4,8 +4,8 @@ import pytest
 import pandas as pd
 import numpy as np
 
-import ceam.framework.randomness as random
-from ceam.framework.randomness import RandomnessStream, RESIDUAL_CHOICE, RandomnessError
+import vivarium.framework.randomness as random
+from vivarium.framework.randomness import RandomnessStream, RESIDUAL_CHOICE, RandomnessError
 
 
 @pytest.fixture(params=[10**4, 10**5])

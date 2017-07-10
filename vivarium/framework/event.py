@@ -18,7 +18,7 @@ arguments whenever it is called.
 
 class Event:
     """An Event object represents the context of an event. It is possible to subclass Event
-    to add information for more specialized cases like ceam.framework.population.PopulationEvent
+    to add information for more specialized cases like vivarium.framework.population.PopulationEvent
 
     Attributes
     ----------

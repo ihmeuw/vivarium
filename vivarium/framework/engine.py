@@ -11,15 +11,15 @@ from bdb import BdbQuit
 
 import pandas as pd
 
-from ceam import config
+from vivarium import config
 
-from ceam.framework.values import ValuesManager
-from ceam.framework.event import EventManager, Event, emits
-from ceam.framework.population import PopulationManager, creates_simulants
-from ceam.framework.lookup import InterpolatedDataManager
-from ceam.framework.components import load, read_component_configuration
-from ceam.framework.randomness import RandomnessStream
-from ceam.framework.util import collapse_nested_dict
+from vivarium.framework.values import ValuesManager
+from vivarium.framework.event import EventManager, Event, emits
+from vivarium.framework.population import PopulationManager, creates_simulants
+from vivarium.framework.lookup import InterpolatedDataManager
+from vivarium.framework.components import load, read_component_configuration
+from vivarium.framework.randomness import RandomnessStream
+from vivarium.framework.util import collapse_nested_dict
 
 import logging
 _log = logging.getLogger(__name__)

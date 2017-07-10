@@ -5,7 +5,7 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 
-from ceam.framework.event import Event, EventManager
+from vivarium.framework.event import Event, EventManager
 
 def test_split_event():
     index1 = pd.Index(range(10))

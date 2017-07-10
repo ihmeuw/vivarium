@@ -1,6 +1,6 @@
 import pytest
 
-from ceam.config_tree import ConfigTree
+from vivarium.config_tree import ConfigTree
 
 def test_single_layer():
     d = ConfigTree()

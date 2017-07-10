@@ -1,6 +1,6 @@
 """This module contains classes and functions supporting common random numbers.
 
-CEAM has some peculiar needs around randomness. We need to be totally consistent
+Vivarium has some peculiar needs around randomness. We need to be totally consistent
 between branches in a comparison. For example, if a simulant gets hit by a truck
 in the base case in must be hit by that same truck in the counter-factual at exactly
 the same moment unless the counter-factual explicitly deals with traffic accidents.
@@ -32,11 +32,11 @@ import hashlib
 import numpy as np
 import pandas as pd
 
-from ceam import CEAMError
+from vivarium import VivariumError
 from .util import rate_to_probability
 
 
-class RandomnessError(CEAMError):
+class RandomnessError(VivariumError):
     """Exception raised for inconsistencies in random number and choice generation."""
     pass
 
@@ -225,7 +225,7 @@ def filter_for_probability(key, population, probability):
 class RandomnessStream:
     """A stream for producing common random numbers.
 
-    `RandomnessStream` objects provide an interface to CEAM's
+    `RandomnessStream` objects provide an interface to Vivarium's
     common random number generation.  They provide a number of methods
     for doing common simulation tasks that require random numbers like
     making decisions among a number of choices.
@@ -307,7 +307,7 @@ class RandomnessStream:
         Returns
         -------
         int
-            A seed for a random number generation that is linked to CEAM's
+            A seed for a random number generation that is linked to Vivarium's
             common random number framework.
         """
         return get_hash(self._key(additional_key))

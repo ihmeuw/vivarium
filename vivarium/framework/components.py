@@ -1,7 +1,7 @@
 from importlib import import_module
 from ast import literal_eval
 from collections import Iterable
-from ceam import config
+from vivarium import config
 import yaml
 
 def read_component_configuration(path):

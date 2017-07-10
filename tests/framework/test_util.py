@@ -6,7 +6,7 @@ from unittest.mock import Mock
 import numpy as np
 import pandas as pd
 
-from ceam.framework.util import from_yearly, to_yearly, rate_to_probability, probability_to_rate, collapse_nested_dict, expand_branch_templates
+from vivarium.framework.util import from_yearly, to_yearly, rate_to_probability, probability_to_rate, collapse_nested_dict, expand_branch_templates
 
 
 # Simple regression tests for rate functions

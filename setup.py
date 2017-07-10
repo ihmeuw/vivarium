@@ -3,8 +3,8 @@
 from setuptools import setup, find_packages
 
 
-setup(name='ceam',
-        version='0.1',
+setup(name='vivarium',
+        version='0.5',
         packages=find_packages(),
         include_package_data=True,
         scripts=['simulate'],

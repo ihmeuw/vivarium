@@ -1,6 +1,6 @@
 """A configuration structure which supports cascading layers.
 
-In CEAM it allows base configurations to be overridden by component level
+In Vivarium it allows base configurations to be overridden by component level
 configurations which are in turn overridden by model level configuration
 which can be overridden by user supplied overrides. From the perspective
 of normal client code the cascading is hidden and configuration values

@@ -3,7 +3,7 @@ from numbers import Number
 
 import pandas as pd
 
-from ceam.interpolation import Interpolation
+from vivarium.interpolation import Interpolation
 
 
 class TableView:
@@ -20,7 +20,7 @@ class InterpolatedTableView(TableView):
     Parameters
     ----------
     interpolation : callable
-    population_view : `ceam.framework.population.PopulationView`
+    population_view : `vivarium.framework.population.PopulationView`
     clock : callable
 
     Notes

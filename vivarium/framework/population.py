@@ -4,7 +4,7 @@ from collections import defaultdict
 
 import pandas as pd
 
-from ceam import CEAMError
+from vivarium import VivariumError
 
 from .util import resource_injector
 from .event import emits, Event
@@ -31,7 +31,7 @@ and emits a 'initialize_simulants' event to fill in the table.
 """
 
 
-class PopulationError(CEAMError):
+class PopulationError(VivariumError):
     pass
 
 

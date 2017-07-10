@@ -28,9 +28,9 @@ def worker(input_draw_number, model_draw_number, component_config, branch_config
     component_config['configuration']['run_configuration'] = run_configuration
 
     try:
-        from ceam.framework.engine import configure, run
-        from ceam.framework.components import prepare_component_configuration
-        from ceam.framework.util import collapse_nested_dict
+        from vivarium.framework.engine import configure, run
+        from vivarium.framework.components import prepare_component_configuration
+        from vivarium.framework.util import collapse_nested_dict
 
         configure(input_draw_number=input_draw_number, model_draw_number=model_draw_number, simulation_config=branch_config)
         results = run(prepare_component_configuration(component_config))

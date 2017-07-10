@@ -3,13 +3,13 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 
-from ceam import config
+from vivarium import config
 
-from ceam.framework.engine import SimulationContext, _step
-from ceam.framework.event import listens_for
-from ceam.framework.population import uses_columns
-from ceam.framework.util import from_yearly, to_yearly
-from ceam.framework import randomness
+from vivarium.framework.engine import SimulationContext, _step
+from vivarium.framework.event import listens_for
+from vivarium.framework.population import uses_columns
+from vivarium.framework.util import from_yearly, to_yearly
+from vivarium.framework import randomness
 
 
 def setup_simulation(components, population_size=100, start=None):
@@ -62,7 +62,7 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
 
     Parameters
     ----------
-    simulation : ceam.engine.Simulation
+    simulation : vivarium.engine.Simulation
     value_func
         a function that takes a Simulation and returns the current value of the property to be tested
     effective_population_func
