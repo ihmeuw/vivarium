@@ -1,2 +1,1 @@
-include ceam/config.cfg README.md
-include ceam/gbd_data/cen_functions_scripts/*.do
+include README.md LICENSE.txt
