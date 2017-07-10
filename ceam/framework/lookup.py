@@ -116,4 +116,3 @@ class InterpolatedDataManager:
 
     def __repr__(self):
         return "InterpolatedDataManager(clock= {})".format(self.clock)
-

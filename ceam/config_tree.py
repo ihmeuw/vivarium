@@ -1,11 +1,11 @@
 """A configuration structure which supports cascading layers.
 
-In CEAM it allows base configurations to be overridden by component level 
-configurations which are in turn overridden by model level configuration 
-which can be overridden by user supplied overrides. From the perspective 
-of normal client code the cascading is hidden and configuration values 
-are presented as attributes of the configuration object the values of 
-which are the value of that key in the outermost layer of configuration 
+In CEAM it allows base configurations to be overridden by component level
+configurations which are in turn overridden by model level configuration
+which can be overridden by user supplied overrides. From the perspective
+of normal client code the cascading is hidden and configuration values
+are presented as attributes of the configuration object the values of
+which are the value of that key in the outermost layer of configuration
 where it appears.
 
 For example:
@@ -62,6 +62,7 @@ class ConfigNode:
         """
         if layer:
             return self._values[layer]
+
         for layer in reversed(self._layers):
             if layer in self._values:
                 return self._values[layer]
@@ -86,7 +87,7 @@ class ConfigNode:
 
     def has_been_accessed(self):
         """Returns whether this node has been accessed.
-        
+
         Returns
         -------
         bool
@@ -212,8 +213,8 @@ class ConfigTree:
             self.read_dict(data, layer=self._layers[0], source='initial data')
 
     def freeze(self):
-        """Causes the ConfigTree to become read only. 
-        
+        """Causes the ConfigTree to become read only.
+
         This is useful for loading and then freezing configurations that should not be modified at runtime.
         """
         self.__dict__['_frozen'] = True
@@ -356,12 +357,12 @@ class ConfigTree:
 
     def to_dict(self):
         result = {}
-        for k,v in self._children.items():
+        for k, v in self._children.items():
             if isinstance(v, ConfigNode):
                 result[k] = v.get_value()
             else:
                 result[k] = v.to_dict()
-        return result 
+        return result
 
     def metadata(self, name):
         """Return value and metadata associated with the named value

@@ -24,8 +24,8 @@ def marker_factory(marker_attribute, with_priority=False):
     def finder(func):
         if not hasattr(func, marker_attribute):
             return []
-        else:
-            return getattr(func, marker_attribute)
+
+        return getattr(func, marker_attribute)
     decorator.finder = finder
 
     return decorator
@@ -54,8 +54,8 @@ def resource_injector(marker_attribute):
     def finder(func):
         if not hasattr(func, marker_attribute):
             return []
-        else:
-            return getattr(func, marker_attribute)
+
+        return getattr(func, marker_attribute)
     decorator.finder = finder
 
     return decorator
@@ -70,7 +70,7 @@ def to_yearly(value, time_step):
 
 
 def rate_to_probability(rate):
-        return 1-np.exp(-rate)
+    return 1-np.exp(-rate)
 
 
 def probability_to_rate(probability):
@@ -118,16 +118,16 @@ def expand_branch_templates(templates):
         branch = [(k, v if isinstance(v, list) else [v]) for k, v in branch]
         expanded_size = np.product([len(v) for k, v in branch])
         new_branches = []
-        pointers = {k:0 for k,_ in branch}
+        pointers = {k:0 for k, _ in branch}
         for _ in range(expanded_size):
             new_branch = []
-            tick=True
-            for k,v in branch:
-                new_branch.append((k,v[pointers[k]]))
+            tick = True
+            for k, v in branch:
+                new_branch.append((k, v[pointers[k]]))
                 if tick:
                     i = pointers[k]+1
                     if i < len(v):
-                        tick=False
+                        tick = False
                         pointers[k] = i
                     else:
                         pointers[k] = 0

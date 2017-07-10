@@ -116,13 +116,13 @@ class Transition:
     def probability(self, index):
         if self._active_index is None:
             return self._probability(index)
-        else:
-            index = pd.Index(index)
-            activated_index = self._active_index.intersection(index)
-            null_index = index.difference(self._active_index)
-            activated = pd.Series(self._probability(activated_index), index=activated_index)
-            null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
-            return activated.append(null)
+
+        index = pd.Index(index)
+        activated_index = self._active_index.intersection(index)
+        null_index = index.difference(self._active_index)
+        activated = pd.Series(self._probability(activated_index), index=activated_index)
+        null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
+        return activated.append(null)
 
     def label(self):
         """The name of this transition."""

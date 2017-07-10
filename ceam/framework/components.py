@@ -13,20 +13,20 @@ def read_component_configuration(path):
         raise ValueError("Unknown components configuration type: {}".format(path))
 
 def prepare_component_configuration(component_config, path=None):
-        if 'configuration' in component_config:
-            config.read_dict(component_config['configuration'], layer='model_override', source=path)
+    if 'configuration' in component_config:
+        config.read_dict(component_config['configuration'], layer='model_override', source=path)
 
-        def process_level(level, prefix):
-            component_list = []
-            for c in level:
-                if isinstance(c, dict):
-                    for k,v in c.items():
-                        component_list.extend(process_level(v, prefix + [k]))
-                else:
-                    component_list.append('.'.join(prefix + [c]))
-            return component_list
+    def process_level(level, prefix):
+        component_list = []
+        for c in level:
+            if isinstance(c, dict):
+                for k, v in c.items():
+                    component_list.extend(process_level(v, prefix + [k]))
+            else:
+                component_list.append('.'.join(prefix + [c]))
+        return component_list
 
-        return process_level(component_config['components'], [])
+    return process_level(component_config['components'], [])
 
 def load(component_list):
     components = []

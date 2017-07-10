@@ -28,9 +28,9 @@ class Event:
             An index into the population table containing all simulants effected by this event.
     """
 
-    def __init__(self, index, user_data={}):
+    def __init__(self, index, user_data=None):
         self.index = index
-        self.user_data = user_data
+        self.user_data = user_data if user_data is not None else {}
 
         self.time = None
 
@@ -73,7 +73,7 @@ class EventManager:
     """
 
     def __init__(self):
-        self.__event_types = defaultdict(lambda :_EventChannel(self))
+        self.__event_types = defaultdict(lambda: _EventChannel(self))
 
     def setup(self, builder):
         self.clock = builder.clock()
@@ -104,14 +104,21 @@ class EventManager:
     def setup_components(self, components):
         emits.set_injector(self._emitter_injector)
         for component in components:
-            listeners = [(v, component, i) for i,priority in enumerate(listens_for.finder(component)) for v in priority]
-            listeners += [(v, getattr(component, att), i) for att in sorted(dir(component)) for i,vs in enumerate(listens_for.finder(getattr(component, att))) for v in vs]
+            listeners = [(v, component, i)
+                         for i, priority in enumerate(listens_for.finder(component))
+                         for v in priority]
+            listeners += [(v, getattr(component, att), i)
+                          for att in sorted(dir(component))
+                          for i, vs in enumerate(listens_for.finder(getattr(component, att)))
+                          for v in vs]
 
             for event, listener, priority in listeners:
                 self.register_listener(event, listener, priority)
 
             emitters = [(v, component) for v in emits.finder(component)]
-            emitters += [(v, getattr(component, att)) for att in sorted(dir(component)) for v in emits.finder(getattr(component, att))]
+            emitters += [(v, getattr(component, att))
+                         for att in sorted(dir(component))
+                         for v in emits.finder(getattr(component, att))]
 
             # Pre-create the EventChannels for known emitters
             for (args, kwargs), emitter in emitters:

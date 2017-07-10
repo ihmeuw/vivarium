@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 
 from scipy import interpolate
 
@@ -82,12 +81,12 @@ class Interpolation:
                 if out.shape:
                     result.loc[sub_table.index, value_column] = out.reshape((out.shape[0],))
                 else:
-                    result.loc[sub_table.index, ouput_column] = out
+                    result.loc[sub_table.index, value_column] = out
 
         if self.func:
             return self.func(result)
-        else:
-            if len(result.columns) == 1:
-                return result[result.columns[0]]
-            else:
-                return result
+
+        if len(result.columns) == 1:
+            return result[result.columns[0]]
+
+        return result

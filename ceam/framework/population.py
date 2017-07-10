@@ -190,7 +190,7 @@ class PopulationEvent(Event):
                       The index of the underlying Event filtered by the PopulationView's query, if any.
     """
 
-    def __init__(self, index, population, population_view, user_data={}, time=None):
+    def __init__(self, index, population, population_view, user_data=None, time=None):
         super(PopulationEvent, self).__init__(index, user_data)
         self.population = population
         self.population_view = population_view
@@ -201,9 +201,9 @@ class PopulationEvent(Event):
         if not population_view.manager.growing:
             population = population_view.get(event.index)
             return PopulationEvent(population.index, population, population_view, event.user_data, time=event.time)
-        else:
-            population = population_view.get(event.index, omit_missing_columns=True)
-            return PopulationEvent(event.index, population, population_view, event.user_data, time=event.time)
+
+        population = population_view.get(event.index, omit_missing_columns=True)
+        return PopulationEvent(event.index, population, population_view, event.user_data, time=event.time)
 
     def __repr__(self):
         return "PopulationEvent(population= {}, population_view= {}, time= {})".format(self.population,
@@ -250,7 +250,7 @@ class PopulationManager:
         return PopulationView(self, columns, query)
 
     @emits('initialize_simulants')
-    def _create_simulants(self, count, emitter, population_configuration={}):
+    def _create_simulants(self, count, emitter, population_configuration=None):
         new_index = range(len(self._population) + count)
         new_population = self._population.reindex(new_index)
         index = new_population.index.difference(self._population.index)

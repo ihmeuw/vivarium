@@ -70,13 +70,12 @@ def joint_value_post_processor(a):
         return a[0]
 
     # if there are multiple values, calculate the joint value
-    else:
-        product = 1
-        for v in a:
-            new_value = (1-v)
-            product = product * new_value
-        joint_value = 1 - product
-        return joint_value
+    product = 1
+    for v in a:
+        new_value = (1-v)
+        product = product * new_value
+    joint_value = 1 - product
+    return joint_value
 
 def _dummy_source(*args, **kwargs):
     raise DynamicValueError('No source for value.')

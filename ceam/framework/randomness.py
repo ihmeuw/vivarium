@@ -79,8 +79,8 @@ def random(key, index):
         # against that disease.
         raw_draws = random_state.random_sample(index.max()+1)
         return pd.Series(raw_draws[index], index=index)
-    else:
-        return pd.Series(index=index)  # Structured null value
+
+    return pd.Series(index=index)  # Structured null value
 
 
 def get_hash(key):

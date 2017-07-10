@@ -94,7 +94,7 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
         assert abs(total_expected_rate - total_true_rate)/total_expected_rate < 0.1
 
 
-def build_table(value, columns=['age', 'year', 'sex', 'rate']):
+def build_table(value, columns=('age', 'year', 'sex', 'rate')):
     value_columns = columns[3:]
     if not isinstance(value, list):
         value = [value]*len(value_columns)
@@ -123,7 +123,6 @@ def build_table(value, columns=['age', 'year', 'sex', 'rate']):
 @listens_for('initialize_simulants', priority=0)
 @uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
 def generate_test_population(event):
-    population_size = len(event.index)
     initial_age = event.user_data.get('initial_age', None)
     population = pd.DataFrame(index=event.index)
 
@@ -137,7 +136,7 @@ def generate_test_population(event):
     else:
         age_end = 100
 
-    if initial_age is not None and initial_age is not '':
+    if initial_age is not None and initial_age != '':
         population['age'] = initial_age
         population['age'] = population['age'].astype(float)
     else:
@@ -165,7 +164,5 @@ def make_dummy_column(name, initial_value):
         event.population_view.update(pd.Series(initial_value, index=event.index, name=name))
     return make_column
 
-
 def get_randomness(clock=lambda:datetime(1990, 7, 2)):
     return randomness.RandomnessStream('test', clock, seed=12345)
-
