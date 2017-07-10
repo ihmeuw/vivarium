@@ -174,16 +174,6 @@ class ValuesManager:
                               preferred_combiner=replace_combiner,
                               preferred_post_processor=rescale_post_processor)
 
-    # TODO: This is dead code.  Ask Alec about it.
-    def declare_pipeline(self, label, combiner=replace_combiner, post_processor=rescale_post_processor, source=None):
-        if hasattr(label, 'match'):
-            # This is a compiled regular expression
-            self.__pipeline_templates[label] = (combiner, post_processor, source)
-        else:
-            self._pipelines[label] = Pipeline(combiner=combiner, post_processor=post_processor)
-            if source:
-                self._pipelines[label].source = source
-
     def setup_components(self, components):
         for component in components:
             values_produced = [(v, component) for v in produces_value.finder(component)]

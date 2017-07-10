@@ -30,7 +30,6 @@ class Builder:
         self.lookup = context.tables.build_table
         self.value = context.values.get_value
         self.rate = context.values.get_rate
-        self.declare_pipeline = context.values.declare_pipeline
         self.modifies_value = context.values.mutator
         self.emitter = context.events.get_emitter
         self.population_view = context.population.get_view
@@ -41,7 +40,6 @@ class Builder:
 
     def __repr__(self):
         return ("Builder(\nlookup: {},\nvalue: {},\nrate: {},\n".format(self.lookup, self.value, self.rate)
-                + "declare_pipeline: {},\nmodifies_value: {},\n".format(self.declare_pipeline, self.modifies_value)
                 + "emitter: {},\npopulation_view: {},\n".format(self.emitter, self.population_view)
                 + "clock: {},\nrandomness: {}\n)".format(self.clock, self.randomness))
 

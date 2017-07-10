@@ -7,9 +7,10 @@ from ceam.framework.values import replace_combiner, set_combiner, list_combiner,
 
 def test_replace_combiner():
     manager = ValuesManager()
-    manager.declare_pipeline('test', combiner=replace_combiner, post_processor=None, source=lambda: 1)
 
-    value = manager.get_value('test')
+    value = manager.get_value('test', replace_combiner)
+    value.source = lambda: 1
+
     assert value() == 1
 
     manager.mutator(lambda value: 42, 'test')
@@ -21,11 +22,12 @@ def test_replace_combiner():
 def test_joint_value():
     # This is the normal configuration for PAF and disability weight type values
     manager = ValuesManager()
-    manager.declare_pipeline('test', combiner=list_combiner, post_processor=joint_value_post_processor, source=lambda index: [pd.Series(0, index=index)])
 
     index = pd.Index(range(10))
 
-    value = manager.get_value('test')
+    value = manager.get_value('test', list_combiner, joint_value_post_processor)
+    value.source = lambda index: [pd.Series(0, index=index)]
+
     assert np.all(value(index) == 0)
 
     manager.mutator(lambda index: pd.Series(0.5, index=index), 'test')
@@ -37,9 +39,10 @@ def test_joint_value():
 def test_set_combiner():
     # This is the normal configuration for collecting lists of meids for calculating cause deleted tables
     manager = ValuesManager()
-    manager.declare_pipeline('test', combiner=set_combiner, post_processor=None, source=lambda: set())
 
-    value = manager.get_value('test')
+    value = manager.get_value('test', set_combiner)
+    value.source = lambda: set()
+
     assert value() == set()
 
     manager.mutator(lambda: 'thing one', 'test')
