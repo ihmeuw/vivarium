@@ -3,4 +3,3 @@ numpy
 pandas
 mock
 scipy
-flufl.lock
