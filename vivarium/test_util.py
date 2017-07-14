@@ -172,5 +172,6 @@ def make_dummy_column(name, initial_value):
         event.population_view.update(pd.Series(initial_value, index=event.index, name=name))
     return make_column
 
-def get_randomness(clock=lambda:datetime(1990, 7, 2)):
-    return randomness.RandomnessStream('test', clock, seed=12345)
+
+def get_randomness(key='test', clock=lambda: datetime(1990, 7, 2), seed=12345):
+    return randomness.RandomnessStream(key, clock, seed=seed)
