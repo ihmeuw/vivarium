@@ -1,3 +1,5 @@
+celery
+yaml
 graphviz
 numpy
 pandas
