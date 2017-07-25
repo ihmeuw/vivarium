@@ -99,11 +99,14 @@ class SimulationContext:
 @emits('time_step')
 @emits('time_step__prepare')
 @emits('time_step__cleanup')
-def _step(simulation, time_step_emitter, time_step__prepare_emitter, time_step__cleanup_emitter):
+@emits('collect_metrics')
+def _step(simulation, time_step_emitter, time_step__prepare_emitter,
+          time_step__cleanup_emitter, collect_metrics_emitter):
     _log.debug(simulation.current_time)
     time_step__prepare_emitter(Event(simulation.population.population.index))
     time_step_emitter(Event(simulation.population.population.index))
     time_step__cleanup_emitter(Event(simulation.population.population.index))
+    collect_metrics_emitter(Event(simulation.population.population.index))
     simulation.update_time()
 
 
