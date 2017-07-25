@@ -40,7 +40,7 @@ def test_interpolated_tables():
     assert np.allclose(result_ages, simulation.population.population.age)
     assert np.allclose(result_ages_1d, simulation.population.population.age)
 
-    simulation.current_time += timedelta(days=30.5 * 125)
+    simulation.current_time += pd.Timedelta(30.5 * 125, unit='D')
     simulation.population._population.age += 125/12
 
     result_years = years(simulation.population.population.index)

@@ -202,11 +202,11 @@ class PopulationEvent(Event):
         if not population_view.manager.growing:
             population = population_view.get(event.index)
             return PopulationEvent(population.index, population, population_view, event.user_data,
-                                   time=event.time, time_step=event.time_step)
+                                   time=event.time, time_step=event.step_size)
 
         population = population_view.get(event.index, omit_missing_columns=True)
         return PopulationEvent(event.index, population, population_view, event.user_data,
-                               time=event.time, time_step=event.time_step)
+                               time=event.time, time_step=event.step_size)
 
     def __repr__(self):
         return "PopulationEvent(population= {}, population_view= {}, time= {})".format(self.population,
