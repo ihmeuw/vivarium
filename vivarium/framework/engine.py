@@ -54,7 +54,7 @@ class SimulationContext:
         self.tables = InterpolatedDataManager()
         self.components.extend([self.tables, self.values, self.events, self.population])
         self.current_time = None
-        self.step_size = 0
+        self.step_size = pd.Timedelta(0, unit='D')
 
     def update_time(self):
         self.current_time += self.step_size
