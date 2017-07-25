@@ -1,7 +1,8 @@
 """The mutable value system
 """
 from collections import defaultdict
-from datetime import timedelta
+
+import pandas as pd
 
 from vivarium import config, VivariumError
 
@@ -50,7 +51,7 @@ def rescale_post_processor(a):
     current time step.
     """
     time_step = config.simulation_parameters.time_step
-    return from_yearly(a, timedelta(days=time_step))
+    return from_yearly(a, pd.Timedelta(time_step, unit='D'))
 
 
 def joint_value_post_processor(a):

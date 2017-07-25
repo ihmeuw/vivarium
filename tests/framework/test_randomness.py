@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import pytest
 import pandas as pd
 import numpy as np
@@ -59,7 +57,7 @@ def test__set_residual_probability(weights_with_residuals, index):
 
 
 def test_filter_for_probability(index):
-    dates = [datetime(1991, 1, 1), datetime(1990, 1, 1)]
+    dates = [pd.Timestamp(1991, 1, 1), pd.Timestamp(1990, 1, 1)]
     randomness = RandomnessStream('test', dates.pop, 1)
 
     sub_index = randomness.filter_for_probability(index, 0.5)
@@ -70,7 +68,7 @@ def test_filter_for_probability(index):
 
 
 def test_choice(index, choices, weights):
-    dates = [datetime(1990, 1, 1)]
+    dates = [pd.Timestamp(1990, 1, 1)]
     randomness = RandomnessStream('test', dates.pop, 1)
 
     chosen = randomness.choice(index, choices, p=weights)
@@ -83,7 +81,7 @@ def test_choice(index, choices, weights):
 
 def test_choice_with_residuals(index, choices, weights_with_residuals):
     print(RESIDUAL_CHOICE in weights_with_residuals)
-    dates = [datetime(1990, 1, 1)]
+    dates = [pd.Timestamp(1990, 1, 1)]
     randomness = RandomnessStream('test', dates.pop, 1)
 
     p = random._normalize_shape(weights_with_residuals, index)

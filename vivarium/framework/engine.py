@@ -4,7 +4,6 @@ import os.path
 import argparse
 from time import time
 from collections import Iterable
-from datetime import datetime, timedelta
 from pprint import pformat
 import gc
 from bdb import BdbQuit
@@ -34,6 +33,7 @@ class Builder:
         self.emitter = context.events.get_emitter
         self.population_view = context.population.get_view
         self.clock = lambda: lambda: context.current_time
+        self.step_size = lambda: lambda: context.step_size
         input_draw_number = config.run_configuration.draw_number
         model_draw_number = config.run_configuration.model_draw_number
         self.randomness = lambda key: RandomnessStream(key, self.clock(), (input_draw_number, model_draw_number))
@@ -54,6 +54,10 @@ class SimulationContext:
         self.tables = InterpolatedDataManager()
         self.components.extend([self.tables, self.values, self.events, self.population])
         self.current_time = None
+        self.step_size = 0
+
+    def update_time(self):
+        self.current_time += self.step_size
 
     def setup(self):
         builder = Builder(self)
@@ -95,12 +99,12 @@ class SimulationContext:
 @emits('time_step')
 @emits('time_step__prepare')
 @emits('time_step__cleanup')
-def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, time_step__cleanup_emitter):
+def _step(simulation, time_step_emitter, time_step__prepare_emitter, time_step__cleanup_emitter):
     _log.debug(simulation.current_time)
     time_step__prepare_emitter(Event(simulation.population.population.index))
     time_step_emitter(Event(simulation.population.population.index))
     time_step__cleanup_emitter(Event(simulation.population.population.index))
-    simulation.current_time += time_step
+    simulation.update_time()
 
 
 def _get_time(suffix):
@@ -109,9 +113,9 @@ def _get_time(suffix):
     if month in params or day in params:
         if not (month in params and day in params):
             raise ValueError("you must either specify both a month {0} and a day {0} or neither".format(suffix))
-        return datetime(params['year_{}'.format(suffix)], params[month], params.day_start)
+        return pd.Timestamp(params['year_{}'.format(suffix)], params[month], params.day_start)
     else:
-        return datetime(params['year_{}'.format(suffix)], 7, 2)
+        return pd.Timestamp(params['year_{}'.format(suffix)], 7, 2)
 
 
 @creates_simulants
@@ -119,8 +123,6 @@ def _get_time(suffix):
 def event_loop(simulation, simulant_creator, end_emitter):
     start = _get_time('start')
     stop = _get_time('end')
-    time_step = config.simulation_parameters.time_step
-    time_step = timedelta(days=time_step)
 
     simulation.current_time = start
 
@@ -132,9 +134,11 @@ def event_loop(simulation, simulant_creator, end_emitter):
     else:
         simulant_creator(population_size)
 
+    simulation.step_size = pd.Timedelta(config.simulation_parameters.time_step, unit='D')
+
     while simulation.current_time < stop:
         gc.collect()  # TODO: Actually figure out where the memory leak is.
-        _step(simulation, time_step)
+        _step(simulation)
 
     end_emitter(Event(simulation.population.population.index))
 

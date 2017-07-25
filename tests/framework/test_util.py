@@ -1,23 +1,19 @@
-import pytest
-
-from datetime import timedelta
-from unittest.mock import Mock
-
 import numpy as np
 import pandas as pd
 
-from vivarium.framework.util import from_yearly, to_yearly, rate_to_probability, probability_to_rate, collapse_nested_dict, expand_branch_templates
+from vivarium.framework.util import (from_yearly, to_yearly, rate_to_probability, probability_to_rate,
+                                     collapse_nested_dict, expand_branch_templates)
 
 
 # Simple regression tests for rate functions
 def test_from_yearly():
-    one_month = timedelta(days=30.5)
+    one_month = pd.Timedelta(days=30.5)
     rate = 0.01
     new_rate = from_yearly(rate, one_month)
     assert round(new_rate, 5) == round(0.0008356164383561645, 5)
 
 def test_to_yearly():
-    one_month = timedelta(days=30.5)
+    one_month = pd.Timedelta(days=30.5)
     rate = 0.0008356164383561645
     new_rate = to_yearly(rate, one_month)
     assert round(new_rate, 5) == round(0.01, 5)
