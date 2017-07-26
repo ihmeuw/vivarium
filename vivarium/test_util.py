@@ -152,7 +152,7 @@ def generate_test_population(event):
     else:
         population['location'] = 180
 
-    population['entrance_time'] = pd.Timestamp(event.time)
+    population['entrance_time'] = event.time
     population['exit_time'] = pd.NaT
 
     event.population_view.update(population)
@@ -161,7 +161,7 @@ def generate_test_population(event):
 @listens_for('time_step')
 @uses_columns(['age'], "alive == 'alive'")
 def age_simulants(event):
-    event.population['age'] += event.step_size / 365.0
+    event.population['age'] += event.step_size.days / 365.0
     event.population_view.update(event.population)
 
 
