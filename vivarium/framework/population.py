@@ -190,23 +190,23 @@ class PopulationEvent(Event):
                       The index of the underlying Event filtered by the PopulationView's query, if any.
     """
 
-    def __init__(self, index, population, population_view, user_data=None, time=None, time_step=None):
+    def __init__(self, index, population, population_view, user_data=None, time=None, step_size=None):
         super(PopulationEvent, self).__init__(index, user_data)
         self.population = population
         self.population_view = population_view
         self.time = time
-        self.time_step = time_step
+        self.step_size = step_size
 
     @staticmethod
     def from_event(event, population_view):
         if not population_view.manager.growing:
             population = population_view.get(event.index)
             return PopulationEvent(population.index, population, population_view, event.user_data,
-                                   time=event.time, time_step=event.step_size)
+                                   time=event.time, step_size=event.step_size)
 
         population = population_view.get(event.index, omit_missing_columns=True)
         return PopulationEvent(event.index, population, population_view, event.user_data,
-                               time=event.time, time_step=event.step_size)
+                               time=event.time, step_size=event.step_size)
 
     def __repr__(self):
         return "PopulationEvent(population= {}, population_view= {}, time= {})".format(self.population,
