@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 
-def _next_state(index, time, transition_set, population_view):
+def _next_state(index, event_time, transition_set, population_view):
     """Moves a population between different states using information from a `TransitionSet`.
 
     Parameters
@@ -31,10 +31,10 @@ def _next_state(index, time, transition_set, population_view):
             if output == 'null_transition':
                 pass
             elif isinstance(output, TransientState):
-                output.transition_effect(affected_index, time, population_view)
-                output.next_state(affected_index, time, population_view)
+                output.transition_effect(affected_index, event_time, population_view)
+                output.next_state(affected_index, event_time, population_view)
             elif isinstance(output, State):
-                output.transition_effect(affected_index, time, population_view)
+                output.transition_effect(affected_index, event_time, population_view)
             else:
                 raise ValueError('Invalid transition output: {}'.format(output))
 
