@@ -1,5 +1,3 @@
-from datetime import datetime, timedelta
-
 import pandas as pd
 import numpy as np
 
@@ -19,7 +17,7 @@ def setup_simulation(components, population_size=100, start=None):
         simulation.current_time = start
     else:
         year_start = config.simulation_parameters.year_start
-        simulation.current_time = datetime(year_start, 1, 1)
+        simulation.current_time = pd.Timestamp(year_start, 1, 1)
 
     if 'initial_age' in config.simulation_parameters:
         simulation.population._create_simulants(population_size,
@@ -34,8 +32,10 @@ def setup_simulation(components, population_size=100, start=None):
 def pump_simulation(simulation, time_step_days=None, duration=None, iterations=None):
     if time_step_days:
         config.simulation_parameters.time_step = time_step_days
-    time_step = timedelta(days=float(config.simulation_parameters.time_step))
+
     start_time = simulation.current_time
+    simulation.step_size = pd.Timedelta(config.simulation_parameters.time_step, unit='D')
+
     iteration_count = 0
 
     def should_stop():
@@ -52,12 +52,13 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
 
     while not should_stop():
         iteration_count += 1
-        _step(simulation, time_step)
+        _step(simulation)
 
     return iteration_count
 
 
-def assert_rate(simulation, expected_rate, value_func, effective_population_func=lambda s:len(s.population.population), dummy_population=None):
+def assert_rate(simulation, expected_rate, value_func,
+                effective_population_func=lambda s: len(s.population.population), dummy_population=None):
     """ Asserts that the rate of change of some property in the simulation matches expectations.
 
     Parameters
@@ -72,25 +73,25 @@ def assert_rate(simulation, expected_rate, value_func, effective_population_func
     population_sample_func
         A function that takes in a population and returns a subset of it which will be used for the test
     """
-
-    timestep = timedelta(days=30)
-    start_time = datetime(1990, 1, 1)
+    start_time = pd.Timestamp(1990, 1, 1)
+    time_step = pd.Timedelta(30, unit='D')
     simulation.current_time = start_time
+    simulation.step_size = time_step
 
     count = value_func(simulation)
     total_true_rate = 0
     effective_population_size = 0
     for _ in range(10*12):
         effective_population_size += effective_population_func(simulation)
-        _step(simulation, timestep)
+        _step(simulation)
         new_count = value_func(simulation)
         total_true_rate += new_count - count
         count = new_count
 
     try:
-        assert expected_rate(to_yearly(total_true_rate, timestep*120))
+        assert expected_rate(to_yearly(total_true_rate, time_step*120))
     except TypeError:
-        total_expected_rate = from_yearly(expected_rate, timestep)*effective_population_size
+        total_expected_rate = from_yearly(expected_rate, time_step)*effective_population_size
         assert abs(total_expected_rate - total_true_rate)/total_expected_rate < 0.1
 
 
@@ -151,7 +152,7 @@ def generate_test_population(event):
     else:
         population['location'] = 180
 
-    population['entrance_time'] = pd.Timestamp(event.time)
+    population['entrance_time'] = event.time
     population['exit_time'] = pd.NaT
 
     event.population_view.update(population)
@@ -160,8 +161,7 @@ def generate_test_population(event):
 @listens_for('time_step')
 @uses_columns(['age'], "alive == 'alive'")
 def age_simulants(event):
-    time_step = config.simulation_parameters.time_step
-    event.population['age'] += time_step / 365.0
+    event.population['age'] += event.step_size.days / 365.0
     event.population_view.update(event.population)
 
 
@@ -173,5 +173,5 @@ def make_dummy_column(name, initial_value):
     return make_column
 
 
-def get_randomness(key='test', clock=lambda: datetime(1990, 7, 2), seed=12345):
+def get_randomness(key='test', clock=lambda: pd.Timestamp(1990, 7, 2), seed=12345):
     return randomness.RandomnessStream(key, clock, seed=seed)

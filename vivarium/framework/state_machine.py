@@ -5,16 +5,18 @@ import pandas as pd
 import numpy as np
 
 
-def _next_state(index, transition_set, population_view):
+def _next_state(index, event_time, transition_set, population_view):
     """Moves a population between different states using information from a `TransitionSet`.
 
     Parameters
     ----------
     index : iterable of ints
         An iterable of integer labels for the simulants.
-    transition_set : `TransitionSet`
+    time : pandas.Timestamp
+        When this transition is occuring.
+    transition_set : TransitionSet
         A set of potential transitions available to the simulants.
-    population_view : `pandas.DataFrame`
+    population_view : vivarium.framework.population.PopulationView
         A view of the internal state of the simulation.
     """
 
@@ -29,10 +31,10 @@ def _next_state(index, transition_set, population_view):
             if output == 'null_transition':
                 pass
             elif isinstance(output, TransientState):
-                output.transition_effect(affected_index, population_view)
-                output.next_state(affected_index, population_view)
+                output.transition_effect(affected_index, event_time, population_view)
+                output.next_state(affected_index, event_time, population_view)
             elif isinstance(output, State):
-                output.transition_effect(affected_index, population_view)
+                output.transition_effect(affected_index, event_time, population_view)
             else:
                 raise ValueError('Invalid transition output: {}'.format(output))
 
@@ -175,33 +177,37 @@ class State:
 
         return [self.transition_set]
 
-    def next_state(self, index, population_view):
+    def next_state(self, index, event_time, population_view):
         """Moves a population between different states using information this state's `transition_set`.
 
         Parameters
         ----------
         index : iterable of ints
             An iterable of integer labels for the simulants.
-        population_view : `pandas.DataFrame`
+        event_time : pandas.Timestamp
+            When this transition is occurring.
+        population_view : vivarium.framework.population.PopulationView
             A view of the internal state of the simulation.
         """
-        return _next_state(index, self.transition_set, population_view)
+        return _next_state(index, event_time, self.transition_set, population_view)
 
-    def transition_effect(self, index, population_view):
+    def transition_effect(self, index, event_time, population_view):
         """Updates the simulation state and triggers any side-effects associated with entering this state.
 
         Parameters
         ----------
         index : iterable of ints
             An iterable of integer labels for the simulants.
+        event_time : pandas.Timestamp
+            The time at which this transition occurs.
         population_view : `vivarium.framework.population.PopulationView`
             A view of the internal state of the simulation.
         """
         population_view.update(pd.Series(self.state_id, index=index))
-        self._transition_side_effect(index)
+        self._transition_side_effect(index, event_time)
 
-    def cleanup_effect(self, index):
-        self._cleanup_effect(index)
+    def cleanup_effect(self, index, event_time):
+        self._cleanup_effect(index, event_time)
 
     def add_transition(self, output,
                        probability_func=lambda index: np.ones(len(index), dtype=float),
@@ -218,10 +224,10 @@ class State:
     def allow_self_transitions(self):
         self.transition_set.allow_null_transition = True
 
-    def _transition_side_effect(self, index):
+    def _transition_side_effect(self, index, event_time):
         pass
 
-    def _cleanup_effect(self, index):
+    def _cleanup_effect(self, index, event_time):
         pass
 
     def name(self):
@@ -380,22 +386,24 @@ class Machine:
             self.states.append(state)
             state._model = self.state_column
 
-    def transition(self, index):
+    def transition(self, index, event_time):
         """Finds the population in each state and moves them to the next state.
 
         Parameters
         ----------
         index : iterable of ints
             An iterable of integer labels for the simulants.
+        event_time : pandas.Timestamp
+            The time at which this transition occurs.
         """
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
-                state.next_state(affected.index, self.population_view)
+                state.next_state(affected.index, event_time, self.population_view)
 
-    def cleanup(self, index):
+    def cleanup(self, index, event_time):
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
-                state.cleanup_effect(affected.index)
+                state.cleanup_effect(affected.index, event_time)
 
     def to_dot(self):
         """Produces a ball and stick graph of this state machine.

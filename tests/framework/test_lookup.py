@@ -1,11 +1,10 @@
 import os
-from datetime import datetime, timedelta
 
 import numpy as np
+import pandas as pd
 
 from vivarium import config
 from vivarium.test_util import build_table, setup_simulation, generate_test_population
-from vivarium.framework.event import Event
 
 
 def setup():
@@ -41,7 +40,7 @@ def test_interpolated_tables():
     assert np.allclose(result_ages, simulation.population.population.age)
     assert np.allclose(result_ages_1d, simulation.population.population.age)
 
-    simulation.current_time += timedelta(days=30.5 * 125)
+    simulation.current_time += pd.Timedelta(30.5 * 125, unit='D')
     simulation.population._population.age += 125/12
 
     result_years = years(simulation.population.population.index)
@@ -72,7 +71,7 @@ def test_interpolated_tables_without_uniterpolated_columns():
 
     assert np.allclose(result_years, fractional_year)
 
-    simulation.current_time += timedelta(days=30.5 * 125)
+    simulation.current_time += pd.Timedelta(30.5 * 125, unit='D')
 
     result_years = years(simulation.population.population.index)
 
@@ -91,6 +90,6 @@ def test_interpolated_tables__exact_values_at_input_points():
     years = manager.build_table(years)
 
     for year in input_years:
-        simulation.current_time = datetime(year=year, month=1, day=1)
+        simulation.current_time = pd.Timestamp(year, 1, 1)
         assert np.allclose(years(simulation.population.population.index),
                            simulation.current_time.year + 1/365, rtol=1.e-5)

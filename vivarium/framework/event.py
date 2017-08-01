@@ -16,13 +16,14 @@ which can be called to emit the named event will be injected into the functions
 arguments whenever it is called.
 """
 
+
 class Event:
     """An Event object represents the context of an event. It is possible to subclass Event
     to add information for more specialized cases like vivarium.framework.population.PopulationEvent
 
     Attributes
     ----------
-    time  : datetime.datetime
+    time  : pandas.Timestamp
             The simulation time at which this event was emitted.
     index : pandas.Index
             An index into the population table containing all simulants effected by this event.
@@ -31,28 +32,38 @@ class Event:
     def __init__(self, index, user_data=None):
         self.index = index
         self.user_data = user_data if user_data is not None else {}
-
         self.time = None
+        self.step_size = None
 
     def split(self, new_index):
         """Create a new event which is a copy of this one but with a new index.
         """
         new_event = Event(new_index, self.user_data)
         new_event.time = self.time
+        new_event.step_size = self.step_size
         return new_event
 
     def __repr__(self):
         return "Event(index={}, user_data={}, time={})".format(self.index, self.user_data, self.time)
 
+
 class _EventChannel:
     def __init__(self, manager):
         self.manager = manager
 
-        self.listeners = [[] for i in range(10)]
+        self.listeners = [[] for _ in range(10)]
 
     def emit(self, event):
+        """Notifies all listeners to this channel that an event has occurred.
+
+        Parameters
+        ----------
+        event : Event
+            The event to be emitted.
+        """
         if hasattr(event, 'time'):
-            event.time = self.manager.clock()
+            event.step_size = self.manager.step_size()
+            event.time = self.manager.clock() + self.manager.step_size()
 
         for priority_bucket in self.listeners:
             for listener in sorted(priority_bucket, key=lambda x: x.__name__):
@@ -76,7 +87,15 @@ class EventManager:
         self.__event_types = defaultdict(lambda: _EventChannel(self))
 
     def setup(self, builder):
+        """Performs this components simulation setup.
+
+        Parameters
+        ----------
+        builder : vivarium.framework.engine.Builder
+            Object giving access to core framework functionality.
+        """
         self.clock = builder.clock()
+        self.step_size = builder.step_size()
 
     def get_emitter(self, name):
         """Get an emitter function for the named event
@@ -96,12 +115,30 @@ class EventManager:
         return self.__event_types[name].emit
 
     def register_listener(self, name, listener, priority=5):
+        """Registers a new listener to the named event.
+
+        Parameters
+        ----------
+        name : str
+            The name of the event.
+        listener : callable
+            The consumer of the named event.
+        priority : int in range(10)
+            Number used to assign the ordering in which listeners process the event.
+        """
         self.__event_types[name].listeners[priority].append(listener)
 
-    def _emitter_injector(self, func, args, kwargs, label):
+    def _emitter_injector(self, _, args, kwargs, label):
         return list(args) + [self.__event_types[label].emit], kwargs
 
     def setup_components(self, components):
+        """Registers the simulation components with the event system.
+
+        Parameters
+        ----------
+        components : Iterable
+            The simulation components.
+        """
         emits.set_injector(self._emitter_injector)
         for component in components:
             listeners = [(v, component, i)

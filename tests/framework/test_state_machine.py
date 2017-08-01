@@ -31,8 +31,8 @@ def test_transition():
     machine.states.extend([start_state, done_state])
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start')])
-
-    machine.transition(simulation.population.population.index)
+    event_time = simulation.current_time + simulation.step_size
+    machine.transition(simulation.population.population.index, event_time)
     assert np.all(simulation.population.population.state == 'done')
 
 
@@ -47,8 +47,8 @@ def test_choice():
     machine.states.extend([start_state, a_state, b_state])
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start')], population_size=10000)
-
-    machine.transition(simulation.population.population.index)
+    event_time = simulation.current_time + simulation.step_size
+    machine.transition(simulation.population.population.index, event_time)
     a_count = (simulation.population.population.state == 'a').sum()
     assert round(a_count/len(simulation.population.population), 1) == 0.5
 
@@ -62,8 +62,8 @@ def test_null_transition():
     machine = Machine('state', states=[start_state, a_state])
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start')], population_size=10000)
-
-    machine.transition(simulation.population.population.index)
+    event_time = simulation.current_time + simulation.step_size
+    machine.transition(simulation.population.population.index, event_time)
     a_count = (simulation.population.population.state == 'a').sum()
     assert round(a_count/len(simulation.population.population), 1) == 0.5
 
@@ -80,8 +80,8 @@ def test_no_null_transition():
     machine.states.extend([start_state, a_state, b_state])
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start')], population_size=10000)
-
-    machine.transition(simulation.population.population.index)
+    event_time = simulation.current_time + simulation.step_size
+    machine.transition(simulation.population.population.index, event_time)
     a_count = (simulation.population.population.state == 'a').sum()
     assert round(a_count/len(simulation.population.population), 1) == 0.5
 
@@ -89,7 +89,7 @@ def test_no_null_transition():
 def test_side_effects():
     class DoneState(State):
         @uses_columns(['count'])
-        def _transition_side_effect(self, index, population_view):
+        def _transition_side_effect(self, index, event_time, population_view):
             pop = population_view.get(index)
             population_view.update(pop['count'] + 1)
     done_state = DoneState('done')
@@ -102,8 +102,8 @@ def test_side_effects():
     machine.states.extend([start_state, done_state])
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start'), _population_fixture('count', 0)])
-
-    machine.transition(simulation.population.population.index)
+    event_time = simulation.current_time + simulation.step_size
+    machine.transition(simulation.population.population.index, event_time)
     assert np.all(simulation.population.population['count'] == 1)
-    machine.transition(simulation.population.population.index)
+    machine.transition(simulation.population.population.index, event_time)
     assert np.all(simulation.population.population['count'] == 2)
