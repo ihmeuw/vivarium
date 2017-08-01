@@ -171,7 +171,7 @@ def configure(input_draw_number=None, model_draw_number=None, verbose=False, sim
     if input_draw_number is not None:
         config.run_configuration.set_with_metadata('draw_number', input_draw_number,
                                                    layer='override', source='command_line_argument')
-    if model_draw_number None:
+    if model_draw_number is None:
         model_draw_number = 0
 
     config.run_configuration.set_with_metadata('model_draw_number', model_draw_number,
