@@ -327,7 +327,7 @@ class TransitionSet(list):
         """
         outputs = list(outputs)
         total = np.sum(probabilities, axis=1)
-        if self.allow_null_transition:
+        if self.allow_null_transition or not np.any(total):
             if np.any(total > 1+1e-08):  # Accommodate rounding errors
                 raise ValueError(
                     "Null transition requested with un-normalized probability weights: {}".format(probabilities))
