@@ -118,7 +118,7 @@ def build_table(value, columns=('age', 'year', 'sex', 'rate')):
                     else:
                         r_values.append(v)
                 rows.append([age, year, sex] + r_values)
-    return pd.DataFrame(rows, columns=columns)
+    return pd.DataFrame(rows, columns=['age', 'year', 'sex'] + list(value_columns))
 
 
 @listens_for('initialize_simulants', priority=0)
