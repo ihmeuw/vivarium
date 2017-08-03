@@ -178,9 +178,18 @@ def configure(input_draw_number=None, model_draw_number=None, verbose=False, sim
     if input_draw_number is not None:
         config.run_configuration.set_with_metadata('draw_number', input_draw_number,
                                                    layer='override', source='command_line_argument')
+    else:
+        if 'draw_number' not in config.run_configuration:
+            config.run_configuration.set_with_metadata('draw_number', 0,
+                                                       layer='override', source='default')
+
     if model_draw_number is not None:
         config.run_configuration.set_with_metadata('model_draw_number', model_draw_number,
                                                    layer='override', source='command_line_argument')
+    else:
+        if 'model_draw_number' not in config.run_configuration:
+            config.run_configuration.set_with_metadata('model_draw_number', 0,
+                                                       layer='override', source='default')
 
 
 def run(components):
