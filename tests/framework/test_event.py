@@ -1,7 +1,3 @@
-import pytest
-
-from datetime import datetime
-
 import pandas as pd
 import numpy as np
 
@@ -23,7 +19,8 @@ def test_emission():
         signal[0] = True
 
     manager = EventManager()
-    manager.clock = lambda: datetime(1990, 1, 1)
+    manager.clock = lambda: pd.Timestamp(1990, 1, 1)
+    manager.step_size = lambda: pd.Timedelta(30, unit='D')
     emitter = manager.get_emitter('test_event')
     manager.register_listener('test_event', listener)
     emitter(Event(None))
@@ -52,7 +49,8 @@ def test_listener_priority():
         assert signal[1]
 
     manager = EventManager()
-    manager.clock = lambda: datetime(1990, 1, 1)
+    manager.clock = lambda: pd.Timestamp(1990, 1, 1)
+    manager.step_size = lambda: pd.Timedelta(30, 'D')
     emitter = manager.get_emitter('test_event')
     manager.register_listener('test_event', listener1, priority=0)
     manager.register_listener('test_event', listener2)

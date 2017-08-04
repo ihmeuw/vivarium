@@ -1,5 +1,6 @@
 """A set of tools for managing data lookups."""
 from numbers import Number
+from datetime import datetime, timedelta
 
 import pandas as pd
 
@@ -104,7 +105,8 @@ class InterpolatedDataManager:
         TableView
         """
 
-        if isinstance(data, Number):
+        # Note datetime catches pandas timestamps
+        if isinstance(data, Number) or isinstance(data, datetime) or isinstance(data, timedelta):
             return ScalarView(data)
 
         data = data if isinstance(data, Interpolation) else Interpolation(data, key_columns, parameter_columns,

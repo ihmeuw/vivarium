@@ -1,7 +1,8 @@
 """The mutable value system
 """
 from collections import defaultdict
-from datetime import timedelta
+
+import pandas as pd
 
 from vivarium import config, VivariumError
 
@@ -50,7 +51,7 @@ def rescale_post_processor(a):
     current time step.
     """
     time_step = config.simulation_parameters.time_step
-    return from_yearly(a, timedelta(days=time_step))
+    return from_yearly(a, pd.Timedelta(time_step, unit='D'))
 
 
 def joint_value_post_processor(a):
@@ -113,8 +114,9 @@ class Pipeline:
         return value
 
     def __repr__(self):
-        return ("Pipeline(\nsource= {},\nmutators= {},\n".format(self.source, self.mutators)
-                + "combiner= {},\n post_processor= {},\n".format(self.combiner, self.post_processor)
+        mutators = {i: [m.__name__ for m in b] for i, b in enumerate(self.mutators)}
+        return ("Pipeline(\nsource= {},\nmutators= {},\n".format(self.source.__name__, mutators)
+                + "combiner= {},\n post_processor= {},\n".format(self.combiner.__name__, self.post_processor.__name__)
                 + "configured = {})".format(self.configured))
 
 
@@ -196,4 +198,4 @@ class ValuesManager:
                 self._pipelines[name].mutators[priority].append(mutator)
 
     def __repr__(self):
-        return "ValuesManager(_pipelines= {})".format(self._pipelines)
+        return "ValuesManager(_pipelines= {})".format(list(self._pipelines.keys()))

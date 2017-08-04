@@ -13,3 +13,4 @@ local.cfg
 docs/_build
 build
 dist
+.pytest*
