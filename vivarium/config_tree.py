@@ -68,6 +68,9 @@ class ConfigNode:
                 return self._values[layer]
         raise KeyError(layer)
 
+    def is_empty(self):
+        return not self._values
+
     def get_value(self, layer=None):
         """Returns the value at the specified layer.
 
@@ -408,12 +411,17 @@ class ConfigTree:
     def _reset_layer(self, layer, preserve_keys, prefix):
         if self._frozen:
             raise TypeError('Frozen ConfigTree does not support modification')
+        deletable = []
         for key, child in self._children.items():
             if prefix + [key] not in preserve_keys:
                 if isinstance(child, ConfigTree):
                     child._reset_layer(layer, preserve_keys, prefix + [key])
                 else:
                     child.reset_layer(layer)
+                    if child.is_empty():
+                        deletable.append(key)
+        for key in deletable:
+            del self._children[key]
 
     def drop_layer(self, layer):
         """Removes the named layer and the value associated with it from the node.
