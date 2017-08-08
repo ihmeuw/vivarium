@@ -9,32 +9,27 @@ from vivarium import VivariumError
 from .util import resource_injector
 from .event import emits, Event
 
-uses_columns = resource_injector('population_system_population_view')
-uses_columns.__doc__ = \
-"""Mark a function as a user of columns from the population table. If
-the function is also an event listener then the Event object which it
-receives will be transformed into a PopulationEvent. Otherwise the
-function will have a configured PopulationView injected into its
-arguments.
+_uses_columns = resource_injector('population_system_population_view')
+def uses_columns(column, query=''):
+    """Mark a function as a user of columns from the population table. If
+    the function is also an event listener then the Event object which it
+    receives will be transformed into a PopulationEvent. Otherwise the
+    function will have a configured PopulationView injected into its
+    arguments.
 
-Parameters
-----------
-columns : [str]
-          A list of column names which the function will need to read
-          or write.
+    Parameters
+    ----------
+    columns : [str]
+    A list of column names which the function will need to read
+    or write.
 
-query   : str
-          A filter in pandas query syntax which should be applied to
-          the population before it made accessible to this
-          function. This effects both the ``population`` and the
-          ``index`` attributes of PopulationEvents
-"""
-from inspect import signature, Parameter, Signature
-uses_columns.__signature__ = \
-    signature(uses_columns).replace(parameters=[
-        Parameter(name='columns', kind=Parameter.POSITIONAL_ONLY),
-        Parameter(name='query',  kind=Parameter.POSITIONAL_ONLY)],
-                                    return_annotation=Signature.empty)
+    query   : str
+    A filter in pandas query syntax which should be applied to
+    the population before it made accessible to this
+    function. This effects both the ``population`` and the
+    ``index`` attributes of PopulationEvents
+    """
+    return _uses_columns(column, query)
 
 _creates_simulants = resource_injector('population_system_simulant_creater')
 creates_simulants = _creates_simulants()
