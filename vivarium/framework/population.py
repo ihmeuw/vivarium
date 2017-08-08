@@ -30,6 +30,7 @@ def uses_columns(column, query=''):
     ``index`` attributes of PopulationEvents
     """
     return _uses_columns(column, query)
+uses_columns.set_injector = _uses_columns.set_injector
 
 _creates_simulants = resource_injector('population_system_simulant_creater')
 creates_simulants = _creates_simulants()
