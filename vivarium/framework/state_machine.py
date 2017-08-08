@@ -30,7 +30,9 @@ def _next_state(index, event_time, transition_set, population_view):
         for output, affected_index in sorted(groups, key=lambda x: str(x[0])):
             if output == 'null_transition':
                 pass
-            elif isinstance(output, TransientState):
+            elif isinstance(output, Transient):
+                if not isinstance(output, State):
+                    raise ValueError('Invalid transition output: {}'.format(output))
                 output.transition_effect(affected_index, event_time, population_view)
                 output.next_state(affected_index, event_time, population_view)
             elif isinstance(output, State):
@@ -230,9 +232,6 @@ class State:
     def _cleanup_effect(self, index, event_time):
         pass
 
-    def name(self):
-        return self.state_id
-
     def __str__(self):
         return repr(self)
 
@@ -240,8 +239,12 @@ class State:
         return 'State({})'.format(self.state_id)
 
 
-class TransientState(State):
+class Transient:
     """Used to tell _next_state to transition a second time."""
+    pass
+
+
+class TransientState(State, Transient):
     def __repr__(self):
         return 'TransientState({})'.format(self.state_id)
 
@@ -417,11 +420,11 @@ class Machine:
         dot = Digraph(format='png')
         for state in self.states:
             if isinstance(state, TransientState):
-                dot.node(state.name(), style='dashed')
+                dot.node(state.state_id, style='dashed')
             else:
-                dot.node(state.name())
+                dot.node(state.state_id)
             for transition in state.transition_set:
-                dot.edge(state.name(), transition.output.name(), transition.label())
+                dot.edge(state.state_id, transition.output.state_id, transition.label())
         return dot
 
     def _get_state_pops(self, index):
