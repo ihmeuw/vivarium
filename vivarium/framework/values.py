@@ -116,7 +116,9 @@ class Pipeline:
     def __repr__(self):
         mutators = {i: [m.__name__ for m in b] for i, b in enumerate(self.mutators)}
         post_processor = self.post_processor.__name__ if self.post_processor else 'None'
-        return ("Pipeline(\nsource= {},\nmutators= {},\n".format(self.source.__name__, mutators)
+        source = self.source.__name__ if hasattr(self.source, __name__) else self.source.__class__.__name__
+
+        return ("Pipeline(\nsource= {},\nmutators= {},\n".format(source, mutators)
                 + "combiner= {},\n post_processor= {},\n".format(self.combiner.__name__, post_processor)
                 + "configured = {})".format(self.configured))
 
