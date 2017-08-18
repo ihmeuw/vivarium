@@ -1,3 +1,5 @@
+import numbers
+
 import pandas as pd
 import numpy as np
 
@@ -30,32 +32,35 @@ def setup_simulation(components, population_size=100, start=None):
 
 
 def pump_simulation(simulation, time_step_days=None, duration=None, iterations=None):
+    if duration is None and iterations is None:
+        raise ValueError('Must supply either duration or iterations')
+
     if time_step_days:
         config.simulation_parameters.time_step = time_step_days
-
-    start_time = simulation.current_time
     simulation.step_size = pd.Timedelta(config.simulation_parameters.time_step, unit='D')
 
-    iteration_count = 0
+    if duration is not None:
+        if isinstance(duration, numbers.Number):
+            duration = pd.Timedelta(days=duration)
+        time_step = pd.Timedelta(days=config.simulation_parameters.time_step)
+        iterations = int(duration / time_step)
 
-    def should_stop():
-        if duration is not None:
-            if simulation.current_time - start_time >= duration:
-                return True
-        elif iterations is not None:
-            if iteration_count >= iterations:
-                return True
-        else:
-            raise ValueError('Must supply either duration or iterations')
+    if run_from_ipython():
+        for _ in log_progress(range(iterations), name='Step'):
+            _step(simulation)
+    else:
+        for i in range(iterations):
+            _step(simulation)
 
-        return False
+    return iterations
 
-    while not should_stop():
-        iteration_count += 1
-        _step(simulation)
-
-    return iteration_count
-
+def run_from_ipython():
+    """Taken from https://stackoverflow.com/questions/5376837/how-can-i-do-an-if-run-from-ipython-test-in-python"""
+    try:
+        __IPYTHON__
+        return True
+    except NameError:
+        return  False
 
 def assert_rate(simulation, expected_rate, value_func,
                 effective_population_func=lambda s: len(s.population.population), dummy_population=None):
@@ -175,3 +180,61 @@ def make_dummy_column(name, initial_value):
 
 def get_randomness(key='test', clock=lambda: pd.Timestamp(1990, 7, 2), seed=12345):
     return randomness.RandomnessStream(key, clock, seed=seed)
+
+
+def log_progress(sequence, every=None, size=None, name='Items'):
+    """Taken from https://github.com/alexanderkuk/log-progress"""
+    from ipywidgets import IntProgress, HTML, VBox
+    from IPython.display import display
+
+    is_iterator = False
+    if size is None:
+        try:
+            size = len(sequence)
+        except TypeError:
+            is_iterator = True
+    if size is not None:
+        if every is None:
+            if size <= 200:
+                every = 1
+            else:
+                every = int(size / 200)     # every 0.5%
+    else:
+        assert every is not None, 'sequence is iterator, set every'
+
+    if is_iterator:
+        progress = IntProgress(min=0, max=1, value=1)
+        progress.bar_style = 'info'
+    else:
+        progress = IntProgress(min=0, max=size, value=0)
+    label = HTML()
+    box = VBox(children=[label, progress])
+    display(box)
+
+    index = 0
+    try:
+        for index, record in enumerate(sequence, 1):
+            if index == 1 or index % every == 0:
+                if is_iterator:
+                    label.value = '{name}: {index} / ?'.format(
+                        name=name,
+                        index=index
+                    )
+                else:
+                    progress.value = index
+                    label.value = u'{name}: {index} / {size}'.format(
+                        name=name,
+                        index=index,
+                        size=size
+                    )
+            yield record
+    except:
+        progress.bar_style = 'danger'
+        raise
+    else:
+        progress.bar_style = 'success'
+        progress.value = index
+        label.value = "{name}: {index}".format(
+            name=name,
+            index=str(index or '?')
+        )
