@@ -43,7 +43,7 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
         if isinstance(duration, numbers.Number):
             duration = pd.Timedelta(days=duration)
         time_step = pd.Timedelta(days=config.simulation_parameters.time_step)
-        iterations = int(duration / time_step)
+        iterations = int(duration / time_step) + 1
 
     if run_from_ipython():
         for _ in log_progress(range(iterations), name='Step'):
