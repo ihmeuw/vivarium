@@ -43,7 +43,7 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
         if isinstance(duration, numbers.Number):
             duration = pd.Timedelta(days=duration)
         time_step = pd.Timedelta(days=config.simulation_parameters.time_step)
-        iterations = int(duration / time_step) + 1
+        iterations = int(np.ceil(duration / time_step))
 
     if run_from_ipython():
         for _ in log_progress(range(iterations), name='Step'):
@@ -60,7 +60,8 @@ def run_from_ipython():
         __IPYTHON__
         return True
     except NameError:
-        return  False
+        return False
+
 
 def assert_rate(simulation, expected_rate, value_func,
                 effective_population_func=lambda s: len(s.population.population), dummy_population=None):
@@ -78,8 +79,9 @@ def assert_rate(simulation, expected_rate, value_func,
     population_sample_func
         A function that takes in a population and returns a subset of it which will be used for the test
     """
-    start_time = pd.Timestamp(1990, 1, 1)
+    start_time = pd.Timestamp(config.simulation_parameters.year_start, 1, 1)
     time_step = pd.Timedelta(30, unit='D')
+    config.simulation_parameters.time_step = time_step
     simulation.current_time = start_time
     simulation.step_size = time_step
 
