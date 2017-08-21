@@ -29,11 +29,12 @@ def worker(input_draw_number, model_draw_number, component_config, branch_config
 
     try:
         from vivarium.framework.engine import configure, run
-        from vivarium.framework.components import prepare_component_configuration
+        from vivarium.framework.components import load_component_manager
         from vivarium.framework.util import collapse_nested_dict
 
         configure(input_draw_number=input_draw_number, model_draw_number=model_draw_number, simulation_config=branch_config)
-        results = run(prepare_component_configuration(component_config))
+        component_maneger = load_component_manager(component_config)
+        results = run(component_manager)
         idx=pd.MultiIndex.from_tuples([(input_draw_number, model_draw_number)], names=['input_draw_number','model_draw_number'])
         results = pd.DataFrame(results, index=idx).to_json()
 

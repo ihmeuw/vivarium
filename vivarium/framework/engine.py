@@ -16,7 +16,7 @@ from vivarium.framework.values import ValuesManager
 from vivarium.framework.event import EventManager, Event, emits
 from vivarium.framework.population import PopulationManager, creates_simulants
 from vivarium.framework.lookup import InterpolatedDataManager
-from vivarium.framework.components import load, read_component_configuration
+from vivarium.framework.components import load_component_manager
 from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.util import collapse_nested_dict
 
@@ -46,13 +46,12 @@ class Builder:
 
 class SimulationContext:
     """context"""
-    def __init__(self, components):
-        self.components = components
+    def __init__(self, component_manager):
+        self.component_manager = component_manager
         self.values = ValuesManager()
         self.events = EventManager()
         self.population = PopulationManager()
         self.tables = InterpolatedDataManager()
-        self.components.extend([self.tables, self.values, self.events, self.population])
         self.current_time = None
         self.step_size = pd.Timedelta(0, unit='D')
 
@@ -61,12 +60,13 @@ class SimulationContext:
 
     def setup(self):
         builder = Builder(self)
-        components = [self.values, self.events, self.population, self.tables] + list(self.components)
+        self.component_manager.add_components([self.values, self.events, self.population, self.tables])
+        components = self.component_manager.init_components()
         done = set()
 
-        i = 0
-        while i < len(components):
-            component = components[i]
+        components = list(components)
+        while components:
+            component = components.pop(0)
             if component is None:
                 raise ValueError('None in component list. This likely indicates a bug in a factory function')
 
@@ -83,10 +83,9 @@ class SimulationContext:
                     done.add(component)
                     if sub_components:
                         components.extend(sub_components)
-            i += 1
-        self.values.setup_components(components)
-        self.events.setup_components(components)
-        self.population.setup_components(components)
+        self.values.setup_components(self.component_manager.components)
+        self.events.setup_components(self.component_manager.components)
+        self.population.setup_components(self.component_manager.components)
 
         self.events.get_emitter('post_setup')(None)
 
@@ -146,10 +145,9 @@ def event_loop(simulation, simulant_creator, end_emitter):
     end_emitter(Event(simulation.population.population.index))
 
 
-def setup_simulation(components):
-    if not components:
-        components = []
-    simulation = SimulationContext(load(components + [_step, event_loop]))
+def setup_simulation(component_manager):
+    component_manager.add_components([_step, event_loop])
+    simulation = SimulationContext(component_manager)
 
     simulation.setup()
 
@@ -192,10 +190,10 @@ def configure(input_draw_number=None, model_draw_number=None, verbose=False, sim
                                                        layer='override', source='default')
 
 
-def run(components):
+def run(component_manager):
     config.set_with_metadata('run_configuration.run_id', str(time()), layer='base')
     config.set_with_metadata('run_configuration.run_key', {'draw': config.run_configuration.draw_number}, layer='base')
-    simulation = setup_simulation(components)
+    simulation = setup_simulation(component_manager)
     metrics = run_simulation(simulation)
     for k, v in collapse_nested_dict(config.run_configuration.run_key.to_dict()):
         metrics[k] = v
@@ -210,10 +208,10 @@ def run(components):
 
 
 def do_command(args):
+    configure(input_draw_number=args.input_draw, verbose=args.verbose, simulation_config=args.config)
+    component_manager = load_component_manager(path=args.components)
     if args.command == 'run':
-        configure(input_draw_number=args.input_draw, verbose=args.verbose, simulation_config=args.config)
-        components = read_component_configuration(args.components)
-        results = run(components)
+        results = run(component_manager)
         if args.results_path:
             try:
                 os.makedirs(os.path.dirname(args.results_path))
@@ -221,19 +219,6 @@ def do_command(args):
                 # Directory already exists, which is fine
                 pass
             pd.DataFrame([results]).to_hdf(args.results_path, 'data')
-    elif args.command == 'list_events':
-        if args.components:
-            component_configurations = read_component_configuration(args.components)
-            components = component_configurations['base']['components']
-        else:
-            components = None
-        simulation = setup_simulation(components)
-        print(simulation.events.list_events())
-    elif args.command == 'print_configuration':
-        configure(input_draw_number=args.input_draw, verbose=args.verbose, simulation_config=args.config)
-        components = read_component_configuration(args.components)
-        load(components)
-        print(config)
 
 
 def main():
