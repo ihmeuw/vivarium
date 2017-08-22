@@ -73,6 +73,8 @@ class SimulationContext:
             if isinstance(component, Iterable):
                 # Unpack lists of components so their constituent components get initialized
                 components.extend(component)
+                self.component_manager.components.extend(component)
+
             if component not in done:
                 if hasattr(component, 'configuration_defaults'):
                     # This reapplies configuration from some components but
@@ -83,6 +85,8 @@ class SimulationContext:
                     done.add(component)
                     if sub_components:
                         components.extend(sub_components)
+                        self.component_manager.components.extend(sub_components)
+
         self.values.setup_components(self.component_manager.components)
         self.events.setup_components(self.component_manager.components)
         self.population.setup_components(self.component_manager.components)

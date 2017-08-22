@@ -1,16 +1,10 @@
+import ast
 from importlib import import_module
 from ast import literal_eval
 from collections import Iterable
 from vivarium import config
+from vivarium.framework.dataset import DataContainer, Placeholder
 import yaml
-
-class DataSource:
-    def __init__(self, name):
-        self.name = name
-
-def load_data_container(loader, node):
-    value = loader.construct_scalar(node)
-    return DataSource(value)
 
 def load_component_manager(source=None, path=None):
     if (source is None and path is None) or (source is not None and path is not None):
@@ -44,23 +38,25 @@ class ComponentManager:
     def __init__(self, source, path):
         self.source = source
         self.path = path
-        self.tags = {'!data': load_data_container}
+        self.tags = {}
         self.component_config = None
         self.components = []
 
     def _load(self):
-        try:
-            for tag, constructor in self.tags.items():
-                yaml.add_constructor(tag, constructor)
-            self.component_config = yaml.load(self.source)
-        finally:
-            for tag, constructor in self.tags.items():
-                del yaml.loader.Loader.yaml_constructors[tag]
+        # NOTE: This inner class is used because pyaml's custom constructor mappings
+        # are global and mucking with global scope to load a single file is terrifying
+        # so we subclass to get local scope for our constructors.
+        class InnerLoader(yaml.Loader):
+            pass
+
+        for tag, constructor in self.tags.items():
+            InnerLoader.add_constructor(tag, constructor)
+        self.component_config = yaml.load(self.source, InnerLoader)
 
     def init_components(self):
         self._load()
         processed_config = _prepare_component_configuration(self.component_config, path=self.path)
-        self.components.extend(load(processed_config))
+        self.components.extend(load(processed_config, {'Placeholder': DataContainer}))
         return self.components
 
     def add_components(self, components):
@@ -82,22 +78,58 @@ def _prepare_component_configuration(component_config, path=None):
 
     return process_level(component_config['components'], [])
 
-def load(component_list):
+def print_component_ast(component):
+    if isinstance(component, ast.Name):
+        return component.id
+    path = []
+    current = component
+    while isinstance(current, ast.Attribute):
+        path.insert(0, current.attr)
+        current = current.value
+    path.insert(0, current.id)
+    return '.'.join(path)
+
+def interpret_component(desc, constructors):
+    component, *args = ast.iter_child_nodes(list(ast.iter_child_nodes(list(ast.iter_child_nodes(ast.parse(desc)))[0]))[0])
+    component = print_component_ast(component)
+    new_args = []
+    for arg in args:
+        if isinstance(arg, ast.Str):
+            new_args.append(arg.s)
+        elif isinstance(arg, ast.Num):
+            new_args.append(arg.n)
+        elif isinstance(arg, ast.Call):
+            constructor, *constructor_args = ast.iter_child_nodes(arg)
+            constructor = constructors.get(constructor.id)
+            if constructor and len(constructor_args) == 1 and isinstance(constructor_args[0], ast.Str):
+                new_args.append(constructor(constructor_args[0].s))
+            else:
+                raise ValueError('Invalid syntax: {}'.format(desc))
+        else:
+            raise ValueError('Invalid syntax: {}'.format(desc))
+    return component, new_args
+
+def load(component_list, constructors):
     components = []
     for component in component_list:
         if isinstance(component, str):
             if '(' in component:
-                i = component.index('(')
-                args = literal_eval(component[i:])
-                if not isinstance(args, tuple):
-                    args = (args,)
-                component = component[:i]
+                component, args = interpret_component(component, constructors)
                 call = True
             else:
                 call = False
 
             module_path, _, component_name = component.rpartition('.')
             component = getattr(import_module(module_path), component_name)
+
+            if hasattr(component, 'datasets'):
+                datasets = []
+                for ds in component.datasets:
+                    if isinstance(ds, Placeholder):
+                        datasets.append(DataContainer(ds.entity_path))
+                    else:
+                        datasets.append(ds)
+                component.datasets = datasets
 
             # Establish the initial configuration
             if hasattr(component, 'configuration_defaults'):
