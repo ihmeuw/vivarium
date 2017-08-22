@@ -176,5 +176,8 @@ class EventManager:
 
         return list(self.__event_types.keys())
 
+    def __contains__(self, item):
+        return item in self.__event_types
+
     def __repr__(self):
         return "EventManager(event_types: {})".format(self.__event_types)

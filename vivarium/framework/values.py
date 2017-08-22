@@ -200,5 +200,8 @@ class ValuesManager:
             for name, mutator, priority in values_modified:
                 self._pipelines[name].mutators[priority].append(mutator)
 
+    def __contains__(self, item):
+        return item in self._pipelines
+
     def __repr__(self):
         return "ValuesManager(_pipelines= {})".format(list(self._pipelines.keys()))
