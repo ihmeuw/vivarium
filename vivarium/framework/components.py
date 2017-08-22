@@ -1,9 +1,10 @@
 import ast
+import inspect
 from importlib import import_module
 from ast import literal_eval
 from collections import Iterable
 from vivarium import config
-from vivarium.framework.dataset import DataContainer, Placeholder
+from vivarium.framework.dataset import DatasetManager, Placeholder
 import yaml
 
 def load_component_manager(source=None, path=None):
@@ -17,7 +18,7 @@ def load_component_manager(source=None, path=None):
         else:
             raise ValueError("Unknown components configuration type: {}".format(path))
 
-    # Ignore any custom tabs on the first pass, we'll add constructors for them later
+    # Ignore any custom tags on the first pass, we'll add constructors for them later
     try:
         yaml.add_multi_constructor('', lambda *args: '')
         initial_load = yaml.load(source)
@@ -25,22 +26,30 @@ def load_component_manager(source=None, path=None):
         del yaml.loader.Loader.yaml_multi_constructors['']
 
     if 'vivarium' in initial_load['configuration'] and 'component_manager' in initial_load['configuration']['vivarium']:
-        component_manager_class_name = initial_load['configuration']['vivarium']['component_manager']
-        module_path, _, manager_name = component_manager.rpartition('.')
+        manager_class_name = initial_load['configuration']['vivarium']['component_manager']
+        module_path, _, manager_name = manager_class_mane.rpartition('.')
         component_manager_class = getattr(import_module(module_path), manager_name)
     else:
         component_manager_class = ComponentManager
 
-    manager = component_manager_class(source, path)
+    if 'vivarium' in initial_load['configuration'] and 'dataset_manager' in initial_load['configuration']['vivarium']:
+        manager_class_name = initial_load['configuration']['vivarium']['dataset_manager']
+        module_path, _, manager_name = manager_class_name.rpartition('.')
+        dataset_manager_class = getattr(import_module(module_path), manager_name)
+    else:
+        dataset_manager_class = DatasetManager
+
+    manager = component_manager_class(source, path, dataset_manager_class())
     return manager
 
 class ComponentManager:
-    def __init__(self, source, path):
+    def __init__(self, source, path, dataset_manager):
         self.source = source
         self.path = path
         self.tags = {}
         self.component_config = None
         self.components = []
+        self.dataset_manager = dataset_manager
 
     def _load(self):
         # NOTE: This inner class is used because pyaml's custom constructor mappings
@@ -56,7 +65,8 @@ class ComponentManager:
     def init_components(self):
         self._load()
         processed_config = _prepare_component_configuration(self.component_config, path=self.path)
-        self.components.extend(load(processed_config, {'Placeholder': DataContainer}))
+        self.components.extend(load(processed_config, {'Placeholder': self.dataset_manager.construct_data_container}))
+        import pdb; pdb.set_trace()
         return self.components
 
     def add_components(self, components):
@@ -122,14 +132,9 @@ def load(component_list, constructors):
             module_path, _, component_name = component.rpartition('.')
             component = getattr(import_module(module_path), component_name)
 
-            if hasattr(component, 'datasets'):
-                datasets = []
-                for ds in component.datasets:
-                    if isinstance(ds, Placeholder):
-                        datasets.append(DataContainer(ds.entity_path))
-                    else:
-                        datasets.append(ds)
-                component.datasets = datasets
+            for attr, val in inspect.getmembers(component, lambda a:not(inspect.isroutine(a))):
+                if isinstance(val, Placeholder):
+                    setattr(component, attr, constructors['Placeholder'](val.entity_path))
 
             # Establish the initial configuration
             if hasattr(component, 'configuration_defaults'):
