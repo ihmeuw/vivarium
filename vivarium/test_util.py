@@ -153,7 +153,8 @@ def generate_test_population(event):
 
     population['sex'] = randomness.choice('test_population_sex'+str(config.run_configuration.draw_number),
                                           population.index, ['Male', 'Female'])
-    population['alive'] = 'alive'
+    population['alive'] = pd.Series('alive', index=population.index).astype(
+        'category', categories=['alive', 'dead', 'untracked'], ordered=False)
     if 'location_id' in config.simulation_parameters:
         population['location'] = config.simulation_parameters.location_id
     else:
