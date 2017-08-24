@@ -57,7 +57,7 @@ class PopulationView:
 
     def __init__(self, manager, columns, query):
         self.manager = manager
-        self._columns = columns
+        self._columns = list(columns)
         self._query = query
 
     @property
@@ -91,7 +91,7 @@ class PopulationView:
         pandas.DataFrame
         """
 
-        pop = self.manager._population.ix[index]
+        pop = self.manager._population.loc[index]
 
         if self._query:
             pop = pop.query(self._query)
