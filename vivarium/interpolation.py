@@ -91,3 +91,6 @@ class Interpolation:
             return result[result.columns[0]]
 
         return result
+
+    def __repr__(self):
+        return "Interpolation()"

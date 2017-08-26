@@ -46,7 +46,7 @@ class InterpolatedTableView(TableView):
         return self.interpolation(pop)
 
     def __repr__(self):
-        return "InterpolatedTableView(interpolation={})".format(self.interpolation)
+        return "InterpolatedTableView()"
 
 
 class ScalarView(TableView):
@@ -117,4 +117,4 @@ class InterpolatedDataManager:
                                      self.clock if 'year' in parameter_columns else None)
 
     def __repr__(self):
-        return "InterpolatedDataManager(clock= {})".format(self.clock)
+        return "InterpolatedDataManager()"
