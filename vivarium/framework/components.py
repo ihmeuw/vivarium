@@ -7,7 +7,7 @@ from vivarium import config
 from vivarium.framework.dataset import DatasetManager, Placeholder
 import yaml
 
-def load_component_manager(source=None, path=None):
+def load_component_manager(source=None, path=None, dataset_manager_class=None):
     if (source is None and path is None) or (source is not None and path is not None):
         raise ValueError('Must supply either source or path but not both')
 
@@ -32,12 +32,13 @@ def load_component_manager(source=None, path=None):
     else:
         component_manager_class = ComponentManager
 
-    if 'vivarium' in initial_load['configuration'] and 'dataset_manager' in initial_load['configuration']['vivarium']:
-        manager_class_name = initial_load['configuration']['vivarium']['dataset_manager']
-        module_path, _, manager_name = manager_class_name.rpartition('.')
-        dataset_manager_class = getattr(import_module(module_path), manager_name)
-    else:
-        dataset_manager_class = DatasetManager
+    if dataset_manager_class is None:
+        if 'vivarium' in initial_load['configuration'] and 'dataset_manager' in initial_load['configuration']['vivarium']:
+            manager_class_name = initial_load['configuration']['vivarium']['dataset_manager']
+            module_path, _, manager_name = manager_class_name.rpartition('.')
+            dataset_manager_class = getattr(import_module(module_path), manager_name)
+        else:
+            dataset_manager_class = DatasetManager
 
     manager = component_manager_class(source, path, dataset_manager_class())
     return manager
@@ -62,11 +63,13 @@ class ComponentManager:
             InnerLoader.add_constructor(tag, constructor)
         self.component_config = yaml.load(self.source, InnerLoader)
 
-    def init_components(self):
+    def prep_components(self):
         self._load()
         processed_config = _prepare_component_configuration(self.component_config, path=self.path)
-        self.components.extend(load(processed_config, {'Placeholder': self.dataset_manager.construct_data_container}))
-        import pdb; pdb.set_trace()
+        return prep_components(processed_config, {'Placeholder': self.dataset_manager.construct_data_container})
+
+    def init_components(self):
+        self.components.extend(init_components(self.prep_components()))
         return self.components
 
     def add_components(self, components):
@@ -119,7 +122,7 @@ def interpret_component(desc, constructors):
             raise ValueError('Invalid syntax: {}'.format(desc))
     return component, new_args
 
-def load(component_list, constructors):
+def prep_components(component_list, constructors):
     components = []
     for component in component_list:
         if isinstance(component, str):
@@ -141,14 +144,20 @@ def load(component_list, constructors):
                 config.read_dict(component.configuration_defaults, layer='component_configs', source=module_path)
 
             if call:
-                component = component(*args)
+                component = (component, args)
 
         elif isinstance(component, type):
-            component = component()
+            component = (component, tuple())
 
-        if isinstance(component, Iterable):
-            components.extend(component)
-        else:
-            components.append(component)
+        components.append(component)
 
     return components
+
+def init_components(component_list):
+    new_components = []
+    for component in component_list:
+        if len(component) == 1:
+            new_components.append(component)
+        else:
+            new_components.append(component[0](*component[1]))
+    return new_components

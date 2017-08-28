@@ -1,5 +1,6 @@
 """The engine."""
 import os
+import yaml
 import os.path
 import argparse
 from time import time
@@ -223,11 +224,15 @@ def do_command(args):
                 # Directory already exists, which is fine
                 pass
             pd.DataFrame([results]).to_hdf(args.results_path, 'data')
+    elif args.command == 'list_datasets':
+        component_manager.init_components()
+        print(yaml.dump(list(component_manager.dataset_manager.datasets_loaded)))
+
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['run', 'list_events', 'print_configuration'])
+    parser.add_argument('command', choices=['run', 'list_datasets'])
     parser.add_argument('components', nargs='?', default=None, type=str)
     parser.add_argument('--verbose', '-v', action='store_true')
     parser.add_argument('--config', '-c', type=str, default=None,
