@@ -31,7 +31,7 @@ def setup_simulation(components, population_size=100, start=None):
     return simulation
 
 
-def pump_simulation(simulation, time_step_days=None, duration=None, iterations=None):
+def pump_simulation(simulation, time_step_days=None, duration=None, iterations=None, with_logging=True):
     if duration is None and iterations is None:
         raise ValueError('Must supply either duration or iterations')
 
@@ -45,7 +45,7 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
         time_step = pd.Timedelta(days=config.simulation_parameters.time_step)
         iterations = int(np.ceil(duration / time_step))
 
-    if run_from_ipython():
+    if run_from_ipython() and with_logging:
         for _ in log_progress(range(iterations), name='Step'):
             _step(simulation)
     else:
@@ -53,6 +53,7 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
             _step(simulation)
 
     return iterations
+
 
 def run_from_ipython():
     """Taken from https://stackoverflow.com/questions/5376837/how-can-i-do-an-if-run-from-ipython-test-in-python"""
@@ -241,3 +242,8 @@ def log_progress(sequence, every=None, size=None, name='Items'):
             name=name,
             index=str(index or '?')
         )
+
+
+def reset_mocks(mocks):
+    for mock in mocks:
+        mock.reset_mock()
