@@ -71,6 +71,7 @@ class _EventChannel:
         for priority_bucket in self.listeners:
             for listener in sorted(priority_bucket, key=lambda x: x.__name__):
                 listener(event)
+        return event
 
     def __repr__(self):
         return "_EventChannel(listeners: {})".format([listener for bucket in self.listeners for listener in bucket])
