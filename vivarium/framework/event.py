@@ -46,6 +46,9 @@ class Event:
     def __repr__(self):
         return "Event(user_data={}, time={}, step_size={})".format(self.user_data, self.time, self.step_size)
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
 
 class _EventChannel:
     def __init__(self, manager):
