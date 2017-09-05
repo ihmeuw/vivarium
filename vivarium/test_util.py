@@ -20,7 +20,6 @@ def setup_simulation(components, population_size=100, start=None):
     else:
         year_start = config.simulation_parameters.year_start
         simulation.current_time = pd.Timestamp(year_start, 1, 1)
-    simulation.step_size = pd.Timedelta(config.simulation_parameters.time_step, unit='D')
 
     if 'initial_age' in config.simulation_parameters:
         simulation.population._create_simulants(population_size,
@@ -28,6 +27,8 @@ def setup_simulation(components, population_size=100, start=None):
                                                     'initial_age': config.simulation_parameters.initial_age})
     else:
         simulation.population._create_simulants(population_size)
+
+    simulation.step_size = pd.Timedelta(config.simulation_parameters.time_step, unit='D')
 
     return simulation
 
