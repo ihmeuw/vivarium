@@ -63,7 +63,7 @@ class SimulationContext:
         builder = Builder(self)
         self.component_manager.add_components([self.values, self.events, self.population, self.tables])
         components = self.component_manager.init_components()
-        done = set()
+        done = []
 
         components = list(components)
         while components:
@@ -83,7 +83,7 @@ class SimulationContext:
                     config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
                 if hasattr(component, 'setup'):
                     sub_components = component.setup(builder)
-                    done.add(component)
+                    done.append(component)
                     if sub_components:
                         components.extend(sub_components)
                         self.component_manager.components.extend(sub_components)

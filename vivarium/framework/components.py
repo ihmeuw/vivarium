@@ -145,6 +145,8 @@ def prep_components(component_list, constructors):
 
             if call:
                 component = (component, args)
+            else:
+                component = (component,)
 
         elif isinstance(component, type):
             component = (component, tuple())
