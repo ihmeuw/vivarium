@@ -1,7 +1,5 @@
-celery
 graphviz
 numpy
 pandas
-mock
 pyaml
 scipy
