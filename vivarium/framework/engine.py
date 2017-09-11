@@ -19,12 +19,14 @@ from vivarium.framework.lookup import InterpolatedDataManager
 from vivarium.framework.components import load, read_component_configuration
 from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.util import collapse_nested_dict
+from vivarium.framework.results_writer import ResultsWriter
 
 import logging
 _log = logging.getLogger(__name__)
 
 
 class Builder:
+    """Useful tools for constructing and configuring simulation components."""
     def __init__(self, context):
         self.lookup = context.tables.build_table
         self.value = context.values.get_value
@@ -55,6 +57,7 @@ class SimulationContext:
         self.step_size = pd.Timedelta(0, unit='D')
 
     def update_time(self):
+        """Updates the simulation clock."""
         self.current_time += self.step_size
 
     def setup(self):
@@ -145,6 +148,9 @@ def event_loop(simulation, simulant_creator, end_emitter):
 
 
 def setup_simulation(components):
+    config.set_with_metadata('run_configuration.run_id', str(time()), layer='base')
+    config.set_with_metadata('run_configuration.run_key',
+                             {'draw': config.run_configuration.draw_number}, layer='base')
     if not components:
         components = []
     simulation = SimulationContext(load(components + [_step, event_loop]))
@@ -156,7 +162,6 @@ def setup_simulation(components):
 
 def run_simulation(simulation):
     start = time()
-
     event_loop(simulation)
 
     metrics = simulation.values.get_value('metrics')
@@ -190,10 +195,7 @@ def configure(input_draw_number=None, model_draw_number=None, verbose=False, sim
                                                        layer='override', source='default')
 
 
-def run(components):
-    config.set_with_metadata('run_configuration.run_id', str(time()), layer='base')
-    config.set_with_metadata('run_configuration.run_key', {'draw': config.run_configuration.draw_number}, layer='base')
-    simulation = setup_simulation(components)
+def run(simulation):
     metrics = run_simulation(simulation)
     for k, v in collapse_nested_dict(config.run_configuration.run_key.to_dict()):
         metrics[k] = v
@@ -204,21 +206,21 @@ def run(components):
     if unused_config_keys:
         _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
 
-    return metrics
+    return metrics, simulation.population._population
 
 
 def do_command(args):
     if args.command == 'run':
         configure(input_draw_number=args.input_draw, verbose=args.verbose, simulation_config=args.config)
         components = read_component_configuration(args.components)
-        results = run(components)
+        simulation = setup_simulation(components)
+        results, final_state = run(simulation)
         if args.results_path:
-            try:
-                os.makedirs(os.path.dirname(args.results_path))
-            except FileExistsError:
-                # Directory already exists, which is fine
-                pass
-            pd.DataFrame([results]).to_hdf(args.results_path, 'data')
+            results_root = os.path.dirname(args.results_path)
+            rw = ResultsWriter(results_root)
+            rw.dump_simulation_configuration(components)
+            rw.write_output(pd.DataFrame([results]), args.results_path)
+            rw.write_output(final_state, args.results_path)
     elif args.command == 'list_events':
         if args.components:
             component_configurations = read_component_configuration(args.components)
@@ -265,6 +267,7 @@ def main():
         else:
             logging.exception("Uncaught exception {}".format(e))
             raise
+
 
 if __name__ == '__main__':
     main()
