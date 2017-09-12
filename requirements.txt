@@ -1,5 +1,5 @@
 graphviz
 numpy
 pandas
-pyaml
+pyyaml
 scipy
