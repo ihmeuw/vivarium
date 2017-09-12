@@ -218,9 +218,9 @@ def do_command(args):
         if args.results_path:
             results_root = os.path.dirname(args.results_path)
             rw = ResultsWriter(results_root)
-            rw.dump_simulation_configuration(components)
-            rw.write_output(pd.DataFrame([results]), args.results_path)
-            rw.write_output(final_state, args.results_path)
+            rw.dump_simulation_configuration(args.components)
+            rw.write_output(pd.DataFrame([results]), 'output.hdf')
+            rw.write_output(final_state, 'final_state.hdf')
     elif args.command == 'list_events':
         if args.components:
             component_configurations = read_component_configuration(args.components)
@@ -245,7 +245,7 @@ def main():
                         help='Path to a config file to load which will take precedence over all other configs')
     parser.add_argument('--input_draw', '-d', type=int, default=0, help='Which GBD draw to use')
     parser.add_argument('--model_draw', type=int, default=0, help="Which draw from the model's own variation to use")
-    parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
+    parser.add_argument('--results_path', '-o', type=str, default=None, help='Output directory to write results to')
     parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
     parser.add_argument('--log', type=str, default=None, help='Path to log file')
     parser.add_argument('--pdb', action='store_true', help='Run in the debugger')
