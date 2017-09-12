@@ -148,9 +148,9 @@ def event_loop(simulation, simulant_creator, end_emitter):
 
 
 def setup_simulation(components):
-    config.set_with_metadata('run_configuration.run_id', str(time()), layer='base')
-    config.set_with_metadata('run_configuration.run_key',
-                             {'draw': config.run_configuration.draw_number}, layer='base')
+    config.run_configuration.set_with_metadata('run_id', str(time()), layer='base')
+    config.run_configuration.set_with_metadata('run_key',
+                                               {'draw': config.run_configuration.draw_number}, layer='base')
     if not components:
         components = []
     simulation = SimulationContext(load(components + [_step, event_loop]))

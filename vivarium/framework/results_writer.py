@@ -4,8 +4,6 @@ import os
 
 import yaml
 
-from vivarium import config
-
 
 class ResultsWriter:
     """Writes output files for vivarium simulations.
@@ -79,6 +77,7 @@ class ResultsWriter:
         component_configuration_path: str
             Absolute path to a yaml file with the simulation component configuration.
         """
+        from vivarium import config
         from vivarium.framework.engine import read_component_configuration, setup_simulation
         components = read_component_configuration(component_configuration_path)
         setup_simulation(components)
