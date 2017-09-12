@@ -6,6 +6,7 @@ from time import time
 from collections import Iterable
 from pprint import pformat
 import gc
+import inspect
 from bdb import BdbQuit
 
 import pandas as pd
@@ -78,8 +79,9 @@ class SimulationContext:
                 if hasattr(component, 'configuration_defaults'):
                     # This reapplies configuration from some components but
                     # that shouldn't be a problem.
+                    component_source = inspect.getfile(component.__class__)
                     config.read_dict(component.configuration_defaults, layer='component_configs',
-                                     source=component.__file__)
+                                     source=component_source)
                 if hasattr(component, 'setup'):
                     sub_components = component.setup(builder)
                     done.add(component)
