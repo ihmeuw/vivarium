@@ -78,7 +78,8 @@ class SimulationContext:
                 if hasattr(component, 'configuration_defaults'):
                     # This reapplies configuration from some components but
                     # that shouldn't be a problem.
-                    config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
+                    config.read_dict(component.configuration_defaults, layer='component_configs',
+                                     source=component.__file__)
                 if hasattr(component, 'setup'):
                     sub_components = component.setup(builder)
                     done.add(component)
