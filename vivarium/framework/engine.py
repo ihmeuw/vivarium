@@ -1,13 +1,13 @@
 """The engine."""
-import os
-import yaml
-import os.path
 import argparse
-from time import time
-from collections import Iterable
-from pprint import pformat
-import gc
 from bdb import BdbQuit
+import gc
+import os
+import os.path
+from pprint import pformat
+from time import time
+
+import yaml
 
 import pandas as pd
 
@@ -62,31 +62,9 @@ class SimulationContext:
     def setup(self):
         builder = Builder(self)
         self.component_manager.add_components([self.values, self.events, self.population, self.tables])
-        components = self.component_manager.init_components()
-        done = []
+        self.component_manager.load_components_from_config()
+        self.component_manager.setup_components(builder)
 
-        components = list(components)
-        while components:
-            component = components.pop(0)
-            if component is None:
-                raise ValueError('None in component list. This likely indicates a bug in a factory function')
-
-            if isinstance(component, Iterable):
-                # Unpack lists of components so their constituent components get initialized
-                components.extend(component)
-                self.component_manager.components.extend(component)
-
-            if component not in done:
-                if hasattr(component, 'configuration_defaults'):
-                    # This reapplies configuration from some components but
-                    # that shouldn't be a problem.
-                    config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
-                if hasattr(component, 'setup'):
-                    sub_components = component.setup(builder)
-                    done.append(component)
-                    if sub_components:
-                        components.extend(sub_components)
-                        self.component_manager.components.extend(sub_components)
 
         self.values.setup_components(self.component_manager.components)
         self.events.setup_components(self.component_manager.components)
@@ -95,7 +73,7 @@ class SimulationContext:
         self.events.get_emitter('post_setup')(None)
 
     def __repr__(self):
-        return ("SimulationContext(\ncomponents: {},\nvalues: {},\n".format(self.components, self.values)
+        return ("SimulationContext(\ncomponents: {},\nvalues: {},\n".format(self.component_manager.components, self.values)
                 + "events: {},\npopulation: {},\ntables: {},\n".format(self.events, self.population, self.tables)
                 + "current_time: {})".format(self.current_time))
 
@@ -171,7 +149,7 @@ def run_simulation(simulation):
     return metrics
 
 
-def configure(input_draw_number=None, model_draw_number=None, verbose=False, simulation_config=None):
+def configure(input_draw_number=None, model_draw_number=None, simulation_config=None):
     if simulation_config:
         if isinstance(simulation_config, dict):
             config.read_dict(simulation_config)
@@ -200,8 +178,8 @@ def run(component_manager):
     config.set_with_metadata('run_configuration.run_key', {'draw': config.run_configuration.draw_number}, layer='base')
     simulation = setup_simulation(component_manager)
     metrics = run_simulation(simulation)
-    for k, v in collapse_nested_dict(config.run_configuration.run_key.to_dict()):
-        metrics[k] = v
+    for name, value in collapse_nested_dict(config.run_configuration.run_key.to_dict()):
+        metrics[name] = value
 
     _log.debug(pformat(metrics))
 
@@ -213,8 +191,8 @@ def run(component_manager):
 
 
 def do_command(args):
-    configure(input_draw_number=args.input_draw, verbose=args.verbose, simulation_config=args.config)
-    component_manager = load_component_manager(path=args.components)
+    configure(input_draw_number=args.input_draw, simulation_config=args.config)
+    component_manager = load_component_manager(config_path=args.components)
     if args.command == 'run':
         results = run(component_manager)
         if args.results_path:

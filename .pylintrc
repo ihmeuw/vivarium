@@ -1,4 +1,5 @@
 [FORMAT]
 max-line-length=150
+good-names=f, _log
 [TYPECHECK]
 ignored-modules = numpy, numpy.random

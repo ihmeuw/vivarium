@@ -62,7 +62,10 @@ class PopulationView:
 
     @property
     def columns(self):
-        return list(self._columns)
+        if self._columns is None:
+            return list(self.manager._population.columns)
+        else:
+            return list(self._columns)
 
     @property
     def query(self):
