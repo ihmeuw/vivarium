@@ -138,9 +138,9 @@ def test_parse_component():
     assert set(args) == {'ravinous', '102 teeth', 10}
 
 def test_parse_component_syntax_error():
-    # No complex arguments
+    # No non-literal arguments that aren't handled by constructors
     with pytest.raises(ParsingError):
-        desc = 'village.people.PlagueVictim({"percent_dead": 0.8})'
+        desc = 'village.people.PlagueVictim(PercentDead(0.8))'
         _parse_component(desc, {})
 
     # Arguments to constructors must also be simple

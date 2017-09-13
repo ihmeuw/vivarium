@@ -231,18 +231,21 @@ def _parse_component(desc: str, constructors: Mapping[str, Callable]) -> Tuple[s
     component = _component_ast_to_path(component)
     new_args = []
     for arg in args:
-        if isinstance(arg, ast.Str):
-            new_args.append(arg.s)
-        elif isinstance(arg, ast.Num):
-            new_args.append(arg.n)
-        elif isinstance(arg, ast.Call):
-            constructor, *constructor_args = ast.iter_child_nodes(arg)
-            constructor = constructors.get(constructor.id)
-            if constructor and len(constructor_args) == 1 and isinstance(constructor_args[0], ast.Str):
-                new_args.append(constructor(constructor_args[0].s))
-            else:
-                raise ParsingError('Invalid syntax: {}'.format(desc))
-        else:
+        parsed = False
+        try:
+            new_args.append(ast.literal_eval(arg))
+            parsed = True
+        except ValueError:
+            if isinstance(arg, ast.Call):
+                constructor, *constructor_args = ast.iter_child_nodes(arg)
+                constructor = constructors.get(constructor.id)
+                # NOTE: This currently precludes arguments other than strings. May want to release that constraint later.
+                if constructor and len(constructor_args) == 1 and isinstance(constructor_args[0], ast.Str):
+                    new_args.append(constructor(constructor_args[0].s))
+                    parsed = True
+                else:
+                    raise ParsingError('Invalid syntax: {}'.format(desc))
+        if not parsed:
             raise ParsingError('Invalid syntax: {}'.format(desc))
     return component, new_args
 
