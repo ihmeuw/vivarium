@@ -100,25 +100,37 @@ class ComponentManager:
         self.tags = {}
         self.component_config = component_config
         self.components = []
+        self._uninitialized_components = []
         self.dataset_manager = dataset_manager
 
 
+    def load_and_initialize_components(self):
+        """A convenience wrapper around load_components_from_config and initialize_components for the common case where
+        the details of the component loading lifecycle isn't important.
+        """
+
+        self.load_components_from_config()
+        self.initialize_components()
+
     def load_components_from_config(self):
-        """Load and initialize (if necessary) any components listed in the config and register them with the ComponentManager.
+        """Load any components listed in the config and prepare them for initialization.
         """
 
         component_list = _extract_component_list(self.component_config)
         component_list = _prep_components(component_list, self.dataset_manager.constructors)
+        self._uninitialized_components.extend(component_list)
+
+    def initialize_components(self):
+        """Initialize (if necessary) any components which are pending initialization and register them with the ComponentManager.
+        """
 
         new_components = []
-        for component in component_list:
+        while self._uninitialized_components:
+            component = self._uninitialized_components.pop()
             if len(component) == 1:
-                new_components.append(component[0])
+                self.components.append(component[0])
             else:
-                new_components.append(component[0](*component[1]))
-
-        self.components.extend(new_components)
-
+                self.components.append(component[0](*component[1]))
 
     def add_components(self, components: Sequence):
         """Register new components.

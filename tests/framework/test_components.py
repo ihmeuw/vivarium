@@ -168,12 +168,12 @@ def test_prep_components():
 
 @patch('vivarium.framework.components._extract_component_list')
 @patch('vivarium.framework.components._prep_components')
-def test_ComponentManager__load_component_from_config(_prep_components_mock, _extract_component_list_mock):
+def test_ComponentManager__load_and_initialize_components(_prep_components_mock, _extract_component_list_mock):
     _prep_components_mock.return_value = [(MockComponentA, ['Red Leicester']), (MockComponentB, []), (mock_component_c,)]
 
     manager = ComponentManager({}, MockDatasetManager())
 
-    manager.load_components_from_config()
+    manager.load_and_initialize_components()
 
     assert len(manager.components) == 3
     assert mock_component_c in manager.components
