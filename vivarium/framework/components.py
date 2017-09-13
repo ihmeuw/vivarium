@@ -276,9 +276,9 @@ def _prep_components(component_list: Sequence, constructors: Mapping[str, Callab
             component = _import_by_path(component)
 
             for attr, val in inspect.getmembers(component, lambda a: not inspect.isroutine(a)):
-                constructor = constructors.get(val.__class__.__name__)
+                constructor = constructors.get(val.__class__)
                 if constructor:
-                    setattr(component, attr, constructor(val.entity_path))
+                    setattr(component, attr, constructor(val))
 
             # Establish the initial configuration
             if hasattr(component, 'configuration_defaults'):
