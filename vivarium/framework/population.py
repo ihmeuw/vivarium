@@ -43,8 +43,10 @@ class PopulationView:
 
     Attributes
     ----------
-    columns : [str] (read only)
-              The columns for which this view is configured
+    columns : [str] or None (read only)
+              The columns for which this view is configured. If columns is None then the view will return all columns.
+              That case should be only be used in situations where the full state table is actually needed, like some
+              metrics collection applications.
     query   : str (read only)
               The query which will be used to filter the population table for this view. This query may reference columns
               not in the view's columns.
@@ -57,11 +59,13 @@ class PopulationView:
 
     def __init__(self, manager, columns, query):
         self.manager = manager
-        self._columns = list(columns)
+        self._columns = list(columns) if columns is not None else None
         self._query = query
 
     @property
     def columns(self):
+        if self._columns is None:
+            return list(self.manager._population.columns)
         return list(self._columns)
 
     @property
