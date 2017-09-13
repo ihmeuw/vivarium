@@ -1,10 +1,15 @@
 import pytest
+import sys
+import os
 import yaml
 import ast
 from unittest.mock import patch, mock_open
 
 from vivarium.framework.components import _import_by_path, load_component_manager, ComponentManager, DummyDatasetManager, ComponentConfigError, _extract_component_list, _component_ast_to_path, _parse_component, ParsingError, _prep_components
 from vivarium import config
+
+# Fiddle the path so we can import from this module
+sys.path.append(os.path.dirname(__file__))
 
 TEST_COMPONENTS = """
 components:
@@ -54,6 +59,10 @@ class MockComponentB(MockComponentA):
 
 def mock_component_c():
     pass
+
+# This very strange import makes it so the classes in the current scope have the same
+# absolute paths as the ones my tests will cause the tools to import so I can compare them.
+from test_components import MockComponentA, MockComponentB, mock_component_c, MockDatasetManager, MockComponentManager
 
 def test_import_class_by_path():
     cls = _import_by_path('collections.abc.Set')

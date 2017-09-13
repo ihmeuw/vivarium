@@ -40,9 +40,7 @@ class Builder:
         self.randomness = lambda key: RandomnessStream(key, self.clock(), (input_draw_number, model_draw_number))
 
     def __repr__(self):
-        return ("Builder(\nlookup: {},\nvalue: {},\nrate: {},\n".format(self.lookup, self.value, self.rate)
-                + "emitter: {},\npopulation_view: {},\n".format(self.emitter, self.population_view)
-                + "clock: {},\nrandomness: {}\n)".format(self.clock, self.randomness))
+        return "Builder()"
 
 
 class SimulationContext:
@@ -73,9 +71,9 @@ class SimulationContext:
         self.events.get_emitter('post_setup')(None)
 
     def __repr__(self):
-        return ("SimulationContext(\ncomponents: {},\nvalues: {},\n".format(self.component_manager.components, self.values)
-                + "events: {},\npopulation: {},\ntables: {},\n".format(self.events, self.population, self.tables)
-                + "current_time: {})".format(self.current_time))
+        return "SimulationContext(components={}, current_time={}, step_size={})".format(self.components,
+                                                                                        self.current_time,
+                                                                                        self.step_size)
 
 
 @emits('time_step')

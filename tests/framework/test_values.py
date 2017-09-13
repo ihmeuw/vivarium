@@ -53,3 +53,21 @@ def test_set_combiner():
 
     manager.mutator(lambda: 'thing two', 'test')
     assert value() == {'thing one', 'thing two'} # but unique values are collected
+
+
+def test_contains():
+    value = 'test_value'
+    rate = 'test_rate'
+
+    manager = ValuesManager()
+    assert value not in manager
+    assert rate not in manager
+
+    manager.get_value(value)
+    assert value in manager
+    assert rate not in manager
+
+    manager.get_rate(rate)
+    assert value in manager
+    assert rate in manager
+

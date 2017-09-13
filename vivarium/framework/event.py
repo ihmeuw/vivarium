@@ -44,7 +44,10 @@ class Event:
         return new_event
 
     def __repr__(self):
-        return "Event(index={}, user_data={}, time={})".format(self.index, self.user_data, self.time)
+        return "Event(user_data={}, time={}, step_size={})".format(self.user_data, self.time, self.step_size)
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 
 class _EventChannel:
@@ -68,9 +71,10 @@ class _EventChannel:
         for priority_bucket in self.listeners:
             for listener in sorted(priority_bucket, key=lambda x: x.__name__):
                 listener(event)
+        return event
 
     def __repr__(self):
-        return "_EventChannel(manager: {}, listeners: {})".format(self.manager, self.listeners)
+        return "_EventChannel(listeners: {})".format([listener for bucket in self.listeners for listener in bucket])
 
 
 class EventManager:
@@ -176,5 +180,8 @@ class EventManager:
 
         return list(self.__event_types.keys())
 
+    def __contains__(self, item):
+        return item in self.__event_types
+
     def __repr__(self):
-        return "EventManager(event_types: {})".format(self.__event_types)
+        return "EventManager(event_types: {})".format(self.__event_types.keys())

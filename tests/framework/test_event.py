@@ -58,3 +58,12 @@ def test_listener_priority():
 
     emitter(Event(None))
     assert np.all(signal)
+
+def test_contains():
+    event = 'test_event'
+
+    manager = EventManager()
+    assert event not in manager
+    manager.get_emitter(event)
+    assert event in manager
+

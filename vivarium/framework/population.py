@@ -43,8 +43,10 @@ class PopulationView:
 
     Attributes
     ----------
-    columns : [str] (read only)
-              The columns for which this view is configured
+    columns : [str] or None (read only)
+              The columns for which this view is configured. If columns is None then the view will return all columns.
+              That case should be only be used in situations where the full state table is actually needed, like some
+              metrics collection applications.
     query   : str (read only)
               The query which will be used to filter the population table for this view. This query may reference columns
               not in the view's columns.
@@ -57,25 +59,18 @@ class PopulationView:
 
     def __init__(self, manager, columns, query):
         self.manager = manager
-        self._columns = columns
+        self._columns = list(columns) if columns is not None else None
         self._query = query
 
     @property
     def columns(self):
         if self._columns is None:
             return list(self.manager._population.columns)
-        else:
-            return list(self._columns)
+        return list(self._columns)
 
     @property
     def query(self):
         return self._query
-
-    def register_observer(self, column, observer):
-        self.manager.register_observer(column, observer)
-
-    def deregister_observer(self, column, observer):
-        self.manager.deregister_observer(column, observer)
 
     def get(self, index, omit_missing_columns=False):
         """For the rows in ``index`` get the columns from the simulation's population which this view is configured.
@@ -94,7 +89,7 @@ class PopulationView:
         pandas.DataFrame
         """
 
-        pop = self.manager._population.ix[index]
+        pop = self.manager._population.loc[index]
 
         if self._query:
             pop = pop.query(self._query)
@@ -168,14 +163,8 @@ class PopulationView:
                         v = pop[c].values
                 self.manager._population[c] = v
 
-                # Notify column observers
-                for observer in self.manager.observers[c]:
-                    observer()
-
     def __repr__(self):
-        return "PopulationView(manager= {} , _columns= {}, _query= {})".format(self.manager,
-                                                                               self._columns,
-                                                                               self._query)
+        return "PopulationView(_columns= {}, _query= {})".format(self._columns, self._query)
 
 
 class PopulationEvent(Event):
@@ -212,9 +201,7 @@ class PopulationEvent(Event):
                                time=event.time, step_size=event.step_size)
 
     def __repr__(self):
-        return "PopulationEvent(population= {}, population_view= {}, time= {})".format(self.population,
-                                                                                       self.population_view,
-                                                                                       self.time)
+        return "PopulationEvent(time= {}, step_size={})".format(self.time, self.step_size)
 
 
 class PopulationManager:
@@ -230,14 +217,6 @@ class PopulationManager:
     def __init__(self):
         self._population = pd.DataFrame()
         self.growing = False
-        self.observers = defaultdict(set)
-
-    def register_observer(self, column, observer):
-        self.observers[column].add(observer)
-
-    def deregister_observer(self, column, observer):
-        if observer in self.observers[column]:
-            self.observers[column].remove(observer)
 
     def get_view(self, columns, query=None):
         """Return a configured PopulationView
@@ -249,7 +228,6 @@ class PopulationManager:
         generated column names that aren't known at definition time. Otherwise
         components should use ``uses_columns``.
         """
-
         return PopulationView(self, columns, query)
 
     @emits('initialize_simulants')
@@ -295,6 +273,4 @@ class PopulationManager:
         return self._population.copy()
 
     def __repr__(self):
-        return "PopulationManager(_population= {}, growing= {}, observers= {})".format(self._population,
-                                                                                       self.growing,
-                                                                                       self.observers)
+        return "PopulationManager()"
