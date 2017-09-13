@@ -74,7 +74,7 @@ def test_import_function_by_path():
     assert func is _import_by_path
 
 def test_bad_import_by_path():
-    with pytest.raises(ModuleNotFoundError):
+    with pytest.raises(ImportError):
         cls = _import_by_path('junk.garbage.SillyClass')
     with pytest.raises(AttributeError):
         cls = _import_by_path('vivarium.framework.components.SillyClass')
