@@ -129,7 +129,7 @@ class ComponentManager:
           Components to register
         """
 
-        self.components.extend(components)
+        self.components = components + self.components
 
 
     def setup_components(self, builder):
