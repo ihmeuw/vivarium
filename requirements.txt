@@ -3,5 +3,5 @@ graphviz
 numpy
 pandas
 mock
-pyaml
+pyyaml
 scipy

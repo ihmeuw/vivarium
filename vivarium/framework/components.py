@@ -1,7 +1,6 @@
-"""Tools for interpreting component configuration files as well as the default ComponentManager class which uses those tools
-to load and manage components.
+"""Tools for interpreting component configuration files as well as the default
+ComponentManager class which uses those tools to load and manage components.
 """
-
 import ast
 from collections import Iterable
 from importlib import import_module
@@ -14,20 +13,17 @@ from vivarium import config
 
 
 class ComponentConfigError(Exception):
-    """Error while interpreting configuration file or initializing components
-    """
+    """Error while interpreting configuration file or initializing components"""
     pass
 
 
 class ParsingError(ComponentConfigError):
-    """Error while parsing component descriptions
-    """
+    """Error while parsing component descriptions"""
     pass
 
 
 class DummyDatasetManager:
-    """Placeholder implementation of the DatasetManager
-    """
+    """Placeholder implementation of the DatasetManager"""
     def __init__(self):
         self.constructors = {}
 
@@ -46,8 +42,9 @@ def _import_by_path(path: str) -> Union[type, Callable]:
 
 
 def load_component_manager(config_source: str = None, config_path: str = None, dataset_manager_class: type = None):
-    """Create a component manager along with it's dataset manager. The class used will be either the default or
-    a custom class specified in the configuration.
+    """Create a component manager along with it's dataset manager.
+
+    The class used will be either the default or a custom class specified in the configuration.
 
     Parameters
     ----------
@@ -56,7 +53,8 @@ def load_component_manager(config_source: str = None, config_path: str = None, d
     config_path:
       The path to a YAML configuration file to use.
     dataset_manager_class:
-      Class to use for the dataset manager. Will override dataset manager class specified in the configuration if supplied.
+      Class to use for the dataset manager. Will override dataset manager
+      class specified in the configuration if supplied.
     """
 
     if sum([config_source is None, config_path is None]) != 1:
@@ -102,7 +100,6 @@ class ComponentManager:
         self.components = []
         self.dataset_manager = dataset_manager
 
-
     def load_components_from_config(self):
         """Load and initialize (if necessary) any components listed in the config and register them with the ComponentManager.
         """
@@ -119,7 +116,6 @@ class ComponentManager:
 
         self.components.extend(new_components)
 
-
     def add_components(self, components: Sequence):
         """Register new components.
 
@@ -130,7 +126,6 @@ class ComponentManager:
         """
 
         self.components = components + self.components
-
 
     def setup_components(self, builder):
         """Apply component level configuration defaults to the global config and run setup methods on the components
@@ -190,9 +185,9 @@ def _extract_component_list(component_config: Mapping[str, Union[str, Mapping]])
 
     return _process_level(component_config, [])
 
+
 def _component_ast_to_path(component: ast.AST) -> str:
-    """Convert the AST representing a component into a string
-    which can be imported.
+    """Convert the AST representing a component into a string which can be imported.
 
     Parameters
     ----------
@@ -209,6 +204,7 @@ def _component_ast_to_path(component: ast.AST) -> str:
         current = current.value
     path.insert(0, current.id)
     return '.'.join(path)
+
 
 def _parse_component(desc: str, constructors: Mapping[str, Callable]) -> Tuple[str, Sequence]:
     """Parse a component definition in a subset of python syntax and return an importable
@@ -227,7 +223,8 @@ def _parse_component(desc: str, constructors: Mapping[str, Callable]) -> Tuple[s
         Dictionary of callables for creating argument objects
     """
 
-    component, *args = ast.iter_child_nodes(list(ast.iter_child_nodes(list(ast.iter_child_nodes(ast.parse(desc)))[0]))[0])
+    component, *args = ast.iter_child_nodes(list(ast.iter_child_nodes(
+        list(ast.iter_child_nodes(ast.parse(desc)))[0]))[0])
     component = _component_ast_to_path(component)
     new_args = []
     for arg in args:
@@ -239,7 +236,8 @@ def _parse_component(desc: str, constructors: Mapping[str, Callable]) -> Tuple[s
             if isinstance(arg, ast.Call):
                 constructor, *constructor_args = ast.iter_child_nodes(arg)
                 constructor = constructors.get(constructor.id)
-                # NOTE: This currently precludes arguments other than strings. May want to release that constraint later.
+                # NOTE: This currently precludes arguments other than strings.
+                # May want to release that constraint later.
                 if constructor and len(constructor_args) == 1 and isinstance(constructor_args[0], ast.Str):
                     new_args.append(constructor(constructor_args[0].s))
                     parsed = True
@@ -249,8 +247,9 @@ def _parse_component(desc: str, constructors: Mapping[str, Callable]) -> Tuple[s
             raise ParsingError('Invalid syntax: {}'.format(desc))
     return component, new_args
 
+
 def _prep_components(component_list: Sequence, constructors: Mapping[str, Callable]) -> Sequence:
-    """Transform component description strings into tuples of component callables and any arguments the component may need.
+    """Transform component description strings into tuples of component callables and arguments the component may need.
 
     Parameters
     ----------
