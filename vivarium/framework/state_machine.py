@@ -249,7 +249,7 @@ class TransientState(State, Transient):
         return 'TransientState({})'.format(self.state_id)
 
 
-class TransitionSet(list):
+class TransitionSet:
     """A container for state machine transitions.
 
     Parameters
@@ -261,14 +261,11 @@ class TransitionSet(list):
         Typically a string labelling an instance of this class, but any object will do.
     """
     def __init__(self, *iterable, allow_null_transition=False, key='state_machine'):
-        super().__init__(iterable)
-
-        if not all([isinstance(a, Transition) for a in self]):
-            raise TypeError(
-                'TransitionSet must contain only Transition objects. Check constructor arguments: {}'.format(self))
-
         self.allow_null_transition = allow_null_transition
         self.key = str(key)
+        self.transitions = []
+
+        self.extend(iterable)
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -285,7 +282,7 @@ class TransitionSet(list):
             This component's sub-components.
         """
         self.random = builder.randomness(self.key)
-        return list(self)
+        return self.transitions
 
     def choose_new_state(self, index):
         """Chooses a new state for each simulant in the index.
@@ -303,7 +300,7 @@ class TransitionSet(list):
             A series containing the name of the next state for each simulant in the index.
         """
         outputs, probabilities = zip(*[(transition.output, np.array(transition.probability(index)))
-                                       for transition in self])
+                                       for transition in self.transitions])
         probabilities = np.transpose(probabilities)
         outputs, probabilities = self._normalize_probabilities(outputs, probabilities)
         return outputs, self.random.choice(index, outputs, probabilities)
@@ -339,11 +336,27 @@ class TransitionSet(list):
             outputs.append('null_transition')
         return outputs, probabilities/(np.sum(probabilities, axis=1)[:, np.newaxis])
 
+    def append(self, transition):
+        if not isinstance(transition, Transition):
+            raise TypeError(
+                'TransitionSet must contain only Transition objects. Check constructor arguments: {}'.format(self))
+        self.transitions.append(transition)
+
+    def extend(self, transitions):
+        for transition in transitions:
+            self.append(transition)
+
+    def __iter__(self):
+        return iter(self.transitions)
+
+    def __len__(self):
+        return len(self.transitions)
+
     def __str__(self):
-        return repr(self)
+        return str([str(x) for x in self.transitions])
 
     def __repr__(self):
-        return str([str(x) for x in self])
+        return repr([repr(x) for x in self.transitions])
 
     def __hash__(self):
         return hash(id(self))

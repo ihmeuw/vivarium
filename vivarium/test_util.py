@@ -10,10 +10,13 @@ from vivarium.framework.event import listens_for
 from vivarium.framework.population import uses_columns
 from vivarium.framework.util import from_yearly, to_yearly
 from vivarium.framework import randomness
+from vivarium.framework.components import load_component_manager
 
 
 def setup_simulation(components, population_size=100, start=None):
-    simulation = SimulationContext(components)
+    component_manager = load_component_manager(component_config={})
+    component_manager.add_components(components)
+    simulation = SimulationContext(component_manager)
     simulation.setup()
     if start:
         simulation.current_time = start
