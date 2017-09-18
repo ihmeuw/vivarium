@@ -353,10 +353,10 @@ class TransitionSet:
         return len(self.transitions)
 
     def __str__(self):
-        return repr(self.transitions)
+        return str([str(x) for x in self.transitions])
 
     def __repr__(self):
-        return str([str(x) for x in self.transitions])
+        return repr([repr(x) for x in self.transitions])
 
     def __hash__(self):
         return hash(id(self))

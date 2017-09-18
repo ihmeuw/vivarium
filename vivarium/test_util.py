@@ -14,7 +14,7 @@ from vivarium.framework.components import load_component_manager
 
 
 def setup_simulation(components, population_size=100, start=None):
-    component_manager = load_component_manager(config_source='{}')
+    component_manager = load_component_manager(component_config={})
     component_manager.add_components(components)
     simulation = SimulationContext(component_manager)
     simulation.setup()

@@ -4,7 +4,7 @@ from bdb import BdbQuit
 import gc
 import os
 import os.path
-from pprint import pformat
+from pprint import pformat, pprint
 from time import time
 
 import yaml
@@ -189,7 +189,15 @@ def run(component_manager):
 
 def do_command(args):
     configure(input_draw_number=args.input_draw, simulation_config=args.config)
-    component_manager = load_component_manager(config_path=args.components)
+
+    if args.components.endswith('.yaml'):
+        with open(args.components) as f:
+            component_config = f.read()
+        component_config = yaml.load(component_config)
+    else:
+        raise VivariumError("Unknown components configuration type: {}".format(args.components))
+
+    component_manager = load_component_manager(component_config=component_config)
     if args.command == 'run':
         results = run(component_manager)
         if args.results_path:
@@ -200,8 +208,8 @@ def do_command(args):
                 pass
             pd.DataFrame([results]).to_hdf(args.results_path, 'data')
     elif args.command == 'list_datasets':
-        component_manager.init_components()
-        print(yaml.dump(list(component_manager.dataset_manager.datasets_loaded)))
+        component_manager.load_components_from_config()
+        pprint(yaml.dump(list(component_manager.dataset_manager.datasets_loaded)))
 
 
 

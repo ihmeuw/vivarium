@@ -8,11 +8,9 @@ import yaml
 
 from vivarium.framework.components import (_import_by_path, load_component_manager, ComponentManager,
                                            DummyDatasetManager, ComponentConfigError, _extract_component_list,
-                                           _component_ast_to_path, _parse_component, ParsingError, _prep_components)
+                                           _component_ast_to_path, _parse_component, ParsingError, _prep_components,
+                                           _extract_component_call, _is_literal)
 
-
-# Fiddle the path so we can import from this module
-sys.path.append(os.path.dirname(__file__))
 
 TEST_COMPONENTS = """
 components:
@@ -68,11 +66,14 @@ class MockComponentB(MockComponentA):
 def mock_component_c():
     pass
 
-
-# This very strange import makes it so the classes in the current scope have the same
-# absolute paths as the ones my tests will cause the tools to import so I can compare them.
-from test_components import MockComponentA, MockComponentB, mock_component_c, MockDatasetManager, MockComponentManager
-
+def mock_importer(path):
+    return {
+            'test_components.MockComponentA': MockComponentA,
+            'test_components.MockComponentB': MockComponentB,
+            'test_components.mock_component_c': mock_component_c,
+            'test_components.MockComponentManager': MockComponentManager,
+            'test_components.MockDatasetManager': MockDatasetManager,
+            }[path]
 
 def test_import_class_by_path():
     cls = _import_by_path('collections.abc.Set')
@@ -91,40 +92,28 @@ def test_bad_import_by_path():
     with pytest.raises(AttributeError):
         _import_by_path('vivarium.framework.components.SillyClass')
 
-
 def test_load_component_manager_defaults():
-    manager = load_component_manager(config_source=TEST_COMPONENTS+TEST_CONFIG_DEFAULTS)
+    manager = load_component_manager(component_config=yaml.load(TEST_COMPONENTS+TEST_CONFIG_DEFAULTS))
 
     assert isinstance(manager, ComponentManager)
     assert isinstance(manager.dataset_manager, DummyDatasetManager)
 
 
+@patch('vivarium.framework.components._import_by_path', mock_importer)
 def test_load_component_manager_custom_managers():
     manager = load_component_manager(
-        config_source=TEST_COMPONENTS + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_COMPONENT_MANAGER)
+        component_config=yaml.load(TEST_COMPONENTS + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_COMPONENT_MANAGER))
     assert isinstance(manager, MockComponentManager)
 
     manager = load_component_manager(
-        config_source=TEST_COMPONENTS + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_DATASET_MANAGER)
+        component_config=yaml.load(TEST_COMPONENTS + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_DATASET_MANAGER))
     assert isinstance(manager.dataset_manager, MockDatasetManager)
 
 
-@patch('vivarium.framework.components.open',
-       mock_open(read_data=TEST_COMPONENTS+TEST_CONFIG_DEFAULTS+TEST_CONFIG_CUSTOM_COMPONENT_MANAGER))
+@patch('vivarium.framework.components._import_by_path', mock_importer)
 def test_load_component_manager_path():
-    manager = load_component_manager(config_path='/etc/ministries/conf.d/silly_walk.yaml')
+    manager = load_component_manager(component_config=yaml.load(TEST_COMPONENTS+TEST_CONFIG_DEFAULTS+TEST_CONFIG_CUSTOM_COMPONENT_MANAGER))
     assert isinstance(manager, MockComponentManager)
-
-
-def test_load_component_manager_errors():
-    with pytest.raises(ComponentConfigError):
-        load_component_manager()
-
-    with pytest.raises(ComponentConfigError):
-        load_component_manager(config_source='{}', config_path='/test.yaml')
-
-    with pytest.raises(ComponentConfigError):
-        load_component_manager(config_path='/test.json')
 
 
 def test_extract_component_list():
@@ -138,17 +127,11 @@ def test_extract_component_list():
 
 
 def test_component_ast_to_path():
-    call, *args = ast.iter_child_nodes(
-        list(ast.iter_child_nodes(
-            list(ast.iter_child_nodes(
-                ast.parse('cave_system.monsters.Rabbit()')))[0]))[0])
+    call, args = _extract_component_call(ast.parse('cave_system.monsters.Rabbit()'))
     path = _component_ast_to_path(call)
     assert path == 'cave_system.monsters.Rabbit'
 
-    call, *args = ast.iter_child_nodes(
-        list(ast.iter_child_nodes(
-            list(ast.iter_child_nodes(
-                ast.parse('Rabbit()')))[0]))[0])
+    call, args = _extract_component_call(ast.parse('Rabbit()'))
     path = _component_ast_to_path(call)
     assert path == 'Rabbit'
 
@@ -178,6 +161,7 @@ def test_parse_component_syntax_error():
         _parse_component(desc, {'Causes': lambda cs: list(cs)})
 
 
+@patch('vivarium.framework.components._import_by_path', mock_importer)
 def test_prep_components():
     component_descriptions = [
             'test_components.MockComponentA(Placeholder("A Hundred and One Ways to Start a Fight"))',
@@ -236,3 +220,25 @@ def test_ComponentManager__setup_components():
     assert mock_b_child2.builder_used_for_setup is builder
     assert mock_b_child3.args == ('bee',)
     assert mock_b_child3.builder_used_for_setup is builder
+
+
+def test_extract_component_call():
+    description = 'cave_system.monsters.Rabbit("timid", 0.01)'
+    component, args = _extract_component_call(ast.parse(description))
+
+    assert component.attr == 'Rabbit'
+    assert component.value.attr == 'monsters'
+    assert component.value.value.id == 'cave_system'
+
+    assert args[0].s == 'timid'
+    assert args[1].n == 0.01
+
+
+def test_is_literal():
+    _, args = _extract_component_call(ast.parse('Test("thing")'))
+
+    assert _is_literal(args[0])
+
+    _, args = _extract_component_call(ast.parse('Test(ComplexCall("thing"))'))
+
+    assert not _is_literal(args[0])

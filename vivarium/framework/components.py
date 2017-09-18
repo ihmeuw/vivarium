@@ -5,14 +5,13 @@ import ast
 from collections import Iterable
 from importlib import import_module
 import inspect
-from typing import Tuple, Callable, Sequence, Mapping, Union
-
-import yaml
+from typing import Tuple, Callable, Sequence, Mapping, Union, List
 
 from vivarium import config
+from vivarium import VivariumError
 
 
-class ComponentConfigError(Exception):
+class ComponentConfigError(VivariumError):
     """Error while interpreting configuration file or initializing components"""
     pass
 
@@ -28,64 +27,52 @@ class DummyDatasetManager:
         self.constructors = {}
 
 
-def _import_by_path(path: str) -> Union[type, Callable]:
+def _import_by_path(path: str) -> Callable:
     """Import a class or function given it's absolute path.
 
     Parameters
     ----------
     path:
-      Absolute class to object to import
+      Path to object to import
     """
 
     module_path, _, class_name = path.rpartition('.')
     return getattr(import_module(module_path), class_name)
 
 
-def load_component_manager(config_source: str = None, config_path: str = None, dataset_manager_class: type = None):
+def load_component_manager(component_config: Mapping, dataset_manager=None):
     """Create a component manager along with it's dataset manager.
 
     The class used will be either the default or a custom class specified in the configuration.
 
     Parameters
     ----------
-    config_source:
-      The YAML source of the configuration file to use.
-    config_path:
-      The path to a YAML configuration file to use.
+    component_config:
+        Configuration data to use.
+
     dataset_manager_class:
-      Class to use for the dataset manager. Will override dataset manager
-      class specified in the configuration if supplied.
+        Class to use for the dataset manager. Will override dataset manager
+        class specified in the configuration if supplied.
     """
 
-    if sum([config_source is None, config_path is None]) != 1:
-        raise ComponentConfigError('Must supply either source or path but not both')
-
-    if config_path:
-        if config_path.endswith('.yaml'):
-            with open(config_path) as f:
-                config_source = f.read()
-        else:
-            raise ComponentConfigError("Unknown components configuration type: {}".format(config_path))
-
-    raw_config = yaml.load(config_source)
-
-    if raw_config.get('configuration', {}).get('vivarium', {}).get('component_manager'):
-        manager_class_name = raw_config['configuration']['vivarium']['component_manager']
+    if component_config.get('configuration', {}).get('vivarium', {}).get('component_manager'):
+        manager_class_name = component_config['configuration']['vivarium']['component_manager']
         component_manager_class = _import_by_path(manager_class_name)
     else:
         component_manager_class = ComponentManager
 
-    if dataset_manager_class is None:
-        if raw_config.get('configuration', {}).get('vivarium', {}).get('dataset_manager'):
-            manager_class_name = raw_config['configuration']['vivarium']['dataset_manager']
+    if dataset_manager is None:
+        if component_config.get('configuration', {}).get('vivarium', {}).get('dataset_manager'):
+            manager_class_name = component_config['configuration']['vivarium']['dataset_manager']
             dataset_manager_class = _import_by_path(manager_class_name)
         else:
             dataset_manager_class = DummyDatasetManager
+        dataset_manager = dataset_manager_class()
 
-    if 'configuration' in raw_config:
-        config.read_dict(raw_config['configuration'], layer='model_override', source=config_path)
+    if 'configuration' in component_config:
+        config.read_dict(component_config['configuration'], layer='model_override', source='Model configuration file')
 
-    manager = component_manager_class(raw_config.get('components', {}), dataset_manager_class())
+    manager = component_manager_class(component_config.get('components', {}), dataset_manager)
     return manager
 
 
@@ -101,7 +88,8 @@ class ComponentManager:
         self.dataset_manager = dataset_manager
 
     def load_components_from_config(self):
-        """Load and initialize (if necessary) any components listed in the config and register them with the ComponentManager.
+        """Load and initialize (if necessary) any components listed in the config and register them with
+        the ComponentManager.
         """
 
         component_list = _extract_component_list(self.component_config)
@@ -116,7 +104,7 @@ class ComponentManager:
 
         self.components.extend(new_components)
 
-    def add_components(self, components: Sequence):
+    def add_components(self, components: List):
         """Register new components.
 
         Parameters
@@ -206,7 +194,43 @@ def _component_ast_to_path(component: ast.AST) -> str:
     return '.'.join(path)
 
 
-def _parse_component(desc: str, constructors: Mapping[str, Callable]) -> Tuple[str, Sequence]:
+def _extract_component_call(definition: ast.AST) -> Tuple[ast.AST, List[ast.AST]]:
+    """Extract component call AST and args list from the module returned by ast.parse
+
+    Parameters
+    ----------
+    definition
+        The component definition
+    """
+
+    definition_expression = definition.body[0]
+    component_call = definition_expression.value
+    return component_call.func, component_call.args
+
+
+def _is_literal(expression: ast.AST) -> bool:
+    """Check if the expression is a literal.
+
+    Notes
+    -----
+    Since this is almost certainly used as a guard around a call to literal_eval it means the evaluation happens twice
+    where it could have happened once. But so long as you are looking at a moderate number of small expressions the cost
+    should be minimal compared to the clarity of having a clear predicate.
+
+    Parameters
+    ----------
+    expression
+        The AST tree to check
+    """
+
+    try:
+        ast.literal_eval(expression)
+    except ValueError:
+        return False
+    return True
+
+
+def _parse_component(definition: str, constructors: Mapping[str, Callable]) -> Tuple[str, Sequence]:
     """Parse a component definition in a subset of python syntax and return an importable
     path to the specified component along with the arguments it should receive when invoked.
     If the definition is not parsable a ParsingError is raised.
@@ -217,35 +241,33 @@ def _parse_component(desc: str, constructors: Mapping[str, Callable]) -> Tuple[s
 
     Parameters
     ----------
-    desc
+    definition
         The component definition
     constructors
         Dictionary of callables for creating argument objects
     """
 
-    component, *args = ast.iter_child_nodes(list(ast.iter_child_nodes(
-        list(ast.iter_child_nodes(ast.parse(desc)))[0]))[0])
+    component, args = _extract_component_call(ast.parse(definition))
     component = _component_ast_to_path(component)
-    new_args = []
+
+    transformed_args = []
     for arg in args:
-        parsed = False
-        try:
-            new_args.append(ast.literal_eval(arg))
-            parsed = True
-        except ValueError:
+        if _is_literal(arg):
+            transformed_args.append(ast.literal_eval(arg))
+        else:
             if isinstance(arg, ast.Call):
-                constructor, *constructor_args = ast.iter_child_nodes(arg)
-                constructor = constructors.get(constructor.id)
+                constructor = arg.func.id
+                constructor_args = arg.args
+
+                constructor = constructors.get(constructor)
                 # NOTE: This currently precludes arguments other than strings.
                 # May want to release that constraint later.
                 if constructor and len(constructor_args) == 1 and isinstance(constructor_args[0], ast.Str):
-                    new_args.append(constructor(constructor_args[0].s))
-                    parsed = True
+                    transformed_args.append(constructor(constructor_args[0].s))
                 else:
-                    raise ParsingError('Invalid syntax: {}'.format(desc))
-        if not parsed:
-            raise ParsingError('Invalid syntax: {}'.format(desc))
-    return component, new_args
+                    raise ParsingError('Invalid syntax: {}'.format(definition))
+
+    return component, transformed_args
 
 
 def _prep_components(component_list: Sequence, constructors: Mapping[str, Callable]) -> Sequence:
