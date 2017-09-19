@@ -7,8 +7,8 @@ from importlib import import_module
 import inspect
 from typing import Tuple, Callable, Sequence, Mapping, Union, List
 
-from vivarium import config
 from vivarium import VivariumError
+from vivarium.config_tree import ConfigTree
 
 
 class ComponentConfigError(VivariumError):
@@ -40,40 +40,20 @@ def _import_by_path(path: str) -> Callable:
     return getattr(import_module(module_path), class_name)
 
 
-def load_component_manager(component_config: Mapping, dataset_manager=None):
+def load_component_manager(config: ConfigTree):
     """Create a component manager along with it's dataset manager.
 
     The class used will be either the default or a custom class specified in the configuration.
 
     Parameters
     ----------
-    component_config:
+    vivarium_config:
         Configuration data to use.
-
-    dataset_manager_class:
-        Class to use for the dataset manager. Will override dataset manager
-        class specified in the configuration if supplied.
     """
-
-    if component_config.get('configuration', {}).get('vivarium', {}).get('component_manager'):
-        manager_class_name = component_config['configuration']['vivarium']['component_manager']
-        component_manager_class = _import_by_path(manager_class_name)
-    else:
-        component_manager_class = ComponentManager
-
-    if dataset_manager is None:
-        if component_config.get('configuration', {}).get('vivarium', {}).get('dataset_manager'):
-            manager_class_name = component_config['configuration']['vivarium']['dataset_manager']
-            dataset_manager_class = _import_by_path(manager_class_name)
-        else:
-            dataset_manager_class = DummyDatasetManager
-        dataset_manager = dataset_manager_class()
-
-    if 'configuration' in component_config:
-        config.read_dict(component_config['configuration'], layer='model_override', source='Model configuration file')
-
-    manager = component_manager_class(component_config.get('components', {}), dataset_manager)
-    return manager
+    component_manager_class = _import_by_path(config.vivarium.component_manager)
+    dataset_manager_class = _import_by_path(config.vivarium.dataset_manager)
+    dataset_manager = dataset_manager_class()
+    return component_manager_class(config.components, dataset_manager)
 
 
 class ComponentManager:

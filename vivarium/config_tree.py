@@ -307,6 +307,34 @@ class ConfigTree:
             child = self._children[name]
             child.set_value(value, layer, source)
 
+    def update(self, data, layer=None, source=None):
+        """Adds additional data into the ConfigTree.
+
+
+        Parameters
+        ----------
+        data : dict or None
+            source data
+        layer : str
+            layer to load data into. If none is supplied the outermost one is used
+        source : str
+            Source to attribute the values to
+
+        See Also
+        --------
+        read_dict
+        """
+        if isinstance(data, dict):
+            self.read_dict(data, layer, source)
+        elif isinstance(data, str):
+            if data.endswith('.yaml'):
+                source = source if source else data
+                self.load(data, layer, source)
+            else:
+                self.loads(data, layer, source)
+        else:
+            raise ValueError(f"Update must be called with dictionary or string.  You passed in {type(data)}")
+
     def read_dict(self, data_dict, layer=None, source=None):
         """Load a dictionary into the ConfigTree. If the dict contains nested dicts
         then the values will be added recursively. See module docstring for example code.
