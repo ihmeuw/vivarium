@@ -6,6 +6,7 @@ import os
 import os.path
 from pprint import pformat, pprint
 from time import time
+from typing import Mapping
 
 import yaml
 import pandas as pd
@@ -142,13 +143,31 @@ def run_simulation(simulation):
     return metrics
 
 
-def build_simulation_configuration(**parameters):
-    """Updates the base configuration with command line arguments or sets sensible defaults."""
+def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
+    """Builds a configuration from the on disk user configuration, command line arguments,
+    and component configurations passed in by file path.
+
+    Parameters
+    ----------
+    parameters :
+        Dictionary possibly containing keys:
+            'input_draw': Input draw number to use,
+            'model_draw': Model draw number to use,
+            'components': Component configuration (file path, yaml string, or dict),
+            'config': Configuration overrides (file path, yaml string, or dict)
+
+    Returns
+    -------
+    A valid simulation configuration.
+    """
+
+    # Start with the base configuration in the user's home directory
     config = ConfigTree(layers=['base', 'component_configs', 'model_override', 'override'])
     if os.path.exists(os.path.expanduser('~/vivarium.yaml')):
         config.load(os.path.expanduser('~/vivarium.yaml'), layer='override',
                     source=os.path.expanduser('~/vivarium.yaml'))
 
+    # Some setup for the defaults
     def _get_draw_template(draw_type_, value_):
         return {'run_configuration': {f'{draw_type_}_number': value_}}
 
@@ -156,6 +175,7 @@ def build_simulation_configuration(**parameters):
     default_dataset_manager = {'vivarium': {'dataset_manager': 'vivarium.framework.components.DummyDatasetManager'}}
     default_metadata = {'layer': 'override', 'source': 'default'}
 
+    # Get an input and model draw
     for draw_type in ['input_draw', 'model_draw']:
         if draw_type in parameters:
             metadata = {'layer': 'override', 'source': 'command_line_argument'}
@@ -165,9 +185,26 @@ def build_simulation_configuration(**parameters):
             draw = _get_draw_template(draw_type, 0)
         config.update(draw, **metadata)
 
+    # FIXME: Hack in some stuff from the config in ceam-inputs until we can clean this up. -J.C.
+    config.update(
+        {'simulation_parameters':
+            {'location_id': 180,
+             'year_start': 2005,
+             'year_end': 2010,
+             'time_step': 1,  # Days
+             'population_size': 10000,
+             'gbd_round_id': 3,
+             'initial_age': None,
+             'pop_age_start': 0,
+             'pop_age_end': 5, }
+         }
+    )
+
+    # Set any configuration overrides from component and branch configurations.
     config.update(parameters.get('config', None), layer='override')
     config.update(parameters.get('components', None), layer='model_override')
 
+    # Make sure we have a component and dataset manager
     if 'component_manager' not in config['vivarium']:
         config.update(default_component_manager, **default_metadata)
     if 'dataset_manager' not in config['vivarium']:
@@ -191,7 +228,7 @@ def run(simulation):
 
 
 def do_command(args):
-    config = build_simulation_configuration(**args)
+    config = build_simulation_configuration(args)
     component_manager = load_component_manager(config)
     if args.command == 'run':
         simulation = setup_simulation(component_manager, config)

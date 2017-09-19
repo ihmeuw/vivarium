@@ -3,9 +3,7 @@ import numbers
 import pandas as pd
 import numpy as np
 
-from vivarium import config
-
-from vivarium.framework.engine import SimulationContext, _step
+from vivarium.framework.engine import SimulationContext, _step, build_simulation_configuration
 from vivarium.framework.event import listens_for
 from vivarium.framework.population import uses_columns
 from vivarium.framework.util import from_yearly, to_yearly
@@ -14,9 +12,10 @@ from vivarium.framework.components import load_component_manager
 
 
 def setup_simulation(components, population_size=100, start=None):
-    component_manager = load_component_manager(component_config={})
+    config = build_simulation_configuration({})
+    component_manager = load_component_manager(config)
     component_manager.add_components(components)
-    simulation = SimulationContext(component_manager)
+    simulation = SimulationContext(component_manager, config)
     simulation.setup()
     if start:
         simulation.current_time = start
@@ -41,13 +40,13 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
         raise ValueError('Must supply either duration or iterations')
 
     if time_step_days:
-        config.simulation_parameters.time_step = time_step_days
-    simulation.step_size = pd.Timedelta(config.simulation_parameters.time_step, unit='D')
+        simulation.configuration.simulation_parameters.time_step = time_step_days
+    simulation.step_size = pd.Timedelta(simulation.configuration.simulation_parameters.time_step, unit='D')
 
     if duration is not None:
         if isinstance(duration, numbers.Number):
             duration = pd.Timedelta(days=duration)
-        time_step = pd.Timedelta(days=config.simulation_parameters.time_step)
+        time_step = pd.Timedelta(days=simulation.configuration.simulation_parameters.time_step)
         iterations = int(np.ceil(duration / time_step))
 
     if run_from_ipython() and with_logging:
@@ -70,7 +69,7 @@ def run_from_ipython():
 
 
 def assert_rate(simulation, expected_rate, value_func,
-                effective_population_func=lambda s: len(s.population.population), dummy_population=None):
+                effective_population_func=lambda s: len(s.population.population)):
     """ Asserts that the rate of change of some property in the simulation matches expectations.
 
     Parameters
@@ -79,15 +78,14 @@ def assert_rate(simulation, expected_rate, value_func,
     value_func
         a function that takes a Simulation and returns the current value of the property to be tested
     effective_population_func
-        a function that takes a Simulation and returns the size of the population over which the rate should be measured (ie. living simulants for mortality)
+        a function that takes a Simulation and returns the size of the population
+        over which the rate should be measured (ie. living simulants for mortality)
     expected_rate
         The rate of change we expect or a lambda that will take a rate and return a boolean
-    population_sample_func
-        A function that takes in a population and returns a subset of it which will be used for the test
     """
-    start_time = pd.Timestamp(config.simulation_parameters.year_start, 1, 1)
+    start_time = pd.Timestamp(simulation.configuration.simulation_parameters.year_start, 1, 1)
     time_step = pd.Timedelta(30, unit='D')
-    config.simulation_parameters.time_step = time_step
+    simulation.configuration.simulation_parameters.time_step = time_step
     simulation.current_time = start_time
     simulation.step_size = time_step
 
@@ -108,7 +106,7 @@ def assert_rate(simulation, expected_rate, value_func,
         assert abs(total_expected_rate - total_true_rate)/total_expected_rate < 0.1
 
 
-def build_table(value, columns=('age', 'year', 'sex', 'rate')):
+def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'rate')):
     value_columns = columns[3:]
     if not isinstance(value, list):
         value = [value]*len(value_columns)
@@ -117,10 +115,8 @@ def build_table(value, columns=('age', 'year', 'sex', 'rate')):
         raise ValueError('Number of values must match number of value columns')
 
     rows = []
-    start_year = config.simulation_parameters.year_start
-    end_year = config.simulation_parameters.year_end
     for age in range(0, 140):
-        for year in range(start_year, end_year+1):
+        for year in range(year_start, year_end+1):
             for sex in ['Male', 'Female']:
                 r_values = []
                 for v in value:
@@ -136,17 +132,17 @@ def build_table(value, columns=('age', 'year', 'sex', 'rate')):
 
 @listens_for('initialize_simulants', priority=0)
 @uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
-def generate_test_population(event):
+def generate_test_population(context, event):
     initial_age = event.user_data.get('initial_age', None)
     population = pd.DataFrame(index=event.index)
 
-    if 'pop_age_start' in config.simulation_parameters:
-        age_start = config.simulation_parameters.pop_age_start
+    if 'pop_age_start' in context.configuration.simulation_parameters:
+        age_start = context.configuration.simulation_parameters.pop_age_start
     else:
         age_start = 0
 
-    if 'pop_age_end' in config.simulation_parameters:
-        age_end = config.simulation_parameters.pop_age_end
+    if 'pop_age_end' in context.configuration.simulation_parameters:
+        age_end = context.configuration.simulation_parameters.pop_age_end
     else:
         age_end = 100
 
@@ -157,12 +153,13 @@ def generate_test_population(event):
         population['age'] = (randomness.random('test_population_age', population.index)
                              * (age_end - age_start) + age_start)
 
-    population['sex'] = randomness.choice('test_population_sex'+str(config.run_configuration.draw_number),
-                                          population.index, ['Male', 'Female'])
+    population['sex'] = randomness.choice(
+        'test_population_sex'+str(context.configuration.run_configuration.draw_number),
+        population.index, ['Male', 'Female'])
     population['alive'] = pd.Series('alive', index=population.index).astype(
         'category', categories=['alive', 'dead', 'untracked'], ordered=False)
-    if 'location_id' in config.simulation_parameters:
-        population['location'] = config.simulation_parameters.location_id
+    if 'location_id' in context.configuration.simulation_parameters:
+        population['location'] = context.configuration.simulation_parameters.location_id
     else:
         population['location'] = 180
 

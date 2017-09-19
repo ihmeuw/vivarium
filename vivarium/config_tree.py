@@ -23,6 +23,7 @@ For example:
 >>> config.section_b.item1
 'value7'
 """
+from typing import Mapping, Union
 import yaml
 
 
@@ -307,17 +308,17 @@ class ConfigTree:
             child = self._children[name]
             child.set_value(value, layer, source)
 
-    def update(self, data, layer=None, source=None):
+    def update(self, data: Union[Mapping, str, bytes], layer: str=None, source: str=None):
         """Adds additional data into the ConfigTree.
 
 
         Parameters
         ----------
-        data : dict or None
+        data :
             source data
-        layer : str
+        layer :
             layer to load data into. If none is supplied the outermost one is used
-        source : str
+        source :
             Source to attribute the values to
 
         See Also

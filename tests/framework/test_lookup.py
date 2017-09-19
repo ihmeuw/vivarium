@@ -1,24 +1,26 @@
 import os
 
+import pytest
 import numpy as np
 import pandas as pd
 
-from vivarium import config
 from vivarium.test_util import build_table, setup_simulation, generate_test_population
 
 
-def setup():
-    config.simulation_parameters.set_with_metadata('year_start', 1990, layer='override',
-                                                   source=os.path.realpath(__file__))
-    config.simulation_parameters.set_with_metadata('year_end', 2010, layer='override',
-                                                   source=os.path.realpath(__file__))
-    config.simulation_parameters.set_with_metadata('time_step', 30.5, layer='override',
-                                                   source=os.path.realpath(__file__))
+@pytest.fixture(scope='module')
+def config(base_config):
+    metadata = {'layer': 'override', 'source': os.path.realpath(__file__)}
+    base_config.simulation_parameters.set_with_metadata('year_start', 1990, **metadata)
+    base_config.simulation_parameters.set_with_metadata('year_end', 2010, **metadata)
+    base_config.simulation_parameters.set_with_metadata('time_step', 30.5, **metadata)
+    return base_config
 
 
-def test_interpolated_tables():
-    years = build_table(lambda age, sex, year: year)
-    ages = build_table(lambda age, sex, year: age)
+def test_interpolated_tables(config):
+    year_start = config.simulation_parameters.year_start
+    year_end = config.simulation_parameters.year_end
+    years = build_table(lambda age, sex, year: year, year_start, year_end)
+    ages = build_table(lambda age, sex, year: age, year_start, year_end)
     one_d_age = ages.copy()
     del one_d_age['year']
     one_d_age = one_d_age.drop_duplicates()
@@ -55,8 +57,10 @@ def test_interpolated_tables():
     assert np.allclose(result_ages_1d, simulation.population.population.age)
 
 
-def test_interpolated_tables_without_uniterpolated_columns():
-    years = build_table(lambda age, sex, year: year)
+def test_interpolated_tables_without_uniterpolated_columns(config):
+    year_start = config.simulation_parameters.year_start
+    year_end = config.simulation_parameters.year_end
+    years = build_table(lambda age, sex, year: year, year_start, year_end)
     del years['sex']
     years = years.drop_duplicates()
 
@@ -81,8 +85,10 @@ def test_interpolated_tables_without_uniterpolated_columns():
     assert np.allclose(result_years, fractional_year)
 
 
-def test_interpolated_tables__exact_values_at_input_points():
-    years = build_table(lambda age, sex, year: year)
+def test_interpolated_tables__exact_values_at_input_points(config):
+    year_start = config.simulation_parameters.year_start
+    year_end = config.simulation_parameters.year_end
+    years = build_table(lambda age, sex, year: year, year_start, year_end)
     input_years = years.year.unique()
 
     simulation = setup_simulation([generate_test_population], 10000)
