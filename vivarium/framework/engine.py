@@ -35,7 +35,7 @@ class Builder:
         self.population_view = context.population.get_view
         self.clock = lambda: lambda: context.current_time
         self.step_size = lambda: lambda: context.step_size
-        self.configuration = lambda: lambda: context.configuration
+        self.configuration = context.configuration
         input_draw_number = context.configuration.run_configuration.draw_number
         model_draw_number = context.configuration.run_configuration.model_draw_number
         self.randomness = lambda key: RandomnessStream(key, self.clock(), (input_draw_number, model_draw_number))
