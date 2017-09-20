@@ -95,12 +95,12 @@ class Pipeline:
                      A function which processes the output of the last mutator. If None, no post-processing is done.
     """
 
-    def __init__(self, time_step, combiner=replace_combiner, post_processor=None):
-        self.time_step = time_step
+    def __init__(self, manager=None, combiner=replace_combiner, post_processor=None):
         self.source = _dummy_source
         self.mutators = [[] for i in range(10)]
         self.combiner = combiner
         self.post_processor = post_processor
+        self.manager = manager
         self.configured = False
 
     def __call__(self, *args, skip_post_processor=False, **kwargs):
@@ -109,7 +109,7 @@ class Pipeline:
             for mutator in priority_bucket:
                 value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
-            return self.post_processor(value, self.time_step())
+            return self.post_processor(value, self.manager.step_size())
 
         return value
 
@@ -136,9 +136,10 @@ class ValuesManager:
     def __init__(self):
         self._pipelines = defaultdict(Pipeline)
         self.__pipeline_templates = {}
+        self._setup_complete = False
 
     def setup(self, builder):
-        self.time_step = builder.time_step()
+        self.step_size = builder.step_size()
 
     def mutator(self, mutator, value_name, priority=5):
         pipeline = self.get_value(value_name)
@@ -160,12 +161,13 @@ class ValuesManager:
         if name not in self._pipelines:
             for name_template, (combiner, post_processor, source) in self.__pipeline_templates.items():
                 if name_template.match(name):
-                    self._pipelines[name] = Pipeline(self.time_step, combiner=combiner, post_processor=post_processor)
+                    self._pipelines[name] = Pipeline(self, combiner=combiner, post_processor=post_processor)
                     if source:
                         self._pipelines[name].source = source
                     self._pipelines[name].configured = True
 
         if not self._pipelines[name].configured:
+            self._pipelines[name].manager = self
             if preferred_combiner:
                 self._pipelines[name].combiner = preferred_combiner
                 self._pipelines[name].configured = True
@@ -186,7 +188,7 @@ class ValuesManager:
         for component in components:
             values_produced = [(v, component) for v in produces_value.finder(component)]
             values_produced += [(v, getattr(component, att))
-                                for att in sorted(dir(component))
+                                for att in sorted(dir(component)) if callable(getattr(component, att))
                                 for v in produces_value.finder(getattr(component, att))]
 
             for name, producer in values_produced:
@@ -196,7 +198,7 @@ class ValuesManager:
                                for priority in modifies_value.finder(component)
                                for i, v in enumerate(priority)]
             values_modified += [(v, getattr(component, att), i)
-                                for att in sorted(dir(component))
+                                for att in sorted(dir(component)) if callable(getattr(component, att))
                                 for i, vs in enumerate(modifies_value.finder(getattr(component, att)))
                                 for v in vs]
 
