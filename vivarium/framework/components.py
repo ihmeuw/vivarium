@@ -47,13 +47,13 @@ def load_component_manager(config: ConfigTree):
 
     Parameters
     ----------
-    vivarium_config:
+    config:
         Configuration data to use.
     """
     component_manager_class = _import_by_path(config.vivarium.component_manager)
     dataset_manager_class = _import_by_path(config.vivarium.dataset_manager)
     dataset_manager = dataset_manager_class()
-    return component_manager_class(config.components, dataset_manager)
+    return component_manager_class(config, dataset_manager)
 
 
 class ComponentManager:
@@ -61,9 +61,9 @@ class ComponentManager:
     tracking which ones were loaded.
     """
 
-    def __init__(self, component_config, dataset_manager):
+    def __init__(self, config: ConfigTree, dataset_manager):
         self.tags = {}
-        self.component_config = component_config
+        self.config = config
         self.components = []
         self.dataset_manager = dataset_manager
 
@@ -72,9 +72,8 @@ class ComponentManager:
         the ComponentManager.
         """
 
-        component_list = _extract_component_list(self.component_config)
-        component_list = _prep_components(component_list, self.dataset_manager.constructors)
-
+        component_list = _extract_component_list(self.config.components)
+        component_list = _prep_components(self.config, component_list, self.dataset_manager.constructors)
         new_components = []
         for component in component_list:
             if len(component) == 1:
@@ -122,7 +121,9 @@ class ComponentManager:
                 if hasattr(component, 'configuration_defaults'):
                     # This reapplies configuration from some components but
                     # it is idempotent so there's no effect.
-                    config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
+                    component_file_path = inspect.getfile(component.__class__)
+                    self.config.update(component.configuration_defaults,
+                                       layer='component_configs', source=component_file_path)
 
                 if hasattr(component, 'setup'):
                     sub_components = component.setup(builder)
@@ -250,7 +251,7 @@ def _parse_component(definition: str, constructors: Mapping[str, Callable]) -> T
     return component, transformed_args
 
 
-def _prep_components(component_list: Sequence, constructors: Mapping[str, Callable]) -> Sequence:
+def _prep_components(config: ConfigTree, component_list: Sequence, constructors: Mapping[str, Callable]) -> Sequence:
     """Transform component description strings into tuples of component callables and arguments the component may need.
 
     Parameters
@@ -283,7 +284,9 @@ def _prep_components(component_list: Sequence, constructors: Mapping[str, Callab
 
             # Establish the initial configuration
             if hasattr(component, 'configuration_defaults'):
-                config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
+                component_file_path = inspect.getfile(component)
+                config.read_dict(component.configuration_defaults,
+                                 layer='component_configs', source=component_file_path)
 
             if call:
                 component = (component, args)
