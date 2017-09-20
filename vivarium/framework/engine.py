@@ -24,26 +24,6 @@ import logging
 _log = logging.getLogger(__name__)
 
 
-class Builder:
-    """Useful tools for constructing and configuring simulation components."""
-    def __init__(self, context: SimulationContext):
-        self.lookup = context.tables.build_table
-        self.value = context.values.get_value
-        self.rate = context.values.get_rate
-        self.modifies_value = context.values.mutator
-        self.emitter = context.events.get_emitter
-        self.population_view = context.population.get_view
-        self.clock = lambda: lambda: context.current_time
-        self.step_size = lambda: lambda: context.step_size
-        self.configuration = context.configuration
-        input_draw_number = context.configuration.run_configuration.draw_number
-        model_draw_number = context.configuration.run_configuration.model_draw_number
-        self.randomness = lambda key: RandomnessStream(key, self.clock(), (input_draw_number, model_draw_number))
-
-    def __repr__(self):
-        return "Builder()"
-
-
 class SimulationContext:
     """context"""
     def __init__(self, component_manager, configuration):
@@ -75,6 +55,26 @@ class SimulationContext:
         return "SimulationContext(current_time={}, step_size={})".format(self.current_time, self.step_size)
 
 
+class Builder:
+    """Useful tools for constructing and configuring simulation components."""
+    def __init__(self, context: SimulationContext):
+        self.lookup = context.tables.build_table
+        self.value = context.values.get_value
+        self.rate = context.values.get_rate
+        self.modifies_value = context.values.mutator
+        self.emitter = context.events.get_emitter
+        self.population_view = context.population.get_view
+        self.clock = lambda: lambda: context.current_time
+        self.step_size = lambda: lambda: context.step_size
+        self.configuration = context.configuration
+        input_draw_number = context.configuration.run_configuration.input_draw_number
+        model_draw_number = context.configuration.run_configuration.model_draw_number
+        self.randomness = lambda key: RandomnessStream(key, self.clock(), (input_draw_number, model_draw_number))
+
+    def __repr__(self):
+        return "Builder()"
+
+
 @emits('time_step')
 @emits('time_step__prepare')
 @emits('time_step__cleanup')
@@ -103,15 +103,16 @@ def _get_time(suffix, params):
 @emits('simulation_end')
 def event_loop(simulation, simulant_creator, end_emitter):
     sim_params = simulation.configuration.simulation_parameters
+    pop_params = simulation.configuration.population
 
     start = _get_time('start', sim_params)
     stop = _get_time('end', sim_params)
-
     simulation.current_time = start
-    population_size = sim_params.population_size
 
-    if sim_params.initial_age is not None and sim_params.pop_age_start is None:
-        simulant_creator(population_size, population_configuration={'initial_age': sim_params.initial_age})
+    population_size = pop_params.population_size
+
+    if pop_params.initial_age is not None and pop_params.pop_age_start is None:
+        simulant_creator(population_size, population_configuration={'initial_age': pop_params.initial_age})
     else:
         simulant_creator(population_size)
 
@@ -126,7 +127,8 @@ def event_loop(simulation, simulant_creator, end_emitter):
 
 def setup_simulation(component_manager, config):
     config.set_with_metadata('run_configuration.run_id', str(time()), layer='base')
-    config.set_with_metadata('run_configuration.run_key', {'draw': config.run_configuration.draw_number}, layer='base')
+    config.set_with_metadata('run_configuration.run_key',
+                             {'draw': config.run_configuration.input_draw_number}, layer='base')
     component_manager.add_components([_step, event_loop])
     simulation = SimulationContext(component_manager, config)
     simulation.setup()
@@ -173,7 +175,7 @@ def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
 
     default_component_manager = {'vivarium': {'component_manager': 'vivarium.framework.components.ComponentManager'}}
     default_dataset_manager = {'vivarium': {'dataset_manager': 'vivarium.framework.components.DummyDatasetManager'}}
-    default_metadata = {'layer': 'override', 'source': 'default'}
+    default_metadata = {'layer': 'base', 'source': os.path.realpath(__file__)}
 
     # Get an input and model draw
     for draw_type in ['input_draw', 'model_draw']:
@@ -187,22 +189,23 @@ def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
 
     # FIXME: Hack in some stuff from the config in ceam-inputs until we can clean this up. -J.C.
     config.update(
-        {'simulation_parameters':
-            {'location_id': 180,
-             'year_start': 2005,
-             'year_end': 2010,
-             'time_step': 1,  # Days
-             'population_size': 10000,
-             'gbd_round_id': 3,
-             'initial_age': None,
-             'pop_age_start': 0,
-             'pop_age_end': 5, }
-         }
-    )
+        {
+            'simulation_parameters':
+                {
+                    'year_start': 2005,
+                    'year_end': 2010,
+                    'time_step': 1
+                },
+            'input_data':
+                {
+                    'location_id': 180
+                },
+
+         }, **default_metadata)
 
     # Set any configuration overrides from component and branch configurations.
-    config.update(parameters.get('config', None), layer='override')
-    config.update(parameters.get('components', None), layer='model_override')
+    config.update(parameters.get('config', None), layer='base')  # source is implicit
+    config.update(parameters.get('components', None), layer='model_override')  # source is implicit
 
     # Make sure we have a component and dataset manager
     if 'component_manager' not in config['vivarium']:
