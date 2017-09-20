@@ -295,6 +295,7 @@ class ConfigTree:
         TypeError
             if the ConfigTree is frozen
         """
+
         if self._frozen:
             raise TypeError('Frozen ConfigTree does not support assignment')
 
@@ -333,6 +334,8 @@ class ConfigTree:
                 self.load(data, layer, source)
             else:
                 self.loads(data, layer, source)
+        elif data is None:
+            pass
         else:
             raise ValueError(f"Update must be called with dictionary or string.  You passed in {type(data)}")
 
