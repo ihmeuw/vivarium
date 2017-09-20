@@ -11,22 +11,23 @@ from vivarium.framework import randomness
 from vivarium.framework.components import load_component_manager
 
 
-def setup_simulation(components, population_size=100, start=None):
-    config = build_simulation_configuration({})
+def setup_simulation(components, population_size=100, start=None, input_config=None):
+    config = build_simulation_configuration({}) if not input_config else input_config
     component_manager = load_component_manager(config)
     component_manager.add_components(components)
     simulation = SimulationContext(component_manager, config)
     simulation.setup()
+
     if start:
         simulation.current_time = start
     else:
         year_start = config.simulation_parameters.year_start
         simulation.current_time = pd.Timestamp(year_start, 1, 1)
 
-    if 'initial_age' in config.simulation_parameters:
+    if 'initial_age' in config.population:
         simulation.population._create_simulants(population_size,
                                                 population_configuration={
-                                                    'initial_age': config.simulation_parameters.initial_age})
+                                                    'initial_age': config.population.initial_age})
     else:
         simulation.population._create_simulants(population_size)
 
@@ -130,43 +131,48 @@ def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'rat
     return pd.DataFrame(rows, columns=['age', 'year', 'sex'] + list(value_columns))
 
 
-@listens_for('initialize_simulants', priority=0)
-@uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
-def generate_test_population(context, event):
-    initial_age = event.user_data.get('initial_age', None)
-    population = pd.DataFrame(index=event.index)
+class TestPopulation:
 
-    if 'pop_age_start' in context.configuration.simulation_parameters:
-        age_start = context.configuration.simulation_parameters.pop_age_start
-    else:
-        age_start = 0
+    def setup(self, builder):
+        self.config = builder.configuration
 
-    if 'pop_age_end' in context.configuration.simulation_parameters:
-        age_end = context.configuration.simulation_parameters.pop_age_end
-    else:
-        age_end = 100
+    @listens_for('initialize_simulants', priority=0)
+    @uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
+    def generate_test_population(self, event):
+        initial_age = event.user_data.get('initial_age', None)
+        population = pd.DataFrame(index=event.index)
 
-    if initial_age is not None and initial_age != '':
-        population['age'] = initial_age
-        population['age'] = population['age'].astype(float)
-    else:
-        population['age'] = (randomness.random('test_population_age', population.index)
-                             * (age_end - age_start) + age_start)
+        if 'pop_age_start' in self.config.population:
+            age_start = self.config.population.pop_age_start
+        else:
+            age_start = 0
 
-    population['sex'] = randomness.choice(
-        'test_population_sex'+str(context.configuration.run_configuration.draw_number),
-        population.index, ['Male', 'Female'])
-    population['alive'] = pd.Series('alive', index=population.index).astype(
-        'category', categories=['alive', 'dead', 'untracked'], ordered=False)
-    if 'location_id' in context.configuration.simulation_parameters:
-        population['location'] = context.configuration.simulation_parameters.location_id
-    else:
-        population['location'] = 180
+        if 'pop_age_end' in self.config.population:
+            age_end = self.config.population.pop_age_end
+        else:
+            age_end = 100
 
-    population['entrance_time'] = event.time
-    population['exit_time'] = pd.NaT
+        if initial_age is not None and initial_age != '':
+            population['age'] = initial_age
+            population['age'] = population['age'].astype(float)
+        else:
+            population['age'] = (randomness.random('test_population_age', population.index)
+                                 * (age_end - age_start) + age_start)
 
-    event.population_view.update(population)
+        population['sex'] = randomness.choice(
+            'test_population_sex'+str(self.config.run_configuration.input_draw_number),
+            population.index, ['Male', 'Female'])
+        population['alive'] = pd.Series('alive', index=population.index).astype(
+            'category', categories=['alive', 'dead', 'untracked'], ordered=False)
+        if 'location_id' in self.config.input_data:
+            population['location'] = self.config.input_data.location_id
+        else:
+            population['location'] = 180
+
+        population['entrance_time'] = event.time
+        population['exit_time'] = pd.NaT
+
+        event.population_view.update(population)
 
 
 @listens_for('time_step')
