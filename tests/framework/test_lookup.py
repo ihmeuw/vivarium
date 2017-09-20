@@ -4,7 +4,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from vivarium.test_util import build_table, setup_simulation, generate_test_population
+from vivarium.test_util import build_table, setup_simulation, TestPopulation
 
 
 @pytest.fixture(scope='module')
@@ -25,7 +25,7 @@ def test_interpolated_tables(config):
     del one_d_age['year']
     one_d_age = one_d_age.drop_duplicates()
 
-    simulation = setup_simulation([generate_test_population], 10000)
+    simulation = setup_simulation([TestPopulation()], 10000, input_config=config)
     manager = simulation.tables
     years = manager.build_table(years)
     ages = manager.build_table(ages)
@@ -64,7 +64,7 @@ def test_interpolated_tables_without_uniterpolated_columns(config):
     del years['sex']
     years = years.drop_duplicates()
 
-    simulation = setup_simulation([generate_test_population], 10000)
+    simulation = setup_simulation([TestPopulation()], 10000, input_config=config)
     manager = simulation.tables
     years = manager.build_table(years, key_columns=(), parameter_columns=('year', 'age',))
 
@@ -91,7 +91,7 @@ def test_interpolated_tables__exact_values_at_input_points(config):
     years = build_table(lambda age, sex, year: year, year_start, year_end)
     input_years = years.year.unique()
 
-    simulation = setup_simulation([generate_test_population], 10000)
+    simulation = setup_simulation([TestPopulation()], 10000, input_config=config)
     manager = simulation.tables
     years = manager.build_table(years)
 

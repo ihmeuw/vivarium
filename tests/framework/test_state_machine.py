@@ -8,6 +8,7 @@ from vivarium.framework.randomness import choice
 
 from vivarium.framework.state_machine import Machine, State, Transition
 
+
 def _population_fixture(column, initial_value):
     @listens_for('initialize_simulants')
     @uses_columns([column])
@@ -15,12 +16,14 @@ def _population_fixture(column, initial_value):
         event.population_view.update(pd.Series(initial_value, index=event.index))
     return inner
 
+
 def _even_population_fixture(column, values):
     @listens_for('initialize_simulants')
     @uses_columns([column])
     def inner(event):
         event.population_view.update(choice('start', event.index, values))
     return inner
+
 
 def test_transition():
     done_state = State('done')

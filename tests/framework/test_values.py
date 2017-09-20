@@ -1,13 +1,20 @@
 import pytest
-
 import pandas as pd
 import numpy as np
 
-from vivarium.framework.values import replace_combiner, set_combiner, list_combiner, rescale_post_processor, joint_value_post_processor, Pipeline, ValuesManager
+from vivarium.framework.values import (replace_combiner, set_combiner, list_combiner,
+                                       joint_value_post_processor, ValuesManager)
 
-def test_replace_combiner():
+
+@pytest.fixture(scope='function')
+def manager(mocker):
     manager = ValuesManager()
+    builder = mocker.MagicMock()
+    builder.step_size = lambda: lambda: pd.Timedelta(days=1)
+    manager.setup(builder)
+    return manager
 
+def test_replace_combiner(manager):
     value = manager.get_value('test', replace_combiner)
     value.source = lambda: 1
 
@@ -19,10 +26,8 @@ def test_replace_combiner():
     manager.mutator(lambda value: 84, 'test')
     assert value() == 84
 
-def test_joint_value():
+def test_joint_value(manager):
     # This is the normal configuration for PAF and disability weight type values
-    manager = ValuesManager()
-
     index = pd.Index(range(10))
 
     value = manager.get_value('test', list_combiner, joint_value_post_processor)
@@ -36,10 +41,9 @@ def test_joint_value():
     manager.mutator(lambda index: pd.Series(0.5, index=index), 'test')
     assert np.all(value(index) == 0.75)
 
-def test_set_combiner():
-    # This is the normal configuration for collecting lists of meids for calculating cause deleted tables
-    manager = ValuesManager()
 
+def test_set_combiner(manager):
+    # This is the normal configuration for collecting lists of meids for calculating cause deleted tables
     value = manager.get_value('test', set_combiner)
     value.source = lambda: set()
 
@@ -55,11 +59,10 @@ def test_set_combiner():
     assert value() == {'thing one', 'thing two'} # but unique values are collected
 
 
-def test_contains():
+def test_contains(manager):
     value = 'test_value'
     rate = 'test_rate'
 
-    manager = ValuesManager()
     assert value not in manager
     assert rate not in manager
 

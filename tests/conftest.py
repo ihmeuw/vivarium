@@ -14,5 +14,4 @@ def base_config():
     config.simulation_parameters.set_with_metadata('year_start', 1990, **metadata)
     config.simulation_parameters.set_with_metadata('year_end', 2010, **metadata)
     config.simulation_parameters.set_with_metadata('time_step', 30.5, **metadata)
-    config.simulation_parameters.set_with_metadata('initial_age', '', **metadata)
     return config
