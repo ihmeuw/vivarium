@@ -112,12 +112,17 @@ class ComponentManager:
         self.load_components_from_config()
         self.initialize_components()
 
+
+    def prep_component(self, component):
+        return _prep_component(component, self.dataset_manager.constructors)
+
+
     def load_components_from_config(self):
         """Load any components listed in the config and prepare them for initialization.
         """
 
         component_list = _extract_component_list(self.component_config)
-        component_list = _prep_components(component_list, self.dataset_manager.constructors)
+        component_list = [self.prep_component(component) for component in component_list]
         self._uninitialized_components.extend(component_list)
 
     def initialize_components(self):
@@ -261,49 +266,45 @@ def _parse_component(desc: str, constructors: Mapping[str, Callable]) -> Tuple[s
             raise ParsingError('Invalid syntax: {}'.format(desc))
     return component, new_args
 
-def _prep_components(component_list: Sequence, constructors: Mapping[str, Callable]) -> Sequence:
-    """Transform component description strings into tuples of component callables and any arguments the component may need.
+def _prep_component(component: Union[str, Callable], constructors: Mapping[str, Callable]) -> Sequence:
+    """Transform component a description string into a tuple of component callable and any arguments the component may need.
 
     Parameters
     ----------
     component_list
-        The component descriptions to transform
+        The component description to transform
     constructors
         Dictionary of callables for creating argument objects
 
     Returns
     -------
-    List of component/argument tuples.
+    component/argument tuple
     """
 
-    components = []
-    for component in component_list:
-        if isinstance(component, str):
-            if '(' in component:
-                component, args = _parse_component(component, constructors)
-                call = True
-            else:
-                call = False
+    if isinstance(component, str):
+        if '(' in component:
+            component, args = _parse_component(component, constructors)
+            call = True
+        else:
+            call = False
 
-            component = _import_by_path(component)
+        component = _import_by_path(component)
+    else:
+        call = True
+        args = tuple()
 
-            for attr, val in inspect.getmembers(component, lambda a: not inspect.isroutine(a)):
-                constructor = constructors.get(val.__class__)
-                if constructor:
-                    setattr(component, attr, constructor(val))
+    for attr, val in inspect.getmembers(component, lambda a: not inspect.isroutine(a)):
+        constructor = constructors.get(val.__class__)
+        if constructor:
+            setattr(component, attr, constructor(val))
 
-            # Establish the initial configuration
-            if hasattr(component, 'configuration_defaults'):
-                config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
+    # Establish the initial configuration
+    if hasattr(component, 'configuration_defaults'):
+        config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
 
-            if call:
-                component = (component, args)
-            else:
-                component = (component,)
+    if call:
+        component = (component, args)
+    else:
+        component = (component,)
 
-        elif isinstance(component, type):
-            component = (component, tuple())
-
-        components.append(component)
-
-    return components
+    return component

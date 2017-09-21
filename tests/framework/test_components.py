@@ -5,7 +5,7 @@ import yaml
 import ast
 from unittest.mock import patch, mock_open
 
-from vivarium.framework.components import _import_by_path, load_component_manager, ComponentManager, DummyDatasetManager, ComponentConfigError, _extract_component_list, _component_ast_to_path, _parse_component, ParsingError, _prep_components
+from vivarium.framework.components import _import_by_path, load_component_manager, ComponentManager, DummyDatasetManager, ComponentConfigError, _extract_component_list, _component_ast_to_path, _parse_component, ParsingError, _prep_component
 from vivarium import config
 
 # Fiddle the path so we can import from this module
@@ -148,14 +148,14 @@ def test_parse_component_syntax_error():
         desc = 'village.people.PlagueVictim(Causes(np.array(["black_death", "helminth"])))'
         _parse_component(desc, {'Causes': lambda cs: list(cs)})
 
-def test_prep_components():
+def test_prep_component():
     component_descriptions = [
             'test_components.MockComponentA(Placeholder("A Hundred and One Ways to Start a Fight"))',
             'test_components.MockComponentB("Ethel the Aardvark goes Quantity Surveying")',
             'test_components.mock_component_c',
         ]
 
-    components = _prep_components(component_descriptions, {'Placeholder': lambda x: x})
+    components = [_prep_component(component, {'Placeholder': lambda x: x}) for component in component_descriptions]
     components = {c[0]:c[1] if len(c) == 2 else None for c in components}
 
     assert len(components) == 3
@@ -167,9 +167,10 @@ def test_prep_components():
     assert components[mock_component_c] == None
 
 @patch('vivarium.framework.components._extract_component_list')
-@patch('vivarium.framework.components._prep_components')
-def test_ComponentManager__load_and_initialize_components(_prep_components_mock, _extract_component_list_mock):
-    _prep_components_mock.return_value = [(MockComponentA, ['Red Leicester']), (MockComponentB, []), (mock_component_c,)]
+@patch('vivarium.framework.components._prep_component')
+def test_ComponentManager__load_and_initialize_components(_prep_component_mock, _extract_component_list_mock):
+    _extract_component_list_mock.return_value = [None, None, None]
+    _prep_component_mock.side_effect = [(MockComponentA, ['Red Leicester']), (MockComponentB, []), (mock_component_c,)]
 
     manager = ComponentManager({}, MockDatasetManager())
 
