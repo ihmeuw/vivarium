@@ -1,16 +1,16 @@
 Tutorial Five: Event Planning
 =============================
 
-Event's are integral to CEAM but up to this point we've only talked about a couple of standard events emitted by the framework itself. We can emit our own events and that's key to some kinds of complex models. In this tutorial we'll talk about emitting and responding to custom events.
+Event's are integral to Vivarium but up to this point we've only talked about a couple of standard events emitted by the framework itself. We can emit our own events and that's key to some kinds of complex models. In this tutorial we'll talk about emitting and responding to custom events.
 
 Emitting
 --------
 
-Right now the only thing that really happens in our model is that people die, so let's attach our custom event to that. We'll need to change the Mortality component to emit the event whenever simulants die. There is a decorator equivalent called `emits` which, when applied to a function, will inject an event emitter object into it's arguments when it is called. We import it from `ceam.framework.event` just like the `listens_for` decorator:
+Right now the only thing that really happens in our model is that people die, so let's attach our custom event to that. We'll need to change the Mortality component to emit the event whenever simulants die. There is a decorator equivalent called `emits` which, when applied to a function, will inject an event emitter object into it's arguments when it is called. We import it from `vivarium.framework.event` just like the `listens_for` decorator:
 
 .. code-block:: python
 
-    from ceam.framework.event import listens_for, emits
+    from vivarium.framework.event import listens_for, emits
 
 Then we apply it to the method where deaths actually happen, supplying it with a name for the new event type and adding a parameter to accept the emitter object:
 

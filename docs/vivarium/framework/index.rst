@@ -1,4 +1,4 @@
-ceam.framework
+vivarium.framework
 ==============
 .. toctree::
    :maxdepth: 3

@@ -1,4 +1,4 @@
-ceam
+vivarium
 ================================
 .. toctree::
    :maxdepth: 3

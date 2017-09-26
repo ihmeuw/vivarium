@@ -16,8 +16,8 @@ time and you've already seen how to do that by listening to the
 
 .. code-block:: python
 
-    from ceam.framework.event import listens_for
-    from ceam.framework.population import uses_columns
+    from vivarium.framework.event import listens_for
+    from vivarium.framework.population import uses_columns
 
     @listens_for('time_step')
     @uses_columns(['age'], 'alive == True')
@@ -44,17 +44,17 @@ crash. You'll see something like this:
       File "/root/anaconda3/bin/simulate", line 5, in <module>
         main()
         ...
-      File "/root/anaconda3/lib/python3.5/site-packages/ceam/framework/engine.py", line 95, in _step
+      File "/root/anaconda3/lib/python3.5/site-packages/vivarium/framework/engine.py", line 95, in _step
         time_step_emitter(Event(simulation.current_time, simulation.population.population.index))
-      File "/root/anaconda3/lib/python3.5/site-packages/ceam/framework/event.py", line 48, in emit
+      File "/root/anaconda3/lib/python3.5/site-packages/vivarium/framework/event.py", line 48, in emit
         listener(*args, **kwargs)
-      File "/root/anaconda3/lib/python3.5/site-packages/ceam/framework/util.py", line 45, in inner
+      File "/root/anaconda3/lib/python3.5/site-packages/vivarium/framework/util.py", line 45, in inner
         return func(*args, **kwargs)
-      File "/ceam_tutorial/ceam_tutorial/components/aging.py", line 7, in age
+      File "/viva_tutorial/viva_tutorial/components/aging.py", line 7, in age
         event.population_view.update(event.population.age + 1/12)
-      File "/root/anaconda3/lib/python3.5/site-packages/ceam/framework/population.py", line 139, in update
+      File "/root/anaconda3/lib/python3.5/site-packages/vivarium/framework/population.py", line 139, in update
         raise PopulationError('Component corrupting population table. Old column type: {} New column type: {}'.format(v.dtype, v2.dtype))
-    ceam.framework.population.PopulationError: Component corrupting population table. Old column type: int64 New column type: float64
+    vivarium.framework.population.PopulationError: Component corrupting population table. Old column type: int64 New column type: float64
 
 Depending on how much time you've spent breaking python programs you
 may recognize this as a stack trace. It's telling you what happened
@@ -110,7 +110,7 @@ mortality rate to depend on properties of the simulants. For now our
 only properties are age and sex so we'll start with those. If you
 happen to have a csv file of realistic mortality rates by age and sex
 lying around (and if you're the kind of person who's interested in
-CEAM, you probably do) then use that. If not, you can make one
+Vivarium, you probably do) then use that. If not, you can make one
 up. It's easy:
 
 .. code-block:: python

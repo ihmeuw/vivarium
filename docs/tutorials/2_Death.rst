@@ -9,7 +9,7 @@ decide which simulants die during each time step.
 Dynamic Rates
 --------------
 
-A fundamentally important concept in CEAM is the dynamically
+A fundamentally important concept in Vivarium is the dynamically
 calculated rates. Simulations are composed of many components which
 interact but may change from experiment to experiment so it's
 important that they be designed to function independently.  One
@@ -20,17 +20,17 @@ mortality. It's relatively simple to come up with a formula for that
 and to include it in your mortality calculation. But what happens if
 in a future experiment, you want to model BMI instead? Or both? To
 make those changes, you'll need to modify the mortality calculation
-directly. CEAM's dynamically calculated rates give us a way to model
+directly. Vivarium's dynamically calculated rates give us a way to model
 mortality (and similar rates) so that components that effect
 mortality, like smoking and BMI, can be plugged in or unplugged
 transparently.
 
-Dynamic rates in CEAM have globally unique names. So, mortality rate
+Dynamic rates in Vivarium have globally unique names. So, mortality rate
 might be named ``'mortality_rate'`` and any code that refers to that
 name is assumed to be referring to the same rate. Keep that in mind
 when naming rates. If you have an incidence rate, calling it
 ``'incidence_rate'`` is likely to cause confusion since other
-components will have their own incidence rates. It is CEAM convention
+components will have their own incidence rates. It is Vivarium convention
 to use a more specific name, like
 ``'incidence_rate.heart_disease'``. Each named rate has three
 important parts. The first is its *source*, which is a function that
@@ -49,12 +49,12 @@ tutorial will add a mutator.
 
 .. tip::
 
-    CEAM convention is that dynamic rates are represented in units of
+    Vivarium convention is that dynamic rates are represented in units of
     per-one-person-year (i.e. yearly per capita rates). Rates are
     automatically scaled to the current time step size before they are
     returned to the consumer but sources and mutators should use raw
     yearly rate. (FIXME: seems confusing! maybe the consumer should
-    also get per-person-year rates) CEAM's dynamic value system is
+    also get per-person-year rates) Vivarium's dynamic value system is
     very flexible and other types of values, like joint PAF
     (population attributable fraction) values for risks, are possible
     and will be discussed later.
@@ -67,13 +67,13 @@ component and then talk about it in detail.
 
 .. code-block:: python
 
-        # file ceam_tutorial/components/mortality.py
+        # file viva_tutorial/components/mortality.py
         import pandas as pd
         import numpy as np
 
-        from ceam.framework.event import listens_for
-        from ceam.framework.population import uses_columns
-        from ceam.framework.values import produces_value
+        from vivarium.framework.event import listens_for
+        from vivarium.framework.population import uses_columns
+        from vivarium.framework.values import produces_value
 
         class Mortality:
             def setup(self, builder):
@@ -106,7 +106,7 @@ the simulation to use a function as the source for a named value,
 
 The major change is that this new component isn't a single function,
 it's a Python class with several methods, and a bit of state. When
-CEAM is told to load a class as a component, it will automatically
+Vivarium is told to load a class as a component, it will automatically
 instantiate it. If the class has a method called ``setup`` then this
 method will be called during simulation startup, and it can be used to
 initialize internal state or acquire references to things in the
@@ -222,7 +222,7 @@ Update the configuration.yaml file to include the new component:
 .. code-block:: yaml
 
         components:
-            - ceam_tutorial.components:
+            - viva_tutorial.components:
                 - initial_population.make_population
                 - mortality.Mortality()
 

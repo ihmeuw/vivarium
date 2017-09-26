@@ -8,7 +8,7 @@ will change as we develop externally facing outlets for this data.
 
 ###Explain modelable entity ids and other GBD data sources###
 
-CEAM's GBD access functions are all located in the ``ceam_inputs``
+Vivarium's GBD access functions are all located in the ``ceam_inputs``
 package. You can install it with pip:
 
 .. code-block:: console

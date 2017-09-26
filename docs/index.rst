@@ -1,4 +1,4 @@
-Welcome to CEAM's documentation!
+Welcome to vivarium's documentation!
 ================================
 
 Contents:
@@ -7,4 +7,4 @@ Contents:
    :maxdepth: 2
 
    tutorials/index
-   ceam/index
+   vivarium/index

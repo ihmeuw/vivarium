@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 #
-# CEAM documentation build configuration file, created by
+# vivarium documentation build configuration file, created by
 # sphinx-quickstart on Thu Sep  1 15:59:13 2016.
 #
 # This file is execfile()d with the current directory set to its
@@ -53,7 +53,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = 'CEAM'
+project = 'vivarium'
 copyright = '2016, IHME'
 author = 'IHME'
 
@@ -207,7 +207,7 @@ html_search_language = 'en'
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'CEAMdoc'
+htmlhelp_basename = 'vivariumdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -229,7 +229,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'CEAM.tex', 'CEAM Documentation',
+    (master_doc, 'vivarium.tex', 'vivarium Documentation',
      'IHME', 'manual'),
 ]
 
@@ -259,7 +259,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'ceam', 'CEAM Documentation',
+    (master_doc, 'vivarium', 'Vivarium Documentation',
      [author], 1)
 ]
 
@@ -273,8 +273,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'CEAM', 'CEAM Documentation',
-     author, 'CEAM', 'One line description of project.',
+    (master_doc, 'vivarium', 'vivarium Documentation',
+     author, 'vivarium', 'One line description of project.',
      'Miscellaneous'),
 ]
 

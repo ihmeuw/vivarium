@@ -3,7 +3,7 @@ Tutorial One: Life
 
 In this tutorial we're going to create an initial population for our
 simulation and in the process talk about some of the basic concepts in
-CEAM.
+Vivarium.
 
 But First, Some Terminology
 ---------------------------
@@ -33,8 +33,8 @@ line.
     import pandas as pd
     import numpy as np
 
-    from ceam.framework.event import listens_for
-    from ceam.framework.population import uses_columns
+    from vivarium.framework.event import listens_for
+    from vivarium.framework.population import uses_columns
 
     @listens_for('initialize_simulants', priority=0)
     @uses_columns(['age', 'sex', 'alive'])
@@ -62,18 +62,18 @@ First we need to import some tools:
 
 ``numpy`` is a library for doing high performance numerical computing
 in python. ``pandas`` is a set of tools built on top of ``numpy`` that
-allow for fast database style querying and aggregating of data. CEAM
-uses ``pandas`` ``DataFrame`` objects (similar to R's Data Frames) to
-store much of its data so ``pandas`` is very important for using CEAM.
+allow for fast database style querying and aggregating of data. Vivarium
+uses ``pandas`` ``DataFrame`` objects to
+store much of its data so ``pandas`` is very important for using Vivarium.
 Because we use these packages so much, we follow the Scientific Python
 convention of abreviating them `np` and `pd`.
 
-Next we import some "decorators" from CEAM:
+Next we import some "decorators" from Vivarium:
 
 .. code-block:: python
 
-    from ceam.framework.population import uses_columns
-    from ceam.framework.event import listens_for
+    from vivarium.framework.population import uses_columns
+    from vivarium.framework.event import listens_for
 
 
 .. topic:: Decorators
@@ -96,7 +96,7 @@ Next we import some "decorators" from CEAM:
      slow so that a testing framework can choose to skip it or run it
      later when speed is a concern.
 
-     You will use decorators to tell CEAM how it should use the
+     You will use decorators to tell Vivarium how it should use the
      functions within your component in the simulation.
 
 Here's the beginning of our population generation function:
@@ -111,38 +111,32 @@ The first decorator is ``listens_for`` which tells the simulation that
 our function should be called when a ``'initialize_simulants'`` event
 happens. The ``priority=0`` says that we would like our function to be
 called before other functions that also listen for
-``'initialize_simulants'``. When CEAM calls ``make_population`` in
+``'initialize_simulants'``. When Vivarium calls ``make_population`` in
 response to the ``'initialize_simulants'`` event, it will provide an
 ``Event`` object, which contains information about context of the
 event (including when it happened and which simulants where involved).
 
-The event system is a very important part of CEAM. Everything that
+The event system is a very important part of Vivarium. Everything that
 happens in the simulation is driven by events and most of the
-functions you write will be called by CEAM in response to events that
+functions you write will be called by Vivarium in response to events that
 your code ``listens_for``. The main event in the simulation is
 ``'time_step'`` which happens every time the simulation moves the
-clock forward (in 30.5 day increments by default). Other events, like
+clock forward. Other events, like
 ``'initialize_simulants'`` happen before simulation time begins
 passing, in order to give components a chance to do any preparation
 they need. Components can create new events related to the things that
 they model, for example an event when simulants enter the
-hospital. You can get a list of all the events in the core CEAM system
-by running the command:
-
-.. code-block:: console
-
-    $ simulate list_events
-    ['time_step__prepare', 'time_step', 'simulation_end', 'time_step__cleanup', 'post_setup', 'initialize_simulants']
+hospital.
 
 The second decorator we use is ``uses_columns`` which tells the
 simulation which columns of the population store our function will
 use, modify or, in our case, create. ``uses_columns`` is the only way
-to modify attributes of the population in a CEAM simulation.
+to modify attributes of the population in a Vivarium simulation.
 
 Next we need to know how many simulants to generate. The ``Event``
 contains an index which we can use to answer this question. The index
 is a ``pandas.Index`` object which in this case will be the full index
-of the population ``DataFrame`` that CEAM is using our code to fill
+of the population ``DataFrame`` that Vivarium is using our code to fill
 with data. So we check the length of that index to find out how many
 simulants there will be:
 
@@ -152,7 +146,7 @@ simulants there will be:
 
 .. topic:: What is an index?
 
-    Indexes are an important concept in CEAM, which come from our
+    Indexes are an important concept in Vivarium, which come from our
     reliance on `pandas`.  They may take a bit of getting used to. The
     basic idea is that an index represents a location within a
     container. You may have seen the used on python lists:
@@ -168,7 +162,7 @@ simulants there will be:
     the list (because in python, lists are 'zero-indexed' meaning the
     index of the first item is stored in spot 0.
 
-    Indexes into ``pandas.DataFrame`` are very flexible, but CEAM uses
+    Indexes into ``pandas.DataFrame`` are very flexible, but Vivarium uses
     them in a simple way for the population table. Index 0 is the
     first simulant, 1 is the second, etc. Unlike a simple list,
     DataFrames (and other numpy and pandas structures) can be accessed
@@ -217,7 +211,7 @@ event and inject our initial population data into the simulation.
 Make It Go
 ----------
 
-Let's run the simulation and see what happens. CEAM includes an
+Let's run the simulation and see what happens. Vivarium includes an
 executable called ``simulate`` which does handles the actual running
 of the simulation. It needs a configuration file to tell it which
 components to use. Create a file called ``configuration.yaml`` and
@@ -226,7 +220,7 @@ make it look like this:
 .. code-block:: yaml
 
     components:
-        - ceam_tutorial.components:
+        - viva_tutorial.components:
             - initial_population.make_population
 
     configuration:
@@ -241,7 +235,7 @@ You can then run ``simulate`` like this:
 
 .. code-block:: console
 
-    $ simulate run configuration.yaml -v
+    simulate run configuration.yaml -v
 
 You should see the simulation rapidly step through a number of years
 and then exit. Not super interesting but that's because nothing is
@@ -260,10 +254,10 @@ to the repository. You can commit the work from this tutorial like so:
     $ git commit -m"Finished with Tutorial 1"
     [master 5341aed] Finished with Tutorial 1
      5 files changed, 27 insertions(+)
-     create mode 100644 ceam_tutorial/__pycache__/__init__.cpython-34.pyc
-     create mode 100644 ceam_tutorial/components/__pycache__/__init__.cpython-34.pyc
-     create mode 100644 ceam_tutorial/components/__pycache__/initial_population.cpython-34.pyc
-     create mode 100644 ceam_tutorial/components/initial_population.py
+     create mode 100644 viva_tutorial/__pycache__/__init__.cpython-34.pyc
+     create mode 100644 viva_tutorial/components/__pycache__/__init__.cpython-34.pyc
+     create mode 100644 viva_tutorial/components/__pycache__/initial_population.cpython-34.pyc
+     create mode 100644 viva_tutorial/components/initial_population.py
      create mode 100644 configuration.yaml
 
 Oops! That added some weird stuff to the git repo.  Let's undo that,
@@ -279,14 +273,14 @@ redo the commit.
     [master 6f304d2] Finished with Tutorial 1
      3 files changed, 28 insertions(+)
      create mode 100644 .gitignore
-     create mode 100644 ceam_tutorial/components/initial_population.py
+     create mode 100644 viva_tutorial/components/initial_population.py
      create mode 100644 configuration.yaml
 
 
 An Exercise For The Reader
 --------------------------
 
-At this point you should be familiar enough with the CEAM system to
+At this point you should be familiar enough with the Vivarium system to
 make a new component that responds to ``'initialize_simulants'``
 *after* ``make_population`` and adds a height column with a random
 height for each simulant. Try it out. Think about what would be
