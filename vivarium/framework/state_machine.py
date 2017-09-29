@@ -91,14 +91,17 @@ class Transition:
 
     Parameters
     ----------
-    output : State
+    input_state: State
+        The start state of the entity that undergoes the transition.
+    output_state : State
         The end state of the entity that undergoes the transition.
     probability_func : callable
         A method or function that describing the probability of this transition occurring.
     """
-    def __init__(self, output, probability_func=lambda index: pd.Series(1, index=index),
+    def __init__(self, input_state, output_state, probability_func=lambda index: pd.Series(1, index=index),
                  triggered=Trigger.NOT_TRIGGERED):
-        self.output = output
+        self.input_state = input_state
+        self.output_state = output_state
         self._probability = probability_func
         self._active_index, self.start_active = _process_trigger(triggered)
 
@@ -219,7 +222,7 @@ class State:
         output : State
             The end state after the transition.
         """
-        t = Transition(output, probability_func=probability_func, triggered=triggered)
+        t = Transition(self, output, probability_func=probability_func, triggered=triggered)
         self.transition_set.append(t)
         return t
 
