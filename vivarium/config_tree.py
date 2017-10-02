@@ -328,6 +328,8 @@ class ConfigTree:
         """
         if isinstance(data, dict):
             self.read_dict(data, layer, source)
+        elif isinstance(data, ConfigTree):
+            self.read_dict(data.to_dict(), layer, source)
         elif isinstance(data, str):
             if data.endswith('.yaml'):
                 source = source if source else data
@@ -337,7 +339,8 @@ class ConfigTree:
         elif data is None:
             pass
         else:
-            raise ValueError(f"Update must be called with dictionary or string.  You passed in {type(data)}")
+            raise ValueError(f"Update must be called with dictionary, string, or ConfigTree. "
+                             f"You passed in {type(data)}")
 
     def read_dict(self, data_dict, layer=None, source=None):
         """Load a dictionary into the ConfigTree. If the dict contains nested dicts
