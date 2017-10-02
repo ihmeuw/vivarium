@@ -135,13 +135,8 @@ class Transition:
         """The name of this transition."""
         return ''
 
-    def __str__(self):
-        return 'Transition({})'.format(self.output)
-
     def __repr__(self):
-        return 'Transition(output= {}, _probability={}, _active={})'.format(self.output,
-                                                                            self._probability,
-                                                                            self._active_index)
+        return f'Transition(from={self.input_state.state_id}, to={self.output_state.state_id})'
 
 
 class State:
@@ -302,7 +297,7 @@ class TransitionSet:
         decisions: `pandas.Series`
             A series containing the name of the next state for each simulant in the index.
         """
-        outputs, probabilities = zip(*[(transition.output, np.array(transition.probability(index)))
+        outputs, probabilities = zip(*[(transition.output_state, np.array(transition.probability(index)))
                                        for transition in self.transitions])
         probabilities = np.transpose(probabilities)
         outputs, probabilities = self._normalize_probabilities(outputs, probabilities)
