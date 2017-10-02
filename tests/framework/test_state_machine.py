@@ -28,10 +28,8 @@ def _even_population_fixture(column, values):
 def test_transition():
     done_state = State('done')
     start_state = State('start')
-    done_transition = Transition(done_state, lambda agents: np.full(len(agents), 1.0))
-    start_state.transition_set.append(done_transition)
-    machine = Machine('state')
-    machine.states.extend([start_state, done_state])
+    start_state.add_transition(done_state)
+    machine = Machine('state', states=[start_state, done_state])
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start')])
     event_time = simulation.current_time + simulation.step_size
@@ -43,11 +41,9 @@ def test_choice():
     a_state = State('a')
     b_state = State('b')
     start_state = State('start')
-    a_transition = Transition(a_state, lambda agents: np.full(len(agents), 0.5))
-    b_transition = Transition(b_state, lambda agents: np.full(len(agents), 0.5))
-    start_state.transition_set.extend((a_transition, b_transition))
-    machine = Machine('state')
-    machine.states.extend([start_state, a_state, b_state])
+    start_state.add_transition(a_state, probability_func=lambda agents: np.full(len(agents), 0.5))
+    start_state.add_transition(b_state, probability_func=lambda agents: np.full(len(agents), 0.5))
+    machine = Machine('state', states=[start_state, a_state, b_state])
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start')], population_size=10000)
     event_time = simulation.current_time + simulation.step_size
@@ -75,8 +71,8 @@ def test_no_null_transition():
     a_state = State('a')
     b_state = State('b')
     start_state = State('start')
-    a_transition = Transition(a_state)
-    b_transition = Transition(b_state)
+    a_transition = Transition(start_state, a_state)
+    b_transition = Transition(start_state, b_state)
     start_state.transition_set.allow_null_transition = False
     start_state.transition_set.extend((a_transition, b_transition))
     machine = Machine('state')
@@ -97,7 +93,7 @@ def test_side_effects():
             population_view.update(pop['count'] + 1)
     done_state = DoneState('done')
     start_state = State('start')
-    done_transition = Transition(done_state, lambda agents: np.full(len(agents), 1.0))
+    done_transition = Transition(start_state, done_state, lambda agents: np.full(len(agents), 1.0))
     start_state.transition_set.append(done_transition)
     done_state.transition_set.append(done_transition)
 
