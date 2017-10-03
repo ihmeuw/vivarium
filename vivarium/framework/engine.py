@@ -162,7 +162,6 @@ def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
     -------
     A valid simulation configuration.
     """
-
     # Start with the base configuration in the user's home directory
     config = ConfigTree(layers=['base', 'component_configs', 'model_override', 'override'])
     if os.path.exists(os.path.expanduser('~/vivarium.yaml')):
@@ -231,7 +230,7 @@ def run(simulation):
 
 
 def do_command(args):
-    config = build_simulation_configuration(args)
+    config = build_simulation_configuration(vars(args))
     component_manager = load_component_manager(config)
     if args.command == 'run':
         simulation = setup_simulation(component_manager, config)
