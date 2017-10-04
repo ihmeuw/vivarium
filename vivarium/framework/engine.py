@@ -126,9 +126,9 @@ def event_loop(simulation, simulant_creator, end_emitter):
 
 
 def setup_simulation(component_manager, config):
-    config.set_with_metadata('run_configuration.run_id', str(time()), layer='base')
-    config.set_with_metadata('run_configuration.run_key',
-                             {'draw': config.run_configuration.input_draw_number}, layer='base')
+    config.run_configuration.set_with_metadata('run_id', str(time()), layer='base')
+    config.run_configuration.set_with_metadata('run_key',
+                                               {'draw': config.run_configuration.input_draw_number}, layer='base')
     component_manager.add_components([_step, event_loop])
     simulation = SimulationContext(component_manager, config)
     simulation.setup()
@@ -178,7 +178,7 @@ def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
 
     # Get an input and model draw
     for draw_type in ['input_draw', 'model_draw']:
-        if draw_type in parameters:
+        if parameters[draw_type] is not None:
             metadata = {'layer': 'override', 'source': 'command_line_argument'}
             draw = _get_draw_template(draw_type, parameters[draw_type])
         else:
@@ -203,8 +203,10 @@ def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
          }, **default_metadata)
 
     # Set any configuration overrides from component and branch configurations.
-    config.update(parameters.get('config', None), layer='base')  # source is implicit
+    config.update(parameters.get('config', None), layer='override')  # source is implicit
     config.update(parameters.get('components', None), layer='model_override')  # source is implicit
+    if 'configuration' in config:
+        config.configuration.source = parameters.get('components', None)
 
     # Make sure we have a component and dataset manager
     if 'component_manager' not in config['vivarium']:

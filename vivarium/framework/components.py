@@ -63,6 +63,20 @@ class ComponentManager:
 
     def __init__(self, config: ConfigTree, dataset_manager):
         self.tags = {}
+
+        if 'components' in config:
+            self.component_config = config.components
+            del config.components
+        else:
+            self.component_config = {}
+
+        if 'configuration' in config:
+            model_config = config.configuration
+            source = model_config.source if 'source' in model_config else None
+            del model_config.source
+            del config.configuration
+            config.update(model_config, layer='model_override', source=source)
+
         self.config = config
         self.components = []
         self.dataset_manager = dataset_manager
@@ -72,7 +86,7 @@ class ComponentManager:
         the ComponentManager.
         """
 
-        component_list = _extract_component_list(self.config.components)
+        component_list = _extract_component_list(self.component_config)
         component_list = _prep_components(self.config, component_list, self.dataset_manager.constructors)
         new_components = []
         for component in component_list:
