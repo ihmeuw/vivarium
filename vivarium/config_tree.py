@@ -200,7 +200,7 @@ class ConfigTree:
         """
         Parameters
         ----------
-        data : dict
+        data : dict, str, or ConfigTree, optional
             A dictionary containing initial values
         layers : list
             A list of layer names. The order in which layers defined determines
@@ -214,7 +214,7 @@ class ConfigTree:
         self.__dict__['_frozen'] = False
 
         if data:
-            self.read_dict(data, layer=self._layers[0], source='initial data')
+            self.update(data, layer=self._layers[0], source='initial data')
 
     def freeze(self):
         """Causes the ConfigTree to become read only.
@@ -243,6 +243,14 @@ class ConfigTree:
     def __getitem__(self, name):
         """Get a configuration value from the outermost layer in which it appears."""
         return self.get_from_layer(name)
+
+    def __delattr__(self, name):
+        if name in self._children:
+            del self._children[name]
+
+    def __delitem__(self, name):
+        if name in self._children:
+            del self._children[name]
 
     def __contains__(self, name):
         """Test if a configuration key exists in any layer."""
@@ -329,6 +337,7 @@ class ConfigTree:
         if isinstance(data, dict):
             self.read_dict(data, layer, source)
         elif isinstance(data, ConfigTree):
+            # TODO: set this to parse the other config tree including layer and source info.  Maybe.
             self.read_dict(data.to_dict(), layer, source)
         elif isinstance(data, str):
             if data.endswith('.yaml'):
