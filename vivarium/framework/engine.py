@@ -145,40 +145,21 @@ def run_simulation(simulation):
     return metrics
 
 
-def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
-    """Builds a configuration from the on disk user configuration, command line arguments,
-    and component configurations passed in by file path.
-
-    Parameters
-    ----------
-    parameters :
-        Dictionary possibly containing keys:
-            'input_draw': Input draw number to use,
-            'model_draw': Model draw number to use,
-            'components': Component configuration (file path, yaml string, or dict),
-            'config': Configuration overrides (file path, yaml string, or dict)
-
-    Returns
-    -------
-    A valid simulation configuration.
-    """
-    # Start with the base configuration in the user's home directory
+def build_base_configuration(parameters: Mapping = None) -> ConfigTree:
     config = ConfigTree(layers=['base', 'component_configs', 'model_override', 'override'])
     if os.path.exists(os.path.expanduser('~/vivarium.yaml')):
         config.load(os.path.expanduser('~/vivarium.yaml'), layer='override',
                     source=os.path.expanduser('~/vivarium.yaml'))
 
+    default_metadata = {'layer': 'base', 'source': os.path.realpath(__file__)}
+
     # Some setup for the defaults
     def _get_draw_template(draw_type_, value_):
         return {'run_configuration': {f'{draw_type_}_number': value_}}
 
-    default_component_manager = {'vivarium': {'component_manager': 'vivarium.framework.components.ComponentManager'}}
-    default_dataset_manager = {'vivarium': {'dataset_manager': 'vivarium.framework.components.DummyDatasetManager'}}
-    default_metadata = {'layer': 'base', 'source': os.path.realpath(__file__)}
-
     # Get an input and model draw
     for draw_type in ['input_draw', 'model_draw']:
-        if draw_type in parameters and parameters[draw_type] is not None:
+        if parameters and draw_type in parameters and parameters[draw_type] is not None:
             metadata = {'layer': 'override', 'source': 'command_line_argument'}
             draw = _get_draw_template(draw_type, parameters[draw_type])
         else:
@@ -200,7 +181,34 @@ def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
                     'location_id': 180
                 },
 
-         }, **default_metadata)
+        }, **default_metadata)
+
+    return config
+
+
+def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
+    """Builds a configuration from the on disk user configuration, command line arguments,
+    and component configurations passed in by file path.
+
+    Parameters
+    ----------
+    parameters :
+        Dictionary possibly containing keys:
+            'input_draw': Input draw number to use,
+            'model_draw': Model draw number to use,
+            'components': Component configuration (file path, yaml string, or dict),
+            'config': Configuration overrides (file path, yaml string, or dict)
+
+    Returns
+    -------
+    A valid simulation configuration.
+    """
+    # Start with the base configuration in the user's home directory
+    config = build_base_configuration(parameters)
+
+    default_component_manager = {'vivarium': {'component_manager': 'vivarium.framework.components.ComponentManager'}}
+    default_dataset_manager = {'vivarium': {'dataset_manager': 'vivarium.framework.components.DummyDatasetManager'}}
+    default_metadata = {'layer': 'base', 'source': os.path.realpath(__file__)}
 
     # Set any configuration overrides from component and branch configurations.
     config.update(parameters.get('config', None), layer='override')  # source is implicit
