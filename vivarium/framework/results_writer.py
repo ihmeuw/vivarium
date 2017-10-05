@@ -77,9 +77,8 @@ class ResultsWriter:
         component_configuration_path: str
             Absolute path to a yaml file with the simulation component configuration.
         """
-        from vivarium import config
-        from vivarium.framework.engine import read_component_configuration, setup_simulation, configure
-        components = read_component_configuration(component_configuration_path)
-        configure()
-        setup_simulation(components)
-        self.write_output(config.to_dict(), 'base_config.yaml')
+        from vivarium.framework.engine import build_simulation_configuration, load_component_manager, setup_simulation
+        configuration = build_simulation_configuration({'components': component_configuration_path})
+        component_manager = load_component_manager(configuration)
+        setup_simulation(component_manager, configuration)
+        self.write_output(configuration.to_dict(), 'base_config.yaml')
