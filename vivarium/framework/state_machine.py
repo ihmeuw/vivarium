@@ -91,14 +91,17 @@ class Transition:
 
     Parameters
     ----------
-    output : State
+    input_state: State
+        The start state of the entity that undergoes the transition.
+    output_state : State
         The end state of the entity that undergoes the transition.
     probability_func : callable
         A method or function that describing the probability of this transition occurring.
     """
-    def __init__(self, output, probability_func=lambda index: pd.Series(1, index=index),
+    def __init__(self, input_state, output_state, probability_func=lambda index: pd.Series(1, index=index),
                  triggered=Trigger.NOT_TRIGGERED):
-        self.output = output
+        self.input_state = input_state
+        self.output_state = output_state
         self._probability = probability_func
         self._active_index, self.start_active = _process_trigger(triggered)
 
@@ -132,13 +135,8 @@ class Transition:
         """The name of this transition."""
         return ''
 
-    def __str__(self):
-        return 'Transition({})'.format(self.output)
-
     def __repr__(self):
-        return 'Transition(output= {}, _probability={}, _active={})'.format(self.output,
-                                                                            self._probability,
-                                                                            self._active_index)
+        return f'Transition(from={self.input_state.state_id}, to={self.output_state.state_id})'
 
 
 class State:
@@ -219,7 +217,7 @@ class State:
         output : State
             The end state after the transition.
         """
-        t = Transition(output, probability_func=probability_func, triggered=triggered)
+        t = Transition(self, output, probability_func=probability_func, triggered=triggered)
         self.transition_set.append(t)
         return t
 
@@ -299,7 +297,7 @@ class TransitionSet:
         decisions: `pandas.Series`
             A series containing the name of the next state for each simulant in the index.
         """
-        outputs, probabilities = zip(*[(transition.output, np.array(transition.probability(index)))
+        outputs, probabilities = zip(*[(transition.output_state, np.array(transition.probability(index)))
                                        for transition in self.transitions])
         probabilities = np.transpose(probabilities)
         outputs, probabilities = self._normalize_probabilities(outputs, probabilities)
