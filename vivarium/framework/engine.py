@@ -160,7 +160,7 @@ def build_base_configuration(parameters: Mapping = None) -> ConfigTree:
     # Get an input and model draw
     for draw_type in ['input_draw', 'model_draw']:
         if parameters and draw_type in parameters and parameters[draw_type] is not None:
-            metadata = {'layer': 'override', 'source': 'command_line_argument'}
+            metadata = {'layer': 'override', 'source': 'command line or launching script'}
             draw = _get_draw_template(draw_type, parameters[draw_type])
         else:
             metadata = default_metadata
