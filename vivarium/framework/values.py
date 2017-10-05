@@ -4,7 +4,7 @@ from collections import defaultdict
 
 import pandas as pd
 
-from vivarium import config, VivariumError
+from vivarium import VivariumError
 
 from .util import marker_factory, from_yearly
 
@@ -46,15 +46,14 @@ def list_combiner(value, mutator, *args, **kwargs):
     return value
 
 
-def rescale_post_processor(a):
+def rescale_post_processor(a, time_step):
     """Assumes that the value is an annual rate and rescales it to the
     current time step.
     """
-    time_step = config.simulation_parameters.time_step
     return from_yearly(a, pd.Timedelta(time_step, unit='D'))
 
 
-def joint_value_post_processor(a):
+def joint_value_post_processor(a, _):
     """The final step in calculating joint values like disability weights.
     If the combiner is list_combiner then the effective formula is:
     :math:`value(args) = 1 -  \prod_{i=1}^{mutator count} 1-mutator_{i}(args)`
@@ -96,11 +95,12 @@ class Pipeline:
                      A function which processes the output of the last mutator. If None, no post-processing is done.
     """
 
-    def __init__(self, combiner=replace_combiner, post_processor=None):
+    def __init__(self, manager=None, combiner=replace_combiner, post_processor=None):
         self.source = _dummy_source
         self.mutators = [[] for i in range(10)]
         self.combiner = combiner
         self.post_processor = post_processor
+        self.manager = manager
         self.configured = False
 
     def __call__(self, *args, skip_post_processor=False, **kwargs):
@@ -109,7 +109,7 @@ class Pipeline:
             for mutator in priority_bucket:
                 value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
-            return self.post_processor(value)
+            return self.post_processor(value, self.manager.step_size())
 
         return value
 
@@ -136,6 +136,10 @@ class ValuesManager:
     def __init__(self):
         self._pipelines = defaultdict(Pipeline)
         self.__pipeline_templates = {}
+        self._setup_complete = False
+
+    def setup(self, builder):
+        self.step_size = builder.step_size()
 
     def mutator(self, mutator, value_name, priority=5):
         pipeline = self.get_value(value_name)
@@ -157,12 +161,13 @@ class ValuesManager:
         if name not in self._pipelines:
             for name_template, (combiner, post_processor, source) in self.__pipeline_templates.items():
                 if name_template.match(name):
-                    self._pipelines[name] = Pipeline(combiner=combiner, post_processor=post_processor)
+                    self._pipelines[name] = Pipeline(self, combiner=combiner, post_processor=post_processor)
                     if source:
                         self._pipelines[name].source = source
                     self._pipelines[name].configured = True
 
         if not self._pipelines[name].configured:
+            self._pipelines[name].manager = self
             if preferred_combiner:
                 self._pipelines[name].combiner = preferred_combiner
                 self._pipelines[name].configured = True
@@ -183,7 +188,7 @@ class ValuesManager:
         for component in components:
             values_produced = [(v, component) for v in produces_value.finder(component)]
             values_produced += [(v, getattr(component, att))
-                                for att in sorted(dir(component))
+                                for att in sorted(dir(component)) if callable(getattr(component, att))
                                 for v in produces_value.finder(getattr(component, att))]
 
             for name, producer in values_produced:
@@ -193,7 +198,7 @@ class ValuesManager:
                                for priority in modifies_value.finder(component)
                                for i, v in enumerate(priority)]
             values_modified += [(v, getattr(component, att), i)
-                                for att in sorted(dir(component))
+                                for att in sorted(dir(component)) if callable(getattr(component, att))
                                 for i, vs in enumerate(modifies_value.finder(getattr(component, att)))
                                 for v in vs]
 

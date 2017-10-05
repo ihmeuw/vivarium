@@ -6,6 +6,7 @@ import os
 import os.path
 from pprint import pformat, pprint
 from time import time
+from typing import Mapping
 
 from collections import Iterable
 from pprint import pformat
@@ -15,11 +16,9 @@ from bdb import BdbQuit
 
 import yaml
 
-
 import pandas as pd
 
-from vivarium import config
-
+from vivarium.config_tree import ConfigTree
 from vivarium.framework.values import ValuesManager
 from vivarium.framework.event import EventManager, Event, emits
 from vivarium.framework.population import PopulationManager, creates_simulants
@@ -32,29 +31,11 @@ import logging
 _log = logging.getLogger(__name__)
 
 
-class Builder:
-    """Useful tools for constructing and configuring simulation components."""
-    def __init__(self, context):
-        self.lookup = context.tables.build_table
-        self.value = context.values.get_value
-        self.rate = context.values.get_rate
-        self.modifies_value = context.values.mutator
-        self.emitter = context.events.get_emitter
-        self.population_view = context.population.get_view
-        self.clock = lambda: lambda: context.current_time
-        self.step_size = lambda: lambda: context.step_size
-        input_draw_number = config.run_configuration.draw_number
-        model_draw_number = config.run_configuration.model_draw_number
-        self.randomness = lambda key: RandomnessStream(key, self.clock(), (input_draw_number, model_draw_number))
-
-    def __repr__(self):
-        return "Builder()"
-
-
 class SimulationContext:
     """context"""
-    def __init__(self, component_manager):
+    def __init__(self, component_manager, configuration):
         self.component_manager = component_manager
+        self.configuration = configuration
         self.values = ValuesManager()
         self.events = EventManager()
         self.population = PopulationManager()
@@ -80,9 +61,27 @@ class SimulationContext:
         self.events.get_emitter('post_setup')(None)
 
     def __repr__(self):
-        return "SimulationContext(components={}, current_time={}, step_size={})".format(self.components,
-                                                                                        self.current_time,
-                                                                                        self.step_size)
+        return "SimulationContext(current_time={}, step_size={})".format(self.current_time, self.step_size)
+
+
+class Builder:
+    """Useful tools for constructing and configuring simulation components."""
+    def __init__(self, context: SimulationContext):
+        self.lookup = context.tables.build_table
+        self.value = context.values.get_value
+        self.rate = context.values.get_rate
+        self.modifies_value = context.values.mutator
+        self.emitter = context.events.get_emitter
+        self.population_view = context.population.get_view
+        self.clock = lambda: lambda: context.current_time
+        self.step_size = lambda: lambda: context.step_size
+        self.configuration = context.configuration
+        input_draw_number = context.configuration.run_configuration.input_draw_number
+        model_draw_number = context.configuration.run_configuration.model_draw_number
+        self.randomness = lambda key: RandomnessStream(key, self.clock(), (input_draw_number, model_draw_number))
+
+    def __repr__(self):
+        return "Builder()"
 
 
 @emits('time_step')
@@ -99,8 +98,7 @@ def _step(simulation, time_step_emitter, time_step__prepare_emitter,
     simulation.update_time()
 
 
-def _get_time(suffix):
-    params = config.simulation_parameters
+def _get_time(suffix, params):
     month, day = 'month' + suffix, 'day' + suffix
     if month in params or day in params:
         if not (month in params and day in params):
@@ -113,20 +111,21 @@ def _get_time(suffix):
 @creates_simulants
 @emits('simulation_end')
 def event_loop(simulation, simulant_creator, end_emitter):
-    start = _get_time('start')
-    stop = _get_time('end')
+    sim_params = simulation.configuration.simulation_parameters
+    pop_params = simulation.configuration.population
 
+    start = _get_time('start', sim_params)
+    stop = _get_time('end', sim_params)
     simulation.current_time = start
 
-    population_size = config.simulation_parameters.population_size
+    population_size = pop_params.population_size
 
-    if config.simulation_parameters.initial_age is not None and config.simulation_parameters.pop_age_start is None:
-        simulant_creator(population_size, population_configuration={
-            'initial_age': config.simulation_parameters.initial_age})
+    if pop_params.initial_age is not None and pop_params.pop_age_start is None:
+        simulant_creator(population_size, population_configuration={'initial_age': pop_params.initial_age})
     else:
         simulant_creator(population_size)
 
-    simulation.step_size = pd.Timedelta(config.simulation_parameters.time_step, unit='D')
+    simulation.step_size = pd.Timedelta(sim_params.time_step, unit='D')
 
     while simulation.current_time < stop:
         gc.collect()  # TODO: Actually figure out where the memory leak is.
@@ -135,20 +134,19 @@ def event_loop(simulation, simulant_creator, end_emitter):
     end_emitter(Event(simulation.population.population.index))
 
 
-
-def setup_simulation(component_manager):
+def setup_simulation(component_manager, config):
+    config.run_configuration.set_with_metadata('run_id', str(time()), layer='base')
+    config.run_configuration.set_with_metadata('run_key',
+                                               {'draw': config.run_configuration.input_draw_number}, layer='base')
     component_manager.add_components([_step, event_loop])
-    simulation = SimulationContext(component_manager)
-
+    simulation = SimulationContext(component_manager, config)
     simulation.setup()
-
     return simulation
 
 
 def run_simulation(simulation):
     start = time()
     event_loop(simulation)
-
     metrics = simulation.values.get_value('metrics')
     metrics.source = lambda index: {}
     metrics = metrics(simulation.population.population.index)
@@ -156,41 +154,94 @@ def run_simulation(simulation):
     return metrics
 
 
-def configure(input_draw_number=None, model_draw_number=None, simulation_config=None):
-    if simulation_config:
-        if isinstance(simulation_config, dict):
-            config.read_dict(simulation_config)
+def build_base_configuration(parameters: Mapping = None) -> ConfigTree:
+    config = ConfigTree(layers=['base', 'component_configs', 'model_override', 'override'])
+    if os.path.exists(os.path.expanduser('~/vivarium.yaml')):
+        config.load(os.path.expanduser('~/vivarium.yaml'), layer='override',
+                    source=os.path.expanduser('~/vivarium.yaml'))
+
+    default_metadata = {'layer': 'base', 'source': os.path.realpath(__file__)}
+
+    # Some setup for the defaults
+    def _get_draw_template(draw_type_, value_):
+        return {'run_configuration': {f'{draw_type_}_number': value_}}
+
+    # Get an input and model draw
+    for draw_type in ['input_draw', 'model_draw']:
+        if parameters and draw_type in parameters and parameters[draw_type] is not None:
+            metadata = {'layer': 'override', 'source': 'command line or launching script'}
+            draw = _get_draw_template(draw_type, parameters[draw_type])
         else:
-            config.read(simulation_config)
+            metadata = default_metadata
+            draw = _get_draw_template(draw_type, 0)
+        config.update(draw, **metadata)
 
-    if input_draw_number is not None:
-        config.run_configuration.set_with_metadata('draw_number', input_draw_number,
-                                                   layer='override', source='command_line_argument')
-    else:
-        if 'draw_number' not in config.run_configuration:
-            config.run_configuration.set_with_metadata('draw_number', 0,
-                                                       layer='override', source='default')
+    # FIXME: Hack in some stuff from the config in ceam-inputs until we can clean this up. -J.C.
+    config.update(
+        {
+            'simulation_parameters':
+                {
+                    'year_start': 2005,
+                    'year_end': 2010,
+                    'time_step': 1
+                },
+            'input_data':
+                {
+                    'location_id': 180
+                },
 
-    if model_draw_number is not None:
-        config.run_configuration.set_with_metadata('model_draw_number', model_draw_number,
-                                                   layer='override', source='command_line_argument')
-    else:
-        if 'model_draw_number' not in config.run_configuration:
-            config.run_configuration.set_with_metadata('model_draw_number', 0,
-                                                       layer='override', source='default')
+        }, **default_metadata)
+
+    return config
 
 
-def run(component_manager):
-    config.set_with_metadata('run_configuration.run_id', str(time()), layer='base')
-    config.set_with_metadata('run_configuration.run_key', {'draw': config.run_configuration.draw_number}, layer='base')
-    simulation = setup_simulation(component_manager)
+def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
+    """Builds a configuration from the on disk user configuration, command line arguments,
+    and component configurations passed in by file path.
+
+    Parameters
+    ----------
+    parameters :
+        Dictionary possibly containing keys:
+            'input_draw': Input draw number to use,
+            'model_draw': Model draw number to use,
+            'components': Component configuration (file path, yaml string, or dict),
+            'config': Configuration overrides (file path, yaml string, or dict)
+
+    Returns
+    -------
+    A valid simulation configuration.
+    """
+    # Start with the base configuration in the user's home directory
+    config = build_base_configuration(parameters)
+
+    default_component_manager = {'vivarium': {'component_manager': 'vivarium.framework.components.ComponentManager'}}
+    default_dataset_manager = {'vivarium': {'dataset_manager': 'vivarium.framework.components.DummyDatasetManager'}}
+    default_metadata = {'layer': 'base', 'source': os.path.realpath(__file__)}
+
+    # Set any configuration overrides from component and branch configurations.
+    config.update(parameters.get('config', None), layer='override')  # source is implicit
+    config.update(parameters.get('components', None), layer='model_override')  # source is implicit
+    if 'configuration' in config:
+        config.configuration.source = parameters.get('components', None)
+
+    # Make sure we have a component and dataset manager
+    if 'component_manager' not in config['vivarium']:
+        config.update(default_component_manager, **default_metadata)
+    if 'dataset_manager' not in config['vivarium']:
+        config.update(default_dataset_manager, **default_metadata)
+
+    return config
+
+
+def run(simulation):
     metrics = run_simulation(simulation)
-    for name, value in collapse_nested_dict(config.run_configuration.run_key.to_dict()):
-        metrics[name] = value
 
+    for name, value in collapse_nested_dict(simulation.configuration.run_configuration.run_key.to_dict()):
+        metrics[name] = value
     _log.debug(pformat(metrics))
 
-    unused_config_keys = config.unused_keys()
+    unused_config_keys = simulation.configuration.unused_keys()
     if unused_config_keys:
         _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
 
@@ -198,18 +249,11 @@ def run(component_manager):
 
 
 def do_command(args):
-    configure(input_draw_number=args.input_draw, simulation_config=args.config)
-
-    if args.components.endswith('.yaml'):
-        with open(args.components) as f:
-            component_config = f.read()
-        component_config = yaml.load(component_config)
-    else:
-        raise VivariumError("Unknown components configuration type: {}".format(args.components))
-
-    component_manager = load_component_manager(component_config=component_config)
+    config = build_simulation_configuration(vars(args))
+    component_manager = load_component_manager(config)
     if args.command == 'run':
-        results = run(component_manager)
+        simulation = setup_simulation(component_manager, config)
+        results = run(simulation)
         if args.results_path:
             try:
                 os.makedirs(os.path.dirname(args.results_path))
