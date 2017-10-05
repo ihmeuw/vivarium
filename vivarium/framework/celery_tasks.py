@@ -14,8 +14,8 @@ app = Celery()
 
 @app.task(autoretry_for=(Exception,), max_retries=2)
 def worker(parameters, logging_directory):
-    input_draw = int(parameters['input_draw'])
-    model_draw = int(parameters['model_draw'])
+    input_draw = parameters['input_draw']
+    model_draw = parameters['model_draw']
     component_config = parameters['components']
     branch_config = parameters['config']
 
@@ -24,7 +24,7 @@ def worker(parameters, logging_directory):
     logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                         filename=os.path.join(logging_directory, str(worker_)+'.log'), level=logging.DEBUG)
     logging.info('Starting job: {}'.format((input_draw, model_draw, component_config, branch_config)))
-    
+
     try:
         from vivarium.framework.engine import build_simulation_configuration, run, setup_simulation
         from vivarium.framework.components import load_component_manager
