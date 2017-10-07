@@ -8,7 +8,14 @@ from pprint import pformat, pprint
 from time import time
 from typing import Mapping
 
+from collections import Iterable
+from pprint import pformat
+import gc
+from bdb import BdbQuit
+
+
 import yaml
+
 import pandas as pd
 
 from vivarium.config_tree import ConfigTree
@@ -37,10 +44,12 @@ class SimulationContext:
         self.step_size = pd.Timedelta(0, unit='D')
 
     def update_time(self):
+        """Updates the simulation clock."""
         self.current_time += self.step_size
 
     def setup(self):
         builder = Builder(self)
+
         self.component_manager.add_components([self.values, self.events, self.population, self.tables])
         self.component_manager.load_components_from_config()
         self.component_manager.setup_components(builder)
@@ -236,7 +245,7 @@ def run(simulation):
     if unused_config_keys:
         _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
 
-    return metrics
+    return metrics, simulation.population._population
 
 
 def do_command(args):
@@ -257,7 +266,6 @@ def do_command(args):
         pprint(yaml.dump(list(component_manager.dataset_manager.datasets_loaded)))
 
 
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('command', choices=['run', 'list_datasets'])
@@ -267,7 +275,7 @@ def main():
                         help='Path to a config file to load which will take precedence over all other configs')
     parser.add_argument('--input_draw', '-d', type=int, default=0, help='Which GBD draw to use')
     parser.add_argument('--model_draw', type=int, default=0, help="Which draw from the model's own variation to use")
-    parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
+    parser.add_argument('--results_path', '-o', type=str, default=None, help='Output directory to write results to')
     parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
     parser.add_argument('--log', type=str, default=None, help='Path to log file')
     parser.add_argument('--pdb', action='store_true', help='Run in the debugger')
