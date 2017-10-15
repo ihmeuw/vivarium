@@ -69,7 +69,10 @@ def load_component_manager(config_source: str = None, config_path: str = None, d
         else:
             raise ComponentConfigError("Unknown components configuration type: {}".format(config_path))
 
-    raw_config = yaml.load(config_source)
+    if isinstance(config_source, str):
+        raw_config = yaml.load(config_source)
+    else:
+        raw_config = config_source
 
     if raw_config.get('configuration', {}).get('vivarium', {}).get('component_manager'):
         manager_class_name = raw_config['configuration']['vivarium']['component_manager']
