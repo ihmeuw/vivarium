@@ -1,97 +1,59 @@
-"""Tools for interpreting component configuration files as well as the default ComponentManager class which uses those tools
-to load and manage components.
+"""Tools for interpreting component configuration files as well as the default
+ComponentManager class which uses those tools to load and manage components.
 """
-
 import ast
 from collections import Iterable
 from importlib import import_module
 import inspect
-from typing import Tuple, Callable, Sequence, Mapping, Union
+from typing import Tuple, Callable, Sequence, Mapping, Union, List
 
-import yaml
+from vivarium import VivariumError
+from vivarium.config_tree import ConfigTree
 
-from vivarium import config
 
-
-class ComponentConfigError(Exception):
-    """Error while interpreting configuration file or initializing components
-    """
+class ComponentConfigError(VivariumError):
+    """Error while interpreting configuration file or initializing components"""
     pass
 
 
 class ParsingError(ComponentConfigError):
-    """Error while parsing component descriptions
-    """
+    """Error while parsing component descriptions"""
     pass
 
 
 class DummyDatasetManager:
-    """Placeholder implementation of the DatasetManager
-    """
+    """Placeholder implementation of the DatasetManager"""
     def __init__(self):
         self.constructors = {}
 
 
-def _import_by_path(path: str) -> Union[type, Callable]:
+def _import_by_path(path: str) -> Callable:
     """Import a class or function given it's absolute path.
 
     Parameters
     ----------
     path:
-      Absolute class to object to import
+      Path to object to import
     """
 
     module_path, _, class_name = path.rpartition('.')
     return getattr(import_module(module_path), class_name)
 
 
-def load_component_manager(config_source: str = None, config_path: str = None, dataset_manager_class: type = None):
-    """Create a component manager along with it's dataset manager. The class used will be either the default or
-    a custom class specified in the configuration.
+def load_component_manager(config: ConfigTree):
+    """Create a component manager along with it's dataset manager.
+
+    The class used will be either the default or a custom class specified in the configuration.
 
     Parameters
     ----------
-    config_source:
-      The YAML source of the configuration file to use.
-    config_path:
-      The path to a YAML configuration file to use.
-    dataset_manager_class:
-      Class to use for the dataset manager. Will override dataset manager class specified in the configuration if supplied.
+    config:
+        Configuration data to use.
     """
-
-    if sum([config_source is None, config_path is None]) != 1:
-        raise ComponentConfigError('Must supply either source or path but not both')
-
-    if config_path:
-        if config_path.endswith('.yaml'):
-            with open(config_path) as f:
-                config_source = f.read()
-        else:
-            raise ComponentConfigError("Unknown components configuration type: {}".format(config_path))
-
-    if isinstance(config_source, str):
-        raw_config = yaml.load(config_source)
-    else:
-        raw_config = config_source
-
-    if raw_config.get('configuration', {}).get('vivarium', {}).get('component_manager'):
-        manager_class_name = raw_config['configuration']['vivarium']['component_manager']
-        component_manager_class = _import_by_path(manager_class_name)
-    else:
-        component_manager_class = ComponentManager
-
-    if dataset_manager_class is None:
-        if raw_config.get('configuration', {}).get('vivarium', {}).get('dataset_manager'):
-            manager_class_name = raw_config['configuration']['vivarium']['dataset_manager']
-            dataset_manager_class = _import_by_path(manager_class_name)
-        else:
-            dataset_manager_class = DummyDatasetManager
-
-    if 'configuration' in raw_config:
-        config.read_dict(raw_config['configuration'], layer='model_override', source=config_path)
-
-    manager = component_manager_class(raw_config.get('components', {}), dataset_manager_class())
-    return manager
+    component_manager_class = _import_by_path(config.vivarium.component_manager)
+    dataset_manager_class = _import_by_path(config.vivarium.dataset_manager)
+    dataset_manager = dataset_manager_class()
+    return component_manager_class(config, dataset_manager)
 
 
 class ComponentManager:
@@ -99,48 +61,43 @@ class ComponentManager:
     tracking which ones were loaded.
     """
 
-    def __init__(self, component_config, dataset_manager):
+    def __init__(self, config: ConfigTree, dataset_manager):
         self.tags = {}
-        self.component_config = component_config
+
+        if 'components' in config:
+            self.component_config = config.components
+            del config.components
+        else:
+            self.component_config = {}
+
+        if 'configuration' in config:
+            model_config = config.configuration
+            source = model_config.source if 'source' in model_config else None
+            del model_config.source
+            del config.configuration
+            config.update(model_config, layer='model_override', source=source)
+
+        self.config = config
         self.components = []
-        self._uninitialized_components = []
         self.dataset_manager = dataset_manager
 
-
-    def load_and_initialize_components(self):
-        """A convenience wrapper around load_components_from_config and initialize_components for the common case where
-        the details of the component loading lifecycle isn't important.
-        """
-
-        self.load_components_from_config()
-        self.initialize_components()
-
-
-    def prep_component(self, component):
-        return _prep_component(component, self.dataset_manager.constructors)
-
-
     def load_components_from_config(self):
-        """Load any components listed in the config and prepare them for initialization.
+        """Load and initialize (if necessary) any components listed in the config and register them with
+        the ComponentManager.
         """
 
         component_list = _extract_component_list(self.component_config)
-        component_list = [self.prep_component(component) for component in component_list]
-        self._uninitialized_components.extend(component_list)
-
-    def initialize_components(self):
-        """Initialize (if necessary) any components which are pending initialization and register them with the ComponentManager.
-        """
-
+        component_list = _prep_components(self.config, component_list, self.dataset_manager.constructors)
         new_components = []
-        while self._uninitialized_components:
-            component = self._uninitialized_components.pop()
+        for component in component_list:
             if len(component) == 1:
-                self.components.append(component[0])
+                new_components.append(component[0])
             else:
-                self.components.append(component[0](*component[1]))
+                new_components.append(component[0](*component[1]))
 
-    def add_components(self, components: Sequence):
+        self.components.extend(new_components)
+
+    def add_components(self, components: List):
         """Register new components.
 
         Parameters
@@ -150,7 +107,6 @@ class ComponentManager:
         """
 
         self.components = components + self.components
-
 
     def setup_components(self, builder):
         """Apply component level configuration defaults to the global config and run setup methods on the components
@@ -179,7 +135,9 @@ class ComponentManager:
                 if hasattr(component, 'configuration_defaults'):
                     # This reapplies configuration from some components but
                     # it is idempotent so there's no effect.
-                    config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
+                    component_file_path = inspect.getfile(component.__class__)
+                    self.config.update(component.configuration_defaults,
+                                       layer='component_configs', source=component_file_path)
 
                 if hasattr(component, 'setup'):
                     sub_components = component.setup(builder)
@@ -210,9 +168,9 @@ def _extract_component_list(component_config: Mapping[str, Union[str, Mapping]])
 
     return _process_level(component_config, [])
 
+
 def _component_ast_to_path(component: ast.AST) -> str:
-    """Convert the AST representing a component into a string
-    which can be imported.
+    """Convert the AST representing a component into a string which can be imported.
 
     Parameters
     ----------
@@ -230,7 +188,44 @@ def _component_ast_to_path(component: ast.AST) -> str:
     path.insert(0, current.id)
     return '.'.join(path)
 
-def _parse_component(desc: str, constructors: Mapping[str, Callable]) -> Tuple[str, Sequence]:
+
+def _extract_component_call(definition: ast.AST) -> Tuple[ast.AST, List[ast.AST]]:
+    """Extract component call AST and args list from the module returned by ast.parse
+
+    Parameters
+    ----------
+    definition
+        The component definition
+    """
+
+    definition_expression = definition.body[0]
+    component_call = definition_expression.value
+    return component_call.func, component_call.args
+
+
+def _is_literal(expression: ast.AST) -> bool:
+    """Check if the expression is a literal.
+
+    Notes
+    -----
+    Since this is almost certainly used as a guard around a call to literal_eval it means the evaluation happens twice
+    where it could have happened once. But so long as you are looking at a moderate number of small expressions the cost
+    should be minimal compared to the clarity of having a clear predicate.
+
+    Parameters
+    ----------
+    expression
+        The AST tree to check
+    """
+
+    try:
+        ast.literal_eval(expression)
+    except ValueError:
+        return False
+    return True
+
+
+def _parse_component(definition: str, constructors: Mapping[str, Callable]) -> Tuple[str, Sequence]:
     """Parse a component definition in a subset of python syntax and return an importable
     path to the specified component along with the arguments it should receive when invoked.
     If the definition is not parsable a ParsingError is raised.
@@ -241,73 +236,80 @@ def _parse_component(desc: str, constructors: Mapping[str, Callable]) -> Tuple[s
 
     Parameters
     ----------
-    desc
+    definition
         The component definition
     constructors
         Dictionary of callables for creating argument objects
     """
 
-    component, *args = ast.iter_child_nodes(list(ast.iter_child_nodes(list(ast.iter_child_nodes(ast.parse(desc)))[0]))[0])
+    component, args = _extract_component_call(ast.parse(definition))
     component = _component_ast_to_path(component)
-    new_args = []
-    for arg in args:
-        parsed = False
-        try:
-            new_args.append(ast.literal_eval(arg))
-            parsed = True
-        except ValueError:
-            if isinstance(arg, ast.Call):
-                constructor, *constructor_args = ast.iter_child_nodes(arg)
-                constructor = constructors.get(constructor.id)
-                # NOTE: This currently precludes arguments other than strings. May want to release that constraint later.
-                if constructor and len(constructor_args) == 1 and isinstance(constructor_args[0], ast.Str):
-                    new_args.append(constructor(constructor_args[0].s))
-                    parsed = True
-                else:
-                    raise ParsingError('Invalid syntax: {}'.format(desc))
-        if not parsed:
-            raise ParsingError('Invalid syntax: {}'.format(desc))
-    return component, new_args
 
-def _prep_component(component: Union[str, Callable], constructors: Mapping[str, Callable]) -> Sequence:
-    """Transform component a description string into a tuple of component callable and any arguments the component may need.
+    transformed_args = []
+    for arg in args:
+        if _is_literal(arg):
+            transformed_args.append(ast.literal_eval(arg))
+        else:
+            if isinstance(arg, ast.Call):
+                constructor = arg.func.id
+                constructor_args = arg.args
+
+                constructor = constructors.get(constructor)
+                # NOTE: This currently precludes arguments other than strings.
+                # May want to release that constraint later.
+                if constructor and len(constructor_args) == 1 and isinstance(constructor_args[0], ast.Str):
+                    transformed_args.append(constructor(constructor_args[0].s))
+                else:
+                    raise ParsingError('Invalid syntax: {}'.format(definition))
+
+    return component, transformed_args
+
+
+def _prep_components(config: ConfigTree, component_list: Sequence, constructors: Mapping[str, Callable]) -> Sequence:
+    """Transform component description strings into tuples of component callables and arguments the component may need.
 
     Parameters
     ----------
     component_list
-        The component description to transform
+        The component descriptions to transform
     constructors
         Dictionary of callables for creating argument objects
 
     Returns
     -------
-    component/argument tuple
+    List of component/argument tuples.
     """
 
-    if isinstance(component, str):
-        if '(' in component:
-            component, args = _parse_component(component, constructors)
-            call = True
-        else:
-            call = False
+    components = []
+    for component in component_list:
+        if isinstance(component, str):
+            if '(' in component:
+                component, args = _parse_component(component, constructors)
+                call = True
+            else:
+                call = False
 
-        component = _import_by_path(component)
-    else:
-        call = True
-        args = tuple()
+            component = _import_by_path(component)
 
-    for attr, val in inspect.getmembers(component, lambda a: not inspect.isroutine(a)):
-        constructor = constructors.get(val.__class__)
-        if constructor:
-            setattr(component, attr, constructor(val))
+            for attr, val in inspect.getmembers(component, lambda a: not inspect.isroutine(a)):
+                constructor = constructors.get(val.__class__)
+                if constructor:
+                    setattr(component, attr, constructor(val))
 
-    # Establish the initial configuration
-    if hasattr(component, 'configuration_defaults'):
-        config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
+            # Establish the initial configuration
+            if hasattr(component, 'configuration_defaults'):
+                component_file_path = inspect.getfile(component)
+                config.read_dict(component.configuration_defaults,
+                                 layer='component_configs', source=component_file_path)
 
-    if call:
-        component = (component, args)
-    else:
-        component = (component,)
+            if call:
+                component = (component, args)
+            else:
+                component = (component,)
 
-    return component
+        elif isinstance(component, type):
+            component = (component, tuple())
+
+        components.append(component)
+
+    return components

@@ -23,6 +23,7 @@ For example:
 >>> config.section_b.item1
 'value7'
 """
+from typing import Mapping, Union
 import yaml
 
 
@@ -199,7 +200,7 @@ class ConfigTree:
         """
         Parameters
         ----------
-        data : dict
+        data : dict, str, or ConfigTree, optional
             A dictionary containing initial values
         layers : list
             A list of layer names. The order in which layers defined determines
@@ -213,7 +214,7 @@ class ConfigTree:
         self.__dict__['_frozen'] = False
 
         if data:
-            self.read_dict(data, layer=self._layers[0], source='initial data')
+            self.update(data, layer=self._layers[0], source='initial data')
 
     def freeze(self):
         """Causes the ConfigTree to become read only.
@@ -242,6 +243,14 @@ class ConfigTree:
     def __getitem__(self, name):
         """Get a configuration value from the outermost layer in which it appears."""
         return self.get_from_layer(name)
+
+    def __delattr__(self, name):
+        if name in self._children:
+            del self._children[name]
+
+    def __delitem__(self, name):
+        if name in self._children:
+            del self._children[name]
 
     def __contains__(self, name):
         """Test if a configuration key exists in any layer."""
@@ -294,6 +303,7 @@ class ConfigTree:
         TypeError
             if the ConfigTree is frozen
         """
+
         if self._frozen:
             raise TypeError('Frozen ConfigTree does not support assignment')
 
@@ -306,6 +316,40 @@ class ConfigTree:
                 self._children[name] = ConfigNode(list(self._layers))
             child = self._children[name]
             child.set_value(value, layer, source)
+
+    def update(self, data: Union[Mapping, str, bytes], layer: str=None, source: str=None):
+        """Adds additional data into the ConfigTree.
+
+
+        Parameters
+        ----------
+        data :
+            source data
+        layer :
+            layer to load data into. If none is supplied the outermost one is used
+        source :
+            Source to attribute the values to
+
+        See Also
+        --------
+        read_dict
+        """
+        if isinstance(data, dict):
+            self.read_dict(data, layer, source)
+        elif isinstance(data, ConfigTree):
+            # TODO: set this to parse the other config tree including layer and source info.  Maybe.
+            self.read_dict(data.to_dict(), layer, source)
+        elif isinstance(data, str):
+            if data.endswith('.yaml'):
+                source = source if source else data
+                self.load(data, layer, source)
+            else:
+                self.loads(data, layer, source)
+        elif data is None:
+            pass
+        else:
+            raise ValueError(f"Update must be called with dictionary, string, or ConfigTree. "
+                             f"You passed in {type(data)}")
 
     def read_dict(self, data_dict, layer=None, source=None):
         """Load a dictionary into the ConfigTree. If the dict contains nested dicts

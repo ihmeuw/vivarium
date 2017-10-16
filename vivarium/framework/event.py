@@ -149,7 +149,7 @@ class EventManager:
                          for i, priority in enumerate(listens_for.finder(component))
                          for v in priority]
             listeners += [(v, getattr(component, att), i)
-                          for att in sorted(dir(component))
+                          for att in sorted(dir(component)) if callable(getattr(component, att))
                           for i, vs in enumerate(listens_for.finder(getattr(component, att)))
                           for v in vs]
 
@@ -158,7 +158,7 @@ class EventManager:
 
             emitters = [(v, component) for v in emits.finder(component)]
             emitters += [(v, getattr(component, att))
-                         for att in sorted(dir(component))
+                         for att in sorted(dir(component)) if callable(getattr(component, att))
                          for v in emits.finder(getattr(component, att))]
 
             # Pre-create the EventChannels for known emitters
