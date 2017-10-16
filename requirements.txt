@@ -1,6 +1,5 @@
 graphviz
 numpy
 pandas
-mock
 pyyaml
 scipy
