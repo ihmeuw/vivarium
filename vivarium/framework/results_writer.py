@@ -1,6 +1,7 @@
 """Provides a class for consistently managing and writing vivarium outputs and output paths."""
 from collections import defaultdict
 import os
+from datetime import datetime
 
 import yaml
 
@@ -82,3 +83,11 @@ class ResultsWriter:
         component_manager = load_component_manager(configuration)
         setup_simulation(component_manager, configuration)
         self.write_output(configuration.to_dict(), 'base_config.yaml')
+
+
+def get_results_writer(results_directory, component_configuration_file):
+    launch_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    config_name = os.path.basename(component_configuration_file.rpartition('.')[0])
+    results_root = results_directory + f"/{config_name}/{launch_time}"
+    return ResultsWriter(results_root)
+

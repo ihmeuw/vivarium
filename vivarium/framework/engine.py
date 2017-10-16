@@ -20,6 +20,7 @@ from vivarium.framework.lookup import InterpolatedDataManager
 from vivarium.framework.components import load_component_manager
 from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.util import collapse_nested_dict
+from vivarium.framework.results_writer import get_results_writer
 
 import logging
 _log = logging.getLogger(__name__)
@@ -186,6 +187,11 @@ def build_base_configuration(parameters: Mapping = None) -> ConfigTree:
 
         }, **default_metadata)
 
+    if parameters and 'results_path' in parameters:
+        config.update({'run_configuration': {'results_directory': parameters['results_path']}})
+    if config.run_configuration.results_directory is None:
+        config.run_configuration.results_directory = os.path.expanduser('~/vivarium_results/')
+
     return config
 
 
@@ -247,14 +253,14 @@ def do_command(args):
     component_manager = load_component_manager(config)
     if args.command == 'run':
         simulation = setup_simulation(component_manager, config)
-        results = run(simulation)
-        if args.results_path:
-            try:
-                os.makedirs(os.path.dirname(args.results_path))
-            except FileExistsError:
-                # Directory already exists, which is fine
-                pass
-            pd.DataFrame([results]).to_hdf(args.results_path, 'data')
+        results_writer = get_results_writer(config.run_configuration.results_directory, args.components)
+        metrics, final_state = run(simulation)
+        idx = pd.MultiIndex.from_tuples([(config.run_configuration.input_draw_number,
+                                          config.run_configuration.model_draw_number)],
+                                        names=['input_draw_number', 'model_draw_number'])
+        output = pd.DataFrame(metrics, index=idx)
+        results_writer.write_output(output, 'output.hdf')
+        results_writer.write_output(final_state, 'final_state.hdf')
     elif args.command == 'list_datasets':
         component_manager.load_components_from_config()
         pprint(yaml.dump(list(component_manager.dataset_manager.datasets_loaded)))
