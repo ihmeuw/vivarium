@@ -47,7 +47,6 @@ class SimulationContext:
 
         self.component_manager.add_components([self.values, self.events, self.population, self.tables])
         self.component_manager.load_components_from_config()
-        self.component_manager.initialize_components()
         self.component_manager.setup_components(builder)
 
         self.values.setup_components(self.component_manager.components)

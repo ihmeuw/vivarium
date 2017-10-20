@@ -23,7 +23,7 @@ class ParsingError(ComponentConfigError):
 
 class DummyDatasetManager:
     """Placeholder implementation of the DatasetManager"""
-    def __init__(self):
+    def __init__(self, config: ConfigTree):
         self.constructors = {}
 
 
@@ -50,10 +50,23 @@ def load_component_manager(config: ConfigTree):
     config:
         Configuration data to use.
     """
+    if 'components' in config:
+        component_config = config.components
+        del config.components
+    else:
+        component_config = {}
+
+    if 'configuration' in config:
+        model_config = config.configuration
+        source = model_config.source if 'source' in model_config else None
+        del model_config.source
+        del config.configuration
+        config.update(model_config, layer='model_override', source=source)
+
     component_manager_class = _import_by_path(config.vivarium.component_manager)
     dataset_manager_class = _import_by_path(config.vivarium.dataset_manager)
-    dataset_manager = dataset_manager_class()
-    return component_manager_class(config, dataset_manager)
+    dataset_manager = dataset_manager_class(config)
+    return component_manager_class(config, component_config, dataset_manager)
 
 
 class ComponentManager:
@@ -61,23 +74,11 @@ class ComponentManager:
     tracking which ones were loaded.
     """
 
-    def __init__(self, config: ConfigTree, dataset_manager):
+    def __init__(self, config: ConfigTree, component_config, dataset_manager):
         self.tags = {}
 
-        if 'components' in config:
-            self.component_config = config.components
-            del config.components
-        else:
-            self.component_config = {}
-
-        if 'configuration' in config:
-            model_config = config.configuration
-            source = model_config.source if 'source' in model_config else None
-            del model_config.source
-            del config.configuration
-            config.update(model_config, layer='model_override', source=source)
-
         self.config = config
+        self.component_config = component_config
         self.components = []
         self.dataset_manager = dataset_manager
 
