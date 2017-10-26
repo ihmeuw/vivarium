@@ -94,7 +94,11 @@ class ComponentManager:
             if len(component) == 1:
                 new_components.append(component[0])
             else:
-                new_components.append(component[0](*component[1]))
+                sig = inspect.signature(component[0]).bind(*component[1])
+                sig.apply_defaults()
+                if 'dataset_manager' in sig.signature.parameters:
+                    sig.arguments['dataset_manager'] = self.dataset_manager
+                new_components.append(component[0](*sig.args))
 
         self.components.extend(new_components)
 
