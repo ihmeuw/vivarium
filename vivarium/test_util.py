@@ -163,7 +163,7 @@ class TestPopulation:
             'test_population_sex'+str(self.config.run_configuration.input_draw_number),
             population.index, ['Male', 'Female'])
         population['alive'] = pd.Series('alive', index=population.index).astype(
-            'category', categories=['alive', 'dead', 'untracked'], ordered=False)
+            pd.api.types.CategoricalDtype(categories=['alive', 'dead', 'untracked'], ordered=False))
         if 'location_id' in self.config.input_data:
             population['location'] = self.config.input_data.location_id
         else:
