@@ -35,13 +35,15 @@ vivarium:
 
 
 class MockComponentManager:
-    def __init__(self, components, dataset_manager):
+    def __init__(self, config, components, dataset_manager):
+        self.config = config
         self.components = components
         self.dataset_manager = dataset_manager
 
 
 class MockDatasetManager:
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.constructors = {}
 
 
@@ -124,12 +126,10 @@ def test_load_component_manager_custom_managers(monkeypatch):
     config.update(TEST_COMPONENTS + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_COMPONENT_MANAGER)
     manager = load_component_manager(config)
     assert isinstance(manager, MockComponentManager)
-    assert isinstance(manager.dataset_manager, DummyDatasetManager)
 
     config = build_simulation_configuration({})
     config.update(TEST_COMPONENTS + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_DATASET_MANAGER)
     manager = load_component_manager(config)
-    assert isinstance(manager, ComponentManager)
     assert isinstance(manager.dataset_manager, MockDatasetManager)
 
 
@@ -203,7 +203,7 @@ def test_ComponentManager__load_component_from_config(_prep_components_mock, _ex
     _prep_components_mock.return_value = [(MockComponentA, ['Red Leicester']),
                                           (MockComponentB, []), (mock_component_c,)]
 
-    manager = ComponentManager(ConfigTree(), MockDatasetManager())
+    manager = ComponentManager(ConfigTree(), ConfigTree(), MockDatasetManager(ConfigTree()))
 
     manager.load_components_from_config()
 
@@ -218,7 +218,7 @@ def test_ComponentManager__load_component_from_config(_prep_components_mock, _ex
 
 
 def test_ComponentManager__setup_components():
-    manager = ComponentManager({}, MockDatasetManager())
+    manager = ComponentManager(ConfigTree(), ConfigTree(), MockDatasetManager(ConfigTree()))
     manager.components = [MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'), mock_component_c]
 
     builder = object()
