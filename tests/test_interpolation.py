@@ -85,3 +85,13 @@ def test_order_zero_2d():
     query = pd.DataFrame({'a': column, 'b': column, 'garbage': ['test']*(len(column))})
 
     assert np.allclose(query.b.astype(int) * 3, i(query))
+
+
+def test_order_zero_1d():
+    s = pd.Series({0:0, 1:1}).reset_index()
+    f = Interpolation(s, tuple(), ('index', ), order=0)
+
+    assert f(index=[0])[0] == 0, 'should be precise at index values'
+    assert f(index=[1])[0] == 1
+    assert f(index=[2])[0] == 1, 'should be constant extrapolation outside of input range'
+    assert f(index=[-1])[0] == 0

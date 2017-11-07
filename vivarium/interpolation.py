@@ -11,8 +11,6 @@ class Interpolation:
 
         if len(self.parameter_columns) not in [1, 2]:
             raise ValueError("Only interpolation over 1 or 2 variables is supported")
-        if len(self.parameter_columns) == 1 and order == 0:
-            raise ValueError("Order 0 only supported for 2d interpolation")
 
         # These are the columns which the interpolation function will approximate
         value_columns = sorted(self._data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
@@ -52,7 +50,10 @@ class Interpolation:
                     base_table = base_table.sort_values(by=self.parameter_columns[0])
                     x = base_table[self.parameter_columns[0]]
                     y = base_table[value_column]
-                    func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
+                    if order == 0:
+                        func = interpolate.interp1d(x, y, kind='zero', fill_value='extrapolate')
+                    else:
+                        func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
                 self.interpolations[key][value_column] = func
 
     def __call__(self, *args, **kwargs):
