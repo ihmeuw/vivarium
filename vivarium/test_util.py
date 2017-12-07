@@ -24,12 +24,7 @@ def setup_simulation(components, population_size=100, start=None, input_config=N
         year_start = config.simulation_parameters.year_start
         simulation.current_time = pd.Timestamp(year_start, 1, 1)
 
-    if 'initial_age' in config.population:
-        simulation.population._create_simulants(population_size,
-                                                population_configuration={
-                                                    'initial_age': config.population.initial_age})
-    else:
-        simulation.population._create_simulants(population_size)
+    simulation.population._create_simulants(population_size)
 
     simulation.step_size = pd.Timedelta(config.simulation_parameters.time_step, unit='D')
 
@@ -139,21 +134,22 @@ class TestPopulation:
     @listens_for('initialize_simulants', priority=0)
     @uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
     def generate_test_population(self, event):
-        initial_age = event.user_data.get('initial_age', None)
+        age_start = event.user_data.get('age_start', None)
+        age_end = event.user_data.get('age_end', None)
         population = pd.DataFrame(index=event.index)
 
-        if 'pop_age_start' in self.config.population:
+        if 'age_start' in self.config.population:
             age_start = self.config.population.pop_age_start
         else:
             age_start = 0
 
-        if 'pop_age_end' in self.config.population:
+        if 'age_end' in self.config.population:
             age_end = self.config.population.pop_age_end
         else:
             age_end = 100
 
-        if initial_age is not None and initial_age != '':
-            population['age'] = initial_age
+        if age_start == age_end:
+            population['age'] = age_start
             population['age'] = population['age'].astype(float)
         else:
             population['age'] = (randomness.random('test_population_age', population.index)

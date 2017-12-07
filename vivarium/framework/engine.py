@@ -115,10 +115,7 @@ def event_loop(simulation, simulant_creator, end_emitter):
 
     population_size = pop_params.population_size
 
-    if pop_params.initial_age is not None and pop_params.pop_age_start is None:
-        simulant_creator(population_size, population_configuration={'initial_age': pop_params.initial_age})
-    else:
-        simulant_creator(population_size)
+    simulant_creator(population_size)
 
     simulation.step_size = pd.Timedelta(sim_params.time_step, unit='D')
 
