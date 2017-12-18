@@ -1,12 +1,13 @@
-import pandas as pd
+import warnings
 
+import pandas as pd
 from scipy import interpolate
 
 class Interpolation:
     def __init__(self, data, categorical_parameters, continuous_parameters, func=None, order=1):
         self._data = data
         self.key_columns = categorical_parameters
-        self.parameter_columns = continuous_parameters
+        self.parameter_columns = validate_parameters(data, continuous_parameters, order)
         self.func = func
 
         if len(self.parameter_columns) not in [1, 2]:
@@ -95,3 +96,19 @@ class Interpolation:
 
     def __repr__(self):
         return "Interpolation()"
+
+
+def validate_parameters(data, continuous_parameters, order):
+    if data.empty:
+        return continuous_parameters
+
+    out = []
+    for p in continuous_parameters:
+        if len(data[p].unique()) > order:
+            out.append(p)
+        else:
+            warnings.warn(f"You requested an order {order} interpolation over the parameter {p}, "
+                          f"however there are only {len(data[p].unique())} unique values for {p}"
+                          f"which is insufficient to support the requested interpolation order."
+                          f"The parameter will be dropped from the interpolation.")
+    return out
