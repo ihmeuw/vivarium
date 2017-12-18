@@ -111,4 +111,5 @@ def validate_parameters(data, continuous_parameters, order):
                           f"however there are only {len(data[p].unique())} unique values for {p}"
                           f"which is insufficient to support the requested interpolation order."
                           f"The parameter will be dropped from the interpolation.")
+            del data[p]
     return out
