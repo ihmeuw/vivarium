@@ -134,17 +134,17 @@ class TestPopulation:
     @listens_for('initialize_simulants', priority=0)
     @uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
     def generate_test_population(self, event):
-        age_start = event.user_data.get('pop_age_start', None)
-        age_end = event.user_data.get('pop_age_end', None)
+        age_start = event.user_data.get('age_start', None)
+        age_end = event.user_data.get('age_end', None)
         population = pd.DataFrame(index=event.index)
 
-        if 'pop_age_start' in self.config.population:
-            age_start = self.config.population.pop_age_start
+        if 'age_start' in self.config.population:
+            age_start = self.config.population.age_start
         else:
             age_start = 0
 
-        if 'pop_age_end' in self.config.population:
-            age_end = self.config.population.pop_age_end
+        if 'age_end' in self.config.population:
+            age_end = self.config.population.age_end
         else:
             age_end = 100
 
