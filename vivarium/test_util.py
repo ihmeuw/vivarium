@@ -128,46 +128,29 @@ def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'rat
 
 class TestPopulation:
 
+    configuration_defaults = {
+        'population': {
+            'age_start': 0,
+            'age_end': 100,
+        },
+        'input_data': {
+            'location_id': 180,
+        }
+    }
+
     def setup(self, builder):
         self.config = builder.configuration
+        self.randomness = builder.randomness('population_age_fuzz')
 
     @listens_for('initialize_simulants', priority=0)
     @uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
     def generate_test_population(self, event):
-        age_start = event.user_data.get('age_start', None)
-        age_end = event.user_data.get('age_end', None)
-        population = pd.DataFrame(index=event.index)
+        age_start = event.user_data.get('age_start', self.config.population.age_start)
+        age_end = event.user_data.get('age_end', self.config.population.age_end)
+        location = self.config.input_data.location_id
 
-        if 'age_start' in self.config.population:
-            age_start = self.config.population.age_start
-        else:
-            age_start = 0
-
-        if 'age_end' in self.config.population:
-            age_end = self.config.population.age_end
-        else:
-            age_end = 100
-
-        if age_start == age_end:
-            population['age'] = age_start
-            population['age'] = population['age'].astype(float)
-        else:
-            population['age'] = (randomness.random('test_population_age', population.index)
-                                 * (age_end - age_start) + age_start)
-
-        population['sex'] = randomness.choice(
-            'test_population_sex'+str(self.config.run_configuration.input_draw_number),
-            population.index, ['Male', 'Female'])
-        population['alive'] = pd.Series('alive', index=population.index).astype(
-            pd.api.types.CategoricalDtype(categories=['alive', 'dead', 'untracked'], ordered=False))
-        if 'location_id' in self.config.input_data:
-            population['location'] = self.config.input_data.location_id
-        else:
-            population['location'] = 180
-
-        population['entrance_time'] = event.time
-        population['exit_time'] = pd.NaT
-
+        population = _build_population(event.index, age_start, age_end, location,
+                                       event.time, event.step_size, self.randomness)
         event.population_view.update(population)
 
 
@@ -176,6 +159,25 @@ class TestPopulation:
 def age_simulants(event):
     event.population['age'] += event.step_size.days / 365.0
     event.population_view.update(event.population)
+
+
+def _build_population(index, age_start, age_end, location, event_time, step_size, randomness_stream):
+    if age_start == age_end:
+        age = randomness_stream.get_draw(index)*step_size.days/365.0 + age_start
+    else:
+        age = randomness_stream.get_draw(index)*(age_end - age_start) + age_start
+
+    sex_randomness = randomness_stream.copy_with_additional_key('sex_choice')
+    population = pd.DataFrame(
+        {'age': age,
+         'sex': sex_randomness.choice(index, ['Male', 'Female']),
+         'alive': pd.Series('alive', index=index).astype(
+             pd.api.types.CategoricalDtype(categories=['alive', 'dead', 'untracked'], ordered=False)),
+         'location': location,
+         'entrance_time': event_time,
+         'exit_time': pd.NaT, },
+        index=index)
+    return population
 
 
 def make_dummy_column(name, initial_value):
