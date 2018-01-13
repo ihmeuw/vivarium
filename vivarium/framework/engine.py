@@ -109,15 +109,16 @@ def event_loop(simulation, simulant_creator, end_emitter):
     sim_params = simulation.configuration.simulation_parameters
     pop_params = simulation.configuration.population
 
+    step_size = sim_params.time_step
+    simulation.step_size = pd.Timedelta(days=step_size//1, hours=(step_size % 1)*24)
     start = _get_time('start', sim_params)
     stop = _get_time('end', sim_params)
-    simulation.current_time = start
 
+    # Fencepost the creation of the initial population.
+    simulation.current_time = start - simulation.step_size
     population_size = pop_params.population_size
-
     simulant_creator(population_size)
-
-    simulation.step_size = pd.Timedelta(sim_params.time_step, unit='D')
+    simulation.update_time()
 
     while simulation.current_time < stop:
         gc.collect()  # TODO: Actually figure out where the memory leak is.
