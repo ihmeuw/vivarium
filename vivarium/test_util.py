@@ -18,15 +18,15 @@ def setup_simulation(components, population_size=100, start=None, input_config=N
     simulation = SimulationContext(component_manager, config)
     simulation.setup()
 
-    if start:
-        simulation.current_time = start
-    else:
-        year_start = config.simulation_parameters.year_start
-        simulation.current_time = pd.Timestamp(year_start, 1, 1)
+    step_size = config.simulation_parameters.time_step
+    simulation.step_size = pd.Timedelta(days=step_size // 1, hours=(step_size % 1) * 24)
+    if not start:
+        start = pd.Timestamp(config.simulation_parameters.year_start, 1, 1)
 
+    # Fencepost the creation of the initial population.
+    simulation.current_time = start - simulation.step_size
     simulation.population._create_simulants(population_size)
-
-    simulation.step_size = pd.Timedelta(config.simulation_parameters.time_step, unit='D')
+    simulation.update_time()
 
     return simulation
 
@@ -157,13 +157,13 @@ class TestPopulation:
 @listens_for('time_step')
 @uses_columns(['age'], "alive == 'alive'")
 def age_simulants(event):
-    event.population['age'] += event.step_size.days / 365.0
+    event.population['age'] += event.step_size / pd.Timedelta(days=365)
     event.population_view.update(event.population)
 
 
 def _build_population(index, age_start, age_end, location, event_time, step_size, randomness_stream):
     if age_start == age_end:
-        age = randomness_stream.get_draw(index)*step_size.days/365.0 + age_start
+        age = randomness_stream.get_draw(index) * (step_size / pd.Timedelta(days=365)) + age_start
     else:
         age = randomness_stream.get_draw(index)*(age_end - age_start) + age_start
 
