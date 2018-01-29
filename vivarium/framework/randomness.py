@@ -26,8 +26,9 @@ RESIDUAL_CHOICE : object
     Currently this object is only used in the `choice` function of this
     module.
 """
-
+from typing import Union
 import hashlib
+import datetime
 
 import numpy as np
 import pandas as pd
@@ -39,6 +40,7 @@ from .util import rate_to_probability
 class RandomnessError(VivariumError):
     """Exception raised for inconsistencies in random number and choice generation."""
     pass
+
 
 RESIDUAL_CHOICE = object()
 
@@ -220,6 +222,126 @@ def filter_for_probability(key, population, probability):
     draw = random(key, index)
     mask = np.array(draw < probability)
     return population[mask]
+
+
+class IndexMap:
+    """A key-index mapping with a simple vectorized hash and vectorized lookups."""
+    TEN_DIGIT_MODULUS = 10_000_000_000
+
+    def __init__(self, map_size=1_000_000):
+        self._map = pd.Series()
+        self.map_size = map_size
+
+    def update(self, new_keys: Union[pd.Index, pd.MultiIndex]):
+        """Adds the new keys to the mapping.
+
+        Parameters
+        ----------
+        new_keys :
+            The new index to hash.
+        """
+        if not self._map.index.intersection(new_keys).empty:
+            raise KeyError("Non-unique keys in index.")
+
+        mapping_update = self.hash_(new_keys)
+        if self._map.empty:
+            self._map = mapping_update.drop_duplicates()
+        else:
+            self._map = self._map.append(mapping_update).drop_duplicates()
+
+        collisions = mapping_update.index.difference(self._map.index)
+        salt = 1
+        while not collisions.empty:
+            mapping_update = self.hash_(collisions, salt)
+            self._map = self._map.append(mapping_update).drop_duplicates()
+            collisions = mapping_update.index.difference(self._map.index)
+            salt += 1
+
+    def hash_(self, keys: pd.MultiIndex, salt: int = 0) -> pd.Series:
+        """Hashes the given index into a interger index in the range [0, self.stride]
+
+        Parameters
+        ----------
+        keys :
+            The new index to hash.
+        salt :
+            An integer used to perturb the hash in a deterministic way.  Useful
+            in dealing with collisions.
+
+        Returns
+        -------
+            A pandas series indexed by the given keys and whose values take on integers in
+            the range [0, self.stride].  Duplicates may appear and should be dealt with
+            by the calling code.
+        """
+        key_frame = keys.to_frame()
+        new_map = pd.Series(0, index=keys)
+        salt = self.convert_to_ten_digit_int(pd.Series(salt, index=keys))
+
+        for i, column_name in enumerate(key_frame.columns):
+            column = self.convert_to_ten_digit_int(key_frame[column_name])
+
+            primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 27]
+            out = pd.Series(1, index=column.index)
+            for idx, p in enumerate(primes):
+                out *= np.power(p, self.digit(column, idx))
+            new_map += out + salt
+
+        return new_map % self.map_size
+
+    def convert_to_ten_digit_int(self, column: pd.Series):
+        """Converts a column of datetimes, integers, or floats into a column of 10 digit integers.
+
+        Parameters
+        ----------
+        column :
+            A series of datetimes, integers, or floats.
+
+        Returns
+        -------
+            A series of ten digit integers based on the input data.
+
+        Raises
+        ------
+        RandomnessError :
+            If the column contains data that is neither a datetime-like nor numeric.
+        """
+        if isinstance(column.iloc[0], datetime.datetime):
+            column = self.clip_to_seconds(column.astype(int))
+        elif np.issubdtype(column.iloc[0], np.integer):
+            column = self.spread(column)
+        elif np.issubdtype(column.iloc[0], np.floating):
+            column = self.shift(column)
+        else:
+            raise RandomnessError(f"Unhashable column type {type(column.iloc[0])}. "
+                                  "IndexMap accepts datetime like columns and numeric columns.")
+        return column
+
+    @staticmethod
+    def digit(m: Union[int, pd.Series], n: int):
+        """Returns the nth digit of each number in m."""
+        return (m // (10 ** n)) % 10
+
+    def clip_to_seconds(self, m):
+        """Clips UTC datetime in nanoseconds to seconds."""
+        return m // self.TEN_DIGIT_MODULUS
+
+    def spread(self, m: pd.Series):
+        """Spreads out integer values to give smaller values more weight."""
+        return (m * 111_111) % self.TEN_DIGIT_MODULUS
+
+    def shift(self, m: pd.Series):
+        """Shifts floats so that the first 10 decimal digits are significant."""
+        return ((m * self.TEN_DIGIT_MODULUS) % 1).astype(int)
+
+    def __getitem__(self, index):
+        if isinstance(index, (pd.Index, pd.MultiIndex)):
+            return self._map[index]
+        else:
+            raise KeyError(index)
+
+    def __repr__(self):
+        return 'IndexMap({})'.format("\n         ".join(repr(self._map).split("\n")))
 
 
 class RandomnessStream:
