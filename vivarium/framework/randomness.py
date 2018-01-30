@@ -258,7 +258,7 @@ class IndexMap:
             salt += 1
 
     def hash_(self, keys: pd.MultiIndex, salt: int = 0) -> pd.Series:
-        """Hashes the given index into a interger index in the range [0, self.stride]
+        """Hashes the given index into an integer index in the range [0, self.stride]
 
         Parameters
         ----------
@@ -289,7 +289,7 @@ class IndexMap:
 
         return new_map % self.map_size
 
-    def convert_to_ten_digit_int(self, column: pd.Series):
+    def convert_to_ten_digit_int(self, column: pd.Series) -> pd.Series:
         """Converts a column of datetimes, integers, or floats into a column of 10 digit integers.
 
         Parameters
@@ -309,6 +309,8 @@ class IndexMap:
         if isinstance(column.iloc[0], datetime.datetime):
             column = self.clip_to_seconds(column.astype(int))
         elif np.issubdtype(column.iloc[0], np.integer):
+            if not len(column >= 0) == len(column):
+                raise RandomnessError("Values in integer columns must be greater than or equal to zero.")
             column = self.spread(column)
         elif np.issubdtype(column.iloc[0], np.floating):
             column = self.shift(column)
@@ -318,27 +320,34 @@ class IndexMap:
         return column
 
     @staticmethod
-    def digit(m: Union[int, pd.Series], n: int):
+    def digit(m: Union[int, pd.Series], n: int) -> Union[int, pd.Series]:
         """Returns the nth digit of each number in m."""
         return (m // (10 ** n)) % 10
 
-    def clip_to_seconds(self, m):
+    @staticmethod
+    def clip_to_seconds(m: Union[int, pd.Series]) -> Union[int, pd.Series]:
         """Clips UTC datetime in nanoseconds to seconds."""
-        return m // self.TEN_DIGIT_MODULUS
+        return m // pd.Timedelta(1, unit='s').value
 
-    def spread(self, m: pd.Series):
+    def spread(self, m: Union[int, pd.Series]) -> Union[int, pd.Series]:
         """Spreads out integer values to give smaller values more weight."""
         return (m * 111_111) % self.TEN_DIGIT_MODULUS
 
-    def shift(self, m: pd.Series):
+    def shift(self, m: Union[float, pd.Series]) -> Union[int, pd.Series]:
         """Shifts floats so that the first 10 decimal digits are significant."""
-        return ((m * self.TEN_DIGIT_MODULUS) % 1).astype(int)
+        out = m % 1 * self.TEN_DIGIT_MODULUS // 1
+        if isinstance(m, pd.Series):
+            return out.astype(int)
+        return int(out)
 
     def __getitem__(self, index):
         if isinstance(index, (pd.Index, pd.MultiIndex)):
             return self._map[index]
         else:
             raise KeyError(index)
+
+    def __len__(self):
+        return len(self._map)
 
     def __repr__(self):
         return 'IndexMap({})'.format("\n         ".join(repr(self._map).split("\n")))
