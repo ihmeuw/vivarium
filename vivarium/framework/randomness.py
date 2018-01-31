@@ -284,6 +284,9 @@ class IndexMap:
             primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 27]
             out = pd.Series(1, index=column.index)
             for idx, p in enumerate(primes):
+                # numpy will almost always overflow here, but it is equivalent to modding
+                # out by 2**64.  Since it's much much larger than our map size
+                # the amount of additional periodicity this introduces is pretty trivial.
                 out *= np.power(p, self.digit(column, idx))
             new_map += out + salt
 
