@@ -135,9 +135,13 @@ class ComponentManager:
                 if hasattr(component, 'configuration_defaults'):
                     # This reapplies configuration from some components but
                     # it is idempotent so there's no effect.
-                    component_file_path = inspect.getfile(component.__class__)
+                    if component.__module__ == '__main__':
+                        # This is defined directly in a script or notebook so there's no file to attribute it to
+                        source = '__main__'
+                    else:
+                        source = inspect.getfile(component.__class__)
                     self.config.update(component.configuration_defaults,
-                                       layer='component_configs', source=component_file_path)
+                                       layer='component_configs', source=source)
 
                 if hasattr(component, 'setup'):
                     sub_components = component.setup(builder)
