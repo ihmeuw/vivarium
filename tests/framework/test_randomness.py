@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 import vivarium.framework.randomness as random
-from vivarium.framework.randomness import RandomnessStream, RESIDUAL_CHOICE, RandomnessError
+from vivarium.framework.randomness import RandomnessManager, RandomnessStream, RESIDUAL_CHOICE, RandomnessError
 
 
 @pytest.fixture(params=[10**4, 10**5])
@@ -94,7 +94,6 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
             # We received un-normalized probability weights.
             randomness.choice(index, choices, p=weights_with_residuals)
 
-
     elif np.any(residual.sum(axis=1) > 1):
         with pytest.raises(RandomnessError):
             # We received multiple instances of `RESIDUAL_CHOICE`
@@ -110,3 +109,72 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
 
         for k, c in count.items():
             assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
+
+
+def test_RandomnessManager_set_key_columns():
+    rm = RandomnessManager(seed=123456, clock=lambda: pd.Timestamp('1/1/2005'))
+
+    class KeyColumnSetter:
+        def set_columns(self, columns):
+            rm.set_key_columns(columns)
+
+    k = KeyColumnSetter()
+
+    assert rm._key_columns is None
+    assert rm._key_manager is None
+
+    with pytest.raises(TypeError):
+        k.set_columns('age')
+    with pytest.raises(TypeError):
+        k.set_columns(['age', 45])
+
+    k.set_columns(['age', 'sex'])
+
+    assert rm._key_columns == ['age', 'sex']
+    assert rm._key_manager == KeyColumnSetter.__name__
+
+    with pytest.raises(RandomnessError):
+        k.set_columns(['age', 'sex'])
+    with pytest.raises(RandomnessError):
+        k.set_columns(['other_age', 'other_sex'])
+    with pytest.raises(RandomnessError):
+        rm.set_key_columns(['age', 'sex'])
+
+
+def test_RandomnessManager_get_randomness_stream():
+    seed = 123456
+    clock = lambda: pd.Timestamp('1/1/2005')
+    rm = RandomnessManager(seed=seed, clock=clock)
+    stream = rm.get_randomness_stream('test')
+
+    assert stream.key == 'test'
+    assert stream.seed == seed
+    assert stream.clock is clock
+
+
+def test_RandomnessManager_register_simulants():
+    seed = 123456
+    clock = lambda: pd.Timestamp('1/1/2005')
+    rm = RandomnessManager(seed=seed, clock=clock)
+
+    class KeyColumnSetter:
+        def set_columns(self, columns):
+            rm.set_key_columns(columns)
+
+    k = KeyColumnSetter()
+    k.set_columns(['age', 'sex'])
+
+    bad_df = pd.DataFrame({'age': range(10),
+                           'not_sex': [1]*5 + [2]*5})
+    with pytest.raises(RandomnessError):
+        rm.register_simulants(bad_df)
+
+    good_df = pd.DataFrame({'age': range(10),
+                            'sex': [1]*5 + [2]*5})
+
+    rm.register_simulants(good_df)
+    assert rm._key_mapping._map.index.difference(pd.MultiIndex(good_df)).empty
+
+
+
+

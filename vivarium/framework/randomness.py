@@ -26,9 +26,10 @@ RESIDUAL_CHOICE : object
     Currently this object is only used in the `choice` function of this
     module.
 """
-from typing import Union
+from typing import Union, Hashable, Callable, Iterable, Any
 import hashlib
 import datetime
+import inspect
 
 import numpy as np
 import pandas as pd
@@ -537,3 +538,72 @@ class RandomnessStream:
 
     def __repr__(self):
         return "RandomnessStream(key={!r}, clock={!r}, seed={!r})".format(self.key, self.clock(), self.seed)
+
+
+class RandomnessManager:
+    """Access point for common random number generation."""
+
+    configuration_defaults = {
+        'randomness':
+            {
+                'map_size': 1_000_000,
+                'key_columns': ['entrance_time']
+            }
+    }
+
+    def __init__(self, seed: Hashable, clock: Callable[[], pd.Timestamp]):
+        self._seed = seed
+        self._clock = clock
+        self._key_columns = None
+        self._key_mapping = IndexMap()
+
+    def setup(self, builder):
+        self._key_columns = builder.configuration.randomness.key_columns
+        self._key_mapping.map_size = builder.configuration.randomness.map_size
+
+    def set_key_columns(self, key_columns: Iterable[str]):
+        """Sets which columns will be used to uniquely identify simulants.
+
+        Parameters
+        ----------
+        key_columns :
+            A list of the names of columns from the population state table to
+            be used to uniquely identify the simulants.
+        component :
+            The component or name of the component that sets the key_columns.  Only
+            one component in the simulation should call this method and it should
+            only be called one time.
+
+        Raises
+        ------
+        RandomnessConfigurationError :
+            If more than one attempt to set the key columns is made.
+        TypeError :
+            If key_columns is not passed in as an iterable of strings.
+        """
+        try:
+            setting_component = inspect.stack()[1][0].f_locals["self"].__class__.__name__
+        except KeyError:
+            raise RandomnessError("An unbound function is attempting to set the key columns.")
+        if self._key_columns is not None:
+            raise RandomnessError("Only one component may manage the randomness key columns. "
+                                  f"{setting_component} is trying to set the columns {key_columns}, "
+                                  f"however {self._key_manager} has already set {self._key_columns}")
+        is_iterable_container = isinstance(key_columns, Iterable) and not isinstance(key_columns, str)
+        contains_strings = all([isinstance(k, str) for k in key_columns])
+        if not is_iterable_container or not contains_strings:
+            raise TypeError("Key columns must be passed into the RandomnessManager as an iterable of strings.")
+
+        self._key_columns = key_columns
+        self._key_manager = setting_component
+
+    def get_randomness_stream(self, decision_point: str):
+        return RandomnessStream(key=decision_point, clock=self._clock, seed=self._seed)
+
+    def register_simulants(self, simulants: pd.DataFrame):
+        if not all(k in simulants.columns for k in self._key_columns):
+            raise RandomnessError("The simulants dataframe does not have all specified ")
+        self._key_mapping.update(pd.MultiIndex(simulants[self._key_columns]))
+
+    def __repr__(self):
+        return f"RandomnessManager(seed={self._seed}, key_columns={self._key_columns})"
