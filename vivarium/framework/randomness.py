@@ -559,54 +559,52 @@ class RandomnessManager:
         self._clock = clock
         self._key_columns = None
         self._key_mapping = IndexMap()
+        self._decision_points = set()
 
     def setup(self, builder):
         self._key_columns = builder.configuration.randomness.key_columns
         self._key_mapping.map_size = builder.configuration.randomness.map_size
 
-    def set_key_columns(self, key_columns: Iterable[str]):
-        """Sets which columns will be used to uniquely identify simulants.
+    def get_randomness_stream(self, decision_point: str):
+        """Provides a new source of random numbers for the given decision point.
 
         Parameters
         ----------
-        key_columns :
-            A list of the names of columns from the population state table to
-            be used to uniquely identify the simulants.
-        component :
-            The component or name of the component that sets the key_columns.  Only
-            one component in the simulation should call this method and it should
-            only be called one time.
+        decision_point :
+            A unique identifier for a stream of random numbers.  Typically represents
+            a decision that needs to be made each time step like 'moves_left' or
+            'gets_disease'.
 
         Raises
         ------
-        RandomnessConfigurationError :
-            If more than one attempt to set the key columns is made.
-        TypeError :
-            If key_columns is not passed in as an iterable of strings.
+        RandomnessError :
+            If another location in the simulation has already created a randomness stream
+            with the same identifier.
         """
-        try:
-            setting_component = inspect.stack()[1][0].f_locals["self"].__class__.__name__
-        except KeyError:
-            raise RandomnessError("An unbound function is attempting to set the key columns.")
-        if self._key_columns is not None:
-            raise RandomnessError("Only one component may manage the randomness key columns. "
-                                  f"{setting_component} is trying to set the columns {key_columns}, "
-                                  f"however {self._key_manager} has already set {self._key_columns}")
-        is_iterable_container = isinstance(key_columns, Iterable) and not isinstance(key_columns, str)
-        contains_strings = all([isinstance(k, str) for k in key_columns])
-        if not is_iterable_container or not contains_strings:
-            raise TypeError("Key columns must be passed into the RandomnessManager as an iterable of strings.")
-
-        self._key_columns = key_columns
-        self._key_manager = setting_component
-
-    def get_randomness_stream(self, decision_point: str):
+        if decision_point in self._decision_points:
+            raise RandomnessError(f"Two separate places are attempting to create "
+                                  f"the same randomness stream for {decision_point}")
+        self._decision_points.add(decision_point)
         return RandomnessStream(key=decision_point, clock=self._clock, seed=self._seed)
 
     def register_simulants(self, simulants: pd.DataFrame):
+        """Adds new simulants to the randomness mapping.
+
+        Parameters
+        ----------
+        simulants :
+            A table with state data representing the new simulants.  Each simulant should
+            pass through this function exactly once.
+
+        Raises
+        ------
+        RandomnessError :
+            If the provided table does not contain all key columns specified in the configuration.
+        """
         if not all(k in simulants.columns for k in self._key_columns):
-            raise RandomnessError("The simulants dataframe does not have all specified ")
+            raise RandomnessError("The simulants dataframe does not have all specified key_columns.")
         self._key_mapping.update(pd.MultiIndex(simulants[self._key_columns]))
 
     def __repr__(self):
-        return f"RandomnessManager(seed={self._seed}, key_columns={self._key_columns})"
+        return f"RandomnessManager(seed={self._seed}, key_columns={self._key_columns}, " \
+               f"decision_points={self._decision_points})"

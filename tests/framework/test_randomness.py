@@ -111,36 +111,6 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
             assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
 
 
-def test_RandomnessManager_set_key_columns():
-    rm = RandomnessManager(seed=123456, clock=lambda: pd.Timestamp('1/1/2005'))
-
-    class KeyColumnSetter:
-        def set_columns(self, columns):
-            rm.set_key_columns(columns)
-
-    k = KeyColumnSetter()
-
-    assert rm._key_columns is None
-    assert rm._key_manager is None
-
-    with pytest.raises(TypeError):
-        k.set_columns('age')
-    with pytest.raises(TypeError):
-        k.set_columns(['age', 45])
-
-    k.set_columns(['age', 'sex'])
-
-    assert rm._key_columns == ['age', 'sex']
-    assert rm._key_manager == KeyColumnSetter.__name__
-
-    with pytest.raises(RandomnessError):
-        k.set_columns(['age', 'sex'])
-    with pytest.raises(RandomnessError):
-        k.set_columns(['other_age', 'other_sex'])
-    with pytest.raises(RandomnessError):
-        rm.set_key_columns(['age', 'sex'])
-
-
 def test_RandomnessManager_get_randomness_stream():
     seed = 123456
     clock = lambda: pd.Timestamp('1/1/2005')
@@ -150,6 +120,10 @@ def test_RandomnessManager_get_randomness_stream():
     assert stream.key == 'test'
     assert stream.seed == seed
     assert stream.clock is clock
+    assert rm._decision_points == {'test'}
+
+    with pytest.raises(RandomnessError):
+        rm.get_randomness_stream('test')
 
 
 def test_RandomnessManager_register_simulants():
@@ -174,7 +148,3 @@ def test_RandomnessManager_register_simulants():
 
     rm.register_simulants(good_df)
     assert rm._key_mapping._map.index.difference(pd.MultiIndex(good_df)).empty
-
-
-
-
