@@ -114,7 +114,9 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
 def test_RandomnessManager_get_randomness_stream():
     seed = 123456
     clock = lambda: pd.Timestamp('1/1/2005')
-    rm = RandomnessManager(seed=seed, clock=clock)
+    rm = RandomnessManager()
+    rm._seed = seed
+    rm._clock = clock
     stream = rm.get_randomness_stream('test')
 
     assert stream.key == 'test'
@@ -129,14 +131,10 @@ def test_RandomnessManager_get_randomness_stream():
 def test_RandomnessManager_register_simulants():
     seed = 123456
     clock = lambda: pd.Timestamp('1/1/2005')
-    rm = RandomnessManager(seed=seed, clock=clock)
-
-    class KeyColumnSetter:
-        def set_columns(self, columns):
-            rm.set_key_columns(columns)
-
-    k = KeyColumnSetter()
-    k.set_columns(['age', 'sex'])
+    rm = RandomnessManager()
+    rm._seed = seed
+    rm._clock = clock
+    rm._key_columns = ['age', 'sex']
 
     bad_df = pd.DataFrame({'age': range(10),
                            'not_sex': [1]*5 + [2]*5})
@@ -147,4 +145,4 @@ def test_RandomnessManager_register_simulants():
                             'sex': [1]*5 + [2]*5})
 
     rm.register_simulants(good_df)
-    assert rm._key_mapping._map.index.difference(pd.MultiIndex(good_df)).empty
+    assert rm._key_mapping._map.index.difference(good_df.set_index(good_df.columns.tolist()).index).empty

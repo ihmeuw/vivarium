@@ -42,9 +42,10 @@ def generate_keys(number, types=('int', 'float', 'datetime'), seed=123456):
     return pd.Series(0, index=index).index
 
 
-index_sizes = list(np.random.randint(10_000, 250_000, size=1))
+rs = np.random.RandomState(seed=456789)
+index_sizes = list(rs.randint(10_000, 250_000, size=1))
 types = list(almost_powerset(['int', 'float', 'datetime']))
-seeds = list(np.random.randint(10000000, size=1))
+seeds = list(rs.randint(10000000, size=1))
 
 
 def id_fun(param):

@@ -167,10 +167,9 @@ def _build_population(index, age_start, age_end, location, event_time, step_size
     else:
         age = randomness_stream.get_draw(index)*(age_end - age_start) + age_start
 
-    sex_randomness = randomness_stream.copy_with_additional_key('sex_choice')
     population = pd.DataFrame(
         {'age': age,
-         'sex': sex_randomness.choice(index, ['Male', 'Female']),
+         'sex': randomness_stream.choice(index, ['Male', 'Female'], additional_key='sex_choice'),
          'alive': pd.Series('alive', index=index).astype(
              pd.api.types.CategoricalDtype(categories=['alive', 'dead', 'untracked'], ordered=False)),
          'location': location,
