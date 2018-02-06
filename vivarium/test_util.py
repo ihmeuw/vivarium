@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from vivarium.framework.engine import SimulationContext, _step, build_simulation_configuration
-from vivarium.framework.event import listens_for
+from vivarium.framework.event import listens_for, Event
 from vivarium.framework.population import uses_columns
 from vivarium.framework.util import from_yearly, to_yearly
 from vivarium.framework import randomness
@@ -51,6 +51,8 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
     else:
         for i in range(iterations):
             _step(simulation)
+    end_emitter = simulation.events.get_emitter('simulation_end')
+    end_emitter(Event(simulation.population.population.index))
 
     return iterations
 
