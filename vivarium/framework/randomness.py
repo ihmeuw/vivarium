@@ -171,7 +171,7 @@ class IndexMap:
         if isinstance(index, (pd.Index, pd.MultiIndex)):
             return self._map[index]
         else:
-            raise KeyError(index)
+            raise IndexError(index)
 
     def __len__(self) -> int:
         return len(self._map)
@@ -212,8 +212,11 @@ def random(key: str, index: Index, index_map: IndexMap=None) -> pd.Series:
         # See Also:
         # 1. https://en.wikipedia.org/wiki/Variance_reduction
         # 2. Untangling Uncertainty with Common Random Numbers: A Simulation Study; A.Flaxman, et. al., Summersim 2017
-        sample_size = index_map.map_size if index_map else index.max() + 1
-        draw_index = index_map[index] if index_map else index
+        sample_size = index_map.map_size if index_map is not None else index.max() + 1
+        try:
+            draw_index = index_map[index]
+        except IndexError:
+            draw_index = index
         raw_draws = random_state.random_sample(sample_size)
         return pd.Series(raw_draws[draw_index], index=index)
 
@@ -399,12 +402,14 @@ class RandomnessStream:
     `engine.Builder`
     """
     def __init__(self, key: str, clock: Callable, seed: Any,
-                 index_map: IndexMap=None, manager: 'RandomnessManager'=None):
+                 index_map: IndexMap=None, manager: 'RandomnessManager'=None,
+                 for_initialization: bool=False):
         self.key = key
         self.clock = clock
         self.seed = seed
         self.index_map = index_map
         self._manager = manager
+        self._for_initialization = for_initialization
 
     def copy_with_additional_key(self, key: Any) -> 'RandomnessStream':
         """Creates a copy of this stream that combines this streams key with a new one.
@@ -418,6 +423,8 @@ class RandomnessStream:
         -------
             A new RandomnessStream with a combined key.
         """
+        if self._for_initialization:
+            raise RandomnessError('Initialization streams cannot be copied.')
         if self._manager:
             return self._manager.get_randomness_stream('_'.join([self.key, key]))
         return RandomnessStream(self.key, self.clock, self.seed, self.index_map)
@@ -451,6 +458,7 @@ class RandomnessStream:
         -------
             A series of random numbers indexed by the provided `pandas.Index`.
         """
+        index = list(range(len(index))) if self._for_initialization else index
         return random(self._key(additional_key), index, self.index_map)
 
     def get_seed(self, additional_key: Any=None) -> int:
@@ -589,7 +597,7 @@ class RandomnessManager:
         self._key_columns = builder.configuration.randomness.key_columns
         self._key_mapping.map_size = builder.configuration.randomness.map_size
 
-    def get_randomness_stream(self, decision_point: str) -> RandomnessStream:
+    def get_randomness_stream(self, decision_point: str, for_initialization: bool=False) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
         Parameters
@@ -610,7 +618,7 @@ class RandomnessManager:
                                   f"the same randomness stream for {decision_point}")
         self._decision_points.add(decision_point)
         return RandomnessStream(key=decision_point, clock=self._clock, seed=self._seed,
-                                index_map=self._key_mapping, manager=self)
+                                index_map=self._key_mapping, manager=self, for_initialization=for_initialization)
 
     def register_simulants(self, simulants: pd.DataFrame):
         """Adds new simulants to the randomness mapping.
