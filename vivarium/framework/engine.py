@@ -7,9 +7,9 @@ import os.path
 from pprint import pformat, pprint
 from time import time
 from typing import Mapping
+from collections import namedtuple
 
 import yaml
-
 import pandas as pd
 
 from vivarium.config_tree import ConfigTree
@@ -73,8 +73,10 @@ class Builder:
         self.clock = lambda: lambda: context.current_time
         self.step_size = lambda: lambda: context.step_size
         self.configuration = context.configuration
-        self.randomness = context.randomness.get_randomness_stream
-        self.register = context.randomness.register_simulants
+        self.randomness = namedtuple(
+            'Randomness', ['get_stream', 'register_simulants'])(context.randomness.get_randomness_stream,
+                                                                context.randomness.register_simulants)
+
 
     def __repr__(self):
         return "Builder()"

@@ -142,7 +142,7 @@ class NonCRNTestPopulation:
 
     def setup(self, builder):
         self.config = builder.configuration
-        self.randomness = builder.randomness('population_age_fuzz')
+        self.randomness = builder.randomness.get_stream('population_age_fuzz')
 
     @listens_for('initialize_simulants', priority=0)
     @uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
@@ -159,8 +159,8 @@ class NonCRNTestPopulation:
 class TestPopulation(NonCRNTestPopulation):
     def setup(self, builder):
         super().setup(builder)
-        self.age_randomness = builder.randomness('age_initialization', for_initialization=True)
-        self.register = builder.register
+        self.age_randomness = builder.randomness.get_stream('age_initialization', for_initialization=True)
+        self.register = builder.randomness.register_simulants
 
     @listens_for('initialize_simulants', priority=0)
     @uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])

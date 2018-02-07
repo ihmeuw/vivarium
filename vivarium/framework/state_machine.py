@@ -279,7 +279,7 @@ class TransitionSet:
         iterable
             This component's sub-components.
         """
-        self.random = builder.randomness(self.key)
+        self.random = builder.randomness.get_stream(self.key)
         return self.transitions
 
     def choose_new_state(self, index):

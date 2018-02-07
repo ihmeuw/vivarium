@@ -395,7 +395,7 @@ class RandomnessStream:
 
         class CeamComponent:
             def setup(self, builder):
-                self.randomness_stream = builder.randomness('stream_name')
+                self.randomness_stream = builder.randomness.get_stream('stream_name')
 
     See Also
     --------
