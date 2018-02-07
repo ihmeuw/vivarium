@@ -215,7 +215,7 @@ def random(key: str, index: Index, index_map: IndexMap=None) -> pd.Series:
         sample_size = index_map.map_size if index_map is not None else index.max() + 1
         try:
             draw_index = index_map[index]
-        except IndexError:
+        except (IndexError, TypeError):
             draw_index = index
         raw_draws = random_state.random_sample(sample_size)
         return pd.Series(raw_draws[draw_index], index=index)
