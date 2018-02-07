@@ -160,8 +160,11 @@ def test_hash_uniformity(map_size_and_hashed_values):
 def test_update(mocker):
     m = IndexMap()
     keys = generate_keys(10000)
+
     def hash_mock(k, salt=0):
-        return pd.Series(np.random.randint(0, len(k)*10, size=len(k)), index=k)
+        seed = 123456
+        rs = np.random.RandomState(seed=seed + salt)
+        return pd.Series(rs.randint(0, len(k)*10, size=len(k)), index=k)
 
     with mocker.patch.object(m, 'hash_', side_effect=hash_mock):
         m.update(keys)
