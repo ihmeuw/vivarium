@@ -458,8 +458,13 @@ class RandomnessStream:
         -------
             A series of random numbers indexed by the provided `pandas.Index`.
         """
-        index = list(range(len(index))) if self._for_initialization else index
-        return random(self._key(additional_key), index, self.index_map)
+        if self._for_initialization:
+            draw = random(self._key(additional_key), list(range(len(index))), self.index_map)
+            draw.index = index
+        else:
+            draw = random(self._key(additional_key), index, self.index_map)
+
+        return draw
 
     def get_seed(self, additional_key: Any=None) -> int:
         """Get a randomly generated seed for use with external randomness tools.
