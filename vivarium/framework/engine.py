@@ -7,9 +7,9 @@ import os.path
 from pprint import pformat, pprint
 from time import time
 from typing import Mapping
+from collections import namedtuple
 
 import yaml
-
 import pandas as pd
 
 from vivarium.config_tree import ConfigTree
@@ -18,7 +18,7 @@ from vivarium.framework.event import EventManager, Event, emits
 from vivarium.framework.population import PopulationManager, creates_simulants
 from vivarium.framework.lookup import InterpolatedDataManager
 from vivarium.framework.components import load_component_manager
-from vivarium.framework.randomness import RandomnessStream
+from vivarium.framework.randomness import RandomnessManager
 from vivarium.framework.util import collapse_nested_dict
 from vivarium.framework.results_writer import get_results_writer
 
@@ -35,6 +35,7 @@ class SimulationContext:
         self.events = EventManager()
         self.population = PopulationManager()
         self.tables = InterpolatedDataManager()
+        self.randomness = RandomnessManager()
         self.current_time = None
         self.step_size = pd.Timedelta(0, unit='D')
 
@@ -45,7 +46,8 @@ class SimulationContext:
     def setup(self):
         builder = Builder(self)
 
-        self.component_manager.add_components([self.values, self.events, self.population, self.tables])
+        self.component_manager.add_components(
+            [self.values, self.events, self.population, self.tables, self.randomness])
         self.component_manager.load_components_from_config()
         self.component_manager.setup_components(builder)
 
@@ -71,9 +73,10 @@ class Builder:
         self.clock = lambda: lambda: context.current_time
         self.step_size = lambda: lambda: context.step_size
         self.configuration = context.configuration
-        input_draw_number = context.configuration.run_configuration.input_draw_number
-        model_draw_number = context.configuration.run_configuration.model_draw_number
-        self.randomness = lambda key: RandomnessStream(key, self.clock(), (input_draw_number, model_draw_number))
+        self.randomness = namedtuple(
+            'Randomness', ['get_stream', 'register_simulants'])(context.randomness.get_randomness_stream,
+                                                                context.randomness.register_simulants)
+
 
     def __repr__(self):
         return "Builder()"

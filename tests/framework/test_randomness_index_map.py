@@ -42,9 +42,10 @@ def generate_keys(number, types=('int', 'float', 'datetime'), seed=123456):
     return pd.Series(0, index=index).index
 
 
-index_sizes = list(np.random.randint(10_000, 250_000, size=1))
+rs = np.random.RandomState(seed=456789)
+index_sizes = list(rs.randint(10_000, 250_000, size=1))
 types = list(almost_powerset(['int', 'float', 'datetime']))
-seeds = list(np.random.randint(10000000, size=1))
+seeds = list(rs.randint(10000000, size=1))
 
 
 def id_fun(param):
@@ -159,8 +160,11 @@ def test_hash_uniformity(map_size_and_hashed_values):
 def test_update(mocker):
     m = IndexMap()
     keys = generate_keys(10000)
+
     def hash_mock(k, salt=0):
-        return pd.Series(np.random.randint(0, len(k)*10, size=len(k)), index=k)
+        seed = 123456
+        rs = np.random.RandomState(seed=seed + salt)
+        return pd.Series(rs.randint(0, len(k)*10, size=len(k)), index=k)
 
     with mocker.patch.object(m, 'hash_', side_effect=hash_mock):
         m.update(keys)

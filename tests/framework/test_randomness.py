@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 
 import vivarium.framework.randomness as random
-from vivarium.framework.randomness import RandomnessStream, RESIDUAL_CHOICE, RandomnessError
+from vivarium.framework.randomness import RandomnessManager, RandomnessStream, RESIDUAL_CHOICE, RandomnessError
 
 
 @pytest.fixture(params=[10**4, 10**5])
@@ -94,7 +94,6 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
             # We received un-normalized probability weights.
             randomness.choice(index, choices, p=weights_with_residuals)
 
-
     elif np.any(residual.sum(axis=1) > 1):
         with pytest.raises(RandomnessError):
             # We received multiple instances of `RESIDUAL_CHOICE`
@@ -110,3 +109,40 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
 
         for k, c in count.items():
             assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
+
+
+def test_RandomnessManager_get_randomness_stream():
+    seed = 123456
+    clock = lambda: pd.Timestamp('1/1/2005')
+    rm = RandomnessManager()
+    rm._seed = seed
+    rm._clock = clock
+    stream = rm.get_randomness_stream('test')
+
+    assert stream.key == 'test'
+    assert stream.seed == seed
+    assert stream.clock is clock
+    assert rm._decision_points == {'test'}
+
+    with pytest.raises(RandomnessError):
+        rm.get_randomness_stream('test')
+
+
+def test_RandomnessManager_register_simulants():
+    seed = 123456
+    clock = lambda: pd.Timestamp('1/1/2005')
+    rm = RandomnessManager()
+    rm._seed = seed
+    rm._clock = clock
+    rm._key_columns = ['age', 'sex']
+
+    bad_df = pd.DataFrame({'age': range(10),
+                           'not_sex': [1]*5 + [2]*5})
+    with pytest.raises(RandomnessError):
+        rm.register_simulants(bad_df)
+
+    good_df = pd.DataFrame({'age': range(10),
+                            'sex': [1]*5 + [2]*5})
+
+    rm.register_simulants(good_df)
+    assert rm._key_mapping._map.index.difference(good_df.set_index(good_df.columns.tolist()).index).empty
