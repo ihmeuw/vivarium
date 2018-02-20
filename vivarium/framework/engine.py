@@ -51,7 +51,6 @@ class SimulationContext:
         self.component_manager.load_components_from_config()
         self.component_manager.setup_components(builder)
 
-        self.values.setup_components(self.component_manager.components)
         self.events.setup_components(self.component_manager.components)
         self.population.setup_components(self.component_manager.components)
 

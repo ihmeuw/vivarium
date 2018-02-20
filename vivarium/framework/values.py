@@ -4,6 +4,7 @@ from collections import defaultdict
 import pandas as pd
 
 from vivarium import VivariumError
+from .util import from_yearly
 
 
 class DynamicValueError(VivariumError):
@@ -145,27 +146,6 @@ class ValuesManager:
         if name not in self._pipelines:
             raise DynamicValueError(f"The dynamic rate {name} has not been registered with the value system.")
         return self._pipelines[name]
-
-    def setup_components(self, components):
-        for component in components:
-            values_produced = [(v, component) for v in produces_value.finder(component)]
-            values_produced += [(v, getattr(component, att))
-                                for att in sorted(dir(component)) if callable(getattr(component, att))
-                                for v in produces_value.finder(getattr(component, att))]
-
-            for name, producer in values_produced:
-                self._pipelines[name].source = producer
-
-            values_modified = [(v, component, i)
-                               for priority in modifies_value.finder(component)
-                               for i, v in enumerate(priority)]
-            values_modified += [(v, getattr(component, att), i)
-                                for att in sorted(dir(component)) if callable(getattr(component, att))
-                                for i, vs in enumerate(modifies_value.finder(getattr(component, att)))
-                                for v in vs]
-
-            for name, mutator, priority in values_modified:
-                self._pipelines[name].mutators[priority].append(mutator)
 
     def __contains__(self, item):
         return item in self._pipelines
