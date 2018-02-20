@@ -13,7 +13,7 @@ import yaml
 import pandas as pd
 
 from vivarium.config_tree import ConfigTree
-from vivarium.framework.values import ValuesManager
+from vivarium.framework.values import ValuesManager, DynamicValueError
 from vivarium.framework.event import EventManager, Event, emits
 from vivarium.framework.population import PopulationManager, creates_simulants
 from vivarium.framework.lookup import InterpolatedDataManager
@@ -65,9 +65,10 @@ class Builder:
     """Useful tools for constructing and configuring simulation components."""
     def __init__(self, context: SimulationContext):
         self.lookup = context.tables.build_table
-        self.value = context.values.get_value
-        self.rate = context.values.get_rate
-        self.modifies_value = context.values.mutator
+        _value = namedtuple('Value', ['register_value_producer', 'register_rate_producer', 'register_value_modifier'])
+        self.value = _value(context.values.register_value_producer,
+                            context.values.register_rate_producer,
+                            context.values.register_value_modifier)
         self.emitter = context.events.get_emitter
         self.population_view = context.population.get_view
         self.clock = lambda: lambda: context.current_time
@@ -76,7 +77,6 @@ class Builder:
         self.randomness = namedtuple(
             'Randomness', ['get_stream', 'register_simulants'])(context.randomness.get_randomness_stream,
                                                                 context.randomness.register_simulants)
-
 
     def __repr__(self):
         return "Builder()"
@@ -143,8 +143,10 @@ def setup_simulation(component_manager, config):
 def run_simulation(simulation):
     start = time()
     event_loop(simulation)
-    metrics = simulation.values.get_value('metrics')
-    metrics.source = lambda index: {}
+    try:
+        metrics = simulation.values.get_value('metrics')
+    except DynamicValueError:
+        metrics = simulation.values.register_value_producer('metrics', source=lambda index: {})
     metrics = metrics(simulation.population.population.index)
     metrics['simulation_run_time'] = time() - start
     return metrics

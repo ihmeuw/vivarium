@@ -1,18 +1,9 @@
-"""The mutable value system
-"""
+"""The mutable value system"""
 from collections import defaultdict
 
 import pandas as pd
 
 from vivarium import VivariumError
-
-from .util import marker_factory, from_yearly
-
-produces_value = marker_factory('value_system__produces')
-produces_value.__doc__ = """Mark a function as the producer of the named value."""
-modifies_value = marker_factory('value_system__modifies', with_priority=True)
-modifies_value.__doc__ = """Mark a function as a mutator of the named value.
-Mutators will be evaluated in `priority` order (lower values happen first)"""
 
 
 class DynamicValueError(VivariumError):
@@ -77,33 +68,27 @@ def joint_value_post_processor(a, _):
     joint_value = 1 - product
     return joint_value
 
-def _dummy_source(*args, **kwargs):
-    raise DynamicValueError('No source for value.')
 
-class Pipeline:
-    """A single mutable value.
+class _Pipeline:
+    """A single mutable value."""
 
-    Attributes
-    ----------
-    source         : callable
-                     The function which generates the base form of this value.
-    mutators       : [[callable]]
-                     A list of priority buckets containing functions that mutate this value.
-    combiner       : callable
-                     The function to use when combining the results of subsequent mutators.
-    post_processor : callable
-                     A function which processes the output of the last mutator. If None, no post-processing is done.
-    """
-
-    def __init__(self, manager=None, combiner=replace_combiner, post_processor=None):
-        self.source = _dummy_source
-        self.mutators = [[] for i in range(10)]
-        self.combiner = combiner
-        self.post_processor = post_processor
-        self.manager = manager
+    def __init__(self):
+        self.name = None
+        self.source = None
+        self.mutators = [[] for _ in range(10)]
+        self.combiner = None
+        self.post_processor = None
+        self.manager = None
         self.configured = False
 
     def __call__(self, *args, skip_post_processor=False, **kwargs):
+        if not self.source:
+            raise DynamicValueError(f"The dynamic value pipeline for {self.name} has no source. This likely means"
+                                    f"you are attempting to modify a value that hasn't been created.")
+        elif not self.configured:
+            raise DynamicValueError(f"The dynamic value pipeline for {self.name} has a source but "
+                                    f"has not been configured.  You've done a weird thing to get in this state.")
+
         value = self.source(*args, **kwargs)
         for priority_bucket in self.mutators:
             for mutator in priority_bucket:
@@ -114,13 +99,7 @@ class Pipeline:
         return value
 
     def __repr__(self):
-        mutators = {i: [m.__name__ for m in b] for i, b in enumerate(self.mutators)}
-        post_processor = self.post_processor.__name__ if self.post_processor else 'None'
-        source = self.source.__name__ if hasattr(self.source, __name__) else self.source.__class__.__name__
-
-        return ("Pipeline(\nsource= {},\nmutators= {},\n".format(source, mutators)
-                + "combiner= {},\n post_processor= {},\n".format(self.combiner.__name__, post_processor)
-                + "configured = {})".format(self.configured))
+        return f"_Pipeline({self.name})"
 
 
 class ValuesManager:
@@ -134,55 +113,38 @@ class ValuesManager:
     """
 
     def __init__(self):
-        self._pipelines = defaultdict(Pipeline)
-        self.__pipeline_templates = {}
-        self._setup_complete = False
+        self._pipelines = defaultdict(_Pipeline)
 
     def setup(self, builder):
         self.step_size = builder.step_size()
 
-    def mutator(self, mutator, value_name, priority=5):
-        pipeline = self.get_value(value_name)
-        pipeline.mutators[priority].append(mutator)
+    def register_value_modifier(self, value_name, modifier, priority=5):
+        pipeline = self._pipelines[value_name]
+        pipeline.mutators[priority].append(modifier)
 
-    def get_value(self, name, preferred_combiner=None, preferred_post_processor=None):
-        """Get a reference to the named dynamic value which can be called to get it's effective value.
+    def register_value_producer(self, value_name, source=None,
+                                preferred_combiner=replace_combiner, preferred_post_processor=None):
+        pipeline = self._pipelines[value_name]
+        pipeline.name = value_name
+        pipeline.source = source
+        pipeline.combiner = preferred_combiner
+        pipeline.post_processor = preferred_post_processor
+        pipeline.manager = self
+        pipeline.configured = True
+        return pipeline
 
-        Parameters
-        ----------
-        name                     : str
-                                   The name of the value
-        preferred_combiner       : callable
-                                   The combiner to use if the value is not already configured
-        preferred_post_processor : callable
-                                   The post-processor to use if the value is not already configured
-        """
-        # TODO : This method sets up value pipelines as well as getting them, which is pretty confusing when debugging.
+    def register_rate_producer(self, rate_name, source=None):
+        return self.register_value_producer(rate_name, source, preferred_post_processor=rescale_post_processor)
+
+    def get_value(self, name):
         if name not in self._pipelines:
-            for name_template, (combiner, post_processor, source) in self.__pipeline_templates.items():
-                if name_template.match(name):
-                    self._pipelines[name] = Pipeline(self, combiner=combiner, post_processor=post_processor)
-                    if source:
-                        self._pipelines[name].source = source
-                    self._pipelines[name].configured = True
-
-        if not self._pipelines[name].configured:
-            self._pipelines[name].manager = self
-            if preferred_combiner:
-                self._pipelines[name].combiner = preferred_combiner
-                self._pipelines[name].configured = True
-            if preferred_post_processor:
-                self._pipelines[name].post_processor = preferred_post_processor
-                self._pipelines[name].configured = True
-
+            raise DynamicValueError(f"The dynamic value {name} has not been registered with the value system.")
         return self._pipelines[name]
 
     def get_rate(self, name):
-        """Get a reference to the named dynamic rate which can be called to get it's effective value.
-        """
-        return self.get_value(name,
-                              preferred_combiner=replace_combiner,
-                              preferred_post_processor=rescale_post_processor)
+        if name not in self._pipelines:
+            raise DynamicValueError(f"The dynamic rate {name} has not been registered with the value system.")
+        return self._pipelines[name]
 
     def setup_components(self, components):
         for component in components:
@@ -207,6 +169,15 @@ class ValuesManager:
 
     def __contains__(self, item):
         return item in self._pipelines
+
+    def __iter__(self):
+        return iter(self._pipelines)
+
+    def keys(self):
+        return self._pipelines.keys()
+
+    def items(self):
+        return self._pipelines.items()
 
     def __repr__(self):
         return "ValuesManager(_pipelines= {})".format(list(self._pipelines.keys()))
