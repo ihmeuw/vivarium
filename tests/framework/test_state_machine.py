@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 
 from vivarium.test_util import setup_simulation
-from vivarium.framework.population import uses_columns
 from vivarium.framework.event import listens_for
 from vivarium.framework.randomness import choice
 
@@ -10,20 +9,26 @@ from vivarium.framework.state_machine import Machine, State, Transition
 
 
 def _population_fixture(column, initial_value):
-    @listens_for('initialize_simulants')
-    @uses_columns([column])
-    def inner(event):
-        event.population_view.update(pd.Series(initial_value, index=event.index))
-    return inner
+    class pop_fixture:
+        def setup(self, builder):
+            self.population_view = builder.population_view([column])
+
+        @listens_for('initialize_simulants')
+        def inner(self, event):
+            self.population_view.update(pd.Series(initial_value, index=event.index))
+    return pop_fixture()
 
 
 def _even_population_fixture(column, values):
-    @listens_for('initialize_simulants')
-    @uses_columns([column])
-    def inner(event):
-        event.population_view.update(choice('start', event.index, values))
-    return inner
+    class pop_fixture:
+        def setup(self, builder):
+            self.population_view = builder.population_view([column])
 
+        @listens_for('initialize_simulants')
+        def inner(self, event):
+            self.population_view.update(choice('start', event.index, values))
+
+    return pop_fixture()
 
 def test_transition():
     done_state = State('done')
@@ -87,10 +92,14 @@ def test_no_null_transition():
 
 def test_side_effects():
     class DoneState(State):
-        @uses_columns(['count'])
-        def _transition_side_effect(self, index, event_time, population_view):
-            pop = population_view.get(index)
-            population_view.update(pop['count'] + 1)
+        def setup(self, builder):
+            self.population_view = builder.population_view(['count'])
+            return super().setup(builder)
+
+        def _transition_side_effect(self, index, event_time):
+            pop = self.population_view.get(index)
+            self.population_view.update(pop['count'] + 1)
+
     done_state = DoneState('done')
     start_state = State('start')
     done_transition = Transition(start_state, done_state, lambda agents: np.full(len(agents), 1.0))

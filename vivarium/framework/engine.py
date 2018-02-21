@@ -56,6 +56,34 @@ class SimulationContext:
 
         self.events.get_emitter('post_setup')(None)
 
+    @emits('time_step')
+    @emits('time_step__prepare')
+    @emits('time_step__cleanup')
+    @emits('collect_metrics')
+    def step(self, time_step_emitter, time_step__prepare_emitter,
+             time_step__cleanup_emitter, collect_metrics_emitter):
+        _log.debug(self.current_time)
+        time_step__prepare_emitter(Event(self.population.population.index))
+        time_step_emitter(Event(self.population.population.index))
+        time_step__cleanup_emitter(Event(self.population.population.index))
+        collect_metrics_emitter(Event(self.population.population.index))
+        self.update_time()
+
+    @creates_simulants
+    def initialize_simulants(self, simulant_creator):
+        sim_params = self.configuration.simulation_parameters
+        pop_params = self.configuration.population
+
+        step_size = sim_params.time_step
+        self.step_size = pd.Timedelta(days=step_size // 1, hours=(step_size % 1) * 24)
+        start = _get_time('start', sim_params)
+
+        # Fencepost the creation of the initial population.
+        self.current_time = start - self.step_size
+        population_size = pop_params.population_size
+        simulant_creator(population_size)
+        self.update_time()
+
     def __repr__(self):
         return "SimulationContext(current_time={}, step_size={})".format(self.current_time, self.step_size)
 
@@ -68,6 +96,7 @@ class Builder:
         self.value = _value(context.values.register_value_producer,
                             context.values.register_rate_producer,
                             context.values.register_value_modifier)
+        _event = namedtuple('Event', ['get_emitter', 'register_listener'])
         self.emitter = context.events.get_emitter
         self.population_view = context.population.get_view
         self.clock = lambda: lambda: context.current_time
@@ -81,20 +110,6 @@ class Builder:
         return "Builder()"
 
 
-@emits('time_step')
-@emits('time_step__prepare')
-@emits('time_step__cleanup')
-@emits('collect_metrics')
-def _step(simulation, time_step_emitter, time_step__prepare_emitter,
-          time_step__cleanup_emitter, collect_metrics_emitter):
-    _log.debug(simulation.current_time)
-    time_step__prepare_emitter(Event(simulation.population.population.index))
-    time_step_emitter(Event(simulation.population.population.index))
-    time_step__cleanup_emitter(Event(simulation.population.population.index))
-    collect_metrics_emitter(Event(simulation.population.population.index))
-    simulation.update_time()
-
-
 def _get_time(suffix, params):
     month, day = 'month' + suffix, 'day' + suffix
     if month in params or day in params:
@@ -105,26 +120,16 @@ def _get_time(suffix, params):
         return pd.Timestamp(params['year_{}'.format(suffix)], 7, 2)
 
 
-@creates_simulants
 @emits('simulation_end')
-def event_loop(simulation, simulant_creator, end_emitter):
+def event_loop(simulation, end_emitter):
+    simulation.initialize_simulants()
+
     sim_params = simulation.configuration.simulation_parameters
-    pop_params = simulation.configuration.population
-
-    step_size = sim_params.time_step
-    simulation.step_size = pd.Timedelta(days=step_size//1, hours=(step_size % 1)*24)
-    start = _get_time('start', sim_params)
     stop = _get_time('end', sim_params)
-
-    # Fencepost the creation of the initial population.
-    simulation.current_time = start - simulation.step_size
-    population_size = pop_params.population_size
-    simulant_creator(population_size)
-    simulation.update_time()
 
     while simulation.current_time < stop:
         gc.collect()  # TODO: Actually figure out where the memory leak is.
-        _step(simulation)
+        simulation.step()
 
     end_emitter(Event(simulation.population.population.index))
 
@@ -133,7 +138,7 @@ def setup_simulation(component_manager, config):
     config.run_configuration.set_with_metadata('run_id', str(time()), layer='base')
     config.run_configuration.set_with_metadata('run_key',
                                                {'draw': config.run_configuration.input_draw_number}, layer='base')
-    component_manager.add_components([_step, event_loop])
+    component_manager.add_components([event_loop])
     simulation = SimulationContext(component_manager, config)
     simulation.setup()
     return simulation

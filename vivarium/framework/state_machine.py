@@ -174,7 +174,6 @@ class State:
         iterable
             This component's sub-components.
         """
-
         return [self.transition_set]
 
     def next_state(self, index, event_time, population_view):

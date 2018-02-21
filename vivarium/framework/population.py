@@ -1,36 +1,9 @@
-"""
-"""
-from collections import defaultdict
-
 import pandas as pd
 
 from vivarium import VivariumError
 
 from .util import resource_injector
 from .event import emits, Event
-
-_uses_columns = resource_injector('population_system_population_view')
-def uses_columns(column, query=''):
-    """Mark a function as a user of columns from the population table. If
-    the function is also an event listener then the Event object which it
-    receives will be transformed into a PopulationEvent. Otherwise the
-    function will have a configured PopulationView injected into its
-    arguments.
-
-    Parameters
-    ----------
-    columns : [str]
-    A list of column names which the function will need to read
-    or write.
-
-    query   : str
-    A filter in pandas query syntax which should be applied to
-    the population before it made accessible to this
-    function. This effects both the ``population`` and the
-    ``index`` attributes of PopulationEvents
-    """
-    return _uses_columns(column, query)
-uses_columns.set_injector = _uses_columns.set_injector
 
 _creates_simulants = resource_injector('population_system_simulant_creater')
 creates_simulants = _creates_simulants()
@@ -81,7 +54,7 @@ class PopulationView:
     def query(self):
         return self._query
 
-    def get(self, index, omit_missing_columns=False):
+    def get(self, index, query=None, omit_missing_columns=False):
         """For the rows in ``index`` get the columns from the simulation's population which this view is configured.
         The result may be further filtered by the view's query.
 
@@ -102,6 +75,8 @@ class PopulationView:
 
         if self._query:
             pop = pop.query(self._query)
+        if query:
+            pop = pop.query(query)
 
         if self._columns is None:
             return pop.copy()
@@ -274,7 +249,6 @@ class PopulationManager:
         return list(args) + [self._create_simulants], kwargs
 
     def setup_components(self, components):
-        uses_columns.set_injector(self._population_view_injector)
         _creates_simulants.set_injector(self._creates_simulants_injector)
 
     @property
