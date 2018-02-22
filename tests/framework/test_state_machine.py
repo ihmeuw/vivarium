@@ -11,7 +11,7 @@ from vivarium.framework.state_machine import Machine, State, Transition
 def _population_fixture(column, initial_value):
     class pop_fixture:
         def setup(self, builder):
-            self.population_view = builder.population_view([column])
+            self.population_view = builder.population.get_view([column])
 
         @listens_for('initialize_simulants')
         def inner(self, event):
@@ -22,7 +22,7 @@ def _population_fixture(column, initial_value):
 def _even_population_fixture(column, values):
     class pop_fixture:
         def setup(self, builder):
-            self.population_view = builder.population_view([column])
+            self.population_view = builder.population.get_view([column])
 
         @listens_for('initialize_simulants')
         def inner(self, event):
@@ -93,7 +93,7 @@ def test_no_null_transition():
 def test_side_effects():
     class DoneState(State):
         def setup(self, builder):
-            self.population_view = builder.population_view(['count'])
+            self.population_view = builder.population.get_view(['count'])
             return super().setup(builder)
 
         def _transition_side_effect(self, index, event_time):

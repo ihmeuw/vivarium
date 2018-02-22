@@ -72,7 +72,7 @@ class InterpolatedDataManager:
     """
 
     def setup(self, builder):
-        self._pop_view_builder = builder.population_view
+        self._pop_view_builder = builder.population.get_view
         self.clock = builder.clock()
 
     def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year'), interpolation_order=1):

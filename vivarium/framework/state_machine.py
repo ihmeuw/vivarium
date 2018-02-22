@@ -391,7 +391,7 @@ class Machine:
         iterable
             This component's sub-components.
         """
-        self.population_view = builder.population_view([self.state_column])
+        self.population_view = builder.population.get_view([self.state_column])
         return self.states
 
     def add_states(self, states):
@@ -411,7 +411,7 @@ class Machine:
         """
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
-                state.next_state(affected.index, event_time, self.population_view)
+                state.next_state(affected.index, event_time, self.population_view.subview([self.state_column]))
 
     def cleanup(self, index, event_time):
         for state, affected in self._get_state_pops(index):

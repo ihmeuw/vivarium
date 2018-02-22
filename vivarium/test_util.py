@@ -142,7 +142,7 @@ class NonCRNTestPopulation:
     def setup(self, builder):
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream('population_age_fuzz')
-        self.population_view = builder.population_view(
+        self.population_view = builder.population.get_view(
             ['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
 
     @listens_for('initialize_simulants', priority=0)
@@ -223,12 +223,17 @@ def _non_crn_build_population(index, age_start, age_end, location, event_time, s
 def make_dummy_column(name, initial_value):
     class dummy_column_maker:
         def setup(self, builder):
-            self.population_view = builder.population_view([name])
+            self.population_view = builder.population.get_view([name])
 
         @listens_for('initialize_simulants')
         def make_column(self, event):
             self.population_view.update(pd.Series(initial_value, index=event.index, name=name))
+
+        def __repr__(self):
+            return f"dummy_column(name={name}, initial_value={initial_value})"
     return dummy_column_maker()
+
+
 
 
 def get_randomness(key='test', clock=lambda: pd.Timestamp(1990, 7, 2), seed=12345, for_initialization=False):

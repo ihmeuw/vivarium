@@ -15,7 +15,7 @@ import pandas as pd
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.values import ValuesManager, DynamicValueError
 from vivarium.framework.event import EventManager, Event, emits
-from vivarium.framework.population import PopulationManager, creates_simulants
+from vivarium.framework.population import PopulationManager
 from vivarium.framework.lookup import InterpolatedDataManager
 from vivarium.framework.components import load_component_manager
 from vivarium.framework.randomness import RandomnessManager
@@ -52,9 +52,9 @@ class SimulationContext:
         self.component_manager.setup_components(builder)
 
         self.events.setup_components(self.component_manager.components)
-        self.population.setup_components(self.component_manager.components)
 
         self.events.get_emitter('post_setup')(None)
+        self.simulant_creator = builder.population.get_simulant_creator()
 
     @emits('time_step')
     @emits('time_step__prepare')
@@ -69,8 +69,7 @@ class SimulationContext:
         collect_metrics_emitter(Event(self.population.population.index))
         self.update_time()
 
-    @creates_simulants
-    def initialize_simulants(self, simulant_creator):
+    def initialize_simulants(self):
         sim_params = self.configuration.simulation_parameters
         pop_params = self.configuration.population
 
@@ -81,7 +80,7 @@ class SimulationContext:
         # Fencepost the creation of the initial population.
         self.current_time = start - self.step_size
         population_size = pop_params.population_size
-        simulant_creator(population_size)
+        self.simulant_creator(population_size)
         self.update_time()
 
     def __repr__(self):
@@ -96,9 +95,9 @@ class Builder:
         self.value = _value(context.values.register_value_producer,
                             context.values.register_rate_producer,
                             context.values.register_value_modifier)
-        _event = namedtuple('Event', ['get_emitter', 'register_listener'])
         self.emitter = context.events.get_emitter
-        self.population_view = context.population.get_view
+        _population = namedtuple('Population', ['get_view', 'get_simulant_creator'])
+        self.population = _population(context.population.get_view, context.population.get_simulant_creator)
         self.clock = lambda: lambda: context.current_time
         self.step_size = lambda: lambda: context.step_size
         self.configuration = context.configuration
