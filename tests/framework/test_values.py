@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from vivarium.framework.values import (replace_combiner, set_combiner, list_combiner,
+from vivarium.framework.values import (set_combiner, list_combiner,
                                        joint_value_post_processor, ValuesManager)
 
 
@@ -14,49 +14,50 @@ def manager(mocker):
     manager.setup(builder)
     return manager
 
+
 def test_replace_combiner(manager):
-    value = manager.get_value('test', replace_combiner)
-    value.source = lambda: 1
+    value = manager.register_value_producer('test', source=lambda: 1)
 
     assert value() == 1
 
-    manager.mutator(lambda value: 42, 'test')
+    manager.register_value_modifier('test', modifier=lambda v: 42)
     assert value() == 42
 
-    manager.mutator(lambda value: 84, 'test')
+    manager.register_value_modifier('test', lambda v: 84)
     assert value() == 84
+
 
 def test_joint_value(manager):
     # This is the normal configuration for PAF and disability weight type values
     index = pd.Index(range(10))
 
-    value = manager.get_value('test', list_combiner, joint_value_post_processor)
-    value.source = lambda index: [pd.Series(0, index=index)]
-
+    value = manager.register_value_producer('test',
+                                            source=lambda idx: [pd.Series(0, index=idx)],
+                                            preferred_combiner=list_combiner,
+                                            preferred_post_processor=joint_value_post_processor)
     assert np.all(value(index) == 0)
 
-    manager.mutator(lambda index: pd.Series(0.5, index=index), 'test')
+    manager.register_value_modifier('test', modifier=lambda idx: pd.Series(0.5, index=idx))
     assert np.all(value(index) == 0.5)
 
-    manager.mutator(lambda index: pd.Series(0.5, index=index), 'test')
+    manager.register_value_modifier('test', modifier=lambda idx: pd.Series(0.5, index=idx))
     assert np.all(value(index) == 0.75)
 
 
 def test_set_combiner(manager):
     # This is the normal configuration for collecting lists of meids for calculating cause deleted tables
-    value = manager.get_value('test', set_combiner)
-    value.source = lambda: set()
+    value = manager.register_value_producer('test', source=lambda: set(), preferred_combiner=set_combiner)
 
     assert value() == set()
 
-    manager.mutator(lambda: 'thing one', 'test')
+    manager.register_value_modifier('test', modifier=lambda: 'thing one')
     assert value() == {'thing one'}
 
-    manager.mutator(lambda: 'thing one', 'test')
-    assert value() == {'thing one'} # duplicates are truly removed
+    manager.register_value_modifier('test', modifier=lambda: 'thing one')
+    assert value() == {'thing one'}  # duplicates are truly removed
 
-    manager.mutator(lambda: 'thing two', 'test')
-    assert value() == {'thing one', 'thing two'} # but unique values are collected
+    manager.register_value_modifier('test', modifier=lambda: 'thing two')
+    assert value() == {'thing one', 'thing two'}  # but unique values are collected
 
 
 def test_contains(manager):
@@ -66,11 +67,11 @@ def test_contains(manager):
     assert value not in manager
     assert rate not in manager
 
-    manager.get_value(value)
+    manager.register_value_producer('test_value', source=lambda: 1)
     assert value in manager
     assert rate not in manager
 
-    manager.get_rate(rate)
+    manager.register_rate_producer('test_rate', source=lambda: 1)
     assert value in manager
     assert rate in manager
 
