@@ -2,7 +2,7 @@ import pandas as pd
 
 from vivarium import VivariumError
 
-from .event import emits, Event
+from .event import Event
 
 
 class PopulationError(VivariumError):
@@ -163,6 +163,9 @@ class PopulationManager:
         self._population = pd.DataFrame()
         self.growing = False
 
+    def setup(self, builder):
+        self.initialize_simulants_emitter = builder.event.get_emitter('initialize_simulants')
+
     def get_view(self, columns, query=None):
         """Return a configured PopulationView
 
@@ -178,14 +181,13 @@ class PopulationManager:
     def get_simulant_creator(self):
         return self._create_simulants
 
-    @emits('initialize_simulants')
-    def _create_simulants(self, count, emitter, population_configuration=None):
+    def _create_simulants(self, count, population_configuration=None):
         new_index = range(len(self._population) + count)
         new_population = self._population.reindex(new_index)
         index = new_population.index.difference(self._population.index)
         self._population = new_population
         self.growing = True
-        emitter(Event(index, user_data=population_configuration))
+        self.initialize_simulants_emitter(Event(index, user_data=population_configuration))
         self.growing = False
         return index
 

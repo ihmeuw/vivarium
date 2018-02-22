@@ -14,7 +14,7 @@ import pandas as pd
 
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.values import ValuesManager, DynamicValueError
-from vivarium.framework.event import EventManager, Event, emits
+from vivarium.framework.event import EventManager, Event
 from vivarium.framework.population import PopulationManager
 from vivarium.framework.lookup import InterpolatedDataManager
 from vivarium.framework.components import load_component_manager
@@ -51,22 +51,19 @@ class SimulationContext:
         self.component_manager.load_components_from_config()
         self.component_manager.setup_components(builder)
 
-        self.events.setup_components(self.component_manager.components)
+        self.simulant_creator = builder.population.get_simulant_creator()
+        # The order here matters.
+        self.time_step_events = ['time_step__prepare', 'time_step', 'time_step__cleanup', 'collect_metrics']
+        self.time_step_emitters = {k: builder.event.get_emitter(k) for k in self.time_step_events}
+
+        self.end_emitter = builder.event.get_emitter('simulation_end')
 
         self.events.get_emitter('post_setup')(None)
-        self.simulant_creator = builder.population.get_simulant_creator()
 
-    @emits('time_step')
-    @emits('time_step__prepare')
-    @emits('time_step__cleanup')
-    @emits('collect_metrics')
-    def step(self, time_step_emitter, time_step__prepare_emitter,
-             time_step__cleanup_emitter, collect_metrics_emitter):
+    def step(self):
         _log.debug(self.current_time)
-        time_step__prepare_emitter(Event(self.population.population.index))
-        time_step_emitter(Event(self.population.population.index))
-        time_step__cleanup_emitter(Event(self.population.population.index))
-        collect_metrics_emitter(Event(self.population.population.index))
+        for event in self.time_step_events:
+            self.time_step_emitters[event](Event(self.population.population.index))
         self.update_time()
 
     def initialize_simulants(self):
@@ -83,6 +80,9 @@ class SimulationContext:
         self.simulant_creator(population_size)
         self.update_time()
 
+    def finalize(self):
+        self.end_emitter(Event(self.population.population.index))
+
     def __repr__(self):
         return "SimulationContext(current_time={}, step_size={})".format(self.current_time, self.step_size)
 
@@ -90,20 +90,26 @@ class SimulationContext:
 class Builder:
     """Useful tools for constructing and configuring simulation components."""
     def __init__(self, context: SimulationContext):
+        self.clock = lambda: lambda: context.current_time
+        self.step_size = lambda: lambda: context.step_size
+        self.configuration = context.configuration
+
         self.lookup = context.tables.build_table
+
         _value = namedtuple('Value', ['register_value_producer', 'register_rate_producer', 'register_value_modifier'])
         self.value = _value(context.values.register_value_producer,
                             context.values.register_rate_producer,
                             context.values.register_value_modifier)
-        self.emitter = context.events.get_emitter
+
+        _event = namedtuple('Event', ['get_emitter', 'register_listener'])
+        self.event = _event(context.events.get_emitter, context.events.register_listener)
+
         _population = namedtuple('Population', ['get_view', 'get_simulant_creator'])
         self.population = _population(context.population.get_view, context.population.get_simulant_creator)
-        self.clock = lambda: lambda: context.current_time
-        self.step_size = lambda: lambda: context.step_size
-        self.configuration = context.configuration
-        self.randomness = namedtuple(
-            'Randomness', ['get_stream', 'register_simulants'])(context.randomness.get_randomness_stream,
-                                                                context.randomness.register_simulants)
+
+        _randomness = namedtuple('Randomness', ['get_stream', 'register_simulants'])
+        self.randomness = _randomness(context.randomness.get_randomness_stream,
+                                      context.randomness.register_simulants)
 
     def __repr__(self):
         return "Builder()"
@@ -119,8 +125,7 @@ def _get_time(suffix, params):
         return pd.Timestamp(params['year_{}'.format(suffix)], 7, 2)
 
 
-@emits('simulation_end')
-def event_loop(simulation, end_emitter):
+def event_loop(simulation):
     simulation.initialize_simulants()
 
     sim_params = simulation.configuration.simulation_parameters
@@ -130,7 +135,7 @@ def event_loop(simulation, end_emitter):
         gc.collect()  # TODO: Actually figure out where the memory leak is.
         simulation.step()
 
-    end_emitter(Event(simulation.population.population.index))
+    simulation.finalize()
 
 
 def setup_simulation(component_manager, config):

@@ -1,20 +1,5 @@
-"""The event framework
-"""
-
+"""The event framework"""
 from collections import defaultdict
-
-from .util import marker_factory, resource_injector
-
-listens_for = marker_factory('event_system__listens_for', with_priority=True)
-listens_for.__doc__ = """Mark a function as a listener for the named event so that
-the simulation will call it when that event occurs.
-"""
-
-emits = resource_injector('event_system__emits')
-emits.__doc__ = """Mark a function as an emitter for the named event. An event emitter function
-which can be called to emit the named event will be injected into the functions
-arguments whenever it is called.
-"""
 
 
 class Event:
@@ -115,7 +100,6 @@ class EventManager:
             A function that accepts an Event object and distributes
             it to all listeners for this event.
         """
-
         return self.__event_types[name].emit
 
     def register_listener(self, name, listener, priority=5):
@@ -131,39 +115,6 @@ class EventManager:
             Number used to assign the ordering in which listeners process the event.
         """
         self.__event_types[name].listeners[priority].append(listener)
-
-    def _emitter_injector(self, _, args, kwargs, label):
-        return list(args) + [self.__event_types[label].emit], kwargs
-
-    def setup_components(self, components):
-        """Registers the simulation components with the event system.
-
-        Parameters
-        ----------
-        components : Iterable
-            The simulation components.
-        """
-        emits.set_injector(self._emitter_injector)
-        for component in components:
-            listeners = [(v, component, i)
-                         for i, priority in enumerate(listens_for.finder(component))
-                         for v in priority]
-            listeners += [(v, getattr(component, att), i)
-                          for att in sorted(dir(component)) if callable(getattr(component, att))
-                          for i, vs in enumerate(listens_for.finder(getattr(component, att)))
-                          for v in vs]
-
-            for event, listener, priority in listeners:
-                self.register_listener(event, listener, priority)
-
-            emitters = [(v, component) for v in emits.finder(component)]
-            emitters += [(v, getattr(component, att))
-                         for att in sorted(dir(component)) if callable(getattr(component, att))
-                         for v in emits.finder(getattr(component, att))]
-
-            # Pre-create the EventChannels for known emitters
-            for (args, kwargs), emitter in emitters:
-                self.get_emitter(*args, **kwargs)
 
     def list_events(self):
         """List all event names known to the event system
