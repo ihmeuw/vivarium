@@ -3,9 +3,8 @@ import numbers
 import pandas as pd
 import numpy as np
 
-from vivarium.framework.engine import SimulationContext, _step, build_simulation_configuration
+from vivarium.framework.engine import SimulationContext, build_simulation_configuration
 from vivarium.framework.event import listens_for, Event
-from vivarium.framework.population import uses_columns
 from vivarium.framework.util import from_yearly, to_yearly
 from vivarium.framework import randomness
 from vivarium.framework.components import load_component_manager
@@ -47,10 +46,10 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
 
     if run_from_ipython() and with_logging:
         for _ in log_progress(range(iterations), name='Step'):
-            _step(simulation)
+            simulation.step()
     else:
         for i in range(iterations):
-            _step(simulation)
+            simulation.step()
     end_emitter = simulation.events.get_emitter('simulation_end')
     end_emitter(Event(simulation.population.population.index))
 
@@ -92,7 +91,7 @@ def assert_rate(simulation, expected_rate, value_func,
     effective_population_size = 0
     for _ in range(10*12):
         effective_population_size += effective_population_func(simulation)
-        _step(simulation)
+        simulation.step()
         new_count = value_func(simulation)
         total_true_rate += new_count - count
         count = new_count
@@ -143,9 +142,10 @@ class NonCRNTestPopulation:
     def setup(self, builder):
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream('population_age_fuzz')
+        self.population_view = builder.population.get_view(
+            ['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
 
     @listens_for('initialize_simulants', priority=0)
-    @uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
     def generate_test_population(self, event):
         age_start = event.user_data.get('age_start', self.config.population.age_start)
         age_end = event.user_data.get('age_end', self.config.population.age_end)
@@ -153,7 +153,13 @@ class NonCRNTestPopulation:
 
         population = _non_crn_build_population(event.index, age_start, age_end, location,
                                                event.time, event.step_size, self.randomness)
-        event.population_view.update(population)
+        self.population_view.update(population)
+
+    @listens_for('time_step')
+    def age_simulants(self, event):
+        population = self.population_view.get(event.index, query="alive == 'alive'")
+        population['age'] += event.step_size / pd.Timedelta(days=365)
+        self.population_view.update(population)
 
 
 class TestPopulation(NonCRNTestPopulation):
@@ -163,7 +169,6 @@ class TestPopulation(NonCRNTestPopulation):
         self.register = builder.randomness.register_simulants
 
     @listens_for('initialize_simulants', priority=0)
-    @uses_columns(['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
     def generate_test_population(self, event):
         age_start = event.user_data.get('age_start', self.config.population.age_start)
         age_end = event.user_data.get('age_end', self.config.population.age_end)
@@ -179,14 +184,7 @@ class TestPopulation(NonCRNTestPopulation):
 
         location = self.config.input_data.location_id
         population = _build_population(core_population, location, self.randomness)
-        event.population_view.update(population)
-
-
-@listens_for('time_step')
-@uses_columns(['age'], "alive == 'alive'")
-def age_simulants(event):
-    event.population['age'] += event.step_size / pd.Timedelta(days=365)
-    event.population_view.update(event.population)
+        self.population_view.update(population)
 
 
 def _build_population(core_population, location, randomness_stream):
@@ -223,11 +221,19 @@ def _non_crn_build_population(index, age_start, age_end, location, event_time, s
 
 
 def make_dummy_column(name, initial_value):
-    @listens_for('initialize_simulants')
-    @uses_columns([name])
-    def make_column(event):
-        event.population_view.update(pd.Series(initial_value, index=event.index, name=name))
-    return make_column
+    class dummy_column_maker:
+        def setup(self, builder):
+            self.population_view = builder.population.get_view([name])
+
+        @listens_for('initialize_simulants')
+        def make_column(self, event):
+            self.population_view.update(pd.Series(initial_value, index=event.index, name=name))
+
+        def __repr__(self):
+            return f"dummy_column(name={name}, initial_value={initial_value})"
+    return dummy_column_maker()
+
+
 
 
 def get_randomness(key='test', clock=lambda: pd.Timestamp(1990, 7, 2), seed=12345, for_initialization=False):

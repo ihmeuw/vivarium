@@ -1,43 +1,8 @@
-"""
-"""
-from collections import defaultdict
-
 import pandas as pd
 
 from vivarium import VivariumError
 
-from .util import resource_injector
 from .event import emits, Event
-
-_uses_columns = resource_injector('population_system_population_view')
-def uses_columns(column, query=''):
-    """Mark a function as a user of columns from the population table. If
-    the function is also an event listener then the Event object which it
-    receives will be transformed into a PopulationEvent. Otherwise the
-    function will have a configured PopulationView injected into its
-    arguments.
-
-    Parameters
-    ----------
-    columns : [str]
-    A list of column names which the function will need to read
-    or write.
-
-    query   : str
-    A filter in pandas query syntax which should be applied to
-    the population before it made accessible to this
-    function. This effects both the ``population`` and the
-    ``index`` attributes of PopulationEvents
-    """
-    return _uses_columns(column, query)
-uses_columns.set_injector = _uses_columns.set_injector
-
-_creates_simulants = resource_injector('population_system_simulant_creater')
-creates_simulants = _creates_simulants()
-creates_simulants.__doc__ = """Mark a function as a source of new simulants. The function will have a callable
-injected into its arguments which takes a count of new simulants, creates space for them in the population table
-and emits a 'initialize_simulants' event to fill in the table.
-"""
 
 
 class PopulationError(VivariumError):
@@ -77,11 +42,17 @@ class PopulationView:
             return list(self.manager._population.columns)
         return list(self._columns)
 
+    def subview(self, columns):
+        if set(columns) > set(self._columns):
+            raise PopulationError(f"Invalid subview requested.  Requested columns must be a subset of this view's "
+                                  f"columns.  Requested columns: {columns}, Avaliable columns: {self.columns}")
+        return PopulationView(self.manager, columns, self.query)
+
     @property
     def query(self):
         return self._query
 
-    def get(self, index, omit_missing_columns=False):
+    def get(self, index, query=None, omit_missing_columns=False):
         """For the rows in ``index`` get the columns from the simulation's population which this view is configured.
         The result may be further filtered by the view's query.
 
@@ -102,6 +73,8 @@ class PopulationView:
 
         if self._query:
             pop = pop.query(self._query)
+        if query:
+            pop = pop.query(query)
 
         if self._columns is None:
             return pop.copy()
@@ -176,43 +149,6 @@ class PopulationView:
         return "PopulationView(_columns= {}, _query= {})".format(self._columns, self._query)
 
 
-class PopulationEvent(Event):
-    """A standard Event with additional population data. This is the type of event that functions decorated with both
-    ``listens_for`` and ``uses_columns`` will receive.
-
-    Attributes
-    ----------
-    population      : pandas.DataFrame
-                      A copy of the subset of the simulation's population table selected by applying the underlying Event's
-                      index to the PopulationView which created this event
-    population_view : PopulationView
-                      The PopulationView which created this event
-    index           : pandas.Index
-                      The index of the underlying Event filtered by the PopulationView's query, if any.
-    """
-
-    def __init__(self, index, population, population_view, user_data=None, time=None, step_size=None):
-        super(PopulationEvent, self).__init__(index, user_data)
-        self.population = population
-        self.population_view = population_view
-        self.time = time
-        self.step_size = step_size
-
-    @staticmethod
-    def from_event(event, population_view):
-        if not population_view.manager.growing:
-            population = population_view.get(event.index)
-            return PopulationEvent(population.index, population, population_view, event.user_data,
-                                   time=event.time, step_size=event.step_size)
-
-        population = population_view.get(event.index, omit_missing_columns=True)
-        return PopulationEvent(event.index, population, population_view, event.user_data,
-                               time=event.time, step_size=event.step_size)
-
-    def __repr__(self):
-        return "PopulationEvent(time= {}, step_size={})".format(self.time, self.step_size)
-
-
 class PopulationManager:
     """The configuration for the population management system.
 
@@ -239,6 +175,9 @@ class PopulationManager:
         """
         return PopulationView(self, columns, query)
 
+    def get_simulant_creator(self):
+        return self._create_simulants
+
     @emits('initialize_simulants')
     def _create_simulants(self, count, emitter, population_configuration=None):
         new_index = range(len(self._population) + count)
@@ -249,33 +188,6 @@ class PopulationManager:
         emitter(Event(index, user_data=population_configuration))
         self.growing = False
         return index
-
-    def _population_view_injector(self, func, args, kwargs, columns, query=None):
-        view = self.get_view(columns, query)
-        found = False
-        if 'event' in kwargs:
-            kwargs['event'] = PopulationEvent.from_event(kwargs['event'], view)
-        else:
-            new_args = []
-            for arg in args:
-                if isinstance(arg, Event):
-                    arg = PopulationEvent.from_event(arg, view)
-                    found = True
-                new_args.append(arg)
-            args = new_args
-
-        if not found:
-            # This function is not receiving an event. Inject a PopulationView directly.
-            args = list(args) + [view]
-
-        return args, kwargs
-
-    def _creates_simulants_injector(self, func, args, kwargs):
-        return list(args) + [self._create_simulants], kwargs
-
-    def setup_components(self, components):
-        uses_columns.set_injector(self._population_view_injector)
-        _creates_simulants.set_injector(self._creates_simulants_injector)
 
     @property
     def population(self):
