@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 
 from vivarium.test_util import setup_simulation
-from vivarium.framework.event import listens_for
 from vivarium.framework.randomness import choice
 
 from vivarium.framework.state_machine import Machine, State, Transition
@@ -12,8 +11,8 @@ def _population_fixture(column, initial_value):
     class pop_fixture:
         def setup(self, builder):
             self.population_view = builder.population.get_view([column])
+            builder.event.register_listener('initialize_simulants', self.inner)
 
-        @listens_for('initialize_simulants')
         def inner(self, event):
             self.population_view.update(pd.Series(initial_value, index=event.index))
     return pop_fixture()
@@ -23,8 +22,8 @@ def _even_population_fixture(column, values):
     class pop_fixture:
         def setup(self, builder):
             self.population_view = builder.population.get_view([column])
+            builder.event.register_listener('initialize_simulants', self.inner)
 
-        @listens_for('initialize_simulants')
         def inner(self, event):
             self.population_view.update(choice('start', event.index, values))
 
