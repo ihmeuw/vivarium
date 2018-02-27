@@ -104,8 +104,10 @@ class Builder:
         _event = namedtuple('Event', ['get_emitter', 'register_listener'])
         self.event = _event(context.events.get_emitter, context.events.register_listener)
 
-        _population = namedtuple('Population', ['get_view', 'get_simulant_creator'])
-        self.population = _population(context.population.get_view, context.population.get_simulant_creator)
+        _population = namedtuple('Population', ['get_view', 'get_simulant_creator', 'initializes_simulants'])
+        self.population = _population(context.population.get_view,
+                                      context.population.get_simulant_creator,
+                                      context.population.register_simulant_initializer)
 
         _randomness = namedtuple('Randomness', ['get_stream', 'register_simulants'])
         self.randomness = _randomness(context.randomness.get_randomness_stream,

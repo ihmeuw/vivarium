@@ -142,19 +142,21 @@ class NonCRNTestPopulation:
     def setup(self, builder):
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream('population_age_fuzz')
-        self.population_view = builder.population.get_view(
-            ['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time'])
+        columns = ['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time']
+        self.population_view = builder.population.get_view(columns)
 
-        builder.event.register_listener('initialize_simulants', self.generate_test_population, priority=0)
+        builder.population.initializes_simulants(self.generate_test_population,
+                                                 creates_columns=columns)
+
         builder.event.register_listener('time_step', self.age_simulants)
 
-    def generate_test_population(self, event):
-        age_start = event.user_data.get('age_start', self.config.population.age_start)
-        age_end = event.user_data.get('age_end', self.config.population.age_end)
+    def generate_test_population(self, pop_data):
+        age_start = pop_data.user_data.get('age_start', self.config.population.age_start)
+        age_end = pop_data.user_data.get('age_end', self.config.population.age_end)
         location = self.config.input_data.location_id
 
-        population = _non_crn_build_population(event.index, age_start, age_end, location,
-                                               event.time, event.step_size, self.randomness)
+        population = _non_crn_build_population(pop_data.index, age_start, age_end, location,
+                                               pop_data.creation_time, pop_data.creation_window, self.randomness)
         self.population_view.update(population)
 
     def age_simulants(self, event):
@@ -169,17 +171,17 @@ class TestPopulation(NonCRNTestPopulation):
         self.age_randomness = builder.randomness.get_stream('age_initialization', for_initialization=True)
         self.register = builder.randomness.register_simulants
 
-    def generate_test_population(self, event):
-        age_start = event.user_data.get('age_start', self.config.population.age_start)
-        age_end = event.user_data.get('age_end', self.config.population.age_end)
-        age_draw = self.age_randomness.get_draw(event.index)
+    def generate_test_population(self, pop_data):
+        age_start = pop_data.user_data.get('age_start', self.config.population.age_start)
+        age_end = pop_data.user_data.get('age_end', self.config.population.age_end)
+        age_draw = self.age_randomness.get_draw(pop_data.index)
         if age_start == age_end:
-            age = age_draw * (event.step_size / pd.Timedelta(days=365)) + age_start
+            age = age_draw * (pop_data.creation_window / pd.Timedelta(days=365)) + age_start
         else:
             age = age_draw * (age_end - age_start) + age_start
 
-        core_population = pd.DataFrame({'entrance_time': event.time,
-                                        'age': age.values}, index=event.index)
+        core_population = pd.DataFrame({'entrance_time': pop_data.creation_time,
+                                        'age': age.values}, index=pop_data.index)
         self.register(core_population)
 
         location = self.config.input_data.location_id
@@ -202,9 +204,9 @@ def _build_population(core_population, location, randomness_stream):
     return population
 
 
-def _non_crn_build_population(index, age_start, age_end, location, event_time, step_size, randomness_stream):
+def _non_crn_build_population(index, age_start, age_end, location, creation_time, creation_window, randomness_stream):
     if age_start == age_end:
-        age = randomness_stream.get_draw(index) * (step_size / pd.Timedelta(days=365)) + age_start
+        age = randomness_stream.get_draw(index) * (creation_window / pd.Timedelta(days=365)) + age_start
     else:
         age = randomness_stream.get_draw(index)*(age_end - age_start) + age_start
 
@@ -214,7 +216,7 @@ def _non_crn_build_population(index, age_start, age_end, location, event_time, s
          'alive': pd.Series('alive', index=index).astype(
              pd.api.types.CategoricalDtype(categories=['alive', 'dead', 'untracked'], ordered=False)),
          'location': location,
-         'entrance_time': event_time,
+         'entrance_time': creation_time,
          'exit_time': pd.NaT, },
         index=index)
     return population
@@ -224,10 +226,11 @@ def make_dummy_column(name, initial_value):
     class dummy_column_maker:
         def setup(self, builder):
             self.population_view = builder.population.get_view([name])
-            builder.event.register_listener('initialize_simulants', self.make_column)
+            builder.population.initializes_simulants(self.make_column,
+                                                     creates_columns=[name])
 
-        def make_column(self, event):
-            self.population_view.update(pd.Series(initial_value, index=event.index, name=name))
+        def make_column(self, pop_data):
+            self.population_view.update(pd.Series(initial_value, index=pop_data.index, name=name))
 
         def __repr__(self):
             return f"dummy_column(name={name}, initial_value={initial_value})"
