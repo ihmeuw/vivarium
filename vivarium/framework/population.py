@@ -1,5 +1,5 @@
 """System for managing population creation, updating and viewing."""
-from typing import Sequence, Optional, List, Callable
+from typing import Sequence, List, Callable, Union, Mapping, Any
 from collections import deque, namedtuple
 
 import pandas as pd
@@ -34,7 +34,7 @@ class PopulationView:
     by ``uses_columns`` or the builder's ``population_view`` method during setup.
     """
 
-    def __init__(self, manager: 'PopulationManager', columns: Sequence[str]=(), query: str=None) -> None:
+    def __init__(self, manager: 'PopulationManager', columns: Sequence[str]=(), query: str=None):
         self.manager = manager
         self._columns = list(columns)
         self._query = query
@@ -99,12 +99,12 @@ class PopulationView:
                                       + 'initialization? You may be able to lower the priority of your handler so '
                                       + 'that it happens after the component that creates the column you need.')
 
-    def update(self, pop):
+    def update(self, pop: Union[pd.DataFrame, pd.Series]) -> None:
         """Update the simulation's state to match ``pop``
 
         Parameters
         ----------
-        pop : pandas.DataFrame or pandas.Series
+        pop :
               The data which should be copied into the simulation's state. If ``pop`` is a DataFrame only those columns
               included in the view's columns will be used. If ``pop`` is a Series it must have a name that matches
               one of the view's columns unless the view only has one column in which case the Series will be assumed to
@@ -178,7 +178,7 @@ class PopulationManager:
         self.clock = builder.clock()
         self.step_size = builder.step_size()
 
-    def get_view(self, columns, query=None):
+    def get_view(self, columns: Sequence[str], query: str=None) -> PopulationView:
         """Return a configured PopulationView
 
         Notes
@@ -194,10 +194,10 @@ class PopulationManager:
                                       creates_columns: Sequence[str]=(), requires_columns: Sequence[str]=()):
         self._population_initializers.append((initializer, creates_columns, requires_columns))
 
-    def get_simulant_creator(self):
+    def get_simulant_creator(self) -> Callable:
         return self._create_simulants
 
-    def _order_initializers(self):
+    def _order_initializers(self) -> None:
         unordered_initializers = deque(self._population_initializers)
         starting_length = -1
         available_columns = []
@@ -227,7 +227,7 @@ class PopulationManager:
 
         self._initializers_ordered = True
 
-    def _create_simulants(self, count, population_configuration=None):
+    def _create_simulants(self, count: int, population_configuration: Mapping[str, Any]=None) -> pd.Index:
         population_configuration = population_configuration if population_configuration else {}
         if not self._initializers_ordered:
             self._order_initializers()
@@ -243,7 +243,7 @@ class PopulationManager:
         return index
 
     @property
-    def population(self):
+    def population(self) -> pd.DataFrame:
         return self._population.copy()
 
     def __repr__(self):
