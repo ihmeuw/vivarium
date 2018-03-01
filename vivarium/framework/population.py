@@ -191,7 +191,7 @@ class PopulationManager:
         return PopulationView(self, columns, query)
 
     def register_simulant_initializer(self, initializer: Callable,
-                                      creates_columns: Sequence[str], requires_columns: Sequence[str]=()):
+                                      creates_columns: Sequence[str]=(), requires_columns: Sequence[str]=()):
         self._population_initializers.append((initializer, creates_columns, requires_columns))
 
     def get_simulant_creator(self):
@@ -219,6 +219,11 @@ class PopulationManager:
         if unordered_initializers:
             raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
                                   f"Check for cyclic dependencies in your components.")
+
+        # FIXME: This should be uncommented once we've made unique "healthy" states for multiple diseases.
+        # if len(set(available_columns)) < len(available_columns):
+        #     raise PopulationError("Multiple components are attempting to initialize the "
+        #                           "same columns in the state table.")
 
         self._initializers_ordered = True
 
