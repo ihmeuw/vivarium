@@ -205,7 +205,7 @@ class PopulationManager:
 
         # This is the brute force N^2 way because constructing a dependency graph is work
         # and in practice this should run in about order N time due to the way dependencies are
-        # typically specified.
+        # typically specified.  N is also very small in all current applications.
         while len(unordered_initializers) != starting_length:
             starting_length = len(unordered_initializers)
             for _ in range(len(unordered_initializers)):
