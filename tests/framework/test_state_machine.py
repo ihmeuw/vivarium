@@ -11,10 +11,10 @@ def _population_fixture(column, initial_value):
     class pop_fixture:
         def setup(self, builder):
             self.population_view = builder.population.get_view([column])
-            builder.event.register_listener('initialize_simulants', self.inner)
+            builder.population.initializes_simulants(self.inner, creates_columns=[column])
 
-        def inner(self, event):
-            self.population_view.update(pd.Series(initial_value, index=event.index))
+        def inner(self, pop_data):
+            self.population_view.update(pd.Series(initial_value, index=pop_data.index))
     return pop_fixture()
 
 
@@ -22,12 +22,13 @@ def _even_population_fixture(column, values):
     class pop_fixture:
         def setup(self, builder):
             self.population_view = builder.population.get_view([column])
-            builder.event.register_listener('initialize_simulants', self.inner)
+            builder.population.initializes_simulants(self.inner, creates_columns=[column])
 
-        def inner(self, event):
-            self.population_view.update(choice('start', event.index, values))
+        def inner(self, pop_data):
+            self.population_view.update(choice('start', pop_data.index, values))
 
     return pop_fixture()
+
 
 def test_transition():
     done_state = State('done')
