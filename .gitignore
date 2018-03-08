@@ -1,6 +1,7 @@
 .cache
 .mypy_cache
 .tox
+.mypy_cache
 *.pyc
 *.swp
 .coverage
