@@ -220,10 +220,9 @@ class PopulationManager:
             raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
                                   f"Check for cyclic dependencies in your components.")
 
-        # FIXME: This should be uncommented once we've made unique "healthy" states for multiple diseases.
-        # if len(set(available_columns)) < len(available_columns):
-        #     raise PopulationError("Multiple components are attempting to initialize the "
-        #                           "same columns in the state table.")
+        if len(set(available_columns)) < len(available_columns):
+            raise PopulationError("Multiple components are attempting to initialize the "
+                                  "same columns in the state table.")
 
         self._initializers_ordered = True
 
