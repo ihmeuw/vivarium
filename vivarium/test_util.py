@@ -20,7 +20,7 @@ def setup_simulation(components, population_size=100, start=None, input_config=N
     step_size = config.simulation_parameters.time_step
     simulation.step_size = pd.Timedelta(days=step_size // 1, hours=(step_size % 1) * 24)
     if not start:
-        start = pd.Timestamp(config.simulation_parameters.year_start, 1, 1)
+        start = pd.Timestamp(config.simulation_parameters.year_start, 7, 2)
 
     # Fencepost the creation of the initial population.
     simulation.current_time = start - simulation.step_size
