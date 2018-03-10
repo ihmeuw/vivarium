@@ -93,3 +93,6 @@ def get_results_writer(results_directory, component_configuration_file):
     config_name = os.path.basename(component_configuration_file.rpartition('.')[0])
     results_root = results_directory + f"/{config_name}/{launch_time}"
     return ResultsWriter(results_root)
+
+def get_results_writer_for_restart(results_directory):
+    return ResultsWriter(results_directory)
