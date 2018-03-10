@@ -232,11 +232,9 @@ def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
     default_dataset_manager = {'vivarium': {'dataset_manager': 'vivarium.framework.components.DummyDatasetManager'}}
     default_metadata = {'layer': 'base', 'source': os.path.realpath(__file__)}
 
-    # Set any configuration overrides from component and branch configurations.
-    config.update(parameters.get('config', None), layer='override')  # source is implicit
-    config.update(parameters.get('components', None), layer='model_override')  # source is implicit
+    config.update(parameters.get('simulation_configuration', None), layer='model_override')  # source is implicit
     if 'configuration' in config:
-        config.configuration.source = parameters.get('components', None)
+        config.configuration.source = parameters.get('simulation_configuration', None)
 
     # Make sure we have a component and dataset manager
     if 'component_manager' not in config['vivarium']:
@@ -266,7 +264,7 @@ def do_command(args):
     component_manager = load_component_manager(config)
     if args.command == 'run':
         simulation = setup_simulation(component_manager, config)
-        results_writer = get_results_writer(config.run_configuration.results_directory, args.components)
+        results_writer = get_results_writer(config.run_configuration.results_directory, args.simulation_configuration)
         metrics, final_state = run(simulation)
         idx = pd.MultiIndex.from_tuples([(config.run_configuration.input_draw_number,
                                           config.run_configuration.model_draw_number)],
@@ -282,14 +280,10 @@ def do_command(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('command', choices=['run', 'list_datasets'])
-    parser.add_argument('components', nargs='?', default=None, type=str)
+    parser.add_argument('simulation_configuration', nargs='?', default=None, type=str)
     parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--config', '-c', type=str, default=None,
-                        help='Path to a config file to load which will take precedence over all other configs')
-    parser.add_argument('--input_draw', '-d', type=int, default=0, help='Which GBD draw to use')
-    parser.add_argument('--model_draw', type=int, default=0, help="Which draw from the model's own variation to use")
+    parser.add_argument('--seed', '-s', type=int, default=0, help="Seed for random number generation")
     parser.add_argument('--results_path', '-o', type=str, default=None, help='Output directory to write results to')
-    parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
     parser.add_argument('--log', type=str, default=None, help='Path to log file')
     parser.add_argument('--pdb', action='store_true', help='Run in the debugger')
     args = parser.parse_args()
