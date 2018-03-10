@@ -2,13 +2,13 @@
 ComponentManager class which uses those tools to load and manage components.
 """
 import ast
+import inspect
 from collections import Iterable
 from importlib import import_module
-import inspect
 from typing import Tuple, Callable, Sequence, Mapping, Union, List
 
 from vivarium import VivariumError
-from vivarium.config_tree import ConfigTree
+from vivarium.configuration.config_tree import ConfigTree
 
 
 class ComponentConfigError(VivariumError):
