@@ -4,11 +4,11 @@ ComponentManager class which uses those tools to load and manage components.
 import ast
 import inspect
 from collections import Iterable
-from importlib import import_module
 from typing import Tuple, Callable, Sequence, Mapping, Union, List
 
 from vivarium import VivariumError
 from vivarium.configuration.config_tree import ConfigTree
+from .util import import_by_path
 
 
 class ComponentConfigError(VivariumError):
@@ -27,19 +27,6 @@ class DummyDatasetManager:
         self.constructors = {}
 
 
-def _import_by_path(path: str) -> Callable:
-    """Import a class or function given it's absolute path.
-
-    Parameters
-    ----------
-    path:
-      Path to object to import
-    """
-
-    module_path, _, class_name = path.rpartition('.')
-    return getattr(import_module(module_path), class_name)
-
-
 def load_component_manager(config: ConfigTree):
     """Create a component manager along with it's dataset manager.
 
@@ -50,8 +37,8 @@ def load_component_manager(config: ConfigTree):
     config:
         Configuration data to use.
     """
-    component_manager_class = _import_by_path(config.vivarium.component_manager)
-    dataset_manager_class = _import_by_path(config.vivarium.dataset_manager)
+    component_manager_class = import_by_path(config.vivarium.component_manager)
+    dataset_manager_class = import_by_path(config.vivarium.dataset_manager)
     dataset_manager = dataset_manager_class()
     return component_manager_class(config, dataset_manager)
 
@@ -293,7 +280,7 @@ def _prep_components(config: ConfigTree, component_list: Sequence, constructors:
             else:
                 call = False
 
-            component = _import_by_path(component)
+            component = import_by_path(component)
 
             for attr, val in inspect.getmembers(component, lambda a: not inspect.isroutine(a)):
                 constructor = constructors.get(val.__class__)

@@ -8,18 +8,14 @@ _DEFAULT_PARAMETERS = {
         'random_seed': 0,
         'results_directory': os.path.expanduser('~/vivarium_results/'),
     },
-    # FIXME: Hack in some stuff from the config in ceam-inputs until we can clean this up. -J.C.
-    'simulation_parameters': {
-        'year_start': 2005,
-        'year_end': 2010,
-        'time_step': 1,  # Days
-    },
+    # FIXME: Hack
     'input_data': {
         'location_id': 180,
     },
     'vivarium': {
         'component_manager': 'vivarium.framework.components.ComponentManager',
         'dataset_manager': 'vivarium.framework.components.DummyDatasetManager',
+        'clock': 'vivarium.framework.time.DateTimeClock',
     },
 }
 

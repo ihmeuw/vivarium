@@ -18,6 +18,7 @@ from .lookup import InterpolatedDataManager
 from .population import PopulationManager
 from .randomness import RandomnessManager
 from .results_writer import get_results_writer
+from .time import get_clock
 from .util import collapse_nested_dict
 from .values import ValuesManager, DynamicValueError
 
@@ -29,6 +30,7 @@ class SimulationContext:
     def __init__(self, component_manager, configuration):
         self.component_manager = component_manager
         self.configuration = configuration
+        self.clock = get_clock(self.configuration.vivarium.clock)
         self.values = ValuesManager()
         self.events = EventManager()
         self.population = PopulationManager()
@@ -37,15 +39,11 @@ class SimulationContext:
         self.current_time = None
         self.step_size = pd.Timedelta(0, unit='D')
 
-    def update_time(self):
-        """Updates the simulation clock."""
-        self.current_time += self.step_size
-
     def setup(self):
         builder = Builder(self)
 
         self.component_manager.add_components(
-            [self.values, self.events, self.population, self.tables, self.randomness])
+            [self.values, self.events, self.population, self.tables, self.randomness, self.clock])
         self.component_manager.load_components_from_config()
         self.component_manager.setup_components(builder)
 
@@ -62,21 +60,16 @@ class SimulationContext:
         _log.debug(self.current_time)
         for event in self.time_step_events:
             self.time_step_emitters[event](Event(self.population.population.index))
-        self.update_time()
+        self.clock.step_forward()
 
     def initialize_simulants(self):
-        sim_params = self.configuration.simulation_parameters
         pop_params = self.configuration.population
 
-        step_size = sim_params.time_step
-        self.step_size = pd.Timedelta(days=step_size // 1, hours=(step_size % 1) * 24)
-        start = _get_time('start', sim_params)
-
         # Fencepost the creation of the initial population.
-        self.current_time = start - self.step_size
+        self.clock.step_backward()
         population_size = pop_params.population_size
         self.simulant_creator(population_size)
-        self.update_time()
+        self.clock.step_forward()
 
     def finalize(self):
         self.end_emitter(Event(self.population.population.index))
@@ -88,11 +81,13 @@ class SimulationContext:
 class Builder:
     """Useful tools for constructing and configuring simulation components."""
     def __init__(self, context: SimulationContext):
-        self.clock = lambda: lambda: context.current_time
-        self.step_size = lambda: lambda: context.step_size
         self.configuration = context.configuration
 
         self.lookup = context.tables.build_table
+
+        _time = namedtuple('Time', ['clock', 'step_size'])
+        self.time = _time(lambda: context.clock.time,
+                          lambda: context.clock.step_size)
 
         _value = namedtuple('Value', ['register_value_producer', 'register_rate_producer', 'register_value_modifier'])
         self.value = _value(context.values.register_value_producer,
@@ -115,14 +110,7 @@ class Builder:
         return "Builder()"
 
 
-def _get_time(suffix, params):
-    month, day = 'month' + suffix, 'day' + suffix
-    if month in params or day in params:
-        if not (month in params and day in params):
-            raise ValueError("you must either specify both a month {0} and a day {0} or neither".format(suffix))
-        return pd.Timestamp(params['year_{}'.format(suffix)], params[month], params.day_start)
-    else:
-        return pd.Timestamp(params['year_{}'.format(suffix)], 7, 2)
+
 
 
 def event_loop(simulation):
