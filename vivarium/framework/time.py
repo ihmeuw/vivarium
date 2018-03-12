@@ -11,7 +11,7 @@ Time = Union[datetime, Number]
 Timedelta = Union[timedelta, Number]
 
 
-class _SimulationClock:
+class SimulationClock:
     """Defines a base implementation for a simulation clock."""
 
     def __init__(self):
@@ -50,7 +50,7 @@ class _SimulationClock:
         self._time -= self.step_size
 
 
-class SimpleClock(_SimulationClock):
+class SimpleClock(SimulationClock):
     """An iteration based simulant clock.
 
     This clock requires a start, stop, and time step size specified as ints or floats.
@@ -74,7 +74,7 @@ def _get_time_stamp(time):
     return pd.Timestamp(time['year'], time['month'], time['day'])
 
 
-class DateTimeClock(_SimulationClock):
+class DateTimeClock(SimulationClock):
     """A date-time based simulation clock."""
 
     configuration_defaults = {

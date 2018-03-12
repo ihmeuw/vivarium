@@ -1,8 +1,6 @@
 """The engine."""
-import argparse
 import gc
-import logging
-from bdb import BdbQuit
+
 from collections import namedtuple
 from pprint import pformat, pprint
 from time import time
@@ -22,6 +20,7 @@ from .time import get_clock
 from .util import collapse_nested_dict
 from .values import ValuesManager, DynamicValueError
 
+import logging
 _log = logging.getLogger(__name__)
 
 
@@ -36,8 +35,6 @@ class SimulationContext:
         self.population = PopulationManager()
         self.tables = InterpolatedDataManager()
         self.randomness = RandomnessManager()
-        self.current_time = None
-        self.step_size = pd.Timedelta(0, unit='D')
 
     def setup(self):
         builder = Builder(self)
@@ -57,7 +54,7 @@ class SimulationContext:
         self.events.get_emitter('post_setup')(None)
 
     def step(self):
-        _log.debug(self.current_time)
+        _log.debug(self.clock.time)
         for event in self.time_step_events:
             self.time_step_emitters[event](Event(self.population.population.index))
         self.clock.step_forward()
@@ -75,7 +72,7 @@ class SimulationContext:
         self.end_emitter(Event(self.population.population.index))
 
     def __repr__(self):
-        return "SimulationContext(current_time={}, step_size={})".format(self.current_time, self.step_size)
+        return "SimulationContext()"
 
 
 class Builder:
@@ -86,8 +83,8 @@ class Builder:
         self.lookup = context.tables.build_table
 
         _time = namedtuple('Time', ['clock', 'step_size'])
-        self.time = _time(lambda: context.clock.time,
-                          lambda: context.clock.step_size)
+        self.time = _time(lambda: lambda: context.clock.time,
+                          lambda: lambda: context.clock.step_size)
 
         _value = namedtuple('Value', ['register_value_producer', 'register_rate_producer', 'register_value_modifier'])
         self.value = _value(context.values.register_value_producer,
@@ -110,16 +107,10 @@ class Builder:
         return "Builder()"
 
 
-
-
-
 def event_loop(simulation):
     simulation.initialize_simulants()
 
-    sim_params = simulation.configuration.simulation_parameters
-    stop = _get_time('end', sim_params)
-
-    while simulation.current_time < stop:
+    while simulation.clock.time < simulation.clock.stop_time:
         gc.collect()  # TODO: Actually figure out where the memory leak is.
         simulation.step()
 
@@ -130,7 +121,6 @@ def setup_simulation(component_manager, config):
     config.run_configuration.set_with_metadata('run_id', str(time()), layer='base')
     config.run_configuration.set_with_metadata('run_key',
                                                {'draw': config.run_configuration.input_draw_number}, layer='base')
-    component_manager.add_components([event_loop])
     simulation = SimulationContext(component_manager, config)
     simulation.setup()
     return simulation
@@ -146,8 +136,6 @@ def run_simulation(simulation):
     metrics = metrics(simulation.population.population.index)
     metrics['simulation_run_time'] = time() - start
     return metrics
-
-
 
 
 def run(simulation):
@@ -182,34 +170,4 @@ def do_command(args):
         pprint(yaml.dump(list(component_manager.dataset_manager.datasets_loaded)))
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['run', 'list_datasets'])
-    parser.add_argument('simulation_configuration', nargs='?', default=None, type=str)
-    parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--random_seed', '-s', type=int, default=0, help="Seed for random number generation")
-    parser.add_argument('--results_path', '-o', type=str, default=None, help='Output directory to write results to')
-    parser.add_argument('--log', type=str, default=None, help='Path to log file')
-    parser.add_argument('--pdb', action='store_true', help='Run in the debugger')
-    args = parser.parse_args()
 
-    log_level = logging.DEBUG if args.verbose else logging.ERROR
-    logging.basicConfig(filename=args.log, level=log_level)
-
-    try:
-        do_command(args)
-    except (BdbQuit, KeyboardInterrupt):
-        raise
-    except Exception as e:
-        if args.pdb:
-            import pdb
-            import traceback
-            traceback.print_exc()
-            pdb.post_mortem()
-        else:
-            logging.exception("Uncaught exception {}".format(e))
-            raise
-
-
-if __name__ == '__main__':
-    main()
