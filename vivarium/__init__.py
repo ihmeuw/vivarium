@@ -1,7 +1,7 @@
 import numpy
 numpy.seterr(all='raise')
 
-from vivarium.config_tree import ConfigTree
+from vivarium.configuration.config_tree import ConfigTree
 
 __all__ = ['VivariumError']
 

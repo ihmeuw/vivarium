@@ -1,6 +1,7 @@
 import pytest
 
-from vivarium.config_tree import ConfigTree
+from vivarium.configuration.config_tree import ConfigTree
+
 
 def test_single_layer():
     d = ConfigTree()

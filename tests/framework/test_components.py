@@ -3,13 +3,12 @@ import ast
 import pytest
 import yaml
 
-from vivarium.config_tree import ConfigTree
-from vivarium.framework.engine import build_simulation_configuration
+from vivarium.configuration.config_tree import ConfigTree
 from vivarium.framework.components import (_import_by_path, load_component_manager, ComponentManager,
                                            DummyDatasetManager, _extract_component_list,
                                            _component_ast_to_path, _parse_component, ParsingError, _prep_components,
                                            _extract_component_call, _is_literal)
-
+from vivarium.framework.engine import build_simulation_configuration
 
 TEST_COMPONENTS = """
 components:
