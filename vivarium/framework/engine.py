@@ -30,6 +30,7 @@ class SimulationContext:
     """context"""
     def __init__(self, component_manager, configuration):
         self.component_manager = component_manager
+        self.data = component_manager.dataset_manager
         self.configuration = configuration
         self.values = ValuesManager()
         self.events = EventManager()
@@ -112,6 +113,9 @@ class Builder:
         _randomness = namedtuple('Randomness', ['get_stream', 'register_simulants'])
         self.randomness = _randomness(context.randomness.get_randomness_stream,
                                       context.randomness.register_simulants)
+
+        _data = namedtuple('Data', ['load'])
+        self.data = _data(context.data.load)
 
     def __repr__(self):
         return "Builder()"

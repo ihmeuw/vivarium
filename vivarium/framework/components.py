@@ -23,8 +23,8 @@ class ParsingError(ComponentConfigError):
 
 class DummyDatasetManager:
     """Placeholder implementation of the DatasetManager"""
-    def __init__(self):
-        self.constructors = {}
+    def load(self, dataset_path):
+        raise NotImplementedError("DummyDatasetManager can't actually load data")
 
 
 def _import_by_path(path: str) -> Callable:
@@ -87,7 +87,7 @@ class ComponentManager:
         """
 
         component_list = _extract_component_list(self.component_config)
-        component_list = _prep_components(self.config, component_list, self.dataset_manager.constructors)
+        component_list = _prep_components(self.config, component_list, {})
         new_components = []
         for component in component_list:
             if len(component) == 1:
