@@ -81,6 +81,9 @@ class InterpolatedDataManager:
         self._pop_view_builder = builder.population.get_view
         self.clock = builder.clock()
         self._interpolation_order = builder.configuration.interpolation.order
+        if self._interpolation_order not in [0, 1]:
+            raise ValueError('Only order 0 and order 1 interpolations are supported. '
+                             f'You specified {self._interpolation_order}')
 
     def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year')):
         """Construct a TableView from a ``pandas.DataFrame``. An interpolation
