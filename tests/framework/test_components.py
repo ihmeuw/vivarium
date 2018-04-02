@@ -219,13 +219,13 @@ def test_ComponentManager__load_component_from_config(_prep_components_mock, _ex
 
 def test_ComponentManager__setup_components():
     manager = ComponentManager({}, MockDatasetManager())
-    manager.components = [MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'), mock_component_c]
+    manager.add_components([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'), mock_component_c])
 
     builder = object()
 
     manager.setup_components(builder)
 
-    mock_a, mock_b, mock_c, mock_b_child1, mock_b_child2, mock_b_child3 = manager.components
+    mock_b_child1, mock_b_child2, mock_b_child3, mock_a, mock_b, mock_c = manager.components
 
     assert mock_a.builder_used_for_setup is None # class has no setup method
     assert mock_b.builder_used_for_setup is builder
