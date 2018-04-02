@@ -35,7 +35,6 @@ def _import_by_path(path: str) -> Callable:
     path:
       Path to object to import
     """
-
     module_path, _, class_name = path.rpartition('.')
     return getattr(import_module(module_path), class_name)
 
@@ -62,8 +61,6 @@ class ComponentManager:
     """
 
     def __init__(self, config: ConfigTree, dataset_manager):
-        self.tags = {}
-
         if 'components' in config:
             self.component_config = config.components
             del config.components
