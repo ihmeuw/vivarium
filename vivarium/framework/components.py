@@ -82,7 +82,6 @@ class ComponentManager:
         """Load and initialize (if necessary) any components listed in the config and register them with
         the ComponentManager.
         """
-
         component_list = _extract_component_list(self.component_config)
         component_list = _prep_components(self.config, component_list, self.dataset_manager.constructors)
         new_components = []
@@ -92,7 +91,7 @@ class ComponentManager:
             else:
                 new_components.append(component[0](*component[1]))
 
-        self.components.extend(new_components)
+        self.add_components(new_components)
 
     def add_components(self, components: List):
         """Register new components.
@@ -102,7 +101,6 @@ class ComponentManager:
         components:
           Components to register
         """
-
         self.components = components + self.components
 
     def setup_components(self, builder):
@@ -114,9 +112,7 @@ class ComponentManager:
         builder:
             Interface to several simulation tools.
         """
-
         done = []
-
         components = list(self.components)
         while components:
             component = components.pop(0)
@@ -126,12 +122,11 @@ class ComponentManager:
             if isinstance(component, Iterable):
                 # Unpack lists of components so their constituent components get initialized
                 components.extend(component)
-                self.components.extend(component)
+                self.add_components(list(component))
 
             if component not in done:
                 if hasattr(component, 'configuration_defaults'):
-                    # This reapplies configuration from some components but
-                    # it is idempotent so there's no effect.
+                    # This reapplies configuration from some components but it is idempotent so there's no effect.
                     if component.__module__ == '__main__':
                         # This is defined directly in a script or notebook so there's no file to attribute it to
                         source = '__main__'
@@ -145,7 +140,7 @@ class ComponentManager:
                     done.append(component)
                     if sub_components:
                         components.extend(sub_components)
-                        self.components.extend(sub_components)
+                        self.add_components(list(sub_components))
 
 
 def _extract_component_list(component_config: Mapping[str, Union[str, Mapping]]) -> Sequence[str]:
