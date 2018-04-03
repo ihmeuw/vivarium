@@ -1,7 +1,6 @@
 """The engine."""
 import gc
 
-from collections import namedtuple
 from pprint import pformat, pprint
 from time import time
 
@@ -11,6 +10,7 @@ import yaml
 from vivarium.configuration import build_simulation_configuration
 
 from .components import load_component_manager
+from .builder import Builder
 from .event import EventManager, Event
 from .lookup import InterpolatedDataManager
 from .population import PopulationManager
@@ -75,38 +75,6 @@ class SimulationContext:
 
     def __repr__(self):
         return "SimulationContext()"
-
-
-class Builder:
-    """Useful tools for constructing and configuring simulation components."""
-    def __init__(self, context: SimulationContext):
-        self.configuration = context.configuration
-
-        self.lookup = context.tables.build_table
-
-        _time = namedtuple('Time', ['clock', 'step_size'])
-        self.time = _time(lambda: lambda: context.clock.time,
-                          lambda: lambda: context.clock.step_size)
-
-        _value = namedtuple('Value', ['register_value_producer', 'register_rate_producer', 'register_value_modifier'])
-        self.value = _value(context.values.register_value_producer,
-                            context.values.register_rate_producer,
-                            context.values.register_value_modifier)
-
-        _event = namedtuple('Event', ['get_emitter', 'register_listener'])
-        self.event = _event(context.events.get_emitter, context.events.register_listener)
-
-        _population = namedtuple('Population', ['get_view', 'get_simulant_creator', 'initializes_simulants'])
-        self.population = _population(context.population.get_view,
-                                      context.population.get_simulant_creator,
-                                      context.population.register_simulant_initializer)
-
-        _randomness = namedtuple('Randomness', ['get_stream', 'register_simulants'])
-        self.randomness = _randomness(context.randomness.get_randomness_stream,
-                                      context.randomness.register_simulants)
-
-    def __repr__(self):
-        return "Builder()"
 
 
 def event_loop(simulation):

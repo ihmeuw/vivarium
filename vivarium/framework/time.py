@@ -101,4 +101,4 @@ class DateTimeClock(SimulationClock):
 
 
 def get_clock(path):
-    return import_by_path(path)
+    return import_by_path(path)()

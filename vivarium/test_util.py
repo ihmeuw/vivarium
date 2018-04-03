@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 
 from vivarium.framework.engine import SimulationContext, build_simulation_configuration
-from vivarium.framework.event import Event
 from vivarium.framework.util import from_yearly, to_yearly
 from vivarium.framework import randomness
 from vivarium.framework.components import load_component_manager
@@ -15,17 +14,14 @@ def setup_simulation(components, population_size=100, start=None, input_config=N
     component_manager = load_component_manager(config)
     component_manager.add_components(components)
     simulation = SimulationContext(component_manager, config)
+
+    if population_size:
+        config.population.update({'population_size': population_size})
+    if start:
+        config.time.start.update({'year': start})
+
     simulation.setup()
-
-    step_size = config.simulation_parameters.time_step
-    simulation.step_size = pd.Timedelta(days=step_size // 1, hours=(step_size % 1) * 24)
-    if not start:
-        start = pd.Timestamp(config.simulation_parameters.year_start, 7, 2)
-
-    # Fencepost the creation of the initial population.
-    simulation.current_time = start - simulation.step_size
-    simulation.population._create_simulants(population_size)
-    simulation.update_time()
+    simulation.initialize_simulants()
 
     return simulation
 
@@ -35,13 +31,13 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
         raise ValueError('Must supply either duration or iterations')
 
     if time_step_days:
-        simulation.configuration.simulation_parameters.time_step = time_step_days
-    simulation.step_size = pd.Timedelta(simulation.configuration.simulation_parameters.time_step, unit='D')
+        simulation.configuration.configuration.time.step_size = time_step_days
+    simulation.clock._step_size = pd.Timedelta(days=time_step_days // 1, hours=(time_step_days % 1) * 24)
 
     if duration is not None:
         if isinstance(duration, numbers.Number):
-            duration = pd.Timedelta(days=duration)
-        time_step = pd.Timedelta(days=simulation.configuration.simulation_parameters.time_step)
+            duration = pd.Timedelta(days=duration//1, hours=(duration % 1) * 24)
+        time_step = simulation.clock.step_size
         iterations = int(np.ceil(duration / time_step))
 
     if run_from_ipython() and with_logging:
@@ -50,8 +46,7 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
     else:
         for i in range(iterations):
             simulation.step()
-    end_emitter = simulation.events.get_emitter('simulation_end')
-    end_emitter(Event(simulation.population.population.index))
+    simulation.finalize()
 
     return iterations
 
@@ -80,11 +75,12 @@ def assert_rate(simulation, expected_rate, value_func,
     expected_rate
         The rate of change we expect or a lambda that will take a rate and return a boolean
     """
-    start_time = pd.Timestamp(simulation.configuration.simulation_parameters.year_start, 1, 1)
+    start_time = pd.Timestamp(simulation.configuration.time.start.year, 1, 1)
     time_step = pd.Timedelta(30, unit='D')
-    simulation.configuration.simulation_parameters.time_step = time_step
-    simulation.current_time = start_time
-    simulation.step_size = time_step
+    # FIXME: Should this function have the side effect of modifying simulation state?  That seems unexpected.
+    simulation.configuration.time.step_size = time_step
+    simulation.clock._time = start_time
+    simulation.clock._step_size = time_step
 
     count = value_func(simulation)
     total_true_rate = 0
@@ -133,6 +129,7 @@ class NonCRNTestPopulation:
         'population': {
             'age_start': 0,
             'age_end': 100,
+            'population_size': 100,
         },
         'input_data': {
             'location_id': 180,

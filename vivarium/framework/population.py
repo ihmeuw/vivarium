@@ -175,8 +175,8 @@ class PopulationManager:
         self.growing = False
 
     def setup(self, builder):
-        self.clock = builder.clock()
-        self.step_size = builder.step_size()
+        self.clock = builder.time.clock()
+        self.step_size = builder.time.step_size()
 
     def get_view(self, columns: Sequence[str], query: str=None) -> PopulationView:
         """Return a configured PopulationView
