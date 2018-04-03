@@ -103,6 +103,9 @@ class ComponentManager:
         """
         self.components = components + self.components
 
+    def query_components(self, component_type: str):
+        raise NotImplementedError()
+
     def setup_components(self, builder):
         """Apply component level configuration defaults to the global config and run setup methods on the components
         registering and setting up any child components generated in the process.

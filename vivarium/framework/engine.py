@@ -115,6 +115,10 @@ class Builder:
         self.randomness = _randomness(context.randomness.get_randomness_stream,
                                       context.randomness.register_simulants)
 
+        _components = namedtuple('Components', ['add', 'query'])
+        self.components = _components(context.component_manager.add_components,
+                                      context.component_manager.query_components)
+
     def __repr__(self):
         return "Builder()"
 
