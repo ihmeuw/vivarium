@@ -10,7 +10,7 @@ from vivarium.framework.components import load_component_manager
 
 
 def setup_simulation(components, population_size=100, start=None, input_config=None):
-    config = build_simulation_configuration({}) if not input_config else input_config
+    config = build_simulation_configuration() if not input_config else input_config
     component_manager = load_component_manager(config)
     component_manager.add_components(components)
     simulation = SimulationContext(component_manager, config)

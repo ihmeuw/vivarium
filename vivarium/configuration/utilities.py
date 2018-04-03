@@ -24,7 +24,7 @@ def _value_in_parameters(key, parameters):
     return parameters and key in parameters and parameters[key] is not None
 
 
-def build_simulation_configuration(parameters: Mapping[str, Any]) -> ConfigTree:
+def build_simulation_configuration(parameters: Mapping[str, Any]=None) -> ConfigTree:
     """A factory for producing a vivarium configuration from a collection of files and command line arguments.
 
     Parameters
@@ -39,6 +39,8 @@ def build_simulation_configuration(parameters: Mapping[str, Any]) -> ConfigTree:
     -------
     A valid simulation configuration.
     """
+    if parameters is None:
+        parameters = {}
     default_config_layers = ['base', 'component_configs', 'model_override', 'override']
     user_config_path = os.path.expanduser('~/vivarium.yaml')
     default_metadata = {'layer': 'base', 'source': 'vivarium_defaults'}

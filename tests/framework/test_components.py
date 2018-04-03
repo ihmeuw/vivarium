@@ -107,7 +107,7 @@ def test_bad_import_by_path():
 
 
 def test_load_component_manager_defaults():
-    config = build_simulation_configuration({})
+    config = build_simulation_configuration()
     config.update(TEST_COMPONENTS)
     config.update(TEST_CONFIG_DEFAULTS)
 
@@ -120,13 +120,13 @@ def test_load_component_manager_defaults():
 def test_load_component_manager_custom_managers(monkeypatch):
     monkeypatch.setattr('vivarium.framework.components.import_by_path', mock_importer)
 
-    config = build_simulation_configuration({})
+    config = build_simulation_configuration()
     config.update(TEST_COMPONENTS + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_COMPONENT_MANAGER)
     manager = load_component_manager(config)
     assert isinstance(manager, MockComponentManager)
     assert isinstance(manager.dataset_manager, DummyDatasetManager)
 
-    config = build_simulation_configuration({})
+    config = build_simulation_configuration()
     config.update(TEST_COMPONENTS + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_DATASET_MANAGER)
     manager = load_component_manager(config)
     assert isinstance(manager, ComponentManager)
@@ -186,7 +186,7 @@ def test_prep_components(monkeypatch):
             'test_components.MockComponentB("Ethel the Aardvark goes Quantity Surveying")',
             'test_components.mock_component_c',
         ]
-    config = build_simulation_configuration({})
+    config = build_simulation_configuration()
     components = _prep_components(config, component_descriptions, {'Placeholder': lambda x: x})
     components = {c[0]: c[1] if len(c) == 2 else None for c in components}
 
