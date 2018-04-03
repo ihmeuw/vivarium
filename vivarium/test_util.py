@@ -32,7 +32,7 @@ def pump_simulation(simulation, time_step_days=None, duration=None, iterations=N
 
     if time_step_days:
         simulation.configuration.time.step_size = time_step_days
-    simulation.clock._step_size = pd.Timedelta(days=time_step_days // 1, hours=(time_step_days % 1) * 24)
+        simulation.clock._step_size = pd.Timedelta(days=time_step_days // 1, hours=(time_step_days % 1) * 24)
 
     if duration is not None:
         if isinstance(duration, numbers.Number):
