@@ -4,7 +4,7 @@ import pandas as pd
 from scipy import interpolate
 
 class Interpolation:
-    def __init__(self, data, categorical_parameters, continuous_parameters, func=None, order=1):
+    def __init__(self, data, categorical_parameters, continuous_parameters, order, func=None):
         self._data = data
         self.key_columns = categorical_parameters
         self.parameter_columns = validate_parameters(data, continuous_parameters, order)

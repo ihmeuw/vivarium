@@ -38,7 +38,9 @@ class SimulationContext:
 
     def setup(self):
         builder = Builder(self)
-
+        # FIXME: We are depending on the fact that add_components prepends the components.
+        # Setup needs to be run for these managers first in some cases.
+        # This is brittle and we should find another solution.
         self.component_manager.add_components(
             [self.values, self.events, self.population, self.tables, self.randomness, self.clock])
         self.component_manager.load_components_from_config()
