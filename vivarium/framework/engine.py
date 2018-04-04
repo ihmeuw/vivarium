@@ -48,7 +48,7 @@ class SimulationContext:
         builder = Builder(self)
 
         self.component_manager.add_components(
-            [self.values, self.events, self.population, self.tables, self.randomness])
+            [self.values, self.events, self.population, self.tables, self.randomness, self.component_manager.dataset_manager])
         self.component_manager.load_components_from_config()
         self.component_manager.setup_components(builder)
 
@@ -241,11 +241,14 @@ def build_simulation_configuration(parameters: Mapping) -> ConfigTree:
     config.update(parameters.get('components', None), layer='model_override')  # source is implicit
     if 'configuration' in config:
         config.configuration.source = parameters.get('components', None)
+        c = config.configuration
+        del config["configuration"]
+        config.update(c)
 
     # Make sure we have a component and dataset manager
-    if 'component_manager' not in config['vivarium']:
+    if 'component_manager' not in config.vivarium:
         config.update(default_component_manager, **default_metadata)
-    if 'dataset_manager' not in config['vivarium']:
+    if 'dataset_manager' not in config.vivarium:
         config.update(default_dataset_manager, **default_metadata)
 
     return config
