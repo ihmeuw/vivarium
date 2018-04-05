@@ -130,8 +130,8 @@ def do_command(args):
         results_writer = get_results_writer(config.run_configuration.results_directory, args.simulation_configuration)
         metrics, final_state = run(simulation)
         idx = pd.MultiIndex.from_tuples([(config.run_configuration.input_draw_number,
-                                          config.run_configuration.model_draw_number)],
-                                        names=['input_draw_number', 'model_draw_number'])
+                                          config.run_configuration.random_seed)],
+                                        names=['input_draw_number', 'random_seed'])
         output = pd.DataFrame(metrics, index=idx)
         results_writer.write_output(output, 'output.hdf')
         results_writer.write_output(final_state, 'final_state.hdf')

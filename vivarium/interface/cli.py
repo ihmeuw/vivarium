@@ -1,5 +1,6 @@
 import argparse
 from bdb import BdbQuit
+from vivarium.framework.engine import do_command
 
 import logging
 _log = logging.getLogger(__name__)
