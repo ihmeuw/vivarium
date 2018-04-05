@@ -595,10 +595,8 @@ class RandomnessManager:
         self._decision_points = set()
 
     def setup(self, builder):
-        input_draw = builder.configuration.run_configuration.input_draw_number
-        model_draw = builder.configuration.run_configuration.model_draw_number
-        self._seed = (input_draw, model_draw)
-        self._clock = builder.clock()
+        self._seed = builder.configuration.run_configuration.random_seed
+        self._clock = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
         self._key_mapping.map_size = builder.configuration.randomness.map_size
 

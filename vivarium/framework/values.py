@@ -70,7 +70,7 @@ def joint_value_post_processor(a, _):
     return joint_value
 
 
-class _Pipeline:
+class Pipeline:
     """A single mutable value."""
 
     def __init__(self):
@@ -114,10 +114,10 @@ class ValuesManager:
     """
 
     def __init__(self):
-        self._pipelines = defaultdict(_Pipeline)
+        self._pipelines = defaultdict(Pipeline)
 
     def setup(self, builder):
-        self.step_size = builder.step_size()
+        self.step_size = builder.time.step_size()
 
     def register_value_modifier(self, value_name, modifier, priority=5):
         pipeline = self._pipelines[value_name]

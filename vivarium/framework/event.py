@@ -83,8 +83,8 @@ class EventManager:
         builder : vivarium.framework.engine.Builder
             Object giving access to core framework functionality.
         """
-        self.clock = builder.clock()
-        self.step_size = builder.step_size()
+        self.clock = builder.time.clock()
+        self.step_size = builder.time.step_size()
 
     def get_emitter(self, name):
         """Get an emitter function for the named event
