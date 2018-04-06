@@ -36,9 +36,31 @@ class Interpolation:
                 if len(self.parameter_columns) == 2:
                     # 2 variable interpolation
                     if order == 0:
-                        x = base_table[list(self.parameter_columns)]
-                        y = base_table[value_column]
-                        func = interpolate.NearestNDInterpolator(x=x.values, y=y.values)
+                        #assert 'age_group_start' in base_table.columns
+                        # TODO: use age_group_start and age_group_end columns for interpolation
+                        index, column = self.parameter_columns
+                        table = base_table.pivot(index=index, columns=column, values=value_column)
+
+                        import numpy as np
+                        bad_age_values = np.unique(table.index)
+                        good_age_values = [7/365, 28/365, 1] + list(range(5, 96, 5)) + [115]
+
+                        eps = 0.0001
+                        x = np.hstack(
+                            [pd.Series(table.index).map(dict(zip(bad_age_values, good_age_values))).values-eps,
+                             pd.Series(table.index).map(dict(zip(bad_age_values, [0] + good_age_values[:-1]))).values])
+                        y = table.columns.values
+                        z = np.vstack([table.values, table.values])
+
+                        x_sorted = x.copy()
+                        x_sorted[1::2] = x[:(len(x)//2)]
+                        x_sorted[::2] = x[(len(x)//2):]
+
+                        z_sorted = z.copy()
+                        z_sorted[1::2] = z[:(len(z)//2)]
+                        z_sorted[::2] = z[(len(z)//2):]
+
+                        func = interpolate.RectBivariateSpline(x=x_sorted, y=y, z=z_sorted, ky=1, kx=1).ev
                     else:
                         index, column = self.parameter_columns
                         table = base_table.pivot(index=index, columns=column, values=value_column)
