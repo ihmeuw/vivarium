@@ -13,6 +13,7 @@ from .values import ValuesManager, replace_combiner, Pipeline
 from .event import EventManager, Event
 from .population import PopulationManager, PopulationView, SimulantData
 from .randomness import RandomnessManager, RandomnessStream
+from .components import ComponentManager
 
 
 class _Time:
@@ -256,6 +257,18 @@ class _Randomness:
             as soon as the key columns are generated.
         """
         self._randomness_manager.register_simulants(simulants)
+
+
+class _Components:
+
+    def __init__(self, component_manager: ComponentManager):
+        self._component_manager = component_manager
+
+    def add_components(self, components: Sequence):
+        self._component_manager.add_components(list(components))
+
+    def query_components(self, component_type: str):
+        return self._component_manager.query_components(component_type)
 
 
 class Builder:

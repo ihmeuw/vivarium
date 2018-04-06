@@ -77,7 +77,6 @@ class SimulationContext:
         return "SimulationContext()"
 
 
-
 def event_loop(simulation):
     simulation.initialize_simulants()
 
