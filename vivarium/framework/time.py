@@ -39,22 +39,15 @@ class SimulationClock:
 
     def step_forward(self) -> None:
         """Advances the clock by the current step size."""
-        assert self._time is not None, 'No start time provided'
-        assert self._step_size is not None, 'No step size provided'
         self._time += self.step_size
 
     def step_backward(self):
         """Rewinds the clock by the current step size."""
-        assert self._time is not None, 'No start time provided'
-        assert self._step_size is not None, 'No step size provided'
         self._time -= self.step_size
 
 
 class SimpleClock(SimulationClock):
-    """An iteration based simulant clock.
-
-    This clock requires a start, stop, and time step size specified as ints or floats.
-    """
+    """A unitless step-count based simulation clock."""
 
     configuration_defaults = {
         'time': {
