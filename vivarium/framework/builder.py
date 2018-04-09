@@ -110,29 +110,29 @@ class _Event:
         self._event_manager = event_manager
 
     def get_emitter(self, name: str) -> Callable[[Event], Event]:
-        """Gets and emitter for a named event channel.
+        """Gets and emitter for a named event.
 
         Parameters
         ----------
         name :
-            The name of the event channel the requested emitter will emit on.
-            Users may provide their own channels by requesting an emitter with this function,
+            The name of the event he requested emitter will emit.
+            Users may provide their own named events by requesting an emitter with this function,
             but should do so with caution as it makes time much more difficult to think about.
 
         Returns
         -------
-            An emitter for the event channel. The emitter should be called by the requesting component
+            An emitter for the named event. The emitter should be called by the requesting component
             at the appropriate point in the simulation lifecycle.
         """
         return self._event_manager.get_emitter(name)
 
     def register_listener(self, name: str, listener: Callable[[Event], None], priority: int=5) -> None:
-        """Registers a callable as a listener to a named event channel.
+        """Registers a callable as a listener to a events with the given name.
 
-        The listening callable will be called with an ``Event`` as it's only argument any time the
-        event channel is invoked from somewhere in the simulation.
+        The listening callable will be called with a named ``Event`` as it's only argument any time the
+        event emitter is invoked from somewhere in the simulation.
 
-        The framework creates the following channels and calls them at different points in the simulation:
+        The framework creates the following events and emits them at different points in the simulation:
             At the end of the setup phase: ``post_setup``
             Every time step: ``time_step__prepare``, ``time_step``, ``time_step__cleanup``, ``collect_metrics``
             At simulation end: ``simulation_end``
@@ -140,9 +140,9 @@ class _Event:
         Parameters
         ----------
         name :
-            The name of the event channel to listen to.
+            The name of the event to listen for.
         listener :
-            The callable to be invoked any time an ``Event`` is emitted on the named channel.
+            The callable to be invoked any time an ``Event`` with the given name is emitted.
         priority : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
             An indication of the order in which event listeners should be called. Listeners with
             smaller priority values will be called earlier. Listeners with the same priority have
@@ -205,7 +205,7 @@ class _Population:
         initializer :
             A callable that adds or updates initial state information about new simulants.
         creates_columns :
-            A list of the state table columns created or populated by this provided initializer.
+            A list of the state table columns that the given initializer provides the initial state information for.
         requires_columns :
             A list of the state table columns that already need to be present and populated
             in the state table before the provided initializer is called.
