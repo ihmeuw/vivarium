@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 
-from vivarium.framework.engine import main
+from vivarium.interface.cli import main
 
 main()

@@ -1,3 +1,6 @@
+from importlib import import_module
+from typing import Callable
+
 import numpy as np
 
 
@@ -26,3 +29,16 @@ def collapse_nested_dict(d, prefix=None):
         else:
             results.append((cur_prefix, v))
     return results
+
+
+def import_by_path(path: str) -> Callable:
+    """Import a class or function given it's absolute path.
+
+    Parameters
+    ----------
+    path:
+      Path to object to import
+    """
+
+    module_path, _, class_name = path.rpartition('.')
+    return getattr(import_module(module_path), class_name)
