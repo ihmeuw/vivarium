@@ -1,6 +1,4 @@
-import pytest
-
-from vivarium.config_tree import ConfigTree
+from vivarium.configuration.config_tree import ConfigTree
 
 TEST_YAML_ONE = '''
 test_section:
