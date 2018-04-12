@@ -56,6 +56,8 @@ def build_simulation_configuration(parameters: Mapping[str, Any]=None) -> Config
             config.update({'run_configuration': {value: parameters[value]}},
                           layer='override', source='user_override')
 
-    config.update(parameters.get('simulation_configuration', None), layer='model_override')  # source is implicit
+    sim_config = ConfigTree(parameters.get('simulation_configuration', None))
+    config.update({'components': sim_config.components}, layer='model_override', source=parameters.get('simulation_configuration', None))
+    config.update(sim_config.configuration.to_dict(), layer='model_override', source=parameters.get('simulation_configuration', None))
 
     return config

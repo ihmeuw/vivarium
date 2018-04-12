@@ -213,6 +213,15 @@ class _Population:
         self._population_manager.register_simulant_initializer(initializer, creates_columns, requires_columns)
 
 
+class _Data:
+
+    def __init__(self, dataset_manager):
+        self._dataset_manager = dataset_manager
+
+    def load(self, entity_path: str, keep_age_group_edges=False, **column_filters) -> pd.DataFrame:
+        return self._dataset_manager.load(entity_path, keep_age_group_edges, **column_filters)
+
+
 class _Randomness:
 
     def __init__(self, randomness_manager: RandomnessManager):
@@ -268,6 +277,7 @@ class Builder:
         self.value = _Value(context.values)
         self.event = _Event(context.events)
         self.population = _Population(context.population)
+        self.data = _Data(context.data)
         self.randomness = _Randomness(context.randomness)
 
     def __repr__(self):

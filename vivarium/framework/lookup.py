@@ -137,8 +137,6 @@ class InterpolatedDataManager:
         if isinstance(data, Number) or isinstance(data, datetime) or isinstance(data, timedelta):
             return ScalarView(data)
 
-        data = data if isinstance(data, Interpolation) else Interpolation(data, key_columns, parameter_columns,
-                                                                          order=self._interpolation_order)
 
         view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
         return InterpolatedTableView(data, self._pop_view_builder(view_columns),

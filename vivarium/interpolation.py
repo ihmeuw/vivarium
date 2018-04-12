@@ -7,14 +7,17 @@ class Interpolation:
     def __init__(self, data, categorical_parameters, continuous_parameters, order, func=None):
         self._data = data
         self.key_columns = categorical_parameters
-        self.parameter_columns = validate_parameters(data, continuous_parameters, order)
+        self.parameter_columns, self_data = validate_parameters(data, continuous_parameters, order)
         self.func = func
 
         if len(self.parameter_columns) not in [1, 2]:
             raise ValueError("Only interpolation over 1 or 2 variables is supported")
 
+        assert not data.empty, "Must supply some input data"
+
         # These are the columns which the interpolation function will approximate
         value_columns = sorted(self._data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
+        assert value_columns, f"No non-parameter data. Avaliable columns: {self._data.columns}, Parameter columns: {set(self.key_columns)|set(self.parameter_columns)}"
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
@@ -56,6 +59,7 @@ class Interpolation:
                     else:
                         func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
                 self.interpolations[key][value_column] = func
+        assert self.interpolations
 
     def __call__(self, *args, **kwargs):
         # TODO: Should be more defensive about this
@@ -111,5 +115,5 @@ def validate_parameters(data, continuous_parameters, order):
                           f"however there are only {len(data[p].unique())} unique values for {p}"
                           f"which is insufficient to support the requested interpolation order."
                           f"The parameter will be dropped from the interpolation.")
-            del data[p]
-    return out
+            data = data.drop(p, axis='columns')
+    return out, data
