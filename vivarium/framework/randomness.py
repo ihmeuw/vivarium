@@ -425,9 +425,10 @@ class RandomnessStream:
         """
         if self._for_initialization:
             raise RandomnessError('Initialization streams cannot be copied.')
-        if self._manager:
+        elif self._manager:
             return self._manager.get_randomness_stream('_'.join([self.key, key]))
-        return RandomnessStream(self.key, self.clock, self.seed, self.index_map)
+        else:
+            return RandomnessStream(self.key, self.clock, self.seed, self.index_map)
 
     def _key(self, additional_key: Any=None) -> str:
         """Construct a hashable key from this object's state.
@@ -459,7 +460,7 @@ class RandomnessStream:
             A series of random numbers indexed by the provided `pandas.Index`.
         """
         if self._for_initialization:
-            draw = random(self._key(additional_key), list(range(len(index))), self.index_map)
+            draw = random(self._key(additional_key), pd.Index(range(len(index))), self.index_map)
             draw.index = index
         else:
             draw = random(self._key(additional_key), index, self.index_map)
@@ -583,7 +584,8 @@ class RandomnessManager:
         'randomness':
             {
                 'map_size': 1_000_000,
-                'key_columns': ['entrance_time']
+                'key_columns': ['entrance_time'],
+                'random_seed': 0,
             }
     }
 
@@ -595,7 +597,7 @@ class RandomnessManager:
         self._decision_points = set()
 
     def setup(self, builder):
-        self._seed = builder.configuration.run_configuration.random_seed
+        self._seed = builder.configuration.randomness.random_seed
         self._clock = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
         self._key_mapping.map_size = builder.configuration.randomness.map_size

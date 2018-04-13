@@ -1,48 +1,74 @@
-import ast
-
 import pytest
 import yaml
 
-from vivarium.configuration.config_tree import ConfigTree
-from vivarium.framework.components import (load_component_manager, ComponentManager,
-                                           DummyDatasetManager, _extract_component_list,
-                                           _component_ast_to_path, _parse_component, ParsingError, _prep_components,
-                                           _extract_component_call, _is_literal)
-from vivarium.framework.engine import build_simulation_configuration
-from vivarium.framework.util import import_by_path
+from vivarium.framework.components import (get_component_manager, ComponentManager,
+                                           get_dataset_manager, DummyDatasetManager,
+                                           get_component_configuration_parser, ComponentConfigurationParser)
+from vivarium.framework.components.manager import ComponentConfigError, _apply_component_default_configuration
+from vivarium.framework.components.parser import (_prep_components, _import_and_instantiate_components,
+                                                  _parse_component_config, ParsingError)
+from vivarium.configuration import build_simulation_configuration
 
 TEST_COMPONENTS = """
 components:
-    - ministry.silly_walk:
+    ministry.silly_walk:
        - Prance()
        - Jump('front_flip')
-       - PratFall(15)
-    - pet_shop.Parrot()
+       - PratFall('15')
+    pet_shop:
+       - Parrot()
+       - dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')
 """
+TEST_COMPONENTS_LIST = """
+components:
+    - ministry.silly_walk.Prance()
+    - ministry.silly_walk.Jump('front_flip')
+    - ministry.silly_walk.PratFall('15')
+    - pet_shop.Parrot()
+    - pet_shop.dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')
+"""
+TEST_COMPONENTS_PARSED = [('ministry.silly_walk.Prance', tuple()),
+                          ('ministry.silly_walk.Jump', ('front_flip',)),
+                          ('ministry.silly_walk.PratFall', ('15',)),
+                          ('pet_shop.Parrot', tuple()),
+                          ('pet_shop.dangerous_animals.Crocodile', ('gold_tooth', 'teacup', '3.14'))]
 TEST_CONFIG_DEFAULTS = """
 configuration:
     ministry.silly_walk:
         fall_dist: 10
 """
+TEST_CONFIG_CUSTOM_COMPONENT_CONFIGURATION_PARSER = """
+configuration:
+    vivarium:
+        component_configuration_parser: test_components.MockComponentConfigurationParser
+"""
 TEST_CONFIG_CUSTOM_COMPONENT_MANAGER = """
-vivarium:
-    component_manager: test_components.MockComponentManager
+configuration:
+    vivarium:
+        component_manager: test_components.MockComponentManager
 """
 TEST_CONFIG_CUSTOM_DATASET_MANAGER = """
-vivarium:
-    dataset_manager: test_components.MockDatasetManager
+configuration:
+    vivarium:
+        dataset_manager: test_components.MockDatasetManager
 """
 
 
 class MockComponentManager:
-    def __init__(self, components, dataset_manager):
-        self.components = components
-        self.dataset_manager = dataset_manager
+    def __init__(self, config):
+        self.config = config
+        self.components = []
 
 
 class MockDatasetManager:
-    def __init__(self):
+    def __init__(self, config):
+        self.config = config
         self.constructors = {}
+
+
+class MockComponentConfigurationParser:
+    def __init__(self, config):
+        self.config = config
 
 
 class MockComponentA:
@@ -59,202 +85,203 @@ class MockComponentB(MockComponentA):
             children = []
             for arg in self.args:
                 children.append(MockComponentB(arg))
-            return children
-
-
-def mock_component_c():
-    pass
+            builder.components.add_components(children)
 
 
 def mock_importer(path):
     return {
-            'vivarium.framework.components.ComponentManager': ComponentManager,
-            'vivarium.framework.components.DummyDatasetManager': DummyDatasetManager,
-            'test_components.MockComponentA': MockComponentA,
-            'test_components.MockComponentB': MockComponentB,
-            'test_components.mock_component_c': mock_component_c,
-            'test_components.MockComponentManager': MockComponentManager,
-            'test_components.MockDatasetManager': MockDatasetManager,
-            }[path]
+        'vivarium.framework.components.ComponentManager': ComponentManager,
+        'vivarium.framework.components.DummyDatasetManager': DummyDatasetManager,
+        'vivarium.framework.components.ComponentConfigurationParser': ComponentConfigurationParser,
+        'test_components.MockComponentA': MockComponentA,
+        'test_components.MockComponentB': MockComponentB,
+        'test_components.MockComponentManager': MockComponentManager,
+        'test_components.MockComponentConfigurationParser': MockComponentConfigurationParser,
+        'test_components.MockDatasetManager': MockDatasetManager,
+    }[path]
 
 
 @pytest.fixture(scope='function')
-def _prep_components_mock(mocker):
-    return mocker.patch('vivarium.framework.components._prep_components')
+def import_and_instantiate_mock(mocker):
+    return mocker.patch('vivarium.framework.components.parser._import_and_instantiate_components')
 
 
-@pytest.fixture(scope='function')
-def _extract_component_list_mock(mocker):
-    return mocker.patch('vivarium.framework.components._extract_component_list')
+@pytest.fixture(scope='function', params=[TEST_COMPONENTS, TEST_COMPONENTS_LIST])
+def components(request):
+    return request.param
 
 
-def test_import_class_by_path():
-    cls = import_by_path('collections.abc.Set')
-    from collections.abc import Set
-    assert cls is Set
-
-
-def test_import_function_by_path():
-    func = import_by_path('vivarium.framework.util.import_by_path')
-    assert func is import_by_path
-
-
-def test_bad_import_by_path():
-    with pytest.raises(ImportError):
-        import_by_path('junk.garbage.SillyClass')
-    with pytest.raises(AttributeError):
-        import_by_path('vivarium.framework.components.SillyClass')
-
-
-def test_load_component_manager_defaults():
+def test_load_component_manager_defaults(components):
     config = build_simulation_configuration()
-    config.update(TEST_COMPONENTS)
+    config.update(components)
     config.update(TEST_CONFIG_DEFAULTS)
 
-    manager = load_component_manager(config)
+    component_config_parser = get_component_configuration_parser(config.configuration)
+    component_manager = get_component_manager(config.configuration)
+    dataset_manager = get_dataset_manager(config.configuration)
 
-    assert isinstance(manager, ComponentManager)
-    assert isinstance(manager.dataset_manager, DummyDatasetManager)
+    assert isinstance(component_config_parser, ComponentConfigurationParser)
+    assert isinstance(component_manager, ComponentManager)
+    assert isinstance(dataset_manager, DummyDatasetManager)
 
 
-def test_load_component_manager_custom_managers(monkeypatch):
-    monkeypatch.setattr('vivarium.framework.components.import_by_path', mock_importer)
-
-    config = build_simulation_configuration()
-    config.update(TEST_COMPONENTS + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_COMPONENT_MANAGER)
-    manager = load_component_manager(config)
-    assert isinstance(manager, MockComponentManager)
-    assert isinstance(manager.dataset_manager, DummyDatasetManager)
+def test_load_component_manager_custom_managers(monkeypatch, components):
+    monkeypatch.setattr('vivarium.framework.components.manager.import_by_path', mock_importer)
+    monkeypatch.setattr('vivarium.framework.components.parser.import_by_path', mock_importer)
 
     config = build_simulation_configuration()
-    config.update(TEST_COMPONENTS + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_DATASET_MANAGER)
-    manager = load_component_manager(config)
-    assert isinstance(manager, ComponentManager)
-    assert isinstance(manager.dataset_manager, MockDatasetManager)
+    config.update(components + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_COMPONENT_CONFIGURATION_PARSER)
+    component_config_parser = get_component_configuration_parser(config.configuration)
+    component_manager = get_component_manager(config.configuration)
+    dataset_manager = get_dataset_manager(config.configuration)
+    assert isinstance(component_config_parser, MockComponentConfigurationParser)
+    assert isinstance(component_manager, ComponentManager)
+    assert isinstance(dataset_manager, DummyDatasetManager)
+
+    config = build_simulation_configuration()
+    config.update(components + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_COMPONENT_MANAGER)
+    component_config_parser = get_component_configuration_parser(config.configuration)
+    component_manager = get_component_manager(config.configuration)
+    dataset_manager = get_dataset_manager(config.configuration)
+    assert isinstance(component_config_parser, ComponentConfigurationParser)
+    assert isinstance(component_manager, MockComponentManager)
+    assert isinstance(dataset_manager, DummyDatasetManager)
+
+    config = build_simulation_configuration()
+    config.update(components + TEST_CONFIG_DEFAULTS + TEST_CONFIG_CUSTOM_DATASET_MANAGER)
+    component_config_parser = get_component_configuration_parser(config.configuration)
+    component_manager = get_component_manager(config.configuration)
+    dataset_manager = get_dataset_manager(config.configuration)
+    assert isinstance(component_config_parser, ComponentConfigurationParser)
+    assert isinstance(component_manager, ComponentManager)
+    assert isinstance(dataset_manager, MockDatasetManager)
 
 
-def test_extract_component_list():
+def test_parse_component_config():
     source = yaml.load(TEST_COMPONENTS)['components']
-    components = _extract_component_list(source)
+    component_list = _parse_component_config(source)
 
     assert {'ministry.silly_walk.Prance()',
             "ministry.silly_walk.Jump('front_flip')",
-            'ministry.silly_walk.PratFall(15)',
-            'pet_shop.Parrot()'} == set(components)
+            "ministry.silly_walk.PratFall('15')",
+            'pet_shop.Parrot()',
+            "pet_shop.dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')"} == set(component_list)
 
 
-def test_component_ast_to_path():
-    call, args = _extract_component_call(ast.parse('cave_system.monsters.Rabbit()'))
-    path = _component_ast_to_path(call)
-    assert path == 'cave_system.monsters.Rabbit'
-
-    call, args = _extract_component_call(ast.parse('Rabbit()'))
-    path = _component_ast_to_path(call)
-    assert path == 'Rabbit'
-
-
-def test_parse_component():
-    constructors = {'Dentition': lambda tooth_count: '{} teeth'.format(tooth_count)}
-
-    desc = 'cave_system.monsters.Rabbit("timid", 0.01)'
-    component, args = _parse_component(desc, constructors)
+def test_prep_components():
+    desc = 'cave_system.monsters.Rabbit("timid", "0.01")'
+    component, args = _prep_components([desc])[0]
     assert component == 'cave_system.monsters.Rabbit'
-    assert set(args) == {'timid', 0.01}
-
-    desc = 'cave_system.monsters.Rabbit("ravenous", 10, Dentition("102"))'
-    component, args = _parse_component(desc, constructors)
-    assert set(args) == {'ravenous', '102 teeth', 10}
+    assert set(args) == {'timid', '0.01'}
 
 
 def test_parse_component_syntax_error():
-    # No non-literal arguments that aren't handled by constructors
+    desc = 'cave_system.monsters.Rabbit("timid", 0.01)'
     with pytest.raises(ParsingError):
-        desc = 'village.people.PlagueVictim(PercentDead(0.8))'
-        _parse_component(desc, {})
+        _prep_components([desc])
 
-    # Arguments to constructors must also be simple
+    desc = 'cave_system.monsters.Rabbit("timid\', "0.01")'
     with pytest.raises(ParsingError):
-        desc = 'village.people.PlagueVictim(Causes(np.array(["black_death", "helminth"])))'
-        _parse_component(desc, {'Causes': lambda cs: list(cs)})
+        _prep_components([desc])
+
+    desc = "cave_system.monsters.Rabbit(\"timid', '0.01')"
+    with pytest.raises(ParsingError):
+        _prep_components([desc])
 
 
-def test_prep_components(monkeypatch):
-    monkeypatch.setattr('vivarium.framework.components.import_by_path', mock_importer)
+def test_import_and_instantiate_components(monkeypatch):
+    monkeypatch.setattr('vivarium.framework.components.manager.import_by_path', mock_importer)
+    monkeypatch.setattr('vivarium.framework.components.parser.import_by_path', mock_importer)
 
     component_descriptions = [
-            'test_components.MockComponentA(Placeholder("A Hundred and One Ways to Start a Fight"))',
-            'test_components.MockComponentB("Ethel the Aardvark goes Quantity Surveying")',
-            'test_components.mock_component_c',
-        ]
+        ('test_components.MockComponentA', ("A Hundred and One Ways to Start a Fight",)),
+        ('test_components.MockComponentB', ("Ethel the Aardvark goes Quantity Surveying",)),
+    ]
+    component_list = _import_and_instantiate_components(component_descriptions)
+
+    assert len(component_list) == 2
+    assert isinstance(component_list[0], MockComponentA)
+    assert component_list[0].args == ("A Hundred and One Ways to Start a Fight",)
+    assert isinstance(component_list[1], MockComponentB)
+    assert component_list[1].args == ("Ethel the Aardvark goes Quantity Surveying",)
+
+
+def test_ComponentConfigurationParser_get_components(import_and_instantiate_mock, components):
     config = build_simulation_configuration()
-    components = _prep_components(config, component_descriptions, {'Placeholder': lambda x: x})
-    components = {c[0]: c[1] if len(c) == 2 else None for c in components}
+    config.update(components)
 
-    assert len(components) == 3
-    assert MockComponentA in components
-    assert MockComponentB in components
-    assert mock_component_c in components
-    assert components[MockComponentA] == ['A Hundred and One Ways to Start a Fight']
-    assert components[MockComponentB] == ['Ethel the Aardvark goes Quantity Surveying']
-    assert components[mock_component_c] is None
+    parser = get_component_configuration_parser(config.configuration)
+    parser.get_components(config.components)
+
+    import_and_instantiate_mock.assert_called_once_with(TEST_COMPONENTS_PARSED)
 
 
-def test_ComponentManager__load_component_from_config(_prep_components_mock, _extract_component_list_mock):
-    _prep_components_mock.return_value = [(MockComponentA, ['Red Leicester']),
-                                          (MockComponentB, []), (mock_component_c,)]
+def test_apply_component_default_configuration():
 
-    manager = ComponentManager(ConfigTree(), MockDatasetManager())
+    class UnladenSwallow:
 
-    manager.load_components_from_config()
+        configuration_defaults = {
+            'unladen_swallow': {
+                'airspeed_velocity': 11,
+            }
+        }
 
-    assert len(manager.components) == 3
-    assert mock_component_c in manager.components
+    us = UnladenSwallow()
+    config = build_simulation_configuration()
+    assert 'unladen_swallow' not in config
+    _apply_component_default_configuration(config, us)
+    assert config.unladen_swallow.metadata('airspeed_velocity') == [
+        {'layer': 'component_configs', 'value': 11,
+         'source': '/home/james/code/vivarium/vivarium/tests/framework/test_components.py', 'default': False}
+    ]
 
-    mock_a = [c for c in manager.components if c.__class__ == MockComponentA][0]
-    mock_b = [c for c in manager.components if c.__class__ == MockComponentB][0]
+    us = UnladenSwallow()
+    us.__module__ = '__main__'
+    config = build_simulation_configuration()
+    assert 'unladen_swallow' not in config
+    _apply_component_default_configuration(config, us)
+    assert config.unladen_swallow.metadata('airspeed_velocity') == [
+        {'layer': 'component_configs', 'value': 11, 'source': '__main__', 'default': False}
+    ]
 
-    assert list(mock_a.args) == ['Red Leicester']
-    assert list(mock_b.args) == []
 
 
-def test_ComponentManager__setup_components():
-    manager = ComponentManager({}, MockDatasetManager())
-    manager.add_components([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'), mock_component_c])
+def test_ComponentManager_add_components():
+    config = build_simulation_configuration()
+    manager = get_component_manager(config.configuration)
 
-    builder = object()
+    component_list = [None, MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')]
+    manager.add_components(component_list)
+    assert manager._components == component_list
 
+    manager._components = []
+    component_list.append(component_list[:])
+    manager.add_components(component_list)
+    assert manager._components == 2*component_list[:-1]
+
+
+def test_ComponentManager__setup_components(mocker):
+    config = build_simulation_configuration()
+    manager = get_component_manager(config.configuration)
+    builder = mocker.Mock()
+    builder.components = manager
+
+    manager.add_components([None, MockComponentA('Eric'),
+                            MockComponentB('half', 'a', 'bee')])
+    with pytest.raises(ComponentConfigError):
+        manager.setup_components(builder)
+
+    manager._components = []
+    manager.add_components([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')])
     manager.setup_components(builder)
 
-    mock_b_child1, mock_b_child2, mock_b_child3, mock_a, mock_b, mock_c = manager.components
+    mock_a, mock_b, mock_b_child1, mock_b_child2, mock_b_child3 = manager._components
 
-    assert mock_a.builder_used_for_setup is None # class has no setup method
+    assert mock_a.builder_used_for_setup is None  # class has no setup method
     assert mock_b.builder_used_for_setup is builder
-    assert mock_c is mock_component_c
     assert mock_b_child1.args == ('half',)
     assert mock_b_child1.builder_used_for_setup is builder
     assert mock_b_child2.args == ('a',)
     assert mock_b_child2.builder_used_for_setup is builder
     assert mock_b_child3.args == ('bee',)
     assert mock_b_child3.builder_used_for_setup is builder
-
-
-def test_extract_component_call():
-    description = 'cave_system.monsters.Rabbit("timid", 0.01)'
-    component, args = _extract_component_call(ast.parse(description))
-
-    assert component.attr == 'Rabbit'
-    assert component.value.attr == 'monsters'
-    assert component.value.value.id == 'cave_system'
-
-    assert args[0].s == 'timid'
-    assert args[1].n == 0.01
-
-
-def test_is_literal():
-    _, args = _extract_component_call(ast.parse('Test("thing")'))
-
-    assert _is_literal(args[0])
-
-    _, args = _extract_component_call(ast.parse('Test(ComplexCall("thing"))'))
-
-    assert not _is_literal(args[0])

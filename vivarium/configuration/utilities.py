@@ -4,19 +4,17 @@ from typing import Mapping, Any
 from .config_tree import ConfigTree
 
 _DEFAULT_PARAMETERS = {
-    'run_configuration': {
-        'random_seed': 0,
-        'results_directory': os.path.expanduser('~/vivarium_results/'),
-    },
-    # FIXME: Hack
-    'input_data': {
-        'location_id': 180,
-    },
-    'vivarium': {
-        'component_manager': 'vivarium.framework.components.ComponentManager',
-        'dataset_manager': 'vivarium.framework.components.DummyDatasetManager',
-        'clock': 'vivarium.framework.time.DateTimeClock',
-    },
+    'configuration': {
+        'run_configuration': {
+            'results_directory': os.path.expanduser('~/vivarium_results/'),
+        },
+        'vivarium': {
+            'component_manager': 'vivarium.framework.components.ComponentManager',
+            'component_configuration_parser': 'vivarium.framework.components.ComponentConfigurationParser',
+            'dataset_manager': 'vivarium.framework.components.DummyDatasetManager',
+            'clock': 'vivarium.framework.time.DateTimeClock',
+        },
+    }
 }
 
 
@@ -31,7 +29,6 @@ def build_simulation_configuration(parameters: Mapping[str, Any]=None) -> Config
     ----------
     parameters :
         Dictionary possibly containing keys:
-            'random_seed': A seed for random number generation.
             'results_directory': The directory to output results to.
             'simulation_configuration': A complex configuration structure detailing the model to run.
 
@@ -49,13 +46,21 @@ def build_simulation_configuration(parameters: Mapping[str, Any]=None) -> Config
     config.update(_DEFAULT_PARAMETERS, **default_metadata)
 
     if os.path.exists(user_config_path):
-        config.update(user_config_path)
+        config.configuration.update(user_config_path)
 
-    for value in ['random_seed', 'results_directory']:
-        if _value_in_parameters(value, parameters):
-            config.update({'run_configuration': {value: parameters[value]}},
-                          layer='override', source='user_override')
+    if _value_in_parameters('results_directory', parameters):
+        config.configuration.update({
+            'run_configuration':
+                {'results_directory': parameters['results_directory']}
+        }, layer='override', source='user_override')
 
-    config.update(parameters.get('simulation_configuration', None), layer='model_override')  # source is implicit
+    input_config = parameters.get('simulation_configuration', None)
+    if input_config:
+        is_yaml = isinstance(input_config, str) and 'yaml' in input_config
+        if 'components' in input_config or 'configuration' in input_config or is_yaml:
+            # We have something that looks like the yaml configs, load directly
+            config.update(input_config, layer='model_override')
+        else:  # Otherwise it's actual configuration info.
+            config.configuration.update(input_config, layer='model_override')
 
     return config

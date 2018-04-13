@@ -174,7 +174,7 @@ class State:
         iterable
             This component's sub-components.
         """
-        return [self.transition_set]
+        builder.components.add_components([self.transition_set])
 
     def next_state(self, index, event_time, population_view):
         """Moves a population between different states using information this state's `transition_set`.
@@ -278,8 +278,8 @@ class TransitionSet:
         iterable
             This component's sub-components.
         """
+        builder.components.add_components(self.transitions)
         self.random = builder.randomness.get_stream(self.key)
-        return self.transitions
 
     def choose_new_state(self, index):
         """Chooses a new state for each simulant in the index.
@@ -391,8 +391,8 @@ class Machine:
         iterable
             This component's sub-components.
         """
+        builder.components.add_components(self.states)
         self.population_view = builder.population.get_view([self.state_column])
-        return self.states
 
     def add_states(self, states):
         for state in states:

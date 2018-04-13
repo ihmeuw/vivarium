@@ -93,5 +93,5 @@ class DateTimeClock(SimulationClock):
         self._step_size = pd.Timedelta(days=time.step_size // 1, hours=(time.step_size % 1) * 24)
 
 
-def get_clock(path):
-    return import_by_path(path)()
+def get_clock(config):
+    return import_by_path(config.vivarium.clock)()

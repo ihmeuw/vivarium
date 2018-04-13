@@ -1,24 +1,22 @@
 import numbers
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
+from vivarium.framework import randomness
 from vivarium.framework.engine import SimulationContext, build_simulation_configuration
 from vivarium.framework.util import from_yearly, to_yearly
-from vivarium.framework import randomness
-from vivarium.framework.components import load_component_manager
 
 
 def setup_simulation(components, population_size=100, start=None, input_config=None):
-    config = build_simulation_configuration() if not input_config else input_config
-    component_manager = load_component_manager(config)
-    component_manager.add_components(components)
-    simulation = SimulationContext(component_manager, config)
-
+    config = build_simulation_configuration({'simulation_configuration': input_config})
     if population_size:
-        config.population.update({'population_size': population_size})
+        config.configuration.population.update({'population_size': population_size})
     if start:
-        config.time.start.update({'year': start})
+        config.configuration.time.start.update({'year': start})
+
+    simulation = SimulationContext(config.configuration, config.components)
+    simulation.component_manager.add_components(components)
 
     simulation.setup()
     simulation.initialize_simulants()

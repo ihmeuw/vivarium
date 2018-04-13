@@ -2,18 +2,18 @@
 
  The builder is the toolbox available at setup time to ``vivarium`` components.
 """
-from typing import Callable, Sequence, Union, Mapping, Any
 from datetime import datetime, timedelta
 from numbers import Number
+from typing import Callable, Sequence, Union, Mapping, Any, Collection
 
 import pandas as pd
 
-from .time import SimulationClock
-from .values import ValuesManager, replace_combiner, Pipeline
+from vivarium.framework.components.manager import ComponentManager
 from .event import EventManager, Event
 from .population import PopulationManager, PopulationView, SimulantData
 from .randomness import RandomnessManager, RandomnessStream
-from .components import ComponentManager
+from .time import SimulationClock
+from .values import ValuesManager, replace_combiner, Pipeline
 
 
 class _Time:
@@ -264,8 +264,11 @@ class _Components:
     def __init__(self, component_manager: ComponentManager):
         self._component_manager = component_manager
 
-    def add_components(self, components: Sequence):
-        self._component_manager.add_components(list(components))
+    def add_components(self, components: Collection):
+        self._component_manager.add_components(components)
+
+    def add_global_components(self, global_components: Collection):
+        self._component_manager.add_global_components(global_components)
 
     def query_components(self, component_type: str):
         return self._component_manager.query_components(component_type)
@@ -282,6 +285,7 @@ class Builder:
         self.event = _Event(context.events)
         self.population = _Population(context.population)
         self.randomness = _Randomness(context.randomness)
+        self.components = _Components(context.component_manager)
 
     def __repr__(self):
         return "Builder()"

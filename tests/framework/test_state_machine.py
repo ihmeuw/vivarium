@@ -93,8 +93,8 @@ def test_no_null_transition():
 def test_side_effects():
     class DoneState(State):
         def setup(self, builder):
+            super().setup(builder)
             self.population_view = builder.population.get_view(['count'])
-            return super().setup(builder)
 
         def _transition_side_effect(self, index, event_time):
             pop = self.population_view.get(index)
@@ -102,15 +102,15 @@ def test_side_effects():
 
     done_state = DoneState('done')
     start_state = State('start')
-    done_transition = Transition(start_state, done_state, lambda agents: np.full(len(agents), 1.0))
-    start_state.transition_set.append(done_transition)
-    done_state.transition_set.append(done_transition)
+    start_state.add_transition(done_state)
+    done_state.add_transition(start_state)
 
-    machine = Machine('state')
-    machine.states.extend([start_state, done_state])
+    machine = Machine('state', states=[start_state, done_state])
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start'), _population_fixture('count', 0)])
     event_time = simulation.clock.time + simulation.clock.step_size
+    machine.transition(simulation.population.population.index, event_time)
+    assert np.all(simulation.population.population['count'] == 1)
     machine.transition(simulation.population.population.index, event_time)
     assert np.all(simulation.population.population['count'] == 1)
     machine.transition(simulation.population.population.index, event_time)
