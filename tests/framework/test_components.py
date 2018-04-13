@@ -1,3 +1,5 @@
+import os
+
 import pytest
 import yaml
 
@@ -232,7 +234,7 @@ def test_apply_component_default_configuration():
     _apply_component_default_configuration(config, us)
     assert config.unladen_swallow.metadata('airspeed_velocity') == [
         {'layer': 'component_configs', 'value': 11,
-         'source': '/home/james/code/vivarium/vivarium/tests/framework/test_components.py', 'default': False}
+         'source': os.path.realpath(__file__), 'default': False}
     ]
 
     us = UnladenSwallow()
