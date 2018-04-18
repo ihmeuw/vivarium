@@ -23,7 +23,7 @@ class ParsingError(ComponentConfigError):
 
 class DummyDatasetManager:
     """Placeholder implementation of the DatasetManager"""
-    def load(self, dataset_path):
+    def load(self, *args, **kwargs):
         raise NotImplementedError("DummyDatasetManager can't actually load data")
 
 
