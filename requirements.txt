@@ -3,3 +3,6 @@ numpy
 pandas
 pyyaml
 scipy
+click
+pytest
+pytest-mock
