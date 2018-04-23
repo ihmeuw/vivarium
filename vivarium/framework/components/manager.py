@@ -2,31 +2,15 @@
 ComponentManager class which uses those tools to load and manage components.
 """
 import inspect
-from typing import Collection
+from typing import Sequence
 
 from vivarium import VivariumError
-from vivarium.configuration.config_tree import ConfigTree
-from vivarium.framework.util import import_by_path
+from vivarium.config_tree import ConfigTree
 
 
 class ComponentConfigError(VivariumError):
     """Error while interpreting configuration file or initializing components"""
     pass
-
-
-class DummyDatasetManager:
-    """Placeholder implementation of the DatasetManager"""
-    def __init__(self, configuration: ConfigTree):
-        self.config = configuration
-        self.constructors = {}
-
-
-def get_component_manager(configuration: ConfigTree):
-    return import_by_path(configuration.vivarium.component_manager)(configuration)
-
-
-def get_dataset_manager(configuration: ConfigTree):
-    return import_by_path(configuration.vivarium.dataset_manager)(configuration)
 
 
 class ComponentManager:
@@ -40,10 +24,10 @@ class ComponentManager:
         self._components = []
         self._globals = []
 
-    def add_managers(self, managers: Collection):
-        _add_components(self._managers, managers)
+    def add_managers(self, managers: Sequence):
+        self._add_components(self._managers, managers)
 
-    def add_components(self, components: Collection):
+    def add_components(self, components: Sequence):
         """Register new components.
 
         Parameters
@@ -51,10 +35,17 @@ class ComponentManager:
         components:
           Components to register
         """
-        _add_components(self._components, components)
+        self._add_components(self._components, components)
 
-    def add_global_components(self, global_components: Collection):
-        _add_components(self._globals, global_components)
+    def add_global_components(self, global_components: Sequence):
+        self._add_components(self._globals, global_components)
+
+    def _add_components(self, component_list, components):
+        for component in components:
+            if isinstance(component, Sequence):
+                self._add_components(component_list, component)
+            else:
+                component_list.append(component)
 
     def query_components(self, component_type: str):
         raise NotImplementedError()
@@ -73,12 +64,19 @@ class ComponentManager:
         self._globals = _setup_components(builder, self._globals, self.configuration)
 
 
-def _add_components(component_list, components):
-    for component in components:
-        if isinstance(component, Collection):
-            _add_components(component_list, component)
-        else:
-            component_list.append(component)
+class ComponentsInterface:
+
+    def __init__(self, component_manager: ComponentManager):
+        self._component_manager = component_manager
+
+    def add_components(self, components: Sequence):
+        self._component_manager.add_components(components)
+
+    def add_global_components(self, global_components: Sequence):
+        self._component_manager.add_global_components(global_components)
+
+    def query_components(self, component_type: str):
+        return self._component_manager.query_components(component_type)
 
 
 def _setup_components(builder, component_list, configuration):

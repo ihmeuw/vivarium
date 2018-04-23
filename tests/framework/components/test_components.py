@@ -106,9 +106,7 @@ def import_and_instantiate_mock(mocker):
     return mocker.patch('vivarium.framework.components.parser._import_and_instantiate_components')
 
 
-@pytest.fixture(scope='function', params=[TEST_COMPONENTS, TEST_COMPONENTS_LIST])
-def components(request):
-    return request.param
+
 
 
 def test_load_component_manager_defaults(components):
@@ -157,130 +155,18 @@ def test_load_component_manager_custom_managers(monkeypatch, components):
     assert isinstance(dataset_manager, MockDatasetManager)
 
 
-def test_parse_component_config():
-    source = yaml.load(TEST_COMPONENTS)['components']
-    component_list = _parse_component_config(source)
-
-    assert {'ministry.silly_walk.Prance()',
-            "ministry.silly_walk.Jump('front_flip')",
-            "ministry.silly_walk.PratFall('15')",
-            'pet_shop.Parrot()',
-            "pet_shop.dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')"} == set(component_list)
 
 
-def test_prep_components():
-    desc = 'cave_system.monsters.Rabbit("timid", "0.01")'
-    component, args = _prep_components([desc])[0]
-    assert component == 'cave_system.monsters.Rabbit'
-    assert set(args) == {'timid', '0.01'}
 
 
-def test_parse_component_syntax_error():
-    desc = 'cave_system.monsters.Rabbit("timid", 0.01)'
-    with pytest.raises(ParsingError):
-        _prep_components([desc])
-
-    desc = 'cave_system.monsters.Rabbit("timid\', "0.01")'
-    with pytest.raises(ParsingError):
-        _prep_components([desc])
-
-    desc = "cave_system.monsters.Rabbit(\"timid', '0.01')"
-    with pytest.raises(ParsingError):
-        _prep_components([desc])
 
 
-def test_import_and_instantiate_components(monkeypatch):
-    monkeypatch.setattr('vivarium.framework.components.manager.import_by_path', mock_importer)
-    monkeypatch.setattr('vivarium.framework.components.parser.import_by_path', mock_importer)
-
-    component_descriptions = [
-        ('test_components.MockComponentA', ("A Hundred and One Ways to Start a Fight",)),
-        ('test_components.MockComponentB', ("Ethel the Aardvark goes Quantity Surveying",)),
-    ]
-    component_list = _import_and_instantiate_components(component_descriptions)
-
-    assert len(component_list) == 2
-    assert isinstance(component_list[0], MockComponentA)
-    assert component_list[0].args == ("A Hundred and One Ways to Start a Fight",)
-    assert isinstance(component_list[1], MockComponentB)
-    assert component_list[1].args == ("Ethel the Aardvark goes Quantity Surveying",)
 
 
-def test_ComponentConfigurationParser_get_components(import_and_instantiate_mock, components):
-    config = build_simulation_configuration()
-    config.update(components)
-
-    parser = get_component_configuration_parser(config.configuration)
-    parser.get_components(config.components)
-
-    import_and_instantiate_mock.assert_called_once_with(TEST_COMPONENTS_PARSED)
 
 
-def test_apply_component_default_configuration():
-
-    class UnladenSwallow:
-
-        configuration_defaults = {
-            'unladen_swallow': {
-                'airspeed_velocity': 11,
-            }
-        }
-
-    us = UnladenSwallow()
-    config = build_simulation_configuration()
-    assert 'unladen_swallow' not in config
-    _apply_component_default_configuration(config, us)
-    assert config.unladen_swallow.metadata('airspeed_velocity') == [
-        {'layer': 'component_configs', 'value': 11,
-         'source': os.path.realpath(__file__), 'default': False}
-    ]
-
-    us = UnladenSwallow()
-    us.__module__ = '__main__'
-    config = build_simulation_configuration()
-    assert 'unladen_swallow' not in config
-    _apply_component_default_configuration(config, us)
-    assert config.unladen_swallow.metadata('airspeed_velocity') == [
-        {'layer': 'component_configs', 'value': 11, 'source': '__main__', 'default': False}
-    ]
 
 
-def test_ComponentManager_add_components():
-    config = build_simulation_configuration()
-    manager = get_component_manager(config.configuration)
-
-    component_list = [None, MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')]
-    manager.add_components(component_list)
-    assert manager._components == component_list
-
-    manager._components = []
-    component_list.append(component_list[:])
-    manager.add_components(component_list)
-    assert manager._components == 2*component_list[:-1]
 
 
-def test_ComponentManager__setup_components(mocker):
-    config = build_simulation_configuration()
-    manager = get_component_manager(config.configuration)
-    builder = mocker.Mock()
-    builder.components = manager
 
-    manager.add_components([None, MockComponentA('Eric'),
-                            MockComponentB('half', 'a', 'bee')])
-    with pytest.raises(ComponentConfigError):
-        manager.setup_components(builder)
-
-    manager._components = []
-    manager.add_components([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')])
-    manager.setup_components(builder)
-
-    mock_a, mock_b, mock_b_child1, mock_b_child2, mock_b_child3 = manager._components
-
-    assert mock_a.builder_used_for_setup is None  # class has no setup method
-    assert mock_b.builder_used_for_setup is builder
-    assert mock_b_child1.args == ('half',)
-    assert mock_b_child1.builder_used_for_setup is builder
-    assert mock_b_child2.args == ('a',)
-    assert mock_b_child2.builder_used_for_setup is builder
-    assert mock_b_child3.args == ('bee',)
-    assert mock_b_child3.builder_used_for_setup is builder

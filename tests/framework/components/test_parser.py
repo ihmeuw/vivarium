@@ -6,6 +6,7 @@ from vivarium.framework.components.parser import (ComponentConfigurationParser, 
                                                   _prep_components, _import_and_instantiate_components,
                                                   ParsingError)
 
+from .mocks import MockComponentA, MockComponentB
 
 
 TEST_COMPONENTS_NESTED = """
@@ -36,23 +37,6 @@ TEST_COMPONENTS_PREPPED = [('ministry.silly_walk.Prance', tuple()),
                            ('ministry.silly_walk.PratFall', ('15',)),
                            ('pet_shop.Parrot', tuple()),
                            ('pet_shop.dangerous_animals.Crocodile', ('gold_tooth', 'teacup', '3.14'))]
-
-
-class MockComponentA:
-    def __init__(self, *args):
-        self.args = args
-        self.builder_used_for_setup = None
-
-
-class MockComponentB(MockComponentA):
-    def setup(self, builder):
-        self.builder_used_for_setup = builder
-
-        if len(self.args) > 1:
-            children = []
-            for arg in self.args:
-                children.append(MockComponentB(arg))
-            builder.components.add_components(children)
 
 
 def mock_importer(path):
