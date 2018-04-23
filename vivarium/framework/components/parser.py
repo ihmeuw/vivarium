@@ -1,7 +1,7 @@
 """Defines the parsing rules for the ``components`` section of ``yaml`` configuration files."""
 from typing import Sequence, Tuple, List, Dict, Union
 
-from vivarium.configuration import ConfigTree
+from vivarium.config_tree import ConfigTree
 from vivarium.framework.util import import_by_path
 from .manager import ComponentConfigError
 
@@ -9,11 +9,6 @@ from .manager import ComponentConfigError
 class ParsingError(ComponentConfigError):
     """Error raised when component configurations are not specified correctly."""
     pass
-
-
-def get_component_configuration_parser(simulation_config: ConfigTree):
-    """Gets the component configuration parser"""
-    return import_by_path(simulation_config.vivarium.component_configuration_parser)(simulation_config)
 
 
 class ComponentConfigurationParser:
@@ -85,15 +80,16 @@ class ComponentConfigurationParser:
         return _parse_component_config(component_config)
 
 
-def _parse_component_config(component_config: Dict[str, Union[Dict, List]]) -> List[str]:
+def _parse_component_config(component_config: Union[List[str], Dict[str, Union[Dict, List]]]) -> List[str]:
 
     def _process_level(level, prefix):
+        if isinstance(level, list):
+            return ['.'.join(prefix + [child]) for child in level]
+
         component_list = []
         for name, child in level.items():
-            if isinstance(child, list):  # We've reached leaves
-                component_list.extend(['.'.join(prefix + [name, component]) for component in child])
-            else:
-                component_list.extend(_process_level(child, prefix + [name]))
+            component_list.extend(_process_level(child, prefix + [name]))
+
         return component_list
 
     return _process_level(component_config, [])
@@ -114,12 +110,12 @@ def _prep_components(component_list: Sequence[str]) -> List[Tuple[str, Tuple[str
     components = []
     for c in component_list:
         path, args_plus = c.split('(')
-        cleaned_args = clean_args(args_plus[:-1].split(','), path)
+        cleaned_args = _clean_args(args_plus[:-1].split(','), path)
         components.append((path, cleaned_args))
     return components
 
 
-def clean_args(args, path):
+def _clean_args(args, path):
     out = []
     for a in args:
         a = a.strip()
