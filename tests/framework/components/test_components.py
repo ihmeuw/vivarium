@@ -3,13 +3,11 @@ import os
 import pytest
 import yaml
 
-from vivarium.framework.components import (get_component_manager, ComponentManager,
-                                           get_dataset_manager, DummyDatasetManager,
-                                           get_component_configuration_parser, ComponentConfigurationParser)
+from vivarium.framework.components import ComponentManager, ComponentConfigurationParser
 from vivarium.framework.components.manager import ComponentConfigError, _apply_component_default_configuration
 from vivarium.framework.components.parser import (_prep_components, _import_and_instantiate_components,
                                                   _parse_component_config, ParsingError)
-from vivarium.configuration import build_simulation_configuration
+from vivarium.framework.configuration import build_simulation_configuration
 
 TEST_COMPONENTS = """
 components:
@@ -245,7 +243,6 @@ def test_apply_component_default_configuration():
     assert config.unladen_swallow.metadata('airspeed_velocity') == [
         {'layer': 'component_configs', 'value': 11, 'source': '__main__', 'default': False}
     ]
-
 
 
 def test_ComponentManager_add_components():

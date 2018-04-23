@@ -1,0 +1,25 @@
+plugins:
+  required:
+    component_manager:
+      implementation: 'vivarium.framework.components.ComponentManager'
+      builder_interface: 'vivarium.framework.builder.Components'
+  optional:
+    dataset_manager: 'vivarium.framework.components.DummyDatasetManager'
+
+components:
+  - vivarium:
+    - test_util:
+      - TestPopulation()
+    - framework:
+      - randomness.RandomnessManager()
+      - event.EventManager()
+
+configuration:
+  time:
+    start:
+      year: 2005
+    end:
+      year: 2010
+    step_size: 30.5  # Days
+    randomness:
+      map_size: 1000

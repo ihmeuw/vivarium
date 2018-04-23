@@ -1,4 +1,4 @@
-from vivarium.configuration.config_tree import ConfigTree
+from vivarium.config_tree import ConfigTree
 
 TEST_YAML_ONE = '''
 test_section:
@@ -9,6 +9,7 @@ test_section2:
     test_key2: test_value4
 '''
 
+
 def test_load_yaml_string():
     d = ConfigTree()
     d.loads(TEST_YAML_ONE, source='inline_test')
@@ -16,6 +17,7 @@ def test_load_yaml_string():
     assert d.test_section.test_key == 'test_value'
     assert d.test_section.test_key2 == 'test_value2'
     assert d.test_section2.test_key == 'test_value3'
+
 
 def test_load_yaml_file(tmpdir):
     tmp_file = tmpdir.join('test_file.yaml')

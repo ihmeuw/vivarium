@@ -6,53 +6,55 @@ from time import time
 
 import pandas as pd
 
-from vivarium.configuration import build_simulation_configuration
-from .components import get_component_configuration_parser, get_component_manager, get_dataset_manager
-from .builder import Builder
-from .event import EventManager, Event
+from vivarium.framework.configuration import build_model_specification
+from .event import EventManager, Event, EventsInterface
 from .lookup import InterpolatedDataManager
-from .population import PopulationManager
-from .randomness import RandomnessManager
+from .metrics import Metrics
+from .plugins import PluginManager
+from .population import PopulationManager, PopulationInterface
+from .randomness import RandomnessManager, RandomnessInterface
 from .results_writer import get_results_writer
-from .time import get_clock
-from .values import ValuesManager, DynamicValueError
+from .values import ValuesManager, ValuesInterface
 
 _log = logging.getLogger(__name__)
 
 
 class SimulationContext:
     """context"""
-    def __init__(self, simulation_config, component_config=None):
-        self.configuration = simulation_config
-
-        component_config_parser = get_component_configuration_parser(simulation_config)
-        components = component_config_parser.get_components(component_config)
-        self.component_manager = get_component_manager(simulation_config)
+    def __init__(self, configuration, components, plugin_manager=None):
+        self.configuration = configuration
+        self.plugin_manager = plugin_manager if plugin_manager else PluginManager(configuration)
+        self.component_manager = self.plugin_manager.get_plugin('component_manager')
         self.component_manager.add_components(components)
-
-        self.dataset_manager = get_dataset_manager(simulation_config)
-        self.clock = get_clock(simulation_config)
+        self.clock = self.plugin_manager.get_plugin('clock')
 
         self.values = ValuesManager()
         self.events = EventManager()
         self.population = PopulationManager()
         self.tables = InterpolatedDataManager()
         self.randomness = RandomnessManager()
+        self.builder = None
 
     def setup(self):
-        builder = Builder(self)
+        self.builder = Builder(self)
+        self.builder.components = self.plugin_manager.get_plugin_interface('component_manager')
+        self.builder.time = self.plugin_manager.get_plugin_interface('time')
+        for name, interface in self.plugin_manager.get_optional_interfaces().items():
+            setattr(self.builder, name, interface)
 
         self.component_manager.add_managers(
             [self.clock, self.randomness, self.values, self.events, self.population, self.tables])
-        self.component_manager.setup_components(builder)
+        self.component_manager.add_managers(list(self.plugin_manager.get_optional_controllers().values()))
+        self.component_manager.add_components([Metrics()])
+        self.component_manager.setup_components(self.builder)
 
-        self.simulant_creator = builder.population.get_simulant_creator()
+        self.simulant_creator = self.builder.population.get_simulant_creator()
 
         # The order here matters.
         self.time_step_events = ['time_step__prepare', 'time_step', 'time_step__cleanup', 'collect_metrics']
-        self.time_step_emitters = {k: builder.event.get_emitter(k) for k in self.time_step_events}
+        self.time_step_emitters = {k: self.builder.event.get_emitter(k) for k in self.time_step_events}
 
-        self.end_emitter = builder.event.get_emitter('simulation_end')
+        self.end_emitter = self.builder.event.get_emitter('simulation_end')
 
         self.events.get_emitter('post_setup')(None)
 
@@ -74,11 +76,65 @@ class SimulationContext:
     def finalize(self):
         self.end_emitter(Event(self.population.population.index))
 
+    def report(self):
+        return self.values.get_value('metrics')(self.population.population.index)
+
     def __repr__(self):
         return "SimulationContext()"
 
 
-def event_loop(simulation):
+class Builder:
+    """Toolbox for constructing and configuring simulation components."""
+
+    def __init__(self, context):
+        self.configuration = context.configuration
+        self.lookup = context.tables.build_table
+        self.value = ValuesInterface(context.values)
+        self.event = EventsInterface(context.events)
+        self.population = PopulationInterface(context.population)
+        self.randomness = RandomnessInterface(context.randomness)
+
+    def __repr__(self):
+        return "Builder()"
+
+
+def run_simulation(model_specification_file, results_directory):
+    results_writer = get_results_writer(results_directory, model_specification_file)
+
+    model_specification = build_model_specification(model_specification_file)
+    model_specification.configuration.output_data.update(
+        {'results_directory': results_writer.results_root}, layer='override', source='command_line')
+
+    simulation = setup_simulation(model_specification)
+
+    metrics, final_state = run(simulation)
+
+    _log.debug(pformat(metrics))
+    unused_config_keys = simulation.configuration.unused_keys()
+    if unused_config_keys:
+        _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
+
+    metrics = pd.DataFrame(metrics)
+    results_writer.write_output(metrics, 'output.hdf')
+    results_writer.write_output(final_state, 'final_state.hdf')
+
+
+def setup_simulation(model_specification):
+    plugin_config = model_specification.plugins
+    component_config = model_specification.components
+    simulation_config = model_specification.configuration
+
+    plugin_manager = PluginManager(plugin_config, simulation_config)
+    component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
+    components = component_config_parser.get_components(component_config)
+
+    simulation = SimulationContext(simulation_config, components, plugin_manager)
+    simulation.setup()
+    return simulation
+
+
+def run(simulation):
+    start = time()
     simulation.initialize_simulants()
 
     while simulation.clock.time < simulation.clock.stop_time:
@@ -86,50 +142,6 @@ def event_loop(simulation):
         simulation.step()
 
     simulation.finalize()
-
-
-def setup_simulation(config):
-    component_config = config.components
-    simulation_config = config.configuration
-
-    simulation_config.run_configuration.set_with_metadata('run_id', str(time()), layer='base')
-    simulation = SimulationContext(simulation_config, component_config)
-    simulation.setup()
-    return simulation
-
-
-def run_simulation(simulation):
-    start = time()
-    event_loop(simulation)
-    try:
-        metrics = simulation.values.get_value('metrics')
-    except DynamicValueError:
-        metrics = simulation.values.register_value_producer('metrics', source=lambda index: {})
-    metrics = metrics(simulation.population.population.index)
+    metrics = simulation.report()
     metrics['simulation_run_time'] = time() - start
-    return metrics
-
-
-def run(simulation):
-    metrics = run_simulation(simulation)
-
-    _log.debug(pformat(metrics))
-
-    unused_config_keys = simulation.configuration.unused_keys()
-    if unused_config_keys:
-        _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
-
-    return metrics, simulation.population._population
-
-
-def do_command(args):
-    config = build_simulation_configuration(vars(args))
-    simulation = setup_simulation(config)
-    if args.command == 'run':
-        results_writer = get_results_writer(config.configuration.run_configuration.results_directory,
-                                            args.simulation_configuration)
-        metrics, final_state = run(simulation)
-        idx = pd.Index([config.configuration.randomness.random_seed], name='random_seed')
-        output = pd.DataFrame(metrics, index=idx)
-        results_writer.write_output(output, 'output.hdf')
-        results_writer.write_output(final_state, 'final_state.hdf')
+    return metrics, simulation.population.population

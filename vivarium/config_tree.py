@@ -264,6 +264,9 @@ class ConfigTree:
         """Return a list of all (child_name, child) pairs."""
         return self._children.items()
 
+    def keys(self):
+        return self._children.keys()
+
     def get_from_layer(self, name, layer=None):
         """Get a configuration value from the named layer.
         Parameters
