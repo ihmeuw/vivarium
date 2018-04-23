@@ -492,8 +492,7 @@ class ConfigTree:
         self._layers.remove(layer)
 
     def unused_keys(self):
-        """Lists all keys which are present in the ConfigTree but which have not been accessed.
-        """
+        """Lists all keys which are present in the ConfigTree but which have not been accessed."""
         unused = set()
         for k, c in self._children.items():
             if isinstance(c, ConfigNode):
