@@ -159,13 +159,14 @@ def test_reset_layer_with_preserved_keys_at_depth():
         'test_key': {
             'test_key2': 'test_value5',
             'test_key3': {'test_key4': 'test_value6'}
-        }, 'test_key5': {
+        },
+        'test_key5': {
             'test_key6': 'test_value7',
-            'test_key7': 'test_value8'
+            'test_key7': 'test_value8',
         }
     }, layer='b')
 
-    d.reset_layer('b', preserve_keys=['test_key.test_key3', 'test_key.test_key5.test_key6'])
+    d.reset_layer('b', preserve_keys=['test_key.test_key3', 'test_key5.test_key6'])
     assert d.test_key.test_key2 == 'test_value'
     assert d.test_key.test_key3.test_key4 == 'test_value6'
     assert d.test_key5.test_key6 == 'test_value7'
