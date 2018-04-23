@@ -107,8 +107,6 @@ class InterpolatedDataManager:
                       The columns which contain the parameters to the interpolation functions.
                       These should be the continuous variables. For example 'age'
                       in data about a population.
-        interpolation_order : int
-                      The order of the interpolation function. Defaults to linear.
 
         Returns
         -------

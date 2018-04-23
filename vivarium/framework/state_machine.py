@@ -12,8 +12,8 @@ def _next_state(index, event_time, transition_set, population_view):
     ----------
     index : iterable of ints
         An iterable of integer labels for the simulants.
-    time : pandas.Timestamp
-        When this transition is occuring.
+    event_time : pandas.Timestamp
+        When this transition is occurring.
     transition_set : TransitionSet
         A set of potential transitions available to the simulants.
     population_view : vivarium.framework.population.PopulationView

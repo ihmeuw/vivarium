@@ -26,7 +26,7 @@ def test_rate_to_probability():
     assert round(prob, 5) == round(0.00099950016662497809, 5)
 
 
-def test_probablity_to_rate():
+def test_probability_to_rate():
     prob = 0.00099950016662497809
     rate = probability_to_rate(prob)
     assert round(rate, 5) == round(0.001, 5)

@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 
-from vivarium.test_util import build_table, setup_simulation, TestPopulation
+from vivarium.test_util import build_table, TestPopulation
+from vivarium.interface.interactive import setup_simulation
 
 
 def test_interpolated_tables(base_config):
@@ -12,8 +13,9 @@ def test_interpolated_tables(base_config):
     one_d_age = ages.copy()
     del one_d_age['year']
     one_d_age = one_d_age.drop_duplicates()
+    base_config.population.update({'population_size': 10000})
 
-    simulation = setup_simulation([TestPopulation()], 10000, input_config=base_config)
+    simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
     years = manager.build_table(years)
     ages = manager.build_table(ages)
@@ -45,14 +47,15 @@ def test_interpolated_tables(base_config):
     assert np.allclose(result_ages_1d, simulation.population.population.age)
 
 
-def test_interpolated_tables_without_uniterpolated_columns(base_config):
+def test_interpolated_tables_without_uninterpolated_columns(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
     years = build_table(lambda age, sex, year: year, year_start, year_end)
     del years['sex']
     years = years.drop_duplicates()
+    base_config.population.update({'population_size': 10000})
 
-    simulation = setup_simulation([TestPopulation()], 10000, input_config=base_config)
+    simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
     years = manager.build_table(years, key_columns=(), parameter_columns=('year', 'age',))
 
@@ -78,8 +81,9 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
     year_end = base_config.time.end.year
     years = build_table(lambda age, sex, year: year, year_start, year_end)
     input_years = years.year.unique()
+    base_config.population.update({'population_size': 10000})
 
-    simulation = setup_simulation([TestPopulation()], 10000, input_config=base_config)
+    simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
     years = manager.build_table(years)
 

@@ -2,55 +2,77 @@ from vivarium import VivariumError
 
 from .util import import_by_path
 
-DEFAULT_FIXTURES = {
-    'fixtures': {
-        'component_manager': {
-            'controller': 'vivarium.framework.components.ComponentManager',
-            'builder_interface': 'vivarium.framework.builder.Components'
+DEFAULT_PLUGINS = {
+    'plugins': {
+        'required': {
+            'component_manager': {
+                'controller': 'vivarium.framework.components.ComponentManager',
+                'builder_interface': 'vivarium.framework.builder.Components'
+            },
+            'time': {
+                'controller': 'vivarium.framework.time.DateTimeClock',
+                'builder_interface': 'vivarium.framework.time.TimeInterface'
+            },
+            'component_configuration_parser': {
+                'controller': 'vivarium.framework.components.ComponentConfigurationParser',
+                'builder_interface': None
+            },
         },
-        'clock': {
-            'controller': 'vivarium.framework.time.DateTimeClock',
-            'builder_interface': 'vivarium.framework.builder.Time'
-        },
-        'component_configuration_parser': {
-            'controller': 'vivarium.framework.components.ComponentConfigurationParser',
-            'builder_interface': None
-        },
+        'optional': {}
     }
 }
 
 
-class FixtureConfigurationError(VivariumError):
-    """Error raised when fixture configuration is incorrectly specified."""
+class PluginConfigurationError(VivariumError):
+    """Error raised when plugin configuration is incorrectly specified."""
     pass
 
 
-class FixtureManager:
+class PluginManager:
 
-    def __init__(self, simulation_configuration, fixture_configuration):
-        if set(fixture_configuration.keys()) != set(DEFAULT_FIXTURES.keys()):
-            raise FixtureConfigurationError()
+    def __init__(self, simulation_configuration, plugin_configuration=DEFAULT_PLUGINS['plugins']):
+        if set(plugin_configuration['required'].keys()) != set(DEFAULT_PLUGINS['plugins']['required'].keys()):
+            raise PluginConfigurationError()
 
-        self.fixtures = fixture_configuration
-        self.configuration = simulation_configuration
+        self._plugin_configuration = plugin_configuration
+        self._plugins = {}
+        self._configuration = simulation_configuration
 
-    def get_component_configuration_parser(self):
-        """Gets the component configuration parser."""
-        return self._get('component_configuration_parser')
+    def get_plugin(self, name):
+        if name not in self._plugins:
+            self._plugins['name'] = self._get(name)
+        return self._plugins['name']['controller']
 
-    def get_component_manager(self):
-        """Gets the component manager."""
-        return self._get('component_manager')
+    def get_plugin_interface(self, name):
+        if name not in self._plugins:
+            self._plugins['name'] = self._get(name)
+        return self._plugins['name']['builder_interface']
 
-    def get_clock(self):
-        """Gets the simulation clock."""
-        return self._get('clock')
+    def get_optional_controllers(self):
+        return {name: self.get_plugin(name) for name in self._plugin_configuration['optional'].keys()}
 
-    def _get(self, key):
-        fixture = self.fixtures[key]
-        controller = import_by_path(fixture.controller)(self.configuration)
+    def get_optional_interfaces(self):
+        return {name: self.get_plugin_interface(name) for name in self._plugin_configuration['optional'].keys()}
+
+    def _get(self, name):
+        fixture = self._lookup(name)
+        try:
+            controller = import_by_path(fixture['controller'])(self._configuration)
+        except ValueError:
+            raise PluginConfigurationError(f'Invalid plugin specification {fixture["controller"]}')
         if fixture['builder_interface'] is not None:
-            interface = import_by_path(fixture.builder_interface)(controller)
+            try:
+                interface = import_by_path(fixture['builder_interface'])(controller)
+            except ValueError:
+                raise PluginConfigurationError(f'Invalid plugin specification {fixture["builder_interface"]}')
         else:
             interface = None
-        return controller, interface
+        return {'controller': controller, 'interface': interface}
+
+    def _lookup(self, name):
+        if name in self._plugin_configuration['required']:
+            return self._plugin_configuration['required'][name]
+        elif name in self._plugin_configuration['optional']:
+            return self._plugin_configuration['optional'][name]
+        else:
+            raise PluginConfigurationError(f'Plugin {name} not found.')
