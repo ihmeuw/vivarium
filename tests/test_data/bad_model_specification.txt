@@ -1,11 +1,3 @@
-plugins:
-  required:
-    component_manager:
-      implementation: 'vivarium.framework.components.ComponentManager'
-      builder_interface: 'vivarium.framework.builder.Components'
-  optional:
-    dataset_manager: 'vivarium.framework.components.DummyDatasetManager'
-
 components:
   - vivarium:
     - test_util:
