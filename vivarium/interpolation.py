@@ -3,6 +3,7 @@ import warnings
 import pandas as pd
 from scipy import interpolate
 
+
 class Interpolation:
     def __init__(self, data, categorical_parameters, continuous_parameters, order, func=None):
         self._data = data
@@ -14,7 +15,7 @@ class Interpolation:
             raise ValueError("Only interpolation over 1 or 2 variables is supported")
 
         # These are the columns which the interpolation function will approximate
-        value_columns = sorted(self._data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
+        value_columns = sorted(self._data.columns.difference(set(self.key_columns) | set(self.parameter_columns)))
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
