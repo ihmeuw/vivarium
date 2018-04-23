@@ -7,6 +7,7 @@ from time import time
 import pandas as pd
 
 from vivarium.framework.configuration import build_model_specification
+from .components import ComponentsInterface
 from .event import EventManager, Event, EventsInterface
 from .lookup import InterpolatedDataManager
 from .metrics import Metrics
@@ -15,6 +16,7 @@ from .population import PopulationManager, PopulationInterface
 from .randomness import RandomnessManager, RandomnessInterface
 from .results_writer import get_results_writer
 from .values import ValuesManager, ValuesInterface
+from .time import TimeInterface
 
 _log = logging.getLogger(__name__)
 
@@ -93,6 +95,10 @@ class Builder:
         self.event = EventsInterface(context.events)
         self.population = PopulationInterface(context.population)
         self.randomness = RandomnessInterface(context.randomness)
+
+        # These set in SimulationContext.setup()
+        self.clock = None  # type: TimeInterface
+        self.components = None  # type: ComponentsInterface
 
     def __repr__(self):
         return "Builder()"
