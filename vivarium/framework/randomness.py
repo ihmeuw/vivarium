@@ -163,7 +163,7 @@ class IndexMap:
     def shift(self, m: Union[float, pd.Series]) -> Union[int, pd.Series]:
         """Shifts floats so that the first 10 decimal digits are significant."""
         out = m % 1 * self.TEN_DIGIT_MODULUS // 1
-        if isinstance(m, pd.Series):
+        if isinstance(out, pd.Series):
             return out.astype(int)
         return int(out)
 
@@ -559,6 +559,8 @@ class RandomnessStream:
             are used to decide among the choices for every item in the `index`.
             In the 2-d case, each row in `p` contains a separate set of weights
             for every item in the `index`.
+        additional_key :
+            Any additional information used to seed random number generation.
 
         Returns
         -------
@@ -586,6 +588,7 @@ class RandomnessManager:
                 'map_size': 1_000_000,
                 'key_columns': ['entrance_time'],
                 'random_seed': 0,
+                'additional_seed': None,
             }
     }
 
@@ -611,6 +614,11 @@ class RandomnessManager:
             A unique identifier for a stream of random numbers.  Typically represents
             a decision that needs to be made each time step like 'moves_left' or
             'gets_disease'.
+        for_initialization :
+            A flag indicating whether this stream is used to generate key initialization information
+            that will be used to identify simulants in the Common Random Number framework. These streams
+            cannot be copied and should only be used to generate the state table columns specified
+            in ``builder.configuration.randomness.key_columns``.
 
         Raises
         ------
@@ -646,3 +654,48 @@ class RandomnessManager:
     def __repr__(self) -> str:
         return f"RandomnessManager(seed={self._seed}, key_columns={self._key_columns}, " \
                f"decision_points={self._decision_points})"
+
+
+class RandomnessInterface:
+
+    def __init__(self, randomness_manager: RandomnessManager):
+        self._randomness_manager = randomness_manager
+
+    def get_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
+        """Provides a new source of random numbers for the given decision point.
+
+        ``vivarium`` provides a framework for Common Random Numbers which allows for variance reduction
+        when modeling counter-factual scenarios. Users interested in causal analysis and comparisons
+        between simulation scenarios should be careful to use randomness streams provided by the framework
+        wherever randomness is employed.
+
+        Parameters
+        ----------
+        decision_point :
+            A unique identifier for a stream of random numbers.  Typically represents
+            a decision that needs to be made each time step like 'moves_left' or
+            'gets_disease'.
+        for_initialization :
+            A flag indicating whether this stream is used to generate key initialization information
+            that will be used to identify simulants in the Common Random Number framework. These streams
+            cannot be copied and should only be used to generate the state table columns specified
+            in ``builder.configuration.randomness.key_columns``.
+
+        Returns
+        -------
+            An entry point into the Common Random Number generation framework. The stream provides
+            vectorized access to random numbers and a few other utilities.
+        """
+        return self._randomness_manager.get_randomness_stream(decision_point, for_initialization)
+
+    def register_simulants(self, simulants: pd.DataFrame) -> None:
+        """Registers simulants with the Common Random Number Framework.
+
+        Parameters
+        ----------
+        simulants :
+            A section of the state table with new simulants and at least the columns specified
+            in ``builder.configuration.randomness.key_columns``.  This function should be called
+            as soon as the key columns are generated.
+        """
+        self._randomness_manager.register_simulants(simulants)

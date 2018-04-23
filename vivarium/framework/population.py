@@ -48,7 +48,7 @@ class PopulationView:
     def subview(self, columns: Sequence[str]) -> 'PopulationView':
         if set(columns) > set(self._columns):
             raise PopulationError(f"Invalid subview requested.  Requested columns must be a subset of this view's "
-                                  f"columns.  Requested columns: {columns}, Avaliable columns: {self.columns}")
+                                  f"columns.  Requested columns: {columns}, Available columns: {self.columns}")
         return PopulationView(self.manager, columns, self.query)
 
     @property
@@ -247,3 +247,63 @@ class PopulationManager:
 
     def __repr__(self):
         return "PopulationManager()"
+
+
+class PopulationInterface:
+
+    def __init__(self, population_manager: PopulationManager):
+        self._population_manager = population_manager
+
+    def get_view(self, columns: Sequence[str], query: str = None) -> PopulationView:
+        """Get a time-varying view of the population state table.
+
+        The requested population view can be used to view the current state or to update the state
+        with new values.
+
+        Parameters
+        ----------
+        columns :
+            A subset of the state table columns that will be available in the returned view.
+        query :
+            A filter on the population state.  This filters out particular rows (simulants) based
+            on their current state.  The query should be provided in a way that is understood by
+            the ``pandas.DataFrame.query`` method and may reference state table columns not
+            requested in the ``columns`` argument.
+
+        Returns
+        -------
+            A filtered view of the requested columns of the population state table.
+        """
+        return self._population_manager.get_view(columns, query)
+
+    def get_simulant_creator(self) -> Callable[[int, Union[Mapping[str, Any], None]], pd.Index]:
+        """Grabs a reference to the function that creates new simulants (adds rows to the state table).
+
+        Returns
+        -------
+           The simulant creator function. The creator function takes the number of simulants to be
+           created as it's first argument and a dict or other mapping of population configuration
+           that will be available to simulant initializers as it's second argument. It generates
+           the new rows in the population state table and then calls each initializer
+           registered with the population system with a data object containing the state table
+           index of the new simulants, the configuration info passed to the creator, the current
+           simulation time, and the size of the next time step.
+        """
+        return self._population_manager.get_simulant_creator()
+
+    def initializes_simulants(self, initializer: Callable[[SimulantData], None],
+                              creates_columns: Sequence[str]=(),
+                              requires_columns: Sequence[str]=()):
+        """Marks a callable as a source of initial state information for new simulants.
+
+        Parameters
+        ----------
+        initializer :
+            A callable that adds or updates initial state information about new simulants.
+        creates_columns :
+            A list of the state table columns that the given initializer provides the initial state information for.
+        requires_columns :
+            A list of the state table columns that already need to be present and populated
+            in the state table before the provided initializer is called.
+        """
+        self._population_manager.register_simulant_initializer(initializer, creates_columns, requires_columns)

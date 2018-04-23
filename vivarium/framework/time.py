@@ -1,38 +1,37 @@
 """Vivarium time manager."""
-from typing import Union
+from typing import Union, Callable
 from numbers import Number
 from datetime import datetime, timedelta
 
 import pandas as pd
 
-from .util import import_by_path
 
-Time = Union[datetime, Number]
-Timedelta = Union[timedelta, Number]
+_Time = Union[datetime, Number]
+_Timedelta = Union[timedelta, Number]
 
 
 class SimulationClock:
     """Defines a base implementation for a simulation clock."""
 
-    def __init__(self):
+    def __init__(self, _):
         self._time = None
         self._stop_time = None
         self._step_size = None
 
     @property
-    def time(self) -> Time:
+    def time(self) -> _Time:
         """The current simulation time."""
         assert self._time is not None, 'No start time provided'
         return self._time
 
     @property
-    def stop_time(self) -> Time:
+    def stop_time(self) -> _Time:
         """The time at which the simulation will stop."""
         assert self._stop_time is not None, 'No stop time provided'
         return self._stop_time
 
     @property
-    def step_size(self) -> Timedelta:
+    def step_size(self) -> _Timedelta:
         """The size of the next time step."""
         assert self._step_size is not None, 'No step size provided'
         return self._step_size
@@ -93,5 +92,14 @@ class DateTimeClock(SimulationClock):
         self._step_size = pd.Timedelta(days=time.step_size // 1, hours=(time.step_size % 1) * 24)
 
 
-def get_clock(config):
-    return import_by_path(config.vivarium.clock)()
+class TimeInterface:
+    def __init__(self, clock: SimulationClock):
+        self._clock = clock
+
+    def clock(self) -> Callable[[], Union[datetime, Number]]:
+        """Gets a callable that returns the current simulation time."""
+        return lambda: self._clock.time
+
+    def step_size(self) -> Callable[[], Union[timedelta, Number]]:
+        """Gets a callable that returns the current simulation step size."""
+        return lambda: self._clock.step_size
