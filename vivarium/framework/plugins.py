@@ -7,9 +7,9 @@ DEFAULT_PLUGINS = {
         'required': {
             'component_manager': {
                 'controller': 'vivarium.framework.components.ComponentManager',
-                'builder_interface': 'vivarium.framework.builder.Components'
+                'builder_interface': 'vivarium.framework.components.ComponentsInterface'
             },
-            'time': {
+            'clock': {
                 'controller': 'vivarium.framework.time.DateTimeClock',
                 'builder_interface': 'vivarium.framework.time.TimeInterface'
             },
@@ -40,13 +40,13 @@ class PluginManager:
 
     def get_plugin(self, name):
         if name not in self._plugins:
-            self._plugins['name'] = self._get(name)
-        return self._plugins['name']['controller']
+            self._plugins[name] = self._get(name)
+        return self._plugins[name]['controller']
 
     def get_plugin_interface(self, name):
         if name not in self._plugins:
-            self._plugins['name'] = self._get(name)
-        return self._plugins['name']['builder_interface']
+            self._plugins[name] = self._get(name)
+        return self._plugins[name]['builder_interface']
 
     def get_optional_controllers(self):
         return {name: self.get_plugin(name) for name in self._plugin_configuration['optional'].keys()}
@@ -67,7 +67,7 @@ class PluginManager:
                 raise PluginConfigurationError(f'Invalid plugin specification {fixture["builder_interface"]}')
         else:
             interface = None
-        return {'controller': controller, 'interface': interface}
+        return {'controller': controller, 'builder_interface': interface}
 
     def _lookup(self, name):
         if name in self._plugin_configuration['required']:

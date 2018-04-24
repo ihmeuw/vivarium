@@ -168,6 +168,10 @@ class PopulationManager:
         during setup.
     """
 
+    configuration_defaults = {
+        'population': {'population_size': 100}
+    }
+
     def __init__(self):
         self._population = pd.DataFrame()
         self._population_initializers = []

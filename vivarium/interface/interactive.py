@@ -12,6 +12,9 @@ class InteractiveContext(SimulationContext):
     def __init__(self, configuration, components, plugin_manager=None):
         super().__init__(configuration, components, plugin_manager)
         self._initial_population = None
+
+    def setup(self):
+        super().setup()
         self._start_time = self.clock.time
 
     def initialize_simulants(self):
@@ -86,7 +89,7 @@ def setup_simulation(components, input_config=None):
     config = build_simulation_configuration()
     config.update(input_config)
 
-    simulation = InteractiveContext(input_config, components)
+    simulation = InteractiveContext(config, components)
     simulation.setup()
     simulation.initialize_simulants()
 

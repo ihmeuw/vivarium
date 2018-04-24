@@ -40,7 +40,7 @@ class SimulationContext:
     def setup(self):
         self.builder = Builder(self)
         self.builder.components = self.plugin_manager.get_plugin_interface('component_manager')
-        self.builder.time = self.plugin_manager.get_plugin_interface('time')
+        self.builder.time = self.plugin_manager.get_plugin_interface('clock')
         for name, interface in self.plugin_manager.get_optional_interfaces().items():
             setattr(self.builder, name, interface)
 
@@ -97,7 +97,7 @@ class Builder:
         self.randomness = RandomnessInterface(context.randomness)
 
         # These set in SimulationContext.setup()
-        self.clock = None  # type: TimeInterface
+        self.time = None  # type: TimeInterface
         self.components = None  # type: ComponentsInterface
 
     def __repr__(self):
