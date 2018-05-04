@@ -5,7 +5,7 @@ from scipy import interpolate
 
 class Interpolation:
     def __init__(self, data, categorical_parameters, continuous_parameters, order, func=None):
-        self._data = data
+        data = data
         self.key_columns = categorical_parameters
         self.parameter_columns = validate_parameters(data, continuous_parameters, order)
         self.func = func
@@ -14,15 +14,15 @@ class Interpolation:
             raise ValueError("Only interpolation over 1 or 2 variables is supported")
 
         # These are the columns which the interpolation function will approximate
-        value_columns = sorted(self._data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
+        value_columns = sorted(data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
             # columns to get the sub-tables to fit
-            sub_tables = self._data.groupby(self.key_columns)
+            sub_tables = data.groupby(self.key_columns)
         else:
             # There are no key columns so we will fit the whole table
-            sub_tables = {None: self._data}.items()
+            sub_tables = {None: data}.items()
 
         self.interpolations = {}
 
