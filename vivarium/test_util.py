@@ -133,7 +133,7 @@ class NonCRNTestPopulation:
             'population_size': 100,
         },
         'input_data': {
-            'location_id': 180,
+            'location': "Kenya",
         }
     }
 
@@ -151,7 +151,7 @@ class NonCRNTestPopulation:
     def generate_test_population(self, pop_data):
         age_start = pop_data.user_data.get('age_start', self.config.population.age_start)
         age_end = pop_data.user_data.get('age_end', self.config.population.age_end)
-        location = self.config.input_data.location_id
+        location = self.config.input_data.location
 
         population = _non_crn_build_population(pop_data.index, age_start, age_end, location,
                                                pop_data.creation_time, pop_data.creation_window, self.randomness)
@@ -182,7 +182,7 @@ class TestPopulation(NonCRNTestPopulation):
                                         'age': age.values}, index=pop_data.index)
         self.register(core_population)
 
-        location = self.config.input_data.location_id
+        location = self.config.input_data.location
         population = _build_population(core_population, location, self.randomness)
         self.population_view.update(population)
 

@@ -10,7 +10,7 @@ _DEFAULT_PARAMETERS = {
     },
     # FIXME: Hack
     'input_data': {
-        'location_id': 180,
+        'location': "Kenya",
     },
     'vivarium': {
         'component_manager': 'vivarium.framework.components.ComponentManager',
