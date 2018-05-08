@@ -603,7 +603,9 @@ class RandomnessManager:
         self._seed = builder.configuration.randomness.random_seed
         self._clock = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
-        self._key_mapping.map_size = builder.configuration.randomness.map_size
+        map_size = builder.configuration.randomness.map_size
+        pop_size = builder.configuration.population.population_size
+        self._key_mapping.map_size = max(map_size, 10*pop_size)
 
     def get_randomness_stream(self, decision_point: str, for_initialization: bool=False) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.

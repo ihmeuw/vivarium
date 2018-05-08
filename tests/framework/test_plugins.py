@@ -1,6 +1,6 @@
 import pytest
 
-from vivarium.framework.plugins import DEFAULT_PLUGINS, PluginManager, PluginConfigurationError
+from vivarium.framework.plugins import PluginManager, PluginConfigurationError
 
 
 def test_PluginManager_initializaiton_fail(model_specification):
@@ -29,3 +29,34 @@ def test_PluginManager_get_plugin_fail(model_specification):
     with pytest.raises(PluginConfigurationError):
         plugin_manager.get_plugin('george')
 
+
+def test_PluginManager_get():
+    pass
+
+
+def test_PluginManager_get_plugin_interface():
+    pass
+
+
+def test_PluginManager_get_optional_controllers():
+    pass
+
+
+def test_PluginManager_get_optional_interfaces():
+    pass
+
+
+def test_PluginManager__get_fail():
+    pass
+
+
+def test_PluginManager__get():
+    pass
+
+
+def test_PluginManager__lookup_fail():
+    pass
+
+
+def test_PluginManager__lookup():
+    pass

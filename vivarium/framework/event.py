@@ -74,7 +74,7 @@ class EventManager:
     """
 
     def __init__(self):
-        self.__event_types = defaultdict(lambda: _EventChannel(self))
+        self._event_types = defaultdict(lambda: _EventChannel(self))
 
     def setup(self, builder):
         """Performs this components simulation setup.
@@ -101,7 +101,7 @@ class EventManager:
             A function that accepts an Event object and distributes
             it to all listeners for this event.
         """
-        return self.__event_types[name].emit
+        return self._event_types[name].emit
 
     def register_listener(self, name, listener, priority=5):
         """Registers a new listener to the named event.
@@ -115,10 +115,10 @@ class EventManager:
         priority : int in range(10)
             Number used to assign the ordering in which listeners process the event.
         """
-        self.__event_types[name].listeners[priority].append(listener)
+        self._event_types[name].listeners[priority].append(listener)
 
     def get_listeners(self, name):
-        channel = self.__event_types[name]
+        channel = self._event_types[name]
         return {priority: listeners for priority, listeners in enumerate(channel.listeners) if listeners}
 
     def list_events(self):
@@ -133,13 +133,13 @@ class EventManager:
         -----
         This value can change after setup if components dynamically create new event labels.
         """
-        return list(self.__event_types.keys())
+        return list(self._event_types.keys())
 
     def __contains__(self, item):
-        return item in self.__event_types
+        return item in self._event_types
 
     def __repr__(self):
-        return "EventManager(event_types: {})".format(self.__event_types.keys())
+        return "EventManager(event_types: {})".format(self._event_types.keys())
 
 
 class EventsInterface:

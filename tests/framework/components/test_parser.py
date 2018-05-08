@@ -45,6 +45,7 @@ def mock_importer(path):
         'test_components.MockComponentB': MockComponentB,
     }[path]
 
+
 @pytest.fixture(scope='function', params=[TEST_COMPONENTS_NESTED, TEST_COMPONENTS_FLAT])
 def components(request):
     return request.param

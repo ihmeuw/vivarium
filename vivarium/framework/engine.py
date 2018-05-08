@@ -35,9 +35,7 @@ class SimulationContext:
         self.population = PopulationManager()
         self.tables = InterpolatedDataManager()
         self.randomness = RandomnessManager()
-        self.builder = None
 
-    def setup(self):
         self.builder = Builder(self)
         self.builder.components = self.plugin_manager.get_plugin_interface('component_manager')
         self.builder.time = self.plugin_manager.get_plugin_interface('clock')
@@ -45,9 +43,11 @@ class SimulationContext:
             setattr(self.builder, name, interface)
 
         self.component_manager.add_managers(
-            [self.clock, self.randomness, self.values, self.events, self.population, self.tables])
+            [self.clock, self.population, self.randomness, self.values, self.events, self.tables])
         self.component_manager.add_managers(list(self.plugin_manager.get_optional_controllers().values()))
         self.component_manager.add_components([Metrics()])
+
+    def setup(self):
         self.component_manager.setup_components(self.builder)
 
         self.simulant_creator = self.builder.population.get_simulant_creator()
@@ -55,10 +55,8 @@ class SimulationContext:
         # The order here matters.
         self.time_step_events = ['time_step__prepare', 'time_step', 'time_step__cleanup', 'collect_metrics']
         self.time_step_emitters = {k: self.builder.event.get_emitter(k) for k in self.time_step_events}
-
         self.end_emitter = self.builder.event.get_emitter('simulation_end')
-
-        self.events.get_emitter('post_setup')(None)
+        self.builder.event.get_emitter('post_setup')(None)
 
     def step(self):
         _log.debug(self.clock.time)
@@ -112,7 +110,6 @@ def run_simulation(model_specification_file, results_directory):
         {'results_directory': results_writer.results_root}, layer='override', source='command_line')
 
     simulation = setup_simulation(model_specification)
-
     metrics, final_state = run(simulation)
 
     _log.debug(pformat(metrics))

@@ -50,6 +50,3 @@ def _get_default_specification():
     model_specification = ConfigTree(layers=default_config_layers)
     model_specification.update(DEFAULT_PLUGINS, **default_metadata)
     return model_specification
-
-
-
