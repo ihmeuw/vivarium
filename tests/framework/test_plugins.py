@@ -4,8 +4,11 @@ from vivarium.framework.plugins import PluginManager, PluginConfigurationError, 
 from vivarium.framework.time import DateTimeClock, TimeInterface
 from vivarium.framework.components import ComponentConfigurationParser
 
+from .components.mocks import MockComponentA
+
 plugin_config = {'george': {'controller': 'big_brother',
                             'builder_interface': 'minipax'}}
+
 
 @pytest.fixture(scope='function')
 def test_plugin_manager(model_specification):
@@ -68,31 +71,40 @@ def test_PluginManager__get(test_plugin_manager):
     time_components = test_plugin_manager._get('clock')
 
     assert isinstance(time_components['controller'], DateTimeClock)
-    assert isinstance(time_components['interface'], TimeInterface)
+    assert isinstance(time_components['builder_interface'], TimeInterface)
 
     parser_components = test_plugin_manager._get('component_configuration_parser')
 
     assert isinstance(parser_components['controller'], ComponentConfigurationParser)
-    assert parser_components['interface'] is None
+    assert parser_components['builder_interface'] is None
 
 
 def test_PluginManager_get_plugin(test_plugin_manager):
-    pass
+    assert test_plugin_manager._plugins == {}
+    clock = test_plugin_manager.get_plugin('clock')
+    assert isinstance(clock, DateTimeClock)
+    assert test_plugin_manager._plugins['clock']['controller'] is clock
 
 
-def test_PluginManager_get_plugin_interface():
-    pass
+def test_PluginManager_get_plugin_interface(test_plugin_manager):
+    assert test_plugin_manager._plugins == {}
+    clock_interface = test_plugin_manager.get_plugin_interface('clock')
+    assert isinstance(clock_interface, TimeInterface)
+    assert test_plugin_manager._plugins['clock']['builder_interface'] is clock_interface
 
 
-def test_PluginManager_get_optional_controllers():
-    pass
+def test_PluginManager_get_optional_controllers(test_plugin_manager, mocker):
+    import_by_path_mock = mocker.patch('vivarium.framework.plugins.import_by_path')
+    component = MockComponentA('george')
+    import_by_path_mock.return_value = lambda _: component
+    assert test_plugin_manager.get_optional_controllers() == {'george': component}
+    assert import_by_path_mock.called_once_with(plugin_config['george']['controller'])
 
 
-def test_PluginManager_get_optional_interfaces():
-    pass
-
-
-
-
-
+def test_PluginManager_get_optional_interfaces(test_plugin_manager, mocker):
+    import_by_path_mock = mocker.patch('vivarium.framework.plugins.import_by_path')
+    component = MockComponentA('george')
+    import_by_path_mock.return_value = lambda _: component
+    assert test_plugin_manager.get_optional_interfaces() == {'george': component}
+    assert import_by_path_mock.called_once_with(plugin_config['george']['builder_interface'])
 
