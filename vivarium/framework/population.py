@@ -82,7 +82,7 @@ class PopulationView:
         if query:
             pop = pop.query(query)
 
-        if self._columns is None:
+        if not self._columns:
             return pop.copy()
         else:
             if omit_missing_columns:
