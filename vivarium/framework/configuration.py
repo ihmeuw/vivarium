@@ -18,7 +18,7 @@ def build_model_specification(model_specification_file_path: str) -> ConfigTree:
 
     user_config_path = os.path.expanduser('~/vivarium.yaml')
     if os.path.exists(user_config_path):
-        model_specification.configuration.update(user_config_path, layer='base')
+        model_specification.configuration.update(user_config_path, layer='component_configs')
 
     model_specification.update(model_specification_file_path, layer='model_override')
 
@@ -29,7 +29,7 @@ def build_simulation_configuration() -> ConfigTree:
     config = _get_default_specification().configuration
     user_config_path = os.path.expanduser('~/vivarium.yaml')
     if os.path.exists(user_config_path):
-        config.update(user_config_path, layer='base')
+        config.update(user_config_path, layer='component_configs')
     return config
 
 
