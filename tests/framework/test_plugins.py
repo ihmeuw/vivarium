@@ -1,7 +1,8 @@
 import pytest
 
 from vivarium.framework.plugins import PluginManager, PluginConfigurationError, DEFAULT_PLUGINS
-
+from vivarium.framework.time import DateTimeClock, TimeInterface
+from vivarium.framework.components import ComponentConfigurationParser
 
 plugin_config = {'george': {'controller': 'big_brother',
                             'builder_interface': 'minipax'}}
@@ -34,21 +35,48 @@ def test_PluginManager__lookup_fail(test_plugin_manager):
 
 def test_PluginManager__lookup(test_plugin_manager):
     for plugin in ['component_manager', 'clock', 'component_configuration_parser']:
-        assert test_plugin_manager._lookup(plugin) == DEFAULT_PLUGINS['plugins']['required'][plugin]
+        assert test_plugin_manager._lookup(plugin).to_dict() == DEFAULT_PLUGINS['plugins']['required'][plugin]
 
-    assert test_plugin_manager._lookup('george') == plugin_config['george']
-
-
-def test_PluginManager__get_fail(test_plugin_manager):
-    test_plugin_manager
+    assert test_plugin_manager._lookup('george').to_dict() == plugin_config['george']
 
 
+def test_PluginManager__get_fail(test_plugin_manager, mocker):
+    import_by_path_mock = mocker.patch('vivarium.framework.plugins.import_by_path')
 
-def test_PluginManager__get():
-    pass
+    def err(path):
+        if path == 'vivarium.framework.time.DateTimeClock':
+            raise ValueError()
+
+    import_by_path_mock.side_effect = err
+
+    with pytest.raises(PluginConfigurationError):
+        test_plugin_manager._get('clock')
+
+    def err(path):
+        if path == 'vivarium.framework.time.DateTimeClock':
+            return lambda _: 'fake_controller'
+        elif path == 'vivarium.framework.time.TimeInterface':
+            raise ValueError()
+
+    import_by_path_mock.side_effect = err
+
+    with pytest.raises(PluginConfigurationError):
+        test_plugin_manager._get('clock')
 
 
-def test_PluginManager_get():
+def test_PluginManager__get(test_plugin_manager):
+    time_components = test_plugin_manager._get('clock')
+
+    assert isinstance(time_components['controller'], DateTimeClock)
+    assert isinstance(time_components['interface'], TimeInterface)
+
+    parser_components = test_plugin_manager._get('component_configuration_parser')
+
+    assert isinstance(parser_components['controller'], ComponentConfigurationParser)
+    assert parser_components['interface'] is None
+
+
+def test_PluginManager_get_plugin(test_plugin_manager):
     pass
 
 
