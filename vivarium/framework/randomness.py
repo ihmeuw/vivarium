@@ -600,7 +600,9 @@ class RandomnessManager:
         self._decision_points = set()
 
     def setup(self, builder):
-        self._seed = builder.configuration.randomness.random_seed
+        self._seed = str(builder.configuration.randomness.random_seed)
+        if builder.configuration.randomness.additional_seed is not None:
+            self._seed += str(builder.configuration.randomness.additional_seed)
         self._clock = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
         map_size = builder.configuration.randomness.map_size

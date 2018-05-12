@@ -26,12 +26,16 @@ class InteractiveContext(SimulationContext):
         self.population._population = self._initial_population
         self.clock._time = self._start_time
 
+    def run_for(self, duration, with_logging=True):
+        return self.run_until(self.clock.time + duration, with_logging=with_logging)
+
     def run_until(self, end_time, with_logging=True):
         if not isinstance(end_time, type(self.clock.time)):
             raise ValueError(f"Provided time must be an instance of {type(self.clock.time)}")
         iterations = int(ceil((end_time - self.clock.time)/self.clock.step_size))
         self.take_steps(number_of_steps=iterations, with_logging=with_logging)
         assert self.clock.time - self.clock.step_size < end_time <= self.clock.time
+        return iterations
 
     def step(self, step_size=None):
         old_step_size = self.clock.step_size
@@ -48,6 +52,9 @@ class InteractiveContext(SimulationContext):
 
         if run_from_ipython() and with_logging:
             for _ in log_progress(range(number_of_steps), name='Step'):
+                self.step(step_size)
+        else:
+            for _ in range(number_of_steps):
                 self.step(step_size)
 
     def list_values(self):

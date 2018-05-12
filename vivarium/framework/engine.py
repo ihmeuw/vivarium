@@ -117,7 +117,8 @@ def run_simulation(model_specification_file, results_directory):
     if unused_config_keys:
         _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
 
-    metrics = pd.DataFrame(metrics)
+    idx = pd.Index([simulation.configuration.randomness.random_seed], name='random_seed')
+    metrics = pd.DataFrame(metrics, index=idx)
     results_writer.write_output(metrics, 'output.hdf')
     results_writer.write_output(final_state, 'final_state.hdf')
 
@@ -127,7 +128,7 @@ def setup_simulation(model_specification):
     component_config = model_specification.components
     simulation_config = model_specification.configuration
 
-    plugin_manager = PluginManager(plugin_config, simulation_config)
+    plugin_manager = PluginManager(simulation_config, plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
 
