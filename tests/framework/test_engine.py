@@ -1,4 +1,5 @@
 import pytest
+import pandas as pd
 
 from vivarium.framework.engine import (SimulationContext, PluginManager, ValuesManager, EventManager,
                                        PopulationManager, InterpolatedDataManager, RandomnessManager, Builder,
@@ -207,8 +208,8 @@ def test_setup_simulation(model_specification, mocker):
 
     setup_simulation(model_specification)
 
-    plugin_manager_constructor_mock.assert_called_once_with(model_specification.plugins,
-                                                            model_specification.configuration)
+    plugin_manager_constructor_mock.assert_called_once_with(model_specification.configuration,
+                                                            model_specification.plugins)
     plugin_manager_mock.get_plugin.assert_called_once_with('component_configuration_parser')
     component_config_parser.get_components.assert_called_once_with(model_specification.components)
     context_constructor_mock.assert_called_once_with(model_specification.configuration, ['test'], plugin_manager_mock)
@@ -265,7 +266,7 @@ def test_run_simulation(model_specification, mocker):
     pformat_mock.side_effect = lambda x: x
 
     pandas_mock = mocker.patch('vivarium.framework.engine.pd')
-    pandas_mock.DataFrame.side_effect = lambda x: x
+    pandas_mock.DataFrame.side_effect = lambda x, index: x
 
     model_spec_path = '/this/is/a/test.yaml'
     results_directory = 'test_dir'
@@ -285,8 +286,6 @@ def test_run_simulation(model_specification, mocker):
     pformat_mock.assert_called_once_with(metrics)
     log_mock.debug.assert_has_calls([mocker.call(metrics),
                                      mocker.call("Some configuration keys not used during run: %s", unused_keys)])
-
-    pandas_mock.DataFrame.assert_called_once_with(metrics)
 
     results_writer_mock.write_output.assert_has_calls([mocker.call(metrics, 'output.hdf'),
                                                        mocker.call(final_state, 'final_state.hdf')])
