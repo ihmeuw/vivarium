@@ -9,9 +9,9 @@ from vivarium.framework import randomness
 from vivarium.framework.components import load_component_manager
 
 
-def setup_simulation(components, population_size=100, start=None, input_config=None):
+def setup_simulation(components, population_size=100, start=None, input_config=None, dataset_manager=None):
     config = build_simulation_configuration() if not input_config else input_config
-    component_manager = load_component_manager(config)
+    component_manager = load_component_manager(config, dataset_manager)
     component_manager.add_components(components)
     simulation = SimulationContext(component_manager, config)
 
@@ -111,7 +111,7 @@ def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'rat
     rows = []
     for age in range(0, 140):
         for year in range(year_start, year_end+1):
-            for sex in ['Male', 'Female']:
+            for sex in ['Male', 'Female', 'Both']:
                 r_values = []
                 for v in value:
                     if v is None:

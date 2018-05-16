@@ -27,7 +27,7 @@ class DummyDatasetManager:
         raise NotImplementedError("DummyDatasetManager can't actually load data")
 
 
-def load_component_manager(config: ConfigTree):
+def load_component_manager(config: ConfigTree, dataset_manager=None):
     """Create a component manager along with it's dataset manager.
 
     The class used will be either the default or a custom class specified in the configuration.
@@ -38,8 +38,9 @@ def load_component_manager(config: ConfigTree):
         Configuration data to use.
     """
     component_manager_class = import_by_path(config.vivarium.component_manager)
-    dataset_manager_class = import_by_path(config.vivarium.dataset_manager)
-    dataset_manager = dataset_manager_class()
+    if dataset_manager is None:
+        dataset_manager_class = import_by_path(config.vivarium.dataset_manager)
+        dataset_manager = dataset_manager_class()
     return component_manager_class(config, dataset_manager)
 
 
