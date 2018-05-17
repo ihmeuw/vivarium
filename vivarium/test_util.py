@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pandas as pd
 
@@ -101,45 +103,6 @@ def _non_crn_build_population(index, age_start, age_end, location, creation_time
     return population
 
 
-def assert_rate(simulation, expected_rate, value_func,
-                effective_population_func=lambda s: len(s.population.population)):
-    """ Asserts that the rate of change of some property in the simulation matches expectations.
-
-    Parameters
-    ----------
-    simulation : vivarium.engine.Simulation
-    value_func
-        a function that takes a Simulation and returns the current value of the property to be tested
-    effective_population_func
-        a function that takes a Simulation and returns the size of the population
-        over which the rate should be measured (ie. living simulants for mortality)
-    expected_rate
-        The rate of change we expect or a lambda that will take a rate and return a boolean
-    """
-    start_time = pd.Timestamp(simulation.configuration.time.start.year, 1, 1)
-    time_step = pd.Timedelta(30, unit='D')
-    # FIXME: Should this function have the side effect of modifying simulation state?  That seems unexpected.
-    simulation.configuration.time.step_size = time_step
-    simulation.clock._time = start_time
-    simulation.clock._step_size = time_step
-
-    count = value_func(simulation)
-    total_true_rate = 0
-    effective_population_size = 0
-    for _ in range(10*12):
-        effective_population_size += effective_population_func(simulation)
-        simulation.step()
-        new_count = value_func(simulation)
-        total_true_rate += new_count - count
-        count = new_count
-
-    try:
-        assert expected_rate(to_yearly(total_true_rate, time_step*120))
-    except TypeError:
-        total_expected_rate = from_yearly(expected_rate, time_step)*effective_population_size
-        assert abs(total_expected_rate - total_true_rate)/total_expected_rate < 0.1
-
-
 def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'rate')):
     value_columns = columns[3:]
     if not isinstance(value, list):
@@ -186,3 +149,6 @@ def get_randomness(key='test', clock=lambda: pd.Timestamp(1990, 7, 2), seed=1234
 def reset_mocks(mocks):
     for mock in mocks:
         mock.reset_mock()
+
+def metadata(file_path):
+    return {'layer': 'override', 'source': os.path.realpath(file_path)}
