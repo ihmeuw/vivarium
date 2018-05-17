@@ -227,11 +227,11 @@ class ConfigTree:
 
     def __setattr__(self, name, value):
         """Set a configuration value on the outermost layer."""
-        self.set_with_metadata(name, value, layer=None, source=None)
+        self._set_with_metadata(name, value, layer=None, source=None)
 
     def __setitem__(self, name, value):
         """Set a configuration value on the outermost layer."""
-        self.set_with_metadata(name, value, layer=None, source=None)
+        self._set_with_metadata(name, value, layer=None, source=None)
 
     def __getattr__(self, name):
         """Get a configuration value from the outermost layer in which it appears."""
@@ -287,7 +287,7 @@ class ConfigTree:
         else:
             return child
 
-    def set_with_metadata(self, name, value, layer=None, source=None):
+    def _set_with_metadata(self, name, value, layer=None, source=None):
         """Set a value in the named layer with the given source.
         Parameters
         ----------
@@ -313,7 +313,7 @@ class ConfigTree:
         if isinstance(value, dict):
             if name not in self._children or not isinstance(self._children[name], ConfigTree):
                 self._children[name] = ConfigTree(layers=list(self._layers))
-            self._children[name].read_dict(value, layer, source)
+            self._children[name].update(value, layer, source)
         else:
             if name not in self._children or not isinstance(self._children[name], ConfigNode):
                 self._children[name] = ConfigNode(list(self._layers))
@@ -338,23 +338,23 @@ class ConfigTree:
         read_dict
         """
         if isinstance(data, dict):
-            self.read_dict(data, layer, source)
+            self._read_dict(data, layer, source)
         elif isinstance(data, ConfigTree):
             # TODO: set this to parse the other config tree including layer and source info.  Maybe.
-            self.read_dict(data.to_dict(), layer, source)
+            self._read_dict(data.to_dict(), layer, source)
         elif isinstance(data, str):
             if data.endswith('.yaml'):
                 source = source if source else data
-                self.load(data, layer, source)
+                self._load(data, layer, source)
             else:
-                self.loads(data, layer, source)
+                self._loads(data, layer, source)
         elif data is None:
             pass
         else:
             raise ValueError(f"Update must be called with dictionary, string, or ConfigTree. "
                              f"You passed in {type(data)}")
 
-    def read_dict(self, data_dict, layer=None, source=None):
+    def _read_dict(self, data_dict, layer=None, source=None):
         """Load a dictionary into the ConfigTree. If the dict contains nested dicts
         then the values will be added recursively. See module docstring for example code.
 
@@ -368,9 +368,9 @@ class ConfigTree:
             Source to attribute the values to
         """
         for k, v in data_dict.items():
-            self.set_with_metadata(k, v, layer, source)
+            self._set_with_metadata(k, v, layer, source)
 
-    def loads(self, data_string, layer=None, source=None):
+    def _loads(self, data_string, layer=None, source=None):
         """Load data from a yaml formatted string.
 
         Parameters
@@ -384,9 +384,9 @@ class ConfigTree:
             Source to attribute the values to
         """
         data_dict = yaml.load(data_string)
-        self.read_dict(data_dict, layer, source)
+        self._read_dict(data_dict, layer, source)
 
-    def load(self, f, layer=None, source=None):
+    def _load(self, f, layer=None, source=None):
         """Load data from a yaml formatted file.
 
         Parameters
@@ -400,10 +400,10 @@ class ConfigTree:
             Source to attribute the values to
         """
         if hasattr(f, 'read'):
-            self.loads(f.read(), layer=layer, source=source)
+            self._loads(f.read(), layer=layer, source=source)
         else:
             with open(f) as f:
-                self.loads(f.read(), layer=layer, source=source)
+                self._loads(f.read(), layer=layer, source=source)
 
     def to_dict(self):
         result = {}
