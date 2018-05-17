@@ -1,14 +1,13 @@
 import os
-
 import pytest
 
 from vivarium.framework.configuration import build_simulation_configuration, build_model_specification
+from vivarium.test_util import metadata
 
 
 @pytest.fixture(scope='function')
 def base_config():
     config = build_simulation_configuration()
-    metadata = {'layer': 'override', 'source': os.path.realpath(__file__)}
     config.update({
         'time': {
             'start': {
@@ -19,7 +18,7 @@ def base_config():
             },
             'step_size': 30.5
         }
-    }, **metadata)
+    }, **metadata(__file__))
     return config
 
 

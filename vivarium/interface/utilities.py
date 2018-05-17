@@ -76,4 +76,3 @@ def log_progress(sequence, every=None, size=None, name='Items'):
             name=name,
             index=str(index or '?')
         )
-

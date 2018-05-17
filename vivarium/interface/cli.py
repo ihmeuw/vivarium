@@ -42,5 +42,3 @@ def run(model_specification, results_directory, verbose, log, with_debugger):
         else:
             logging.exception("Uncaught exception {}".format(e))
             raise
-
-

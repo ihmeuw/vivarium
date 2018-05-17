@@ -9,5 +9,3 @@ __all__ = ['VivariumError']
 
 class VivariumError(Exception):
     pass
-
-

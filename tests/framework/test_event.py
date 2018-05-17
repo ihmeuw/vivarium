@@ -74,4 +74,3 @@ def test_contains():
     assert event not in manager
     manager.get_emitter(event)
     assert event in manager
-

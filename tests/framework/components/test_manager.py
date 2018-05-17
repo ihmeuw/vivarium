@@ -3,7 +3,7 @@ import os
 import pytest
 
 from vivarium.framework.configuration import build_simulation_configuration
-from vivarium.framework.components.manager import (ComponentManager, ComponentsInterface, ComponentConfigError,
+from vivarium.framework.components.manager import (ComponentManager, ComponentConfigError,
                                                    _setup_components, _apply_component_default_configuration)
 
 from .mocks import MockComponentA, MockComponentB

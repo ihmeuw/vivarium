@@ -1,5 +1,4 @@
 import pytest
-import pandas as pd
 
 from vivarium.framework.engine import (SimulationContext, PluginManager, ValuesManager, EventManager,
                                        PopulationManager, InterpolatedDataManager, RandomnessManager, Builder,
@@ -289,6 +288,3 @@ def test_run_simulation(model_specification, mocker):
 
     results_writer_mock.write_output.assert_has_calls([mocker.call(metrics, 'output.hdf'),
                                                        mocker.call(final_state, 'final_state.hdf')])
-
-
-

@@ -19,6 +19,7 @@ components:
        - Parrot()
        - dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')
 """
+
 TEST_COMPONENTS_FLAT = """
 components:
     - ministry.silly_walk.Prance()
@@ -27,11 +28,13 @@ components:
     - pet_shop.Parrot()
     - pet_shop.dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')
 """
+
 TEST_COMPONENTS_PARSED = ["ministry.silly_walk.Prance()",
                           "ministry.silly_walk.Jump('front_flip')",
                           "ministry.silly_walk.PratFall('15')",
                           "pet_shop.Parrot()",
                           "pet_shop.dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')"]
+
 TEST_COMPONENTS_PREPPED = [('ministry.silly_walk.Prance', tuple()),
                            ('ministry.silly_walk.Jump', ('front_flip',)),
                            ('ministry.silly_walk.PratFall', ('15',)),
@@ -115,5 +118,3 @@ def test_ComponentConfigurationParser_get_components(import_and_instantiate_mock
     parser.get_components(config.components)
 
     import_and_instantiate_mock.assert_called_once_with(TEST_COMPONENTS_PREPPED)
-
-

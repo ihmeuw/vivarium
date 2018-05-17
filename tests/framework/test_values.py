@@ -74,4 +74,3 @@ def test_contains(manager):
     manager.register_rate_producer('test_rate', source=lambda: 1)
     assert value in manager
     assert rate in manager
-

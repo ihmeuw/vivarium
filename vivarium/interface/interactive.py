@@ -118,5 +118,3 @@ def setup_simulation_from_model_specification(model_specification_file):
     simulation.setup()
     simulation.initialize_simulants()
     return simulation
-
-
