@@ -70,23 +70,6 @@ class ResultsWriter:
             raise NotImplementedError(
                 f"Only 'yaml' and 'hdf' file types are supported. You requested {extension}")
 
-    def dump_simulation_configuration(self, component_configuration_path):
-        """Sets up a simulation to get the complete configuration, then writes it to disk.
-
-        Parameters
-        ----------
-        component_configuration_path: str
-            Absolute path to a yaml file with the simulation component configuration.
-        """
-        from vivarium.framework.engine import build_simulation_configuration, load_component_manager, setup_simulation
-        configuration = build_simulation_configuration({'simulation_configuration': component_configuration_path})
-        configuration.run_configuration.results_directory = self.results_root
-        component_manager = load_component_manager(configuration)
-        setup_simulation(component_manager, configuration)
-        self.write_output(configuration.to_dict(), 'base_config.yaml')
-        with open(component_configuration_path) as f:
-            self.write_output(f.read(), 'components.yaml')
-
 
 def get_results_writer(results_directory, model_specification_file):
     launch_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
@@ -94,6 +77,3 @@ def get_results_writer(results_directory, model_specification_file):
     results_root = results_directory + f"/{config_name}/{launch_time}"
     return ResultsWriter(results_root)
 
-
-def get_results_writer_for_restart(results_directory):
-    return ResultsWriter(results_directory)
