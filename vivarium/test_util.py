@@ -100,7 +100,7 @@ def assert_rate(simulation, expected_rate, value_func,
         assert abs(total_expected_rate - total_true_rate)/total_expected_rate < 0.1
 
 
-def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'rate')):
+def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'value')):
     value_columns = columns[3:]
     if not isinstance(value, list):
         value = [value]*len(value_columns)
