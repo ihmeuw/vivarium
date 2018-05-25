@@ -74,7 +74,6 @@ def test__setup_components(mocker, apply_default_config_mock):
 def test_ComponentManager_add_components():
     config = build_simulation_configuration()
     manager = ComponentManager()
-    manager.configuration = config
 
     components = [None, MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')]
     for list_type in ['_managers', '_components']:
@@ -91,18 +90,17 @@ def test_ComponentManager_add_components():
 def test_ComponentManager__setup_components(mocker):
     config = build_simulation_configuration()
     manager = ComponentManager()
-    manager.configuration = config
     builder = mocker.Mock()
     builder.components = manager
 
     manager.add_components([None, MockComponentA('Eric'),
                             MockComponentB('half', 'a', 'bee')])
     with pytest.raises(ComponentConfigError):
-        manager.setup_components(builder)
+        manager.setup_components(builder, config)
 
     manager._components = []
     manager.add_components([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')])
-    manager.setup_components(builder)
+    manager.setup_components(builder, config)
 
     mock_a, mock_b, mock_b_child1, mock_b_child2, mock_b_child3 = manager._components
 

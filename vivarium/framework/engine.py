@@ -30,7 +30,6 @@ class SimulationContext:
         self.builder = Builder(configuration, plugin_manager)
 
         self.component_manager = plugin_manager.get_plugin('component_manager')
-        self.component_manager.configuration = configuration
 
         self.clock = plugin_manager.get_plugin('clock')
         self.values = plugin_manager.get_plugin('value')
@@ -49,7 +48,7 @@ class SimulationContext:
         self.component_manager.add_components(components + [Metrics()])
 
     def setup(self):
-        self.component_manager.setup_components(self.builder)
+        self.component_manager.setup_components(self.builder, self.configuration)
 
         self.simulant_creator = self.builder.population.get_simulant_creator()
 
@@ -133,7 +132,6 @@ def setup_simulation(model_specification):
 
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
-    component_config_parser.configuration = simulation_config
     components = component_config_parser.get_components(component_config)
 
     simulation = SimulationContext(simulation_config, components, plugin_manager)

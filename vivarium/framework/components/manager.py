@@ -1,11 +1,13 @@
-"""Tools for interpreting component configuration files as well as the default
-ComponentManager class which uses those tools to load and manage components.
+"""The ``vivarium`` component management system.
+
+This module contains the interface and the default implementation of the ``vivarium`` component manager.
+The manager is responsible for tracking all components in the system and for initiating the ``setup``
+life-cycle stage of each component.
 """
 import inspect
 from typing import Sequence
 
 from vivarium import VivariumError
-from vivarium.config_tree import ConfigTree
 
 
 class ComponentConfigError(VivariumError):
@@ -17,7 +19,6 @@ class ComponentManager:
     """Handles the setup and access patterns for components in the system."""
 
     def __init__(self):
-        self.configuration = None
         self._managers = []
         self._components = []
 
@@ -53,7 +54,7 @@ class ComponentManager:
     def query_components(self, component_type: str):
         raise NotImplementedError()
 
-    def setup_components(self, builder):
+    def setup_components(self, builder, configuration):
         """Apply component level configuration defaults to the global config and run setup methods on the components
         registering and setting up any child components generated in the process.
 
@@ -62,8 +63,8 @@ class ComponentManager:
         builder:
             Interface to several simulation tools.
         """
-        self._managers = _setup_components(builder, self._managers, self.configuration)
-        self._components = _setup_components(builder, self._components, self.configuration)
+        self._managers = _setup_components(builder, self._managers, configuration)
+        self._components = _setup_components(builder, self._components, configuration)
 
 
 class ComponentInterface:

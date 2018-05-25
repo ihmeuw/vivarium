@@ -30,8 +30,6 @@ class ComponentConfigurationParser:
     Currently, all classes that are initialized from the ``yaml`` configuration must either
     take no arguments or take arguments specified as strings.
     """
-    def __init__(self):
-        self.configuration = None
 
     def get_components(self, component_config: Union[ConfigTree, List]) -> List:
         """Extracts component specifications from configuration information and returns initialized components.
