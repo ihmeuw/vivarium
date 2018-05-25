@@ -13,22 +13,21 @@ plugin_config = {'george': {'controller': 'big_brother',
 @pytest.fixture(scope='function')
 def test_plugin_manager(model_specification):
     model_specification.plugins.optional.update(plugin_config)
-    return PluginManager(model_specification.configuration, model_specification.plugins)
+    return PluginManager(model_specification.plugins)
 
 
 def test_PluginManager_initializaiton_fail(model_specification):
     model_specification.plugins.required.update(plugin_config)
     with pytest.raises(PluginConfigurationError):
-        PluginManager(model_specification.configuration, model_specification.plugins)
+        PluginManager(model_specification.plugins)
 
 
 def test_PluginManager_initializaiton(model_specification):
     model_specification.plugins.optional.update(plugin_config)
-    plugin_manager = PluginManager(model_specification.configuration, model_specification.plugins)
+    plugin_manager = PluginManager(model_specification.plugins)
 
     assert model_specification.plugins.to_dict() == plugin_manager._plugin_configuration.to_dict()
     assert not plugin_manager._plugins
-    assert model_specification.configuration.to_dict() == plugin_manager._configuration.to_dict()
 
 
 def test_PluginManager__lookup_fail(test_plugin_manager):
@@ -57,7 +56,7 @@ def test_PluginManager__get_fail(test_plugin_manager, mocker):
 
     def err(path):
         if path == 'vivarium.framework.time.DateTimeClock':
-            return lambda _: 'fake_controller'
+            return lambda : 'fake_controller'
         elif path == 'vivarium.framework.time.TimeInterface':
             raise ValueError()
 
@@ -96,15 +95,30 @@ def test_PluginManager_get_plugin_interface(test_plugin_manager):
 def test_PluginManager_get_optional_controllers(test_plugin_manager, mocker):
     import_by_path_mock = mocker.patch('vivarium.framework.plugins.import_by_path')
     component = MockComponentA('george')
-    import_by_path_mock.return_value = lambda _: component
+
+    def import_by_path_side_effect(arg):
+        if arg == 'big_brother':
+            return lambda: component
+        else:
+            return lambda _: component
+
+    import_by_path_mock.side_effect = import_by_path_side_effect
     assert test_plugin_manager.get_optional_controllers() == {'george': component}
-    assert import_by_path_mock.called_once_with(plugin_config['george']['controller'])
+    assert import_by_path_mock.mock_calls == [mocker.call(plugin_config['george']['controller']),
+                                              mocker.call(plugin_config['george']['builder_interface'])]
 
 
 def test_PluginManager_get_optional_interfaces(test_plugin_manager, mocker):
     import_by_path_mock = mocker.patch('vivarium.framework.plugins.import_by_path')
     component = MockComponentA('george')
-    import_by_path_mock.return_value = lambda _: component
-    assert test_plugin_manager.get_optional_interfaces() == {'george': component}
-    assert import_by_path_mock.called_once_with(plugin_config['george']['builder_interface'])
 
+    def import_by_path_side_effect(arg):
+        if arg == 'big_brother':
+            return lambda: component
+        else:
+            return lambda _: component
+
+    import_by_path_mock.side_effect = import_by_path_side_effect
+    assert test_plugin_manager.get_optional_interfaces() == {'george': component}
+    assert import_by_path_mock.mock_calls == [mocker.call(plugin_config['george']['controller']),
+                                              mocker.call(plugin_config['george']['builder_interface'])]

@@ -1,11 +1,15 @@
 import pytest
 
-from vivarium.framework.engine import (SimulationContext, PluginManager, ValuesManager, EventManager,
-                                       PopulationManager, InterpolatedDataManager, RandomnessManager, Builder,
-                                       ValuesInterface, EventsInterface, PopulationInterface, RandomnessInterface,
-                                       Metrics, setup_simulation, run, run_simulation)
-from vivarium.framework.components import ComponentManager, ComponentsInterface
+from vivarium.framework.engine import SimulationContext, Builder, setup_simulation, run, run_simulation
+from vivarium.framework.event import EventManager, EventInterface
+from vivarium.framework.lookup import InterpolatedDataManager, LookupTableInterface
+from vivarium.framework.components import ComponentManager, ComponentInterface
+from vivarium.framework.metrics import Metrics
+from vivarium.framework.plugins import PluginManager
+from vivarium.framework.population import PopulationManager, PopulationInterface
+from vivarium.framework.randomness import RandomnessManager, RandomnessInterface
 from vivarium.framework.time import DateTimeClock, TimeInterface
+from vivarium.framework.values import ValuesManager, ValuesInterface
 
 from .components.mocks import MockComponentA, MockComponentB, Listener
 
@@ -30,7 +34,6 @@ def test_SimulationContext_init_default(base_config, components):
     sim = SimulationContext(base_config, components)
 
     assert sim.configuration == base_config
-    assert isinstance(sim.plugin_manager, PluginManager)
     assert isinstance(sim.component_manager, ComponentManager)
     assert isinstance(sim.clock, DateTimeClock)
     assert isinstance(sim.values, ValuesManager)
@@ -41,10 +44,11 @@ def test_SimulationContext_init_default(base_config, components):
 
     assert isinstance(sim.builder, Builder)
     assert sim.builder.configuration is sim.configuration
-    assert is_same_object_method(sim.builder.lookup, sim.tables.build_table)
+    assert isinstance(sim.builder.lookup, LookupTableInterface)
+    assert sim.builder.lookup._lookup_table_manager is sim.tables
     assert isinstance(sim.builder.value, ValuesInterface)
     assert sim.builder.value._value_manager is sim.values
-    assert isinstance(sim.builder.event, EventsInterface)
+    assert isinstance(sim.builder.event, EventInterface)
     assert sim.builder.event._event_manager is sim.events
     assert isinstance(sim.builder.population, PopulationInterface)
     assert sim.builder.population._population_manager is sim.population
@@ -52,11 +56,9 @@ def test_SimulationContext_init_default(base_config, components):
     assert sim.builder.randomness._randomness_manager is sim.randomness
     assert isinstance(sim.builder.time, TimeInterface)
     assert sim.builder.time._clock is sim.clock
-    assert isinstance(sim.builder.components, ComponentsInterface)
+    assert isinstance(sim.builder.components, ComponentInterface)
     assert sim.builder.components._component_manager is sim.component_manager
 
-    assert len(sim.plugin_manager.get_optional_interfaces()) == 0
-    assert len(sim.plugin_manager.get_optional_controllers()) == 0
     # Ordering matters.
     managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables]
     assert sim.component_manager._managers == managers
@@ -74,13 +76,12 @@ def test_SimulationContext_init_custom(base_config, components):
     def plugin_controllers_mock():
         return {'beekeeper': beekeeper}
 
-    plugin_manager = PluginManager(base_config)
+    plugin_manager = PluginManager()
     plugin_manager.get_optional_interfaces = plugin_interfaces_mock
     plugin_manager.get_optional_controllers = plugin_controllers_mock
     sim = SimulationContext(base_config, components, plugin_manager)
 
     assert sim.configuration == base_config
-    assert sim.plugin_manager is plugin_manager
     assert isinstance(sim.component_manager, ComponentManager)
     assert isinstance(sim.clock, DateTimeClock)
     assert isinstance(sim.values, ValuesManager)
@@ -91,10 +92,11 @@ def test_SimulationContext_init_custom(base_config, components):
 
     assert isinstance(sim.builder, Builder)
     assert sim.builder.configuration is sim.configuration
-    assert is_same_object_method(sim.builder.lookup, sim.tables.build_table)
+    assert isinstance(sim.builder.lookup, LookupTableInterface)
+    assert sim.builder.lookup._lookup_table_manager is sim.tables
     assert isinstance(sim.builder.value, ValuesInterface)
     assert sim.builder.value._value_manager is sim.values
-    assert isinstance(sim.builder.event, EventsInterface)
+    assert isinstance(sim.builder.event, EventInterface)
     assert sim.builder.event._event_manager is sim.events
     assert isinstance(sim.builder.population, PopulationInterface)
     assert sim.builder.population._population_manager is sim.population
@@ -102,12 +104,10 @@ def test_SimulationContext_init_custom(base_config, components):
     assert sim.builder.randomness._randomness_manager is sim.randomness
     assert isinstance(sim.builder.time, TimeInterface)
     assert sim.builder.time._clock is sim.clock
-    assert isinstance(sim.builder.components, ComponentsInterface)
+    assert isinstance(sim.builder.components, ComponentInterface)
     assert sim.builder.components._component_manager is sim.component_manager
     assert sim.builder.beehive == beehive
 
-    assert len(sim.plugin_manager.get_optional_interfaces()) == 1
-    assert len(sim.plugin_manager.get_optional_controllers()) == 1
     # Ordering matters.
     managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables, beekeeper]
     assert sim.component_manager._managers == managers
@@ -207,8 +207,7 @@ def test_setup_simulation(model_specification, mocker):
 
     setup_simulation(model_specification)
 
-    plugin_manager_constructor_mock.assert_called_once_with(model_specification.configuration,
-                                                            model_specification.plugins)
+    plugin_manager_constructor_mock.assert_called_once_with(model_specification.plugins)
     plugin_manager_mock.get_plugin.assert_called_once_with('component_configuration_parser')
     component_config_parser.get_components.assert_called_once_with(model_specification.components)
     context_constructor_mock.assert_called_once_with(model_specification.configuration, ['test'], plugin_manager_mock)

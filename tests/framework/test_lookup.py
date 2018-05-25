@@ -17,9 +17,9 @@ def test_interpolated_tables(base_config):
 
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
-    years = manager.build_table(years)
-    ages = manager.build_table(ages)
-    one_d_age = manager.build_table(one_d_age, parameter_columns=('age',))
+    years = manager.build_table(years, key_columns=('sex',), parameter_columns=('age', 'year',))
+    ages = manager.build_table(ages, key_columns=('sex',), parameter_columns=('age', 'year',))
+    one_d_age = manager.build_table(one_d_age, key_columns=('sex',), parameter_columns=('age',))
 
     result_years = years(simulation.population.population.index)
     result_ages = ages(simulation.population.population.index)
@@ -85,7 +85,7 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
 
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
-    years = manager.build_table(years)
+    years = manager.build_table(years, key_columns=('sex',), parameter_columns=('age', 'year',))
 
     for year in input_years:
         simulation.clock._time = pd.Timestamp(year, 1, 1)

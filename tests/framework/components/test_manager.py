@@ -73,23 +73,25 @@ def test__setup_components(mocker, apply_default_config_mock):
 
 def test_ComponentManager_add_components():
     config = build_simulation_configuration()
-    manager = ComponentManager(config)
+    manager = ComponentManager()
+    manager.configuration = config
 
     components = [None, MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')]
-    for list_type in ['_managers', '_components', '_globals']:
+    for list_type in ['_managers', '_components']:
         manager._add_components(getattr(manager, list_type), components)
         assert getattr(manager, list_type) == components
         setattr(manager, list_type, [])
 
     components.append(components[:])
-    for list_type in ['_managers', '_components', '_globals']:
+    for list_type in ['_managers', '_components']:
         manager._add_components(getattr(manager, list_type), components)
         assert getattr(manager, list_type) == 2*components[:-1]
 
 
 def test_ComponentManager__setup_components(mocker):
     config = build_simulation_configuration()
-    manager = ComponentManager(config)
+    manager = ComponentManager()
+    manager.configuration = config
     builder = mocker.Mock()
     builder.components = manager
 

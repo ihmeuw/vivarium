@@ -238,3 +238,6 @@ class ValuesInterface:
             the same priority have no guaranteed ordering, and so should be commutative.
         """
         self._value_manager.register_value_modifier(value_name, modifier, priority)
+
+    def get_value(self, name):
+        return self._value_manager.get_value(name)

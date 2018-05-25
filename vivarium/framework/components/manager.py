@@ -14,17 +14,23 @@ class ComponentConfigError(VivariumError):
 
 
 class ComponentManager:
-    """ComponentManager interprets the component configuration and loads all component classes and functions while
-    tracking which ones were loaded.
-    """
+    """Handles the setup and access patterns for components in the system."""
 
-    def __init__(self, configuration: ConfigTree):
-        self.configuration = configuration
+    def __init__(self):
+        self.configuration = None
         self._managers = []
         self._components = []
-        self._globals = []
 
     def add_managers(self, managers: Sequence):
+        """Register new managers with the system.
+
+        Managers are setup before components
+
+        Parameters
+        ----------
+        managers:
+          Components to register
+        """
         self._add_components(self._managers, managers)
 
     def add_components(self, components: Sequence):
@@ -36,9 +42,6 @@ class ComponentManager:
           Components to register
         """
         self._add_components(self._components, components)
-
-    def add_global_components(self, global_components: Sequence):
-        self._add_components(self._globals, global_components)
 
     def _add_components(self, component_list, components):
         for component in components:
@@ -61,19 +64,15 @@ class ComponentManager:
         """
         self._managers = _setup_components(builder, self._managers, self.configuration)
         self._components = _setup_components(builder, self._components, self.configuration)
-        self._globals = _setup_components(builder, self._globals, self.configuration)
 
 
-class ComponentsInterface:
+class ComponentInterface:
 
     def __init__(self, component_manager: ComponentManager):
         self._component_manager = component_manager
 
     def add_components(self, components: Sequence):
         self._component_manager.add_components(components)
-
-    def add_global_components(self, global_components: Sequence):
-        self._component_manager.add_global_components(global_components)
 
     def query_components(self, component_type: str):
         return self._component_manager.query_components(component_type)

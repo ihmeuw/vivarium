@@ -13,7 +13,7 @@ _Timedelta = Union[timedelta, Number]
 class SimulationClock:
     """Defines a base implementation for a simulation clock."""
 
-    def __init__(self, _):
+    def __init__(self):
         self._time = None
         self._stop_time = None
         self._step_size = None

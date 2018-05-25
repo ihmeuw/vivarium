@@ -114,7 +114,7 @@ def test_ComponentConfigurationParser_get_components(import_and_instantiate_mock
     config = build_simulation_configuration()
     config.update(components)
 
-    parser = ComponentConfigurationParser(config)
+    parser = ComponentConfigurationParser()
     parser.get_components(config.components)
 
     import_and_instantiate_mock.assert_called_once_with(TEST_COMPONENTS_PREPPED)

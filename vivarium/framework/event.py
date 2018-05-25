@@ -142,7 +142,7 @@ class EventManager:
         return "EventManager(event_types: {})".format(self._event_types.keys())
 
 
-class EventsInterface:
+class EventInterface:
 
     def __init__(self, event_manager: EventManager):
         self._event_manager = event_manager

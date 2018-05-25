@@ -7,15 +7,15 @@ from time import time
 import pandas as pd
 
 from vivarium.framework.configuration import build_model_specification
-from .components import ComponentsInterface
-from .event import EventManager, Event, EventsInterface
-from .lookup import InterpolatedDataManager
+from .components import ComponentInterface
+from .event import Event, EventInterface
+from .lookup import LookupTableInterface
 from .metrics import Metrics
 from .plugins import PluginManager
-from .population import PopulationManager, PopulationInterface
-from .randomness import RandomnessManager, RandomnessInterface
+from .population import PopulationInterface
+from .randomness import RandomnessInterface
 from .results_writer import get_results_writer
-from .values import ValuesManager, ValuesInterface
+from .values import ValuesInterface
 from .time import TimeInterface
 
 _log = logging.getLogger(__name__)
@@ -24,28 +24,29 @@ _log = logging.getLogger(__name__)
 class SimulationContext:
     """context"""
     def __init__(self, configuration, components, plugin_manager=None):
+        plugin_manager = plugin_manager if plugin_manager else PluginManager()
+
         self.configuration = configuration
-        self.plugin_manager = plugin_manager if plugin_manager else PluginManager(configuration)
-        self.component_manager = self.plugin_manager.get_plugin('component_manager')
-        self.component_manager.add_components(components)
-        self.clock = self.plugin_manager.get_plugin('clock')
+        self.builder = Builder(configuration, plugin_manager)
 
-        self.values = ValuesManager()
-        self.events = EventManager()
-        self.population = PopulationManager()
-        self.tables = InterpolatedDataManager()
-        self.randomness = RandomnessManager()
+        self.component_manager = plugin_manager.get_plugin('component_manager')
+        self.component_manager.configuration = configuration
 
-        self.builder = Builder(self)
-        self.builder.components = self.plugin_manager.get_plugin_interface('component_manager')
-        self.builder.time = self.plugin_manager.get_plugin_interface('clock')
-        for name, interface in self.plugin_manager.get_optional_interfaces().items():
-            setattr(self.builder, name, interface)
+        self.clock = plugin_manager.get_plugin('clock')
+        self.values = plugin_manager.get_plugin('value')
+        self.events = plugin_manager.get_plugin('event')
+        self.population = plugin_manager.get_plugin('population')
+        self.tables = plugin_manager.get_plugin('lookup')
+        self.randomness = plugin_manager.get_plugin('randomness')
 
+        # The order the managers are added is important.  It represents the order in which they
+        # will be set up.  The clock is required by several of the other managers.  The randomness
+        # manager requires the population manager.  The remaining managers need no ordering.
         self.component_manager.add_managers(
             [self.clock, self.population, self.randomness, self.values, self.events, self.tables])
-        self.component_manager.add_managers(list(self.plugin_manager.get_optional_controllers().values()))
-        self.component_manager.add_components([Metrics()])
+        self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()))
+
+        self.component_manager.add_components(components + [Metrics()])
 
     def setup(self):
         self.component_manager.setup_components(self.builder)
@@ -86,17 +87,19 @@ class SimulationContext:
 class Builder:
     """Toolbox for constructing and configuring simulation components."""
 
-    def __init__(self, context):
-        self.configuration = context.configuration
-        self.lookup = context.tables.build_table
-        self.value = ValuesInterface(context.values)
-        self.event = EventsInterface(context.events)
-        self.population = PopulationInterface(context.population)
-        self.randomness = RandomnessInterface(context.randomness)
+    def __init__(self, configuration, plugin_manager):
+        self.configuration = configuration
 
-        # These set in SimulationContext.setup()
-        self.time = None  # type: TimeInterface
-        self.components = None  # type: ComponentsInterface
+        self.lookup = plugin_manager.get_plugin_interface('lookup')                 # type: LookupTableInterface
+        self.value = plugin_manager.get_plugin_interface('value')                   # type: ValuesInterface
+        self.event = plugin_manager.get_plugin_interface('event')                   # type: EventInterface
+        self.population = plugin_manager.get_plugin_interface('population')         # type: PopulationInterface
+        self.randomness = plugin_manager.get_plugin_interface('randomness')         # type: RandomnessInterface
+        self.time = plugin_manager.get_plugin_interface('clock')                    # type: TimeInterface
+        self.components = plugin_manager.get_plugin_interface('component_manager')  # type: ComponentInterface
+
+        for name, interface in plugin_manager.get_optional_interfaces().items():
+            setattr(self, name, interface)
 
     def __repr__(self):
         return "Builder()"
@@ -128,8 +131,9 @@ def setup_simulation(model_specification):
     component_config = model_specification.components
     simulation_config = model_specification.configuration
 
-    plugin_manager = PluginManager(simulation_config, plugin_config)
+    plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
+    component_config_parser.configuration = simulation_config
     components = component_config_parser.get_components(component_config)
 
     simulation = SimulationContext(simulation_config, components, plugin_manager)

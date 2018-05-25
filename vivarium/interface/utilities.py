@@ -1,14 +1,9 @@
-import yaml
+from vivarium.framework.configuration import validate_model_specification_file
 
 
 def verify_yaml(_, __, file_path: str) -> str:
-    """Ensures the provided file is a yaml file"""
-    extension = file_path.split('.')[-1]
-    if extension not in ['yaml', 'yml']:
-        raise IOError(f'Model specification files must be in a yaml format. You provided {extension}')
-    # Attempt to load
-    yaml.load(file_path)
-    return file_path
+    """Ensures the provided file exists and is a yaml file"""
+    return validate_model_specification_file(file_path)
 
 
 def run_from_ipython() -> bool:

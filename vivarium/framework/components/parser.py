@@ -16,7 +16,7 @@ class ComponentConfigurationParser:
 
     To define your own set of parsing rules, you should write a parser class that
     inherits from this class and overrides ``parse_component_config``.  You can then
-    can then define a set of parsing rules that turn component configuration information
+    define a set of parsing rules that turn component configuration information
     into a list of strings where each string is the full python import path to the class
     followed by a set of parentheses containing initialization arguments.
 
@@ -30,8 +30,8 @@ class ComponentConfigurationParser:
     Currently, all classes that are initialized from the ``yaml`` configuration must either
     take no arguments or take arguments specified as strings.
     """
-    def __init__(self, simulation_configuration):
-        self.configuration = simulation_configuration
+    def __init__(self):
+        self.configuration = None
 
     def get_components(self, component_config: Union[ConfigTree, List]) -> List:
         """Extracts component specifications from configuration information and returns initialized components.
@@ -63,8 +63,6 @@ class ComponentConfigurationParser:
         are a list of dicts or strings. If dicts, the keys are another step along the import path. If strings,
         the strings are representations of calls to the class constructor of components to be generated. This
         pattern may be arbitrarily nested.
-
-        # TODO: Include some examples.
 
         Parameters
         ----------
