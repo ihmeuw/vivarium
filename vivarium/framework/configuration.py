@@ -49,6 +49,6 @@ def _get_default_specification():
 
     user_config_path = os.path.expanduser('~/vivarium.yaml')
     if os.path.exists(user_config_path):
-        model_specification.configuration.update(user_config_path, layer='base')
+        model_specification.configuration.update(user_config_path, layer='component_configs')
 
     return model_specification
