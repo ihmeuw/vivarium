@@ -3,6 +3,7 @@ import warnings
 import pandas as pd
 from scipy import interpolate
 
+
 class Interpolation:
     def __init__(self, data, categorical_parameters, continuous_parameters, order, func=None):
         data = data

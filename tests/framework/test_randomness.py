@@ -104,8 +104,8 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
         count = chosen.value_counts()
         print(weights_with_residuals)
         # We're relying on the fact that weights_with_residuals is a 1-d list
-        resid_p = 1 - sum([w for w in weights_with_residuals if w != RESIDUAL_CHOICE])
-        weights = [w if w != RESIDUAL_CHOICE else resid_p for w in weights_with_residuals]
+        residual_p = 1 - sum([w for w in weights_with_residuals if w != RESIDUAL_CHOICE])
+        weights = [w if w != RESIDUAL_CHOICE else residual_p for w in weights_with_residuals]
 
         for k, c in count.items():
             assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)

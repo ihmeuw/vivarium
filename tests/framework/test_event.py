@@ -3,6 +3,7 @@ import numpy as np
 
 from vivarium.framework.event import Event, EventManager
 
+
 def test_split_event():
     index1 = pd.Index(range(10))
     index2 = pd.Index(range(5))
@@ -13,8 +14,10 @@ def test_split_event():
     assert e1.index is index1
     assert e2.index is index2
 
+
 def test_emission():
     signal = [False]
+
     def listener(*args, **kwargs):
         signal[0] = True
 
@@ -33,16 +36,20 @@ def test_emission():
     emitter(Event(None))
     assert not signal[0]
 
+
 def test_listener_priority():
     signal = [False, False, False]
+
     def listener1(*args, **kwargs):
         signal[0] = True
         assert not signal[1]
         assert not signal[2]
+
     def listener2(*args, **kwargs):
         signal[1] = True
         assert signal[0]
         assert not signal[2]
+
     def listener3(*args, **kwargs):
         signal[2] = True
         assert signal[0]
@@ -59,6 +66,7 @@ def test_listener_priority():
     emitter(Event(None))
     assert np.all(signal)
 
+
 def test_contains():
     event = 'test_event'
 
@@ -66,4 +74,3 @@ def test_contains():
     assert event not in manager
     manager.get_emitter(event)
     assert event in manager
-

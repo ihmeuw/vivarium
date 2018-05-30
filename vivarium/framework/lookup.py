@@ -85,7 +85,7 @@ class InterpolatedDataManager:
             raise ValueError('Only order 0 and order 1 interpolations are supported. '
                              f'You specified {self._interpolation_order}')
 
-    def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year')):
+    def build_table(self, data, key_columns, parameter_columns):
         """Construct a TableView from a ``pandas.DataFrame``. An interpolation
         function of the specified order will be calculated for each permutation
         of the set of key_columns. The columns in parameter_columns will be used
@@ -107,8 +107,6 @@ class InterpolatedDataManager:
                       The columns which contain the parameters to the interpolation functions.
                       These should be the continuous variables. For example 'age'
                       in data about a population.
-        interpolation_order : int
-                      The order of the interpolation function. Defaults to linear.
 
         Returns
         -------
@@ -128,3 +126,12 @@ class InterpolatedDataManager:
 
     def __repr__(self):
         return "InterpolatedDataManager()"
+
+
+class LookupTableInterface:
+
+    def __init__(self, manager):
+        self._lookup_table_manager = manager
+
+    def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year',)):
+        return self._lookup_table_manager.build_table(data, key_columns, parameter_columns)
