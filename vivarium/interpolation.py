@@ -3,9 +3,10 @@ import warnings
 import pandas as pd
 from scipy import interpolate
 
+
 class Interpolation:
     def __init__(self, data, categorical_parameters, continuous_parameters, order, func=None):
-        self._data = data
+        data = data
         self.key_columns = categorical_parameters
         self.parameter_columns, self_data = validate_parameters(data, continuous_parameters, order)
         self.func = func
@@ -16,16 +17,16 @@ class Interpolation:
         assert not data.empty, "Must supply some input data"
 
         # These are the columns which the interpolation function will approximate
-        value_columns = sorted(self._data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
+        value_columns = sorted(data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
         assert value_columns, f"No non-parameter data. Avaliable columns: {self._data.columns}, Parameter columns: {set(self.key_columns)|set(self.parameter_columns)}"
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
             # columns to get the sub-tables to fit
-            sub_tables = self._data.groupby(self.key_columns)
+            sub_tables = data.groupby(self.key_columns)
         else:
             # There are no key columns so we will fit the whole table
-            sub_tables = {None: self._data}.items()
+            sub_tables = {None: data}.items()
 
         self.interpolations = {}
 

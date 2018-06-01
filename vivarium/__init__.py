@@ -1,11 +1,11 @@
 import numpy
-numpy.seterr(all='raise')
 
-from vivarium.configuration.config_tree import ConfigTree
+from vivarium.config_tree import ConfigTree
+
+numpy.seterr(all='raise')
 
 __all__ = ['VivariumError']
 
+
 class VivariumError(Exception):
     pass
-
-

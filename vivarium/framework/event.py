@@ -1,5 +1,6 @@
 """The event framework"""
 from collections import defaultdict
+from typing import Callable
 
 
 class Event:
@@ -73,7 +74,7 @@ class EventManager:
     """
 
     def __init__(self):
-        self.__event_types = defaultdict(lambda: _EventChannel(self))
+        self._event_types = defaultdict(lambda: _EventChannel(self))
 
     def setup(self, builder):
         """Performs this components simulation setup.
@@ -100,7 +101,7 @@ class EventManager:
             A function that accepts an Event object and distributes
             it to all listeners for this event.
         """
-        return self.__event_types[name].emit
+        return self._event_types[name].emit
 
     def register_listener(self, name, listener, priority=5):
         """Registers a new listener to the named event.
@@ -114,7 +115,11 @@ class EventManager:
         priority : int in range(10)
             Number used to assign the ordering in which listeners process the event.
         """
-        self.__event_types[name].listeners[priority].append(listener)
+        self._event_types[name].listeners[priority].append(listener)
+
+    def get_listeners(self, name):
+        channel = self._event_types[name]
+        return {priority: listeners for priority, listeners in enumerate(channel.listeners) if listeners}
 
     def list_events(self):
         """List all event names known to the event system
@@ -128,11 +133,59 @@ class EventManager:
         -----
         This value can change after setup if components dynamically create new event labels.
         """
-
-        return list(self.__event_types.keys())
+        return list(self._event_types.keys())
 
     def __contains__(self, item):
-        return item in self.__event_types
+        return item in self._event_types
 
     def __repr__(self):
-        return "EventManager(event_types: {})".format(self.__event_types.keys())
+        return "EventManager(event_types: {})".format(self._event_types.keys())
+
+
+class EventInterface:
+
+    def __init__(self, event_manager: EventManager):
+        self._event_manager = event_manager
+
+    def get_emitter(self, name: str) -> Callable[[Event], Event]:
+        """Gets and emitter for a named event.
+
+        Parameters
+        ----------
+        name :
+            The name of the event he requested emitter will emit.
+            Users may provide their own named events by requesting an emitter with this function,
+            but should do so with caution as it makes time much more difficult to think about.
+
+        Returns
+        -------
+            An emitter for the named event. The emitter should be called by the requesting component
+            at the appropriate point in the simulation lifecycle.
+        """
+        return self._event_manager.get_emitter(name)
+
+    def register_listener(self, name: str, listener: Callable[[Event], None], priority: int=5) -> None:
+        """Registers a callable as a listener to a events with the given name.
+
+        The listening callable will be called with a named ``Event`` as it's only argument any time the
+        event emitter is invoked from somewhere in the simulation.
+
+        The framework creates the following events and emits them at different points in the simulation:
+            At the end of the setup phase: ``post_setup``
+            Every time step: ``time_step__prepare``, ``time_step``, ``time_step__cleanup``, ``collect_metrics``
+            At simulation end: ``simulation_end``
+
+        Parameters
+        ----------
+        name :
+            The name of the event to listen for.
+        listener :
+            The callable to be invoked any time an ``Event`` with the given name is emitted.
+        priority : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+            An indication of the order in which event listeners should be called. Listeners with
+            smaller priority values will be called earlier. Listeners with the same priority have
+            no guaranteed ordering.  This feature should be avoided if possible. Components should
+            strive to obey the Markov property as they transform the state table (the state of the simulation
+            at the beginning of the next time step should only depend on the current state of the system).
+        """
+        self._event_manager.register_listener(name, listener, priority)

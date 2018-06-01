@@ -1,17 +1,34 @@
 import os
-
 import pytest
 
-from vivarium.framework.engine import build_simulation_configuration
+from vivarium.framework.configuration import build_simulation_configuration, build_model_specification
+from vivarium.test_util import metadata
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope='function')
 def base_config():
     config = build_simulation_configuration()
-    metadata = {'layer': 'override', 'source': os.path.realpath(__file__)}
-    config.reset_layer('override', preserve_keys=['input_data.intermediary_data_cache_path',
-                                                  'input_data.auxiliary_data_folder'])
-    config.time.start.set_with_metadata('year', 1990, **metadata)
-    config.time.end.set_with_metadata('year', 2010, **metadata)
-    config.time.set_with_metadata('step_size', 30.5, **metadata)
+    config.update({
+        'time': {
+            'start': {
+                'year': 1990,
+            },
+            'end': {
+                'year': 2010
+            },
+            'step_size': 30.5
+        }
+    }, **metadata(__file__))
     return config
+
+
+@pytest.fixture(scope='function')
+def model_specification(mocker):
+    test_dir = os.path.dirname(os.path.realpath(__file__))
+    user_config = test_dir + '/test_data/mock_user_config.yaml'
+    model_spec = test_dir + '/test_data/mock_model_specification.yaml'
+
+    expand_user_mock = mocker.patch('vivarium.framework.configuration.os.path.expanduser')
+    expand_user_mock.return_value = user_config
+
+    return build_model_specification(model_spec)
