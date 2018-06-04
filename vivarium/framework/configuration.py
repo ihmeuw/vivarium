@@ -46,6 +46,7 @@ def _get_default_specification():
 
     model_specification = ConfigTree(layers=default_config_layers)
     model_specification.update(DEFAULT_PLUGINS, **default_metadata)
+    model_specification.update({'components': None})
 
     user_config_path = os.path.expanduser('~/vivarium.yaml')
     if os.path.exists(user_config_path):
