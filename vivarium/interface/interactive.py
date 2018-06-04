@@ -110,7 +110,7 @@ def setup_simulation_from_model_specification(model_specification_file):
     component_config = model_specification.components
     simulation_config = model_specification.configuration
 
-    plugin_manager = PluginManager(plugin_config, simulation_config)
+    plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
 
