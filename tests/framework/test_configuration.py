@@ -23,6 +23,7 @@ def test_get_default_specification_user_config(mocker):
         data = {'configuration': yaml.load(f)}
 
     data.update(DEFAULT_PLUGINS)
+    data.update({'components': None})
 
     assert default_spec.to_dict() == data
 
@@ -37,8 +38,10 @@ def test_get_default_specification_no_user_config(mocker):
     default_spec = _get_default_specification()
 
     assert expand_user_mock.called_once_with('~/vivarium.yaml')
+    data = {'components': None}
+    data.update(DEFAULT_PLUGINS)
 
-    assert default_spec.to_dict() == DEFAULT_PLUGINS
+    assert default_spec.to_dict() == data
 
 
 def test_validate_model_specification_failures():
