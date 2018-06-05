@@ -43,6 +43,7 @@ class ComponentConfigurationParser:
 
         Returns
         -------
+        List
             A list of initialized components.
         """
         if isinstance(component_config, ConfigTree):
@@ -69,6 +70,7 @@ class ComponentConfigurationParser:
 
         Returns
         -------
+        List
             A list of standardized component definitions. Component definition strings are specified as
             ``'absolute.import.path.ClassName("argument1", "argument2", ...)'``.
 

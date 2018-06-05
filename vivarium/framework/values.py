@@ -49,11 +49,14 @@ def rescale_post_processor(a, time_step):
 def joint_value_post_processor(a, _):
     """The final step in calculating joint values like disability weights.
     If the combiner is list_combiner then the effective formula is:
-    :math:`value(args) = 1 -  \prod_{i=1}^{mutator count} 1-mutator_{i}(args)`
+
+    .. math::
+
+        value(args) = 1 -  \prod_{i=1}^{mutator count} 1-mutator_{i}(args)
 
     Parameters
     ----------
-    a : list
+    a : List[pd.Series]
         a is a list of series, indexed on the population. Each series
         corresponds to a different value in the pipeline and each row
         in a series contains a value that applies to a specific simulant.
@@ -191,7 +194,8 @@ class ValuesInterface:
 
         Returns
         -------
-        A callable reference to the named dynamic value pipeline.
+        Callable
+            A callable reference to the named dynamic value pipeline.
         """
         return self._value_manager.register_value_producer(value_name, source,
                                                            preferred_combiner,
@@ -214,7 +218,8 @@ class ValuesInterface:
 
         Returns
         -------
-        A callable reference to the named dynamic rate pipeline.
+        Callable
+            A callable reference to the named dynamic rate pipeline.
         """
         return self._value_manager.register_rate_producer(rate_name, source)
 
