@@ -103,7 +103,7 @@ def _non_crn_build_population(index, age_start, age_end, location, creation_time
     return population
 
 
-def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'rate')):
+def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'value')):
     value_columns = columns[3:]
     if not isinstance(value, list):
         value = [value]*len(value_columns)
@@ -114,7 +114,7 @@ def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'rat
     rows = []
     for age in range(0, 140):
         for year in range(year_start, year_end+1):
-            for sex in ['Male', 'Female']:
+            for sex in ['Male', 'Female', 'Both']:
                 r_values = []
                 for v in value:
                     if v is None:
