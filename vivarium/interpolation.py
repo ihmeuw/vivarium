@@ -23,7 +23,7 @@ class Interpolation:
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
             # columns to get the sub-tables to fit
-            sub_tables = data.groupby(self.key_columns)
+            sub_tables = data.groupby(list(self.key_columns))
         else:
             # There are no key columns so we will fit the whole table
             sub_tables = {None: data}.items()
@@ -72,7 +72,7 @@ class Interpolation:
             df = pd.DataFrame(kwargs)
 
         if self.key_columns:
-            sub_tables = df.groupby(self.key_columns)
+            sub_tables = df.groupby(list(self.key_columns))
         else:
             sub_tables = [(None, df)]
 
