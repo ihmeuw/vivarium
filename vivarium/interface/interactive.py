@@ -1,8 +1,9 @@
 from math import ceil
 
 from vivarium.framework.configuration import build_simulation_configuration, build_model_specification
-from vivarium.framework.plugins import PluginManager
+from vivarium.framework.plugins import PluginManager, DEFAULT_PLUGINS
 from vivarium.framework.engine import SimulationContext
+from vivarium.config_tree import ConfigTree
 
 from .utilities import run_from_ipython, log_progress
 
@@ -91,12 +92,22 @@ class InteractiveContext(SimulationContext):
         new_component.setup(self.builder)
         self.component_manager.add_components([new_component])
 
-
-def setup_simulation(components, input_config=None):
+def initialize_simulation(components, input_config=None, plugin_config=None, context_class=InteractiveContext):
     config = build_simulation_configuration()
     config.update(input_config)
 
-    simulation = InteractiveContext(config, components)
+    base_plugin_config = ConfigTree(DEFAULT_PLUGINS['plugins'])
+    if plugin_config:
+        base_plugin_config.update(plugin_config)
+
+    plugin_manager = PluginManager(base_plugin_config)
+
+    simulation = context_class(config, components, plugin_manager)
+
+    return simulation
+
+def setup_simulation(components, input_config=None, plugin_config=None):
+    simulation = initialize_simulation(components, input_config, plugin_config)
     simulation.setup()
     simulation.initialize_simulants()
 
@@ -110,7 +121,7 @@ def setup_simulation_from_model_specification(model_specification_file):
     component_config = model_specification.components
     simulation_config = model_specification.configuration
 
-    plugin_manager = PluginManager(plugin_config, simulation_config)
+    plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
 
