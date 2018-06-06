@@ -72,6 +72,7 @@ class PopulationView:
 
         Returns
         -------
+        pd.DataFrame
             A table with the subset of the population requested.
         """
 
@@ -99,7 +100,7 @@ class PopulationView:
                                       + 'initialization? You may be able to lower the priority of your handler so '
                                       + 'that it happens after the component that creates the column you need.')
 
-    def update(self, pop: Union[pd.DataFrame, pd.Series]) -> None:
+    def update(self, pop: Union[pd.DataFrame, pd.Series]):
         """Update the simulation's state to match ``pop``
 
         Parameters
@@ -276,6 +277,7 @@ class PopulationInterface:
 
         Returns
         -------
+        PopulationView
             A filtered view of the requested columns of the population state table.
         """
         return self._population_manager.get_view(columns, query)
@@ -285,6 +287,7 @@ class PopulationInterface:
 
         Returns
         -------
+        Callable
            The simulant creator function. The creator function takes the number of simulants to be
            created as it's first argument and a dict or other mapping of population configuration
            that will be available to simulant initializers as it's second argument. It generates

@@ -1,6 +1,6 @@
 """The event framework"""
 from collections import defaultdict
-from typing import Callable
+from typing import Callable, List
 
 
 class Event:
@@ -110,10 +110,10 @@ class EventManager:
         ----------
         name : str
             The name of the event.
-        listener : callable
+        listener : Callable
             The consumer of the named event.
-        priority : int in range(10)
-            Number used to assign the ordering in which listeners process the event.
+        priority : int
+            Number in range(10) used to assign the ordering in which listeners process the event.
         """
         self._event_types[name].listeners[priority].append(listener)
 
@@ -126,7 +126,7 @@ class EventManager:
 
         Returns
         -------
-        list
+        List[Event]
             A list of all known event names
 
         Notes

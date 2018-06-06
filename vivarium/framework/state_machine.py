@@ -95,7 +95,7 @@ class Transition:
         The start state of the entity that undergoes the transition.
     output_state : State
         The end state of the entity that undergoes the transition.
-    probability_func : callable
+    probability_func : Callable
         A method or function that describing the probability of this transition occurring.
     """
     def __init__(self, input_state, output_state, probability_func=lambda index: pd.Series(1, index=index),
@@ -148,9 +148,6 @@ class State:
         The name of this state.
     transition_set : `TransitionSet`
         A container for potential transitions out of this state.
-
-    Additional Parameters
-    ---------------------
     key : object, optional
         Typically a string used with the state_id to label this state's `transition_set`,
         however, any object may be used.

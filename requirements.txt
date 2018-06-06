@@ -6,3 +6,6 @@ scipy
 click
 pytest
 pytest-mock
+sphinx
+sphinx-autodoc-typehints
+sphinx-rtd-theme
