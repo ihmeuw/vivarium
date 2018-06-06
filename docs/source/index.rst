@@ -1,6 +1,9 @@
 Vivarium Documentation
 ======================
 
+.. include:: ../../README.md
+   :start-line: 2
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
@@ -9,11 +12,3 @@ Vivarium Documentation
    getting_started
    tutorials
    api_reference
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
