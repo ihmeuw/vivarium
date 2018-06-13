@@ -74,7 +74,7 @@ def test_prep_components():
 
 
 def test_parse_component_syntax_error():
-    desc = 'cave_system.monsters.Rabbit("timid", 0.01)'
+    desc = 'cave_system.monsters.Rabbit("timid", blarg)'
     with pytest.raises(ParsingError):
         _prep_components([desc])
 
