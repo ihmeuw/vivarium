@@ -94,6 +94,7 @@ class IndexMap:
 
         Returns
         -------
+        pd.Series
             A pandas series indexed by the given keys and whose values take on integers in
             the range [0, self.stride].  Duplicates may appear and should be dealt with
             by the calling code.
@@ -126,6 +127,7 @@ class IndexMap:
 
         Returns
         -------
+        pd.Series
             A series of ten digit integers based on the input data.
 
         Raises
@@ -199,6 +201,7 @@ def random(key: str, index: Index, index_map: IndexMap=None) -> pd.Series:
 
     Returns
     -------
+    pd.Series
         A series of random numbers indexed by the provided index.
     """
     if len(index) > 0:
@@ -233,6 +236,7 @@ def get_hash(key: str) -> int:
 
     Returns
     -------
+    int
         A hash of the provided key.
     """
     # 4294967295 == 2**32 - 1 which is the maximum allowable seed for a `numpy.random.RandomState`.
@@ -269,6 +273,7 @@ def choice(key: str, index: Index, choices: Array, p: Array=None, index_map: Ind
 
     Returns
     -------
+    pd.Series
         An indexed set of decisions from among the available `choices`.
 
     Raises
@@ -311,6 +316,7 @@ def _set_residual_probability(p: np.ndarray) -> np.ndarray:
 
     Returns
     -------
+    np.ndarray
         Array where each row is a set of normalized probability weights.
     """
     residual_mask = p == RESIDUAL_CHOICE
@@ -356,6 +362,7 @@ def filter_for_probability(key: str, population: Union[pd.DataFrame, pd.Series, 
 
     Returns
     -------
+    pd.core.generic.PandasObject
         The sub-population of the simulants for whom the event occurred.
         The return type will be the same as type(population)
     """
@@ -421,6 +428,7 @@ class RandomnessStream:
 
         Returns
         -------
+        RandomnessStream
             A new RandomnessStream with a combined key.
         """
         if self._for_initialization:
@@ -440,6 +448,7 @@ class RandomnessStream:
 
         Returns
         -------
+        str
             A key to seed random number generation.
         """
         return '_'.join([self.key, str(self.clock()), str(additional_key), str(self.seed)])
@@ -457,6 +466,7 @@ class RandomnessStream:
 
         Returns
         -------
+        pd.Series
             A series of random numbers indexed by the provided `pandas.Index`.
         """
         if self._for_initialization:
@@ -477,6 +487,7 @@ class RandomnessStream:
 
         Returns
         -------
+        int
             A seed for a random number generation that is linked to Vivarium's
             common random number framework.
         """
@@ -504,6 +515,7 @@ class RandomnessStream:
 
         Returns
         -------
+        Index
             The index of the simulants for whom the event occurred.
 
         See Also
@@ -533,6 +545,7 @@ class RandomnessStream:
 
         Returns
         -------
+        Index
             The sub-population of the simulants for whom the event occurred.
             The return type will be the same as type(population)
         """
@@ -564,6 +577,7 @@ class RandomnessStream:
 
         Returns
         -------
+        pd.Series
             An indexed set of decisions from among the available `choices`.
 
         Raises
@@ -687,12 +701,13 @@ class RandomnessInterface:
 
         Returns
         -------
+        RandomnessStream
             An entry point into the Common Random Number generation framework. The stream provides
             vectorized access to random numbers and a few other utilities.
         """
         return self._randomness_manager.get_randomness_stream(decision_point, for_initialization)
 
-    def register_simulants(self, simulants: pd.DataFrame) -> None:
+    def register_simulants(self, simulants: pd.DataFrame):
         """Registers simulants with the Common Random Number Framework.
 
         Parameters

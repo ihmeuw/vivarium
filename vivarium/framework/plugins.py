@@ -53,7 +53,10 @@ class PluginConfigurationError(VivariumError):
 
 class PluginManager:
 
-    def __init__(self, plugin_configuration=DEFAULT_PLUGINS['plugins']):
+    def __init__(self, plugin_configuration=None):
+        if plugin_configuration is None:
+            plugin_configuration = DEFAULT_PLUGINS['plugins']
+
         if set(plugin_configuration['required'].keys()) != set(DEFAULT_PLUGINS['plugins']['required'].keys()):
             raise PluginConfigurationError(f"Required plugins are {list(DEFAULT_PLUGINS['plugins']['required'].keys())}")
 

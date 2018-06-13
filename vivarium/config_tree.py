@@ -9,19 +9,22 @@ which are the value of that key in the outermost layer of configuration
 where it appears.
 
 For example:
->>> config = ConfigTree(layers=['inner_layer', 'middle_layer', 'outer_layer', 'user_overrides'])
->>> config.read_dict({'section_a': {'item1': 'value1', 'item2': 'value2'}, 'section_b': {'item1': 'value3'}}, layer='inner_layer')
->>> config.read_dict({'section_a': {'item1': 'value4'}, 'section_b': {'item1': 'value5'}}, layer='middle_layer')
->>> config.read_dict({'section_b': {'item1': 'value6'}}, layer='outer_layer')
->>> config.section_a.item1
-'value4'
->>> config.section_a.item2
-'value2'
->>> config.section_b.item1
-'value6'
->>> config.section_b.item1 = 'value7'
->>> config.section_b.item1
-'value7'
+
+.. code-block:: python
+
+    >>> config = ConfigTree(layers=['inner_layer', 'middle_layer', 'outer_layer', 'user_overrides'])
+    >>> config.read_dict({'section_a': {'item1': 'value1', 'item2': 'value2'}, 'section_b': {'item1': 'value3'}}, layer='inner_layer')
+    >>> config.read_dict({'section_a': {'item1': 'value4'}, 'section_b': {'item1': 'value5'}}, layer='middle_layer')
+    >>> config.read_dict({'section_b': {'item1': 'value6'}}, layer='outer_layer')
+    >>> config.section_a.item1
+    'value4'
+    >>> config.section_a.item2
+    'value2'
+    >>> config.section_b.item1
+    'value6'
+    >>> config.section_b.item1 = 'value7'
+    >>> config.section_b.item1
+    'value7'
 """
 from typing import Mapping, Union
 import yaml
@@ -269,6 +272,7 @@ class ConfigTree:
 
     def get_from_layer(self, name, layer=None):
         """Get a configuration value from the named layer.
+
         Parameters
         ----------
         name : str
@@ -289,6 +293,7 @@ class ConfigTree:
 
     def _set_with_metadata(self, name, value, layer=None, source=None):
         """Set a value in the named layer with the given source.
+
         Parameters
         ----------
         name : str
