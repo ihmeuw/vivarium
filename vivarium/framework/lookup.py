@@ -30,6 +30,8 @@ class InterpolatedTableView(TableView):
     """
 
     def __init__(self, data, population_view, key_columns, parameter_columns, interpolation_order, clock=None):
+        assert data is not None, "Must supply some data"
+
         self._data = data
         self._interpolation = None
         self.population_view = population_view
