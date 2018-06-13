@@ -58,7 +58,7 @@ class PluginManager:
             plugin_configuration = DEFAULT_PLUGINS['plugins']
 
         if set(plugin_configuration['required'].keys()) != set(DEFAULT_PLUGINS['plugins']['required'].keys()):
-            raise PluginConfigurationError(f"Required plugins are {DEFAULT_PLUGINS['plugins']['required'].keys()}")
+            raise PluginConfigurationError(f"Required plugins are {list(DEFAULT_PLUGINS['plugins']['required'].keys())}")
 
         self._plugin_configuration = plugin_configuration
         self._plugins = {}
