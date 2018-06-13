@@ -67,10 +67,15 @@ def test_parse_component_config(components):
 
 
 def test_prep_components():
-    desc = 'cave_system.monsters.Rabbit("timid", "0.01")'
+    desc = 'cave_system.monsters.Rabbit("timid", "squeak")'
     component, args = _prep_components([desc])[0]
     assert component == 'cave_system.monsters.Rabbit'
-    assert set(args) == {'timid', '0.01'}
+    assert set(args) == {'timid', 'squeak'}
+
+    desc = 'cave_system.monsters.Rabbit("timid", 0.01)'
+    component, args = _prep_components([desc])[0]
+    assert component == 'cave_system.monsters.Rabbit'
+    assert set(args) == {'timid', 0.01}
 
 
 def test_parse_component_syntax_error():
