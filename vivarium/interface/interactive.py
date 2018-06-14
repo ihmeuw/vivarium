@@ -26,6 +26,9 @@ class InteractiveContext(SimulationContext):
         self.population._population = self._initial_population
         self.clock._time = self._start_time
 
+    def run(self, with_logging=True):
+        return self.run_until(self.clock.stop_time, with_logging=with_logging)
+
     def run_for(self, duration, with_logging=True):
         return self.run_until(self.clock.time + duration, with_logging=with_logging)
 
@@ -37,7 +40,7 @@ class InteractiveContext(SimulationContext):
         assert self.clock.time - self.clock.step_size < end_time <= self.clock.time
         return iterations
 
-    def step(self, step_size=None):
+    def step(self, step_size=None):  # TODO: consider renaming to take_step for similarity with sim.take_steps
         old_step_size = self.clock.step_size
         if step_size is not None:
             if not isinstance(step_size, type(self.clock.step_size)):
