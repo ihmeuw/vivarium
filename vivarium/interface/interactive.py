@@ -26,6 +26,13 @@ class InteractiveContext(SimulationContext):
         self.population._population = self._initial_population
         self.clock._time = self._start_time
 
+    def run(self, with_logging=True):
+        import pandas as pd
+        return self.run_until(pd.Timestamp(year=self.configuration.time.end.year,
+                                              month=self.configuration.time.end.month,
+                                              day=self.configuration.time.end.day,
+                                          ), with_logging=with_logging)
+
     def run_for(self, duration, with_logging=True):
         return self.run_until(self.clock.time + duration, with_logging=with_logging)
 
