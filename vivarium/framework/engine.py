@@ -37,6 +37,7 @@ class SimulationContext:
         self.population = plugin_manager.get_plugin('population')
         self.tables = plugin_manager.get_plugin('lookup')
         self.randomness = plugin_manager.get_plugin('randomness')
+        self.plugin_manager = plugin_manager
 
         # The order the managers are added is important.  It represents the order in which they
         # will be set up.  The clock is required by several of the other managers.  The randomness
@@ -44,12 +45,10 @@ class SimulationContext:
         self.component_manager.add_managers(
             [self.clock, self.population, self.randomness, self.values, self.events, self.tables])
         self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()))
-
         self.component_manager.add_components(components + [Metrics()])
 
     def setup(self):
         self.component_manager.setup_components(self.builder, self.configuration)
-
         self.simulant_creator = self.builder.population.get_simulant_creator()
 
         # The order here matters.

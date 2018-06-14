@@ -16,7 +16,7 @@ class NonCRNTestPopulation:
             'population_size': 100,
         },
         'input_data': {
-            'location_id': 180,
+            'location': "Kenya",
         }
     }
 
@@ -34,7 +34,7 @@ class NonCRNTestPopulation:
     def generate_test_population(self, pop_data):
         age_start = pop_data.user_data.get('age_start', self.config.population.age_start)
         age_end = pop_data.user_data.get('age_end', self.config.population.age_end)
-        location = self.config.input_data.location_id
+        location = self.config.input_data.location
 
         population = _non_crn_build_population(pop_data.index, age_start, age_end, location,
                                                pop_data.creation_time, pop_data.creation_window, self.randomness)
@@ -65,7 +65,7 @@ class TestPopulation(NonCRNTestPopulation):
                                         'age': age.values}, index=pop_data.index)
         self.register(core_population)
 
-        location = self.config.input_data.location_id
+        location = self.config.input_data.location
         population = _build_population(core_population, location, self.randomness)
         self.population_view.update(population)
 
@@ -103,7 +103,7 @@ def _non_crn_build_population(index, age_start, age_end, location, creation_time
     return population
 
 
-def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'rate')):
+def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'value')):
     value_columns = columns[3:]
     if not isinstance(value, list):
         value = [value]*len(value_columns)
@@ -114,7 +114,7 @@ def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'rat
     rows = []
     for age in range(0, 140):
         for year in range(year_start, year_end+1):
-            for sex in ['Male', 'Female']:
+            for sex in ['Male', 'Female', 'Both']:
                 r_values = []
                 for v in value:
                     if v is None:
