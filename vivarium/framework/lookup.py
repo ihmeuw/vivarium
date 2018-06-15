@@ -46,11 +46,13 @@ class InterpolatedTableView(TableView):
             data = self._data
             if callable(data) and not isinstance(data, Interpolation):
                 data = data()
-            self._interpolation = data if isinstance(data, Interpolation) else Interpolation(data,
-                                                                          self._key_columns, self._parameter_columns,
-                                                                          order=self._interpolation_order)
-        return self._interpolation
 
+            if isinstance(data, Interpolation):
+                self._interpolation = data
+            else:
+                self._interpolation = Interpolation(data, self._key_columns, self._parameter_columns,
+                                                    order=self._interpolation_order)
+        return self._interpolation
 
     def __call__(self, index):
         pop = self.population_view.get(index)
@@ -62,7 +64,6 @@ class InterpolatedTableView(TableView):
             pop['year'] = fractional_year
 
         return self.interpolation(pop)
-
 
     def __repr__(self):
         return "InterpolatedTableView()"
@@ -136,7 +137,6 @@ class InterpolatedDataManager:
         # Note datetime catches pandas timestamps
         if isinstance(data, Number) or isinstance(data, datetime) or isinstance(data, timedelta):
             return ScalarView(data)
-
 
         view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
         return InterpolatedTableView(data, self._pop_view_builder(view_columns),

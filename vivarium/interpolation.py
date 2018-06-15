@@ -18,7 +18,8 @@ class Interpolation:
 
         # These are the columns which the interpolation function will approximate
         value_columns = sorted(data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
-        assert value_columns, f"No non-parameter data. Avaliable columns: {self._data.columns}, Parameter columns: {set(self.key_columns)|set(self.parameter_columns)}"
+        assert value_columns, (f"No non-parameter data. Avaliable columns: {data.columns}, "
+                               f"Parameter columns: {set(self.key_columns)|set(self.parameter_columns)}")
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those

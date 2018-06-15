@@ -84,8 +84,7 @@ class InteractiveContext(SimulationContext):
         return self.events.get_emitter(event_name)
 
     def get_components(self):
-        return [component for component in
-                self.component_manager._components + self.component_manager._managers + self.component_manager._globals]
+        return [component for component in self.component_manager._components + self.component_manager._managers]
 
     def reload_component(self, component):
         raise NotImplementedError()
@@ -94,6 +93,7 @@ class InteractiveContext(SimulationContext):
         self.component_manager._components.remove(old_component)
         new_component.setup(self.builder)
         self.component_manager.add_components([new_component])
+
 
 def initialize_simulation(components, input_config=None, plugin_config=None, context_class=InteractiveContext):
     config = build_simulation_configuration()
@@ -108,6 +108,7 @@ def initialize_simulation(components, input_config=None, plugin_config=None, con
     simulation = context_class(config, components, plugin_manager)
 
     return simulation
+
 
 def setup_simulation(components, input_config=None, plugin_config=None):
     simulation = initialize_simulation(components, input_config, plugin_config)

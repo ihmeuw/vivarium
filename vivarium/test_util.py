@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 
 from vivarium.framework import randomness
-from vivarium.framework.util import from_yearly, to_yearly
 
 
 class NonCRNTestPopulation:
@@ -149,6 +148,7 @@ def get_randomness(key='test', clock=lambda: pd.Timestamp(1990, 7, 2), seed=1234
 def reset_mocks(mocks):
     for mock in mocks:
         mock.reset_mock()
+
 
 def metadata(file_path):
     return {'layer': 'override', 'source': os.path.realpath(file_path)}
