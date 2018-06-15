@@ -95,11 +95,12 @@ class InteractiveContext(SimulationContext):
         self.component_manager.add_components([new_component])
 
 
-def setup_simulation(components, input_config=None):
-    config = build_simulation_configuration()
-    config.update(input_config)
+def setup_simulation(components, config=None, plugin_manager=None):
+    base_config = build_simulation_configuration()
+    base_config.update(config)
+    config = base_config
 
-    simulation = InteractiveContext(config, components)
+    simulation = InteractiveContext(config, components, plugin_manager)
     simulation.setup()
     simulation.initialize_simulants()
 
@@ -107,6 +108,10 @@ def setup_simulation(components, input_config=None):
 
 
 def setup_simulation_from_model_specification(model_specification_file):
+    components = load_model_specification(model_specification_file)
+    return setup_simulation(**components)
+
+def load_model_specification(model_specification_file):
     model_specification = build_model_specification(model_specification_file)
 
     plugin_config = model_specification.plugins
@@ -117,7 +122,6 @@ def setup_simulation_from_model_specification(model_specification_file):
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
 
-    simulation = InteractiveContext(simulation_config, components, plugin_manager)
-    simulation.setup()
-    simulation.initialize_simulants()
-    return simulation
+    return dict(components=components,
+                config=simulation_config,
+                plugin_manager=plugin_manager)

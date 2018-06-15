@@ -15,7 +15,7 @@ def test_interpolated_tables(base_config):
     one_d_age = one_d_age.drop_duplicates()
     base_config.population.update({'population_size': 10000})
 
-    simulation = setup_simulation([TestPopulation()], input_config=base_config)
+    simulation = setup_simulation([TestPopulation()], config=base_config)
     manager = simulation.tables
     years = manager.build_table(years, key_columns=('sex',), parameter_columns=('age', 'year',))
     ages = manager.build_table(ages, key_columns=('sex',), parameter_columns=('age', 'year',))
@@ -55,7 +55,7 @@ def test_interpolated_tables_without_uninterpolated_columns(base_config):
     years = years.drop_duplicates()
     base_config.population.update({'population_size': 10000})
 
-    simulation = setup_simulation([TestPopulation()], input_config=base_config)
+    simulation = setup_simulation([TestPopulation()], config=base_config)
     manager = simulation.tables
     years = manager.build_table(years, key_columns=(), parameter_columns=('year', 'age',))
 
@@ -83,7 +83,7 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
     input_years = years.year.unique()
     base_config.population.update({'population_size': 10000})
 
-    simulation = setup_simulation([TestPopulation()], input_config=base_config)
+    simulation = setup_simulation([TestPopulation()], config=base_config)
     manager = simulation.tables
     years = manager.build_table(years, key_columns=('sex',), parameter_columns=('age', 'year',))
 
