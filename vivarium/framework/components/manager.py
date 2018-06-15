@@ -92,7 +92,7 @@ def _setup_components(builder, component_list, configuration):
         _apply_component_default_configuration(configuration, component)
         if hasattr(component, 'setup'):
             result = component.setup(builder)
-            #TODO Remove this once we've flushed out all the old style setup methods -Alec 06/05/18
+            # TODO Remove this once we've flushed out all the old style setup methods -Alec 06/05/18
             assert result is None
         done.append(component)
     return done
