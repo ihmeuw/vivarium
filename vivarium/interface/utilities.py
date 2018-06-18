@@ -99,4 +99,6 @@ def raise_if_not_setup(system_type):
                 raise InteractiveError(err_msg)
             context_method(*args, **kwargs)
 
+        return wrapped_method
+
     return method_wrapper
