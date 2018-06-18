@@ -16,6 +16,7 @@ class InteractiveContext(SimulationContext):
     def setup(self):
         super().setup()
         self._start_time = self.clock.time
+        self.initialize_simulants()
 
     def initialize_simulants(self):
         super().initialize_simulants()
@@ -95,18 +96,21 @@ class InteractiveContext(SimulationContext):
         self.component_manager.add_components([new_component])
 
 
-def setup_simulation(components, input_config=None):
+def initialize_simulation(components, input_config=None):
     config = build_simulation_configuration()
     config.update(input_config)
 
-    simulation = InteractiveContext(config, components)
+    return InteractiveContext(config, components)
+
+
+def setup_simulation(components, input_config=None):
+    simulation = initialize_simulation(components, input_config)
     simulation.setup()
-    simulation.initialize_simulants()
 
     return simulation
 
 
-def setup_simulation_from_model_specification(model_specification_file):
+def initialize_simulation_from_model_specification(model_specification_file):
     model_specification = build_model_specification(model_specification_file)
 
     plugin_config = model_specification.plugins
@@ -117,7 +121,11 @@ def setup_simulation_from_model_specification(model_specification_file):
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
 
-    simulation = InteractiveContext(simulation_config, components, plugin_manager)
+    return InteractiveContext(simulation_config, components, plugin_manager)
+
+
+def setup_simulation_from_model_specification(model_specification_file):
+    simulation = initialize_simulation_from_model_specification(model_specification_file)
     simulation.setup()
-    simulation.initialize_simulants()
+
     return simulation
