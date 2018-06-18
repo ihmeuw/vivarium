@@ -97,7 +97,7 @@ def raise_if_not_setup(system_type):
             instance = args[0]
             if not instance._setup:
                 raise InteractiveError(err_msg)
-            context_method(*args, **kwargs)
+            return context_method(*args, **kwargs)
 
         return wrapped_method
 
