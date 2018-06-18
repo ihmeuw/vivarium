@@ -37,7 +37,8 @@ class SimulationContext:
         self.population = plugin_manager.get_plugin('population')
         self.tables = plugin_manager.get_plugin('lookup')
         self.randomness = plugin_manager.get_plugin('randomness')
-        self.plugin_manager = plugin_manager
+        for name, controller in plugin_manager.get_optional_controllers().items():
+            setattr(self, name, controller)
 
         # The order the managers are added is important.  It represents the order in which they
         # will be set up.  The clock is required by several of the other managers.  The randomness
