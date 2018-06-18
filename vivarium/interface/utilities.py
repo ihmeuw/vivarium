@@ -1,3 +1,6 @@
+import functools
+
+from vivarium import VivariumError
 from vivarium.framework.configuration import validate_model_specification_file
 
 
@@ -71,3 +74,29 @@ def log_progress(sequence, every=None, size=None, name='Items'):
             name=name,
             index=str(index or '?')
         )
+
+
+class InteractiveError(VivariumError):
+    """Error raised when the Interactive context is in an inconsistent state."""
+    pass
+
+
+def raise_if_not_setup(system_type):
+    type_error_map = {
+        'run': 'Simulation must be setup before it can be run',
+        'value': 'Value pipeline configuration is not complete until the simulation is setup.',
+        'event': 'Event configuration is not complete until the simulation is setup.',
+        'component': 'Component configuration is not complete until the simulation is setup.'
+    }
+    err_msg = type_error_map[system_type]
+
+    def method_wrapper(context_method):
+
+        @functools.wraps(context_method)
+        def wrapped_method(*args, **kwargs):
+            instance = args[0]
+            if not instance._setup:
+                raise InteractiveError(err_msg)
+            context_method(*args, **kwargs)
+
+    return method_wrapper
