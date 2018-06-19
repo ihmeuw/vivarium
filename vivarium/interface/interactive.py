@@ -14,6 +14,10 @@ class InteractiveContext(SimulationContext):
         self._initial_population = None
         self._setup = False
 
+        for i, c in enumerate(components):
+            name = getattr(c, 'name', f'component_{i}')
+            setattr(self, name, c)
+
     def setup(self):
         super().setup()
         self._start_time = self.clock.time
