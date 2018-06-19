@@ -1,4 +1,5 @@
 from vivarium import VivariumError
+from vivarium.config_tree import ConfigTree
 
 from .util import import_by_path
 
@@ -54,15 +55,8 @@ class PluginConfigurationError(VivariumError):
 class PluginManager:
 
     def __init__(self, plugin_configuration=None):
-        if plugin_configuration is None:
-            plugin_configuration = DEFAULT_PLUGINS['plugins']
-
-        if set(plugin_configuration['required'].keys()) != set(DEFAULT_PLUGINS['plugins']['required'].keys()):
-            raise PluginConfigurationError(
-                f"Required plugins are {list(DEFAULT_PLUGINS['plugins']['required'].keys())}"
-            )
-
-        self._plugin_configuration = plugin_configuration
+        self._plugin_configuration = ConfigTree(DEFAULT_PLUGINS['plugins'])
+        self._plugin_configuration.update(plugin_configuration)
         self._plugins = {}
 
     def get_plugin(self, name):

@@ -112,15 +112,16 @@ class InteractiveContext(SimulationContext):
         self.component_manager.add_components([new_component])
 
 
-def initialize_simulation(components, input_config=None):
+def initialize_simulation(components, input_config=None, plugin_config=None):
     config = build_simulation_configuration()
     config.update(input_config)
+    plugin_manager = PluginManager(plugin_config)
 
-    return InteractiveContext(config, components)
+    return InteractiveContext(config, components, plugin_manager)
 
 
-def setup_simulation(components, input_config=None):
-    simulation = initialize_simulation(components, input_config)
+def setup_simulation(components, input_config=None, plugin_config=None):
+    simulation = initialize_simulation(components, input_config, plugin_config)
     simulation.setup()
 
     return simulation

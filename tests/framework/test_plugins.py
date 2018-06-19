@@ -16,12 +16,6 @@ def test_plugin_manager(model_specification):
     return PluginManager(model_specification.plugins)
 
 
-def test_PluginManager_initializaiton_fail(model_specification):
-    model_specification.plugins.required.update(plugin_config)
-    with pytest.raises(PluginConfigurationError):
-        PluginManager(model_specification.plugins)
-
-
 def test_PluginManager_initializaiton(model_specification):
     model_specification.plugins.optional.update(plugin_config)
     plugin_manager = PluginManager(model_specification.plugins)
