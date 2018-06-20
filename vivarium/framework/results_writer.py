@@ -76,4 +76,3 @@ def get_results_writer(results_directory, model_specification_file):
     config_name = os.path.basename(model_specification_file.rpartition('.')[0])
     results_root = results_directory + f"/{config_name}/{launch_time}"
     return ResultsWriter(results_root)
-

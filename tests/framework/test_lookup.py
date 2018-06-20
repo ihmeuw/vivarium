@@ -90,4 +90,4 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
     for year in input_years:
         simulation.clock._time = pd.Timestamp(year, 1, 1)
         assert np.allclose(years(simulation.population.population.index),
-                           simulation.clock.time.year + 1/365, rtol=1.e-5)
+                           simulation.clock.time.year + 1/365)

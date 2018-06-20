@@ -62,6 +62,8 @@ class ComponentManager:
         ----------
         builder:
             Interface to several simulation tools.
+        configuration:
+            Simulation configuration parameters.
         """
         self._managers = _setup_components(builder, self._managers, configuration)
         self._components = _setup_components(builder, self._components, configuration)

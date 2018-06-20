@@ -18,14 +18,14 @@ def is_same_object_method(m1, m2):
     return m1.__func__ is m2.__func__ and m1.__self__ is m2.__self__
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def components():
     return [MockComponentA('gretchen', 'whimsy'),
             Listener('listener'),
             MockComponentB('spoon', 'antelope', 23)]
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def log(mocker):
     return mocker.patch('vivarium.framework.engine._log')
 

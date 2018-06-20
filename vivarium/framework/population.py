@@ -42,7 +42,7 @@ class PopulationView:
     @property
     def columns(self) -> List[str]:
         if not self._columns:
-            return list(self.manager._population.columns)
+            return list(self.manager.population.columns)
         return list(self._columns)
 
     def subview(self, columns: Sequence[str]) -> 'PopulationView':
@@ -76,7 +76,7 @@ class PopulationView:
             A table with the subset of the population requested.
         """
 
-        pop = self.manager._population.loc[index]
+        pop = self.manager.population.loc[index]
 
         if self._query:
             pop = pop.query(self._query)
@@ -84,7 +84,7 @@ class PopulationView:
             pop = pop.query(query)
 
         if not self._columns:
-            return pop.copy()
+            return pop
         else:
             if omit_missing_columns:
                 columns = list(set(self._columns).intersection(pop.columns))
@@ -125,12 +125,13 @@ class PopulationView:
                 affected_columns = set(pop.columns)
 
             affected_columns = set(affected_columns).intersection(self._columns)
+            state_table = self.manager.population
             if not self.manager.growing:
-                affected_columns = set(affected_columns).intersection(self.manager._population.columns)
+                affected_columns = set(affected_columns).intersection(state_table.columns)
 
             for c in affected_columns:
-                if c in self.manager._population:
-                    v = self.manager._population[c].values
+                if c in state_table:
+                    v = state_table[c].values
                     if isinstance(pop, pd.Series):
                         v2 = pop.values
                     else:
