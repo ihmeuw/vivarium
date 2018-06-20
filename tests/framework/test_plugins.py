@@ -10,7 +10,7 @@ plugin_config = {'george': {'controller': 'big_brother',
                             'builder_interface': 'minipax'}}
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def test_plugin_manager(model_specification):
     model_specification.plugins.optional.update(plugin_config)
     return PluginManager(model_specification.plugins)
@@ -50,7 +50,7 @@ def test_PluginManager__get_fail(test_plugin_manager, mocker):
 
     def err(path):
         if path == 'vivarium.framework.time.DateTimeClock':
-            return lambda : 'fake_controller'
+            return lambda: 'fake_controller'
         elif path == 'vivarium.framework.time.TimeInterface':
             raise ValueError()
 

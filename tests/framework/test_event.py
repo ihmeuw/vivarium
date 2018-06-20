@@ -18,7 +18,7 @@ def test_split_event():
 def test_emission():
     signal = [False]
 
-    def listener(*args, **kwargs):
+    def listener(*_, **__):
         signal[0] = True
 
     manager = EventManager()
@@ -40,17 +40,17 @@ def test_emission():
 def test_listener_priority():
     signal = [False, False, False]
 
-    def listener1(*args, **kwargs):
+    def listener1(*_, **__):
         signal[0] = True
         assert not signal[1]
         assert not signal[2]
 
-    def listener2(*args, **kwargs):
+    def listener2(*_, **__):
         signal[1] = True
         assert signal[0]
         assert not signal[2]
 
-    def listener3(*args, **kwargs):
+    def listener3(*_, **__):
         signal[2] = True
         assert signal[0]
         assert signal[1]
