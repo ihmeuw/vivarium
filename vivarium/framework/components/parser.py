@@ -122,14 +122,9 @@ def _clean_args(args, path):
 
         not_a_valid_string = len(a) < 3 or not ((a[0] == a[-1] == "'") or (a[0] == a[-1] == '"'))
         if not_a_valid_string:
-            try:
-                a = float(a)
-            except ValueError:
-                raise ParsingError(f"Invalid component argument {a} for component {path}")
-        else:
-            a = a[1:-1]
+            raise ParsingError(f"Invalid component argument {a} for component {path}")
 
-        out.append(a)
+        out.append(a[1:-1])
     return tuple(out)
 
 

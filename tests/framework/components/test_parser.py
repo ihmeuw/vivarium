@@ -72,14 +72,9 @@ def test_prep_components():
     assert component == 'cave_system.monsters.Rabbit'
     assert set(args) == {'timid', 'squeak'}
 
-    desc = 'cave_system.monsters.Rabbit("timid", 0.01)'
-    component, args = _prep_components([desc])[0]
-    assert component == 'cave_system.monsters.Rabbit'
-    assert set(args) == {'timid', 0.01}
-
 
 def test_parse_component_syntax_error():
-    desc = 'cave_system.monsters.Rabbit("timid", blarg)'
+    desc = 'cave_system.monsters.Rabbit("timid", 0.01)'
     with pytest.raises(ParsingError):
         _prep_components([desc])
 

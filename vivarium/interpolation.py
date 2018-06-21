@@ -14,7 +14,8 @@ class Interpolation:
         if len(self.parameter_columns) not in [1, 2]:
             raise ValueError("Only interpolation over 1 or 2 variables is supported")
 
-        assert not data.empty, "Must supply some input data"
+        if data.empty:
+            raise ValueError("Must supply some input data")
 
         # These are the columns which the interpolation function will approximate
         value_columns = sorted(data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))

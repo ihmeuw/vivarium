@@ -92,8 +92,9 @@ def _setup_components(builder, component_list, configuration):
         _apply_component_default_configuration(configuration, component)
         if hasattr(component, 'setup'):
             result = component.setup(builder)
-            # TODO Remove this once we've flushed out all the old style setup methods -Alec 06/05/18
-            assert result is None
+            if result is not None:
+                # TODO Remove this once we've flushed out all the old style setup methods -Alec 06/05/18
+                raise ComponentConfigError("Returning components from setup methods is no longer supported. Use builder.add_components()")
         done.append(component)
     return done
 

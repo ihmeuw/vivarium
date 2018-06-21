@@ -1,6 +1,7 @@
 """A set of tools for managing data lookups."""
 from numbers import Number
 from datetime import datetime, timedelta
+import warnings
 
 import pandas as pd
 
@@ -49,6 +50,9 @@ class InterpolatedTableView(TableView):
 
             if isinstance(data, Interpolation):
                 self._interpolation = data
+                warnings.warn("Creating lookup tables from pre-initialized Intrepolation objects is deprecated. "
+                              "Use key_columns and parameter_columns to control interpolation. If that isn't possible "
+                              "then please raise an issue with your use case.", DeprecationWarning)
             else:
                 self._interpolation = Interpolation(data, self._key_columns, self._parameter_columns,
                                                     order=self._interpolation_order)
