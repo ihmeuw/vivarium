@@ -49,12 +49,12 @@ def mock_importer(path):
     }[path]
 
 
-@pytest.fixture(scope='function', params=[TEST_COMPONENTS_NESTED, TEST_COMPONENTS_FLAT])
+@pytest.fixture(params=[TEST_COMPONENTS_NESTED, TEST_COMPONENTS_FLAT])
 def components(request):
     return request.param
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def import_and_instantiate_mock(mocker):
     return mocker.patch('vivarium.framework.components.parser._import_and_instantiate_components')
 

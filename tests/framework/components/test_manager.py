@@ -9,7 +9,7 @@ from vivarium.framework.components.manager import (ComponentManager, ComponentCo
 from .mocks import MockComponentA, MockComponentB
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def apply_default_config_mock(mocker):
     return mocker.patch('vivarium.framework.components.manager._apply_component_default_configuration')
 
@@ -72,7 +72,6 @@ def test__setup_components(mocker, apply_default_config_mock):
 
 
 def test_ComponentManager_add_components():
-    config = build_simulation_configuration()
     manager = ComponentManager()
 
     components = [None, MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')]
