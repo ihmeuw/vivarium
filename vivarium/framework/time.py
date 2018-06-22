@@ -62,7 +62,7 @@ class SimpleClock(SimulationClock):
         self._step_size = builder.configuration.time.step_size
 
 
-def _get_time_stamp(time):
+def get_time_stamp(time):
     return pd.Timestamp(time['year'], time['month'], time['day'])
 
 
@@ -87,8 +87,8 @@ class DateTimeClock(SimulationClock):
 
     def setup(self, builder):
         time = builder.configuration.time
-        self._time = _get_time_stamp(time.start)
-        self._stop_time = _get_time_stamp(time.end)
+        self._time = get_time_stamp(time.start)
+        self._stop_time = get_time_stamp(time.end)
         self._step_size = pd.Timedelta(days=time.step_size // 1, hours=(time.step_size % 1) * 24)
 
 
