@@ -8,14 +8,15 @@ class Interpolation:
     def __init__(self, data, categorical_parameters, continuous_parameters, order, func=None):
         data = data
         self.key_columns = categorical_parameters
+
+        if data.empty:
+            raise ValueError("Must supply some input data")
+
         self.parameter_columns, self_data = validate_parameters(data, continuous_parameters, order)
         self.func = func
 
         if len(self.parameter_columns) not in [1, 2]:
             raise ValueError("Only interpolation over 1 or 2 variables is supported")
-
-        if data.empty:
-            raise ValueError("Must supply some input data")
 
         # These are the columns which the interpolation function will approximate
         value_columns = sorted(data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
@@ -106,9 +107,6 @@ class Interpolation:
 
 
 def validate_parameters(data, continuous_parameters, order):
-    if data.empty:
-        return continuous_parameters
-
     out = []
     for p in continuous_parameters:
         if len(data[p].unique()) > order:
