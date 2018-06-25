@@ -22,9 +22,9 @@ def weights(request):
     return request.param
 
 
-@pytest.fixture(scope='function', params=[(0.2, 0.1, RESIDUAL_CHOICE),
-                                          (0.5, 0.6, RESIDUAL_CHOICE),
-                                          (.1, RESIDUAL_CHOICE, RESIDUAL_CHOICE)])
+@pytest.fixture(params=[(0.2, 0.1, RESIDUAL_CHOICE),
+                        (0.5, 0.6, RESIDUAL_CHOICE),
+                        (.1, RESIDUAL_CHOICE, RESIDUAL_CHOICE)])
 def weights_with_residuals(request):
     return request.param
 
@@ -111,17 +111,21 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
             assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
 
 
+def mock_clock():
+    return pd.Timestamp('1/1/2005')
+
+
 def test_RandomnessManager_get_randomness_stream():
     seed = 123456
-    clock = lambda: pd.Timestamp('1/1/2005')
+
     rm = RandomnessManager()
     rm._seed = seed
-    rm._clock = clock
+    rm._clock = mock_clock
     stream = rm.get_randomness_stream('test')
 
     assert stream.key == 'test'
     assert stream.seed == seed
-    assert stream.clock is clock
+    assert stream.clock is mock_clock
     assert rm._decision_points == {'test'}
 
     with pytest.raises(RandomnessError):
@@ -130,10 +134,9 @@ def test_RandomnessManager_get_randomness_stream():
 
 def test_RandomnessManager_register_simulants():
     seed = 123456
-    clock = lambda: pd.Timestamp('1/1/2005')
     rm = RandomnessManager()
     rm._seed = seed
-    rm._clock = clock
+    rm._clock = mock_clock
     rm._key_columns = ['age', 'sex']
 
     bad_df = pd.DataFrame({'age': range(10),

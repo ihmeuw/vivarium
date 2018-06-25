@@ -1,7 +1,9 @@
+import pytest
+
 import pandas as pd
 import numpy as np
 
-from vivarium.interpolation import Interpolation
+from vivarium.interpolation import Interpolation, validate_parameters
 
 
 def test_1d_interpolation():
@@ -97,3 +99,15 @@ def test_order_zero_1d():
     assert f(index=[1])[0] == 1
     assert f(index=[2])[0] == 1, 'should be constant extrapolation outside of input range'
     assert f(index=[-1])[0] == 0
+
+
+def test_validate_parameters__empty_data():
+    with pytest.warns(UserWarning) as record:
+        out, data = validate_parameters(pd.DataFrame(columns=["age", "sex", "year", "value"]), ["age", "year"], 2)
+    assert len(record) == 2
+    message = record[0].message.args[0] + " " + record[1].message.args[0]
+    assert "age" in message and "year" in message
+
+    assert set(data.columns) == {"sex", "value"}
+
+

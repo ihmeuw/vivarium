@@ -6,7 +6,7 @@ from vivarium.framework.values import (set_combiner, list_combiner,
                                        joint_value_post_processor, ValuesManager)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def manager(mocker):
     manager = ValuesManager()
     builder = mocker.MagicMock()

@@ -1,6 +1,7 @@
 """A set of tools for managing data lookups."""
 from numbers import Number
 from datetime import datetime, timedelta
+import warnings
 
 import pandas as pd
 
@@ -29,10 +30,34 @@ class InterpolatedTableView(TableView):
     These cannot be created directly. Use the `lookup` method on the builder during setup.
     """
 
-    def __init__(self, interpolation, population_view, clock=None):
-        self.interpolation = interpolation
+    def __init__(self, data, population_view, key_columns, parameter_columns, interpolation_order, clock=None):
+        if data is None or (isinstance(data, pd.DataFrame) and data.empty):
+            raise ValueError("Must supply some data")
+
+        self._data = data
+        self._interpolation = None
         self.population_view = population_view
+        self._key_columns = key_columns
+        self._parameter_columns = parameter_columns
+        self._interpolation_order = interpolation_order
         self.clock = clock
+
+    @property
+    def interpolation(self):
+        if self._interpolation is None:
+            data = self._data
+            if callable(data) and not isinstance(data, Interpolation):
+                data = data()
+
+            if isinstance(data, Interpolation):
+                self._interpolation = data
+                warnings.warn("Creating lookup tables from pre-initialized Intrepolation objects is deprecated. "
+                              "Use key_columns and parameter_columns to control interpolation. If that isn't possible "
+                              "then please raise an issue with your use case.", DeprecationWarning)
+            else:
+                self._interpolation = Interpolation(data, self._key_columns, self._parameter_columns,
+                                                    order=self._interpolation_order)
+        return self._interpolation
 
     def __call__(self, index):
         pop = self.population_view.get(index)
@@ -95,6 +120,7 @@ class InterpolatedDataManager:
         If parameter_columns is empty then no interpolation will be
         attempted and the data will be delegated to MergedTableManager.build_table.
 
+
         Parameters
         ----------
         data        : pandas.DataFrame
@@ -117,11 +143,9 @@ class InterpolatedDataManager:
         if isinstance(data, Number) or isinstance(data, datetime) or isinstance(data, timedelta):
             return ScalarView(data)
 
-        data = data if isinstance(data, Interpolation) else Interpolation(data, key_columns, parameter_columns,
-                                                                          order=self._interpolation_order)
-
         view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
         return InterpolatedTableView(data, self._pop_view_builder(view_columns),
+                                     key_columns, parameter_columns, self._interpolation_order,
                                      self.clock if 'year' in parameter_columns else None)
 
     def __repr__(self):

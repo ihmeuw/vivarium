@@ -1,4 +1,5 @@
 """Provides a class for consistently managing and writing vivarium outputs and output paths."""
+import shutil
 from collections import defaultdict
 import os
 from datetime import datetime
@@ -70,10 +71,22 @@ class ResultsWriter:
             raise NotImplementedError(
                 f"Only 'yaml' and 'hdf' file types are supported. You requested {extension}")
 
+    def copy_file(self, src_path, file_name, key=None):
+        """Copies a file unmodified to a location inside the ouput directory.
+
+        Parameters
+        ----------
+        src_path: str
+            Path to the src file
+        file_name: str
+            name of the destination file
+        """
+        path = os.path.join(self._directories[key], file_name)
+        shutil.copyfile(src_path, path)
+
 
 def get_results_writer(results_directory, model_specification_file):
     launch_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     config_name = os.path.basename(model_specification_file.rpartition('.')[0])
     results_root = results_directory + f"/{config_name}/{launch_time}"
     return ResultsWriter(results_root)
-

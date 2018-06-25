@@ -20,7 +20,7 @@ def generate_keys(number, types=('int', 'float', 'datetime'), seed=123456):
     index = []
     if 'datetime' in types:
         year = rs.choice(np.arange(1980, 2018))
-        day = rs.choice(pd.date_range(f'01/01/{year}', periods=365, freq='D'))
+        day = rs.choice(pd.date_range(f'01/01/{year}', periods=365))
         start_time = rs.choice(pd.date_range(day, periods=86400, freq='s'))
         freq = rs.choice(['ms', 's', 'min', 'h'])
         index.append(pd.date_range(start_time, periods=number, freq=freq))

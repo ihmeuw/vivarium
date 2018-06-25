@@ -49,12 +49,12 @@ def mock_importer(path):
     }[path]
 
 
-@pytest.fixture(scope='function', params=[TEST_COMPONENTS_NESTED, TEST_COMPONENTS_FLAT])
+@pytest.fixture(params=[TEST_COMPONENTS_NESTED, TEST_COMPONENTS_FLAT])
 def components(request):
     return request.param
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def import_and_instantiate_mock(mocker):
     return mocker.patch('vivarium.framework.components.parser._import_and_instantiate_components')
 
@@ -67,10 +67,10 @@ def test_parse_component_config(components):
 
 
 def test_prep_components():
-    desc = 'cave_system.monsters.Rabbit("timid", "0.01")'
+    desc = 'cave_system.monsters.Rabbit("timid", "squeak")'
     component, args = _prep_components([desc])[0]
     assert component == 'cave_system.monsters.Rabbit'
-    assert set(args) == {'timid', '0.01'}
+    assert set(args) == {'timid', 'squeak'}
 
 
 def test_parse_component_syntax_error():
