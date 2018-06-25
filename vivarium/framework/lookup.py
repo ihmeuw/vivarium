@@ -31,7 +31,8 @@ class InterpolatedTableView(TableView):
     """
 
     def __init__(self, data, population_view, key_columns, parameter_columns, interpolation_order, clock=None):
-        assert data is not None, "Must supply some data"
+        if data is None or (isinstance(data, pd.DataFrame) and data.empty):
+            raise ValueError("Must supply some data")
 
         self._data = data
         self._interpolation = None
