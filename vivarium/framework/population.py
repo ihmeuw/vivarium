@@ -94,11 +94,7 @@ class PopulationView:
                 return pop[columns].copy()
             except KeyError:
                 non_existent_columns = set(columns) - set(pop.columns)
-                raise PopulationError('The columns requested do not exist in the population table. Specifically, you '
-                                      + 'requested {}, which do(es) not exist in the '.format(non_existent_columns)
-                                      + 'population table. Are you trying to read columns during simulant '
-                                      + 'initialization? You may be able to lower the priority of your handler so '
-                                      + 'that it happens after the component that creates the column you need.')
+                raise PopulationError(f'Requested column(s) {non_existent_columns} not in population table.')
 
     def update(self, pop: Union[pd.DataFrame, pd.Series]):
         """Update the simulation's state to match ``pop``
