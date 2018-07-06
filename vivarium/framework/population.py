@@ -172,7 +172,7 @@ class PopulationManager:
 
     def __init__(self):
         self._population = pd.DataFrame()
-        self._population_initializers = []
+        self._population_initializers = [(self.create_status_column, ['tracked'], [])]
         self._initializers_ordered = False
         self.growing = False
 
@@ -190,14 +190,21 @@ class PopulationManager:
         generated column names that aren't known at definition time. Otherwise
         components should use ``uses_columns``.
         """
+        if 'tracked' not in columns:
+            query_with_track = query + 'and tracked == True' if query else 'tracked == True'
+            return PopulationView(self, columns, query_with_track)
         return PopulationView(self, columns, query)
 
     def register_simulant_initializer(self, initializer: Callable,
                                       creates_columns: Sequence[str]=(), requires_columns: Sequence[str]=()):
-        self._population_initializers.append((initializer, creates_columns, requires_columns))
+        self._population_initializers.append((initializer, creates_columns, tuple(requires_columns)+('tracked',)))
 
     def get_simulant_creator(self) -> Callable:
         return self._create_simulants
+
+    def create_status_column(self, pop_data):
+        status = pd.Series(True, index=pop_data.index, dtype='bool')
+        self.get_view(['tracked']).update(status)
 
     def _order_initializers(self) -> None:
         unordered_initializers = deque(self._population_initializers)
