@@ -203,7 +203,7 @@ class PopulationManager:
         return self._create_simulants
 
     def create_status_column(self, pop_data):
-        status = pd.Series(True, index=pop_data.index, dtype='bool')
+        status = pd.Series(True, index=pop_data.index)
         self.get_view(['tracked']).update(status)
 
     def _order_initializers(self) -> None:
