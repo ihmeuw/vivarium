@@ -252,7 +252,6 @@ class PopulationManager:
         return index
 
     def metrics(self, index, metrics):
-        import pdb; pdb.set_trace()
         population = self.get_view(['tracked']).get(index)
         untracked = population[~population.tracked]
         tracked = population[population.tracked]
