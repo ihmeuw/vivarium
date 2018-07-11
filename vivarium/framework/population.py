@@ -172,13 +172,14 @@ class PopulationManager:
 
     def __init__(self):
         self._population = pd.DataFrame()
-        self._population_initializers = []
+        self._population_initializers = [(self.create_status_column, ['tracked'], [])]
         self._initializers_ordered = False
         self.growing = False
 
     def setup(self, builder):
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
+        builder.value.register_value_modifier('metrics', modifier=self.metrics)
 
     def get_view(self, columns: Sequence[str], query: str=None) -> PopulationView:
         """Return a configured PopulationView
@@ -190,14 +191,21 @@ class PopulationManager:
         generated column names that aren't known at definition time. Otherwise
         components should use ``uses_columns``.
         """
+        if 'tracked' not in columns:
+            query_with_track = query + 'and tracked == True' if query else 'tracked == True'
+            return PopulationView(self, columns, query_with_track)
         return PopulationView(self, columns, query)
 
     def register_simulant_initializer(self, initializer: Callable,
                                       creates_columns: Sequence[str]=(), requires_columns: Sequence[str]=()):
-        self._population_initializers.append((initializer, creates_columns, requires_columns))
+        self._population_initializers.append((initializer, creates_columns, tuple(requires_columns)+('tracked',)))
 
     def get_simulant_creator(self) -> Callable:
         return self._create_simulants
+
+    def create_status_column(self, pop_data):
+        status = pd.Series(True, index=pop_data.index)
+        self.get_view(['tracked']).update(status)
 
     def _order_initializers(self) -> None:
         unordered_initializers = deque(self._population_initializers)
@@ -242,6 +250,16 @@ class PopulationManager:
             initializer(SimulantData(index, population_configuration, self.clock(), self.step_size()))
         self.growing = False
         return index
+
+    def metrics(self, index, metrics):
+        population = self.get_view(['tracked']).get(index)
+        untracked = population[~population.tracked]
+        tracked = population[population.tracked]
+
+        metrics['total_population__untracked'] = len(untracked)
+        metrics['total_population__tracked'] = len(tracked)
+        metrics['total_population'] = len(untracked)+len(tracked)
+        return metrics
 
     @property
     def population(self) -> pd.DataFrame:

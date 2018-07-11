@@ -76,8 +76,7 @@ def _build_population(core_population, location, randomness_stream):
         {'age': core_population['age'],
          'entrance_time': core_population['entrance_time'],
          'sex': randomness_stream.choice(index, ['Male', 'Female'], additional_key='sex_choice'),
-         'alive': pd.Series('alive', index=index).astype(
-             pd.api.types.CategoricalDtype(categories=['alive', 'dead', 'untracked'], ordered=False)),
+         'alive': pd.Series('alive', index=index),
          'location': location,
          'exit_time': pd.NaT, },
         index=index)
@@ -93,8 +92,7 @@ def _non_crn_build_population(index, age_start, age_end, location, creation_time
     population = pd.DataFrame(
         {'age': age,
          'sex': randomness_stream.choice(index, ['Male', 'Female'], additional_key='sex_choice'),
-         'alive': pd.Series('alive', index=index).astype(
-             pd.api.types.CategoricalDtype(categories=['alive', 'dead', 'untracked'], ordered=False)),
+         'alive': pd.Series('alive', index=index),
          'location': location,
          'entrance_time': creation_time,
          'exit_time': pd.NaT, },
