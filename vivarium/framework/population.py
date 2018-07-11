@@ -179,6 +179,7 @@ class PopulationManager:
     def setup(self, builder):
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
+        builder.value.register_value_modifier('metrics', modifier=self.metrics)
 
     def get_view(self, columns: Sequence[str], query: str=None) -> PopulationView:
         """Return a configured PopulationView
@@ -249,6 +250,17 @@ class PopulationManager:
             initializer(SimulantData(index, population_configuration, self.clock(), self.step_size()))
         self.growing = False
         return index
+
+    def metrics(self, index, metrics):
+        import pdb; pdb.set_trace()
+        population = self.get_view(['tracked']).get(index)
+        untracked = population[~population.tracked]
+        tracked = population[population.tracked]
+
+        metrics['total_population__untracked'] = len(untracked)
+        metrics['total_population__tracked'] = len(tracked)
+        metrics['total_population'] = len(untracked)+len(tracked)
+        return metrics
 
     @property
     def population(self) -> pd.DataFrame:

@@ -190,6 +190,7 @@ def test_SimulationContext_finalize(base_config, components):
 def test_SimulationContext_report(base_config, components):
     sim = SimulationContext(base_config, components)
     sim.setup()
+    sim.initialize_simulants()
     metrics = sim.report()
     assert metrics['test'] == len([c for c in sim.component_manager._components if isinstance(c, MockComponentB)])
 
