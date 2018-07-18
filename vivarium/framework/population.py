@@ -172,7 +172,7 @@ class PopulationManager:
 
     def __init__(self):
         self._population = pd.DataFrame()
-        self._population_initializers = [(self.create_status_column, ['tracked'], [])]
+        self._population_initializers = [(self.on_create_simulants, ['tracked'], [])]
         self._initializers_ordered = False
         self.growing = False
 
@@ -203,7 +203,7 @@ class PopulationManager:
     def get_simulant_creator(self) -> Callable:
         return self._create_simulants
 
-    def create_status_column(self, pop_data):
+    def on_create_simulants(self, pop_data):
         status = pd.Series(True, index=pop_data.index)
         self.get_view(['tracked']).update(status)
 
@@ -221,7 +221,7 @@ class PopulationManager:
             for _ in range(len(unordered_initializers)):
                 initializer, columns_created, columns_required = unordered_initializers.pop()
                 if set(columns_required) <= set(available_columns):
-                    self._population_initializers.append(initializer)
+                    self._population_initializers.append((initializer, columns_created, columns_required))
                     available_columns.extend(columns_created)
                 else:
                     unordered_initializers.appendleft((initializer, columns_created, columns_required))
@@ -246,7 +246,7 @@ class PopulationManager:
         index = new_population.index.difference(self._population.index)
         self._population = new_population
         self.growing = True
-        for initializer in self._population_initializers:
+        for initializer, *_ in self._population_initializers:
             initializer(SimulantData(index, population_configuration, self.clock(), self.step_size()))
         self.growing = False
         return index
@@ -256,8 +256,8 @@ class PopulationManager:
         untracked = population[~population.tracked]
         tracked = population[population.tracked]
 
-        metrics['total_population__untracked'] = len(untracked)
-        metrics['total_population__tracked'] = len(tracked)
+        metrics['total_population_untracked'] = len(untracked)
+        metrics['total_population_tracked'] = len(tracked)
         metrics['total_population'] = len(untracked)+len(tracked)
         return metrics
 

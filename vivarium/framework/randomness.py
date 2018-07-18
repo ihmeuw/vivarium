@@ -600,7 +600,7 @@ class RandomnessManager:
         'randomness':
             {
                 'map_size': 1_000_000,
-                'key_columns': ['entrance_time'],
+                'key_columns': [],
                 'random_seed': 0,
                 'additional_seed': None,
             }
