@@ -1,5 +1,3 @@
-import time
-
 import numpy as np
 import pandas as pd
 
@@ -17,7 +15,7 @@ class NonCRNBasePopulation:
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream('population_age_fuzz')
 
-        columns_created = ['age', 'sex', 'alive', 'entrance_time', 'exit_time']
+        columns_created = ['age', 'sex', 'alive', 'entrance_time']
         builder.population.initializes_simulants(self.generate_test_population, creates_columns=columns_created)
 
         self.population_view = builder.population.get_view(columns_created)
@@ -56,9 +54,6 @@ class BasePopulation(NonCRNBasePopulation):
             'age_start': 0,
             'age_end': 100,
         },
-        'randomness': {
-            'key_columns': ['entrance_time', 'age']
-        }
     }
 
     def setup(self, builder):
@@ -81,9 +76,8 @@ class BasePopulation(NonCRNBasePopulation):
                                    'age': age.values}, index=pop_data.index)
         self.register(population)
 
-        pop_data['sex'] = self.randomness.choice(pop_data.index, ['Male', 'Female'], additional_key='sex_choice')
-        pop_data['alive'] = 'alive'
-
+        population['sex'] = self.randomness.choice(pop_data.index, ['Male', 'Female'], additional_key='sex_choice')
+        population['alive'] = 'alive'
         self.population_view.update(population)
 
 
@@ -94,13 +88,12 @@ class Mortality:
             'mortality_rate': 0.01,
             'life_expectancy': 80,
         }
-
     }
 
     def setup(self, builder):
         self.config = builder.configuration.mortality
         self.population_view = builder.population.get_view(['alive'], query="alive == 'alive'")
-        self.randomness = builder.randomness
+        self.randomness = builder.randomness.get_stream('mortality')
 
         self.mortality_rate = builder.value.register_rate_producer('mortality_rate', source=self.base_mortality_rate)
 
@@ -112,7 +105,7 @@ class Mortality:
     def determine_deaths(self, event):
         effective_rate = self.mortality_rate(event.index)
         effective_probability = 1 - np.exp(-effective_rate)
-        draw = np.random.random(size=len(event.index))
+        draw = self.randomness.get_draw(event.index)
         affected_simulants = draw < effective_probability
         self.population_view.update(pd.Series('dead', index=event.index[affected_simulants]))
 
@@ -124,17 +117,8 @@ class Observer:
         self.population_view = builder.population.get_view(['age', 'alive'])
 
         builder.value.register_value_modifier('metrics', self.metrics)
-        builder.event.register_listener('post_setup', self.start_clock)
-        builder.event.register_listener('simulation_end', self.stop_clock)
-
-    def start_clock(self, event):
-        self.start_time = time.time()
-
-    def stop_clock(self, event):
-        self.end_time = time.time()
 
     def metrics(self, index, metrics):
-        metrics['run_time'] = self.end_time - self.start_time
 
         pop = self.population_view.get(index)
         metrics['total_population_alive'] = len(pop[pop.alive == 'alive'])

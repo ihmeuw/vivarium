@@ -15,60 +15,27 @@ class DiseaseTransition(Transition):
         self.risk_deleted_rate = builder.value.register_rate_producer(f'{self.name}_rate',
                                                                       source=self._risk_deleted_rate)
         self.joint_population_attributable_fraction = builder.value.register_value_producer(
-            f'{self.output_state.state_id}.population_attributable_fraction',
+            f'{self.name}_rate.population_attributable_fraction',
             source=lambda index: [pd.Series(0, index=index)],
             preferred_combiner=list_combiner,
             preferred_post_processor=joint_value_post_processor)
+
+        self.count_column = f'from_{self.input_state}_to_{self.output_state.state_id}_transition_count'
+
+        builder.population.initializes_simulants(self.on_initialize_simulants, creates_columns=[self.count_column])
+        self.population_view = builder.population.get_view([self.count_column])
+
+    def on_initialize_simulants(self, pop_data):
+        self.population_view.update(
+            pd.DataFrame({f'{self.output_state.state_id}_event_count': pd.Series(0, index=pop_data.index)},
+                         index=pop_data.index)
+        )
 
     def _probability(self, index):
         return rate_to_probability(self.risk_deleted_rate(index))
 
     def _risk_deleted_rate(self, index):
         return self.base_rate(index) * (1 - self.joint_population_attributable_fraction(index))
-
-
-class DiseaseState(State):
-
-    def __init__(self, state_name, excess_mortality_rate=0, **kwargs):
-        super().__init__(state_name, **kwargs)
-        self.excess_mortality_rate = excess_mortality_rate
-
-    def setup(self, builder):
-        """Performs this component's simulation setup.
-
-        Parameters
-        ----------
-        builder : `engine.Builder`
-            Interface to several simulation tools.
-        """
-        super().setup(builder)
-        self.clock = builder.time.clock()
-
-        columns_required = [self._model, 'alive']
-        columns_created = [f'{self.state_id}_event_count']
-
-        builder.population.initializes_simulants(self.on_initialize_simulants, creates_columns=columns_created)
-        self.population_view = builder.population.get_view(columns_required + columns_created)
-
-        builder.value.register_value_modifier('mortality_rate', self.add_in_excess_mortality)
-        builder.value.register_value_modifier('metrics', self.metrics)
-
-    def add_transition(self, transition_name, output, rate=1e6, **kwargs):
-        t = DiseaseTransition(transition_name, rate, self, output, **kwargs)
-        self.transition_set.append(t)
-        return t
-
-    def on_initialize_simulants(self, pop_data):
-        self.population_view.update(
-            pd.DataFrame({f'{self.state_id}_event_count': pd.Series(0, index=pop_data.index)},
-                         index=pop_data.index)
-        )
-
-    def add_in_excess_mortality(self, index, mortality_rates):
-        pop = self.population_view.get(index)
-        affected = pop[self._model] == self.state_id
-        mortality_rates[affected] += self.excess_mortality_rate
-        return mortality_rates
 
     def metrics(self, index, metrics):
         """Records data for simulation post-processing.
@@ -85,9 +52,43 @@ class DiseaseState(State):
         `pandas.DataFrame`
             The metrics table updated to reflect new simulation state."""
         population = self.population_view.get(index)
-        metrics[f'{self.state_id}_event_count'] = population[f'{self.state_id}_event_count'].sum()
-
+        metrics[self.count_column] = population[self.count_column].sum()
         return metrics
+
+
+class DiseaseState(State):
+
+    def __init__(self, state_name, excess_mortality_rate=0, **kwargs):
+        super().__init__(state_name, **kwargs)
+        self._excess_mortality_rate = excess_mortality_rate
+
+    def setup(self, builder):
+        """Performs this component's simulation setup.
+
+        Parameters
+        ----------
+        builder : `engine.Builder`
+            Interface to several simulation tools.
+        """
+        super().setup(builder)
+        self.clock = builder.time.clock()
+
+        self.excess_mortality_rate = builder.value.register_value_producer(
+            f'{self.state_id}.excess_mortality_rate', source=lambda index: self._excess_mortality_rate
+        )
+        builder.value.register_value_modifier('mortality_rate', self.add_in_excess_mortality)
+        self.population_view = builder.population.get_view(
+            [self._model], query=f"alive == 'alive' and {self._model} == '{self.state_id}'")
+
+    def add_transition(self, transition_name, output, rate=1e6, **kwargs):
+        t = DiseaseTransition(transition_name, rate, self, output, **kwargs)
+        self.transition_set.append(t)
+        return t
+
+    def add_in_excess_mortality(self, index, mortality_rates):
+        affected = self.population_view.get(index)
+        mortality_rates[affected.index] += self.excess_mortality_rate(affected.index)
+        return mortality_rates
 
 
 class DiseaseModel(Machine):
@@ -121,7 +122,7 @@ class DiseaseModel(Machine):
 
     def metrics(self, index, metrics):
         pop = self.population_view.get(index, query="alive == 'alive'")
-        metrics[self.state_column + '_prevalent_cases'] = pop[pop[self.state_column] != self.initial_state].sum()
+        metrics[self.state_column + '_prevalent_cases'] = len(pop[pop[self.state_column] != self.initial_state])
         return metrics
 
 
@@ -131,7 +132,6 @@ class SIS_DiseaseModel:
         'disease': {
             'incidence': 0.005,
             'remission': 0.05,
-            'cause_specific_mortality': 0.001,
             'excess_mortality': 0.01,
         }
     }
@@ -152,45 +152,12 @@ class SIS_DiseaseModel:
         infected_state.allow_self_transitions()
         infected_state.add_transition(f'{self.name}.remission', susceptible_state, rate=config.remission)
 
+        # Reasonable approximation for short duration diseases.
+        case_fatality_rate = config.excess_mortality / (config.excess_mortality + config.remission)
+        cause_specific_mortality = config.incidence * case_fatality_rate
+
         model = DiseaseModel(self.name,
                              initial_state=susceptible_state,
-                             cause_specific_mortality_rate=config.cause_specific_mortality,
+                             cause_specific_mortality_rate=cause_specific_mortality,
                              states=[susceptible_state, infected_state])
         builder.components.add_components([model])
-
-
-class SimpleIntervention:
-
-    intervention_group = 'age >= 25 and alive == "alive"'
-
-    def setup(self, builder):
-        self.clock = builder.time.clock()
-        self.reset()
-        builder.value.register_value_modifier('mortality_rate', modifier=self.mortality_rates)
-        self.population_view = builder.population.get_view(['age', 'alive'], query=self.intervention_group)
-        builder.event.register_listener('time_step', self.track_cost)
-        builder.event.register_listener('simulation_end', self.dump_metrics)
-
-    def track_cost(self, event):
-        if event.time.year >= 1995:
-            time_step = event.step_size
-            # FIXME: charge full price once per year?
-            self.cumulative_cost += 2.0 * len(event.index) * (time_step / pd.Timedelta(days=365))
-
-    def mortality_rates(self, index, rates):
-        if self.clock().year >= 1995:
-            pop = self.population_view.get(index)
-            rates.loc[pop.index] *= 0.5
-        return rates
-
-    def reset(self):
-        self.cumulative_cost = 0
-
-    def dump_metrics(self, event):
-        print('Cost:', self.cumulative_cost)
-
-
-
-
-
-
