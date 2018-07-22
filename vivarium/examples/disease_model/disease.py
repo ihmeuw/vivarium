@@ -6,6 +6,7 @@ from vivarium.framework.values import list_combiner, joint_value_post_processor
 
 
 class DiseaseTransition(Transition):
+
     def __init__(self, name, rate, input_state, output_state, **kwargs):
         super().__init__(input_state, output_state, probability_func=self._probability, **kwargs)
         self.name = name
