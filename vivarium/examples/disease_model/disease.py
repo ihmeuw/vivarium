@@ -12,7 +12,7 @@ class DiseaseTransition(Transition):
         self.base_rate = lambda index: pd.Series(rate, index=index)
 
     def setup(self, builder):
-        self.risk_deleted_rate = builder.value.register_rate_producer(f'{self.name}_rate',
+        self.transition_rate = builder.value.register_rate_producer(f'{self.name}_rate',
                                                                       source=self._risk_deleted_rate)
         self.joint_population_attributable_fraction = builder.value.register_value_producer(
             f'{self.name}_rate.population_attributable_fraction',
@@ -20,40 +20,12 @@ class DiseaseTransition(Transition):
             preferred_combiner=list_combiner,
             preferred_post_processor=joint_value_post_processor)
 
-        self.count_column = f'from_{self.input_state}_to_{self.output_state.state_id}_transition_count'
-
-        builder.population.initializes_simulants(self.on_initialize_simulants, creates_columns=[self.count_column])
-        self.population_view = builder.population.get_view([self.count_column])
-
-    def on_initialize_simulants(self, pop_data):
-        self.population_view.update(
-            pd.DataFrame({f'{self.output_state.state_id}_event_count': pd.Series(0, index=pop_data.index)},
-                         index=pop_data.index)
-        )
-
     def _probability(self, index):
-        return rate_to_probability(self.risk_deleted_rate(index))
+        effective_rate = self.transition_rate(index)
+        return rate_to_probability(effective_rate)
 
     def _risk_deleted_rate(self, index):
         return self.base_rate(index) * (1 - self.joint_population_attributable_fraction(index))
-
-    def metrics(self, index, metrics):
-        """Records data for simulation post-processing.
-
-        Parameters
-        ----------
-        index : iterable of ints
-            An iterable of integer labels for the simulants.
-        metrics : `pandas.DataFrame`
-            A table for recording simulation events of interest in post-processing.
-
-        Returns
-        -------
-        `pandas.DataFrame`
-            The metrics table updated to reflect new simulation state."""
-        population = self.population_view.get(index)
-        metrics[self.count_column] = population[self.count_column].sum()
-        return metrics
 
 
 class DiseaseState(State):
@@ -73,9 +45,17 @@ class DiseaseState(State):
         super().setup(builder)
         self.clock = builder.time.clock()
 
-        self.excess_mortality_rate = builder.value.register_value_producer(
-            f'{self.state_id}.excess_mortality_rate', source=lambda index: self._excess_mortality_rate
+        self.excess_mortality_rate = builder.value.register_rate_producer(
+            f'{self.state_id}.excess_mortality_rate',
+            source=self.risk_deleted_excess_mortality_rate
         )
+        self.excess_mortality_rate_paf = builder.value.register_value_producer(
+            f'{self.state_id}.excess_mortality_rate.population_attributable_fraction',
+            source=lambda index: [pd.Series(0, index=index)],
+            preferred_combiner=list_combiner,
+            preferred_post_processor=joint_value_post_processor
+        )
+
         builder.value.register_value_modifier('mortality_rate', self.add_in_excess_mortality)
         self.population_view = builder.population.get_view(
             [self._model], query=f"alive == 'alive' and {self._model} == '{self.state_id}'")
@@ -85,9 +65,13 @@ class DiseaseState(State):
         self.transition_set.append(t)
         return t
 
+    def risk_deleted_excess_mortality_rate(self, index):
+        return pd.Series(self._excess_mortality_rate, index=index) * (1 - self.excess_mortality_rate_paf(index))
+
     def add_in_excess_mortality(self, index, mortality_rates):
         affected = self.population_view.get(index)
-        mortality_rates[affected.index] += self.excess_mortality_rate(affected.index)
+        mortality_rates.loc[affected.index] += self.excess_mortality_rate(affected.index)
+
         return mortality_rates
 
 
@@ -96,11 +80,14 @@ class DiseaseModel(Machine):
     def __init__(self, disease, initial_state, cause_specific_mortality_rate=0., **kwargs):
         super().__init__(disease, **kwargs)
         self.initial_state = initial_state.state_id
-        self.cause_specific_mortality_rate = cause_specific_mortality_rate
+        self._cause_specific_mortality_rate = cause_specific_mortality_rate
 
     def setup(self, builder):
         super().setup(builder)
-
+        self.cause_specific_mortality_rate = builder.value.register_rate_producer(
+            f'{self.state_column}.cause_specific_mortality_rate',
+            source=lambda index: pd.Series(self._cause_specific_mortality_rate, index=index)
+        )
         builder.value.register_value_modifier('mortality_rate', modifier=self.delete_cause_specific_mortality)
         builder.value.register_value_modifier('metrics', modifier=self.metrics)
 
@@ -118,7 +105,7 @@ class DiseaseModel(Machine):
         self.transition(event.index, event.time)
 
     def delete_cause_specific_mortality(self, index, rates):
-        return rates - self.cause_specific_mortality_rate
+        return rates - self.cause_specific_mortality_rate(index)
 
     def metrics(self, index, metrics):
         pop = self.population_view.get(index, query="alive == 'alive'")
@@ -148,9 +135,9 @@ class SIS_DiseaseModel:
                                       excess_mortality_rate=config.excess_mortality)
 
         susceptible_state.allow_self_transitions()
-        susceptible_state.add_transition(f'{self.name}.incidence', infected_state, rate=config.incidence)
+        susceptible_state.add_transition(f'{infected_state.state_id}.incidence', infected_state, rate=config.incidence)
         infected_state.allow_self_transitions()
-        infected_state.add_transition(f'{self.name}.remission', susceptible_state, rate=config.remission)
+        infected_state.add_transition(f'{infected_state.state_id}.remission', susceptible_state, rate=config.remission)
 
         # Reasonable approximation for short duration diseases.
         case_fatality_rate = config.excess_mortality / (config.excess_mortality + config.remission)

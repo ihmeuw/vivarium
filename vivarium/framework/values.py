@@ -1,11 +1,15 @@
 """The mutable value system"""
 from collections import defaultdict
 from typing import Callable
+import logging
 
 import pandas as pd
 
 from vivarium import VivariumError
 from .util import from_yearly
+
+
+_log = logging.getLogger(__name__)
 
 
 class DynamicValueError(VivariumError):
@@ -122,13 +126,19 @@ class ValuesManager:
 
     def setup(self, builder):
         self.step_size = builder.time.step_size()
+        builder.event.register_listener('post_setup', self.on_post_setup)
+
+    def on_post_setup(self, event):
+        _log.debug(f"{[p for p, v in self._pipelines.items() if not v.source]}")
 
     def register_value_modifier(self, value_name, modifier, priority=5):
+        _log.debug(f"Registering {str(modifier).split()[2]} as modifier to {value_name}")
         pipeline = self._pipelines[value_name]
         pipeline.mutators[priority].append(modifier)
 
     def register_value_producer(self, value_name, source=None,
                                 preferred_combiner=replace_combiner, preferred_post_processor=None):
+        _log.debug(f"Registering value pipeline {value_name}")
         pipeline = self._pipelines[value_name]
         pipeline.name = value_name
         pipeline.source = source

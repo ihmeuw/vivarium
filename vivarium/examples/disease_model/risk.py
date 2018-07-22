@@ -33,7 +33,7 @@ class Risk:
         self.population_view.update(pd.Series(self.randomness.get_draw(pop_data.index), name=f'{self.name}_propensity'))
 
     def _exposure(self, index):
-        propensity = self.population_view.get(index)
+        propensity = self.population_view.get(index)[f'{self.name}_propensity']
         return self.exposure_threshold(index) > propensity
 
     def __repr__(self):
@@ -63,17 +63,17 @@ class DirectEffect:
         builder.value.register_value_modifier(f'{self.disease_rate}.population_attributable_fraction',
                                               self.population_attributable_fraction)
         builder.value.register_value_modifier(f'{self.disease_rate}',
-                                              self.incidence_adjustment)
+                                              self.rate_adjustment)
         self.base_risk_exposure = builder.value.get_value(f'{self.risk}.base_proportion_exposed')
         self.actual_risk_exposure = builder.value.get_value(f'{self.risk}.exposure')
 
     def population_attributable_fraction(self, index):
         exposure = self.base_risk_exposure(index)
         relative_risk = self.relative_risk(index)
-        return exposure * (relative_risk - 1) / (exposure * (relative_risk - 1) - 1)
+        return exposure * (relative_risk - 1) / (exposure * (relative_risk - 1) + 1)
 
-    def incidence_adjustment(self, index, rates):
-        exposed = self.actual_risk_exposure(index)[f'{self.risk}_propensity']
+    def rate_adjustment(self, index, rates):
+        exposed = self.actual_risk_exposure(index)
         rr = self.relative_risk(index)
         rates[exposed] *= rr[exposed]
         return rates
