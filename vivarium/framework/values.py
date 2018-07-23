@@ -1,6 +1,7 @@
 """The mutable value system"""
 from collections import defaultdict
 from typing import Callable
+from types import MethodType
 import logging
 
 import pandas as pd
@@ -132,7 +133,8 @@ class ValuesManager:
         _log.debug(f"{[p for p, v in self._pipelines.items() if not v.source]}")
 
     def register_value_modifier(self, value_name, modifier, priority=5):
-        _log.debug(f"Registering {str(modifier).split()[2]} as modifier to {value_name}")
+        m = modifier if isinstance(modifier, MethodType) else modifier.__call__
+        _log.debug(f"Registering {str(m).split()[2]} as modifier to {value_name}")
         pipeline = self._pipelines[value_name]
         pipeline.mutators[priority].append(modifier)
 
