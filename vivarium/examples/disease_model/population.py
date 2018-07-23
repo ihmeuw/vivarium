@@ -2,53 +2,7 @@ import numpy as np
 import pandas as pd
 
 
-class NonCRNBasePopulation:
-
-    configuration_defaults = {
-        'population': {
-            'age_start': 0,
-            'age_end': 100,
-        }
-    }
-
-    def setup(self, builder):
-        self.config = builder.configuration
-        self.randomness = builder.randomness.get_stream('population_age_fuzz')
-
-        columns_created = ['age', 'sex', 'alive', 'entrance_time']
-        builder.population.initializes_simulants(self.generate_test_population, creates_columns=columns_created)
-
-        self.population_view = builder.population.get_view(columns_created)
-
-        builder.event.register_listener('time_step', self.age_simulants)
-
-    def generate_test_population(self, pop_data):
-        age_start = pop_data.user_data.get('age_start', self.config.population.age_start)
-        age_end = pop_data.user_data.get('age_end', self.config.population.age_end)
-
-        if age_start == age_end:
-            age = (age_start
-                   + self.randomness.get_draw(pop_data.index) * (pop_data.creation_window / pd.Timedelta(days=365)))
-        else:
-            age = age_start + self.randomness.get_draw(pop_data.index) * (age_end - age_start)
-
-        population = pd.DataFrame(
-            {'age': age,
-             'sex': self.randomness.choice(pop_data.index, ['Male', 'Female'], additional_key='sex_choice'),
-             'alive': pd.Series('alive', index=pop_data.index),
-             'entrance_time': pop_data.creation_time},
-            index=pop_data.index)
-
-        self.population_view.update(population)
-
-    def age_simulants(self, event):
-        population = self.population_view.get(event.index, query="alive == 'alive'")
-        population['age'] += event.step_size / pd.Timedelta(days=365)
-        self.population_view.update(population)
-
-
-class BasePopulation(NonCRNBasePopulation):
-
+class BasePopulation:
     configuration_defaults = {
         'population': {
             'age_start': 0,
@@ -57,27 +11,45 @@ class BasePopulation(NonCRNBasePopulation):
     }
 
     def setup(self, builder):
-        super().setup(builder)
+        self.config = builder.configuration
 
-        self.age_randomness = builder.randomness.get_stream('age_initialization', for_initialization=True)
+        self.with_common_random_numbers = bool(self.config.randomness.key_columns)
+        self.randomness = builder.randomness.get_stream('age_initialization',
+                                                        for_initialization=self.with_common_random_numbers)
         self.register = builder.randomness.register_simulants
 
-    def generate_test_population(self, pop_data):
+        columns_created = ['age', 'sex', 'alive', 'entrance_time']
+        builder.population.initializes_simulants(self.generate_population, creates_columns=columns_created)
+        self.population_view = builder.population.get_view(columns_created)
+        builder.event.register_listener('time_step', self.age_simulants)
+
+    def generate_population(self, pop_data):
         age_start = pop_data.user_data.get('age_start', self.config.population.age_start)
         age_end = pop_data.user_data.get('age_end', self.config.population.age_end)
 
-        age_draw = self.age_randomness.get_draw(pop_data.index)
-        if age_start == age_end:
-            age = age_draw * (pop_data.creation_window / pd.Timedelta(days=365)) + age_start
+        age_draw = self.randomness.get_draw(pop_data.index)
+        age_window = pop_data.creation_window / pd.Timedelta(days=365) if age_start == age_end else age_end - age_start
+        age = age_start + age_draw * age_window
+
+        if self.with_common_random_numbers:
+            population = pd.DataFrame({'entrance_time': pop_data.creation_time,
+                                       'age': age.values}, index=pop_data.index)
+            self.register(population)
+            population['sex'] = self.randomness.choice(pop_data.index, ['Male', 'Female'], additional_key='sex_choice')
+            population['alive'] = 'alive'
         else:
-            age = age_draw * (age_end - age_start) + age_start
+            population = pd.DataFrame(
+                {'age': age.values,
+                 'sex': self.randomness.choice(pop_data.index, ['Male', 'Female'], additional_key='sex_choice'),
+                 'alive': pd.Series('alive', index=pop_data.index),
+                 'entrance_time': pop_data.creation_time},
+                index=pop_data.index)
 
-        population = pd.DataFrame({'entrance_time': pop_data.creation_time,
-                                   'age': age.values}, index=pop_data.index)
-        self.register(population)
+        self.population_view.update(population)
 
-        population['sex'] = self.randomness.choice(pop_data.index, ['Male', 'Female'], additional_key='sex_choice')
-        population['alive'] = 'alive'
+    def age_simulants(self, event):
+        population = self.population_view.get(event.index, query="alive == 'alive'")
+        population['age'] += event.step_size / pd.Timedelta(days=365)
         self.population_view.update(population)
 
 
