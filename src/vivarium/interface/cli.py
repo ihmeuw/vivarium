@@ -1,8 +1,11 @@
 from bdb import BdbQuit
 import os
+from pathlib import Path
+import shutil
 
 import click
 
+import vivarium
 from vivarium.framework.engine import run_simulation
 
 from .utilities import verify_yaml
@@ -42,3 +45,22 @@ def run(model_specification, results_directory, verbose, log, with_debugger):
         else:
             logging.exception("Uncaught exception {}".format(e))
             raise
+
+
+@simulate.command()
+def test():
+    logging.basicConfig(level=logging.DEBUG)
+    model_specification = Path(vivarium.__file__).resolve().parent / 'examples' / 'disease_model' / 'disease_model.yaml'
+    results_directory = Path('~/vivarium_results').expanduser()
+
+    try:
+        run_simulation(str(model_specification), str(results_directory))
+        click.echo()
+        click.secho("Installation test successful!", fg='green')
+    except (BdbQuit, KeyboardInterrupt):
+        raise
+    except Exception as e:
+        logging.exception("Uncaught exception {}".format(e))
+        raise
+    finally:
+        shutil.rmtree(results_directory, ignore_errors=True)
