@@ -34,7 +34,7 @@ import numpy as np
 import pandas as pd
 
 from vivarium import VivariumError
-from .util import rate_to_probability
+from .utilities import rate_to_probability
 
 Array = Union[List, Tuple, np.ndarray, pd.Series]
 Index = Union[pd.Index, pd.MultiIndex]

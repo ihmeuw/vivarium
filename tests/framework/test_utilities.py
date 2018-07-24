@@ -2,8 +2,8 @@ import pytest
 import numpy as np
 import pandas as pd
 
-from vivarium.framework.util import (from_yearly, to_yearly, rate_to_probability, probability_to_rate,
-                                     collapse_nested_dict, import_by_path)
+from vivarium.framework.utilities import (from_yearly, to_yearly, rate_to_probability, probability_to_rate,
+                                          collapse_nested_dict, import_by_path)
 
 
 def test_from_yearly():
@@ -65,7 +65,7 @@ def test_import_class_by_path():
 
 
 def test_import_function_by_path():
-    func = import_by_path('vivarium.framework.util.import_by_path')
+    func = import_by_path('vivarium.framework.utilities.import_by_path')
     assert func is import_by_path
 
 

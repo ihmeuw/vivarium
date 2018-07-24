@@ -1,7 +1,7 @@
 import pandas as pd
 
 from vivarium.framework.state_machine import State, Machine, Transition
-from vivarium.framework.util import rate_to_probability
+from vivarium.framework.utilities import rate_to_probability
 from vivarium.framework.values import list_combiner, joint_value_post_processor
 
 
