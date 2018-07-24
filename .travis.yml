@@ -14,4 +14,4 @@ deploy:
   on:
     distributions: sdist bdist_wheel
     repo: ihmeuw/vivarium
-    branch: master
+    tags: true
