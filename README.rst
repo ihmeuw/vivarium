@@ -5,7 +5,7 @@ Vivarium
     :target: https://travis-ci.org/ihmeuw/vivarium
     :alt: Latest Version
 
-.. image:: .. image:: https://vivarium.readthedocs.io/en/latest/?badge=latest
+.. image:: https://vivarium.readthedocs.io/en/latest/?badge=latest
     :target: https://vivarium.readthedocs.io/en/latest/
     :alt: Latest Docs
 
