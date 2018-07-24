@@ -9,20 +9,24 @@ which are the value of that key in the outermost layer of configuration
 where it appears.
 
 For example:
->>> config = ConfigTree(layers=['inner_layer', 'middle_layer', 'outer_layer', 'user_overrides'])
->>> config.read_dict({'section_a': {'item1': 'value1', 'item2': 'value2'}, 'section_b': {'item1': 'value3'}}, layer='inner_layer')
->>> config.read_dict({'section_a': {'item1': 'value4'}, 'section_b': {'item1': 'value5'}}, layer='middle_layer')
->>> config.read_dict({'section_b': {'item1': 'value6'}}, layer='outer_layer')
->>> config.section_a.item1
-'value4'
->>> config.section_a.item2
-'value2'
->>> config.section_b.item1
-'value6'
->>> config.section_b.item1 = 'value7'
->>> config.section_b.item1
-'value7'
+
+.. code-block:: python
+
+    >>> config = ConfigTree(layers=['inner_layer', 'middle_layer', 'outer_layer', 'user_overrides'])
+    >>> config.read_dict({'section_a': {'item1': 'value1', 'item2': 'value2'}, 'section_b': {'item1': 'value3'}}, layer='inner_layer')
+    >>> config.read_dict({'section_a': {'item1': 'value4'}, 'section_b': {'item1': 'value5'}}, layer='middle_layer')
+    >>> config.read_dict({'section_b': {'item1': 'value6'}}, layer='outer_layer')
+    >>> config.section_a.item1
+    'value4'
+    >>> config.section_a.item2
+    'value2'
+    >>> config.section_b.item1
+    'value6'
+    >>> config.section_b.item1 = 'value7'
+    >>> config.section_b.item1
+    'value7'
 """
+from typing import Mapping, Union
 import yaml
 
 
@@ -67,6 +71,9 @@ class ConfigNode:
             if layer in self._values:
                 return self._values[layer]
         raise KeyError(layer)
+
+    def is_empty(self):
+        return not self._values
 
     def get_value(self, layer=None):
         """Returns the value at the specified layer.
@@ -196,7 +203,7 @@ class ConfigTree:
         """
         Parameters
         ----------
-        data : dict
+        data : dict, str, or ConfigTree, optional
             A dictionary containing initial values
         layers : list
             A list of layer names. The order in which layers defined determines
@@ -210,7 +217,7 @@ class ConfigTree:
         self.__dict__['_frozen'] = False
 
         if data:
-            self.read_dict(data, layer=self._layers[0], source='initial data')
+            self.update(data, layer=self._layers[0], source='initial data')
 
     def freeze(self):
         """Causes the ConfigTree to become read only.
@@ -223,11 +230,11 @@ class ConfigTree:
 
     def __setattr__(self, name, value):
         """Set a configuration value on the outermost layer."""
-        self.set_with_metadata(name, value, layer=None, source=None)
+        self._set_with_metadata(name, value, layer=None, source=None)
 
     def __setitem__(self, name, value):
         """Set a configuration value on the outermost layer."""
-        self.set_with_metadata(name, value, layer=None, source=None)
+        self._set_with_metadata(name, value, layer=None, source=None)
 
     def __getattr__(self, name):
         """Get a configuration value from the outermost layer in which it appears."""
@@ -239,6 +246,14 @@ class ConfigTree:
     def __getitem__(self, name):
         """Get a configuration value from the outermost layer in which it appears."""
         return self.get_from_layer(name)
+
+    def __delattr__(self, name):
+        if name in self._children:
+            del self._children[name]
+
+    def __delitem__(self, name):
+        if name in self._children:
+            del self._children[name]
 
     def __contains__(self, name):
         """Test if a configuration key exists in any layer."""
@@ -252,8 +267,12 @@ class ConfigTree:
         """Return a list of all (child_name, child) pairs."""
         return self._children.items()
 
+    def keys(self):
+        return self._children.keys()
+
     def get_from_layer(self, name, layer=None):
         """Get a configuration value from the named layer.
+
         Parameters
         ----------
         name : str
@@ -272,8 +291,9 @@ class ConfigTree:
         else:
             return child
 
-    def set_with_metadata(self, name, value, layer=None, source=None):
+    def _set_with_metadata(self, name, value, layer=None, source=None):
         """Set a value in the named layer with the given source.
+
         Parameters
         ----------
         name : str
@@ -291,20 +311,55 @@ class ConfigTree:
         TypeError
             if the ConfigTree is frozen
         """
+
         if self._frozen:
             raise TypeError('Frozen ConfigTree does not support assignment')
 
         if isinstance(value, dict):
             if name not in self._children or not isinstance(self._children[name], ConfigTree):
                 self._children[name] = ConfigTree(layers=list(self._layers))
-            self._children[name].read_dict(value, layer, source)
+            self._children[name].update(value, layer, source)
         else:
             if name not in self._children or not isinstance(self._children[name], ConfigNode):
                 self._children[name] = ConfigNode(list(self._layers))
             child = self._children[name]
             child.set_value(value, layer, source)
 
-    def read_dict(self, data_dict, layer=None, source=None):
+    def update(self, data: Union[Mapping, str, bytes], layer: str=None, source: str=None):
+        """Adds additional data into the ConfigTree.
+
+
+        Parameters
+        ----------
+        data :
+            source data
+        layer :
+            layer to load data into. If none is supplied the outermost one is used
+        source :
+            Source to attribute the values to
+
+        See Also
+        --------
+        read_dict
+        """
+        if isinstance(data, dict):
+            self._read_dict(data, layer, source)
+        elif isinstance(data, ConfigTree):
+            # TODO: set this to parse the other config tree including layer and source info.  Maybe.
+            self._read_dict(data.to_dict(), layer, source)
+        elif isinstance(data, str):
+            if data.endswith('.yaml'):
+                source = source if source else data
+                self._load(data, layer, source)
+            else:
+                self._loads(data, layer, source)
+        elif data is None:
+            pass
+        else:
+            raise ValueError(f"Update must be called with dictionary, string, or ConfigTree. "
+                             f"You passed in {type(data)}")
+
+    def _read_dict(self, data_dict, layer=None, source=None):
         """Load a dictionary into the ConfigTree. If the dict contains nested dicts
         then the values will be added recursively. See module docstring for example code.
 
@@ -318,9 +373,9 @@ class ConfigTree:
             Source to attribute the values to
         """
         for k, v in data_dict.items():
-            self.set_with_metadata(k, v, layer, source)
+            self._set_with_metadata(k, v, layer, source)
 
-    def loads(self, data_string, layer=None, source=None):
+    def _loads(self, data_string, layer=None, source=None):
         """Load data from a yaml formatted string.
 
         Parameters
@@ -334,9 +389,9 @@ class ConfigTree:
             Source to attribute the values to
         """
         data_dict = yaml.load(data_string)
-        self.read_dict(data_dict, layer, source)
+        self._read_dict(data_dict, layer, source)
 
-    def load(self, f, layer=None, source=None):
+    def _load(self, f, layer=None, source=None):
         """Load data from a yaml formatted file.
 
         Parameters
@@ -350,10 +405,10 @@ class ConfigTree:
             Source to attribute the values to
         """
         if hasattr(f, 'read'):
-            self.loads(f.read(), layer=layer, source=source)
+            self._loads(f.read(), layer=layer, source=source)
         else:
             with open(f) as f:
-                self.loads(f.read(), layer=layer, source=source)
+                self._loads(f.read(), layer=layer, source=source)
 
     def to_dict(self):
         result = {}
@@ -408,12 +463,17 @@ class ConfigTree:
     def _reset_layer(self, layer, preserve_keys, prefix):
         if self._frozen:
             raise TypeError('Frozen ConfigTree does not support modification')
+        deletable = []
         for key, child in self._children.items():
             if prefix + [key] not in preserve_keys:
                 if isinstance(child, ConfigTree):
                     child._reset_layer(layer, preserve_keys, prefix + [key])
                 else:
                     child.reset_layer(layer)
+                    if child.is_empty():
+                        deletable.append(key)
+        for key in deletable:
+            del self._children[key]
 
     def drop_layer(self, layer):
         """Removes the named layer and the value associated with it from the node.
@@ -437,8 +497,7 @@ class ConfigTree:
         self._layers.remove(layer)
 
     def unused_keys(self):
-        """Lists all keys which are present in the ConfigTree but which have not been accessed.
-        """
+        """Lists all keys which are present in the ConfigTree but which have not been accessed."""
         unused = set()
         for k, c in self._children.items():
             if isinstance(c, ConfigNode):

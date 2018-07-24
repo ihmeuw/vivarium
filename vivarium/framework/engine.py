@@ -1,256 +1,153 @@
 """The engine."""
-import os
-import os.path
-import argparse
-from time import time
-from collections import Iterable
-from datetime import datetime, timedelta
-from pprint import pformat
 import gc
-from bdb import BdbQuit
+import logging
+from pprint import pformat
+from time import time
 
 import pandas as pd
 
-from vivarium import config
+from vivarium.framework.configuration import build_model_specification
+from .components import ComponentInterface
+from .event import Event, EventInterface
+from .lookup import LookupTableInterface
+from .metrics import Metrics
+from .plugins import PluginManager
+from .population import PopulationInterface
+from .randomness import RandomnessInterface
+from .results_writer import get_results_writer
+from .values import ValuesInterface
+from .time import TimeInterface
 
-from vivarium.framework.values import ValuesManager
-from vivarium.framework.event import EventManager, Event, emits
-from vivarium.framework.population import PopulationManager, creates_simulants
-from vivarium.framework.lookup import InterpolatedDataManager
-from vivarium.framework.components import load, read_component_configuration
-from vivarium.framework.randomness import RandomnessStream
-from vivarium.framework.util import collapse_nested_dict
-
-import logging
 _log = logging.getLogger(__name__)
-
-
-class Builder:
-    def __init__(self, context):
-        self.lookup = context.tables.build_table
-        self.value = context.values.get_value
-        self.rate = context.values.get_rate
-        self.modifies_value = context.values.mutator
-        self.emitter = context.events.get_emitter
-        self.population_view = context.population.get_view
-        self.clock = lambda: lambda: context.current_time
-        input_draw_number = config.run_configuration.draw_number
-        model_draw_number = config.run_configuration.model_draw_number
-        self.randomness = lambda key: RandomnessStream(key, self.clock(), (input_draw_number, model_draw_number))
-
-    def __repr__(self):
-        return ("Builder(\nlookup: {},\nvalue: {},\nrate: {},\n".format(self.lookup, self.value, self.rate)
-                + "emitter: {},\npopulation_view: {},\n".format(self.emitter, self.population_view)
-                + "clock: {},\nrandomness: {}\n)".format(self.clock, self.randomness))
 
 
 class SimulationContext:
     """context"""
-    def __init__(self, components):
-        self.components = components
-        self.values = ValuesManager()
-        self.events = EventManager()
-        self.population = PopulationManager()
-        self.tables = InterpolatedDataManager()
-        self.components.extend([self.tables, self.values, self.events, self.population])
-        self.current_time = None
+    def __init__(self, configuration, components, plugin_manager=None):
+        plugin_manager = plugin_manager if plugin_manager else PluginManager()
+
+        self.configuration = configuration
+        self.builder = Builder(configuration, plugin_manager)
+
+        self.component_manager = plugin_manager.get_plugin('component_manager')
+
+        self.clock = plugin_manager.get_plugin('clock')
+        self.values = plugin_manager.get_plugin('value')
+        self.events = plugin_manager.get_plugin('event')
+        self.population = plugin_manager.get_plugin('population')
+        self.tables = plugin_manager.get_plugin('lookup')
+        self.randomness = plugin_manager.get_plugin('randomness')
+        for name, controller in plugin_manager.get_optional_controllers().items():
+            setattr(self, name, controller)
+
+        # The order the managers are added is important.  It represents the order in which they
+        # will be set up.  The clock is required by several of the other managers.  The randomness
+        # manager requires the population manager.  The remaining managers need no ordering.
+        self.component_manager.add_managers(
+            [self.clock, self.population, self.randomness, self.values, self.events, self.tables])
+        self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()))
+        self.component_manager.add_components(components + [Metrics()])
 
     def setup(self):
-        builder = Builder(self)
-        components = [self.values, self.events, self.population, self.tables] + list(self.components)
-        done = set()
+        self.component_manager.setup_components(self.builder, self.configuration)
+        self.simulant_creator = self.builder.population.get_simulant_creator()
 
-        i = 0
-        while i < len(components):
-            component = components[i]
-            if component is None:
-                raise ValueError('None in component list. This likely indicates a bug in a factory function')
+        # The order here matters.
+        self.time_step_events = ['time_step__prepare', 'time_step', 'time_step__cleanup', 'collect_metrics']
+        self.time_step_emitters = {k: self.builder.event.get_emitter(k) for k in self.time_step_events}
+        self.end_emitter = self.builder.event.get_emitter('simulation_end')
+        self.builder.event.get_emitter('post_setup')(None)
 
-            if isinstance(component, Iterable):
-                # Unpack lists of components so their constituent components get initialized
-                components.extend(component)
-            if component not in done:
-                if hasattr(component, 'configuration_defaults'):
-                    # This reapplies configuration from some components but
-                    # that shouldn't be a problem.
-                    config.read_dict(component.configuration_defaults, layer='component_configs', source=component)
-                if hasattr(component, 'setup'):
-                    sub_components = component.setup(builder)
-                    done.add(component)
-                    if sub_components:
-                        components.extend(sub_components)
-            i += 1
-        self.values.setup_components(components)
-        self.events.setup_components(components)
-        self.population.setup_components(components)
+    def step(self):
+        _log.debug(self.clock.time)
+        for event in self.time_step_events:
+            self.time_step_emitters[event](Event(self.population.population.index))
+        self.clock.step_forward()
 
-        self.events.get_emitter('post_setup')(None)
+    def initialize_simulants(self):
+        pop_params = self.configuration.population
+
+        # Fencepost the creation of the initial population.
+        self.clock.step_backward()
+        population_size = pop_params.population_size
+        self.simulant_creator(population_size)
+        self.clock.step_forward()
+
+    def finalize(self):
+        self.end_emitter(Event(self.population.population.index))
+
+    def report(self):
+        return self.values.get_value('metrics')(self.population.population.index)
 
     def __repr__(self):
-        return ("SimulationContext(\ncomponents: {},\nvalues: {},\n".format(self.components, self.values)
-                + "events: {},\npopulation: {},\ntables: {},\n".format(self.events, self.population, self.tables)
-                + "current_time: {})".format(self.current_time))
+        return "SimulationContext()"
 
 
-@emits('time_step')
-@emits('time_step__prepare')
-@emits('time_step__cleanup')
-def _step(simulation, time_step, time_step_emitter, time_step__prepare_emitter, time_step__cleanup_emitter):
-    _log.debug(simulation.current_time)
-    time_step__prepare_emitter(Event(simulation.population.population.index))
-    time_step_emitter(Event(simulation.population.population.index))
-    time_step__cleanup_emitter(Event(simulation.population.population.index))
-    simulation.current_time += time_step
+class Builder:
+    """Toolbox for constructing and configuring simulation components."""
+
+    def __init__(self, configuration, plugin_manager):
+        self.configuration = configuration
+
+        self.lookup = plugin_manager.get_plugin_interface('lookup')                 # type: LookupTableInterface
+        self.value = plugin_manager.get_plugin_interface('value')                   # type: ValuesInterface
+        self.event = plugin_manager.get_plugin_interface('event')                   # type: EventInterface
+        self.population = plugin_manager.get_plugin_interface('population')         # type: PopulationInterface
+        self.randomness = plugin_manager.get_plugin_interface('randomness')         # type: RandomnessInterface
+        self.time = plugin_manager.get_plugin_interface('clock')                    # type: TimeInterface
+        self.components = plugin_manager.get_plugin_interface('component_manager')  # type: ComponentInterface
+
+        for name, interface in plugin_manager.get_optional_interfaces().items():
+            setattr(self, name, interface)
+
+    def __repr__(self):
+        return "Builder()"
 
 
-def _get_time(suffix):
-    params = config.simulation_parameters
-    month, day = 'month' + suffix, 'day' + suffix
-    if month in params or day in params:
-        if not (month in params and day in params):
-            raise ValueError("you must either specify both a month {0} and a day {0} or neither".format(suffix))
-        return datetime(params['year_{}'.format(suffix)], params[month], params.day_start)
-    else:
-        return datetime(params['year_{}'.format(suffix)], 7, 2)
+def run_simulation(model_specification_file, results_directory):
+    results_writer = get_results_writer(results_directory, model_specification_file)
 
+    model_specification = build_model_specification(model_specification_file)
+    model_specification.configuration.output_data.update(
+        {'results_directory': results_writer.results_root}, layer='override', source='command_line')
 
-@creates_simulants
-@emits('simulation_end')
-def event_loop(simulation, simulant_creator, end_emitter):
-    start = _get_time('start')
-    stop = _get_time('end')
-    time_step = config.simulation_parameters.time_step
-    time_step = timedelta(days=time_step)
-
-    simulation.current_time = start
-
-    population_size = config.simulation_parameters.population_size
-
-    if config.simulation_parameters.initial_age is not None and config.simulation_parameters.pop_age_start is None:
-        simulant_creator(population_size, population_configuration={
-            'initial_age': config.simulation_parameters.initial_age})
-    else:
-        simulant_creator(population_size)
-
-    while simulation.current_time < stop:
-        gc.collect()  # TODO: Actually figure out where the memory leak is.
-        _step(simulation, time_step)
-
-    end_emitter(Event(simulation.population.population.index))
-
-
-def setup_simulation(components):
-    if not components:
-        components = []
-    simulation = SimulationContext(load(components + [_step, event_loop]))
-
-    simulation.setup()
-
-    return simulation
-
-
-def run_simulation(simulation):
-    start = time()
-
-    event_loop(simulation)
-
-    metrics = simulation.values.get_value('metrics')
-    metrics.source = lambda index: {}
-    metrics = metrics(simulation.population.population.index)
-    metrics['simulation_run_time'] = time() - start
-    return metrics
-
-
-def configure(input_draw_number=None, model_draw_number=None, verbose=False, simulation_config=None):
-    if simulation_config:
-        if isinstance(simulation_config, dict):
-            config.read_dict(simulation_config)
-        else:
-            config.read(simulation_config)
-
-    if input_draw_number is not None:
-        config.run_configuration.set_with_metadata('draw_number', input_draw_number,
-                                                   layer='override', source='command_line_argument')
-    if model_draw_number is not None:
-        config.run_configuration.set_with_metadata('model_draw_number', model_draw_number,
-                                                   layer='override', source='command_line_argument')
-
-
-def run(components):
-    config.set_with_metadata('run_configuration.run_id', str(time()), layer='base')
-    config.set_with_metadata('run_configuration.run_key', {'draw': config.run_configuration.draw_number}, layer='base')
-    simulation = setup_simulation(components)
-    metrics = run_simulation(simulation)
-    for k, v in collapse_nested_dict(config.run_configuration.run_key.to_dict()):
-        metrics[k] = v
+    simulation = setup_simulation(model_specification)
+    metrics, final_state = run(simulation)
 
     _log.debug(pformat(metrics))
-
-    unused_config_keys = config.unused_keys()
+    unused_config_keys = simulation.configuration.unused_keys()
     if unused_config_keys:
         _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
 
-    return metrics
+    idx = pd.Index([simulation.configuration.randomness.random_seed], name='random_seed')
+    metrics = pd.DataFrame(metrics, index=idx)
+    results_writer.write_output(metrics, 'output.hdf')
+    results_writer.write_output(final_state, 'final_state.hdf')
 
 
-def do_command(args):
-    if args.command == 'run':
-        configure(input_draw_number=args.input_draw, verbose=args.verbose, simulation_config=args.config)
-        components = read_component_configuration(args.components)
-        results = run(components)
-        if args.results_path:
-            try:
-                os.makedirs(os.path.dirname(args.results_path))
-            except FileExistsError:
-                # Directory already exists, which is fine
-                pass
-            pd.DataFrame([results]).to_hdf(args.results_path, 'data')
-    elif args.command == 'list_events':
-        if args.components:
-            component_configurations = read_component_configuration(args.components)
-            components = component_configurations['base']['components']
-        else:
-            components = None
-        simulation = setup_simulation(components)
-        print(simulation.events.list_events())
-    elif args.command == 'print_configuration':
-        configure(input_draw_number=args.input_draw, verbose=args.verbose, simulation_config=args.config)
-        components = read_component_configuration(args.components)
-        load(components)
-        print(config)
+def setup_simulation(model_specification):
+    plugin_config = model_specification.plugins
+    component_config = model_specification.components
+    simulation_config = model_specification.configuration
+
+    plugin_manager = PluginManager(plugin_config)
+    component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
+    components = component_config_parser.get_components(component_config)
+
+    simulation = SimulationContext(simulation_config, components, plugin_manager)
+    simulation.setup()
+    return simulation
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('command', choices=['run', 'list_events', 'print_configuration'])
-    parser.add_argument('components', nargs='?', default=None, type=str)
-    parser.add_argument('--verbose', '-v', action='store_true')
-    parser.add_argument('--config', '-c', type=str, default=None,
-                        help='Path to a config file to load which will take precedence over all other configs')
-    parser.add_argument('--input_draw', '-d', type=int, default=0, help='Which GBD draw to use')
-    parser.add_argument('--model_draw', type=int, default=0, help="Which draw from the model's own variation to use")
-    parser.add_argument('--results_path', '-o', type=str, default=None, help='Path to write results to')
-    parser.add_argument('--process_number', '-n', type=int, default=1, help='Instance number for this process')
-    parser.add_argument('--log', type=str, default=None, help='Path to log file')
-    parser.add_argument('--pdb', action='store_true', help='Run in the debugger')
-    args = parser.parse_args()
+def run(simulation):
+    start = time()
+    simulation.initialize_simulants()
 
-    log_level = logging.DEBUG if args.verbose else logging.ERROR
-    logging.basicConfig(filename=args.log, level=log_level)
+    while simulation.clock.time < simulation.clock.stop_time:
+        gc.collect()  # TODO: Actually figure out where the memory leak is.
+        simulation.step()
 
-    try:
-        do_command(args)
-    except (BdbQuit, KeyboardInterrupt):
-        raise
-    except Exception as e:
-        if args.pdb:
-            import pdb
-            import traceback
-            traceback.print_exc()
-            pdb.post_mortem()
-        else:
-            logging.exception("Uncaught exception {}".format(e))
-            raise
-
-if __name__ == '__main__':
-    main()
+    simulation.finalize()
+    metrics = simulation.report()
+    metrics['simulation_run_time'] = time() - start
+    return metrics, simulation.population.population

@@ -1,37 +1,14 @@
-"""
-"""
-from collections import defaultdict
+"""System for managing population creation, updating and viewing."""
+from typing import Sequence, List, Callable, Union, Mapping, Any
+from collections import deque, namedtuple
 
 import pandas as pd
 
 from vivarium import VivariumError
 
-from .util import resource_injector
-from .event import emits, Event
-
-uses_columns = resource_injector('population_system_population_view')
-uses_columns.__doc__ = """Mark a function as a user of columns from the population table. If the
-function is also an event listener then the Event object which it receives will be transformed into a
-PopulationEvent. Otherwise the function will have a configured PopulationView injected into its arguments.
-
-Parameters
-----------
-columns : [str]
-          A list of column names which the function will need to read or write.
-query   : str
-          A filter in pandas query syntax which should be applied to the population before it made accessible
-          to this function. This effects both the ``population`` and the ``index`` attributes of PopulationEvents
-"""
-
-_creates_simulants = resource_injector('population_system_simulant_creater')
-creates_simulants = _creates_simulants()
-creates_simulants.__doc__ = """Mark a function as a source of new simulants. The function will have a callable
-injected into its arguments which takes a count of new simulants, creates space for them in the population table
-and emits a 'initialize_simulants' event to fill in the table.
-"""
-
 
 class PopulationError(VivariumError):
+    """Error raised when the population system is invalidly queried or updated."""
     pass
 
 
@@ -43,11 +20,13 @@ class PopulationView:
 
     Attributes
     ----------
-    columns : [str] (read only)
-              The columns for which this view is configured
-    query   : str (read only)
-              The query which will be used to filter the population table for this view. This query may reference columns
-              not in the view's columns.
+    columns :
+        The columns for which this view is configured. If columns is None then the view will return all columns.
+        That case should be only be used in situations where the full state table is actually needed, like some
+        metrics collection applications.
+    query :
+        The query which will be used to filter the population table for this view. This query may reference columns
+        not in the view's columns.
 
     Notes
     -----
@@ -55,49 +34,57 @@ class PopulationView:
     by ``uses_columns`` or the builder's ``population_view`` method during setup.
     """
 
-    def __init__(self, manager, columns, query):
+    def __init__(self, manager: 'PopulationManager', columns: Sequence[str]=(), query: str=None):
         self.manager = manager
-        self._columns = columns
+        self._columns = list(columns)
         self._query = query
 
     @property
-    def columns(self):
+    def columns(self) -> List[str]:
+        if not self._columns:
+            return list(self.manager.population.columns)
         return list(self._columns)
 
+    def subview(self, columns: Sequence[str]) -> 'PopulationView':
+        if set(columns) > set(self._columns):
+            raise PopulationError(f"Invalid subview requested.  Requested columns must be a subset of this view's "
+                                  f"columns.  Requested columns: {columns}, Available columns: {self.columns}")
+        return PopulationView(self.manager, columns, self.query)
+
     @property
-    def query(self):
+    def query(self) -> str:
         return self._query
 
-    def register_observer(self, column, observer):
-        self.manager.register_observer(column, observer)
-
-    def deregister_observer(self, column, observer):
-        self.manager.deregister_observer(column, observer)
-
-    def get(self, index, omit_missing_columns=False):
+    def get(self, index: pd.Index, query: str='', omit_missing_columns: bool=False) -> pd.DataFrame:
         """For the rows in ``index`` get the columns from the simulation's population which this view is configured.
         The result may be further filtered by the view's query.
 
         Parameters
         ----------
-        index : pandas.Index
-        omit_missing_columns : bool
+        index :
+            Index of the population to get.
+        query :
+            Conditions used to filter the index.  May use columns not in the requested view.
+        omit_missing_columns :
             Silently skip loading columns which are not present in the population table. In general you want this to
             be False because that situation indicates an error but sometimes, like during population initialization,
             it can be convenient to just load whatever data is actually available.
 
         Returns
         -------
-        pandas.DataFrame
+        pd.DataFrame
+            A table with the subset of the population requested.
         """
 
-        pop = self.manager._population.ix[index]
+        pop = self.manager.population.loc[index]
 
         if self._query:
             pop = pop.query(self._query)
+        if query:
+            pop = pop.query(query)
 
-        if self._columns is None:
-            return pop.copy()
+        if not self._columns:
+            return pop
         else:
             if omit_missing_columns:
                 columns = list(set(self._columns).intersection(pop.columns))
@@ -107,18 +94,14 @@ class PopulationView:
                 return pop[columns].copy()
             except KeyError:
                 non_existent_columns = set(columns) - set(pop.columns)
-                raise PopulationError('The columns requested do not exist in the population table. Specifically, you '
-                                      + 'requested {}, which do(es) not exist in the '.format(non_existent_columns)
-                                      + 'population table. Are you trying to read columns during simulant '
-                                      + 'initialization? You may be able to lower the priority of your handler so '
-                                      + 'that it happens after the component that creates the column you need.')
+                raise PopulationError(f'Requested column(s) {non_existent_columns} not in population table.')
 
-    def update(self, pop):
+    def update(self, pop: Union[pd.DataFrame, pd.Series]):
         """Update the simulation's state to match ``pop``
 
         Parameters
         ----------
-        pop : pandas.DataFrame or pandas.Series
+        pop :
               The data which should be copied into the simulation's state. If ``pop`` is a DataFrame only those columns
               included in the view's columns will be used. If ``pop`` is a Series it must have a name that matches
               one of the view's columns unless the view only has one column in which case the Series will be assumed to
@@ -138,12 +121,13 @@ class PopulationView:
                 affected_columns = set(pop.columns)
 
             affected_columns = set(affected_columns).intersection(self._columns)
+            state_table = self.manager.population
             if not self.manager.growing:
-                affected_columns = set(affected_columns).intersection(self.manager._population.columns)
+                affected_columns = set(affected_columns).intersection(state_table.columns)
 
             for c in affected_columns:
-                if c in self.manager._population:
-                    v = self.manager._population[c].values
+                if c in state_table:
+                    v = state_table[c].values
                     if isinstance(pop, pd.Series):
                         v2 = pop.values
                     else:
@@ -165,50 +149,11 @@ class PopulationView:
                         v = pop[c].values
                 self.manager._population[c] = v
 
-                # Notify column observers
-                for observer in self.manager.observers[c]:
-                    observer()
-
     def __repr__(self):
-        return "PopulationView(manager= {} , _columns= {}, _query= {})".format(self.manager,
-                                                                               self._columns,
-                                                                               self._query)
+        return "PopulationView(_columns= {}, _query= {})".format(self._columns, self._query)
 
 
-class PopulationEvent(Event):
-    """A standard Event with additional population data. This is the type of event that functions decorated with both
-    ``listens_for`` and ``uses_columns`` will receive.
-
-    Attributes
-    ----------
-    population      : pandas.DataFrame
-                      A copy of the subset of the simulation's population table selected by applying the underlying Event's
-                      index to the PopulationView which created this event
-    population_view : PopulationView
-                      The PopulationView which created this event
-    index           : pandas.Index
-                      The index of the underlying Event filtered by the PopulationView's query, if any.
-    """
-
-    def __init__(self, index, population, population_view, user_data=None, time=None):
-        super(PopulationEvent, self).__init__(index, user_data)
-        self.population = population
-        self.population_view = population_view
-        self.time = time
-
-    @staticmethod
-    def from_event(event, population_view):
-        if not population_view.manager.growing:
-            population = population_view.get(event.index)
-            return PopulationEvent(population.index, population, population_view, event.user_data, time=event.time)
-
-        population = population_view.get(event.index, omit_missing_columns=True)
-        return PopulationEvent(event.index, population, population_view, event.user_data, time=event.time)
-
-    def __repr__(self):
-        return "PopulationEvent(population= {}, population_view= {}, time= {})".format(self.population,
-                                                                                       self.population_view,
-                                                                                       self.time)
+SimulantData = namedtuple('SimulantData', ['index', 'user_data', 'creation_time', 'creation_window'])
 
 
 class PopulationManager:
@@ -221,22 +166,22 @@ class PopulationManager:
         during setup.
     """
 
+    configuration_defaults = {
+        'population': {'population_size': 100}
+    }
+
     def __init__(self):
         self._population = pd.DataFrame()
+        self._population_initializers = [(self.on_create_simulants, ['tracked'], [])]
+        self._initializers_ordered = False
         self.growing = False
-        self.observers = defaultdict(set)
-
-    def register_observer(self, column, observer):
-        self.observers[column].add(observer)
-
-    def deregister_observer(self, column, observer):
-        if observer in self.observers[column]:
-            self.observers[column].remove(observer)
 
     def setup(self, builder):
-        self.clock = builder.clock()
+        self.clock = builder.time.clock()
+        self.step_size = builder.time.step_size()
+        builder.value.register_value_modifier('metrics', modifier=self.metrics)
 
-    def get_view(self, columns, query=None):
+    def get_view(self, columns: Sequence[str], query: str=None) -> PopulationView:
         """Return a configured PopulationView
 
         Notes
@@ -246,52 +191,141 @@ class PopulationManager:
         generated column names that aren't known at definition time. Otherwise
         components should use ``uses_columns``.
         """
-
+        if 'tracked' not in columns:
+            query_with_track = query + 'and tracked == True' if query else 'tracked == True'
+            return PopulationView(self, columns, query_with_track)
         return PopulationView(self, columns, query)
 
-    @emits('initialize_simulants')
-    def _create_simulants(self, count, emitter, population_configuration=None):
+    def register_simulant_initializer(self, initializer: Callable,
+                                      creates_columns: Sequence[str]=(), requires_columns: Sequence[str]=()):
+        self._population_initializers.append((initializer, creates_columns, tuple(requires_columns)+('tracked',)))
+
+    def get_simulant_creator(self) -> Callable:
+        return self._create_simulants
+
+    def on_create_simulants(self, pop_data):
+        status = pd.Series(True, index=pop_data.index)
+        self.get_view(['tracked']).update(status)
+
+    def _order_initializers(self) -> None:
+        unordered_initializers = deque(self._population_initializers)
+        starting_length = -1
+        available_columns = []
+        self._population_initializers = []
+
+        # This is the brute force N^2 way because constructing a dependency graph is work
+        # and in practice this should run in about order N time due to the way dependencies are
+        # typically specified.  N is also very small in all current applications.
+        while len(unordered_initializers) != starting_length:
+            starting_length = len(unordered_initializers)
+            for _ in range(len(unordered_initializers)):
+                initializer, columns_created, columns_required = unordered_initializers.pop()
+                if set(columns_required) <= set(available_columns):
+                    self._population_initializers.append((initializer, columns_created, columns_required))
+                    available_columns.extend(columns_created)
+                else:
+                    unordered_initializers.appendleft((initializer, columns_created, columns_required))
+
+        if unordered_initializers:
+            raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
+                                  f"Check for cyclic dependencies in your components.")
+
+        if len(set(available_columns)) < len(available_columns):
+            raise PopulationError("Multiple components are attempting to initialize the "
+                                  "same columns in the state table.")
+
+        self._initializers_ordered = True
+
+    def _create_simulants(self, count: int, population_configuration: Mapping[str, Any]=None) -> pd.Index:
+        population_configuration = population_configuration if population_configuration else {}
+        if not self._initializers_ordered:
+            self._order_initializers()
+
         new_index = range(len(self._population) + count)
         new_population = self._population.reindex(new_index)
         index = new_population.index.difference(self._population.index)
         self._population = new_population
         self.growing = True
-        emitter(Event(index, user_data=population_configuration))
+        for initializer, *_ in self._population_initializers:
+            initializer(SimulantData(index, population_configuration, self.clock(), self.step_size()))
         self.growing = False
         return index
 
-    def _population_view_injector(self, func, args, kwargs, columns, query=None):
-        view = self.get_view(columns, query)
-        found = False
-        if 'event' in kwargs:
-            kwargs['event'] = PopulationEvent.from_event(kwargs['event'], view)
-        else:
-            new_args = []
-            for arg in args:
-                if isinstance(arg, Event):
-                    arg = PopulationEvent.from_event(arg, view)
-                    found = True
-                new_args.append(arg)
-            args = new_args
+    def metrics(self, index, metrics):
+        population = self.get_view(['tracked']).get(index)
+        untracked = population[~population.tracked]
+        tracked = population[population.tracked]
 
-        if not found:
-            # This function is not receiving an event. Inject a PopulationView directly.
-            args = list(args) + [view]
-
-        return args, kwargs
-
-    def _creates_simulants_injector(self, func, args, kwargs):
-        return list(args) + [self._create_simulants], kwargs
-
-    def setup_components(self, components):
-        uses_columns.set_injector(self._population_view_injector)
-        _creates_simulants.set_injector(self._creates_simulants_injector)
+        metrics['total_population_untracked'] = len(untracked)
+        metrics['total_population_tracked'] = len(tracked)
+        metrics['total_population'] = len(untracked)+len(tracked)
+        return metrics
 
     @property
-    def population(self):
+    def population(self) -> pd.DataFrame:
         return self._population.copy()
 
     def __repr__(self):
-        return "PopulationManager(_population= {}, growing= {}, observers= {})".format(self._population,
-                                                                                       self.growing,
-                                                                                       self.observers)
+        return "PopulationManager()"
+
+
+class PopulationInterface:
+
+    def __init__(self, population_manager: PopulationManager):
+        self._population_manager = population_manager
+
+    def get_view(self, columns: Sequence[str], query: str = None) -> PopulationView:
+        """Get a time-varying view of the population state table.
+
+        The requested population view can be used to view the current state or to update the state
+        with new values.
+
+        Parameters
+        ----------
+        columns :
+            A subset of the state table columns that will be available in the returned view.
+        query :
+            A filter on the population state.  This filters out particular rows (simulants) based
+            on their current state.  The query should be provided in a way that is understood by
+            the ``pandas.DataFrame.query`` method and may reference state table columns not
+            requested in the ``columns`` argument.
+
+        Returns
+        -------
+        PopulationView
+            A filtered view of the requested columns of the population state table.
+        """
+        return self._population_manager.get_view(columns, query)
+
+    def get_simulant_creator(self) -> Callable[[int, Union[Mapping[str, Any], None]], pd.Index]:
+        """Grabs a reference to the function that creates new simulants (adds rows to the state table).
+
+        Returns
+        -------
+        Callable
+           The simulant creator function. The creator function takes the number of simulants to be
+           created as it's first argument and a dict or other mapping of population configuration
+           that will be available to simulant initializers as it's second argument. It generates
+           the new rows in the population state table and then calls each initializer
+           registered with the population system with a data object containing the state table
+           index of the new simulants, the configuration info passed to the creator, the current
+           simulation time, and the size of the next time step.
+        """
+        return self._population_manager.get_simulant_creator()
+
+    def initializes_simulants(self, initializer: Callable[[SimulantData], None],
+                              creates_columns: Sequence[str]=(),
+                              requires_columns: Sequence[str]=()):
+        """Marks a callable as a source of initial state information for new simulants.
+
+        Parameters
+        ----------
+        initializer :
+            A callable that adds or updates initial state information about new simulants.
+        creates_columns :
+            A list of the state table columns that the given initializer provides the initial state information for.
+        requires_columns :
+            A list of the state table columns that already need to be present and populated
+            in the state table before the provided initializer is called.
+        """
+        self._population_manager.register_simulant_initializer(initializer, creates_columns, requires_columns)

@@ -1,11 +1,9 @@
-from datetime import datetime
-
 import pytest
 import pandas as pd
 import numpy as np
 
 import vivarium.framework.randomness as random
-from vivarium.framework.randomness import RandomnessStream, RESIDUAL_CHOICE, RandomnessError
+from vivarium.framework.randomness import RandomnessManager, RandomnessStream, RESIDUAL_CHOICE, RandomnessError
 
 
 @pytest.fixture(params=[10**4, 10**5])
@@ -24,9 +22,9 @@ def weights(request):
     return request.param
 
 
-@pytest.fixture(scope='function', params=[(0.2, 0.1, RESIDUAL_CHOICE),
-                                          (0.5, 0.6, RESIDUAL_CHOICE),
-                                          (.1, RESIDUAL_CHOICE, RESIDUAL_CHOICE)])
+@pytest.fixture(params=[(0.2, 0.1, RESIDUAL_CHOICE),
+                        (0.5, 0.6, RESIDUAL_CHOICE),
+                        (.1, RESIDUAL_CHOICE, RESIDUAL_CHOICE)])
 def weights_with_residuals(request):
     return request.param
 
@@ -59,7 +57,7 @@ def test__set_residual_probability(weights_with_residuals, index):
 
 
 def test_filter_for_probability(index):
-    dates = [datetime(1991, 1, 1), datetime(1990, 1, 1)]
+    dates = [pd.Timestamp(1991, 1, 1), pd.Timestamp(1990, 1, 1)]
     randomness = RandomnessStream('test', dates.pop, 1)
 
     sub_index = randomness.filter_for_probability(index, 0.5)
@@ -70,7 +68,7 @@ def test_filter_for_probability(index):
 
 
 def test_choice(index, choices, weights):
-    dates = [datetime(1990, 1, 1)]
+    dates = [pd.Timestamp(1990, 1, 1)]
     randomness = RandomnessStream('test', dates.pop, 1)
 
     chosen = randomness.choice(index, choices, p=weights)
@@ -83,7 +81,7 @@ def test_choice(index, choices, weights):
 
 def test_choice_with_residuals(index, choices, weights_with_residuals):
     print(RESIDUAL_CHOICE in weights_with_residuals)
-    dates = [datetime(1990, 1, 1)]
+    dates = [pd.Timestamp(1990, 1, 1)]
     randomness = RandomnessStream('test', dates.pop, 1)
 
     p = random._normalize_shape(weights_with_residuals, index)
@@ -96,7 +94,6 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
             # We received un-normalized probability weights.
             randomness.choice(index, choices, p=weights_with_residuals)
 
-
     elif np.any(residual.sum(axis=1) > 1):
         with pytest.raises(RandomnessError):
             # We received multiple instances of `RESIDUAL_CHOICE`
@@ -107,8 +104,48 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
         count = chosen.value_counts()
         print(weights_with_residuals)
         # We're relying on the fact that weights_with_residuals is a 1-d list
-        resid_p = 1 - sum([w for w in weights_with_residuals if w != RESIDUAL_CHOICE])
-        weights = [w if w != RESIDUAL_CHOICE else resid_p for w in weights_with_residuals]
+        residual_p = 1 - sum([w for w in weights_with_residuals if w != RESIDUAL_CHOICE])
+        weights = [w if w != RESIDUAL_CHOICE else residual_p for w in weights_with_residuals]
 
         for k, c in count.items():
             assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
+
+
+def mock_clock():
+    return pd.Timestamp('1/1/2005')
+
+
+def test_RandomnessManager_get_randomness_stream():
+    seed = 123456
+
+    rm = RandomnessManager()
+    rm._seed = seed
+    rm._clock = mock_clock
+    stream = rm.get_randomness_stream('test')
+
+    assert stream.key == 'test'
+    assert stream.seed == seed
+    assert stream.clock is mock_clock
+    assert rm._decision_points == {'test'}
+
+    with pytest.raises(RandomnessError):
+        rm.get_randomness_stream('test')
+
+
+def test_RandomnessManager_register_simulants():
+    seed = 123456
+    rm = RandomnessManager()
+    rm._seed = seed
+    rm._clock = mock_clock
+    rm._key_columns = ['age', 'sex']
+
+    bad_df = pd.DataFrame({'age': range(10),
+                           'not_sex': [1]*5 + [2]*5})
+    with pytest.raises(RandomnessError):
+        rm.register_simulants(bad_df)
+
+    good_df = pd.DataFrame({'age': range(10),
+                            'sex': [1]*5 + [2]*5})
+
+    rm.register_simulants(good_df)
+    assert rm._key_mapping._map.index.difference(good_df.set_index(good_df.columns.tolist()).index).empty

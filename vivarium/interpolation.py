@@ -1,25 +1,32 @@
-import pandas as pd
+import warnings
 
+import pandas as pd
 from scipy import interpolate
 
+
 class Interpolation:
-    def __init__(self, data, categorical_parameters, continuous_parameters, func=None, order=1):
+    def __init__(self, data, categorical_parameters, continuous_parameters, order, func=None):
+        data = data
         self.key_columns = categorical_parameters
-        self.parameter_columns = continuous_parameters
+
+        if data.empty:
+            raise ValueError("Must supply some input data")
+
+        self.parameter_columns, self_data = validate_parameters(data, continuous_parameters, order)
         self.func = func
 
         if len(self.parameter_columns) not in [1, 2]:
             raise ValueError("Only interpolation over 1 or 2 variables is supported")
-        if len(self.parameter_columns) == 1 and order == 0:
-            raise ValueError("Order 0 only supported for 2d interpolation")
 
         # These are the columns which the interpolation function will approximate
         value_columns = sorted(data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
+        assert value_columns, (f"No non-parameter data. Avaliable columns: {data.columns}, "
+                               f"Parameter columns: {set(self.key_columns)|set(self.parameter_columns)}")
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
             # columns to get the sub-tables to fit
-            sub_tables = data.groupby(self.key_columns)
+            sub_tables = data.groupby(list(self.key_columns))
         else:
             # There are no key columns so we will fit the whole table
             sub_tables = {None: data}.items()
@@ -51,8 +58,12 @@ class Interpolation:
                     base_table = base_table.sort_values(by=self.parameter_columns[0])
                     x = base_table[self.parameter_columns[0]]
                     y = base_table[value_column]
-                    func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
+                    if order == 0:
+                        func = interpolate.interp1d(x, y, kind='zero', fill_value='extrapolate')
+                    else:
+                        func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
                 self.interpolations[key][value_column] = func
+        assert self.interpolations
 
     def __call__(self, *args, **kwargs):
         # TODO: Should be more defensive about this
@@ -64,7 +75,7 @@ class Interpolation:
             df = pd.DataFrame(kwargs)
 
         if self.key_columns:
-            sub_tables = df.groupby(self.key_columns)
+            sub_tables = df.groupby(list(self.key_columns))
         else:
             sub_tables = [(None, df)]
 
@@ -90,3 +101,20 @@ class Interpolation:
             return result[result.columns[0]]
 
         return result
+
+    def __repr__(self):
+        return "Interpolation()"
+
+
+def validate_parameters(data, continuous_parameters, order):
+    out = []
+    for p in continuous_parameters:
+        if len(data[p].unique()) > order:
+            out.append(p)
+        else:
+            warnings.warn(f"You requested an order {order} interpolation over the parameter {p}, "
+                          f"however there are only {len(data[p].unique())} unique values for {p}"
+                          f"which is insufficient to support the requested interpolation order."
+                          f"The parameter will be dropped from the interpolation.")
+            data = data.drop(p, axis='columns')
+    return out, data

@@ -1,64 +1,7 @@
-from functools import wraps
+from importlib import import_module
+from typing import Callable
 
 import numpy as np
-
-
-def marker_factory(marker_attribute, with_priority=False):
-    if with_priority:
-        def decorator(label, priority=5):
-            def wrapper(func):
-                if not hasattr(func, marker_attribute):
-                    func.__dict__[marker_attribute] = [set() for _ in range(10)]
-                getattr(func, marker_attribute)[priority].add(label)
-                return func
-            return wrapper
-    else:
-        def decorator(label):
-            def wrapper(func):
-                if not hasattr(func, marker_attribute):
-                    func.__dict__[marker_attribute] = []
-                getattr(func, marker_attribute).append(label)
-                return func
-            return wrapper
-
-    def finder(func):
-        if not hasattr(func, marker_attribute):
-            return []
-
-        return getattr(func, marker_attribute)
-    decorator.finder = finder
-
-    return decorator
-
-
-def resource_injector(marker_attribute):
-    injector = [lambda args, *injector_args, **injector_kwargs: args]
-
-    def decorator(*injector_args, **injector_kwargs):
-        def wrapper(func):
-            if not hasattr(func, marker_attribute):
-                func.__dict__[marker_attribute] = []
-            getattr(func, marker_attribute).append((injector_args, injector_kwargs))
-
-            @wraps(func)
-            def inner(*args, **kwargs):
-                args, kwargs = injector[0](func, args, kwargs, *injector_args, **injector_kwargs)
-                return func(*args, **kwargs)
-            return inner
-        return wrapper
-
-    def set_injector(func):
-        injector[0] = func
-    decorator.set_injector = set_injector
-
-    def finder(func):
-        if not hasattr(func, marker_attribute):
-            return []
-
-        return getattr(func, marker_attribute)
-    decorator.finder = finder
-
-    return decorator
 
 
 def from_yearly(value, time_step):
@@ -88,65 +31,14 @@ def collapse_nested_dict(d, prefix=None):
     return results
 
 
-def expand_branch_templates(templates):
+def import_by_path(path: str) -> Callable:
+    """Import a class or function given it's absolute path.
+
+    Parameters
+    ----------
+    path:
+      Path to object to import
     """
-    Take a list of dictionaries of configuration values (like the ones used in
-    experiment branch configurations) and expand it by taking any values which
-    are lists and creating a new set of branches which is made up of the
-    product of all those lists plus all non-list values.
 
-    For example this:
-
-    {'a': {'b': [1,2], 'c': 3, 'd': [4,5,6]}}
-
-    becomes this:
-
-    [
-        {'a': {'b': 1, 'c': 3, 'd': 4}},
-        {'a': {'b': 2, 'c': 3, 'd': 5}},
-        {'a': {'b': 1, 'c': 3, 'd': 6}},
-        {'a': {'b': 2, 'c': 3, 'd': 4}},
-        {'a': {'b': 1, 'c': 3, 'd': 5}},
-        {'a': {'b': 2, 'c': 3, 'd': 6}}
-    ]
-
-    """
-    expanded_branches = []
-
-    for branch in templates:
-        branch = sorted(collapse_nested_dict(branch))
-        branch = [(k, v if isinstance(v, list) else [v]) for k, v in branch]
-        expanded_size = np.product([len(v) for k, v in branch])
-        new_branches = []
-        pointers = {k:0 for k, _ in branch}
-        for _ in range(expanded_size):
-            new_branch = []
-            tick = True
-            for k, v in branch:
-                new_branch.append((k, v[pointers[k]]))
-                if tick:
-                    i = pointers[k]+1
-                    if i < len(v):
-                        tick = False
-                        pointers[k] = i
-                    else:
-                        pointers[k] = 0
-            new_branches.append(new_branch)
-        expanded_branches.extend(new_branches)
-
-    final_branches = []
-    for branch in expanded_branches:
-        root = {}
-        final_branches.append(root)
-        for k, v in branch:
-            current = root
-            *ks, k = k.split('.')
-            for sub_k in ks:
-                if sub_k in current:
-                    current = current[sub_k]
-                else:
-                    current[sub_k] = {}
-                    current = current[sub_k]
-            current[k] = v
-
-    return final_branches
+    module_path, _, class_name = path.rpartition('.')
+    return getattr(import_module(module_path), class_name)

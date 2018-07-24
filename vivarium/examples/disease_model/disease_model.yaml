@@ -1,0 +1,47 @@
+components:
+    vivarium.examples.disease_model:
+        population:
+            - BasePopulation()
+            - Mortality()
+            - Observer()
+        disease:
+            - SIS_DiseaseModel('diarrhea')
+        risk:
+            - Risk('child_growth_failure')
+            - DirectEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate')
+            - DirectEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate')
+        intervention:
+            - MagicWandIntervention('breastfeeding_promotion', 'child_growth_failure.proportion_exposed')
+
+configuration:
+    randomness:
+        key_columns: ['entrance_time', 'age']
+    time:
+        start:
+            year: 2005
+            month: 7
+            day: 1
+        end:
+            year: 2006
+            month: 7
+            day: 1
+        step_size: 3  # Days
+    population:
+        population_size: 10_000
+        age_start: 0
+        age_end: 30
+    mortality:
+        mortality_rate: 0.05
+        life_expectancy: 80
+    diarrhea:
+        incidence: 2.5  # Approximately 2.5 cases per person per year.
+        remission: 42  # Approximately 6 day median recovery time
+        excess_mortality: 12  # Approximately 22 % of cases result in death
+    child_growth_failure:
+        proportion_exposed: 0.5
+    effect_of_child_growth_failure_on_infected_with_diarrhea.incidence_rate:
+        relative_risk: 5
+    effect_of_child_growth_failure_on_infected_with_diarrhea.excess_mortality_rate:
+        relative_risk: 5
+    breastfeeding_promotion:
+        effect_size: 0.5

@@ -5,16 +5,18 @@ import pandas as pd
 import numpy as np
 
 
-def _next_state(index, transition_set, population_view):
+def _next_state(index, event_time, transition_set, population_view):
     """Moves a population between different states using information from a `TransitionSet`.
 
     Parameters
     ----------
     index : iterable of ints
         An iterable of integer labels for the simulants.
-    transition_set : `TransitionSet`
+    event_time : pandas.Timestamp
+        When this transition is occurring.
+    transition_set : TransitionSet
         A set of potential transitions available to the simulants.
-    population_view : `pandas.DataFrame`
+    population_view : vivarium.framework.population.PopulationView
         A view of the internal state of the simulation.
     """
 
@@ -28,11 +30,13 @@ def _next_state(index, transition_set, population_view):
         for output, affected_index in sorted(groups, key=lambda x: str(x[0])):
             if output == 'null_transition':
                 pass
-            elif isinstance(output, TransientState):
-                output.transition_effect(affected_index, population_view)
-                output.next_state(affected_index, population_view)
+            elif isinstance(output, Transient):
+                if not isinstance(output, State):
+                    raise ValueError('Invalid transition output: {}'.format(output))
+                output.transition_effect(affected_index, event_time, population_view)
+                output.next_state(affected_index, event_time, population_view)
             elif isinstance(output, State):
-                output.transition_effect(affected_index, population_view)
+                output.transition_effect(affected_index, event_time, population_view)
             else:
                 raise ValueError('Invalid transition output: {}'.format(output))
 
@@ -87,14 +91,17 @@ class Transition:
 
     Parameters
     ----------
-    output : State
+    input_state: State
+        The start state of the entity that undergoes the transition.
+    output_state : State
         The end state of the entity that undergoes the transition.
-    probability_func : callable
+    probability_func : Callable
         A method or function that describing the probability of this transition occurring.
     """
-    def __init__(self, output, probability_func=lambda index: pd.Series(1, index=index),
+    def __init__(self, input_state, output_state, probability_func=lambda index: pd.Series(1, index=index),
                  triggered=Trigger.NOT_TRIGGERED):
-        self.output = output
+        self.input_state = input_state
+        self.output_state = output_state
         self._probability = probability_func
         self._active_index, self.start_active = _process_trigger(triggered)
 
@@ -128,13 +135,8 @@ class Transition:
         """The name of this transition."""
         return ''
 
-    def __str__(self):
-        return 'Transition({})'.format(self.output)
-
     def __repr__(self):
-        return 'Transition(output= {}, _probability={}, _active={})'.format(self.output,
-                                                                            self._probability,
-                                                                            self._active_index)
+        return f'Transition(from={self.input_state.state_id}, to={self.output_state.state_id})'
 
 
 class State:
@@ -146,9 +148,6 @@ class State:
         The name of this state.
     transition_set : `TransitionSet`
         A container for potential transitions out of this state.
-
-    Additional Parameters
-    ---------------------
     key : object, optional
         Typically a string used with the state_id to label this state's `transition_set`,
         however, any object may be used.
@@ -172,36 +171,39 @@ class State:
         iterable
             This component's sub-components.
         """
+        builder.components.add_components([self.transition_set])
 
-        return [self.transition_set]
-
-    def next_state(self, index, population_view):
+    def next_state(self, index, event_time, population_view):
         """Moves a population between different states using information this state's `transition_set`.
 
         Parameters
         ----------
         index : iterable of ints
             An iterable of integer labels for the simulants.
-        population_view : `pandas.DataFrame`
+        event_time : pandas.Timestamp
+            When this transition is occurring.
+        population_view : vivarium.framework.population.PopulationView
             A view of the internal state of the simulation.
         """
-        return _next_state(index, self.transition_set, population_view)
+        return _next_state(index, event_time, self.transition_set, population_view)
 
-    def transition_effect(self, index, population_view):
+    def transition_effect(self, index, event_time, population_view):
         """Updates the simulation state and triggers any side-effects associated with entering this state.
 
         Parameters
         ----------
         index : iterable of ints
             An iterable of integer labels for the simulants.
+        event_time : pandas.Timestamp
+            The time at which this transition occurs.
         population_view : `vivarium.framework.population.PopulationView`
             A view of the internal state of the simulation.
         """
         population_view.update(pd.Series(self.state_id, index=index))
-        self._transition_side_effect(index)
+        self._transition_side_effect(index, event_time)
 
-    def cleanup_effect(self, index):
-        self._cleanup_effect(index)
+    def cleanup_effect(self, index, event_time):
+        self._cleanup_effect(index, event_time)
 
     def add_transition(self, output,
                        probability_func=lambda index: np.ones(len(index), dtype=float),
@@ -211,21 +213,18 @@ class State:
         output : State
             The end state after the transition.
         """
-        t = Transition(output, probability_func=probability_func, triggered=triggered)
+        t = Transition(self, output, probability_func=probability_func, triggered=triggered)
         self.transition_set.append(t)
         return t
 
     def allow_self_transitions(self):
         self.transition_set.allow_null_transition = True
 
-    def _transition_side_effect(self, index):
+    def _transition_side_effect(self, index, event_time):
         pass
 
-    def _cleanup_effect(self, index):
+    def _cleanup_effect(self, index, event_time):
         pass
-
-    def name(self):
-        return self.state_id
 
     def __str__(self):
         return repr(self)
@@ -234,13 +233,17 @@ class State:
         return 'State({})'.format(self.state_id)
 
 
-class TransientState(State):
+class Transient:
     """Used to tell _next_state to transition a second time."""
+    pass
+
+
+class TransientState(State, Transient):
     def __repr__(self):
         return 'TransientState({})'.format(self.state_id)
 
 
-class TransitionSet(list):
+class TransitionSet:
     """A container for state machine transitions.
 
     Parameters
@@ -252,14 +255,11 @@ class TransitionSet(list):
         Typically a string labelling an instance of this class, but any object will do.
     """
     def __init__(self, *iterable, allow_null_transition=False, key='state_machine'):
-        super().__init__(iterable)
-
-        if not all([isinstance(a, Transition) for a in self]):
-            raise TypeError(
-                'TransitionSet must contain only Transition objects. Check constructor arguments: {}'.format(self))
-
         self.allow_null_transition = allow_null_transition
         self.key = str(key)
+        self.transitions = []
+
+        self.extend(iterable)
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -275,8 +275,8 @@ class TransitionSet(list):
         iterable
             This component's sub-components.
         """
-        self.random = builder.randomness(self.key)
-        return list(self)
+        builder.components.add_components(self.transitions)
+        self.random = builder.randomness.get_stream(self.key)
 
     def choose_new_state(self, index):
         """Chooses a new state for each simulant in the index.
@@ -293,8 +293,8 @@ class TransitionSet(list):
         decisions: `pandas.Series`
             A series containing the name of the next state for each simulant in the index.
         """
-        outputs, probabilities = zip(*[(transition.output, np.array(transition.probability(index)))
-                                       for transition in self])
+        outputs, probabilities = zip(*[(transition.output_state, np.array(transition.probability(index)))
+                                       for transition in self.transitions])
         probabilities = np.transpose(probabilities)
         outputs, probabilities = self._normalize_probabilities(outputs, probabilities)
         return outputs, self.random.choice(index, outputs, probabilities)
@@ -321,7 +321,7 @@ class TransitionSet(list):
         """
         outputs = list(outputs)
         total = np.sum(probabilities, axis=1)
-        if self.allow_null_transition:
+        if self.allow_null_transition or not np.any(total):
             if np.any(total > 1+1e-08):  # Accommodate rounding errors
                 raise ValueError(
                     "Null transition requested with un-normalized probability weights: {}".format(probabilities))
@@ -330,11 +330,27 @@ class TransitionSet(list):
             outputs.append('null_transition')
         return outputs, probabilities/(np.sum(probabilities, axis=1)[:, np.newaxis])
 
+    def append(self, transition):
+        if not isinstance(transition, Transition):
+            raise TypeError(
+                'TransitionSet must contain only Transition objects. Check constructor arguments: {}'.format(self))
+        self.transitions.append(transition)
+
+    def extend(self, transitions):
+        for transition in transitions:
+            self.append(transition)
+
+    def __iter__(self):
+        return iter(self.transitions)
+
+    def __len__(self):
+        return len(self.transitions)
+
     def __str__(self):
-        return repr(self)
+        return str([str(x) for x in self.transitions])
 
     def __repr__(self):
-        return str([str(x) for x in self])
+        return repr([repr(x) for x in self.transitions])
 
     def __hash__(self):
         return hash(id(self))
@@ -372,30 +388,32 @@ class Machine:
         iterable
             This component's sub-components.
         """
-        self.population_view = builder.population_view([self.state_column])
-        return self.states
+        builder.components.add_components(self.states)
+        self.population_view = builder.population.get_view([self.state_column])
 
     def add_states(self, states):
         for state in states:
             self.states.append(state)
             state._model = self.state_column
 
-    def transition(self, index):
+    def transition(self, index, event_time):
         """Finds the population in each state and moves them to the next state.
 
         Parameters
         ----------
         index : iterable of ints
             An iterable of integer labels for the simulants.
+        event_time : pandas.Timestamp
+            The time at which this transition occurs.
         """
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
-                state.next_state(affected.index, self.population_view)
+                state.next_state(affected.index, event_time, self.population_view.subview([self.state_column]))
 
-    def cleanup(self, index):
+    def cleanup(self, index, event_time):
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
-                state.cleanup_effect(affected.index)
+                state.cleanup_effect(affected.index, event_time)
 
     def to_dot(self):
         """Produces a ball and stick graph of this state machine.
@@ -409,11 +427,11 @@ class Machine:
         dot = Digraph(format='png')
         for state in self.states:
             if isinstance(state, TransientState):
-                dot.node(state.name(), style='dashed')
+                dot.node(state.state_id, style='dashed')
             else:
-                dot.node(state.name())
+                dot.node(state.state_id)
             for transition in state.transition_set:
-                dot.edge(state.name(), transition.output.name(), transition.label())
+                dot.edge(state.state_id, transition.output.state_id, transition.label())
         return dot
 
     def _get_state_pops(self, index):

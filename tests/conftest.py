@@ -1,9 +1,34 @@
 import os
-from vivarium import config
+import pytest
 
-# Remove user overrides but keep custom cache locations if any
-config.reset_layer('override', preserve_keys=['input_data.intermediary_data_cache_path', 'input_data.auxiliary_data_folder'])
-config.simulation_parameters.set_with_metadata('year_start', 1990, layer='override', source=os.path.realpath(__file__))
-config.simulation_parameters.set_with_metadata('year_end', 2010, layer='override', source=os.path.realpath(__file__))
-config.simulation_parameters.set_with_metadata('time_step', 30.5, layer='override', source=os.path.realpath(__file__))
-config.simulation_parameters.set_with_metadata('initial_age', '', layer='override', source=os.path.realpath(__file__))
+from vivarium.framework.configuration import build_simulation_configuration, build_model_specification
+from vivarium.test_util import metadata
+
+
+@pytest.fixture(scope='function')
+def base_config():
+    config = build_simulation_configuration()
+    config.update({
+        'time': {
+            'start': {
+                'year': 1990,
+            },
+            'end': {
+                'year': 2010
+            },
+            'step_size': 30.5
+        }
+    }, **metadata(__file__))
+    return config
+
+
+@pytest.fixture(scope='function')
+def model_specification(mocker):
+    test_dir = os.path.dirname(os.path.realpath(__file__))
+    user_config = test_dir + '/test_data/mock_user_config.yaml'
+    model_spec = test_dir + '/test_data/mock_model_specification.yaml'
+
+    expand_user_mock = mocker.patch('vivarium.framework.configuration.os.path.expanduser')
+    expand_user_mock.return_value = user_config
+
+    return build_model_specification(model_spec)
