@@ -11,7 +11,7 @@ Submitting Changes
 
 - Always make a new branch for your work.
 - Patches should be small to facilitate easier review. Sometimes this will result in many small
-   PRs to land a single large feature.
+  PRs to land a single large feature.
 - Larger changes should be discussed in the project's GitHub issues page.
 - New features and significant bug fixes should be documented in the changelog.
 - You must have legal permission to distribute any code you contribute to cryptography, and it
