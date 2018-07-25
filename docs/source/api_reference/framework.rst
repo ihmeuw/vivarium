@@ -17,5 +17,5 @@ Framework
    framework/results_writer
    framework/state_machine
    framework/time
-   framework/util
+   framework/utilities
    framework/values
