@@ -1,7 +1,7 @@
 Vivarium Documentation
 ======================
 
-.. include:: ../../README.md
+.. include:: ../../README.rst
    :start-line: 2
 
 .. toctree::

@@ -9,4 +9,4 @@ API Reference
    api_reference/interface
    api_reference/config_tree
    api_reference/interpolation
-   api_reference/test_util
+   api_reference/testing_utilities
