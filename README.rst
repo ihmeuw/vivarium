@@ -21,6 +21,7 @@ or build it from source with
   ``> git clone https://github.com/ihmeuw/vivarium.git``
 
   ``> cd vivarium``
+
   ``> python setup.py install``
 
 This will make the ``vivarium`` library available to python and install a command-line executable called ``simulate``
