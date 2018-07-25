@@ -1,7 +1,7 @@
 Vivarium
 ========
 
-.. image:: https://travis-ci.org/ihmeuw/vivarium.svg?branch=master
+.. image:: https://travis-ci.org/ihmeuw/vivarium.svg?branch=develop
     :target: https://travis-ci.org/ihmeuw/vivarium
     :alt: Latest Version
 
