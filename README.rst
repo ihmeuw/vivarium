@@ -1,6 +1,9 @@
 Vivarium
 ========
 
+.. image:: https://badge.fury.io/py/vivarium.svg
+    :target: https://badge.fury.io/py/vivarium
+
 .. image:: https://travis-ci.org/ihmeuw/vivarium.svg?branch=develop
     :target: https://travis-ci.org/ihmeuw/vivarium
     :alt: Latest Version
@@ -12,7 +15,6 @@ Vivarium
 Vivarium is a framework for microsimulation written using standard scientific Python tools.
 
 You can install ``vivarium`` from PyPI with pip:
-
 
   ``> pip install vivarium``
 
