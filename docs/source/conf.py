@@ -18,19 +18,24 @@ import os
 import sys
 
 import vivarium
+src_dir = os.path.dirname(vivarium.__file__)
+
+about = {}
+with open(os.path.join(src_dir, "__about__.py")) as f:
+    exec(f.read(), about)
 
 sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'vivarium'
-copyright = '2018, Alec Deason, James Collins, Michelle Park, Abraham Flaxman, Everett Mumford'
-author = 'Alec Deason, James Collins, Michelle Park, Abraham Flaxman, Everett Mumford'
+project = about['__title__']
+copyright = f'2018, {about["__author__"]}'
+author = about["__author__"]
 
 # The short X.Y version.
-version = ''
+version = about["__version__"]
 # The full version, including alpha/beta/rc tags.
-release = vivarium.__version__
+release = about["__version__"]
 
 
 # -- General configuration ------------------------------------------------
