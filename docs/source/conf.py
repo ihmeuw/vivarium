@@ -18,10 +18,10 @@ import os
 import sys
 
 import vivarium
-src_dir = os.path.dirname(vivarium.__file__)
+base_dir = os.path.dirname(vivarium.__file__)
 
 about = {}
-with open(os.path.join(src_dir, "__about__.py")) as f:
+with open(os.path.join(base_dir, "__about__.py")) as f:
     exec(f.read(), about)
 
 sys.path.insert(0, os.path.abspath('..'))
@@ -127,7 +127,7 @@ html_sidebars = {
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'vivariumdoc'
+htmlhelp_basename = f'{about["__title__"]}doc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -154,8 +154,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'vivarium.tex', 'vivarium Documentation',
-     'Alec Deason, James Collins, Michelle Park, Abraham Flaxman, Everett Mumford', 'manual'),
+    (master_doc, f'{about["__title__"]}.tex', f'{about["__title__"]} Documentation',
+     about["__author__"], 'manual'),
 ]
 
 
@@ -164,7 +164,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'vivarium', 'vivarium Documentation',
+    (master_doc, f'{about["__title__"]}', f'{about["__title__"]} Documentation',
      [author], 1)
 ]
 
@@ -175,8 +175,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'vivarium', 'vivarium Documentation',
-     author, 'vivarium', 'One line description of project.',
+    (master_doc, f'{about["__title__"]}', f'{about["__title__"]} Documentation',
+     author, f'{about["__title__"]}', about["__summary__"],
      'Miscellaneous'),
 ]
 
