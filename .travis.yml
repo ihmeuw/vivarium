@@ -1,5 +1,17 @@
 language: python
 python:
-    - "3.6"
-install: "pip install -r requirements.txt pytest-mock"
-script: pytest
+- 3.6
+install:
+- pip install -r requirements-dev.txt
+- pip install .
+script:
+- pytest
+deploy:
+  provider: pypi
+  user: collijk
+  password:
+    secure: TzdR3ygewydBZ7p+43P8q8lrAtlTbzvzvZ+ViYWiKyz3Tms+HH05Rnyhlp9l+Fjz1jzTMeIL5aHdwaksoSI+I5k028W5gCiBpEXQqoAFEthrii0f+fnwbcZ66KEcHt7oYCjeuuQT/BnGi+SbFdpwVO3obRImDB+kUI+61z+EKPyVM7CpCYbYJVETRVaEhsniLNRxOyoeNtO7U20+WnfuG9cWs8/5MvPIb+IfiqxchvlW2mbXENGuOPDxWjjloj723Bd9bzG7OYYiBIEB+czkC743goaxajZWZbvxPD3omInh0jNQxVa+gPY/ZkKDL1SCQZSqFwR5yEhM1cBe7WixsOx9XB3ClsO70YC4owny4/Zv4zl3t7FEBw2xobHPLwkXK+jPmBNMCXiW+QkGoghBZP/hyeAD6RsIrHuAHPVnDYX/7+k4lEzy0oU0zmcZmzsM1HRE3AXI6GL5FQkaENknFC/45TrPctkWCqkeetHU6TNl3muupwKHXlTRrCIwcF4q3URq+r43nbiRiicPPRYrsbagAI+qcQykaMRuKcDTTD4SuGUY7T+wxts4H9LOwxib04kz69n+B9FmIQyt0j6hSF1toFNbfhwHbXG+6bNO4pYGS3sgn63zGWXmuYUHDrQcfHX3sMyQUG7ZOUChUOaK/r6ea+ytyrygb29BMmfBf4I=
+  on:
+    distributions: sdist bdist_wheel
+    repo: ihmeuw/vivarium
+    tags: true

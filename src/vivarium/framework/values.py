@@ -7,7 +7,7 @@ import logging
 import pandas as pd
 
 from vivarium import VivariumError
-from .util import from_yearly
+from .utilities import from_yearly
 
 
 _log = logging.getLogger(__name__)

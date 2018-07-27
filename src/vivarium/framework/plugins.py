@@ -1,7 +1,7 @@
 from vivarium import VivariumError
 from vivarium.config_tree import ConfigTree
 
-from .util import import_by_path
+from .utilities import import_by_path
 
 _MANAGERS = {
     'lookup': {

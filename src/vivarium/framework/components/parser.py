@@ -1,8 +1,9 @@
 """Defines the parsing rules for the ``components`` section of ``yaml`` configuration files."""
 from typing import Sequence, Tuple, List, Dict, Union
 
+
 from vivarium.config_tree import ConfigTree
-from vivarium.framework.util import import_by_path
+from vivarium.framework.utilities import import_by_path
 from .manager import ComponentConfigError
 
 
