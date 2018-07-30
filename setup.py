@@ -94,4 +94,6 @@ if __name__ == "__main__":
                 [console_scripts]
                 simulate=vivarium.interface.cli:simulate
             """,
+
+        zip_safe=False,
     )
