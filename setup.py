@@ -22,6 +22,7 @@ if __name__ == "__main__":
         'pyyaml',
         'scipy',
         'click',
+        'tables',
     ]
 
     interactive_requirements = [
