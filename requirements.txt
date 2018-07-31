@@ -4,6 +4,3 @@ pyyaml
 scipy
 tables
 click
-
-pytest
-pytest-mock
