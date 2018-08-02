@@ -84,8 +84,7 @@ if __name__ == "__main__":
         extras_require={
             'docs': doc_requirements,
             'test': test_requirements,
-            'interactive': interactive_requirements,
-            'dev': doc_requirements + test_requirements + interactive_requirements,
+            'dev': doc_requirements + test_requirements,
         },
 
         entry_points="""
