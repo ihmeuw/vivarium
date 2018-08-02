@@ -1,3 +1,7 @@
+**0.8.4 - 08/02/18**
+
+ - Standardized a bunch of packaging stuff.
+
 **0.8.2 - 07/24/18**
 
  - Added ``test`` command to verify and installation
