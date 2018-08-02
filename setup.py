@@ -23,9 +23,6 @@ if __name__ == "__main__":
         'scipy',
         'click',
         'tables',
-    ]
-
-    interactive_requirements = [
         'IPython',
         'ipywidgets',
         'jupyter',
