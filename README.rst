@@ -12,6 +12,9 @@ Vivarium
     :target: https://vivarium.readthedocs.io/en/latest/?badge=latest
     :alt: Latest Docs
 
+.. image:: https://zenodo.org/badge/96817805.svg
+   :target: https://zenodo.org/badge/latestdoi/96817805
+
 Vivarium is a framework for microsimulation written using standard scientific Python tools.
 
 You can install ``vivarium`` from PyPI with pip:
