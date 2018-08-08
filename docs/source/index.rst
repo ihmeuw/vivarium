@@ -8,7 +8,7 @@ Vivarium Documentation
    :maxdepth: 2
    :caption: Contents:
 
-   installation_instructions
+   installation
    contributing
    core_concepts
    getting_started

@@ -1,1 +1,3 @@
 sphinx-autodoc-typehints
+ipykernel
+nbsphinx
