@@ -51,7 +51,7 @@ class ComponentManager:
             else:
                 component_list.append(component)
 
-    def query_components(self, component_type: Any):
+    def get_components(self, component_type: Any):
         return [c for c in self._components if isinstance(c, component_type)]
 
     def setup_components(self, builder, configuration):
@@ -77,8 +77,8 @@ class ComponentInterface:
     def add_components(self, components: Sequence):
         self._component_manager.add_components(components)
 
-    def query_components(self, component_type: str):
-        return self._component_manager.query_components(component_type)
+    def get_components(self, component_type: str):
+        return self._component_manager.get_components(component_type)
 
 
 def _setup_components(builder, component_list, configuration):
