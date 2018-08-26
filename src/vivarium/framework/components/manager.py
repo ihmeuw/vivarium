@@ -5,7 +5,7 @@ The manager is responsible for tracking all components in the system and for ini
 life-cycle stage of each component.
 """
 import inspect
-from typing import Sequence
+from typing import Sequence, Any
 
 from vivarium import VivariumError
 
@@ -51,8 +51,8 @@ class ComponentManager:
             else:
                 component_list.append(component)
 
-    def query_components(self, component_type: str):
-        raise NotImplementedError()
+    def get_components(self, component_type: Any):
+        return [c for c in self._components if isinstance(c, component_type)]
 
     def setup_components(self, builder, configuration):
         """Apply component level configuration defaults to the global config and run setup methods on the components
@@ -77,8 +77,8 @@ class ComponentInterface:
     def add_components(self, components: Sequence):
         self._component_manager.add_components(components)
 
-    def query_components(self, component_type: str):
-        return self._component_manager.query_components(component_type)
+    def get_components(self, component_type: str):
+        return self._component_manager.get_components(component_type)
 
 
 def _setup_components(builder, component_list, configuration):

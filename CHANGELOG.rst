@@ -1,3 +1,8 @@
+**0.8.5 - 08/22/18**
+
+ - Add integration with Zenodo to produce DOIs
+ - Added default get_components implementation for component manager
+
 **0.8.4 - 08/02/18**
 
  - Standardized a bunch of packaging stuff.
