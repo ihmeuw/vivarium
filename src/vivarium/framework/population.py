@@ -211,6 +211,8 @@ class PopulationManager:
         unordered_initializers = deque(self._population_initializers)
         starting_length = -1
         available_columns = []
+        initializer_created = []
+        initializer_required = []
         self._population_initializers = []
 
         # This is the brute force N^2 way because constructing a dependency graph is work
@@ -220,6 +222,8 @@ class PopulationManager:
             starting_length = len(unordered_initializers)
             for _ in range(len(unordered_initializers)):
                 initializer, columns_created, columns_required = unordered_initializers.pop()
+                initializer_created.extend(columns_created)
+                initializer_required.extend(columns_required)
                 if set(columns_required) <= set(available_columns):
                     self._population_initializers.append((initializer, columns_created, columns_required))
                     available_columns.extend(columns_created)
@@ -227,8 +231,13 @@ class PopulationManager:
                     unordered_initializers.appendleft((initializer, columns_created, columns_required))
 
         if unordered_initializers:
-            raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
-                                  f"Check for cyclic dependencies in your components.")
+
+            if set(initializer_required) <= set(initializer_created):
+                raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
+                                      "Check for cyclic dependencies in your components.")
+            else:
+                raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
+                                      "Check for missing dependencies in your components.")
 
         if len(set(available_columns)) < len(available_columns):
             raise PopulationError("Multiple components are attempting to initialize the "
