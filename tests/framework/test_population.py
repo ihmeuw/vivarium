@@ -15,7 +15,6 @@ def test_create_PopulationView_with_all_columns():
     assert set(view.columns) == {'age', 'sex'}
 
 
-# test dependencies
 def test_circular_initializers():
     manager = PopulationManager()
     manager.register_simulant_initializer(lambda: "initializer 1",
@@ -37,9 +36,9 @@ def test_missing_initializer():
 def test_conflicting_initializers():
     manager = PopulationManager()
     manager.register_simulant_initializer(lambda: "initializer 1",
-                                          ['dummy_column'], [])
+                                          ['result_column'], [])
     manager.register_simulant_initializer(lambda: "initializer 2",
-                                          ['dummy_column'], [])
+                                          ['result_column'], [])
     with pytest.raises(PopulationError, match="Multiple components are attempting "
                                               "to initialize the same columns"):
         manager._order_initializers()
