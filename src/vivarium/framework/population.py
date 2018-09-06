@@ -211,8 +211,6 @@ class PopulationManager:
         unordered_initializers = deque(self._population_initializers)
         starting_length = -1
         available_columns = []
-        initializer_created = []
-        initializer_required = []
         self._population_initializers = []
 
         # This is the brute force N^2 way because constructing a dependency graph is work
@@ -221,16 +219,20 @@ class PopulationManager:
         while len(unordered_initializers) != starting_length:
             starting_length = len(unordered_initializers)
             for _ in range(len(unordered_initializers)):
-                initializer, columns_created, columns_required = unordered_initializers.pop()
-                initializer_created.extend(columns_created)
-                initializer_required.extend(columns_required)
+                initializer, columns_created, columns_required = unordered_initializers.popleft()
                 if set(columns_required) <= set(available_columns):
                     self._population_initializers.append((initializer, columns_created, columns_required))
                     available_columns.extend(columns_created)
                 else:
-                    unordered_initializers.appendleft((initializer, columns_created, columns_required))
+                    unordered_initializers.append((initializer, columns_created, columns_required))
 
         if unordered_initializers:
+            _, initializer_created, initializer_required = zip(*unordered_initializers)
+
+            # initializer_created and _required are nested arrays
+            # tracked is given by default when this object is created
+            initializer_created = [i for sublist in initializer_created for i in sublist] + ['tracked']
+            initializer_required = [i for sublist in initializer_required for i in sublist]
 
             if set(initializer_required) <= set(initializer_created):
                 raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
