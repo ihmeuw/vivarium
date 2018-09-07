@@ -66,7 +66,10 @@ class ResultsWriter:
             with open(path, 'w') as f:
                 yaml.dump(data, f)
         elif extension == 'hdf':
-            data.to_hdf(path, 'data', format='table')
+            # to_hdf breaks with categorical dtypes.
+            categorical_columns = data.dtypes[data.dtypes == 'category'].index
+            data.loc[:, categorical_columns] = data.loc[:, categorical_columns].astype('object')
+            data.to_hdf(path, 'data')
         else:
             raise NotImplementedError(
                 f"Only 'yaml' and 'hdf' file types are supported. You requested {extension}")
