@@ -207,11 +207,27 @@ class PopulationManager:
         status = pd.Series(True, index=pop_data.index)
         self.get_view(['tracked']).update(status)
 
+
+    @staticmethod
+    def _validate_no_missing_initializers(initializers):
+        created_columns = []
+        required_columns = []
+        for _, created, required in initializers:
+            created_columns.extend(created)
+            required_columns.extend(required)
+
+        if not set(required_columns) <= set(created_columns):
+            raise PopulationError(f"The initializers {initializers} could not be added.  "
+                                  "Check for missing dependencies in your components.")
+
+
     def _order_initializers(self) -> None:
         unordered_initializers = deque(self._population_initializers)
         starting_length = -1
         available_columns = []
         self._population_initializers = []
+
+        self._validate_no_missing_initializers(unordered_initializers)
 
         # This is the brute force N^2 way because constructing a dependency graph is work
         # and in practice this should run in about order N time due to the way dependencies are
@@ -227,19 +243,8 @@ class PopulationManager:
                     unordered_initializers.append((initializer, columns_created, columns_required))
 
         if unordered_initializers:
-            _, initializer_created, initializer_required = zip(*unordered_initializers)
-
-            # initializer_created and _required are nested arrays
-            # tracked is given by default when this object is created
-            initializer_created = [i for sublist in initializer_created for i in sublist] + ['tracked']
-            initializer_required = [i for sublist in initializer_required for i in sublist]
-
-            if set(initializer_required) <= set(initializer_created):
-                raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
-                                      "Check for cyclic dependencies in your components.")
-            else:
-                raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
-                                      "Check for missing dependencies in your components.")
+            raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
+                                  "Check for cyclic dependencies in your components.")
 
         if len(set(available_columns)) < len(available_columns):
             raise PopulationError("Multiple components are attempting to initialize the "
