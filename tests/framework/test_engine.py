@@ -265,7 +265,13 @@ def test_run_simulation(model_specification, mocker):
     pformat_mock.side_effect = lambda x: x
 
     pandas_mock = mocker.patch('vivarium.framework.engine.pd')
-    pandas_mock.DataFrame.side_effect = lambda x, index: x
+
+    def df_call_mock(data, *_, **__):
+        m = mocker.Mock()
+        m.stack.return_value = data
+        return m
+
+    pandas_mock.DataFrame.side_effect = df_call_mock
 
     model_spec_path = '/this/is/a/test.yaml'
     results_directory = 'test_dir'

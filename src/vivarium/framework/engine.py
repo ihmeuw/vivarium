@@ -120,7 +120,7 @@ def run_simulation(model_specification_file, results_directory):
         _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
 
     idx = pd.Index([simulation.configuration.randomness.random_seed], name='random_seed')
-    metrics = pd.DataFrame(metrics, index=idx)
+    metrics = pd.DataFrame(metrics, index=idx).stack()
     results_writer.write_output(metrics, 'output.hdf')
     results_writer.write_output(final_state, 'final_state.hdf')
 
