@@ -1,5 +1,5 @@
 """System for managing population creation, updating and viewing."""
-from typing import Sequence, List, Callable, Union, Mapping, Any
+from typing import Sequence, List, Tuple, Callable, Union, Mapping, Any
 from collections import deque, namedtuple
 
 import pandas as pd
@@ -207,11 +207,25 @@ class PopulationManager:
         status = pd.Series(True, index=pop_data.index)
         self.get_view(['tracked']).update(status)
 
+    @staticmethod
+    def _validate_no_missing_initializers(initializers: Sequence[Tuple]) -> None:
+        created_columns = []
+        required_columns = []
+        for _, created, required in initializers:
+            created_columns.extend(created)
+            required_columns.extend(required)
+
+        if not set(required_columns) <= set(created_columns):
+            raise PopulationError(f"The initializers {initializers} could not be added.  "
+                                  "Check for missing dependencies in your components.")
+
     def _order_initializers(self) -> None:
         unordered_initializers = deque(self._population_initializers)
         starting_length = -1
         available_columns = []
         self._population_initializers = []
+
+        self._validate_no_missing_initializers(unordered_initializers)
 
         # This is the brute force N^2 way because constructing a dependency graph is work
         # and in practice this should run in about order N time due to the way dependencies are
@@ -219,16 +233,16 @@ class PopulationManager:
         while len(unordered_initializers) != starting_length:
             starting_length = len(unordered_initializers)
             for _ in range(len(unordered_initializers)):
-                initializer, columns_created, columns_required = unordered_initializers.pop()
+                initializer, columns_created, columns_required = unordered_initializers.popleft()
                 if set(columns_required) <= set(available_columns):
                     self._population_initializers.append((initializer, columns_created, columns_required))
                     available_columns.extend(columns_created)
                 else:
-                    unordered_initializers.appendleft((initializer, columns_created, columns_required))
+                    unordered_initializers.append((initializer, columns_created, columns_required))
 
         if unordered_initializers:
             raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
-                                  f"Check for cyclic dependencies in your components.")
+                                  "Check for cyclic dependencies in your components.")
 
         if len(set(available_columns)) < len(available_columns):
             raise PopulationError("Multiple components are attempting to initialize the "
