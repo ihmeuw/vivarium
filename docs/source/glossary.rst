@@ -1,0 +1,8 @@
+.. _glossary:
+
+========
+Glossary
+========
+
+.. glossary::
+

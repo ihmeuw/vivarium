@@ -1,46 +1,67 @@
-.. _installation:
+===================
+Installing Vivarium
+===================
 
-Installation Instructions
-=========================
-.. contents:: Table of contents:
+.. contents::
+   :depth: 1
    :local:
+   :backlinks: none
 
-**Python version support**
+.. highlight:: console
 
-``vivarium`` can be run with Python 3.6+
+Overview
+--------
 
-Using pip
-+++++++++
+``vivarium`` is written in `Python`__ and supports Python 3.6+.
 
-You can install ``vivarium`` from `PyPI <https://pypi.org/project/vivarium>`__
-using ``pip`` with the command
+__ http://docs.python-guide.org/en/latest/
+
+.. _install-pypi:
+
+Installation from PyPI
+----------------------
+
+``vivarium`` packages are published on the `Python Package Index
+<https://pypi.org/project/vivarium/>`_. The preferred tool for installing
+packages from *PyPI* is :command:`pip`.  This tool is provided with all modern
+versions of Python
+
+On Linux or MacOS, you should open your terminal and run the following command.
 
 ::
 
-    pip install vivarium
+   $ pip install -U vivarium
 
-Installing from source
-++++++++++++++++++++++
+On Windows, you should open *Command Prompt* and run the same command.
 
-See the :ref:`contributing documentation <contributing>` for
-complete instruction on downloading the source code with ``git``
-and setting up a development environment.
+.. code-block:: doscon
 
+   C:\> pip install -U vivarium
 
-Verifying everything is installed
-+++++++++++++++++++++++++++++++++
+After installation, type :command:`simulate test`.  This will run a test
+simulation packaged with the framework and validate that everything is
+installed correctly.
 
-``vivarium`` installs a new binary executable named ``simulate``
-that is used to run simulation from the command line with
-a configuration file.  It also comes with a ``test`` sub command
-that you can use to verify that your installation went correctly::
+Installation from source
+------------------------
 
-    simulate test
+You can install ``vivarium`` directly from a clone of the `Git repository`__.
+You can clone the repository locally and install from the local clone::
 
-This will output some information about the simulation setup
-and let you know as the simulation is taking time steps and finally
-conclude with the message::
+    $ git clone https://github.com/ihmeuw/vivarium.git
+    $ cd vivarium
+    $ pip install .
 
-   Installation test successful!
+You can also install directly from the git repository with pip::
 
-if everything went okay.
+    $ pip install git+https://github.com/ihmeuw/vivarium.git
+
+Additionally, you can download a snapshot of the Git repository in either
+`tar.gz`__ or `zip`__ format.  Once downloaded and extracted, these can be
+installed with :command:`pip` as above.
+
+.. highlight:: default
+
+__ https://github.com/ihmeuw/vivarium
+__ https://github.com/ihmeuw/vivarium/archive/develop.tar.gz
+__ https://github.com/ihmeuw/vivarium/archive/develop.zip

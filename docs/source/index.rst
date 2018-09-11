@@ -1,16 +1,13 @@
+======================
 Vivarium Documentation
 ======================
 
-.. include:: ../../README.rst
-   :start-line: 2
+``vivarium`` is a framework for building complex simulations using standard
+`scientific Python <https://www.scipy.org/>`_ tools.
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
 
    installation
-   contributing
-   core_concepts
-   getting_started
-   tutorials
-   api_reference
+   tutorials/index
+   api_reference/index
