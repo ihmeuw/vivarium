@@ -52,8 +52,8 @@ The ``__init__.py`` file can be blank. It's the file that tells python that
 ``vivarium_examples`` is a package. We need to fill out the ``setup.py``
 file though.
 
-.. code-block::
-   :caption: this.py
+.. code-block:: python
+   :caption: **File**: ``~/code/vivarium_examples/setup.py``
 
     import os
 
@@ -62,20 +62,29 @@ file though.
 
     if __name__ == "__main__":
 
-        setup(
-            name='vivarium_examples',
-            version='1.0',
-            description="Examples of simulations built with vivarium",
-            author=''  # YOUR NAME HERE,
+       setup(
+           name='vivarium_examples',
+           version='1.0',
+           description="Examples of simulations built with vivarium",
+           author=''  # YOUR NAME HERE,
 
-            package_dir={'': 'src'},
-            packages=find_packages(where='src'),
-            include_package_data=True,
+           package_dir={'': 'src'},
+           packages=find_packages(where='src'),
+           include_package_data=True,
 
-            install_requires=['vivarium'],
+           install_requires=['vivarium'],
     )
 
 This is the file that lets us install your package and import it from
-anywhere.
+anywhere. We'll use it shortly.
 
 __ https://docs.python.org/3/tutorial/modules.html#packages
+
+Version Control
+---------------
+
+When doing any sort of non-trivial coding work, it's important to use
+a version control system
+
+
+

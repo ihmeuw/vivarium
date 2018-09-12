@@ -11,3 +11,4 @@ Vivarium Documentation
    installation
    tutorials/index
    api_reference/index
+   glossary

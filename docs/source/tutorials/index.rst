@@ -10,5 +10,5 @@ Python package where you'll build your model components.
 .. toctree::
    :maxdepth: 2
 
-    getting_started
-    disease_model/index
+   getting_started
+   disease_model/index
