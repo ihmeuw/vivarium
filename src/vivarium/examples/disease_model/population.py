@@ -1,5 +1,3 @@
-"""Base components for simulating populations."""
-import numpy as np
 import pandas as pd
 
 from vivarium.framework.engine import Builder
@@ -66,13 +64,15 @@ class BasePopulation:
         This component is responsible for creating and filling four columns
         in the population state table:
 
-        'age' : The age of the simulant in fractional years.
-        'sex' : The sex of the simulant. One of {'Male', 'Female'}
-        'alive' : Whether or not the simulant is alive.
-                  One of {'alive', 'dead'}
-        'entrance_time' : The time that the simulant entered the simulation.
-                          The 'birthday' for simulants that enter as
-                          newborns. A `pandas.Timestamp`.
+        'age' :
+            The age of the simulant in fractional years.
+        'sex' :
+            The sex of the simulant. One of {'Male', 'Female'}
+        'alive' :
+            Whether or not the simulant is alive. One of {'alive', 'dead'}
+        'entrance_time' :
+            The time that the simulant entered the simulation. The 'birthday'
+            for simulants that enter as newborns. A `pandas.Timestamp`.
 
         Parameters
         ----------
@@ -124,50 +124,3 @@ class BasePopulation:
         population['age'] += event.step_size / pd.Timedelta(days=365)
         self.population_view.update(population)
 
-
-class Mortality:
-
-    configuration_defaults = {
-        'mortality': {
-            'mortality_rate': 0.01,
-            'life_expectancy': 80,
-        }
-    }
-
-    def setup(self, builder):
-        self.config = builder.configuration.mortality
-        self.population_view = builder.population.get_view(['alive'], query="alive == 'alive'")
-        self.randomness = builder.randomness.get_stream('mortality')
-
-        self.mortality_rate = builder.value.register_rate_producer('mortality_rate', source=self.base_mortality_rate)
-
-        builder.event.register_listener('time_step', self.determine_deaths)
-
-    def base_mortality_rate(self, index):
-        return pd.Series(self.config.mortality_rate, index=index)
-
-    def determine_deaths(self, event):
-        effective_rate = self.mortality_rate(event.index)
-        effective_probability = 1 - np.exp(-effective_rate)
-        draw = self.randomness.get_draw(event.index)
-        affected_simulants = draw < effective_probability
-        self.population_view.update(pd.Series('dead', index=event.index[affected_simulants]))
-
-
-class Observer:
-
-    def setup(self, builder):
-        self.life_expectancy = builder.configuration.mortality.life_expectancy
-        self.population_view = builder.population.get_view(['age', 'alive'])
-
-        builder.value.register_value_modifier('metrics', self.metrics)
-
-    def metrics(self, index, metrics):
-
-        pop = self.population_view.get(index)
-        metrics['total_population_alive'] = len(pop[pop.alive == 'alive'])
-        metrics['total_population_dead'] = len(pop[pop.alive == 'dead'])
-
-        metrics['years_of_life_lost'] = (self.life_expectancy - pop.age[pop.alive == 'dead']).sum()
-
-        return metrics
