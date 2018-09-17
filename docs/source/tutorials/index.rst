@@ -11,4 +11,4 @@ Python package where you'll build your model components.
    :maxdepth: 2
 
    getting_started
-   disease_model/index
+   boids

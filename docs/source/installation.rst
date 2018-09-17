@@ -12,7 +12,7 @@ Installing Vivarium
 Overview
 --------
 
-``vivarium`` is written in `Python`__ and supports Python 3.6+.
+Vivarium is written in `Python`__ and supports Python 3.6+.
 
 __ http://docs.python-guide.org/en/latest/
 
@@ -21,7 +21,7 @@ __ http://docs.python-guide.org/en/latest/
 Installation from PyPI
 ----------------------
 
-``vivarium`` packages are published on the `Python Package Index
+Vivarium packages are published on the `Python Package Index
 <https://pypi.org/project/vivarium/>`_. The preferred tool for installing
 packages from *PyPI* is :command:`pip`.  This tool is provided with all modern
 versions of Python
@@ -45,7 +45,7 @@ installed correctly.
 Installation from source
 ------------------------
 
-You can install ``vivarium`` directly from a clone of the `Git repository`__.
+You can install Vivarium directly from a clone of the `Git repository`__.
 You can clone the repository locally and install from the local clone::
 
     $ git clone https://github.com/ihmeuw/vivarium.git

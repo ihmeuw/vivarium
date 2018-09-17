@@ -13,8 +13,6 @@ keep things organized and make collaboration easy. It will also enable
 us to run simulations from the command line. This is vital for any
 serious simulation work.
 
-The
-
 .. contents::
    :depth: 1
    :local:
@@ -80,11 +78,18 @@ anywhere. We'll use it shortly.
 
 __ https://docs.python.org/3/tutorial/modules.html#packages
 
-Version Control
+Version control
 ---------------
 
-When doing any sort of non-trivial coding work, it's important to use
-a version control system
 
+Making an environment
+---------------------
 
+The next thing we'll do is set up a programming environment. This is like
+a clean room for your code and all the code it depends on. It helps
 
+Installing your library
+-----------------------
+
+Next steps
+----------

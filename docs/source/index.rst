@@ -2,7 +2,7 @@
 Vivarium Documentation
 ======================
 
-``vivarium`` is a framework for building complex simulations using standard
+Vivarium is a framework for building complex simulations using standard
 `scientific Python <https://www.scipy.org/>`_ tools.
 
 .. toctree::
