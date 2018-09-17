@@ -69,6 +69,10 @@ class InteractiveContext(SimulationContext):
             for _ in range(number_of_steps):
                 self.step(step_size)
 
+    @raise_if_not_setup(system_type='population')
+    def get_population(self):
+        return self.population.population
+
     @raise_if_not_setup(system_type='value')
     def list_values(self):
         return list(self.values.keys())
