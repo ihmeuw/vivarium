@@ -9,3 +9,4 @@ the Vivarium framework.
    configuration
    lifecycle
    entry_points
+   crn
