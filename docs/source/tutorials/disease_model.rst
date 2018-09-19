@@ -477,8 +477,78 @@ We next update the age of our simulants by adding on the width of the time step
 to their current age and passing the update table to the ``update`` method
 of our population view as we did in ``on_initialize_simulants``
 
+Examining our work
+++++++++++++++++++
+
+Now that we've done all this hard work, let's see what it gives us.
+
+.. code-block:: python
+
+   from vivarium.interface import setup_simulation, build_simulation_configuration
+   from vivarium_examples.disease_model.population import BasePopulation
+
+   config = build_simulation_configuration()
+   config.update({
+       'randomness': {
+           'key_columns': ['entrance_time', 'age']
+       }
+   })
+
+   sim = setup_simulation([BasePopulation()], config)
+
+   print(sim.get_population().head())
+
+::
+
+       tracked  alive     sex        age entrance_time
+    0     True  alive    Male  78.088109    2005-07-01
+    1     True  alive    Male  44.072665    2005-07-01
+    2     True  alive  Female  48.346571    2005-07-01
+    3     True  alive  Female  91.002147    2005-07-01
+    4     True  alive  Female  63.641191    2005-07-01
+
+Great!  We generate a population with a non-trivial age and sex distribution.
+Let's see what happens when our simulation takes a time step.
+
+.. code-block:: python
+
+   sim.step()
+   print(sim.get_population().head())
+
+::
+
+          tracked  alive     sex        age entrance_time
+    0     True  alive    Male  78.090849    2005-07-01
+    1     True  alive    Male  44.075405    2005-07-01
+    2     True  alive  Female  48.349311    2005-07-01
+    3     True  alive  Female  91.004887    2005-07-01
+    4     True  alive  Female  63.643931    2005-07-01
+
+Everyone get's older! Right now though, we could just keep taking steps
+in our simulation and people would continue getting older. This, of course,
+does not reflect how the world goes. Time to introduce the grim reaper.
+
+.. testcode::
+   :hide:
+
+   from vivarium.interface import setup_simulation, build_simulation_configuration
+   from vivarium.examples.disease_model import BasePopulation
+
+   config = build_simulation_configuration()
+   config.update({
+       'randomness': {
+           'key_columns': ['entrance_time', 'age']
+       }
+   })
+
+   sim = setup_simulation([BasePopulation()])
+   sim.step()
+
+
 Mortality
 ---------
+
+
 
 Observer
 --------

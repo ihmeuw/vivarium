@@ -40,6 +40,7 @@ class BasePopulation:
         self.config = builder.configuration
 
         self.with_common_random_numbers = bool(self.config.randomness.key_columns)
+        self.register = builder.randomness.register_simulants
         if (self.with_common_random_numbers
                 and not ['entrance_time', 'age'] == self.config.randomness.key_columns):
             raise ValueError("If running with CRN, you must specify ['entrance_time', 'age'] as"
@@ -48,17 +49,16 @@ class BasePopulation:
         self.age_randomness = builder.randomness.get_stream('age_initialization',
                                                             for_initialization=self.with_common_random_numbers)
         self.sex_randomness = builder.randomness.get_stream('sex_initialization')
-        self.register = builder.randomness.register_simulants
 
         columns_created = ['age', 'sex', 'alive', 'entrance_time']
-        builder.population.initializes_simulants(self.initialize_population,
+        builder.population.initializes_simulants(self.on_initialize_simulants,
                                                  creates_columns=columns_created)
 
         self.population_view = builder.population.get_view(columns_created)
 
         builder.event.register_listener('time_step', self.age_simulants)
 
-    def initialize_population(self, pop_data: SimulantData):
+    def on_initialize_simulants(self, pop_data: SimulantData):
         """Called by the simulation whenever new simulants are added.
 
         This component is responsible for creating and filling four columns
@@ -84,8 +84,8 @@ class BasePopulation:
 
         """
 
-        age_start = pop_data.user_data.get('age_start', self.config.population.age_start)
-        age_end = pop_data.user_data.get('age_end', self.config.population.age_end)
+        age_start = self.config.population.age_start
+        age_end = self.config.population.age_end
         if age_start == age_end:
             age_window = pop_data.creation_window / pd.Timedelta(days=365)
         else:
@@ -123,4 +123,3 @@ class BasePopulation:
         population = self.population_view.get(event.index, query="alive == 'alive'")
         population['age'] += event.step_size / pd.Timedelta(days=365)
         self.population_view.update(population)
-
