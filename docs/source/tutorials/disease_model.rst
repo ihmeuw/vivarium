@@ -43,7 +43,7 @@ We need a population though. So we'll start with one here and defer explanation
 of some of the more complex pieces/systems until later.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :caption: **File**: :file:`~/code/vivarium_examples/boids/population.py`
+   :caption: **File**: :file:`~/code/vivarium_examples/disease_model/population.py`
 
 There are a lot of things here.  Let's take them piece by piece.
 (*Note*: I'll be leaving out the docstrings in the code snippets below).
@@ -547,6 +547,90 @@ does not reflect how the world goes. Time to introduce the grim reaper.
 
 Mortality
 ---------
+
+Now that we have population generation and aging working, the next step
+is introducing mortality into our simulation.
+
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
+   :caption: **File**: :file:`~/code/vivarium_examples/disease_model/population.py`
+
+The purpose of this component is to determine who dies every time step based
+on a mortality rate. You'll see many of the same framework features we used
+in the ``BasePopulation`` component used again here and a few new things.
+
+Let's dive in.
+
+What's new in the configuration?
+++++++++++++++++++++++++++++++++
+
+Since we're building our disease model without data to inform it, we'll
+expose all the important bits of the model as parameters in the configuration.
+
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
+   :lines: 8, 19-23
+   :dedent: 4
+   :linenos:
+
+Here we're specifying the overall mortality rate in our simulation. Rates have
+units! We'll phrase our model with rates specified in terms of events per
+person-year. So here we're specifying a uniform mortality rate of 0.01 deaths
+per person-year. This is obviously not realistic. Using toy data like this is
+often extremely useful in validating a model though.
+
+Setting up the mortality component
+++++++++++++++++++++++++++++++++++
+
+Many of the tools we explored in the ``BasePopulation`` component are
+used again here. There are two new things to look at.
+
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
+   :lines: 25, 37-43
+   :dedent: 4
+   :linenos:
+
+The first comes in line 3. Previously, we'd acquired a population view
+from the builder and then supplied a query to filter out dead people when
+we were requesting the population table from the view. We can also provide
+a default query when we construct the view and bypas the query argument
+when requesting the population table from the view later. In line 3 we're
+saying we want a view of the ``'alive'`` column of the population table,
+but only for those people who are actually alive in the current time step.
+
+The other feature of note is is the introduction of the
+:class:`values system <vivarium.framework.values.ValueInterface>` in line
+6. The values system provides a way of distributing the computation of a
+value over multiple components. This is a bit difficult to get used to,
+but is vital to the way we think about components in Vivarium. The best
+way to understand this system is by :doc:`example. </concepts/values>`
+
+In our current context we introduce a named value into the simulation
+called ``'mortality_rate'``. The source for a value is always a callable
+function or method. It typically takes in a ``pandas.Index`` as its only
+argument. Other things are possible, but not necessary for our current use
+case.
+
+The ``'mortality_rate'`` source is then responsible for returning a
+``pandas.Series`` containing a base mortality rate for each simulant
+in the index to the values system. Other components may register themselves
+as modifiers to this base rate. We'll see more of this once we get to the
+disease modelling portion of the tutorial.
+
+The value system will coordinate how the base value is modified behind the
+scenes and return the results of all computations wherever the pipeline is
+called from (here, in the soon to be discussed ``determine_deaths`` method.
+
+Supplying a base mortality rate
++++++++++++++++++++++++++++++++
+
+As just discussed, the ``base_mortality_rate`` method is the source for
+the ``'mortality_rate'`` value.  Here we take in an index and build
+a ``pandas.Series`` that assigns each individual the mortality rate
+specified in the configuration.
+
+In an actual simulation, we'd inform the base mortality rate with data
+specific to the age, sex, location, year (and potentially other demographic
+factors) that represent each simulant. We might disaggregate or interpolate
+our data here.  Which is all to say, the source of a
 
 
 

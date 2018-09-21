@@ -10,3 +10,5 @@ the Vivarium framework.
    lifecycle
    entry_points
    crn
+   values
+   data
