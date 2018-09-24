@@ -552,7 +552,7 @@ Now that we have population generation and aging working, the next step
 is introducing mortality into our simulation.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :caption: **File**: :file:`~/code/vivarium_examples/disease_model/population.py`
+   :caption: **File**: :file:`~/code/vivarium_examples/disease_model/mortality.py`
 
 The purpose of this component is to determine who dies every time step based
 on a mortality rate. You'll see many of the same framework features we used
@@ -603,10 +603,10 @@ value over multiple components. This is a bit difficult to get used to,
 but is vital to the way we think about components in Vivarium. The best
 way to understand this system is by :doc:`example. </concepts/values>`
 
-In our current context we introduce a named value into the simulation
-called ``'mortality_rate'``. The source for a value is always a callable
-function or method. It typically takes in a ``pandas.Index`` as its only
-argument. Other things are possible, but not necessary for our current use
+In our current context we introduce a named value "pipeline" into the
+simulation called ``'mortality_rate'``. The source for a value is always a
+callable function or method. It typically takes in a ``pandas.Index`` as its
+only argument. Other things are possible, but not necessary for our current use
 case.
 
 The ``'mortality_rate'`` source is then responsible for returning a
@@ -627,12 +627,29 @@ the ``'mortality_rate'`` value.  Here we take in an index and build
 a ``pandas.Series`` that assigns each individual the mortality rate
 specified in the configuration.
 
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
+   :lines: 45, 58
+   :dedent: 4
+   :linenos:
+
 In an actual simulation, we'd inform the base mortality rate with data
 specific to the age, sex, location, year (and potentially other demographic
 factors) that represent each simulant. We might disaggregate or interpolate
-our data here.  Which is all to say, the source of a
+our data here as well. Which is all to say, the source of a data pipeline can
+do some pretty complicated stuff.
 
+Determining who dies
+++++++++++++++++++++
 
+Like our aging method in the population component, our ``determine_deaths``
+method responds to ``'time_step'`` events.
+
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
+   :lines: 60, 70-74
+   :dedent: 4
+   :linenos:
+
+Line 2 is where we actually call the pipeline we constructed during setup.
 
 Observer
 --------
