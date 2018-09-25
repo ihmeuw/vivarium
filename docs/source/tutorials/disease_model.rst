@@ -568,7 +568,6 @@ expose all the important bits of the model as parameters in the configuration.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
    :lines: 8, 19-23
-   :dedent: 4
    :linenos:
 
 Here we're specifying the overall mortality rate in our simulation. Rates have
@@ -597,7 +596,7 @@ saying we want a view of the ``'alive'`` column of the population table,
 but only for those people who are actually alive in the current time step.
 
 The other feature of note is is the introduction of the
-:class:`values system <vivarium.framework.values.ValueInterface>` in line
+:class:`values system <vivarium.framework.values.ValuesInterface>` in line
 6. The values system provides a way of distributing the computation of a
 value over multiple components. This is a bit difficult to get used to,
 but is vital to the way we think about components in Vivarium. The best
@@ -650,6 +649,22 @@ method responds to ``'time_step'`` events.
    :linenos:
 
 Line 2 is where we actually call the pipeline we constructed during setup.
+It will return the effective mortality rate for each person in the simulation.
+Right now this will just be the base mortality rate, but we'll see how
+this changes once we bring in a disease. Importantly for now though, the
+pipeline is automatically rescaling the rate down to the size of the time
+steps we're taking.
+
+In lines 3-5, we determine who died this time step.  We turn our mortality rate
+into a probability of death in the given time step by assuming deaths are
+`exponentially distributed`__ and using the inverse distribution function.
+We then draw a uniformly distributed random number for each person and
+determine who died by comparing that number to the computed probability of
+death for the individual.
+
+Finally, in line 6, we update the state table with the newly dead simulants.
+
+__ https://en.wikipedia.org/wiki/Exponential_distribution#Occurrence_of_events
 
 Observer
 --------
