@@ -7,7 +7,7 @@ __title__ = "vivarium"
 __summary__ = "vivarium is a microsimulation framework built on top of the standard scientific python stack."
 __uri__ = "https://github.com/ihmeuw/vivarium"
 
-__version__ = "0.8.6"
+__version__ = "0.8.7"
 
 __author__ = "The vivarium developers"
 __email__ = "vivarium.dev@gmail.com"

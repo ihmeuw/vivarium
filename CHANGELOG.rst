@@ -1,4 +1,10 @@
+**0.8.7 - 09/25/18**
+
+ - Distinguish between missing and cyclic population table dependencies.
+ - Initial draft of tutorial documentation
+
 **0.8.6 - 09/07/18**
+
  - Workaround for hdf metadata limitation when writing dataframes with a large
    number of columns
 
