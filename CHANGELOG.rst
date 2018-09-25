@@ -1,3 +1,7 @@
+**0.8.6 - 09/07/18**
+ - Workaround for hdf metadata limitation when writing dataframes with a large
+   number of columns
+
 **0.8.5 - 08/22/18**
 
  - Add integration with Zenodo to produce DOIs
