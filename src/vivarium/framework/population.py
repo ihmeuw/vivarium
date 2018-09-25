@@ -1,6 +1,6 @@
 """System for managing population creation, updating and viewing."""
-from typing import Sequence, List, Tuple, Callable, Union, Mapping, Any
-from collections import deque, namedtuple
+from typing import Sequence, List, Callable, Union, Mapping, Any, NamedTuple, Tuple
+from collections import deque
 
 import pandas as pd
 
@@ -153,7 +153,11 @@ class PopulationView:
         return "PopulationView(_columns= {}, _query= {})".format(self._columns, self._query)
 
 
-SimulantData = namedtuple('SimulantData', ['index', 'user_data', 'creation_time', 'creation_window'])
+class SimulantData(NamedTuple):
+    index: pd.Index
+    user_data: Mapping[str, Any]
+    creation_time: pd.Timestamp
+    creation_window: pd.Timedelta
 
 
 class PopulationManager:

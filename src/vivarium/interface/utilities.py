@@ -86,7 +86,8 @@ def raise_if_not_setup(system_type):
         'run': 'Simulation must be setup before it can be run',
         'value': 'Value pipeline configuration is not complete until the simulation is setup.',
         'event': 'Event configuration is not complete until the simulation is setup.',
-        'component': 'Component configuration is not complete until the simulation is setup.'
+        'component': 'Component configuration is not complete until the simulation is setup.',
+        'population': 'No population exists until the simulation is setup.',
     }
     err_msg = type_error_map[system_type]
 
