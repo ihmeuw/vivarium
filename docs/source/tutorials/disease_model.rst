@@ -666,6 +666,93 @@ Finally, in line 6, we update the state table with the newly dead simulants.
 
 __ https://en.wikipedia.org/wiki/Exponential_distribution#Occurrence_of_events
 
+Did it work?
+++++++++++++
+
+It's a good time to check and make sure that what we did works. We've got a
+mortality rate of 0.01 deaths per person-year and we're taking 1 day time
+steps, so we give ourselves a relatively large population this time so we
+can see the impact of our mortality component without taking too many steps.
+
+.. code-block:: python
+
+   from vivarium.interface import setup_simulation, build_simulation_configuration
+   from vivarium_examples.disease_model.population import BasePopulation
+   from vivarium_examples.disease_model.mortality import Mortality
+
+   config = build_simulation_configuration()
+   config.update({
+       'population': {
+           'population_size': 100_000
+       }
+       'randomness': {
+           'key_columns': ['entrance_time', 'age']
+       }
+   })
+
+   sim = setup_simulation([BasePopulation(), Mortality()], config)
+
+   print(sim.get_population().head())
+
+::
+
+       tracked  alive     sex        age entrance_time
+    0     True  alive    Male  78.088109    2005-07-01
+    1     True  alive    Male  44.072665    2005-07-01
+    2     True  alive  Female  48.346571    2005-07-01
+    3     True  alive  Female  91.002147    2005-07-01
+    4     True  alive  Female  63.641191    2005-07-01
+
+This looks (exactly!) the same as last time.  Good.
+
+.. code-block:: python
+
+   sim.get_population().alive.value_counts()
+
+::
+
+    alive    100000
+    Name: alive, dtype: int64
+
+Just checking that everyone is alive.  Let's run our simulation for a while
+and see what happens.
+
+.. code-block:: python
+
+   sim.take_steps(365)  # Run for one year with one day time steps
+   sim.get_population.alive.value_counts()
+
+::
+
+    alive    99037
+    dead       963
+    Name: alive, dtype: int64
+
+We simulated somewhere between 99,037 (if everyone died in the first time step)
+and 100,000 (if everyone died in the last time step) living person-years and
+saw 963 deaths. This means our empirical mortality rate is somewhere close
+to 0.0097 deaths per person-year, very close to the 0.01 rate we provided.
+
+.. testcode::
+   :hide:
+
+   from vivarium.interface import setup_simulation, build_simulation_configuration
+   from vivarium.examples.disease_model import BasePopulation, Mortality
+
+   config = build_simulation_configuration()
+   config.update({
+       'population': {
+           'population_size': 100_000,
+       }
+       'randomness': {
+           'key_columns': ['entrance_time', 'age']
+       }
+   })
+
+   sim = setup_simulation([BasePopulation(), Mortality()], config)
+   sim.take_steps(2)
+
+
 Observer
 --------
 
