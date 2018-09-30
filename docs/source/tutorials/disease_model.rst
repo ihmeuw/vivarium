@@ -756,6 +756,10 @@ to 0.0097 deaths per person-year, very close to the 0.01 rate we provided.
 Observer
 --------
 
+In a real simulation, we typically want to record sophisticated output.  We
+also frequently work in non-interactive (or even distributed) environments
+where we don't have easy access to the simulation object.
+
 Disease
 -------
 
