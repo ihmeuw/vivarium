@@ -20,7 +20,7 @@ Setting up a simulation
 
 At bare minimum, a simulation consists of a set of components. Frequently,
 we'll also provide some configuration data that is used to parameterize those
-components. We'll talk about two ways to set up simulations.
+components. We'll talk about three ways to set up simulations.
 
 The totally manual way
 ++++++++++++++++++++++
@@ -29,11 +29,11 @@ This method requires initializing all the model components and building
 the simulation configuration by hand. This requires a lot of boilerplate
 code but it frequently very useful during model development and debugging.
 
-.. code-block:: python
+.. testcode::
 
    from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
                                                 SIS_DiseaseModel, Risk, DirectEffect,
                                                 MagicWandIntervention)
-   from vivarium.interface import
+   from vivarium.interface import build_simulation_configuration, setup_simulation
 
 
