@@ -720,7 +720,7 @@ and see what happens.
 .. code-block:: python
 
    sim.take_steps(365)  # Run for one year with one day time steps
-   sim.get_population.alive.value_counts()
+   sim.get_population().alive.value_counts()
 
 ::
 

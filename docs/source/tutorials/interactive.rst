@@ -120,14 +120,66 @@ You've encoded your model in a model specification yaml file like:
 
 And then construct our simulation with:
 
+.. code-block:: python
+
+   from vivarium.interface import setup_simulation_from_model_specification
+
+   p = "path/to/disease_model.yaml"
+   sim = setup_simulation from model_specification(p)
+
+In order to make it easier to follow along with this tutorial, I've provided
+a convenience function to get the path to the disease model specification
+distributed with Vivarium.
+
 .. testcode::
 
    from vivarium.interface import setup_simulation_from_model_specification
    from vivarium.examples.disease_model import get_model_specification_path
 
-   sim = setup_simulation_from_model_specification(get_model_specification_path())
+   p = get_model_specification_path()
+   sim = setup_simulation_from_model_specification(p)
+
+Most models stabilize over time, so this becomes a frequently used pattern.
 
 
+The in-between way
+++++++++++++++++++
+
+Another frequent use case is when you're trying to add on to an already
+existing simulation. Here you'll want to grab a prebuilt simulation before the
+:doc:`setup phase </concepts/lifecycle>` so you can add extra components
+or configuration data. You then have to call setup on the simulation yourself.
+
+For example, say we wanted to add another risk for unsafe water sources
+into our disease model. We could do the following.
+
+.. testcode::
+
+   from vivarium.interface import initialize_simulation_from_model_specification
+   from vivarium.examples.disease_model import get_model_specification_path, Risk, DirectEffect
+
+   p = get_model_specification_path()
+   sim = initialize_simulation_from_model_specification(p)
+
+   sim.add_components([Risk('unsafe_water_source'),
+                       DirectEffect('unsafe_water_source', 'infected_with_diarrhea.incidence_rate')])
+
+   sim.configuration.update({
+       'unsafe_water_source': {
+           'proportion_exposed': 0.3
+       },
+       'effect_of_unsafe_water_source_on_infected_with_diarrhea.incidence_rate': {
+           'relative_risk': 8,
+       },
+   })
+
+   sim.setup()
+
+Exploring the simulation, pt.1
+------------------------------
+
+Before we run the simulation, we'll examine the starting state. This is a good
+way to check if your simulation has all the properties you expect it to.
 
 
 
