@@ -7,6 +7,7 @@ the Vivarium framework.
    :maxdepth: 2
 
    configuration
+   components
    lifecycle
    entry_points
    crn
