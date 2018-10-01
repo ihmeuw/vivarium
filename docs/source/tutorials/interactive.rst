@@ -181,5 +181,24 @@ Exploring the simulation, pt.1
 Before we run the simulation, we'll examine the starting state. This is a good
 way to check if your simulation has all the properties you expect it to.
 
+I've provided a second convenience function that we can use to get a new
+copy of the disease model simulation:
+
+.. testcode::
+
+   from vivarium.examples.disease_model import get_disease_model_simulation
+
+   sim = get_disease_model_simulation()
+
+This is just a wrapper around some of the setup stuff from the previous step.
+
+
+Checking out the configuration
+++++++++++++++++++++++++++++++
+
+One of the things we might
+
+
+
 
 
