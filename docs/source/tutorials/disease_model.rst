@@ -541,7 +541,7 @@ does not reflect how the world goes. Time to introduce the grim reaper.
        }
    })
 
-   sim = setup_simulation([BasePopulation()])
+   sim = setup_simulation([BasePopulation()], config)
    sim.step()
 
 
@@ -742,11 +742,11 @@ to 0.0097 deaths per person-year, very close to the 0.01 rate we provided.
    config = build_simulation_configuration()
    config.update({
        'population': {
-           'population_size': 100_000,
-       }
+           'population_size': 100000,
+       },
        'randomness': {
            'key_columns': ['entrance_time', 'age']
-       }
+       },
    })
 
    sim = setup_simulation([BasePopulation(), Mortality()], config)

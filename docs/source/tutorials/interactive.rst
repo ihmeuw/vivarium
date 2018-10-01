@@ -116,21 +116,16 @@ simulation runs.
 You've encoded your model in a model specification yaml file like:
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/disease_model.yaml
-   :caption: **File**: :file:`~/path/to/disease_model.yaml
+   :caption: **File**: :file:`disease_model.yaml`
 
 And then construct our simulation with:
-
-.. code-block:: python
-
-   from vivarium.interface import setup_simulation_from_model_specification
-
-   sim = setup_simulation_from_model_specification("~/path/to/disease_model.yaml")
 
 .. testcode::
 
    from vivarium.interface import setup_simulation_from_model_specification
+   from vivarium.examples.disease_model import get_model_specification_path
 
-   sim = setup_simulation_from_model_specification("../../../src/vivarium/examples/disease_model/disease_model.yaml")
+   sim = setup_simulation_from_model_specification(get_model_specification_path())
 
 
 
