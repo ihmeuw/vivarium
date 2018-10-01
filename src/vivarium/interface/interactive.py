@@ -201,6 +201,7 @@ class InteractiveContext(SimulationContext):
         """Adds a list of components to the simulation."""
         if self._setup:
             raise InteractiveError("Can't add components to an already set up simulation.")
+        self.component_manager.add_components(components)
 
 
 def initialize_simulation(components: List, input_config: Dict=None, plugin_config: Dict=None) -> InteractiveContext:
