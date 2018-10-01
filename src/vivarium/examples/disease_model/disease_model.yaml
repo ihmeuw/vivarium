@@ -2,7 +2,9 @@ components:
     vivarium.examples.disease_model:
         population:
             - BasePopulation()
+        mortality:
             - Mortality()
+        observer:
             - Observer()
         disease:
             - SIS_DiseaseModel('diarrhea')
