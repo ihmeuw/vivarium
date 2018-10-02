@@ -196,7 +196,9 @@ This is just a wrapper around some of the setup stuff from the previous step.
 Checking out the configuration
 ++++++++++++++++++++++++++++++
 
-One of the things we might
+One of the things we might want to checkout is the simulation configuration.
+Typically a model specification encodes some configuration information, but
+leaves many things set to defaults. 
 
 
 
