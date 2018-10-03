@@ -198,7 +198,184 @@ Checking out the configuration
 
 One of the things we might want to checkout is the simulation configuration.
 Typically a model specification encodes some configuration information, but
-leaves many things set to defaults. 
+leaves many things set to defaults. We can see what's in the configuration
+by simply printing it.
+
+.. testsetup::
+
+   from vivarium.examples.disease_model import get_disease_model_simulation
+
+   sim = get_disease_model_simulation()
+
+   if 'input_data' in sim.configuration:
+       del sim.configuration['input_data']
+
+.. testcode::
+
+   print(sim.configuration)
+
+.. testoutput::
+
+   randomness:
+       key_columns:
+           model_override: ['entrance_time', 'age']
+       map_size:
+           component_configs: 1000000
+       random_seed:
+           component_configs: 0
+       additional_seed:
+           component_configs: None
+   time:
+       start:
+           year:
+               model_override: 2005
+           month:
+               model_override: 7
+           day:
+               model_override: 1
+       end:
+           year:
+               model_override: 2006
+           month:
+               model_override: 7
+           day:
+               model_override: 1
+       step_size:
+           model_override: 3
+   population:
+       population_size:
+           model_override: 10000
+       age_start:
+           model_override: 0
+       age_end:
+           model_override: 30
+   mortality:
+       mortality_rate:
+           model_override: 0.05
+       life_expectancy:
+           component_configs: 80
+   diarrhea:
+       incidence:
+           model_override: 2.5
+       remission:
+           model_override: 42
+       excess_mortality:
+           model_override: 12
+   child_growth_failure:
+       proportion_exposed:
+           model_override: 0.5
+   effect_of_child_growth_failure_on_infected_with_diarrhea.incidence_rate:
+       relative_risk:
+           model_override: 5
+   effect_of_child_growth_failure_on_infected_with_diarrhea.excess_mortality_rate:
+       relative_risk:
+           model_override: 5
+   breastfeeding_promotion:
+       effect_size:
+           model_override: 0.5
+   interpolation:
+       order:
+           component_configs: 1
+
+What do we see here?  The configuration is *hierarchical*.  There are a set of
+top level *keys* that define named subsets of configuration data. We can access
+just those subsets if we like.
+
+.. testcode::
+
+   print(sim.configuration.randomness)
+
+.. testoutput::
+
+   key_columns:
+       model_override: ['entrance_time', 'age']
+   map_size:
+       component_configs: 1000000
+   random_seed:
+       component_configs: 0
+   additional_seed:
+       component_configs: None
+
+This subset of configuration data contains more keys.  All of the keys in
+our example here (key_columns, map_size, random_seed, and additional_seed)
+point directly to values. We can access these values from the simulation
+as well.
+
+.. testcode::
+
+   print(sim.configuration.randomness.key_columns)
+   print(sim.configuration.randomness.map_size)
+   print(sim.configuration.randomness.random_seed)
+   print(sim.configuration.randomness.additional_seed)
+
+
+.. testoutput::
+
+   ['entrance_time', 'age']
+   1000000
+   0
+   None
+
+However, we can no longer modify the configuration since the simulation
+has already been setup.
+
+.. testcode::
+
+   try:
+       sim.configuration.randomness.update({'randomn_seed': 5})
+   except TypeError:
+       print("Can't update configuration after setup")
+
+.. testoutput::
+
+   Can't update configuration after setup
+
+If we look again at the randomness configuration, it appears that there
+should be one more layer of keys.
+
+.. code-block:: python
+
+   key_columns:
+       model_override: ['entrance_time', 'age']
+   map_size:
+       component_configs: 1000000
+   random_seed:
+       component_configs: 0
+   additional_seed:
+       component_configs: None
+
+This last layer reflects a priority level in the way simulation configuration
+is managed. The ``component_configs`` under map_size, random_seed, and
+additional_seed tells us that the value was set by a simulation component's
+``configuration_defaults``.  The ``model_override`` under key_columns
+tells us that a model specification file set the value. If you're trying
+to debug issues, you may want more information than this.  You can also
+type ``repr(sim.configuration)`` (this is the equivalent of evaluating
+``sim.configuration`` in a jupyter notebook or ipython cell).  This will
+give you considerable information about where each configuration value was
+set and at what priority level.
+
+Looking at the simulation population
+++++++++++++++++++++++++++++++++++++
+
+Another interesting thing to look at at the beginning of the simulation is
+your starting population.
+
+.. testcode::
+
+   pop = sim.get_population()
+   print(pop.head())
+
+.. testoutput::
+
+      tracked     sex entrance_time  alive        age  child_growth_failure_propensity                 diarrhea
+   0     True  Female    2005-06-28  alive   3.452598                         0.552276  susceptible_to_diarrhea
+   1     True  Female    2005-06-28  alive   4.773249                         0.019633  susceptible_to_diarrhea
+   2     True    Male    2005-06-28  alive  23.423383                         0.578892  susceptible_to_diarrhea
+   3     True  Female    2005-06-28  alive  13.792463                         0.988650  susceptible_to_diarrhea
+   4     True    Male    2005-06-28  alive   0.449368                         0.407759  susceptible_to_diarrhea
+
+
 
 
 
