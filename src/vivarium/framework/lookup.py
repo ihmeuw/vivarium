@@ -24,30 +24,29 @@ class InterpolatedTableView:
     def __init__(self, data, population_view, key_columns, parameter_columns, interpolation_order, clock):
         self._data = data
         # TODO: figure out if we need interpolation to be lazily generated
-        self._interpolation = None
         self.population_view = population_view
         self._key_columns = key_columns
         self._parameter_columns = parameter_columns
         self._interpolation_order = interpolation_order
         self.clock = clock
+        self._interpolation = self.interpolation()
 
-    @property
     def interpolation(self):
-        if self._interpolation is None:
-            data = self._data
-            # TODO: find out is data ever callable
-            if callable(data) and not isinstance(data, Interpolation):
-                data = data()
+        data = self._data
+        # TODO: find out is data ever callable
+        if callable(data) and not isinstance(data, Interpolation):
+            import pdb
+            pdb.set_trace()
+            data = data()
 
-            if isinstance(data, Interpolation):
-                self._interpolation = data
-                warnings.warn("Creating lookup tables from pre-initialized Interpolation objects is deprecated. "
-                              "Use key_columns and parameter_columns to control interpolation. If that isn't possible "
-                              "then please raise an issue with your use case.", DeprecationWarning)
-            else:
-                self._interpolation = Interpolation(data, self._key_columns, self._parameter_columns,
-                                                    order=self._interpolation_order)
-        return self._interpolation
+        if isinstance(data, Interpolation):
+            warnings.warn("Creating lookup tables from pre-initialized Interpolation objects is deprecated. "
+                          "Use key_columns and parameter_columns to control interpolation. If that isn't possible "
+                          "then please raise an issue with your use case.", DeprecationWarning)
+            return data
+        else:
+            return Interpolation(data, self._key_columns, self._parameter_columns,
+                                                order=self._interpolation_order)
 
     def __call__(self, index):
         pop = self.population_view.get(index)
@@ -57,7 +56,7 @@ class InterpolatedTableView:
             fractional_year += current_time.timetuple().tm_yday / 365.25
             pop['year'] = fractional_year
 
-        return self.interpolation(pop)  # a series if only one column
+        return self._interpolation(pop)  # a series if only one column
 
     def __repr__(self):
         return "InterpolatedTableView()"
