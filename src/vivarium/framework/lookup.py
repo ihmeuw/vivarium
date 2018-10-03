@@ -2,6 +2,7 @@
 from numbers import Number
 from datetime import datetime, timedelta
 import warnings
+from collections import Iterable
 
 import pandas as pd
 
@@ -21,13 +22,14 @@ class InterpolatedTableView:
     -----
     These cannot be created directly. Use the `lookup` method on the builder during setup.
     """
-    def __init__(self, data, population_view, key_columns, parameter_columns, interpolation_order, clock):
+    def __init__(self, data, population_view, key_columns, parameter_columns, value_columns, interpolation_order, clock):
         self._data = data
         # TODO: figure out if we need interpolation to be lazily generated
         self.population_view = population_view
         self._key_columns = key_columns
         self._parameter_columns = parameter_columns
         self._interpolation_order = interpolation_order
+        self._value_columns = value_columns
         self.clock = clock
         self._interpolation = self.interpolation()
 
@@ -63,14 +65,24 @@ class InterpolatedTableView:
 
 
 class ScalarView:
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, values, value_columns):
+        if isinstance(values, Iterable) and not value_columns:
+            raise ValueError(f'To invoke scalar view with multiple values, you must supply value_columns')
+        if isinstance(values, Iterable) and len(value_columns) != len(values):
+            raise ValueError(f'The number of value columns must match the number of values.'
+                             f'You supplied values: {value} and value_columns: {value_columns}')
+
+        self._values = values
+        self._value_columns = value_columns
 
     def __call__(self, index):
-        return pd.Series(self.value, index=index)
+        if not isinstance(self._values, Iterable):
+            return pd.Series(self._values, index=index, name=self._value_columns[0] if self._value_columns else None)
+        values = dict(zip(self._value_columns, [pd.Series(v, index=index) for v in self._values]))
+        return pd.DataFrame(values)
 
     def __repr__(self):
-        return "ScalarView(value={})".format(self.value)
+        return "ScalarView(value(s)={})".format(self.values)
 
 
 class InterpolatedDataManager:
@@ -98,7 +110,7 @@ class InterpolatedDataManager:
             raise ValueError('Only order 0 and order 1 interpolations are supported. '
                              f'You specified {self._interpolation_order}')
 
-    def build_table(self, data, key_columns, parameter_columns):
+    def build_table(self, data, key_columns, parameter_columns, value_columns):
         """Construct a TableView from a ``pandas.DataFrame``. An interpolation
         function of the specified order will be calculated for each permutation
         of the set of key_columns. The columns in parameter_columns will be used
@@ -129,15 +141,17 @@ class InterpolatedDataManager:
         if data is None or (isinstance(data, pd.DataFrame) and data.empty):
             raise ValueError("Must supply some data")
         # Note datetime catches pandas timestamps
-        if isinstance(data, Number) or isinstance(data, datetime) or isinstance(data, timedelta):
-            return ScalarView(data)
+        # if isinstance(data, Number) or isinstance(data, datetime) or isinstance(data, timedelta):
+        # I don't like this because technically you could give a string or a set to ScalarView
+        if not isinstance(data, pd.DataFrame):
+            return ScalarView(data, value_columns)
 
         if set(key_columns).intersection(set(parameter_columns)):
             raise ValueError(f'There should be no overlap between key columns: {key_columns} '
                              f'and parameter columns: {parameter_columns}.')
         view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
         return InterpolatedTableView(data, self._pop_view_builder(view_columns),
-                                     key_columns, parameter_columns, self._interpolation_order,
+                                     key_columns, parameter_columns, value_columns, self._interpolation_order,
                                      self.clock)
 
     def __repr__(self):
@@ -149,5 +163,5 @@ class LookupTableInterface:
     def __init__(self, manager):
         self._lookup_table_manager = manager
 
-    def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year',)):
-        return self._lookup_table_manager.build_table(data, key_columns, parameter_columns)
+    def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None):
+        return self._lookup_table_manager.build_table(data, key_columns, parameter_columns, value_columns)
