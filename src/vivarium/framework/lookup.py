@@ -2,8 +2,6 @@
 from numbers import Number
 from datetime import datetime, timedelta
 import warnings
-from collections import Iterable
-
 import pandas as pd
 
 from vivarium.interpolation import Interpolation
@@ -66,23 +64,24 @@ class InterpolatedTableView:
 
 class ScalarView:
     def __init__(self, values, value_columns):
-        if isinstance(values, Iterable) and not value_columns:
-            raise ValueError(f'To invoke scalar view with multiple values, you must supply value_columns')
-        if isinstance(values, Iterable) and len(value_columns) != len(values):
-            raise ValueError(f'The number of value columns must match the number of values.'
-                             f'You supplied values: {value} and value_columns: {value_columns}')
+        if isinstance(values, (list, tuple)):
+            if not value_columns:
+                raise ValueError(f'To invoke scalar view with multiple values, you must supply value_columns')
+            if len(value_columns) != len(values):
+                raise ValueError(f'The number of value columns must match the number of values.'
+                                 f'You supplied values: {values} and value_columns: {value_columns}')
 
         self._values = values
         self._value_columns = value_columns
 
     def __call__(self, index):
-        if not isinstance(self._values, Iterable):
+        if not isinstance(self._values, (list, tuple)):
             return pd.Series(self._values, index=index, name=self._value_columns[0] if self._value_columns else None)
         values = dict(zip(self._value_columns, [pd.Series(v, index=index) for v in self._values]))
         return pd.DataFrame(values)
 
     def __repr__(self):
-        return "ScalarView(value(s)={})".format(self.values)
+        return "ScalarView(value(s)={})".format(self._values)
 
 
 class InterpolatedDataManager:
@@ -141,18 +140,19 @@ class InterpolatedDataManager:
         if data is None or (isinstance(data, pd.DataFrame) and data.empty):
             raise ValueError("Must supply some data")
         # Note datetime catches pandas timestamps
-        # if isinstance(data, Number) or isinstance(data, datetime) or isinstance(data, timedelta):
-        # I don't like this because technically you could give a string or a set to ScalarView
-        if not isinstance(data, pd.DataFrame):
+        if isinstance(data, (Number, datetime, timedelta, list, tuple)):
             return ScalarView(data, value_columns)
-
-        if set(key_columns).intersection(set(parameter_columns)):
-            raise ValueError(f'There should be no overlap between key columns: {key_columns} '
-                             f'and parameter columns: {parameter_columns}.')
-        view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
-        return InterpolatedTableView(data, self._pop_view_builder(view_columns),
-                                     key_columns, parameter_columns, value_columns, self._interpolation_order,
-                                     self.clock)
+        elif isinstance(data, pd.DataFrame):
+            if set(key_columns).intersection(set(parameter_columns)):
+                raise ValueError(f'There should be no overlap between key columns: {key_columns} '
+                                 f'and parameter columns: {parameter_columns}.')
+            view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
+            return InterpolatedTableView(data, self._pop_view_builder(view_columns),
+                                         key_columns, parameter_columns, value_columns, self._interpolation_order,
+                                         self.clock)
+        else:
+            raise ValueError(f'The only allowable types for data are number, datetime, timedelta,'
+                             f'list, tuple, or pandas DataFrame. You passed {type(data)}.')
 
     def __repr__(self):
         return "InterpolatedDataManager()"
