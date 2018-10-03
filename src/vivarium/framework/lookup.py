@@ -152,7 +152,7 @@ class InterpolatedDataManager:
                                          self.clock)
         else:
             raise ValueError(f'The only allowable types for data are number, datetime, timedelta,'
-                             f'list, tuple, or pandas DataFrame. You passed {type(data)}.')
+                             f'list, tuple, or pandas.DataFrame. You passed {type(data)}.')
 
     def __repr__(self):
         return "InterpolatedDataManager()"
