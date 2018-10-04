@@ -22,31 +22,21 @@ class InterpolatedTableView:
     """
     def __init__(self, data, population_view, key_columns, parameter_columns, value_columns, interpolation_order, clock):
         self._data = data
-        # TODO: figure out if we need interpolation to be lazily generated
         self.population_view = population_view
         self._key_columns = key_columns
         self._parameter_columns = parameter_columns
         self._interpolation_order = interpolation_order
         self._value_columns = value_columns
         self.clock = clock
-        self._interpolation = self.interpolation()
-
-    def interpolation(self):
-        data = self._data
-        # TODO: find out is data ever callable
-        if callable(data) and not isinstance(data, Interpolation):
-            import pdb
-            pdb.set_trace()
-            data = data()
 
         if isinstance(data, Interpolation):
             warnings.warn("Creating lookup tables from pre-initialized Interpolation objects is deprecated. "
                           "Use key_columns and parameter_columns to control interpolation. If that isn't possible "
                           "then please raise an issue with your use case.", DeprecationWarning)
-            return data
+            self._interpolation = self._data
         else:
-            return Interpolation(data, self._key_columns, self._parameter_columns,
-                                                order=self._interpolation_order)
+            self._interpolation =  Interpolation(data, self._key_columns, self._parameter_columns,
+                                                 order=self._interpolation_order)
 
     def __call__(self, index):
         pop = self.population_view.get(index)
