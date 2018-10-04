@@ -12,7 +12,7 @@ class InterpolatedTable:
 
     Notes
     -----
-    These cannot be created directly. Use the `lookup` method on the builder during setup.
+    These should not be created directly. Use the `lookup` method on the builder during setup.
     """
     def __init__(self, data, population_view, key_columns, parameter_columns, value_columns, interpolation_order, clock):
         self._data = data
@@ -33,6 +33,7 @@ class InterpolatedTable:
                                                 order=self._interpolation_order)
 
     def __call__(self, index):
+        """Returns a series if only one value column in the resulting interpolation, pandas.DataFrame otherwise"""
         pop = self.population_view.get(index)
         if 'year' in self._parameter_columns:
             current_time = self.clock()
@@ -47,6 +48,12 @@ class InterpolatedTable:
 
 
 class ScalarTable:
+    """A callable that returns a series or dataframe from a single value or list of values with no interpolation.
+
+    Notes
+    -----
+    These should not be created directly. Use the `lookup` method on the builder during setup.
+    """
     def __init__(self, values, value_columns):
         if isinstance(values, (list, tuple)):
             if not value_columns:
@@ -59,6 +66,7 @@ class ScalarTable:
         self._value_columns = value_columns
 
     def __call__(self, index):
+        """Returns a series if only one value column, pandas.DataFrame otherwise"""
         if not isinstance(self._values, (list, tuple)):
             return pd.Series(self._values, index=index, name=self._value_columns[0] if self._value_columns else None)
         values = dict(zip(self._value_columns, [pd.Series(v, index=index) for v in self._values]))
@@ -69,29 +77,48 @@ class ScalarTable:
 
 
 class LookupTable:
+    """Container for ScalarTables/InterpolatedTables over input data.
+
+    Notes
+    -----
+    These should not be created directly. Use the `lookup` method on the builder during setup.
+    """
     def __init__(self, data, population_view, key_columns, parameter_columns, value_columns,
                  interpolation_order, clock):
+
         if data is None or (isinstance(data, pd.DataFrame) and data.empty):
             raise ValueError("Must supply some data")
+
+        if set(key_columns).intersection(set(parameter_columns)):
+            raise ValueError(f'There should be no overlap between key columns: {key_columns} '
+                             f'and parameter columns: {parameter_columns}.')
 
         # Note datetime catches pandas timestamps
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
             self.table = ScalarTable(data, value_columns)
 
         elif isinstance(data, pd.DataFrame):
-            if set(key_columns).intersection(set(parameter_columns)):
-                raise ValueError(f'There should be no overlap between key columns: {key_columns} '
-                                 f'and parameter columns: {parameter_columns}.')
             view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
-            self.table = InterpolatedTable(data, population_view(view_columns),
-                                         key_columns, parameter_columns, value_columns, interpolation_order, clock)
+            self.table = InterpolatedTable(data, population_view(view_columns), key_columns,
+                                           parameter_columns, value_columns, interpolation_order, clock)
 
         else:
-            raise ValueError(f'The only allowable types for data are number, datetime, timedelta,'
-                             f'list, tuple, or pandas.DataFrame. You passed {type(data)}.')
+            raise TypeError(f'The only allowable types for data are number, datetime, timedelta, '
+                            f'list, tuple, or pandas.DataFrame. You passed {type(data)}.')
 
     def __call__(self, index):
-        """"If resulting data is one column, returns series otherwise pandas.DataFrame"""
+        """Get the interpolated or scalar table values for the given index.
+
+        Parameters
+        ----------
+        index : Index
+              Index for population view
+
+        Returns
+        -------
+        pandas.Series if interpolated or scalar values for index are one column,
+        pandas.DataFrame if multiple columns
+        """
         return self.table(index)
 
     def __repr__(self):
@@ -135,7 +162,7 @@ class LookupTableManager:
 
         Parameters
         ----------
-        data        : The source data which will be accessible through the resulting LookupTable.
+        data        : The source data which will be used to build the resulting LookupTable.
         key_columns : [str]
                       Columns used to select between interpolation functions. These
                       should be the non-continuous variables in the data. For
