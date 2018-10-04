@@ -2,40 +2,36 @@ import warnings
 
 import pandas as pd
 from scipy import interpolate
-
+from typing import Sequence
 
 class Interpolation:
-    def __init__(self, data, categorical_parameters, continuous_parameters, order, func=None):
-        data = data
+    def __init__(self, data: pd.DataFrame, categorical_parameters: Sequence[str],
+                 continuous_parameters: Sequence[str], order: int):
+
         self.key_columns = categorical_parameters
+        self.parameter_columns, self._data = validate_parameters(data, continuous_parameters, order)
 
-        if data.empty:
-            raise ValueError("Must supply some input data")
-
-        self.parameter_columns, self_data = validate_parameters(data, continuous_parameters, order)
-        self.func = func
-
+        # FIXME: allow for more than 2 parameter interpolation
         if len(self.parameter_columns) not in [1, 2]:
             raise ValueError("Only interpolation over 1 or 2 variables is supported")
 
         # These are the columns which the interpolation function will approximate
-        value_columns = sorted(data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
-        assert value_columns, (f"No non-parameter data. Avaliable columns: {data.columns}, "
-                               f"Parameter columns: {set(self.key_columns)|set(self.parameter_columns)}")
+        value_columns = sorted(self._data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
+        if not value_columns:
+            raise ValueError(f"No non-parameter data. Available columns: {self._data.columns}, "
+                             f"Parameter columns: {set(self.key_columns)|set(self.parameter_columns)}")
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
             # columns to get the sub-tables to fit
-            sub_tables = data.groupby(list(self.key_columns))
+            sub_tables = self._data.groupby(list(self.key_columns))
         else:
             # There are no key columns so we will fit the whole table
-            sub_tables = {None: data}.items()
+            sub_tables = {None: self._data}.items()
 
         self.interpolations = {}
 
         for key, base_table in sub_tables:
-            if base_table.empty:
-                continue
             # For each permutation of the key columns build interpolations
             self.interpolations[key] = {}
             for value_column in value_columns:
@@ -63,23 +59,16 @@ class Interpolation:
                     else:
                         func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
                 self.interpolations[key][value_column] = func
-        assert self.interpolations
 
-    def __call__(self, *args, **kwargs):
-        # TODO: Should be more defensive about this
-        if len(args) == 1:
-            # We have a dataframe
-            df = args[0]
-        else:
-            # We have parameters for a single invocation
-            df = pd.DataFrame(kwargs)
+    def __call__(self, population):
+
+        validate_call_data(population, self.key_columns, self.parameter_columns)
 
         if self.key_columns:
-            sub_tables = df.groupby(list(self.key_columns))
+            sub_tables = population.groupby(list(self.key_columns))
         else:
-            sub_tables = [(None, df)]
-
-        result = pd.DataFrame(index=df.index)
+            sub_tables = [(None, population)]
+        result = pd.DataFrame(index=population.index)
         for key, sub_table in sub_tables:
             if sub_table.empty:
                 continue
@@ -94,9 +83,6 @@ class Interpolation:
                 else:
                     result.loc[sub_table.index, value_column] = out
 
-        if self.func:
-            return self.func(result)
-
         if len(result.columns) == 1:
             return result[result.columns[0]]
 
@@ -104,6 +90,24 @@ class Interpolation:
 
     def __repr__(self):
         return "Interpolation()"
+
+
+def validate_call_data(data, key_columns, parameter_columns):
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError(f'Interpolations can only be called on pandas.DataFrames. You'
+                        f'passed {type(data)}.')
+
+    if not set(parameter_columns) <= set(data.columns.values.tolist()):
+        raise ValueError(f'The continuous parameter columns with which you built the Interpolation must all'
+                         f'be present in the data you call it on. The Interpolation has key'
+                         f'columns: {parameter_columns} and your data has columns: '
+                         f'{data.columns.values.tolist()}')
+
+    if key_columns and not set(key_columns) <= set(data.columns.values.tolist()):
+        raise ValueError(f'The key (categorical) columns with which you built the Interpolation must all'
+                         f'be present in the data you call it on. The Interpolation has key'
+                         f'columns: {key_columns} and your data has columns: '
+                         f'{data.columns.values.tolist()}')
 
 
 def validate_parameters(data, continuous_parameters, order):
