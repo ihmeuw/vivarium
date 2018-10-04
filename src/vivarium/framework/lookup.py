@@ -10,12 +10,6 @@ from vivarium.interpolation import Interpolation
 class InterpolatedTableView:
     """A callable that returns the result of an interpolation function over input data.
 
-    Parameters
-    ----------
-    interpolation : callable
-    population_view : `vivarium.framework.population.PopulationView`
-    clock : callable
-
     Notes
     -----
     These cannot be created directly. Use the `lookup` method on the builder during setup.
@@ -35,8 +29,8 @@ class InterpolatedTableView:
                           "then please raise an issue with your use case.", DeprecationWarning)
             self._interpolation = self._data
         else:
-            self._interpolation =  Interpolation(data, self._key_columns, self._parameter_columns,
-                                                 order=self._interpolation_order)
+            self._interpolation = Interpolation(data, self._key_columns, self._parameter_columns,
+                                                order=self._interpolation_order)
 
     def __call__(self, index):
         pop = self.population_view.get(index)
