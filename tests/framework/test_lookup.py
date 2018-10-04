@@ -116,7 +116,7 @@ def test_scalar_tables_from_single_value(base_config):
 def test_invalid_data_type_build_table(base_config):
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         manager.build_table('break', key_columns=None, parameter_columns=None, value_columns=None)
 
 
