@@ -7,7 +7,7 @@ import pandas as pd
 from vivarium.interpolation import Interpolation
 
 
-class InterpolatedTableView:
+class InterpolatedTable:
     """A callable that returns the result of an interpolation function over input data.
 
     Notes
@@ -43,10 +43,10 @@ class InterpolatedTableView:
         return self._interpolation(pop)  # a series if only one column
 
     def __repr__(self):
-        return "InterpolatedTableView()"
+        return "InterpolatedTable()"
 
 
-class ScalarView:
+class ScalarTable:
     def __init__(self, values, value_columns):
         if isinstance(values, (list, tuple)):
             if not value_columns:
@@ -65,18 +65,46 @@ class ScalarView:
         return pd.DataFrame(values)
 
     def __repr__(self):
-        return "ScalarView(value(s)={})".format(self._values)
+        return "ScalarTable(value(s)={})".format(self._values)
 
 
-class InterpolatedDataManager:
-    """Container for interpolation functions over input data. Interpolation can
-    be turned off on a case by case basis in which case the data will be
-    delegated to MergedTableManager instead.
+class LookupTable:
+    def __init__(self, data, population_view, key_columns, parameter_columns, value_columns,
+                 interpolation_order, clock):
+        if data is None or (isinstance(data, pd.DataFrame) and data.empty):
+            raise ValueError("Must supply some data")
+
+        # Note datetime catches pandas timestamps
+        if isinstance(data, (Number, datetime, timedelta, list, tuple)):
+            self.table = ScalarTable(data, value_columns)
+
+        elif isinstance(data, pd.DataFrame):
+            if set(key_columns).intersection(set(parameter_columns)):
+                raise ValueError(f'There should be no overlap between key columns: {key_columns} '
+                                 f'and parameter columns: {parameter_columns}.')
+            view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
+            self.table = InterpolatedTable(data, population_view(view_columns),
+                                         key_columns, parameter_columns, value_columns, interpolation_order, clock)
+
+        else:
+            raise ValueError(f'The only allowable types for data are number, datetime, timedelta,'
+                             f'list, tuple, or pandas.DataFrame. You passed {type(data)}.')
+
+    def __call__(self, index):
+        """"If resulting data is one column, returns series otherwise pandas.DataFrame"""
+        return self.table(index)
+
+    def __repr__(self):
+        return "LookupTable()"
+
+
+class LookupTableManager:
+    """Container for LookupTables over input data.
 
     Notes
     -----
     Client code should never access this class directly. Use ``lookup`` on the builder during setup
-    to get references to TableView objects.
+    to get references to LookupTable objects.
     """
 
     configuration_defaults = {
@@ -94,20 +122,20 @@ class InterpolatedDataManager:
                              f'You specified {self._interpolation_order}')
 
     def build_table(self, data, key_columns, parameter_columns, value_columns):
-        """Construct a TableView from a ``pandas.DataFrame``. An interpolation
-        function of the specified order will be calculated for each permutation
-        of the set of key_columns. The columns in parameter_columns will be used
-        as parameters for the interpolation functions which will estimate all
-        remaining columns in the table.
+        """Construct a LookupTable from input data.
 
-        If parameter_columns is empty then no interpolation will be
-        attempted and the data will be delegated to MergedTableManager.build_table.
+        If data is a ``pandas.DataFrame``, an interpolation function of the specified
+        order will be calculated for each permutation of the set of key_columns.
+        The columns in parameter_columns will be used as parameters for the interpolation
+        functions which will estimate all remaining columns in the table.
+
+        If data is a number, time, list, or tuple, a scalar table will be constructed with
+        the values in data the values in each column of the table.
 
 
         Parameters
         ----------
-        data        : pandas.DataFrame
-                      The source data which will be accessible through the resulting TableView.
+        data        : The source data which will be accessible through the resulting LookupTable.
         key_columns : [str]
                       Columns used to select between interpolation functions. These
                       should be the non-continuous variables in the data. For
@@ -116,30 +144,20 @@ class InterpolatedDataManager:
                       The columns which contain the parameters to the interpolation functions.
                       These should be the continuous variables. For example 'age'
                       in data about a population.
-
+        value_columns : [str]
+                      The data columns that will be in the resulting LookupTable. Columns to be
+                      interpolated over if interpolation or the names of the columns in the scalar
+                      table.
         Returns
         -------
-        TableView
+        LookupTable
         """
-        if data is None or (isinstance(data, pd.DataFrame) and data.empty):
-            raise ValueError("Must supply some data")
-        # Note datetime catches pandas timestamps
-        if isinstance(data, (Number, datetime, timedelta, list, tuple)):
-            return ScalarView(data, value_columns)
-        elif isinstance(data, pd.DataFrame):
-            if set(key_columns).intersection(set(parameter_columns)):
-                raise ValueError(f'There should be no overlap between key columns: {key_columns} '
-                                 f'and parameter columns: {parameter_columns}.')
-            view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
-            return InterpolatedTableView(data, self._pop_view_builder(view_columns),
-                                         key_columns, parameter_columns, value_columns, self._interpolation_order,
-                                         self.clock)
-        else:
-            raise ValueError(f'The only allowable types for data are number, datetime, timedelta,'
-                             f'list, tuple, or pandas.DataFrame. You passed {type(data)}.')
+
+        return LookupTable(data, self._pop_view_builder, key_columns, parameter_columns,
+                           value_columns, self._interpolation_order, self.clock)
 
     def __repr__(self):
-        return "InterpolatedDataManager()"
+        return "LookupTableManager()"
 
 
 class LookupTableInterface:

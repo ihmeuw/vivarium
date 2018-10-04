@@ -5,7 +5,7 @@ from .utilities import import_by_path
 
 _MANAGERS = {
     'lookup': {
-        'controller': 'vivarium.framework.lookup.InterpolatedDataManager',
+        'controller': 'vivarium.framework.lookup.LookupTableManager',
         'builder_interface': 'vivarium.framework.lookup.LookupTableInterface',
     },
     'randomness': {

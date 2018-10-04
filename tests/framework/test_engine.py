@@ -2,7 +2,7 @@ import pytest
 
 from vivarium.framework.engine import SimulationContext, Builder, setup_simulation, run, run_simulation
 from vivarium.framework.event import EventManager, EventInterface
-from vivarium.framework.lookup import InterpolatedDataManager, LookupTableInterface
+from vivarium.framework.lookup import LookupTableManager, LookupTableInterface
 from vivarium.framework.components import ComponentManager, ComponentInterface
 from vivarium.framework.metrics import Metrics
 from vivarium.framework.plugins import PluginManager
@@ -39,7 +39,7 @@ def test_SimulationContext_init_default(base_config, components):
     assert isinstance(sim.values, ValuesManager)
     assert isinstance(sim.events, EventManager)
     assert isinstance(sim.population, PopulationManager)
-    assert isinstance(sim.tables, InterpolatedDataManager)
+    assert isinstance(sim.tables, LookupTableManager)
     assert isinstance(sim.randomness, RandomnessManager)
 
     assert isinstance(sim.builder, Builder)
@@ -87,7 +87,7 @@ def test_SimulationContext_init_custom(base_config, components):
     assert isinstance(sim.values, ValuesManager)
     assert isinstance(sim.events, EventManager)
     assert isinstance(sim.population, PopulationManager)
-    assert isinstance(sim.tables, InterpolatedDataManager)
+    assert isinstance(sim.tables, LookupTableManager)
     assert isinstance(sim.randomness, RandomnessManager)
 
     assert isinstance(sim.builder, Builder)
