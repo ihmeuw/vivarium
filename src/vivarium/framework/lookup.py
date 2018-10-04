@@ -2,6 +2,7 @@
 from numbers import Number
 from datetime import datetime, timedelta
 import warnings
+
 import pandas as pd
 
 from vivarium.interpolation import Interpolation
@@ -157,7 +158,8 @@ class LookupTableManager:
         functions which will estimate all remaining columns in the table.
 
         If data is a number, time, list, or tuple, a scalar table will be constructed with
-        the values in data the values in each column of the table.
+        the values in data as the values in each column of the table, named according to
+        value_columns.
 
 
         Parameters
