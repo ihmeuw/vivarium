@@ -89,15 +89,15 @@ class LookupTable:
         if data is None or (isinstance(data, pd.DataFrame) and data.empty):
             raise ValueError("Must supply some data")
 
-        if set(key_columns).intersection(set(parameter_columns)):
-            raise ValueError(f'There should be no overlap between key columns: {key_columns} '
-                             f'and parameter columns: {parameter_columns}.')
-
         # Note datetime catches pandas timestamps
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
             self.table = ScalarTable(data, value_columns)
 
         elif isinstance(data, pd.DataFrame):
+            if set(key_columns).intersection(set(parameter_columns)):
+                raise ValueError(f'There should be no overlap between key columns: {key_columns} '
+                                 f'and parameter columns: {parameter_columns}.')
+
             view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
             self.table = InterpolatedTable(data, population_view(view_columns), key_columns,
                                            parameter_columns, value_columns, interpolation_order, clock)
