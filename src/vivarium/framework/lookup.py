@@ -76,12 +76,13 @@ class InterpolatedTable:
     def __repr__(self):
         return "InterpolatedTable()"
 
+
 class ScalarTable:
     """A callable that returns a series or dataframe from a single value or list of values with no interpolation.
 
     Attributes
     ----------
-    values : Number, datetime, timedelta or list or tuple of those types
+    values : Number, datetime, timedelta, or list or tuple of those types
         The scalar value(s) from which to build table columns.
     value_columns : List[str] or Tuple[str]
         List of string names to be used to name the columns of the table built
@@ -91,7 +92,9 @@ class ScalarTable:
     -----
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
-    def __init__(self, values: Union[List[value_type], Tuple[value_type]], value_columns: Union[List[str], Tuple[str]]):
+    def __init__(self, values: Union[List[value_type], Tuple[value_type]],
+                 value_columns: Union[List[str], Tuple[str]]):
+
         self.values = values
         self.value_columns = value_columns
 
@@ -121,21 +124,28 @@ class ScalarTable:
 class LookupTable:
     """Container for ScalarTables/InterpolatedTables over input data.
 
+    Attributes
+    ----------
+    table : ScalarTable or InterpolatedTable
+        callable table created from input data
+
     Notes
     -----
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
-    def __init__(self, data, population_view, key_columns, parameter_columns, value_columns,
-                 interpolation_order, clock):
+    def __init__(self, data: Union[value_type, pd.DataFrame, List[value_type], Tuple[value_type]],
+                 population_view: Callable, key_columns: Union[List[str], Tuple[str]],
+                 parameter_columns: Union[List[str], Tuple[str]], value_columns: Union[List[str], Tuple[str]],
+                 interpolation_order: int, clock: Callable):
 
         validate_parameters(data, key_columns, parameter_columns, value_columns)
 
         # Note datetime catches pandas timestamps
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
-            self.table = ScalarTable(data, value_columns)
+            self._table = ScalarTable(data, value_columns)
         else:
             view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
-            self.table = InterpolatedTable(data, population_view(view_columns), key_columns,
+            self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
                                            parameter_columns, value_columns, interpolation_order, clock)
 
     def __call__(self, index):
@@ -151,7 +161,7 @@ class LookupTable:
         pandas.Series if interpolated or scalar values for index are one column,
         pandas.DataFrame if multiple columns
         """
-        table_view = self.table(index)
+        table_view = self._table(index)
         if len(table_view.columns) == 1:
             return table_view[table_view.columns[0]]
         return table_view
