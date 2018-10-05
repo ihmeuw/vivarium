@@ -221,6 +221,19 @@ class LookupTableManager:
                              f'You specified {self._interpolation_order}')
 
     def build_table(self, data, key_columns, parameter_columns, value_columns):
+        return LookupTable(data, self._pop_view_builder, key_columns, parameter_columns,
+                           value_columns, self._interpolation_order, self.clock)
+
+    def __repr__(self):
+        return "LookupTableManager()"
+
+
+class LookupTableInterface:
+
+    def __init__(self, manager):
+        self._lookup_table_manager = manager
+
+    def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None):
         """Construct a LookupTable from input data.
 
         If data is a ``pandas.DataFrame``, an interpolation function of the specified
@@ -252,18 +265,4 @@ class LookupTableManager:
         -------
         LookupTable
         """
-
-        return LookupTable(data, self._pop_view_builder, key_columns, parameter_columns,
-                           value_columns, self._interpolation_order, self.clock)
-
-    def __repr__(self):
-        return "LookupTableManager()"
-
-
-class LookupTableInterface:
-
-    def __init__(self, manager):
-        self._lookup_table_manager = manager
-
-    def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None):
         return self._lookup_table_manager.build_table(data, key_columns, parameter_columns, value_columns)
