@@ -23,15 +23,8 @@ class InterpolatedTable:
         self._interpolation_order = interpolation_order
         self._value_columns = value_columns
         self.clock = clock
-
-        if isinstance(data, Interpolation):
-            warnings.warn("Creating lookup tables from pre-initialized Interpolation objects is deprecated. "
-                          "Use key_columns and parameter_columns to control interpolation. If that isn't possible "
-                          "then please raise an issue with your use case.", DeprecationWarning)
-            self._interpolation = self._data
-        else:
-            self._interpolation = Interpolation(data, self._key_columns, self._parameter_columns,
-                                                order=self._interpolation_order)
+        self._interpolation = Interpolation(data, self._key_columns, self._parameter_columns,
+                                            order=self._interpolation_order)
 
     def __call__(self, index):
         pop = self.population_view.get(index)
@@ -55,13 +48,6 @@ class ScalarTable:
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
     def __init__(self, values, value_columns):
-        if isinstance(values, (list, tuple)):
-            if not value_columns:
-                raise ValueError(f'To invoke scalar view with multiple values, you must supply value_columns')
-            if len(value_columns) != len(values):
-                raise ValueError(f'The number of value columns must match the number of values.'
-                                 f'You supplied values: {values} and value_columns: {value_columns}')
-
         self._values = values
         self._value_columns = value_columns
 
@@ -86,25 +72,15 @@ class LookupTable:
     def __init__(self, data, population_view, key_columns, parameter_columns, value_columns,
                  interpolation_order, clock):
 
-        if data is None or (isinstance(data, pd.DataFrame) and data.empty):
-            raise ValueError("Must supply some data")
+        validate_parameters(data, key_columns, parameter_columns, value_columns)
 
         # Note datetime catches pandas timestamps
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
             self.table = ScalarTable(data, value_columns)
-
-        elif isinstance(data, pd.DataFrame):
-            if set(key_columns).intersection(set(parameter_columns)):
-                raise ValueError(f'There should be no overlap between key columns: {key_columns} '
-                                 f'and parameter columns: {parameter_columns}.')
-
+        else:
             view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
             self.table = InterpolatedTable(data, population_view(view_columns), key_columns,
                                            parameter_columns, value_columns, interpolation_order, clock)
-
-        else:
-            raise TypeError(f'The only allowable types for data are number, datetime, timedelta, '
-                            f'list, tuple, or pandas.DataFrame. You passed {type(data)}.')
 
     def __call__(self, index):
         """Get the interpolated or scalar table values for the given index.
@@ -126,6 +102,36 @@ class LookupTable:
 
     def __repr__(self):
         return "LookupTable()"
+
+
+def validate_parameters(data, key_columns, parameter_columns, value_columns):
+    if data is None or (isinstance(data, pd.DataFrame) and data.empty):
+        raise ValueError("Must supply some data")
+
+    if not isinstance(data, (Number, datetime, timedelta, list, tuple, pd.DataFrame)):
+        raise TypeError(f'The only allowable types for data are number, datetime, timedelta, '
+                        f'list, tuple, or pandas.DataFrame. You passed {type(data)}.')
+
+    if isinstance(data, (list, tuple)):
+        if not value_columns:
+            raise ValueError(f'To invoke scalar view with multiple values, you must supply value_columns')
+        if len(value_columns) != len(data):
+            raise ValueError(f'The number of value columns must match the number of values.'
+                             f'You supplied values: {data} and value_columns: {value_columns}')
+
+    if isinstance(data, pd.DataFrame):
+        if set(key_columns).intersection(set(parameter_columns)):
+            raise ValueError(f'There should be no overlap between key columns: {key_columns} '
+                             f'and parameter columns: {parameter_columns}.')
+
+        if value_columns:
+            data_value_columns = sorted(data.columns.difference(set(key_columns)|set(parameter_columns)))
+            if value_columns != data_value_columns:
+                raise ValueError(f'The value columns you supplied: {value_columns} do not match '
+                                 f'the non-parameter columns in the passed data: {data_value_columns}')
+
+    if isinstance(data, Interpolation):
+        raise TypeError("Creating lookup tables from pre-initialized Interpolation objects is no longer supported.")
 
 
 class LookupTableManager:
