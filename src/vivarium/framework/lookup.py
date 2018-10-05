@@ -130,9 +130,6 @@ def validate_parameters(data, key_columns, parameter_columns, value_columns):
                 raise ValueError(f'The value columns you supplied: {value_columns} do not match '
                                  f'the non-parameter columns in the passed data: {data_value_columns}')
 
-    if isinstance(data, Interpolation):
-        raise TypeError("Creating lookup tables from pre-initialized Interpolation objects is no longer supported.")
-
 
 class LookupTableManager:
     """Container for LookupTables over input data.
