@@ -32,6 +32,8 @@ class Interpolation:
         self.interpolations = {}
 
         for key, base_table in sub_tables:
+            if base_table.empty:    # if one of the key columns is a category and not all values are present in data
+                continue
             # For each permutation of the key columns build interpolations
             self.interpolations[key] = {}
             for value_column in value_columns:
