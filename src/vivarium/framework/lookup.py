@@ -1,40 +1,76 @@
 """A set of tools for managing data lookups."""
 from numbers import Number
 from datetime import datetime, timedelta
-import warnings
+from typing import Sequence, Callable
 
 import pandas as pd
 
 from vivarium.interpolation import Interpolation
+from vivarium.framework.population import PopulationView
 
 
 class InterpolatedTable:
     """A callable that returns the result of an interpolation function over input data.
 
+    Attributes
+    ----------
+    data : `pandas.DataFrame`
+        The data from which to build the interpolation. Contains the set of
+        key_columns, parameter_columns, and value_columns.
+    population_view : PopulationView
+        View of the population to be used when the table is called with an index.
+    key_columns : Sequence[str]
+        List of column names to be used as categorical parameters in Interpolation
+        to select between interpolation functions.
+    parameter_columns : Sequence[str]
+        List of column names to be used as continuous parameters in Interpolation.
+    value_columns : Sequence[str]
+        List of value columns to be interpolated over. All non parameter- and key-
+        columns in data.
+    interpolation_order : int
+        Order of interpolation.
+    clock : Callable
+        Callable for current time in simulation.
+
     Notes
     -----
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
-    def __init__(self, data, population_view, key_columns, parameter_columns, value_columns, interpolation_order, clock):
-        self._data = data
-        self.population_view = population_view
-        self._key_columns = key_columns
-        self._parameter_columns = parameter_columns
-        self._interpolation_order = interpolation_order
-        self._value_columns = value_columns
-        self.clock = clock
-        self._interpolation = Interpolation(data, self._key_columns, self._parameter_columns,
-                                            order=self._interpolation_order)
+    def __init__(self, data: pd.DataFrame, population_view: PopulationView, key_columns: Sequence[str],
+                 parameter_columns: Sequence[str], value_columns: Sequence[str],
+                 interpolation_order: int, clock: Callable):
 
-    def __call__(self, index):
+        self.data = data
+        self.population_view = population_view
+        self.key_columns = key_columns
+        self.parameter_columns = parameter_columns
+        self.interpolation_order = interpolation_order
+        self.value_columns = value_columns
+        self.clock = clock
+        self.interpolation = Interpolation(data, self.key_columns, self.parameter_columns,
+                                           order=self.interpolation_order)
+
+    def __call__(self, index: pd.Index):
+        """Get the interpolated values for the rows in ``index``.
+
+        Parameters
+        ----------
+        index :
+            Index of the population to interpolate for.
+
+        Returns
+        -------
+        pd.DataFrame
+            A table with the interpolated values for the population requested.
+        """
         pop = self.population_view.get(index)
-        if 'year' in self._parameter_columns:
+        if 'year' in self.parameter_columns:
             current_time = self.clock()
             fractional_year = current_time.year
             fractional_year += current_time.timetuple().tm_yday / 365.25
             pop['year'] = fractional_year
 
-        return self._interpolation(pop)  # a series if only one column
+        return self.interpolation(pop)
 
     def __repr__(self):
         return "InterpolatedTable()"
