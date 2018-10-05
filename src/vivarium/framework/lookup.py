@@ -1,13 +1,14 @@
 """A set of tools for managing data lookups."""
 from numbers import Number
 from datetime import datetime, timedelta
-from typing import Sequence, Callable
+from typing import Union, List, Tuple, Callable, TypeVar
 
 import pandas as pd
 
 from vivarium.interpolation import Interpolation
 from vivarium.framework.population import PopulationView
 
+value_type = TypeVar('value_type', Number, timedelta, datetime)
 
 class InterpolatedTable:
     """A callable that returns the result of an interpolation function over input data.
@@ -19,12 +20,12 @@ class InterpolatedTable:
         key_columns, parameter_columns, and value_columns.
     population_view : PopulationView
         View of the population to be used when the table is called with an index.
-    key_columns : Sequence[str]
+    key_columns : List[str] or Tuple[str]
         List of column names to be used as categorical parameters in Interpolation
         to select between interpolation functions.
-    parameter_columns : Sequence[str]
+    parameter_columns : List[str] or Tuple[str]
         List of column names to be used as continuous parameters in Interpolation.
-    value_columns : Sequence[str]
+    value_columns : List[str] or Tuple[str]
         List of value columns to be interpolated over. All non parameter- and key-
         columns in data.
     interpolation_order : int
@@ -36,8 +37,8 @@ class InterpolatedTable:
     -----
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
-    def __init__(self, data: pd.DataFrame, population_view: PopulationView, key_columns: Sequence[str],
-                 parameter_columns: Sequence[str], value_columns: Sequence[str],
+    def __init__(self, data: pd.DataFrame, population_view: PopulationView, key_columns: Union[List[str], Tuple[str]],
+                 parameter_columns: Union[List[str], Tuple[str]], value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int, clock: Callable):
 
         self.data = data
@@ -75,27 +76,46 @@ class InterpolatedTable:
     def __repr__(self):
         return "InterpolatedTable()"
 
-
 class ScalarTable:
     """A callable that returns a series or dataframe from a single value or list of values with no interpolation.
+
+    Attributes
+    ----------
+    values : Number, datetime, timedelta or list or tuple of those types
+        The scalar value(s) from which to build table columns.
+    value_columns : List[str] or Tuple[str]
+        List of string names to be used to name the columns of the table built
+        from values.
 
     Notes
     -----
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
-    def __init__(self, values, value_columns):
-        self._values = values
-        self._value_columns = value_columns
+    def __init__(self, values: Union[List[value_type], Tuple[value_type]], value_columns: Union[List[str], Tuple[str]]):
+        self.values = values
+        self.value_columns = value_columns
 
     def __call__(self, index):
-        if not isinstance(self._values, (list, tuple)):
-            values = pd.Series(self._values, index=index, name=self._value_columns[0] if self._value_columns else None)
+        """Build a table with ``index`` and columns for each of the scalar values.
+
+        Parameters
+        ----------
+        index :
+            Index of the population to construct table for.
+
+        Returns
+        -------
+        pd.DataFrame
+            A table with a column for each of the scalar values for the population requested.
+        """
+        if not isinstance(self.values, (list, tuple)):
+            values = pd.Series(self.values, index=index, name=self.value_columns[0] if self.value_columns else None)
         else:
-            values = dict(zip(self._value_columns, [pd.Series(v, index=index) for v in self._values]))
+            values = dict(zip(self.value_columns, [pd.Series(v, index=index) for v in self.values]))
         return pd.DataFrame(values)
 
     def __repr__(self):
-        return "ScalarTable(value(s)={})".format(self._values)
+        return "ScalarTable(value(s)={})".format(self.values)
 
 
 class LookupTable:
