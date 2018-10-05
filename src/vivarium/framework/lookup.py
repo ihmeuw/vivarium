@@ -34,7 +34,6 @@ class InterpolatedTable:
                                                 order=self._interpolation_order)
 
     def __call__(self, index):
-        """Returns a series if only one value column in the resulting interpolation, pandas.DataFrame otherwise"""
         pop = self.population_view.get(index)
         if 'year' in self._parameter_columns:
             current_time = self.clock()
@@ -67,10 +66,10 @@ class ScalarTable:
         self._value_columns = value_columns
 
     def __call__(self, index):
-        """Returns a series if only one value column, pandas.DataFrame otherwise"""
         if not isinstance(self._values, (list, tuple)):
-            return pd.Series(self._values, index=index, name=self._value_columns[0] if self._value_columns else None)
-        values = dict(zip(self._value_columns, [pd.Series(v, index=index) for v in self._values]))
+            values = pd.Series(self._values, index=index, name=self._value_columns[0] if self._value_columns else None)
+        else:
+            values = dict(zip(self._value_columns, [pd.Series(v, index=index) for v in self._values]))
         return pd.DataFrame(values)
 
     def __repr__(self):
@@ -120,7 +119,10 @@ class LookupTable:
         pandas.Series if interpolated or scalar values for index are one column,
         pandas.DataFrame if multiple columns
         """
-        return self.table(index)
+        table_view = self.table(index)
+        if len(table_view.columns) == 1:
+            return table_view[table_view.columns[0]]
+        return table_view
 
     def __repr__(self):
         return "LookupTable()"

@@ -97,9 +97,6 @@ class Interpolation:
         if self.func:
             return self.func(result)
 
-        if len(result.columns) == 1:
-            return result[result.columns[0]]
-
         return result
 
     def __repr__(self):
