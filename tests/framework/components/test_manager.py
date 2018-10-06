@@ -56,7 +56,7 @@ def test__setup_components(mocker, apply_default_config_mock):
     components = [duplicate, duplicate]
     finished = _setup_components(builder, components, config)
 
-    apply_default_config_mock.assert_called_once_with(config, duplicate)
+    apply_default_config_mock.assert_not_called()
     assert [duplicate] == finished
     apply_default_config_mock.reset_mock()
 
@@ -64,11 +64,26 @@ def test__setup_components(mocker, apply_default_config_mock):
     finished = _setup_components(builder, components, config)
     mock_a, mock_b = finished
 
-    assert apply_default_config_mock.mock_calls == [mocker.call(config, component) for component in finished]
+    apply_default_config_mock.assert_not_called()
 
     assert mock_a.builder_used_for_setup is None  # class has no setup method
     assert mock_b.builder_used_for_setup is builder
     assert mock_b.args == ('half', 'a', 'bee')
+
+    class TestBee:
+        configuration_defaults = {
+            'test_bee': {
+                'name': 'wasp',
+                'location': 'next to my bed',
+            }
+        }
+
+    test_bee = TestBee()
+    components = [MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'), test_bee]
+    apply_default_config_mock.reset_mock()
+    _setup_components(builder, components, config)
+
+    apply_default_config_mock.assert_called_once()
 
 
 def test_ComponentManager_add_components():
@@ -111,3 +126,45 @@ def test_ComponentManager__setup_components(mocker):
     assert mock_b_child2.builder_used_for_setup is builder
     assert mock_b_child3.args == ('bee',)
     assert mock_b_child3.builder_used_for_setup is builder
+
+
+def test__default_configuration_set_by_one_component(mocker):
+
+    class DummyMachine:
+        configuration_defaults = {
+            'factory': {
+                'location': 'Building A'
+            },
+            'dummy_machine': {
+                'id': 11,
+                'current_status': 'Good'
+            }
+        }
+
+    class DummyMechanic:
+        configuration_defaults = {
+            'work_level': {
+                'capacity': 2,  #per day
+                'success_rate': .96
+            },
+            'dummy_machine': {
+                'id': 11,
+                'current_status': 'Bad'
+            }
+        }
+
+    machine = DummyMachine()
+    mechanic = DummyMechanic()
+
+    manager = ComponentManager()
+    builder = mocker.Mock()
+    builder.components = manager
+    config = build_simulation_configuration()
+
+    for key in ['factory', 'dummy_machine', 'work_level']:
+        assert key not in config
+
+    manager.add_components([machine, mechanic])
+
+    with pytest.raises(ComponentConfigError):
+        manager.setup_components(builder, config)

@@ -7,7 +7,7 @@ life-cycle stage of each component.
 import inspect
 from typing import Sequence, Any
 
-from vivarium import VivariumError
+from vivarium import VivariumError, ConfigTree
 
 
 class ComponentConfigError(VivariumError):
@@ -91,7 +91,9 @@ def _setup_components(builder, component_list, configuration):
         if component in done:
             continue
 
-        _apply_component_default_configuration(configuration, component)
+        if hasattr(component, 'configuration_defaults'):
+            _apply_component_default_configuration(configuration, component)
+
         if hasattr(component, 'setup'):
             result = component.setup(builder)
             if result is not None:
@@ -102,11 +104,32 @@ def _setup_components(builder, component_list, configuration):
 
 
 def _apply_component_default_configuration(configuration, component):
-    if hasattr(component, 'configuration_defaults'):
-        # This reapplies configuration from some components but it is idempotent so there's no effect.
-        if component.__module__ == '__main__':
-            # This is defined directly in a script or notebook so there's no file to attribute it to
-            source = '__main__'
+    # This reapplies configuration from some components but it is idempotent so there's no effect.
+    if component.__module__ == '__main__':
+        # This is defined directly in a script or notebook so there's no file to attribute it to
+        source = '__main__'
+    else:
+        source = inspect.getfile(component.__class__)
+    _check_duplicated_default_configuration(component.configuration_defaults, configuration)
+    configuration.update(component.configuration_defaults, layer='component_configs', source=source)
+
+
+def _check_duplicated_default_configuration(component, config):
+    overlapped = set(component.keys()).intersection(config.keys())
+    if not overlapped:
+        pass
+
+    while overlapped:
+        key = overlapped.pop()
+        if not isinstance(component[key], dict) and not isinstance(config[key], ConfigTree):
+            try:
+                if component[key] != config.get_from_layer(key, layer='component_configs'):
+                    raise ComponentConfigError(
+                        f'{component}.{key} tries to set default configurations already set by other components')
+            except KeyError:
+                #  if there's no default config set  component_config layer
+                pass
+
         else:
-            source = inspect.getfile(component.__class__)
-        configuration.update(component.configuration_defaults, layer='component_configs', source=source)
+            _check_duplicated_default_configuration(component[key], config[key])
+
