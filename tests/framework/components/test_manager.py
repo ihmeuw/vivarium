@@ -137,7 +137,7 @@ def test__default_configuration_set_by_one_component(mocker):
             },
             'dummy_machine': {
                 'id': 11,
-                'current_status': 'Good'
+                #'current_status': 'Good'
             }
         }
 
@@ -148,8 +148,8 @@ def test__default_configuration_set_by_one_component(mocker):
                 'success_rate': .96
             },
             'dummy_machine': {
-                'id': 11,
-                'current_status': 'Bad'
+                'id': {'my_id': 11},
+                #'current_status': 'Bad'
             }
         }
 
@@ -166,5 +166,5 @@ def test__default_configuration_set_by_one_component(mocker):
 
     manager.add_components([machine, mechanic])
 
-    with pytest.raises(ComponentConfigError):
-        manager.setup_components(builder, config)
+    #with pytest.raises(ComponentConfigError):
+    manager.setup_components(builder, config)
