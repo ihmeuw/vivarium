@@ -128,6 +128,88 @@ def test_ComponentManager__setup_components(mocker):
     assert mock_b_child3.builder_used_for_setup is builder
 
 
+def test__default_configuration_set_by_one_component_as_0(mocker):
+
+    class DummyMachine:
+        configuration_defaults = {
+            'factory': {
+                'location': 'Building A'
+            },
+            'dummy_machine': {
+                'id': 0,
+            }
+        }
+
+    class DummyMechanic:
+        configuration_defaults = {
+            'work_level': {
+                'capacity': 2,  #per day
+                'success_rate': .96
+            },
+            'dummy_machine': {
+                'id': 123,
+            }
+        }
+
+    machine = DummyMachine()
+    mechanic = DummyMechanic()
+
+    manager = ComponentManager()
+    builder = mocker.Mock()
+    builder.components = manager
+    config = build_simulation_configuration()
+
+    for key in ['factory', 'dummy_machine', 'work_level']:
+        assert key not in config
+
+    manager.add_components([machine, mechanic])
+
+    with pytest.raises(ComponentConfigError):
+        manager.setup_components(builder, config)
+
+def test__default_configuration_set_by_one_component_different_tree_depths(mocker):
+
+    class DummyMachine:
+        configuration_defaults = {
+            'factory': {
+                'location': 'Building A'
+            },
+            'dummy_machine': {
+                'id': {
+                    'number': 1,
+                    'type': 'machine'
+                },
+            }
+        }
+
+    class DummyMechanic:
+        configuration_defaults = {
+            'work_level': {
+                'capacity': 2,  #per day
+                'success_rate': .96
+            },
+            'dummy_machine': {
+                'id': 123,
+            }
+        }
+
+    machine = DummyMachine()
+    mechanic = DummyMechanic()
+
+    manager = ComponentManager()
+    builder = mocker.Mock()
+    builder.components = manager
+    config = build_simulation_configuration()
+
+    for key in ['factory', 'dummy_machine', 'work_level']:
+        assert key not in config
+
+    manager.add_components([machine, mechanic])
+
+    with pytest.raises(ComponentConfigError):
+        manager.setup_components(builder, config)
+
+
 def test__default_configuration_set_by_one_component(mocker):
 
     class DummyMachine:
@@ -168,3 +250,4 @@ def test__default_configuration_set_by_one_component(mocker):
 
     with pytest.raises(ComponentConfigError):
         manager.setup_components(builder, config)
+
