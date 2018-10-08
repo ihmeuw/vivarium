@@ -130,7 +130,8 @@ class ValuesManager:
         builder.event.register_listener('post_setup', self.on_post_setup)
 
     def on_post_setup(self, event):
-        _log.debug(f"{[p for p, v in self._pipelines.items() if not v.source]}")
+        # FIXME: This should raise an error, but can't due to risk effect generation
+        _log.debug(f"Unsourced pipelines: {[p for p, v in self._pipelines.items() if not v.source]}")
 
     def register_value_modifier(self, value_name, modifier, priority=5):
         m = modifier if isinstance(modifier, MethodType) else modifier.__call__
@@ -154,13 +155,9 @@ class ValuesManager:
         return self.register_value_producer(rate_name, source, preferred_post_processor=rescale_post_processor)
 
     def get_value(self, name):
-        if name not in self._pipelines:
-            raise DynamicValueError(f"The dynamic value {name} has not been registered with the value system.")
         return self._pipelines[name]
 
     def get_rate(self, name):
-        if name not in self._pipelines:
-            raise DynamicValueError(f"The dynamic rate {name} has not been registered with the value system.")
         return self._pipelines[name]
 
     def __contains__(self, item):
