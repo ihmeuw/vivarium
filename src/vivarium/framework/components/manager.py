@@ -123,11 +123,11 @@ def _check_duplicated_default_configuration(component, config):
         key = overlapped.pop()
         if not isinstance(component[key], dict) and not isinstance(config[key], ConfigTree):
             try:
-                if component[key] != config.get_from_layer(key, layer='component_configs'):
+                if config.get_from_layer(key, layer='component_configs'):
                     raise ComponentConfigError(
-                        f'{component}.{key} tries to set default configurations already set by other components')
+                        f'{component} tries to set default configurations of {key} already set by other components')
             except KeyError:
-                #  if there's no default config set  component_config layer
+                #  if there's no default config set at the component_config layer
                 pass
 
         else:
