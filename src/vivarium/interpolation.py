@@ -8,8 +8,8 @@ class Interpolation:
     def __init__(self, data: pd.DataFrame, categorical_parameters: Sequence[str],
                  continuous_parameters: Sequence[str], order: int):
 
-        if order != 0:
-            raise NotImplementedError(f'Only order 0 interpolations are supported.You specified {order}')
+        #if order != 0:
+        #    raise NotImplementedError(f'Only order 0 interpolations are supported.You specified {order}')
 
         self.key_columns = categorical_parameters
         self.parameter_columns, self._data = validate_parameters(data, continuous_parameters, order)
@@ -67,7 +67,7 @@ class Interpolation:
 
     def __call__(self, population):
 
-        self. _validate_call_data(population)
+        validate_call_data(population, self.key_columns, self.parameter_columns)
 
         if self.key_columns:
             sub_tables = population.groupby(list(self.key_columns))
@@ -88,27 +88,7 @@ class Interpolation:
                 else:
                     result.loc[sub_table.index, value_column] = out
 
-        if len(result.columns) == 1:
-            return result[result.columns[0]]
-
         return result
-
-    def _validate_call_data(self, data):
-        if not isinstance(data, pd.DataFrame):
-            raise TypeError(f'Interpolations can only be called on pandas.DataFrames. You'
-                            f'passed {type(data)}.')
-
-        if not set(self.parameter_columns) <= set(data.columns.values.tolist()):
-            raise ValueError(f'The continuous parameter columns with which you built the Interpolation must all'
-                             f'be present in the data you call it on. The Interpolation has key'
-                             f'columns: {self.parameter_columns} and your data has columns: '
-                             f'{data.columns.values.tolist()}')
-
-        if self.key_columns and not set(self.key_columns) <= set(data.columns.values.tolist()):
-            raise ValueError(f'The key (categorical) columns with which you built the Interpolation must all'
-                             f'be present in the data you call it on. The Interpolation has key'
-                             f'columns: {self.key_columns} and your data has columns: '
-                             f'{data.columns.values.tolist()}')
 
     def __repr__(self):
         return "Interpolation()"
@@ -129,3 +109,21 @@ def validate_parameters(data, continuous_parameters, order):
                           f"The parameter will be dropped from the interpolation.")
             data = data.drop(p, axis='columns')
     return out, data
+
+
+def validate_call_data(data, key_columns, parameter_columns):
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError(f'Interpolations can only be called on pandas.DataFrames. You'
+                        f'passed {type(data)}.')
+
+    if not set(parameter_columns) <= set(data.columns.values.tolist()):
+        raise ValueError(f'The continuous parameter columns with which you built the Interpolation must all'
+                         f'be present in the data you call it on. The Interpolation has key'
+                         f'columns: {parameter_columns} and your data has columns: '
+                         f'{data.columns.values.tolist()}')
+
+    if key_columns and not set(key_columns) <= set(data.columns.values.tolist()):
+        raise ValueError(f'The key (categorical) columns with which you built the Interpolation must all'
+                         f'be present in the data you call it on. The Interpolation has key'
+                         f'columns: {key_columns} and your data has columns: '
+                         f'{data.columns.values.tolist()}')

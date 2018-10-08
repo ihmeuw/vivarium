@@ -93,18 +93,19 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
                            simulation.clock.time.year + 1/365)
 
 
-def test_scalar_tables_from_list(base_config):
+def test_lookup_table_scalar_from_list(base_config):
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
     table = (manager.build_table((1,2), key_columns=None, parameter_columns=None,
                                  value_columns=['a', 'b'])(simulation.population.population.index))
+
     assert isinstance(table, pd.DataFrame)
     assert table.columns.values.tolist() == ['a', 'b']
     assert np.all(table.a == 1)
     assert np.all(table.b == 2)
 
 
-def test_scalar_tables_from_single_value(base_config):
+def test_lookup_table_scalar_from_single_value(base_config):
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
     table = (manager.build_table(1, key_columns=None, parameter_columns=None,
@@ -120,7 +121,7 @@ def test_invalid_data_type_build_table(base_config):
         manager.build_table('break', key_columns=None, parameter_columns=None, value_columns=None)
 
 
-def test_interpolated_tables_return_types(base_config):
+def test_lookup_table_interpolated_return_types(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
     data = build_table(lambda age, sex, year: year, year_start, year_end)
@@ -138,3 +139,4 @@ def test_interpolated_tables_return_types(base_config):
                                  value_columns=None)(simulation.population.population.index))
 
     assert isinstance(table, pd.DataFrame)
+
