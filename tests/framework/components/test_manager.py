@@ -101,6 +101,7 @@ def test_ComponentManager_add_components():
         assert getattr(manager, list_type) == 2*components[:-1]
 
 
+
 def test_ComponentManager__setup_components(mocker):
     config = build_simulation_configuration()
     manager = ComponentManager()
@@ -128,30 +129,29 @@ def test_ComponentManager__setup_components(mocker):
     assert mock_b_child3.builder_used_for_setup is builder
 
 
+class DummyMachine:
+    configuration_defaults = {
+        'factory': {
+            'location': 'Building A'
+        },
+        'dummy_machine': {
+            'id': 1,
+        }
+    }
+
+class DummyMechanic:
+    configuration_defaults = {
+        'work_level': {
+            'capacity': 2,  #per day
+            'success_rate': .96
+        },
+        'dummy_machine': {
+            'id': 123,
+        }
+    }
+
+
 def test__default_configuration_set_by_one_component(mocker):
-
-    class DummyMachine:
-        configuration_defaults = {
-            'factory': {
-                'location': 'Building A'
-            },
-            'dummy_machine': {
-                'id': 11,
-                #'current_status': 'Good'
-            }
-        }
-
-    class DummyMechanic:
-        configuration_defaults = {
-            'work_level': {
-                'capacity': 2,  #per day
-                'success_rate': .96
-            },
-            'dummy_machine': {
-                'id': {'my_id': 11},
-                #'current_status': 'Bad'
-            }
-        }
 
     machine = DummyMachine()
     mechanic = DummyMechanic()
@@ -166,5 +166,53 @@ def test__default_configuration_set_by_one_component(mocker):
 
     manager.add_components([machine, mechanic])
 
-    #with pytest.raises(ComponentConfigError):
-    manager.setup_components(builder, config)
+    with pytest.raises(ComponentConfigError):
+        manager.setup_components(builder, config)
+
+
+def test__default_configuration_set_by_one_component_as_0(mocker):
+
+    DummyMachine.configuration_defaults['dummy_machine']['id'] = 0
+    machine = DummyMachine()
+    mechanic = DummyMechanic()
+
+    manager = ComponentManager()
+    builder = mocker.Mock()
+    builder.components = manager
+    config = build_simulation_configuration()
+
+    manager.add_components([machine, mechanic])
+
+    with pytest.raises(ComponentConfigError):
+        manager.setup_components(builder, config)
+
+    # case with empty string as default config value
+    DummyMachine.configuration_defaults['dummy_machine']['id'] = ''
+    machine = DummyMachine()
+    manager = ComponentManager()
+    builder = mocker.Mock()
+    builder.components = manager
+    config = build_simulation_configuration()
+    manager.add_components([machine, mechanic])
+
+    with pytest.raises(ComponentConfigError):
+        manager.setup_components(builder, config)
+
+
+def test__default_configuration_set_by_one_component_different_tree_depths(mocker):
+
+    DummyMachine.configuration_defaults['dummy_machine']['id'] = {'number': 1, 'type': 'machine'}
+    machine = DummyMachine()
+    mechanic = DummyMechanic()
+
+    manager = ComponentManager()
+    builder = mocker.Mock()
+    builder.components = manager
+    config = build_simulation_configuration()
+
+    manager.add_components([machine, mechanic])
+
+    with pytest.raises(ComponentConfigError):
+        manager.setup_components(builder, config)
+
+

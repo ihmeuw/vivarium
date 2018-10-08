@@ -116,21 +116,21 @@ def _apply_component_default_configuration(configuration, component):
 
 def _check_duplicated_default_configuration(component, config, source):
     overlapped = set(component.keys()).intersection(config.keys())
-    import pdb; pdb.set_trace()
     if not overlapped:
         pass
 
     while overlapped:
         key = overlapped.pop()
+
         try:
             sub_config = config.get_from_layer(key, layer='component_configs')
             sub_component = component[key]
-            import pdb; pdb.set_trace()
+
             if isinstance(sub_component, dict) and isinstance(sub_config, ConfigTree):
                 _check_duplicated_default_configuration(sub_component, sub_config, source)
             elif isinstance(sub_component, dict) or isinstance(sub_config, ConfigTree):
                 raise ComponentConfigError(f'These two sources have different structure of configurations for {component}.'
-                                           f' Check {source} and {config._children[key].get_value_with_source()}')
+                                           f' Check {source} and {sub_config}')
             else:
                 raise ComponentConfigError(f'Check these two {source} and {config._children[key].get_value_with_source()}'
                                            f'Both try to set the default configurations for {component}/{key}')
