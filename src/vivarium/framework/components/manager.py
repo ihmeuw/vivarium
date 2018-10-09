@@ -7,7 +7,7 @@ life-cycle stage of each component.
 import inspect
 from typing import Sequence, Any
 
-from vivarium import VivariumError
+from vivarium import VivariumError, ConfigTree
 
 
 class ComponentConfigError(VivariumError):
@@ -91,7 +91,9 @@ def _setup_components(builder, component_list, configuration):
         if component in done:
             continue
 
-        _apply_component_default_configuration(configuration, component)
+        if hasattr(component, 'configuration_defaults'):
+            _apply_component_default_configuration(configuration, component)
+
         if hasattr(component, 'setup'):
             result = component.setup(builder)
             if result is not None:
@@ -102,11 +104,39 @@ def _setup_components(builder, component_list, configuration):
 
 
 def _apply_component_default_configuration(configuration, component):
-    if hasattr(component, 'configuration_defaults'):
-        # This reapplies configuration from some components but it is idempotent so there's no effect.
-        if component.__module__ == '__main__':
-            # This is defined directly in a script or notebook so there's no file to attribute it to
-            source = '__main__'
-        else:
-            source = inspect.getfile(component.__class__)
-        configuration.update(component.configuration_defaults, layer='component_configs', source=source)
+    # This reapplies configuration from some components but it is idempotent so there's no effect.
+    if component.__module__ == '__main__':
+        # This is defined directly in a script or notebook so there's no file to attribute it to
+        source = '__main__'
+    else:
+        source = inspect.getfile(component.__class__)
+    _check_duplicated_default_configuration(component.configuration_defaults, configuration, source)
+    configuration.update(component.configuration_defaults, layer='component_configs', source=source)
+
+
+def _check_duplicated_default_configuration(component, config, source):
+    overlapped = set(component.keys()).intersection(config.keys())
+    if not overlapped:
+        pass
+
+    while overlapped:
+        key = overlapped.pop()
+
+        try:
+            sub_config = config.get_from_layer(key, layer='component_configs')
+            sub_component = component[key]
+
+            if isinstance(sub_component, dict) and isinstance(sub_config, ConfigTree):
+                _check_duplicated_default_configuration(sub_component, sub_config, source)
+            elif isinstance(sub_component, dict) or isinstance(sub_config, ConfigTree):
+                raise ComponentConfigError(f'These two sources have different structure of configurations for {component}.'
+                                           f' Check {source} and {sub_config}')
+            else:
+                raise ComponentConfigError(f'Check these two {source} and {config._children[key].get_value_with_source()}'
+                                           f'Both try to set the default configurations for {component}/{key}')
+
+        except KeyError:
+            pass
+
+
+
