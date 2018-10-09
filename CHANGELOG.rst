@@ -1,3 +1,8 @@
+**0.8.8 - 10/09/18**
+
+ - Raise error if multiple components set same default configuration.
+ - Loosen error checking in value manager
+
 **0.8.7 - 09/25/18**
 
  - Distinguish between missing and cyclic population table dependencies.
