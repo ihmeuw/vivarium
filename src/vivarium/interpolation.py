@@ -171,7 +171,7 @@ def check_data_complete(data, parameter_columns):
     param_edges = [p for p in parameter_columns if isinstance(p, (Tuple, List))]
     param_points = [p for p in parameter_columns if isinstance(p, str)]
 
-    # FIXME: There has to be a cleaner, faster way to do this
+    # FIXME: There has to be a cleaner, faster, less horrible way to do this
     # check no overlaps/gaps
     for p in param_edges:
         other_params = param_points + [p_ed[0] for p_ed in param_edges if p_ed != p]
@@ -180,10 +180,15 @@ def check_data_complete(data, parameter_columns):
         else:
             sub_tables = {None: data}.items()
 
+        n_p_total = len(set(data[p[0]]))
+
         for _, table in sub_tables:
 
             param_data = table[[p[0], p[1]]].copy().sort_values(by=p[0])
             start, end = param_data[p[0]].reset_index(drop=True), param_data[p[1]].reset_index(drop=True)
+
+            if len(set(start)) < n_p_total:
+                raise ValueError(f'You must provide a value for every combination of {parameter_columns}')
 
             if len(start) <= 1:
                 continue
@@ -199,11 +204,11 @@ def check_data_complete(data, parameter_columns):
                                               f'non-continuous bins.')
 
     # check all combos - because we know there are no overlaps/repeats, we can just check the numbers match
-    params = param_points + [p[0] for p in param_edges]
-    combos = list(product(*[set(data[p]) for p in params]))
+    #params = param_points + [p[0] for p in param_edges]
+    #combos = list(product(*[set(data[p]) for p in params]))
 
-    if len(combos) > data.shape[0]:
-       raise ValueError(f'You must provide a value for every combination of {parameter_columns}')
+    #if len(combos) > data.shape[0]:
+    #    raise ValueError(f'You must provide a value for every combination of {parameter_columns}')
 
 
 
