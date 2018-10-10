@@ -8,29 +8,30 @@ import pandas as pd
 from vivarium.interpolation import Interpolation
 from vivarium.framework.population import PopulationView
 
-value_type = TypeVar('value_type', Number, timedelta, datetime)
+ScalarValue = TypeVar('ScalarValue', Number, timedelta, datetime)
+
 
 class InterpolatedTable:
     """A callable that returns the result of an interpolation function over input data.
 
     Attributes
     ----------
-    data : `pandas.DataFrame`
+    data :
         The data from which to build the interpolation. Contains the set of
         key_columns, parameter_columns, and value_columns.
-    population_view : PopulationView
+    population_view :
         View of the population to be used when the table is called with an index.
-    key_columns : List[str] or Tuple[str]
-        List of column names to be used as categorical parameters in Interpolation
+    key_columns :
+        Column names to be used as categorical parameters in Interpolation
         to select between interpolation functions.
-    parameter_columns : List[str] or Tuple[str]
-        List of column names to be used as continuous parameters in Interpolation.
-    value_columns : List[str] or Tuple[str]
-        List of value columns to be interpolated over. All non parameter- and key-
+    parameter_columns :
+        Column names to be used as continuous parameters in Interpolation.
+    value_columns :
+        Names of value columns to be interpolated over. All non parameter- and key-
         columns in data.
-    interpolation_order : int
+    interpolation_order :
         Order of interpolation.
-    clock : Callable
+    clock :
         Callable for current time in simulation.
 
     Notes
@@ -51,7 +52,7 @@ class InterpolatedTable:
         self.interpolation = Interpolation(data, self.key_columns, self.parameter_columns,
                                            order=self.interpolation_order)
 
-    def __call__(self, index: pd.Index):
+    def __call__(self, index: pd.Index) -> pd.DataFrame:
         """Get the interpolated values for the rows in ``index``.
 
         Parameters
@@ -82,9 +83,9 @@ class ScalarTable:
 
     Attributes
     ----------
-    values : Number, datetime, timedelta, or list or tuple of those types
+    values :
         The scalar value(s) from which to build table columns.
-    value_columns : List[str] or Tuple[str]
+    value_columns :
         List of string names to be used to name the columns of the table built
         from values.
 
@@ -92,13 +93,13 @@ class ScalarTable:
     -----
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
-    def __init__(self, values: Union[List[value_type], Tuple[value_type]],
+    def __init__(self, values: Union[List[ScalarValue], Tuple[ScalarValue]],
                  value_columns: Union[List[str], Tuple[str]]):
 
         self.values = values
         self.value_columns = value_columns
 
-    def __call__(self, index):
+    def __call__(self, index) -> pd.DataFrame:
         """Build a table with ``index`` and columns for each of the scalar values.
 
         Parameters
@@ -133,7 +134,7 @@ class LookupTable:
     -----
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
-    def __init__(self, data: Union[value_type, pd.DataFrame, List[value_type], Tuple[value_type]],
+    def __init__(self, data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
                  population_view: Callable, key_columns: Union[List[str], Tuple[str]],
                  parameter_columns: Union[List[str], Tuple[str]], value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int, clock: Callable):
@@ -146,9 +147,9 @@ class LookupTable:
         else:
             view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
             self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
-                                           parameter_columns, value_columns, interpolation_order, clock)
+                                            parameter_columns, value_columns, interpolation_order, clock)
 
-    def __call__(self, index):
+    def __call__(self, index) -> Union[pd.DataFrame, pd.Series]:
         """Get the interpolated or scalar table values for the given index.
 
         Parameters
@@ -220,7 +221,7 @@ class LookupTableManager:
             raise ValueError('Only order 0 and order 1 interpolations are supported. '
                              f'You specified {self._interpolation_order}')
 
-    def build_table(self, data, key_columns, parameter_columns, value_columns):
+    def build_table(self, data, key_columns, parameter_columns, value_columns) -> LookupTable:
         return LookupTable(data, self._pop_view_builder, key_columns, parameter_columns,
                            value_columns, self._interpolation_order, self.clock)
 
@@ -233,7 +234,8 @@ class LookupTableInterface:
     def __init__(self, manager):
         self._lookup_table_manager = manager
 
-    def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None):
+    def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year',),
+                    value_columns=None) -> LookupTable:
         """Construct a LookupTable from input data.
 
         If data is a ``pandas.DataFrame``, an interpolation function of the specified
