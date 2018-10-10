@@ -4,22 +4,32 @@ import pandas as pd
 from scipy import interpolate
 from typing import Sequence
 
+from typing import Union, List, Tuple
+
+
 class Interpolation:
-    def __init__(self, data: pd.DataFrame, categorical_parameters: Sequence[str],
-                 continuous_parameters: Sequence[str], order: int):
+    """A callable that returns the result of an interpolation function over input data.
+
+        Attributes
+        ----------
+        data :
+            The data from which to build the interpolation. Contains
+            cateogrical_parameters and continuous_parameters.
+        categorical_parameters :
+            Column names to be used as categorical parameters in Interpolation
+            to select between interpolation functions.
+        continuous_parameters :
+            Column names to be used as continuous parameters in Interpolation.
+        order :
+            Order of interpolation.
+        """
+
+    def __init__(self, data: pd.DataFrame, categorical_parameters: Union[List[str], Tuple[str]],
+                 continuous_parameters: Union[List[str], Tuple[str]], order: int):
 
         self.key_columns = categorical_parameters
-        self.parameter_columns, self._data = validate_parameters(data, continuous_parameters, order)
-
-        # FIXME: allow for more than 2 parameter interpolation
-        if len(self.parameter_columns) not in [1, 2]:
-            raise ValueError("Only interpolation over 1 or 2 variables is supported")
-
-        # These are the columns which the interpolation function will approximate
-        value_columns = sorted(self._data.columns.difference(set(self.key_columns)|set(self.parameter_columns)))
-        if not value_columns:
-            raise ValueError(f"No non-parameter data. Available columns: {self._data.columns}, "
-                             f"Parameter columns: {set(self.key_columns)|set(self.parameter_columns)}")
+        self.parameter_columns, self._data, value_columns = validate_parameters(data, categorical_parameters,
+                                                                                continuous_parameters, order)
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
@@ -62,15 +72,27 @@ class Interpolation:
                         func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
                 self.interpolations[key][value_column] = func
 
-    def __call__(self, population):
+    def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
+        """Get the interpolated results for the parameters in interpolants.
 
-        validate_call_data(population, self.key_columns, self.parameter_columns)
+        Parameters
+         ----------
+        interpolants :
+            Data frame containing the parameters to interpolate..
+
+        Returns
+        -------
+        pd.DataFrame
+            A table with the interpolated values for the given interpolants.
+        """
+
+        validate_call_data(interpolants, self.key_columns, self.parameter_columns)
 
         if self.key_columns:
-            sub_tables = population.groupby(list(self.key_columns))
+            sub_tables = interpolants.groupby(list(self.key_columns))
         else:
-            sub_tables = [(None, population)]
-        result = pd.DataFrame(index=population.index)
+            sub_tables = [(None, interpolants)]
+        result = pd.DataFrame(index=interpolants.index)
         for key, sub_table in sub_tables:
             if sub_table.empty:
                 continue
@@ -91,10 +113,15 @@ class Interpolation:
         return "Interpolation()"
 
 
-def validate_parameters(data, continuous_parameters, order):
+def validate_parameters(data, categorical_parameters, continuous_parameters, order):
     if order not in [0, 1]:
         raise ValueError('Only order 0 and order 1 interpolations are supported. '
                          f'You specified {order}')
+
+    # FIXME: allow for more than 2 parameter interpolation
+    if len(continuous_parameters) not in [1, 2]:
+        raise ValueError("Only interpolation over 1 or 2 variables is supported")
+
     out = []
     for p in continuous_parameters:
         if len(data[p].unique()) > order:
@@ -105,7 +132,13 @@ def validate_parameters(data, continuous_parameters, order):
                           f"which is insufficient to support the requested interpolation order."
                           f"The parameter will be dropped from the interpolation.")
             data = data.drop(p, axis='columns')
-    return out, data
+
+    # These are the columns which the interpolation function will approximate
+    value_columns = sorted(data.columns.difference(set(categorical_parameters) | set(continuous_parameters)))
+    if not value_columns:
+        raise ValueError(f"No non-parameter data. Available columns: {data.columns}, "
+                         f"Parameter columns: {set(categorical_parameters)|set(continuous_parameters)}")
+    return out, data, value_columns
 
 
 def validate_call_data(data, key_columns, parameter_columns):
