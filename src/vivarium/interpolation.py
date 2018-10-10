@@ -98,6 +98,9 @@ class Interpolation:
 
 
 def validate_parameters(data, continuous_parameters, order):
+    if order not in [0, 1]:
+        raise ValueError('Only order 0 and order 1 interpolations are supported. '
+                         f'You specified {order}')
     out = []
     for p in continuous_parameters:
         if len(data[p].unique()) > order:
