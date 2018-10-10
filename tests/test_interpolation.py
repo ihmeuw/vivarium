@@ -125,9 +125,9 @@ def test_validate_parameters__empty_data():
     assert set(data.columns) == {"sex", "value"}
 
 
-def test_check_data_complete():
-    data = pd.DataFrame({'year_start': [1995, 1990, 2000, 2005, 2010],
-                         'year_end': [2000, 1995, 2005, 2010, 2015],
+def test_check_data_complete_gaps():
+    data = pd.DataFrame({'year_start': [1990, 1990, 1995, 2000, 2005],
+                         'year_end': [1995, 1995, 2000, 2005, 2010],
                          'age_start': [16, 10, 20, 25, 35],
                          'age_end': [20, 15, 25, 35, 40],})
 
@@ -136,4 +136,29 @@ def test_check_data_complete():
 
     message = error.value.args[0]
 
-    assert "age_start" in message and "age_end" in message and "10-15" in message and "16-20" in message
+    assert "age_start" in message and "age_end" in message
+
+
+def test_check_data_complete_overlap():
+    data = pd.DataFrame({'year_start': [1995, 1995, 2000, 2005, 2010],
+                         'year_end': [2000, 2000, 2005, 2010, 2015]})
+
+    with pytest.raises(ValueError) as error:
+        check_data_complete(data, [('year_start', 'year_end')])
+
+    message = error.value.args[0]
+
+    assert "year_start" in message and "year_end" in message
+
+
+def test_check_data_missing_combos():
+    data = pd.DataFrame({'year': [1990, 1990, 1995],
+                         'age_start': [10, 15, 10],
+                         'age_end': [15, 20, 15]})
+
+    with pytest.raises(ValueError) as error:
+        check_data_complete(data, ['year', ('age_start', 'age_end')])
+
+    message = error.value.args[0]
+
+    assert 'combination' in message

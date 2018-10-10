@@ -3,6 +3,7 @@ import warnings
 import pandas as pd
 from scipy import interpolate
 from typing import Union, List, Tuple
+from itertools import product
 
 
 class Interpolation:
@@ -164,20 +165,45 @@ def check_data_complete(data, parameter_columns):
     the other inclusive) so can check that end of previous == start
     of current.
 
-    """
+    If multiple parameters, make sure all combinations of parameters
+    are present in data."""
 
     param_edges = [p for p in parameter_columns if isinstance(p, (Tuple, List))]
+    param_points = [p for p in parameter_columns if isinstance(p, str)]
 
+    # FIXME: There has to be a cleaner, faster way to do this
+    # check no overlaps/gaps
     for p in param_edges:
-        param_data = data[[p[0], p[1]]].copy().sort_values(by=p[0])
-        start, end = param_data[p[0]].reset_index(drop=True), param_data[p[1]].reset_index(drop=True)
+        other_params = param_points + [p_ed[0] for p_ed in param_edges if p_ed != p]
+        if other_params:
+            sub_tables = data.groupby(list(other_params))
+        else:
+            sub_tables = {None: data}.items()
 
-        for i in range(1, len(start)):
-            if end[i-1] != start[i]:
-                raise NotImplementedError(f'Interpolation only supported for parameter columns '
-                                          f'with continuous, non-overlapping bins. Parameter {p} '
-                                          f'has an overlap or gap between {start[i-1]}-'
-                                          f'{end[i-1]} and {start[i]}-{end[i]}')
+        for _, table in sub_tables:
+
+            param_data = table[[p[0], p[1]]].copy().sort_values(by=p[0])
+            start, end = param_data[p[0]].reset_index(drop=True), param_data[p[1]].reset_index(drop=True)
+
+            if len(start) <= 1:
+                continue
+            for i in range(1, len(start)):
+                e = end[i-1]
+                s = start[i]
+                if e > s or s == start[i-1]:
+                    raise ValueError(f'Parameter data must not contain overlaps. Parameter {p} '
+                                     f'contains overlapping data.')
+                if e < s:
+                    raise NotImplementedError(f'Interpolation only supported for parameter columns '
+                                              f'with continuous bins. Parameter {p} contains '
+                                              f'non-continuous bins.')
+
+    # check all combos - because we know there are no overlaps/repeats, we can just check the numbers match
+    params = param_points + [p[0] for p in param_edges]
+    combos = list(product(*[set(data[p]) for p in params]))
+
+    if len(combos) > data.shape[0]:
+       raise ValueError(f'You must provide a value for every combination of {parameter_columns}')
 
 
 
