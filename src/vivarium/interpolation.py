@@ -2,8 +2,6 @@ import warnings
 
 import pandas as pd
 from scipy import interpolate
-from typing import Sequence
-
 from typing import Union, List, Tuple
 
 
