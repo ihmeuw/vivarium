@@ -103,7 +103,7 @@ def test_order_zero_1d():
 
 def test_validate_parameters__empty_data():
     with pytest.warns(UserWarning) as record:
-        out, data = validate_parameters(pd.DataFrame(columns=["age", "sex", "year", "value"]), ["age", "year"], 2)
+        out, data = validate_parameters(pd.DataFrame(columns=["age", "sex", "year", "value"]), ["age", "year"], 1)
     assert len(record) == 2
     message = record[0].message.args[0] + " " + record[1].message.args[0]
     assert "age" in message and "year" in message
