@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import itertools
 
-from vivarium.interpolation import Interpolation, validate_parameters
+from vivarium.interpolation import Interpolation, validate_parameters, check_data_complete
 
 
 def test_1d_interpolation():
@@ -125,3 +125,15 @@ def test_validate_parameters__empty_data():
     assert set(data.columns) == {"sex", "value"}
 
 
+def test_check_data_complete():
+    data = pd.DataFrame({'year_start': [1995, 1990, 2000, 2005, 2010],
+                         'year_end': [2000, 1995, 2005, 2010, 2015],
+                         'age_start': [16, 10, 20, 25, 35],
+                         'age_end': [20, 15, 25, 35, 40],})
+
+    with pytest.raises(NotImplementedError) as error:
+        check_data_complete(data, [('year_start', 'year_end'), ['age_start', 'age_end']])
+
+    message = error.value.args[0]
+
+    assert "age_start" in message and "age_end" in message and "10-15" in message and "16-20" in message

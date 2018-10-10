@@ -155,3 +155,29 @@ def validate_call_data(data, key_columns, parameter_columns):
                          f'be present in the data you call it on. The Interpolation has key'
                          f'columns: {key_columns} and your data has columns: '
                          f'{data.columns.values.tolist()}')
+
+
+def check_data_complete(data, parameter_columns):
+    """ For any parameters specified with edges, make sure edges
+    don't overlap and don't have any gaps. Assumes that edges are
+    specified with ends and starts overlapping (but one exclusive and
+    the other inclusive) so can check that end of previous == start
+    of current.
+
+    """
+
+    param_edges = [p for p in parameter_columns if isinstance(p, (Tuple, List))]
+
+    for p in param_edges:
+        param_data = data[[p[0], p[1]]].copy().sort_values(by=p[0])
+        start, end = param_data[p[0]].reset_index(drop=True), param_data[p[1]].reset_index(drop=True)
+
+        for i in range(1, len(start)):
+            if end[i-1] != start[i]:
+                raise NotImplementedError(f'Interpolation only supported for parameter columns '
+                                          f'with continuous, non-overlapping bins. Parameter {p} '
+                                          f'has an overlap or gap between {start[i-1]}-'
+                                          f'{end[i-1]} and {start[i]}-{end[i]}')
+
+
+
