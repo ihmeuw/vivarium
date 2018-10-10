@@ -209,7 +209,7 @@ class LookupTableManager:
 
     configuration_defaults = {
         'interpolation': {
-            'order': 0,
+            'order': 1,
         }
     }
 

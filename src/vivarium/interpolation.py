@@ -8,9 +8,6 @@ class Interpolation:
     def __init__(self, data: pd.DataFrame, categorical_parameters: Sequence[str],
                  continuous_parameters: Sequence[str], order: int):
 
-        #if order != 0:
-        #    raise NotImplementedError(f'Only order 0 interpolations are supported.You specified {order}')
-
         self.key_columns = categorical_parameters
         self.parameter_columns, self._data = validate_parameters(data, continuous_parameters, order)
 
@@ -92,9 +89,6 @@ class Interpolation:
 
     def __repr__(self):
         return "Interpolation()"
-
-
-
 
 
 def validate_parameters(data, continuous_parameters, order):
