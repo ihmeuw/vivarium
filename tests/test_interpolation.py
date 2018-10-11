@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import itertools
 
-from vivarium.interpolation import Interpolation, validate_parameters, check_data_complete, make_left_edge
+from vivarium.interpolation import Interpolation, validate_parameters, check_data_complete, make_left_edge, Order0Interp
 
 
 def test_1d_interpolation():
@@ -172,3 +172,26 @@ def test_make_left_edge():
     expected_left = [2, 5, 1]
     for i, a in enumerate(ages):
         assert left_edge[a] == expected_left[i]
+
+
+def test_order0interp():
+    data = pd.DataFrame({'year_start': [1990, 1990, 1990, 1990, 1995, 1995, 1995, 1995],
+                         'year_end': [1995, 1995, 1995, 1995, 2000, 2000, 2000, 2000],
+                         'age_start': [15, 10, 10, 15, 10, 10, 15, 15],
+                         'age_end': [20, 15, 15, 20, 15, 15, 20, 20],
+                         'height_start': [140, 160, 140, 160, 140, 160, 140, 160],
+                         'height_end': [160, 180, 160, 180, 160, 180, 160, 180],
+                         'value': [5, 3, 1, 7, 8, 6, 4, 2]})
+
+    interp = Order0Interp(data, [('age', 'age_start', 'age_end'),
+                                 ('year', 'year_start', 'year_end'),
+                                 ('height', 'height_start', 'height_end'),]
+                          , ['value'])
+
+    interpolants = pd.DataFrame({'age': [12, 17, 8, 25, 12],
+                                 'year': [1992, 1998, 1985, 1992, 1992],
+                                 'height': [160, 145, 110, 185, 160]})
+
+    result = interp(interpolants)
+    assert result.equals(pd.DataFrame({'value': [3, 4, 1, 7, 3]}))
+

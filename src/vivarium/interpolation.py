@@ -203,18 +203,19 @@ def check_data_complete(data, parameter_columns):
                                               f'with continuous bins. Parameter {p} contains '
                                               f'non-continuous bins.')
 
+
 class Order0Interp:
     """A callable that returns the result of order 0 interpolation over input data.
 
-            Attributes
-            ----------
-            data :
-                The data from which to build the interpolation. Contains
-                cateogrical_parameters and continuous_parameters.
-            parameter_columns :
-                Column names to be used as parameters in Interpolation.
-            """
-    def __init__(self, data, parameter_columns):
+    Attributes
+    ----------
+    data :
+        The data from which to build the interpolation. Contains
+        cateogrical_parameters and continuous_parameters.
+    parameter_columns :
+        Column names to be used as parameters in Interpolation.
+    """
+    def __init__(self, data, parameter_columns, value_columns):
         """
 
         Parameters
@@ -229,6 +230,7 @@ class Order0Interp:
         """
         check_data_complete(data, parameter_columns)
         self.data = data.copy()
+        self.value_columns = value_columns
 
         # (column name used in call, column name for left edge): [ordered left edges of bins]
         self.parameter_bins = {}
@@ -236,12 +238,47 @@ class Order0Interp:
         for p in parameter_columns:
             if isinstance(p, (List, Tuple)):
                 param = (p[0], p[1]) # no need for right edge because already confirmed continuous
-                left_edge = self.data[param].drop_duplicates().sort_values(by=param[1])
+                left_edge = self.data[param[1]].drop_duplicates().sort_values()
             else:  # make left edge assuming p is the midpoint and bins are equally sized and continuous
                 left_edge = make_left_edge(self.data, p)
                 self.data[f'{p}_left'] = self.data[p].apply(lambda x: left_edge[x])
-                param = (p, f'{p}_left') # no need for right edge because constructed continuous
+                param = (p, f'{p}_left')  # no need for right edge because constructed continuous
             self.parameter_bins[param] = left_edge.tolist()
+
+    def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
+        """Find the bins for each parameter for each interpolant in interpolants
+        and return the values from data there.
+
+        Parameters
+        ----------
+        interpolants:
+            Data frame containing the parameters to interpolate..
+
+        Returns
+        -------
+        pd.DataFrame
+            A table with the interpolated values for the given interpolants.
+
+        """
+        # build a dataframe where we have the start of each parameter bin for each interpolant
+        interpolant_bins = pd.DataFrame(index=interpolants.index)
+
+        merge_cols = []
+        for cols, bins in self.parameter_bins.items():
+            merge_cols.append(cols[1])
+            interpolant_col = interpolants[cols[0]]
+            bin_indices = np.digitize(interpolant_col, bins)
+            # digitize uses 0 to indicate <min and len(bins) for >max so adjust to actual indices into bin_indices
+            bin_indices = [x-1 if x > 0 else x for x in bin_indices]
+
+            interpolant_bins[cols[1]] = [bins[i] for i in bin_indices]
+
+        return interpolant_bins.merge(self.data, how='left', on=merge_cols)[self.value_columns]
+
+
+
+
+
 
 
 def make_left_edge(data, col):
