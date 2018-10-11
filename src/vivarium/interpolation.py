@@ -117,9 +117,10 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, ord
         raise ValueError('Only order 0 and order 1 interpolations are supported. '
                          f'You specified {order}')
 
-    # FIXME: allow for more than 2 parameter interpolation
-    if len(continuous_parameters) not in [1, 2]:
-        raise ValueError("Only interpolation over 1 or 2 variables is supported")
+    if len(continuous_parameters) not in [1, 2] and order != 0:
+        raise ValueError("Interpolation over more than two parameters is only supported"
+                         "for order 0. For all other orders, only interpolation over 1 or "
+                         "2 variables is supported")
 
     out = []
     for p in continuous_parameters:
