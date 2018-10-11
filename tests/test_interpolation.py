@@ -61,9 +61,9 @@ def test_interpolation_with_categorical_parameters():
     query_one = pd.DataFrame({'a': 'one', 'b': np.arange(100, step=0.01)})
     query_two = pd.DataFrame({'a': 'two', 'b': np.arange(100, step=0.01)})
 
-    assert np.allclose(np.arange(100, step=0.01), i(query_one))
+    assert np.allclose(np.arange(100, step=0.01), i(query_one).c)
 
-    assert np.allclose(np.arange(100, 0, step=-0.01), i(query_two))
+    assert np.allclose(np.arange(100, 0, step=-0.01), i(query_two).c)
 
 
 def test_interpolation_with_function():
@@ -88,22 +88,22 @@ def test_order_zero_2d():
     column = np.arange(4, step=0.011)
     query = pd.DataFrame({'a': column, 'b': column, 'garbage': ['test']*(len(column))})
 
-    assert np.allclose(query.b.astype(int) * 3, i(query))
+    assert np.allclose(query.b.astype(int) * 3, i(query).c)
 
 
 def test_order_zero_1d():
     s = pd.Series({0: 0, 1: 1}).reset_index()
     f = Interpolation(s, tuple(), ('index', ), order=0)
 
-    assert f(index=[0])[0] == 0, 'should be precise at index values'
-    assert f(index=[1])[0] == 1
-    assert f(index=[2])[0] == 1, 'should be constant extrapolation outside of input range'
-    assert f(index=[-1])[0] == 0
+    assert f(index=[0])[0][0] == 0, 'should be precise at index values'
+    assert f(index=[1])[0][0] == 1
+    assert f(index=[2])[0][0] == 1, 'should be constant extrapolation outside of input range'
+    assert f(index=[-1])[0][0] == 0
 
 
 def test_validate_parameters__empty_data():
     with pytest.warns(UserWarning) as record:
-        out, data = validate_parameters(pd.DataFrame(columns=["age", "sex", "year", "value"]), ["age", "year"], 2)
+        out, data = validate_parameters(pd.DataFrame(columns=["age", "sex", "year", "value"]), ["age", "year"], 1)
     assert len(record) == 2
     message = record[0].message.args[0] + " " + record[1].message.args[0]
     assert "age" in message and "year" in message
