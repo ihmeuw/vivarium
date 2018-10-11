@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import itertools
 
-from vivarium.interpolation import Interpolation, validate_parameters, check_data_complete
+from vivarium.interpolation import Interpolation, validate_parameters, check_data_complete, make_left_edge
 
 
 def test_1d_interpolation():
@@ -162,3 +162,13 @@ def test_check_data_missing_combos():
     message = error.value.args[0]
 
     assert 'combination' in message
+
+
+def test_make_left_edge():
+    ages = [3, 7, 1]
+    data = pd.DataFrame({'age': ages, 'year': [1990, 1992, 1991]})
+    left_edge = make_left_edge(data, 'age')
+
+    expected_left = [2, 5, 1]
+    for i, a in enumerate(ages):
+        assert left_edge[a] == expected_left[i]

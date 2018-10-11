@@ -1,9 +1,9 @@
 import warnings
 
 import pandas as pd
+import numpy as np
 from scipy import interpolate
 from typing import Union, List, Tuple
-from itertools import product
 
 
 class Interpolation:
@@ -168,10 +168,10 @@ def check_data_complete(data, parameter_columns):
     If multiple parameters, make sure all combinations of parameters
     are present in data."""
 
-    param_edges = [p for p in parameter_columns if isinstance(p, (Tuple, List))]
+    param_edges = [p[1:] for p in parameter_columns if isinstance(p, (Tuple, List))] # strip out call column name
     param_points = [p for p in parameter_columns if isinstance(p, str)]
 
-    # FIXME: There has to be a cleaner, faster, less horrible way to do this
+    # FIXME: There has to be a cleaner, faster, less horrible way to do this (part of why this is so gross is b/c trying to allow for >2 params)
     # check no overlaps/gaps
     for p in param_edges:
         other_params = param_points + [p_ed[0] for p_ed in param_edges if p_ed != p]
@@ -188,7 +188,7 @@ def check_data_complete(data, parameter_columns):
             start, end = param_data[p[0]].reset_index(drop=True), param_data[p[1]].reset_index(drop=True)
 
             if len(set(start)) < n_p_total:
-                raise ValueError(f'You must provide a value for every combination of {parameter_columns}')
+                raise ValueError(f'You must provide a value for every combination of {parameter_columns}.')
 
             if len(start) <= 1:
                 continue
@@ -203,12 +203,54 @@ def check_data_complete(data, parameter_columns):
                                               f'with continuous bins. Parameter {p} contains '
                                               f'non-continuous bins.')
 
-    # check all combos - because we know there are no overlaps/repeats, we can just check the numbers match
-    #params = param_points + [p[0] for p in param_edges]
-    #combos = list(product(*[set(data[p]) for p in params]))
+class Order0Interp:
+    """A callable that returns the result of order 0 interpolation over input data.
 
-    #if len(combos) > data.shape[0]:
-    #    raise ValueError(f'You must provide a value for every combination of {parameter_columns}')
+            Attributes
+            ----------
+            data :
+                The data from which to build the interpolation. Contains
+                cateogrical_parameters and continuous_parameters.
+            parameter_columns :
+                Column names to be used as parameters in Interpolation.
+            """
+    def __init__(self, data, parameter_columns):
+        """
 
+        Parameters
+        ----------
+        data :
+            Dataframe used to build interpolation.
+        parameter_columns :
+            Parameter columns. Should be of form (column name used in call, column name for left bin edge,
+            column name for right bin edge) or (column name). If given as (column name), assumed to be
+            midpoint of bin and equally-sized, continuous bins created
+
+        """
+        check_data_complete(data, parameter_columns)
+        self.data = data.copy()
+
+        # (column name used in call, column name for left edge): [ordered left edges of bins]
+        self.parameter_bins = {}
+
+        for p in parameter_columns:
+            if isinstance(p, (List, Tuple)):
+                param = (p[0], p[1]) # no need for right edge because already confirmed continuous
+                left_edge = self.data[param].drop_duplicates().sort_values(by=param[1])
+            else:  # make left edge assuming p is the midpoint and bins are equally sized and continuous
+                left_edge = make_left_edge(self.data, p)
+                self.data[f'{p}_left'] = self.data[p].apply(lambda x: left_edge[x])
+                param = (p, f'{p}_left') # no need for right edge because constructed continuous
+            self.parameter_bins[param] = left_edge.tolist()
+
+
+def make_left_edge(data, col):
+    mid_pts = data[[col]].drop_duplicates().sort_values(by=col).reset_index(drop=True)
+    mid_pts['shift'] = mid_pts[col].shift()
+
+    mid_pts['left'] = mid_pts.apply(lambda row: (row[col] if pd.isna(row['shift'])
+                                                   else 0.5 * (row[col] + row['shift'])), axis=1)
+
+    return mid_pts.set_index(col)['left']
 
 
