@@ -94,14 +94,14 @@ class Interpolation:
             sub_tables = interpolants.groupby(list(self.key_columns))
         else:
             sub_tables = [(None, interpolants)]
+        # specify some numeric type for columns so they won't be objects but will updated with whatever
+        # column type actually is
         result = pd.DataFrame(index=interpolants.index, columns=self.value_columns, dtype=np.float64)
         for key, sub_table in sub_tables:
             if sub_table.empty:
                 continue
             if self.order == 0: # we can interpolate all value columns at once
                 df = self.interpolations[key](sub_table)
-                #for v in self.value_columns:
-                #    result.loc[sub_table.index, v] = df.loc[sub_table.index, v]
                 result.loc[sub_table.index, self.value_columns] = df.loc[sub_table.index, self.value_columns]
             else:
                 funcs = self.interpolations[key]
