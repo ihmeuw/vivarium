@@ -276,22 +276,19 @@ def test_order_zero_created_bins_equal_explicit_bins():
 
     assert result_midpt.equals(result_binned)
 
+
 def test_order_zero_non_numeric_values():
     data = pd.DataFrame({'year': [1990, 1990],
                          'age': [15, 24,],
                          'value_1': ['blue', 'red']})
 
-    i = Interpolation(data, ['year', 'age'], 0)
+    i = Interpolation(data, (), ['year', 'age'], 0)
 
     query = pd.DataFrame({'year': [1990, 1990],
                           'age': [15, 20,]},
-                         index=[1, 2])
+                         index=[1, 0])
 
-    import pdb
-    pdb.set_trace()
-
-    expected_result = pd.DataFrame({'value_1': [10.0, 15.0, -1.0, 27.0, -1.0],
-                                    'value_2': [1200.0, -602.0, 0.0, 1528.0, 0.0]},
-                                   index=[1, 2, 17, 5, -1])
+    expected_result = pd.DataFrame({'value_1': ['blue', 'red']},
+                                   index=[1, 0])
 
     assert i(query).equals(expected_result)
