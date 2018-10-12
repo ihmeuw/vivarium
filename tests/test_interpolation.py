@@ -108,6 +108,9 @@ def test_order_zero_1d():
     s = pd.Series({0: 0, 1: 1}).reset_index()
     f = Interpolation(s, tuple(), ('index', ), order=0)
 
+    df = pd.DataFrame({'index': [0, 1, 1]}, index=[3, 7, 2])
+    f(df)
+
     assert f(pd.DataFrame({'index': [0]}))[0][0] == 0, 'should be precise at index values'
     assert f(pd.DataFrame({'index': [1]}))[0][0] == 1
     assert f(pd.DataFrame({'index': [2]}))[0][0] == 1, 'should be constant extrapolation outside of input range'
@@ -208,7 +211,7 @@ def test_order_zero_with_key_column():
     query = pd.DataFrame({'year': [1992, 1993,],
                           'sex': ['Male', 'Female']})
 
-    expected_result = pd.DataFrame({'value_1': [10, 7],
-                                    'value_2': [1200, 1350]})
+    expected_result = pd.DataFrame({'value_1': [10.0, 7.0],
+                                    'value_2': [1200.0, 1350.0]})
 
     assert i(query).equals(expected_result)

@@ -94,12 +94,14 @@ class Interpolation:
             sub_tables = interpolants.groupby(list(self.key_columns))
         else:
             sub_tables = [(None, interpolants)]
-        result = pd.DataFrame(index=interpolants.index, columns = self.value_columns)
+        result = pd.DataFrame(index=interpolants.index, columns=self.value_columns, dtype=np.float64)
         for key, sub_table in sub_tables:
             if sub_table.empty:
                 continue
             if self.order == 0: # we can interpolate all value columns at once
                 df = self.interpolations[key](sub_table)
+                #for v in self.value_columns:
+                #    result.loc[sub_table.index, v] = df.loc[sub_table.index, v]
                 result.loc[sub_table.index, self.value_columns] = df.loc[sub_table.index, self.value_columns]
             else:
                 funcs = self.interpolations[key]
@@ -129,6 +131,9 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, ord
                          "for order 0. For all other orders, only interpolation over 1 or "
                          "2 variables is supported")
 
+    if len(continuous_parameters) < 1:
+        raise ValueError("You must supply at least one continuous parameter over which to interpolate.")
+
     out = []
     for p in continuous_parameters:
 
@@ -143,12 +148,10 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, ord
                           f"The parameter will be dropped from the interpolation.")
             data = data.drop(param_col, axis='columns')
 
-    # These are the columns which the interpolation function will approximate
-
     # break out the individual columns from binned column name lists
     param_cols = ([col for p in continuous_parameters if isinstance(p, (List, Tuple)) for col in p]
                   + [p for p in continuous_parameters if isinstance(p, str)])
-
+    # These are the columns which the interpolation function will approximate
     value_columns = sorted(data.columns.difference(set(categorical_parameters) | set(param_cols)))
     if not value_columns:
         raise ValueError(f"No non-parameter data. Available columns: {data.columns}, "
@@ -239,8 +242,9 @@ class Order0Interp:
         data :
             Dataframe used to build interpolation.
         parameter_columns :
-            Parameter columns. Should be of form (column name used in call, column name for left bin edge,
-            column name for right bin edge) or (column name). If given as (column name), assumed to be
+            Parameter columns. Should be of form (column name used in call,
+            column name for left bin edge, column name for right bin edge)
+            or column name. If given as single column name, assumed to be
             midpoint of bin and continuous bins created
 
         """
@@ -289,7 +293,9 @@ class Order0Interp:
 
             interpolant_bins[cols[1]] = [bins[i] for i in bin_indices]
 
-        interp_vals = interpolant_bins.reset_index().merge(self.data, how='left', on=merge_cols).set_index('index')
+        index = interpolant_bins.index
+
+        interp_vals = interpolant_bins.merge(self.data, how='left', on=merge_cols).set_index(index)
         return interp_vals[self.value_columns]
 
 
