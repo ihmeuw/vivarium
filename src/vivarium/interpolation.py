@@ -235,7 +235,7 @@ class Order0Interp:
     ----------
     data :
         The data from which to build the interpolation. Contains
-        cateogrical_parameters and continuous_parameters.
+        categorical_parameters and continuous_parameters.
     parameter_columns :
         Column names to be used as parameters in Interpolation.
     """
@@ -250,7 +250,8 @@ class Order0Interp:
             Parameter columns. Should be of form (column name used in call,
             column name for left bin edge, column name for right bin edge)
             or column name. If given as single column name, assumed to be
-            midpoint of bin and continuous bins created
+            midpoint of bin and continuous bins created. Assumes left bin
+            edges are inclusive and right exclusive.
 
         """
         check_data_complete(data, parameter_columns)
