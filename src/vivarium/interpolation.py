@@ -18,17 +18,23 @@ class Interpolation:
             Column names to be used as categorical parameters in Interpolation
             to select between interpolation functions.
         continuous_parameters :
-            Column names to be used as continuous parameters in Interpolation.
+            Column names to be used as continuous parameters in Interpolation. If
+            bin edges, should be of the form (column name used in call, column name
+            for left bin edge, column name for right bin edge). If order is 0 and
+            any continuous parameter is given without bin edges, continuous bins
+            are created using the given parameter as midpoints.
         order :
             Order of interpolation.
         """
 
     def __init__(self, data: pd.DataFrame, categorical_parameters: Union[List[str], Tuple[str]],
-                 continuous_parameters: Union[List[str], Tuple[str]], order: int):
+                 continuous_parameters: Union[List[str], Tuple[str], List[List[str]], Tuple[Tuple[str, str, str]],
+                                              List[Tuple[str, str, str]], Tuple[List[str]]], order: int):
 
         self.key_columns = categorical_parameters
-        self.parameter_columns, self._data, value_columns = validate_parameters(data, categorical_parameters,
-                                                                                continuous_parameters, order)
+        self.parameter_columns, self._data, self.value_columns = validate_parameters(data, categorical_parameters,
+                                                                                     continuous_parameters, order)
+        self.order = order
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
@@ -43,33 +49,30 @@ class Interpolation:
         for key, base_table in sub_tables:
             if base_table.empty:    # if one of the key columns is a category and not all values are present in data
                 continue
-            # For each permutation of the key columns build interpolations
-            self.interpolations[key] = {}
-            for value_column in value_columns:
-                # For each value in the table build an interpolation function
-                if len(self.parameter_columns) == 2:
-                    # 2 variable interpolation
-                    if order == 0:
-                        x = base_table[list(self.parameter_columns)]
-                        y = base_table[value_column]
-                        func = interpolate.NearestNDInterpolator(x=x.values, y=y.values)
-                    else:
+            # if order 0, we can interpolate all values at once
+            if order == 0:
+                self.interpolations[key] = Order0Interp(base_table, self.parameter_columns, self.value_columns)
+            else:
+                # For each permutation of the key columns build interpolations
+                self.interpolations[key] = {}
+
+                for value_column in self.value_columns:
+                    # For each value in the table build an interpolation function
+                    if len(self.parameter_columns) == 2:
+                        # 2 variable interpolation
                         index, column = self.parameter_columns
                         table = base_table.pivot(index=index, columns=column, values=value_column)
                         x = table.index.values
                         y = table.columns.values
                         z = table.values
                         func = interpolate.RectBivariateSpline(x=x, y=y, z=z, ky=order, kx=order).ev
-                else:
-                    # 1 variable interpolation
-                    base_table = base_table.sort_values(by=self.parameter_columns[0])
-                    x = base_table[self.parameter_columns[0]]
-                    y = base_table[value_column]
-                    if order == 0:
-                        func = interpolate.interp1d(x, y, kind='zero', fill_value='extrapolate')
                     else:
+                        # 1 variable interpolation
+                        base_table = base_table.sort_values(by=self.parameter_columns[0])
+                        x = base_table[self.parameter_columns[0]]
+                        y = base_table[value_column]
                         func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
-                self.interpolations[key][value_column] = func
+                    self.interpolations[key][value_column] = func
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Get the interpolated results for the parameters in interpolants.
@@ -91,20 +94,24 @@ class Interpolation:
             sub_tables = interpolants.groupby(list(self.key_columns))
         else:
             sub_tables = [(None, interpolants)]
-        result = pd.DataFrame(index=interpolants.index)
+        result = pd.DataFrame(index=interpolants.index, columns = self.value_columns)
         for key, sub_table in sub_tables:
             if sub_table.empty:
                 continue
-            funcs = self.interpolations[key]
-            parameters = tuple(sub_table[k] for k in self.parameter_columns)
-            for value_column, func in funcs.items():
-                out = func(*parameters)
-                # This reshape is necessary because RectBivariateSpline and InterpolatedUnivariateSpline return results
-                # in slightly different shapes and we need them to be consistent
-                if out.shape:
-                    result.loc[sub_table.index, value_column] = out.reshape((out.shape[0],))
-                else:
-                    result.loc[sub_table.index, value_column] = out
+            if self.order == 0: # we can interpolate all value columns at once
+                df = self.interpolations[key](sub_table)
+                result.loc[sub_table.index, self.value_columns] = df.loc[sub_table.index, self.value_columns]
+            else:
+                funcs = self.interpolations[key]
+                parameters = tuple(sub_table[k] for k in self.parameter_columns)
+                for value_column, func in funcs.items():
+                    out = func(*parameters)
+                    # This reshape is necessary because RectBivariateSpline and InterpolatedUnivariateSpline return results
+                    # in slightly different shapes and we need them to be consistent
+                    if out.shape:
+                        result.loc[sub_table.index, value_column] = out.reshape((out.shape[0],))
+                    else:
+                        result.loc[sub_table.index, value_column] = out
 
         return result
 
@@ -124,17 +131,25 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, ord
 
     out = []
     for p in continuous_parameters:
-        if len(data[p].unique()) > order:
+
+        param_col = p[1] if isinstance(p, (List, Tuple)) else p
+
+        if len(data[param_col].unique()) > order:
             out.append(p)
         else:
-            warnings.warn(f"You requested an order {order} interpolation over the parameter {p}, "
-                          f"however there are only {len(data[p].unique())} unique values for {p}"
+            warnings.warn(f"You requested an order {order} interpolation over the parameter {param_col}, "
+                          f"however there are only {len(data[param_col].unique())} unique values for {param_col}"
                           f"which is insufficient to support the requested interpolation order."
                           f"The parameter will be dropped from the interpolation.")
-            data = data.drop(p, axis='columns')
+            data = data.drop(param_col, axis='columns')
 
     # These are the columns which the interpolation function will approximate
-    value_columns = sorted(data.columns.difference(set(categorical_parameters) | set(continuous_parameters)))
+
+    # break out the individual columns from binned column name lists
+    param_cols = ([col for p in continuous_parameters if isinstance(p, (List, Tuple)) for col in p]
+                  + [p for p in continuous_parameters if isinstance(p, str)])
+
+    value_columns = sorted(data.columns.difference(set(categorical_parameters) | set(param_cols)))
     if not value_columns:
         raise ValueError(f"No non-parameter data. Available columns: {data.columns}, "
                          f"Parameter columns: {set(categorical_parameters)|set(continuous_parameters)}")
@@ -145,11 +160,12 @@ def validate_call_data(data, key_columns, parameter_columns):
     if not isinstance(data, pd.DataFrame):
         raise TypeError(f'Interpolations can only be called on pandas.DataFrames. You'
                         f'passed {type(data)}.')
-
-    if not set(parameter_columns) <= set(data.columns.values.tolist()):
-        raise ValueError(f'The continuous parameter columns with which you built the Interpolation must all'
-                         f'be present in the data you call it on. The Interpolation has key'
-                         f'columns: {parameter_columns} and your data has columns: '
+    callable_param_cols = ([p[0] for p in parameter_columns if isinstance(p, (List, Tuple))]
+                           + [p for p in parameter_columns if isinstance(p, str)])
+    if not set(callable_param_cols) <= set(data.columns.values.tolist()):
+        raise ValueError(f'The continuous parameter columns with which you built the Interpolation must all '
+                         f'be present in the data you call it on. The Interpolation has key '
+                         f'columns: {callable_param_cols} and your data has columns: '
                          f'{data.columns.values.tolist()}')
 
     if key_columns and not set(key_columns) <= set(data.columns.values.tolist()):
@@ -172,7 +188,6 @@ def check_data_complete(data, parameter_columns):
     param_edges = [p[1:] for p in parameter_columns if isinstance(p, (Tuple, List))] # strip out call column name
     param_points = [p for p in parameter_columns if isinstance(p, str)]
 
-    # FIXME: There has to be a cleaner, faster, less horrible way to do this (part of why this is so gross is b/c trying to allow for >2 params)
     # check no overlaps/gaps
     for p in param_edges:
         other_params = param_points + [p_ed[0] for p_ed in param_edges if p_ed != p]
@@ -226,7 +241,7 @@ class Order0Interp:
         parameter_columns :
             Parameter columns. Should be of form (column name used in call, column name for left bin edge,
             column name for right bin edge) or (column name). If given as (column name), assumed to be
-            midpoint of bin and equally-sized, continuous bins created
+            midpoint of bin and continuous bins created
 
         """
         check_data_complete(data, parameter_columns)
@@ -240,7 +255,7 @@ class Order0Interp:
             if isinstance(p, (List, Tuple)):
                 param = (p[0], p[1]) # no need for right edge because already confirmed continuous
                 left_edge = self.data[param[1]].drop_duplicates().sort_values()
-            else:  # make left edge assuming p is the midpoint and bins are equally sized and continuous
+            else:  # make left edge assuming p is the midpoint and bins are continuous
                 left_edge = make_left_edge(self.data, p)
                 self.data[f'{p}_left'] = self.data[p].apply(lambda x: left_edge[x])
                 param = (p, f'{p}_left')  # no need for right edge because constructed continuous
@@ -274,15 +289,26 @@ class Order0Interp:
 
             interpolant_bins[cols[1]] = [bins[i] for i in bin_indices]
 
-        return interpolant_bins.merge(self.data, how='left', on=merge_cols)[self.value_columns]
+        interp_vals = interpolant_bins.reset_index().merge(self.data, how='left', on=merge_cols).set_index('index')
+        return interp_vals[self.value_columns]
 
 
+def make_left_edge(data: pd.DataFrame, col: str) -> pd.Series:
+    """
 
+    Parameters
+    ----------
+    data :
+        A dataframe containing column col.
+    col :
+        String name of column containing midpoints for which bins should be constructed.
 
-
-
-
-def make_left_edge(data, col):
+    Returns
+    -------
+        pd.Series
+            A series indexed the same as col with left edge values for a bin constructed
+            from each value in col in data as the midpoint.
+    """
     mid_pts = data[[col]].drop_duplicates().sort_values(by=col).reset_index(drop=True)
     mid_pts['shift'] = mid_pts[col].shift()
 

@@ -195,3 +195,20 @@ def test_order0interp():
     result = interp(interpolants)
     assert result.equals(pd.DataFrame({'value': [3, 4, 1, 7, 3]}))
 
+
+def test_order_zero_with_key_column():
+    data = pd.DataFrame({'year_start': [1990, 1990, 1995, 1995],
+                         'year_end': [1995, 1995, 2000, 2000],
+                         'sex': ['Male', 'Female', 'Male', 'Female'],
+                         'value_1': [10, 7, 2, 12],
+                         'value_2': [1200, 1350, 1476, 1046]})
+
+    i = Interpolation(data, ['sex',], [('year', 'year_start', 'year_end'),], 0)
+
+    query = pd.DataFrame({'year': [1992, 1993,],
+                          'sex': ['Male', 'Female']})
+
+    expected_result = pd.DataFrame({'value_1': [10, 7],
+                                    'value_2': [1200, 1350]})
+
+    assert i(query).equals(expected_result)
