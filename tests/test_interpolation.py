@@ -244,3 +244,34 @@ def test_order_zero_no_bins_2d():
                                    index=[1, 2, 17, 5, -1])
 
     assert i(query).equals(expected_result)
+
+
+def test_order_zero_created_bins_equal_explicit_bins():
+    data_midpt = pd.DataFrame({'year': [1990]*4 + [1991]*4,
+                               'sex': ['Male', 'Female']*4,
+                               'age': [15, 24, 24, 15]*2,
+                               'value_1': [10, 7, 2, 12, 6, 15, 27, -1],
+                               'value_2': [1200, 1350, 1476, 1046, 1520, -602, 1528, 0]})
+
+    data_binned = pd.DataFrame({'year_start': [1980.5]*4 + [1990.5]*4,
+                                'year_end': [1990.5]*4 + [1991]*4,
+                                'sex': ['Male', 'Female']*4,
+                                'age_start': [11.5, 19.5, 19.5, 11.5]*2,
+                                'age_end': [19.5, 24, 24, 19.5]*2,
+                                'value_1': [10, 7, 2, 12, 6, 15, 27, -1],
+                                'value_2': [1200, 1350, 1476, 1046, 1520, -602, 1528, 0]})
+
+    i_midpt = Interpolation(data_midpt, ['sex'], ['year', 'age'], 0)
+
+    i_binned = Interpolation(data_binned, ['sex'], [('year', 'year_start', 'year_end'),
+                                                    ('age', 'age_start', 'age_end')], 0)
+
+    query = pd.DataFrame({'year': [1990.45, 1990.5001, 1991, 1990.7, 2007],
+                          'sex': ['Male', 'Female', 'Female', 'Male', 'Female'],
+                          'age': [15, 19.5, 19.45, 20, 16],},
+                         index=[1, 2, 17, 5, -1])
+
+    result_midpt = i_midpt(query)
+    result_binned = i_binned(query)
+
+    assert result_midpt.equals(result_binned)
