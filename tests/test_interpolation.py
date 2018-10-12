@@ -108,7 +108,7 @@ def test_order_zero_1d():
     s = pd.Series({0: 0, 1: 1}).reset_index()
     f = Interpolation(s, tuple(), ('index', ), order=0)
 
-    df = pd.DataFrame({'index': [0, 1, 1]}, index=[3, 7, 2])
+    df = pd.DataFrame({'index': [1, 0, 1, 1]}, index=[12, 3, 7, 2])
     f(df)
 
     assert f(pd.DataFrame({'index': [0]}))[0][0] == 0, 'should be precise at index values'
