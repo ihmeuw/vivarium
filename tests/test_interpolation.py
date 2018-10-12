@@ -108,9 +108,6 @@ def test_order_zero_1d():
     s = pd.Series({0: 0, 1: 1}).reset_index()
     f = Interpolation(s, tuple(), ('index', ), order=0)
 
-    df = pd.DataFrame({'index': [1, 0, 1, 1]}, index=[12, 3, 7, 2])
-    f(df)
-
     assert f(pd.DataFrame({'index': [0]}))[0][0] == 0, 'should be precise at index values'
     assert f(pd.DataFrame({'index': [1]}))[0][0] == 1
     assert f(pd.DataFrame({'index': [2]}))[0][0] == 1, 'should be constant extrapolation outside of input range'
@@ -213,5 +210,37 @@ def test_order_zero_with_key_column():
 
     expected_result = pd.DataFrame({'value_1': [10.0, 7.0],
                                     'value_2': [1200.0, 1350.0]})
+
+    assert i(query).equals(expected_result)
+
+
+def test_order_zero_no_bins():
+    s = pd.Series({0: 0, 1: 1}).reset_index()
+    f = Interpolation(s, tuple(), ('index', ), order=0)  # and make sure no problems with column named index
+
+    i = f(pd.DataFrame({'index': [2, 0, 1, 1, -1]}, index=[12, 3, 7, 2, -6]))
+
+    expected_result = pd.DataFrame({0: [1, 0, 1, 1, 0]}, index=[12, 3, 7, 2, -6])
+
+    assert i.equals(expected_result)
+
+
+def test_order_zero_no_bins_2d():
+    data = pd.DataFrame({'year': [1990]*4 + [1991]*4,
+                         'sex': ['Male', 'Female']*4,
+                         'age': [15, 24, 24, 15]*2,
+                         'value_1': [10, 7, 2, 12, 6, 15, 27, -1],
+                         'value_2': [1200, 1350, 1476, 1046, 1520, -602, 1528, 0]})
+
+    i = Interpolation(data, ['sex'], ['year', 'age'], 0)
+
+    query = pd.DataFrame({'year': [1990.45, 1990.5001, 1991, 1990.7, 2007],
+                          'sex': ['Male', 'Female', 'Female', 'Male', 'Female'],
+                          'age': [15, 19.5, 19.45, 20, 16],},
+                         index=[1, 2, 17, 5, -1])
+
+    expected_result = pd.DataFrame({'value_1': [10.0, 15.0, -1.0, 27.0, -1.0],
+                                    'value_2': [1200.0, -602.0, 0.0, 1528.0, 0.0]},
+                                   index=[1, 2, 17, 5, -1])
 
     assert i(query).equals(expected_result)
