@@ -137,6 +137,11 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, ord
     out = []
     for p in continuous_parameters:
 
+        if isinstance(p, (List, Tuple)) and len(p) != 3:
+            raise ValueError(f'If you specify bin edges for a parameter, they must be in the form '
+                             f'(column name when called, column name of left bin edge, column name of right bin edge). '
+                             f'You specified {p}.')
+
         param_col = p[1] if isinstance(p, (List, Tuple)) else p
 
         if len(data[param_col].unique()) > order:
