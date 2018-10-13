@@ -13,7 +13,8 @@ def test_interpolated_tables(base_config):
     one_d_age = ages.copy()
     del one_d_age['year']
     one_d_age = one_d_age.drop_duplicates()
-    base_config.population.update({'population_size': 10000})
+    base_config.population.update({'population_size': 10000,})
+    base_config.interpolation.update({'order': 1})  # the results we're checking later assume interp order 1
 
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
@@ -54,6 +55,7 @@ def test_interpolated_tables_without_uninterpolated_columns(base_config):
     del years['sex']
     years = years.drop_duplicates()
     base_config.population.update({'population_size': 10000})
+    base_config.interpolation.update({'order': 1})  # the results we're checking later assume interp order 1
 
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
