@@ -100,7 +100,7 @@ class Interpolation:
         for key, sub_table in sub_tables:
             if sub_table.empty:
                 continue
-            if self.order == 0: # we can interpolate all value columns at once
+            if self.order == 0:  # we can interpolate all value columns at once
                 df = self.interpolations[key](sub_table)
                 result.loc[sub_table.index, self.value_columns] = df.loc[sub_table.index, self.value_columns]
             else:
@@ -129,7 +129,7 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, ord
     if len(continuous_parameters) not in [1, 2] and order != 0:
         raise ValueError("Interpolation over more than two parameters is only supported"
                          "for order 0. For all other orders, only interpolation over 1 or "
-                         "2 variables is supported")
+                         "2 variables is supported.")
 
     if len(continuous_parameters) < 1:
         raise ValueError("You must supply at least one continuous parameter over which to interpolate.")
@@ -193,7 +193,7 @@ def check_data_complete(data, parameter_columns):
     If multiple parameters, make sure all combinations of parameters
     are present in data."""
 
-    param_edges = [p[1:] for p in parameter_columns if isinstance(p, (Tuple, List))] # strip out call column name
+    param_edges = [p[1:] for p in parameter_columns if isinstance(p, (Tuple, List))]  # strip out call column name
     param_points = [p for p in parameter_columns if isinstance(p, str)]
 
     # check no overlaps/gaps
@@ -245,7 +245,7 @@ class Order0Interp:
         Parameters
         ----------
         data :
-            Dataframe used to build interpolation.
+            Data frame used to build interpolation.
         parameter_columns :
             Parameter columns. Should be of form (column name used in call,
             column name for left bin edge, column name for right bin edge)
@@ -263,7 +263,7 @@ class Order0Interp:
 
         for p in parameter_columns:
             if isinstance(p, (List, Tuple)):
-                param = (p[0], p[1]) # no need for right edge because already confirmed continuous
+                param = (p[0], p[1])  # no need for right edge because already confirmed continuous
                 left_edge = self.data[param[1]].drop_duplicates().sort_values()
             else:  # make left edge assuming p is the midpoint and bins are continuous
                 left_edge = make_left_edge(self.data, p)
@@ -294,7 +294,7 @@ class Order0Interp:
             merge_cols.append(cols[1])
             interpolant_col = interpolants[cols[0]]
             bin_indices = np.digitize(interpolant_col, bins)
-            # digitize uses 0 to indicate <min and len(bins) for >max so adjust to actual indices into bin_indices
+            # digitize uses 0 to indicate < min and len(bins) for > max so adjust to actual indices into bin_indices
             bin_indices = [x-1 if x > 0 else x for x in bin_indices]
 
             interpolant_bins[cols[1]] = [bins[i] for i in bin_indices]
@@ -325,7 +325,7 @@ def make_left_edge(data: pd.DataFrame, col: str) -> pd.Series:
     mid_pts['shift'] = mid_pts[col].shift()
 
     mid_pts['left'] = mid_pts.apply(lambda row: (row[col] if pd.isna(row['shift'])
-                                                   else 0.5 * (row[col] + row['shift'])), axis=1)
+                                                 else 0.5 * (row[col] + row['shift'])), axis=1)
 
     return mid_pts.set_index(col)['left']
 

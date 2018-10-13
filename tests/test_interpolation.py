@@ -196,7 +196,7 @@ def test_order0interp():
     assert result.equals(pd.DataFrame({'value': [3, 4, 1, 7, 3]}))
 
 
-def test_order_zero_with_key_column():
+def test_order_zero_1d_with_key_column():
     data = pd.DataFrame({'year_start': [1990, 1990, 1995, 1995],
                          'year_end': [1995, 1995, 2000, 2000],
                          'sex': ['Male', 'Female', 'Male', 'Female'],
@@ -282,7 +282,7 @@ def test_order_zero_non_numeric_values():
                          'age': [15, 24,],
                          'value_1': ['blue', 'red']})
 
-    i = Interpolation(data, (), ['year', 'age'], 0)
+    i = Interpolation(data, tuple(), ['year', 'age'], 0)
 
     query = pd.DataFrame({'year': [1990, 1990],
                           'age': [15, 20,]},
@@ -292,3 +292,28 @@ def test_order_zero_non_numeric_values():
                                    index=[1, 0])
 
     assert i(query).equals(expected_result)
+
+
+def test_order_zero_3d_with_key_col():
+    data = pd.DataFrame({'year_start': [1990, 1990, 1990, 1990, 1995, 1995, 1995, 1995]*2,
+                         'year_end': [1995, 1995, 1995, 1995, 2000, 2000, 2000, 2000]*2,
+                         'age_start': [15, 10, 10, 15, 10, 10, 15, 15]*2,
+                         'age_end': [20, 15, 15, 20, 15, 15, 20, 20]*2,
+                         'height_start': [140, 160, 140, 160, 140, 160, 140, 160]*2,
+                         'height_end': [160, 180, 160, 180, 160, 180, 160, 180]*2,
+                         'sex': ['Male']*8+['Female']*8,
+                         'value': [5, 3, 1, 7, 8, 6, 4, 2, 6, 4, 2, 8, 9, 7, 5, 3]})
+
+    interp = Interpolation(data, ('sex',),
+                           [('age', 'age_start', 'age_end'),
+                            ('year', 'year_start', 'year_end'),
+                            ('height', 'height_start', 'height_end')], 0)
+
+    interpolants = pd.DataFrame({'age': [12, 17, 8, 25, 12],
+                                 'year': [1992, 1998, 1985, 1992, 1992],
+                                 'height': [160, 145, 110, 185, 160],
+                                 'sex': ['Male', 'Female', 'Female', 'Male', 'Male']},
+                                index=[10, 4, 7, 0, 9])
+
+    result = interp(interpolants)
+    assert result.equals(pd.DataFrame({'value': [3.0, 5.0, 2.0, 7.0, 3.0]}, index=[10, 4, 7, 0, 9]))
