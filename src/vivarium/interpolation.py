@@ -255,7 +255,7 @@ class Order0Interp:
 
         """
         check_data_complete(data, parameter_columns)
-        self.data = data
+        self.data = data.copy()
         self.value_columns = value_columns
 
         # (column name used in call, column name for left edge): [ordered left edges of bins]
