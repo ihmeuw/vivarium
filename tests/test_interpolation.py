@@ -4,9 +4,33 @@ import pandas as pd
 import numpy as np
 import itertools
 
-from vivarium.interpolation import Interpolation, validate_parameters, check_data_complete, make_left_edge, Order0Interp
+from vivarium.interpolation import Interpolation, validate_parameters, check_data_complete, Order0Interp
 
 
+def make_bin_edges(data: pd.DataFrame, col: str) -> pd.DataFrame:
+    """ Given a dataframe and a column containing midpoints, construct
+    equally sized bins around midpoints.
+    """
+    mid_pts = data[[col]].drop_duplicates().sort_values(by=col).reset_index(drop=True)
+    mid_pts['shift'] = mid_pts[col].shift()
+
+    mid_pts['left'] = mid_pts.apply(lambda row: (row[col] if pd.isna(row['shift'])
+                                                 else 0.5 * (row[col] + row['shift'])), axis=1)
+
+    mid_pts['right'] = mid_pts['left'].shift(-1)
+    mid_pts['right'] = mid_pts.right.fillna(mid_pts.right.max() + mid_pts.left.tolist()[-1] - mid_pts.left.tolist()[-2])
+
+    data = data.copy()
+    idx = data.index
+
+    data = data.set_index(col, drop=False)
+    mid_pts = mid_pts.set_index(col, drop=False)
+
+    data[[col, f'{col}_left', f'{col}_right']] = mid_pts[[col, 'left', 'right']]
+
+    return data.set_index(idx)
+
+@pytest.mark.skip(reason="only order 0 interpolation currently supported")
 def test_1d_interpolation():
     df = pd.DataFrame({'a': np.arange(100), 'b': np.arange(100), 'c': np.arange(100, 0, -1)})
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
@@ -19,6 +43,7 @@ def test_1d_interpolation():
     assert np.allclose(100-query.a, i(query).c)
 
 
+@pytest.mark.skip(reason="only order 0 interpolation currently supported")
 def test_age_year_interpolation():
     years = list(range(1990, 2010))
     ages = list(range(0, 90))
@@ -37,6 +62,7 @@ def test_age_year_interpolation():
     assert np.allclose(i(query), 388.5)
 
 
+@pytest.mark.skip(reason="only order 0 interpolation currently supported")
 def test_interpolation_called_missing_key_col():
     a = [range(1990, 1995), range(25, 30), ['Male', 'Female']]
     df = pd.DataFrame(list(itertools.product(*a)), columns=['year', 'age', 'sex'])
@@ -48,6 +74,7 @@ def test_interpolation_called_missing_key_col():
         i(query)
 
 
+@pytest.mark.skip(reason="only order 0 interpolation currently supported")
 def test_interpolation_called_missing_param_col():
     a = [range(1990, 1995), range(25, 30), ['Male', 'Female']]
     df = pd.DataFrame(list(itertools.product(*a)), columns=['year', 'age', 'sex'])
@@ -59,6 +86,7 @@ def test_interpolation_called_missing_param_col():
         i(query)
 
 
+@pytest.mark.skip(reason="only order 0 interpolation currently supported")
 def test_2d_interpolation():
     a = np.mgrid[0:5, 0:5][0].reshape(25)
     b = np.mgrid[0:5, 0:5][1].reshape(25)
@@ -73,6 +101,7 @@ def test_2d_interpolation():
     assert np.allclose(query.a, i(query).d)
 
 
+@pytest.mark.skip(reason="only order 0 interpolation currently supported")
 def test_interpolation_with_categorical_parameters():
     a = ['one']*100 + ['two']*100
     b = np.append(np.arange(100), np.arange(100))
@@ -94,21 +123,54 @@ def test_order_zero_2d():
     a = np.mgrid[0:5, 0:5][0].reshape(25)
     b = np.mgrid[0:5, 0:5][1].reshape(25)
     df = pd.DataFrame({'a': a + 0.5, 'b': b + 0.5, 'c': b*3, 'garbage': ['test']*len(a)})
+    df = make_bin_edges(df, 'a')
+    df = make_bin_edges(df, 'b')
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
 
-    i = Interpolation(df, ('garbage',), ('a', 'b'), order=0)
+    i = Interpolation(df, ('garbage',), [('a', 'a_left', 'a_right'), ('b', 'b_left', 'b_right')], order=0)
 
-    column = np.arange(4, step=0.011)
+    column = np.arange(0.5, 4, step=0.011)
     query = pd.DataFrame({'a': column, 'b': column, 'garbage': ['test']*(len(column))})
 
     assert np.allclose(query.b.astype(int) * 3, i(query).c)
 
 
-def test_order_zero_1d():
+def test_order_zero_2d_fails_on_extrapolation():
+    a = np.mgrid[0:5, 0:5][0].reshape(25)
+    b = np.mgrid[0:5, 0:5][1].reshape(25)
+    df = pd.DataFrame({'a': a + 0.5, 'b': b + 0.5, 'c': b*3, 'garbage': ['test']*len(a)})
+    df = make_bin_edges(df, 'a')
+    df = make_bin_edges(df, 'b')
+    df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
+
+    i = Interpolation(df, ('garbage',), [('a', 'a_left', 'a_right'), ('b', 'b_left', 'b_right')], order=0)
+
+    column = np.arange(4, step=0.011)
+    query = pd.DataFrame({'a': column, 'b': column, 'garbage': ['test']*(len(column))})
+
+    with pytest.raises(NotImplementedError) as error:
+        i(query)
+
+    message = error.value.args[0]
+
+    assert 'Extrapolation' in message
+
+
+def test_order_zero_1d_no_extrapolation():
     s = pd.Series({0: 0, 1: 1}).reset_index()
-    f = Interpolation(s, tuple(), ('index', ), order=0)
+    s = make_bin_edges(s, 'index')
+    f = Interpolation(s, tuple(), [['index', 'index_left', 'index_right']], order=0)
 
     assert f(pd.DataFrame({'index': [0]}))[0][0] == 0, 'should be precise at index values'
+    assert f(pd.DataFrame({'index': [0.999]}))[0][0] == 1
+
+
+@pytest.mark.skip(reason='Extrapolation not currently handled for order 0.')
+def test_order_zero_1d_constant_extrapolation():
+    s = pd.Series({0: 0, 1: 1}).reset_index()
+    s = make_bin_edges(s, 'index')
+    f = Interpolation(s, tuple(), [['index', 'index_left', 'index_right']], order=0)
+
     assert f(pd.DataFrame({'index': [1]}))[0][0] == 1
     assert f(pd.DataFrame({'index': [2]}))[0][0] == 1, 'should be constant extrapolation outside of input range'
     assert f(pd.DataFrame({'index': [-1]}))[0][0] == 0
@@ -116,8 +178,11 @@ def test_order_zero_1d():
 
 def test_validate_parameters__empty_data():
     with pytest.warns(UserWarning) as record:
-        out, data, _ = validate_parameters(pd.DataFrame(columns=["age", "sex", "year", "value"]), ["sex"],
-                                        ["age", "year"], 1)
+        out, data, _ = validate_parameters(pd.DataFrame(columns=["age_group_left", "age_group_right",
+                                                                 "sex", "year_left", "year_right",
+                                                                 "value"]), ["sex"],
+                                        [("age", "age_group_left", "age_group_right"),
+                                         ["year", "year_left", "year_right"]], 1)
     assert len(record) == 2
     message = record[0].message.args[0] + " " + record[1].message.args[0]
     assert "age" in message and "year" in message
@@ -152,26 +217,17 @@ def test_check_data_complete_overlap():
 
 
 def test_check_data_missing_combos():
-    data = pd.DataFrame({'year': [1990, 1990, 1995],
+    data = pd.DataFrame({'year_start': [1990, 1990, 1995],
+                         'year_end': [1995, 1995, 2000],
                          'age_start': [10, 15, 10],
                          'age_end': [15, 20, 15]})
 
     with pytest.raises(ValueError) as error:
-        check_data_complete(data, ['year', ('age', 'age_start', 'age_end')])
+        check_data_complete(data, [['year', 'year_start', 'year_end'], ('age', 'age_start', 'age_end')])
 
     message = error.value.args[0]
 
     assert 'combination' in message
-
-
-def test_make_left_edge():
-    ages = [3, 7, 1]
-    data = pd.DataFrame({'age': ages, 'year': [1990, 1992, 1991]})
-    left_edge = make_left_edge(data, 'age')
-
-    expected_left = [2, 5, 1]
-    for i, a in enumerate(ages):
-        assert left_edge[a] == expected_left[i]
 
 
 def test_order0interp():
@@ -188,9 +244,9 @@ def test_order0interp():
                                  ('height', 'height_start', 'height_end'),]
                           , ['value'])
 
-    interpolants = pd.DataFrame({'age': [12, 17, 8, 25, 12],
-                                 'year': [1992, 1998, 1985, 1992, 1992],
-                                 'height': [160, 145, 110, 185, 160]})
+    interpolants = pd.DataFrame({'age': [12, 17, 10, 19, 12],
+                                 'year': [1992, 1998, 1990, 1992, 1992],
+                                 'height': [160, 145, 140, 179, 160]})
 
     result = interp(interpolants)
     assert result.equals(pd.DataFrame({'value': [3, 4, 1, 7, 3]}))
@@ -214,78 +270,17 @@ def test_order_zero_1d_with_key_column():
     assert i(query).equals(expected_result)
 
 
-def test_order_zero_no_bins():
-    s = pd.Series({0: 0, 1: 1}).reset_index()
-    f = Interpolation(s, tuple(), ('index', ), order=0)  # and make sure no problems with column named index
-
-    i = f(pd.DataFrame({'index': [2, 0, 1, 1, -1]}, index=[12, 3, 7, 2, -6]))
-
-    expected_result = pd.DataFrame({0: [1, 0, 1, 1, 0]}, index=[12, 3, 7, 2, -6])
-
-    assert i.equals(expected_result)
-
-
-def test_order_zero_no_bins_2d():
-    data = pd.DataFrame({'year': [1990]*4 + [1991]*4,
-                         'sex': ['Male', 'Female']*4,
-                         'age': [15, 24, 24, 15]*2,
-                         'value_1': [10, 7, 2, 12, 6, 15, 27, -1],
-                         'value_2': [1200, 1350, 1476, 1046, 1520, -602, 1528, 0]})
-
-    i = Interpolation(data, ['sex'], ['year', 'age'], 0)
-
-    query = pd.DataFrame({'year': [1990.45, 1990.5001, 1991, 1990.7, 2007],
-                          'sex': ['Male', 'Female', 'Female', 'Male', 'Female'],
-                          'age': [15, 19.5, 19.45, 20, 16],},
-                         index=[1, 2, 17, 5, -1])
-
-    expected_result = pd.DataFrame({'value_1': [10.0, 15.0, -1.0, 27.0, -1.0],
-                                    'value_2': [1200.0, -602.0, 0.0, 1528.0, 0.0]},
-                                   index=[1, 2, 17, 5, -1])
-
-    assert i(query).equals(expected_result)
-
-
-def test_order_zero_created_bins_equal_explicit_bins():
-    data_midpt = pd.DataFrame({'year': [1990]*4 + [1991]*4,
-                               'sex': ['Male', 'Female']*4,
-                               'age': [15, 24, 24, 15]*2,
-                               'value_1': [10, 7, 2, 12, 6, 15, 27, -1],
-                               'value_2': [1200, 1350, 1476, 1046, 1520, -602, 1528, 0]})
-
-    data_binned = pd.DataFrame({'year_start': [1980.5]*4 + [1990.5]*4,
-                                'year_end': [1990.5]*4 + [1991]*4,
-                                'sex': ['Male', 'Female']*4,
-                                'age_start': [11.5, 19.5, 19.5, 11.5]*2,
-                                'age_end': [19.5, 24, 24, 19.5]*2,
-                                'value_1': [10, 7, 2, 12, 6, 15, 27, -1],
-                                'value_2': [1200, 1350, 1476, 1046, 1520, -602, 1528, 0]})
-
-    i_midpt = Interpolation(data_midpt, ['sex'], ['year', 'age'], 0)
-
-    i_binned = Interpolation(data_binned, ['sex'], [('year', 'year_start', 'year_end'),
-                                                    ('age', 'age_start', 'age_end')], 0)
-
-    query = pd.DataFrame({'year': [1990.45, 1990.5001, 1991, 1990.7, 2007],
-                          'sex': ['Male', 'Female', 'Female', 'Male', 'Female'],
-                          'age': [15, 19.5, 19.45, 20, 16],},
-                         index=[1, 2, 17, 5, -1])
-
-    result_midpt = i_midpt(query)
-    result_binned = i_binned(query)
-
-    assert result_midpt.equals(result_binned)
-
-
 def test_order_zero_non_numeric_values():
-    data = pd.DataFrame({'year': [1990, 1990],
-                         'age': [15, 24,],
+    data = pd.DataFrame({'year_start': [1990, 1990],
+                         'year_end': [1995, 1995],
+                         'age_start': [15, 24,],
+                         'age_end': [24, 30],
                          'value_1': ['blue', 'red']})
 
-    i = Interpolation(data, tuple(), ['year', 'age'], 0)
+    i = Interpolation(data, tuple(), [('year', 'year_start', 'year_end'), ('age', 'age_start', 'age_end')], 0)
 
     query = pd.DataFrame({'year': [1990, 1990],
-                          'age': [15, 20,]},
+                          'age': [15, 24,]},
                          index=[1, 0])
 
     expected_result = pd.DataFrame({'value_1': ['blue', 'red']},
@@ -309,9 +304,9 @@ def test_order_zero_3d_with_key_col():
                             ('year', 'year_start', 'year_end'),
                             ('height', 'height_start', 'height_end')], 0)
 
-    interpolants = pd.DataFrame({'age': [12, 17, 8, 25, 12],
-                                 'year': [1992, 1998, 1985, 1992, 1992],
-                                 'height': [160, 145, 110, 185, 160],
+    interpolants = pd.DataFrame({'age': [12, 17, 10, 19, 12],
+                                 'year': [1992, 1998, 1990, 1992, 1992],
+                                 'height': [160, 145, 140, 179, 160],
                                  'sex': ['Male', 'Female', 'Female', 'Male', 'Male']},
                                 index=[10, 4, 7, 0, 9])
 

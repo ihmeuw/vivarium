@@ -28,8 +28,11 @@ class Interpolation:
         """
 
     def __init__(self, data: pd.DataFrame, categorical_parameters: Union[List[str], Tuple[str]],
-                 continuous_parameters: Union[List[str], Tuple[str], List[List[str]], Tuple[Tuple[str, str, str]],
+                 continuous_parameters: Union[List[List[str]], Tuple[Tuple[str, str, str]],
                                               List[Tuple[str, str, str]], Tuple[List[str]]], order: int):
+        # TODO: allow for order 1 interpolation with binned edges
+        if order != 0:
+            raise NotImplementedError(f'Interpolation is only supported for order 0. You specified order {order}')
 
         self.key_columns = categorical_parameters
         self.parameter_columns, self._data, self.value_columns = validate_parameters(data, categorical_parameters,
@@ -136,26 +139,28 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, ord
 
     out = []
     for p in continuous_parameters:
+        if not isinstance(p, (List, Tuple)) and len(p) != 3:
+            raise ValueError(f'Interpolation is only supported for binned data. You must specify a list or tuple '
+                             f'containing, in order, the column name used when interpolation is called, '
+                             f'the column name for the left edge (inclusive), and the column name for '
+                             f'the right edge (exclusive). You provided {p}.')
 
-        if isinstance(p, (List, Tuple)) and len(p) != 3:
-            raise ValueError(f'If you specify bin edges for a parameter, they must be in the form '
-                             f'(column name when called, column name of left bin edge, column name of right bin edge). '
-                             f'You specified {p}.')
+        if p[0] in data: # if for some reason, we have the call column drop so it doesn't get interpolated
+            data = data.drop(p[0], axis='columns')
 
-        param_col = p[1] if isinstance(p, (List, Tuple)) else p
-
-        if len(data[param_col].unique()) > order:
+        if len(data[p[1]].unique()) > order:
             out.append(p)
         else:
-            warnings.warn(f"You requested an order {order} interpolation over the parameter {param_col}, "
-                          f"however there are only {len(data[param_col].unique())} unique values for {param_col}"
+            warnings.warn(f"You requested an order {order} interpolation over the parameter {p[1:]}, "
+                          f"however there are only {len(data[p[1]].unique())} unique values for {p[1:]}"
                           f"which is insufficient to support the requested interpolation order."
                           f"The parameter will be dropped from the interpolation.")
-            data = data.drop(param_col, axis='columns')
+            data = data.drop(p[1], axis='columns')
+            data = data.drop(p[2], axis='columns')
 
     # break out the individual columns from binned column name lists
-    param_cols = ([col for p in continuous_parameters if isinstance(p, (List, Tuple)) for col in p]
-                  + [p for p in continuous_parameters if isinstance(p, str)])
+    param_cols = [col for p in continuous_parameters for col in p]
+
     # These are the columns which the interpolation function will approximate
     value_columns = sorted(data.columns.difference(set(categorical_parameters) | set(param_cols)))
     if not value_columns:
@@ -168,8 +173,8 @@ def validate_call_data(data, key_columns, parameter_columns):
     if not isinstance(data, pd.DataFrame):
         raise TypeError(f'Interpolations can only be called on pandas.DataFrames. You'
                         f'passed {type(data)}.')
-    callable_param_cols = ([p[0] for p in parameter_columns if isinstance(p, (List, Tuple))]
-                           + [p for p in parameter_columns if isinstance(p, str)])
+    callable_param_cols = [p[0] for p in parameter_columns]
+
     if not set(callable_param_cols) <= set(data.columns.values.tolist()):
         raise ValueError(f'The continuous parameter columns with which you built the Interpolation must all '
                          f'be present in the data you call it on. The Interpolation has key '
@@ -194,11 +199,10 @@ def check_data_complete(data, parameter_columns):
     are present in data."""
 
     param_edges = [p[1:] for p in parameter_columns if isinstance(p, (Tuple, List))]  # strip out call column name
-    param_points = [p for p in parameter_columns if isinstance(p, str)]
 
     # check no overlaps/gaps
     for p in param_edges:
-        other_params = param_points + [p_ed[0] for p_ed in param_edges if p_ed != p]
+        other_params = [p_ed[0] for p_ed in param_edges if p_ed != p]
         if other_params:
             sub_tables = data.groupby(list(other_params))
         else:
@@ -258,18 +262,15 @@ class Order0Interp:
         self.data = data.copy()
         self.value_columns = value_columns
 
-        # (column name used in call, column name for left edge): [ordered left edges of bins]
+        # (column name used in call, col name for left edge, col name for right):
+        #               [ordered left edges of bins], max right edge (used when extrapolation not allowed)
         self.parameter_bins = {}
 
         for p in parameter_columns:
-            if isinstance(p, (List, Tuple)):
-                param = (p[0], p[1])  # no need for right edge because already confirmed continuous
-                left_edge = self.data[param[1]].drop_duplicates().sort_values()
-            else:  # make left edge assuming p is the midpoint and bins are continuous
-                left_edge = make_left_edge(self.data, p)
-                self.data[f'{p}_left'] = self.data[p].apply(lambda x: left_edge[x])
-                param = (p, f'{p}_left')  # no need for right edge because constructed continuous
-            self.parameter_bins[param] = left_edge.tolist()
+            left_edge = self.data[p[1]].drop_duplicates().sort_values()
+            max_right = self.data[p[2]].drop_duplicates().max()
+
+            self.parameter_bins[tuple(p)] = {'bins': left_edge.tolist(), 'max': max_right}
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Find the bins for each parameter for each interpolant in interpolants
@@ -290,9 +291,15 @@ class Order0Interp:
         interpolant_bins = pd.DataFrame(index=interpolants.index)
 
         merge_cols = []
-        for cols, bins in self.parameter_bins.items():
+        for cols, d in self.parameter_bins.items():
+            bins = d['bins']
+            max_right = d['max']
             merge_cols.append(cols[1])
             interpolant_col = interpolants[cols[0]]
+            if interpolant_col.min() < bins[0] or interpolant_col.max() >= max_right:  # no extrapolation
+                raise NotImplementedError(f'Extrapolation outside of bins used to set up interpolation '
+                                          f'is not supported. Parameter {cols[0]} includes data outside '
+                                          f'of original bins.')
             bin_indices = np.digitize(interpolant_col, bins)
             # digitize uses 0 to indicate < min and len(bins) for > max so adjust to actual indices into bin_indices
             bin_indices = [x-1 if x > 0 else x for x in bin_indices]
@@ -305,28 +312,6 @@ class Order0Interp:
         return interp_vals[self.value_columns]
 
 
-def make_left_edge(data: pd.DataFrame, col: str) -> pd.Series:
-    """
 
-    Parameters
-    ----------
-    data :
-        A dataframe containing column col.
-    col :
-        String name of column containing midpoints for which bins should be constructed.
-
-    Returns
-    -------
-        pd.Series
-            A series indexed the same as col with left edge values for a bin constructed
-            from each value in col in data as the midpoint.
-    """
-    mid_pts = data[[col]].drop_duplicates().sort_values(by=col).reset_index(drop=True)
-    mid_pts['shift'] = mid_pts[col].shift()
-
-    mid_pts['left'] = mid_pts.apply(lambda row: (row[col] if pd.isna(row['shift'])
-                                                 else 0.5 * (row[col] + row['shift'])), axis=1)
-
-    return mid_pts.set_index(col)['left']
 
 
