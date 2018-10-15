@@ -66,7 +66,7 @@ class InterpolatedTable:
             A table with the interpolated values for the population requested.
         """
         pop = self.population_view.get(index)
-        if 'year' in self.parameter_columns:
+        if 'year' in [col for p in self.parameter_columns for col in p]:
             current_time = self.clock()
             fractional_year = current_time.year
             fractional_year += current_time.timetuple().tm_yday / 365.25
@@ -145,7 +145,8 @@ class LookupTable:
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
             self._table = ScalarTable(data, value_columns)
         else:
-            view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'})
+            callable_parameter_columns = [p[0] for p in parameter_columns]
+            view_columns = sorted((set(key_columns) | set(callable_parameter_columns)) - {'year'})
             self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
                                             parameter_columns, value_columns, interpolation_order, clock)
 
@@ -187,12 +188,13 @@ def validate_parameters(data, key_columns, parameter_columns, value_columns):
                              f'You supplied values: {data} and value_columns: {value_columns}')
 
     if isinstance(data, pd.DataFrame):
-        if set(key_columns).intersection(set(parameter_columns)):
+        all_parameter_columns = [col for p in parameter_columns for col in p]
+        if set(key_columns).intersection(set(all_parameter_columns)):
             raise ValueError(f'There should be no overlap between key columns: {key_columns} '
                              f'and parameter columns: {parameter_columns}.')
 
         if value_columns:
-            data_value_columns = sorted(data.columns.difference(set(key_columns)|set(parameter_columns)))
+            data_value_columns = sorted(data.columns.difference(set(key_columns)|set(all_parameter_columns)))
             if value_columns != data_value_columns:
                 raise ValueError(f'The value columns you supplied: {value_columns} do not match '
                                  f'the non-parameter columns in the passed data: {data_value_columns}')
@@ -209,7 +211,7 @@ class LookupTableManager:
 
     configuration_defaults = {
         'interpolation': {
-            'order': 1,
+            'order': 0,
         }
     }
 
@@ -231,7 +233,8 @@ class LookupTableInterface:
     def __init__(self, manager):
         self._lookup_table_manager = manager
 
-    def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year',),
+    def build_table(self, data, key_columns=('sex',), parameter_columns=(['age', 'age_group_start', 'age_group_end'],
+                                                                         ['year', 'year_start', 'year_end']),
                     value_columns=None) -> LookupTable:
         """Construct a LookupTable from input data.
 

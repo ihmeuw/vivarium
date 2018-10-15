@@ -5,6 +5,8 @@ from vivarium.testing_utilities import build_table, TestPopulation
 from vivarium.interface.interactive import setup_simulation
 import pytest
 
+
+@pytest.mark.skip(reason='only order 0 interpolation with age bin edges currently supported')
 def test_interpolated_tables(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
@@ -48,6 +50,7 @@ def test_interpolated_tables(base_config):
     assert np.allclose(result_ages_1d, simulation.population.population.age)
 
 
+@pytest.mark.skip(reason='only order 0 interpolation with age bin edges currently supported')
 def test_interpolated_tables_without_uninterpolated_columns(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
@@ -84,10 +87,14 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
     years = build_table(lambda age, sex, year: year, year_start, year_end)
     input_years = years.year.unique()
     base_config.population.update({'population_size': 10000})
+    base_config.interpolation.update({'order': 0})
 
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
-    years = manager.build_table(years, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None)
+    years = manager.build_table(years, key_columns=('sex',),
+                                parameter_columns=(['age', 'age_group_start', 'age_group_end'],
+                                                   ['year', 'year_start', 'year_end'],),
+                                value_columns=None)
 
     for year in input_years:
         simulation.clock._time = pd.Timestamp(year, 1, 1)
@@ -130,14 +137,18 @@ def test_lookup_table_interpolated_return_types(base_config):
 
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
-    table = (manager.build_table(data, key_columns=('sex',), parameter_columns=('age', 'year',),
+    table = (manager.build_table(data, key_columns=('sex',),
+                                 parameter_columns=(['age', 'age_group_start', 'age_group_end'],
+                                                    ['year', 'year_start', 'year_end'],),
                                  value_columns=None)(simulation.population.population.index))
     # make sure a single value column is returned as a series
     assert isinstance(table, pd.Series)
 
     # now add a second value column to make sure the result is a df
     data['value2'] = data.value
-    table = (manager.build_table(data, key_columns=('sex',), parameter_columns=('age', 'year',),
+    table = (manager.build_table(data, key_columns=('sex',),
+                                 parameter_columns=(['age', 'age_group_start', 'age_group_end'],
+                                                    ['year', 'year_start', 'year_end'],),
                                  value_columns=None)(simulation.population.population.index))
 
     assert isinstance(table, pd.DataFrame)
