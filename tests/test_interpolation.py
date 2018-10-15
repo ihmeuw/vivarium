@@ -30,6 +30,7 @@ def make_bin_edges(data: pd.DataFrame, col: str) -> pd.DataFrame:
 
     return data.set_index(idx)
 
+
 @pytest.mark.skip(reason="only order 0 interpolation currently supported")
 def test_1d_interpolation():
     df = pd.DataFrame({'a': np.arange(100), 'b': np.arange(100), 'c': np.arange(100, 0, -1)})
@@ -181,8 +182,8 @@ def test_validate_parameters__empty_data():
         out, data, _ = validate_parameters(pd.DataFrame(columns=["age_group_left", "age_group_right",
                                                                  "sex", "year_left", "year_right",
                                                                  "value"]), ["sex"],
-                                        [("age", "age_group_left", "age_group_right"),
-                                         ["year", "year_left", "year_right"]], 1)
+                                           [("age", "age_group_left", "age_group_right"),
+                                            ["year", "year_left", "year_right"]], 1)
     assert len(record) == 2
     message = record[0].message.args[0] + " " + record[1].message.args[0]
     assert "age" in message and "year" in message
