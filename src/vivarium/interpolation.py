@@ -139,7 +139,7 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, ord
 
     out = []
     for p in continuous_parameters:
-        if not isinstance(p, (List, Tuple)) and len(p) != 3:
+        if not isinstance(p, (List, Tuple)) or len(p) != 3:
             raise ValueError(f'Interpolation is only supported for binned data. You must specify a list or tuple '
                              f'containing, in order, the column name used when interpolation is called, '
                              f'the column name for the left edge (inclusive), and the column name for '
