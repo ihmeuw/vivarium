@@ -272,4 +272,4 @@ class LookupTableInterface:
         -------
         LookupTable
         """
-        return self._lookup_table_manager.build_table(data, key_columns, parameter_columns, value_columns, extrapolate)
+        return self._lookup_table_manager.build_table(data, key_columns, parameter_columns, value_columns)
