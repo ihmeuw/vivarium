@@ -3,7 +3,9 @@ import warnings
 import pandas as pd
 import numpy as np
 from scipy import interpolate
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, TypeVar
+
+ParameterType = TypeVar('ParameterType', List[List[str]], List[Tuple[str, str, str]])
 
 
 class Interpolation:
@@ -28,8 +30,7 @@ class Interpolation:
         """
 
     def __init__(self, data: pd.DataFrame, categorical_parameters: Union[List[str], Tuple[str]],
-                 continuous_parameters: Union[List[List[str]], Tuple[Tuple[str, str, str]],
-                                              List[Tuple[str, str, str]], Tuple[List[str]]], order: int):
+                 continuous_parameters: ParameterType, order: int, extrapolate: bool):
         # TODO: allow for order 1 interpolation with binned edges
         if order != 0:
             raise NotImplementedError(f'Interpolation is only supported for order 0. You specified order {order}')
@@ -38,6 +39,7 @@ class Interpolation:
         self.parameter_columns, self._data, self.value_columns = validate_parameters(data, categorical_parameters,
                                                                                      continuous_parameters, order)
         self.order = order
+        self.extrapolate = extrapolate
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
@@ -54,7 +56,8 @@ class Interpolation:
                 continue
             # if order 0, we can interpolate all values at once
             if order == 0:
-                self.interpolations[key] = Order0Interp(base_table, self.parameter_columns, self.value_columns)
+                self.interpolations[key] = Order0Interp(base_table, self.parameter_columns,
+                                                        self.value_columns, self.extrapolate)
             else:
                 # For each permutation of the key columns build interpolations
                 self.interpolations[key] = {}
@@ -243,7 +246,7 @@ class Order0Interp:
     parameter_columns :
         Column names to be used as parameters in Interpolation.
     """
-    def __init__(self, data, parameter_columns, value_columns):
+    def __init__(self, data, parameter_columns: ParameterType, value_columns: List[str], extrapolate: bool):
         """
 
         Parameters
@@ -256,11 +259,14 @@ class Order0Interp:
             or column name. If given as single column name, assumed to be
             midpoint of bin and continuous bins created. Assumes left bin
             edges are inclusive and right exclusive.
+        extrapolate :
+            Whether or not to extrapolate beyond the edge of supplied bins.
 
         """
         check_data_complete(data, parameter_columns)
         self.data = data.copy()
         self.value_columns = value_columns
+        self.extrapolate = extrapolate
 
         # (column name used in call, col name for left edge, col name for right):
         #               [ordered left edges of bins], max right edge (used when extrapolation not allowed)
@@ -296,7 +302,7 @@ class Order0Interp:
             max_right = d['max']
             merge_cols.append(cols[1])
             interpolant_col = interpolants[cols[0]]
-            if interpolant_col.min() < bins[0] or interpolant_col.max() >= max_right:  # no extrapolation
+            if not self.extrapolate and (interpolant_col.min() < bins[0] or interpolant_col.max() >= max_right):
                 raise NotImplementedError(f'Extrapolation outside of bins used to set up interpolation '
                                           f'is not supported. Parameter {cols[0]} includes data outside '
                                           f'of original bins.')

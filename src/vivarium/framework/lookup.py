@@ -5,7 +5,7 @@ from typing import Union, List, Tuple, Callable, TypeVar
 
 import pandas as pd
 
-from vivarium.interpolation import Interpolation
+from vivarium.interpolation import Interpolation, ParameterType
 from vivarium.framework.population import PopulationView
 
 ScalarValue = TypeVar('ScalarValue', Number, timedelta, datetime)
@@ -33,14 +33,16 @@ class InterpolatedTable:
         Order of interpolation.
     clock :
         Callable for current time in simulation.
+    extrapolate:
+        Whether or not to extrapolate beyond edges of given bins.
 
     Notes
     -----
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
     def __init__(self, data: pd.DataFrame, population_view: PopulationView, key_columns: Union[List[str], Tuple[str]],
-                 parameter_columns: Union[List[str], Tuple[str]], value_columns: Union[List[str], Tuple[str]],
-                 interpolation_order: int, clock: Callable):
+                 parameter_columns: ParameterType, value_columns: Union[List[str], Tuple[str]],
+                 interpolation_order: int, clock: Callable, extrapolate: bool):
 
         self.data = data
         self.population_view = population_view
@@ -49,8 +51,9 @@ class InterpolatedTable:
         self.interpolation_order = interpolation_order
         self.value_columns = value_columns
         self.clock = clock
+        self.extrapolate = extrapolate
         self.interpolation = Interpolation(data, self.key_columns, self.parameter_columns,
-                                           order=self.interpolation_order)
+                                           order=self.interpolation_order, extrapolate=self.extrapolate)
 
     def __call__(self, index: pd.Index) -> pd.DataFrame:
         """Get the interpolated values for the rows in ``index``.
@@ -137,7 +140,7 @@ class LookupTable:
     def __init__(self, data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
                  population_view: Callable, key_columns: Union[List[str], Tuple[str]],
                  parameter_columns: Union[List[str], Tuple[str]], value_columns: Union[List[str], Tuple[str]],
-                 interpolation_order: int, clock: Callable):
+                 interpolation_order: int, clock: Callable, extrapolate: bool):
 
         validate_parameters(data, key_columns, parameter_columns, value_columns)
 
@@ -148,7 +151,7 @@ class LookupTable:
             callable_parameter_columns = [p[0] for p in parameter_columns]
             view_columns = sorted((set(key_columns) | set(callable_parameter_columns)) - {'year'})
             self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
-                                            parameter_columns, value_columns, interpolation_order, clock)
+                                            parameter_columns, value_columns, interpolation_order, clock, extrapolate)
 
     def __call__(self, index) -> Union[pd.DataFrame, pd.Series]:
         """Get the interpolated or scalar table values for the given index.
@@ -212,6 +215,7 @@ class LookupTableManager:
     configuration_defaults = {
         'interpolation': {
             'order': 0,
+            'extrapolate': True
         }
     }
 
@@ -219,10 +223,11 @@ class LookupTableManager:
         self._pop_view_builder = builder.population.get_view
         self.clock = builder.time.clock()
         self._interpolation_order = builder.configuration.interpolation.order
+        self._extrapolate = builder.configuration.interpolation.extrapolate
 
     def build_table(self, data, key_columns, parameter_columns, value_columns) -> LookupTable:
         return LookupTable(data, self._pop_view_builder, key_columns, parameter_columns,
-                           value_columns, self._interpolation_order, self.clock)
+                           value_columns, self._interpolation_order, self.clock, self._extrapolate)
 
     def __repr__(self):
         return "LookupTableManager()"
@@ -267,4 +272,4 @@ class LookupTableInterface:
         -------
         LookupTable
         """
-        return self._lookup_table_manager.build_table(data, key_columns, parameter_columns, value_columns)
+        return self._lookup_table_manager.build_table(data, key_columns, parameter_columns, value_columns, extrapolate)
