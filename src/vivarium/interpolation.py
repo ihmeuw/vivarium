@@ -303,9 +303,10 @@ class Order0Interp:
             merge_cols.append(cols[1])
             interpolant_col = interpolants[cols[0]]
             if not self.extrapolate and (interpolant_col.min() < bins[0] or interpolant_col.max() >= max_right):
-                raise NotImplementedError(f'Extrapolation outside of bins used to set up interpolation '
-                                          f'is not supported. Parameter {cols[0]} includes data outside '
-                                          f'of original bins.')
+                raise ValueError(f'Extrapolation outside of bins used to set up interpolation is only allowed '
+                                 f'when explicitly set in creation of Interpolation. Extrapolation is currently '
+                                 f'off for this interpolation, and parameter {cols[0]} includes data outside of '
+                                 f'original bins.')
             bin_indices = np.digitize(interpolant_col, bins)
             # digitize uses 0 to indicate < min and len(bins) for > max so adjust to actual indices into bin_indices
             bin_indices = [x-1 if x > 0 else x for x in bin_indices]
