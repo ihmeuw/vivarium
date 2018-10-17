@@ -138,8 +138,8 @@ def test_lookup_table_interpolated_return_types(base_config):
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
     table = (manager.build_table(data, key_columns=('sex',),
-                                 parameter_columns=(['age', 'age_group_start', 'age_group_end'],
-                                                    ['year', 'year_start', 'year_end'],),
+                                 parameter_columns=[['age', 'age_group_start', 'age_group_end'],
+                                                    ['year', 'year_start', 'year_end']],
                                  value_columns=None)(simulation.population.population.index))
     # make sure a single value column is returned as a series
     assert isinstance(table, pd.Series)
@@ -147,8 +147,8 @@ def test_lookup_table_interpolated_return_types(base_config):
     # now add a second value column to make sure the result is a df
     data['value2'] = data.value
     table = (manager.build_table(data, key_columns=('sex',),
-                                 parameter_columns=(['age', 'age_group_start', 'age_group_end'],
-                                                    ['year', 'year_start', 'year_end'],),
+                                 parameter_columns=[['age', 'age_group_start', 'age_group_end'],
+                                                    ['year', 'year_start', 'year_end']],
                                  value_columns=None)(simulation.population.population.index))
 
     assert isinstance(table, pd.DataFrame)
