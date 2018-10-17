@@ -139,7 +139,7 @@ class LookupTable:
     """
     def __init__(self, data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
                  population_view: Callable, key_columns: Union[List[str], Tuple[str]],
-                 parameter_columns: Union[List[str], Tuple[str]], value_columns: Union[List[str], Tuple[str]],
+                 parameter_columns: ParameterType, value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int, clock: Callable, extrapolate: bool):
 
         validate_parameters(data, key_columns, parameter_columns, value_columns)
