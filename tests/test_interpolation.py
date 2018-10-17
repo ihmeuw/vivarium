@@ -2,6 +2,7 @@ import pytest
 
 import pandas as pd
 import numpy as np
+import itertools
 
 from vivarium.interpolation import Interpolation, validate_parameters
 
@@ -28,11 +29,34 @@ def test_age_year_interpolation():
             for sex in ['Male', 'Female']:
                 data.append({'age': age, 'sex': sex, 'year': year, 'pop': pop})
     df = pd.DataFrame(data)
+
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
 
     i = Interpolation(df, ('sex', 'age'), ('year',), 1)
+    query = pd.DataFrame({'year': [1990, 1990], 'age': [35, 35], 'sex': ['Male', 'Female']})
+    assert np.allclose(i(query), 388.5)
 
-    assert np.allclose(i(year=[1990, 1990], age=[35, 35], sex=['Male', 'Female']), 388.5)
+
+def test_interpolation_called_missing_key_col():
+    a = [range(1990, 1995), range(25, 30), ['Male', 'Female']]
+    df = pd.DataFrame(list(itertools.product(*a)), columns=['year', 'age', 'sex'])
+    df['pop'] = df.age * 11.1
+    df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
+    i = Interpolation(df, ['sex',], ['year','age'], 1)
+    query = pd.DataFrame({'year': [1990, 1990], 'age': [35, 35]})
+    with pytest.raises(ValueError):
+        i(query)
+
+
+def test_interpolation_called_missing_param_col():
+    a = [range(1990, 1995), range(25, 30), ['Male', 'Female']]
+    df = pd.DataFrame(list(itertools.product(*a)), columns=['year', 'age', 'sex'])
+    df['pop'] = df.age * 11.1
+    df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
+    i = Interpolation(df, ['sex',], ['year','age'], 1)
+    query = pd.DataFrame({'year': [1990, 1990], 'sex': ['Male', 'Female']})
+    with pytest.raises(ValueError):
+        i(query)
 
 
 def test_2d_interpolation():
@@ -66,17 +90,6 @@ def test_interpolation_with_categorical_parameters():
     assert np.allclose(np.arange(100, 0, step=-0.01), i(query_two).c)
 
 
-def test_interpolation_with_function():
-    df = pd.DataFrame({'a': np.arange(100), 'b': np.arange(100), 'c': np.arange(100, 0, -1)})
-    df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
-
-    i = Interpolation(df, (), ('a',), 1, func=lambda x: x * 2,)
-
-    query = pd.DataFrame({'a': np.arange(100, step=0.01)})
-
-    assert np.allclose(query.a * 2, i(query).b)
-
-
 def test_order_zero_2d():
     a = np.mgrid[0:5, 0:5][0].reshape(25)
     b = np.mgrid[0:5, 0:5][1].reshape(25)
@@ -95,15 +108,16 @@ def test_order_zero_1d():
     s = pd.Series({0: 0, 1: 1}).reset_index()
     f = Interpolation(s, tuple(), ('index', ), order=0)
 
-    assert f(index=[0])[0][0] == 0, 'should be precise at index values'
-    assert f(index=[1])[0][0] == 1
-    assert f(index=[2])[0][0] == 1, 'should be constant extrapolation outside of input range'
-    assert f(index=[-1])[0][0] == 0
+    assert f(pd.DataFrame({'index': [0]}))[0][0] == 0, 'should be precise at index values'
+    assert f(pd.DataFrame({'index': [1]}))[0][0] == 1
+    assert f(pd.DataFrame({'index': [2]}))[0][0] == 1, 'should be constant extrapolation outside of input range'
+    assert f(pd.DataFrame({'index': [-1]}))[0][0] == 0
 
 
 def test_validate_parameters__empty_data():
     with pytest.warns(UserWarning) as record:
-        out, data = validate_parameters(pd.DataFrame(columns=["age", "sex", "year", "value"]), ["age", "year"], 1)
+        out, data, _ = validate_parameters(pd.DataFrame(columns=["age", "sex", "year", "value"]), ["sex"],
+                                        ["age", "year"], 1)
     assert len(record) == 2
     message = record[0].message.args[0] + " " + record[1].message.args[0]
     assert "age" in message and "year" in message
