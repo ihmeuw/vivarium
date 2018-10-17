@@ -168,7 +168,7 @@ def test_order_zero_1d_no_extrapolation():
     assert f(pd.DataFrame({'index': [0.999]}))[0][0] == 1
 
     with pytest.raises(ValueError) as error:
-        f(pd.DataFrame({'index': [1]}))[0][0] == 1
+        f(pd.DataFrame({'index': [1]}))
 
     message = error.value.args[0]
     assert 'Extrapolation' in message and 'index' in message
