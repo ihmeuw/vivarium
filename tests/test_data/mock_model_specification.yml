@@ -1,0 +1,17 @@
+components:
+    vivarium:
+        test_util:
+            - TestPopulation()
+        framework:
+            - randomness.RandomnessManager()
+            - event.EventManager()
+
+configuration:
+    time:
+        start:
+            year: 2000
+        end:
+            year: 2005
+        step_size: 30.5  # Days
+    randomness:
+        map_size: 1000

@@ -348,7 +348,7 @@ class ConfigTree:
             # TODO: set this to parse the other config tree including layer and source info.  Maybe.
             self._read_dict(data.to_dict(), layer, source)
         elif isinstance(data, str):
-            if data.endswith('.yaml'):
+            if data.endswith(('.yaml', '.yml')):
                 source = source if source else data
                 self._load(data, layer, source)
             else:

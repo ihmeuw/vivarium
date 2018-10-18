@@ -90,10 +90,12 @@ def test_build_model_specification_failure():
         build_model_specification(model_spec)
 
 
-def test_build_model_specification(mocker):
+@pytest.mark.parametrize('user_config_ext', ['.yaml', '.yml'])
+@pytest.mark.parametrize('model_config_ext', ['.yaml', '.yml'])
+def test_build_model_specification(mocker, user_config_ext, model_config_ext):
     test_dir = os.path.dirname(os.path.realpath(__file__))
-    user_config = test_dir + '/../test_data/mock_user_config.yaml'
-    model_spec = test_dir + '/../test_data/mock_model_specification.yaml'
+    user_config = test_dir + '/../test_data/mock_user_config' + user_config_ext
+    model_spec = test_dir + '/../test_data/mock_model_specification' + model_config_ext
 
     expand_user_mock = mocker.patch('vivarium.framework.configuration.os.path.expanduser')
     expand_user_mock.return_value = user_config
