@@ -320,3 +320,17 @@ def test_order_zero_3d_with_key_col():
 
     result = interp(interpolants)
     assert result.equals(pd.DataFrame({'value': [3.0, 5.0, 2.0, 7.0, 3.0]}, index=[10, 4, 7, 0, 9]))
+
+
+def test_order_zero_diff_bin_sizes():
+    data = pd.DataFrame({'year_start': [1990, 1995, 1996, 2005, 2005.5,],
+                         'year_end': [1995, 1996, 2005, 2005.5, 2010],
+                         'value': [1, 5, 2.3, 6, 100]})
+
+    i = Interpolation(data, tuple(), [('year', 'year_start', 'year_end')], 0, False)
+
+    query = pd.DataFrame({'year': [2007, 1990, 2005.4, 1994, 2004, 1995, 2002, 1995.5, 1996]})
+
+    expected_result = pd.DataFrame({'value': [100, 1, 6, 1, 2.3, 5, 2.3, 5, 2.3]})
+
+    assert i(query).equals(expected_result)
