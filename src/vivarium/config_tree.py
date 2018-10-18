@@ -352,7 +352,10 @@ class ConfigTree:
                 source = source if source else data
                 self._load(data, layer, source)
             else:
-                self._loads(data, layer, source)
+                try:
+                    self._loads(data, layer, source)
+                except AttributeError:
+                    raise ValueError("The string data should be yaml formated string or path to .yaml/.yml file")
         elif data is None:
             pass
         else:

@@ -1,4 +1,6 @@
+import os
 import pytest
+import yaml
 
 from vivarium.config_tree import ConfigTree
 
@@ -185,3 +187,28 @@ def test_unused_keys():
     _ = d.test_key.test_key3
 
     assert not d.unused_keys()
+
+
+def test_update():
+    test_dir = os.path.dirname(os.path.realpath(__file__))
+
+    config = ConfigTree()
+    test_dict = {'configuration': {'time': {'start': {'year': 2000}}}}
+    config.update(test_dict)
+    assert config.to_dict() == test_dict
+
+    test_yaml = test_dir + '/../test_data/mock_model_specification.yaml'
+    config.update(test_yaml)
+    with open(test_yaml) as f:
+        yaml_config = yaml.load(f)
+    assert yaml_config == config.to_dict()
+
+    test_yml = test_dir + '/../test_data/mock_model_specification.yml'
+    config.update(test_yml)
+    with open(test_yml) as f:
+        yml_config = yaml.load(f)
+    assert yml_config == config.to_dict()
+
+    non_yaml_file = test_dir + '/../test_data/bad_model_specifiaction.txt'
+    with pytest.raises(ValueError):
+        config.update(non_yaml_file)
