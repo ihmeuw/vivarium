@@ -54,31 +54,9 @@ class Interpolation:
         for key, base_table in sub_tables:
             if base_table.empty:    # if one of the key columns is a category and not all values are present in data
                 continue
-            # if order 0, we can interpolate all values at once
-            if order == 0:
-                self.interpolations[key] = Order0Interp(base_table, self.parameter_columns,
-                                                        self.value_columns, self.extrapolate)
-            else:
-                # For each permutation of the key columns build interpolations
-                self.interpolations[key] = {}
-
-                for value_column in self.value_columns:
-                    # For each value in the table build an interpolation function
-                    if len(self.parameter_columns) == 2:
-                        # 2 variable interpolation
-                        index, column = self.parameter_columns
-                        table = base_table.pivot(index=index, columns=column, values=value_column)
-                        x = table.index.values
-                        y = table.columns.values
-                        z = table.values
-                        func = interpolate.RectBivariateSpline(x=x, y=y, z=z, ky=order, kx=order).ev
-                    else:
-                        # 1 variable interpolation
-                        base_table = base_table.sort_values(by=self.parameter_columns[0])
-                        x = base_table[self.parameter_columns[0]]
-                        y = base_table[value_column]
-                        func = interpolate.InterpolatedUnivariateSpline(x, y, k=order)
-                    self.interpolations[key][value_column] = func
+            # since order 0, we can interpolate all values at once
+            self.interpolations[key] = Order0Interp(base_table, self.parameter_columns,
+                                                    self.value_columns, self.extrapolate)
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Get the interpolated results for the parameters in interpolants.
@@ -106,20 +84,8 @@ class Interpolation:
         for key, sub_table in sub_tables:
             if sub_table.empty:
                 continue
-            if self.order == 0:  # we can interpolate all value columns at once
-                df = self.interpolations[key](sub_table)
-                result.loc[sub_table.index, self.value_columns] = df.loc[sub_table.index, self.value_columns]
-            else:
-                funcs = self.interpolations[key]
-                parameters = tuple(sub_table[k] for k in self.parameter_columns)
-                for value_column, func in funcs.items():
-                    out = func(*parameters)
-                    # This reshape is necessary because RectBivariateSpline and InterpolatedUnivariateSpline return results
-                    # in slightly different shapes and we need them to be consistent
-                    if out.shape:
-                        result.loc[sub_table.index, value_column] = out.reshape((out.shape[0],))
-                    else:
-                        result.loc[sub_table.index, value_column] = out
+            df = self.interpolations[key](sub_table)
+            result.loc[sub_table.index, self.value_columns] = df.loc[sub_table.index, self.value_columns]
 
         return result
 
@@ -128,10 +94,6 @@ class Interpolation:
 
 
 def validate_parameters(data, categorical_parameters, continuous_parameters, order):
-    if order not in [0, 1]:
-        raise ValueError('Only order 0 and order 1 interpolations are supported. '
-                         f'You specified {order}')
-
     if len(continuous_parameters) not in [1, 2] and order != 0:
         raise ValueError("Interpolation over more than two parameters is only supported"
                          "for order 0. For all other orders, only interpolation over 1 or "
