@@ -185,17 +185,13 @@ def test_order_zero_1d_constant_extrapolation():
 
 
 def test_validate_parameters__empty_data():
-    with pytest.warns(UserWarning) as record:
-        out, data, _ = validate_parameters(pd.DataFrame(columns=["age_group_left", "age_group_right",
-                                                                 "sex", "year_left", "year_right",
-                                                                 "value"]), ["sex"],
-                                           [("age", "age_group_left", "age_group_right"),
-                                            ["year", "year_left", "year_right"]], 1)
-    assert len(record) == 2
-    message = record[0].message.args[0] + " " + record[1].message.args[0]
-    assert "age" in message and "year" in message
-
-    assert set(data.columns) == {"sex", "value"}
+    with pytest.raises(ValueError) as error:
+        validate_parameters(pd.DataFrame(columns=["age_group_left", "age_group_right",
+                                                  "sex", "year_left", "year_right", "value"]), ["sex"],
+                            [("age", "age_group_left", "age_group_right"),
+                             ["year", "year_left", "year_right"]])
+    message = error.value.args[0]
+    assert 'empty' in message
 
 
 def test_check_data_complete_gaps():
@@ -325,6 +321,21 @@ def test_order_zero_3d_with_key_col():
 def test_order_zero_diff_bin_sizes():
     data = pd.DataFrame({'year_start': [1990, 1995, 1996, 2005, 2005.5,],
                          'year_end': [1995, 1996, 2005, 2005.5, 2010],
+                         'value': [1, 5, 2.3, 6, 100]})
+
+    i = Interpolation(data, tuple(), [('year', 'year_start', 'year_end')], 0, False)
+
+    query = pd.DataFrame({'year': [2007, 1990, 2005.4, 1994, 2004, 1995, 2002, 1995.5, 1996]})
+
+    expected_result = pd.DataFrame({'value': [100, 1, 6, 1, 2.3, 5, 2.3, 5, 2.3]})
+
+    assert i(query).equals(expected_result)
+
+
+def test_order_zero_given_call_column():
+    data = pd.DataFrame({'year_start': [1990, 1995, 1996, 2005, 2005.5,],
+                         'year_end': [1995, 1996, 2005, 2005.5, 2010],
+                         'year': [1992.5, 1995.5, 2000, 2005.25, 2007.75],
                          'value': [1, 5, 2.3, 6, 100]})
 
     i = Interpolation(data, tuple(), [('year', 'year_start', 'year_end')], 0, False)

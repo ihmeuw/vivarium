@@ -31,23 +31,30 @@ class Interpolation:
 
     def __init__(self, data: pd.DataFrame, categorical_parameters: Union[List[str], Tuple[str]],
                  continuous_parameters: ParameterType, order: int, extrapolate: bool):
+
         # TODO: allow for order 1 interpolation with binned edges
         if order != 0:
             raise NotImplementedError(f'Interpolation is only supported for order 0. You specified order {order}')
 
+        validate_parameters(data, categorical_parameters, continuous_parameters)
+
         self.key_columns = categorical_parameters
-        self.parameter_columns, self._data, self.value_columns = validate_parameters(data, categorical_parameters,
-                                                                                     continuous_parameters, order)
+        self.data = data.copy()
+        self.parameter_columns = continuous_parameters
+
+        self.value_columns = self.data.columns.difference(set(self.key_columns)
+                                                          | set([col for p in self.parameter_columns for col in p]))
+
         self.order = order
         self.extrapolate = extrapolate
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
             # columns to get the sub-tables to fit
-            sub_tables = self._data.groupby(list(self.key_columns))
+            sub_tables = self.data.groupby(list(self.key_columns))
         else:
             # There are no key columns so we will fit the whole table
-            sub_tables = {None: self._data}.items()
+            sub_tables = {None: self.data}.items()
 
         self.interpolations = {}
 
@@ -93,35 +100,19 @@ class Interpolation:
         return "Interpolation()"
 
 
-def validate_parameters(data, categorical_parameters, continuous_parameters, order):
-    if len(continuous_parameters) not in [1, 2] and order != 0:
-        raise ValueError("Interpolation over more than two parameters is only supported"
-                         "for order 0. For all other orders, only interpolation over 1 or "
-                         "2 variables is supported.")
+def validate_parameters(data, categorical_parameters, continuous_parameters):
+    if data.empty:
+        raise ValueError("You must supply non-empty data to create the interpolation.")
 
     if len(continuous_parameters) < 1:
         raise ValueError("You must supply at least one continuous parameter over which to interpolate.")
 
-    out = []
     for p in continuous_parameters:
         if not isinstance(p, (List, Tuple)) or len(p) != 3:
             raise ValueError(f'Interpolation is only supported for binned data. You must specify a list or tuple '
                              f'containing, in order, the column name used when interpolation is called, '
                              f'the column name for the left edge (inclusive), and the column name for '
                              f'the right edge (exclusive). You provided {p}.')
-
-        if p[0] in data: # if for some reason, we have the call column drop so it doesn't get interpolated
-            data = data.drop(p[0], axis='columns')
-
-        if len(data[p[1]].unique()) > order:
-            out.append(p)
-        else:
-            warnings.warn(f"You requested an order {order} interpolation over the parameter {p[1:]}, "
-                          f"however there are only {len(data[p[1]].unique())} unique values for {p[1:]}"
-                          f"which is insufficient to support the requested interpolation order."
-                          f"The parameter will be dropped from the interpolation.")
-            data = data.drop(p[1], axis='columns')
-            data = data.drop(p[2], axis='columns')
 
     # break out the individual columns from binned column name lists
     param_cols = [col for p in continuous_parameters for col in p]
@@ -131,7 +122,7 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, ord
     if not value_columns:
         raise ValueError(f"No non-parameter data. Available columns: {data.columns}, "
                          f"Parameter columns: {set(categorical_parameters)|set(continuous_parameters)}")
-    return out, data, value_columns
+    return value_columns
 
 
 def validate_call_data(data, key_columns, parameter_columns):
