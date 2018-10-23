@@ -1,3 +1,8 @@
+**0.8.9 - 10/23/18**
+
+ - Accept ``.yml`` model specifications
+ - Redesign interpolation. Order zero only at this point.
+
 **0.8.8 - 10/09/18**
 
  - Raise error if multiple components set same default configuration.
