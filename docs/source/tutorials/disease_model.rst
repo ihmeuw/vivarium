@@ -684,7 +684,7 @@ can see the impact of our mortality component without taking too many steps.
    config.update({
        'population': {
            'population_size': 100_000
-       }
+       },
        'randomness': {
            'key_columns': ['entrance_time', 'age']
        }
