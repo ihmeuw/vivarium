@@ -10,7 +10,7 @@ Here we'll produce a data-free disease model focusing on core Vivarium
 concepts. You can find more complicated versions of the
 :term:`components <component>` built here in the
 `vivarium_public_health <https://github.com/ihmeuw/vivarium_public_health>`__
-library. Those components deal must additionally deal with
+library. Those components must additionally deal with
 manipulating complex data which makes understanding what's going on more
 complicated.
 
