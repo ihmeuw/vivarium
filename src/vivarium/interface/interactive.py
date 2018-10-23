@@ -4,7 +4,7 @@ from vivarium.framework.configuration import build_simulation_configuration, bui
 from vivarium.framework.plugins import PluginManager
 from vivarium.framework.engine import SimulationContext
 
-from .utilities import run_from_ipython, log_progress, raise_if_not_setup
+from .utilities import run_from_ipython, log_progress, raise_if_not_setup, InteractiveError
 
 
 class InteractiveContext(SimulationContext):
@@ -115,6 +115,11 @@ class InteractiveContext(SimulationContext):
         new_component.setup(self.builder)
         self.component_manager.add_components([new_component])
 
+    def add_components(self, component_list):
+        if self._setup:
+            raise InteractiveError('Components cannot be added to a simulation once it is setup.')
+        self.component_manager.add_components(component_list)
+
 
 def initialize_simulation(components, input_config=None, plugin_config=None):
     config = build_simulation_configuration()
@@ -137,7 +142,8 @@ def initialize_simulation_from_model_specification(model_specification_file):
     plugin_config = model_specification.plugins
     component_config = model_specification.components
     simulation_config = model_specification.configuration
-
+    import pdb
+    pdb.set_trace()
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
