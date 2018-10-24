@@ -6,6 +6,7 @@ from time import time
 
 import pandas as pd
 
+from vivarium import VivariumError
 from vivarium.framework.configuration import build_model_specification
 from .components import ComponentInterface
 from .event import Event, EventInterface
@@ -26,6 +27,7 @@ class SimulationContext:
     def __init__(self, configuration, components, plugin_manager=None):
         plugin_manager = plugin_manager if plugin_manager else PluginManager()
 
+        self._setup = False
         self.configuration = configuration
         self.builder = Builder(configuration, plugin_manager)
 
@@ -57,6 +59,7 @@ class SimulationContext:
         self.time_step_emitters = {k: self.builder.event.get_emitter(k) for k in self.time_step_events}
         self.end_emitter = self.builder.event.get_emitter('simulation_end')
         self.builder.event.get_emitter('post_setup')(None)
+        self._setup = True
 
     def step(self):
         _log.debug(self.clock.time)
@@ -78,6 +81,11 @@ class SimulationContext:
 
     def report(self):
         return self.values.get_value('metrics')(self.population.population.index)
+
+    def add_components(self, component_list):
+        if self._setup:
+            raise VivariumError('Components cannot be added to a simulation once it is setup.')
+        self.component_manager.add_components(component_list)
 
     def __repr__(self):
         return "SimulationContext()"
