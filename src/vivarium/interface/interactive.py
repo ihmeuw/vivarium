@@ -142,8 +142,7 @@ def initialize_simulation_from_model_specification(model_specification_file):
     plugin_config = model_specification.plugins
     component_config = model_specification.components
     simulation_config = model_specification.configuration
-    import pdb
-    pdb.set_trace()
+
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
     components = component_config_parser.get_components(component_config)
