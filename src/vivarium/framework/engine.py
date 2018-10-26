@@ -48,7 +48,7 @@ class SimulationContext:
         self.component_manager.add_managers(
             [self.clock, self.population, self.randomness, self.values, self.events, self.tables])
         self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()))
-        self.component_manager.add_components(components + [Metrics()])
+        self.add_components(components + [Metrics()])
 
     def setup(self):
         self.component_manager.setup_components(self.builder, self.configuration)
@@ -58,8 +58,8 @@ class SimulationContext:
         self.time_step_events = ['time_step__prepare', 'time_step', 'time_step__cleanup', 'collect_metrics']
         self.time_step_emitters = {k: self.builder.event.get_emitter(k) for k in self.time_step_events}
         self.end_emitter = self.builder.event.get_emitter('simulation_end')
-        self.builder.event.get_emitter('post_setup')(None)
         self._setup = True
+        self.builder.event.get_emitter('post_setup')(None)
 
     def step(self):
         _log.debug(self.clock.time)

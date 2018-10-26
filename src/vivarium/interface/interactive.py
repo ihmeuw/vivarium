@@ -7,7 +7,7 @@ from vivarium.config_tree import ConfigTree
 
 from .utilities import run_from_ipython, log_progress, raise_if_not_setup
 
-from typing import Mapping, Union, List
+from typing import Mapping, List
 
 
 class InteractiveContext(SimulationContext):
@@ -117,7 +117,7 @@ class InteractiveContext(SimulationContext):
         self.component_manager.add_components([new_component])
 
 
-def initialize_simulation(components: List, input_config: Union[Mapping, ConfigTree]=None,
+def initialize_simulation(components: List, input_config: Mapping=None,
                           plugin_config: Mapping=None) -> InteractiveContext:
     config = build_simulation_configuration()
     config.update(input_config)
@@ -126,7 +126,7 @@ def initialize_simulation(components: List, input_config: Union[Mapping, ConfigT
     return InteractiveContext(config, components, plugin_manager)
 
 
-def setup_simulation(components: List, input_config: Union[Mapping, ConfigTree]=None,
+def setup_simulation(components: List, input_config: Mapping=None,
                      plugin_config: Mapping=None) -> InteractiveContext:
     simulation = initialize_simulation(components, input_config, plugin_config)
     simulation.setup()
