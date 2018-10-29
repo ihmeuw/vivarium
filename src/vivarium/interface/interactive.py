@@ -110,12 +110,6 @@ class InteractiveContext(SimulationContext):
     def reload_component(self, component):
         raise NotImplementedError()
 
-    @raise_if_not_setup(system_type='component')
-    def replace_component(self, old_component, new_component):
-        self.component_manager._components.remove(old_component)
-        new_component.setup(self.builder)
-        self.component_manager.add_components([new_component])
-
 
 def initialize_simulation(components: List, input_config: Mapping=None,
                           plugin_config: Mapping=None) -> InteractiveContext:
