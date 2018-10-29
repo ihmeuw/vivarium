@@ -3,8 +3,11 @@ from math import ceil
 from vivarium.framework.configuration import build_simulation_configuration, build_model_specification
 from vivarium.framework.plugins import PluginManager
 from vivarium.framework.engine import SimulationContext
+from vivarium.config_tree import ConfigTree
 
 from .utilities import run_from_ipython, log_progress, raise_if_not_setup
+
+from typing import Mapping, List
 
 
 class InteractiveContext(SimulationContext):
@@ -12,13 +15,11 @@ class InteractiveContext(SimulationContext):
     def __init__(self, configuration, components, plugin_manager=None):
         super().__init__(configuration, components, plugin_manager)
         self._initial_population = None
-        self._setup = False
 
     def setup(self):
         super().setup()
         self._start_time = self.clock.time
         self.initialize_simulants()
-        self._setup = True
 
     def initialize_simulants(self):
         super().initialize_simulants()
@@ -109,14 +110,9 @@ class InteractiveContext(SimulationContext):
     def reload_component(self, component):
         raise NotImplementedError()
 
-    @raise_if_not_setup(system_type='component')
-    def replace_component(self, old_component, new_component):
-        self.component_manager._components.remove(old_component)
-        new_component.setup(self.builder)
-        self.component_manager.add_components([new_component])
 
-
-def initialize_simulation(components, input_config=None, plugin_config=None):
+def initialize_simulation(components: List, input_config: Mapping=None,
+                          plugin_config: Mapping=None) -> InteractiveContext:
     config = build_simulation_configuration()
     config.update(input_config)
     plugin_manager = PluginManager(plugin_config)
@@ -124,14 +120,15 @@ def initialize_simulation(components, input_config=None, plugin_config=None):
     return InteractiveContext(config, components, plugin_manager)
 
 
-def setup_simulation(components, input_config=None, plugin_config=None):
+def setup_simulation(components: List, input_config: Mapping=None,
+                     plugin_config: Mapping=None) -> InteractiveContext:
     simulation = initialize_simulation(components, input_config, plugin_config)
     simulation.setup()
 
     return simulation
 
 
-def initialize_simulation_from_model_specification(model_specification_file):
+def initialize_simulation_from_model_specification(model_specification_file: str) -> InteractiveContext:
     model_specification = build_model_specification(model_specification_file)
 
     plugin_config = model_specification.plugins
@@ -145,7 +142,7 @@ def initialize_simulation_from_model_specification(model_specification_file):
     return InteractiveContext(simulation_config, components, plugin_manager)
 
 
-def setup_simulation_from_model_specification(model_specification_file):
+def setup_simulation_from_model_specification(model_specification_file: str) -> InteractiveContext:
     simulation = initialize_simulation_from_model_specification(model_specification_file)
     simulation.setup()
 
