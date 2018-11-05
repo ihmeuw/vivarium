@@ -1,3 +1,8 @@
+**0.8.10 - 11/5/18**
+
+ - Added ``add_components`` method to simulation context.
+ - Added typing info to interactive interface.
+
 **0.8.9 - 10/23/18**
 
  - Accept ``.yml`` model specifications
