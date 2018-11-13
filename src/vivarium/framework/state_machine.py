@@ -61,7 +61,7 @@ def _groupby_new_state(index, outputs, decisions):
     """
     output_map = {o: i for i, o in enumerate(outputs)}
     groups = pd.Series(index).groupby([output_map[d] for d in decisions])
-    results = [(outputs[i], sub_group.index) for i, sub_group in groups]
+    results = [(outputs[i], pd.Index(sub_group.values)) for i, sub_group in groups]
     selected_outputs = [o for o, _ in results]
     for output in outputs:
         if output not in selected_outputs:
