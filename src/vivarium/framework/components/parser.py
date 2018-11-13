@@ -82,6 +82,9 @@ class ComponentConfigurationParser:
 def _parse_component_config(component_config: Union[List[str], Dict[str, Union[Dict, List]]]) -> List[str]:
 
     def _process_level(level, prefix):
+        if not level:
+            raise ParsingError(f'Check your configuration. Component {prefix} should not be left empty with the header')
+
         if isinstance(level, list):
             return ['.'.join(prefix + [child]) for child in level]
 
