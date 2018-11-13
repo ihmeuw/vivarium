@@ -4,7 +4,7 @@ import yaml
 from vivarium.framework.configuration import build_simulation_configuration
 from vivarium.framework.components.parser import (ComponentConfigurationParser, _parse_component_config,
                                                   _prep_components, _import_and_instantiate_components,
-                                                  ParsingError, _check_valid_component_config)
+                                                  ParsingError)
 
 from .mocks import MockComponentA, MockComponentB
 
@@ -132,7 +132,7 @@ def test_ComponentConfigurationParser_get_components(import_and_instantiate_mock
     import_and_instantiate_mock.assert_called_once_with(TEST_COMPONENTS_PREPPED)
 
 
-def test__check_valid_component_config():
+def test_components_config_valid():
     bad_config = yaml.load(TEST_COMPONENTS_BAD)['components']
-    _check_valid_component_config(bad_config)
-    import pdb; pdb.set_trace()
+    with pytest.raises(ParsingError):
+        _parse_component_config(bad_config)
