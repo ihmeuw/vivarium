@@ -81,6 +81,8 @@ class ComponentConfigurationParser:
 
 def _parse_component_config(component_config: Union[List[str], Dict[str, Union[Dict, List]]]) -> List[str]:
 
+    _check_valid_component_config(component_config)
+
     def _process_level(level, prefix):
         if isinstance(level, list):
             return ['.'.join(prefix + [child]) for child in level]
@@ -93,6 +95,9 @@ def _parse_component_config(component_config: Union[List[str], Dict[str, Union[D
 
     return _process_level(component_config, [])
 
+def _check_valid_component_config(component_config: Union[List[str], Dict[str, Union[Dict, List]]]) -> bool:
+
+    import pdb; pdb.set_trace()
 
 def _prep_components(component_list: Sequence[str]) -> List[Tuple[str, Tuple[str]]]:
     """Transform component description strings into tuples of component paths and required arguments.

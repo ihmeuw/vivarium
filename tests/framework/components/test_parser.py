@@ -4,7 +4,7 @@ import yaml
 from vivarium.framework.configuration import build_simulation_configuration
 from vivarium.framework.components.parser import (ComponentConfigurationParser, _parse_component_config,
                                                   _prep_components, _import_and_instantiate_components,
-                                                  ParsingError)
+                                                  ParsingError, _check_valid_component_config)
 
 from .mocks import MockComponentA, MockComponentB
 
@@ -18,6 +18,18 @@ components:
     pet_shop:
        - Parrot()
        - dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')
+"""
+
+# common case when users comment out and ends up having none
+TEST_COMPONENTS_BAD = """
+components:
+    ministry.silly_walk:
+       - Prance()
+       - Jump('front_flip')
+       - PratFall('15')
+    pet_shop:
+#       - Parrot()
+#       - dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')
 """
 
 TEST_COMPONENTS_FLAT = """
@@ -60,9 +72,9 @@ def import_and_instantiate_mock(mocker):
 
 
 def test_parse_component_config(components):
+
     source = yaml.load(components)['components']
     component_list = _parse_component_config(source)
-
     assert set(TEST_COMPONENTS_PARSED) == set(component_list)
 
 
@@ -118,3 +130,9 @@ def test_ComponentConfigurationParser_get_components(import_and_instantiate_mock
     parser.get_components(config.components)
 
     import_and_instantiate_mock.assert_called_once_with(TEST_COMPONENTS_PREPPED)
+
+
+def test__check_valid_component_config():
+    bad_config = yaml.load(TEST_COMPONENTS_BAD)['components']
+    _check_valid_component_config(bad_config)
+    import pdb; pdb.set_trace()
