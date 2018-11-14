@@ -85,7 +85,7 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
     years = build_table(lambda age, sex, year: year, year_start, year_end)
-    input_years = years.year.unique()
+    input_years = years.year_start.unique()
     base_config.population.update({'population_size': 10000})
     base_config.interpolation.update({'order': 0})
 
