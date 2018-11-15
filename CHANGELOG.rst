@@ -1,3 +1,7 @@
+**0.8.12 - 11/15/18**
+
+ - Remove mean age and year columns
+
 **0.8.11 - 11/15/18**
 
  - Bugfix where transitions were casting pandas indices to series.
