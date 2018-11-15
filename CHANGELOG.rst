@@ -1,3 +1,8 @@
+**0.8.11 - 11/15/18**
+
+ - Bugfix where transitions were casting pandas indices to series.
+ - Add better error message when a none is found in the configuration.
+
 **0.8.10 - 11/5/18**
 
  - Added ``add_components`` method to simulation context.
