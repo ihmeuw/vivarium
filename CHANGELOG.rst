@@ -1,3 +1,7 @@
+**0.8.13 - 11/15/18**
+
+ - Fix broken doc dependency
+
 **0.8.12 - 11/15/18**
 
  - Remove mean age and year columns
