@@ -226,7 +226,7 @@ class Order0Interp:
             left_edge = self.data[p[1]].drop_duplicates().sort_values()
             max_right = self.data[p[2]].drop_duplicates().max()
 
-            self.parameter_bins[tuple(p)] = {'bins': left_edge.tolist(), 'max': max_right}
+            self.parameter_bins[tuple(p)] = {'bins': left_edge.reset_index(drop=True), 'max': max_right}
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Find the bins for each parameter for each interpolant in interpolants
@@ -257,11 +257,10 @@ class Order0Interp:
                                  f'when explicitly set in creation of Interpolation. Extrapolation is currently '
                                  f'off for this interpolation, and parameter {cols[0]} includes data outside of '
                                  f'original bins.')
-            bin_indices = np.digitize(interpolant_col, bins)
+            bin_indices = np.digitize(interpolant_col, bins.tolist())
             # digitize uses 0 to indicate < min and len(bins) for > max so adjust to actual indices into bin_indices
-            bin_indices = [x-1 if x > 0 else x for x in bin_indices]
-
-            interpolant_bins[cols[1]] = [bins[i] for i in bin_indices]
+            bin_indices[bin_indices > 0] -= 1
+            interpolant_bins[cols[1]] = bins.loc[bin_indices].values
 
         index = interpolant_bins.index
 
