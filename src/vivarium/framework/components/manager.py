@@ -81,26 +81,29 @@ class ComponentInterface:
         return self._component_manager.get_components(component_type)
 
 
-def _setup_components(builder, component_list, configuration):
-    done = []
-    while component_list:
-        component = component_list.pop(0)
-        if component is None:
-            raise ComponentConfigError('None in component list. This likely '
-                                       'indicates a bug in a factory function')
-        if component in done:
-            continue
+def _setup_components(builder, component_list: Sequence, configuration: ConfigTree) -> Sequence:
 
-        if hasattr(component, 'configuration_defaults'):
-            _apply_component_default_configuration(configuration, component)
+    configured = []
+    for c in component_list:  # apply top-level configurations first
+        if hasattr(c, "configuration_defaults"):
+            _apply_component_default_configuration(configuration, c)
+        configured.append(c)
 
-        if hasattr(component, 'setup'):
-            result = component.setup(builder)
+    setup = []
+    while component_list:  # mutated at runtime by calls to setup
+        c = component_list.pop(0)
+
+        if hasattr(c, "configuration_defaults") and c not in configured:
+            _apply_component_default_configuration(configuration, c)
+
+        if hasattr(c, "setup"):
+            result = c.setup(builder)
             if result is not None:
-                # TODO Remove this once we've flushed out all the old style setup methods -Alec 06/05/18
-                raise ComponentConfigError("Returning components from setup methods is no longer supported. Use builder.add_components()")
-        done.append(component)
-    return done
+                raise ComponentConfigError("Returning components from setup methods is no longer supported. "
+                                           "Use builder.add_components()")
+        setup.append(c)
+
+    return setup
 
 
 def _apply_component_default_configuration(configuration, component):
