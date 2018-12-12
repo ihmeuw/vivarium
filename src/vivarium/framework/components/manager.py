@@ -85,23 +85,28 @@ def _setup_components(builder, component_list: Sequence, configuration: ConfigTr
 
     configured = []
     for c in component_list:  # apply top-level configurations first
-        if hasattr(c, "configuration_defaults"):
+        if hasattr(c, "configuration_defaults") and not c in configured:
             _apply_component_default_configuration(configuration, c)
-        configured.append(c)
+            configured.append(c)
 
     setup = []
     while component_list:  # mutated at runtime by calls to setup
         c = component_list.pop(0)
+        if c is None:
+            raise ComponentConfigError('None in component list. This likely '
+                                       'indicates a bug in a factory function')
 
         if hasattr(c, "configuration_defaults") and c not in configured:
             _apply_component_default_configuration(configuration, c)
+            configured.append(c)
 
-        if hasattr(c, "setup"):
-            result = c.setup(builder)
-            if result is not None:
-                raise ComponentConfigError("Returning components from setup methods is no longer supported. "
-                                           "Use builder.add_components()")
-        setup.append(c)
+        if c not in setup:
+            if hasattr(c, "setup"):
+                result = c.setup(builder)
+                if result is not None:
+                    raise ComponentConfigError("Returning components from setup methods is no longer supported. "
+                                               "Use builder.add_components()")
+            setup.append(c)
 
     return setup
 
