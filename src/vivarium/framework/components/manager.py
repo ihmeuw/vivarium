@@ -102,10 +102,7 @@ def _setup_components(builder, component_list: Sequence, configuration: ConfigTr
 
         if c not in setup:
             if hasattr(c, "setup"):
-                result = c.setup(builder)
-                if result is not None:
-                    raise ComponentConfigError("Returning components from setup methods is no longer supported. "
-                                               "Use builder.add_components()")
+                c.setup(builder)
             setup.append(c)
 
     return setup
