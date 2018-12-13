@@ -81,26 +81,31 @@ class ComponentInterface:
         return self._component_manager.get_components(component_type)
 
 
-def _setup_components(builder, component_list, configuration):
-    done = []
-    while component_list:
-        component = component_list.pop(0)
-        if component is None:
+def _setup_components(builder, component_list: Sequence, configuration: ConfigTree) -> Sequence:
+
+    configured = []
+    for c in component_list:  # apply top-level configurations first
+        if hasattr(c, "configuration_defaults") and not c in configured:
+            _apply_component_default_configuration(configuration, c)
+            configured.append(c)
+
+    setup = []
+    while component_list:  # mutated at runtime by calls to setup
+        c = component_list.pop(0)
+        if c is None:
             raise ComponentConfigError('None in component list. This likely '
                                        'indicates a bug in a factory function')
-        if component in done:
-            continue
 
-        if hasattr(component, 'configuration_defaults'):
-            _apply_component_default_configuration(configuration, component)
+        if hasattr(c, "configuration_defaults") and c not in configured:
+            _apply_component_default_configuration(configuration, c)
+            configured.append(c)
 
-        if hasattr(component, 'setup'):
-            result = component.setup(builder)
-            if result is not None:
-                # TODO Remove this once we've flushed out all the old style setup methods -Alec 06/05/18
-                raise ComponentConfigError("Returning components from setup methods is no longer supported. Use builder.add_components()")
-        done.append(component)
-    return done
+        if c not in setup:
+            if hasattr(c, "setup"):
+                c.setup(builder)
+            setup.append(c)
+
+    return setup
 
 
 def _apply_component_default_configuration(configuration, component):
