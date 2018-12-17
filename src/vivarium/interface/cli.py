@@ -2,6 +2,7 @@ from bdb import BdbQuit
 import os
 from pathlib import Path
 import shutil
+import cProfile
 
 import click
 
@@ -64,3 +65,17 @@ def test():
         raise
     finally:
         shutil.rmtree(results_directory, ignore_errors=True)
+
+
+@simulate.command()
+@click.argument('model_specification', callback=verify_yaml,
+                type=click.Path(exists=True, dir_okay=False, resolve_path=True))
+@click.option('--results_directory', '-o', type=click.Path(resolve_path=True),
+              default=os.path.expanduser('~/vivarium_results/'),
+              help='Top level output directory to write results to')
+def profile(model_specification, results_directory):
+    model_specification = Path(model_specification)
+    out_file = results_directory / f'{model_specification.name}'.replace('yaml', 'stats')
+    command = f'run_simulation("{model_specification}", "{results_directory}")'
+    cProfile.runctx(command, globals=globals(), locals=locals(), filename=out_file)
+
