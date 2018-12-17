@@ -494,7 +494,7 @@ class RandomnessStream:
         return get_hash(self._key(additional_key))
 
     def filter_for_rate(self, population: Union[pd.DataFrame, pd.Series, Index],
-                        rate: Array) -> Index:
+                        rate: Array, additional_key: Any=None) -> Index:
         """Decide an event outcome for each individual in a population from rates.
 
         Given a population or its index and an array of associated rates for
@@ -512,6 +512,8 @@ class RandomnessStream:
             population view passed in. The rates must be scaled to the simulation
             time-step size either manually or as a post-processing step in a
             rate pipeline.
+        additional_key :
+            Any additional information used to create the seed.
 
         Returns
         -------
@@ -523,10 +525,10 @@ class RandomnessStream:
         framework.values:
             Value/rate pipeline management module.
         """
-        return self.filter_for_probability(population, rate_to_probability(rate))
+        return self.filter_for_probability(population, rate_to_probability(rate), additional_key)
 
     def filter_for_probability(self, population: Union[pd.DataFrame, pd.Series, Index],
-                               probability: Array) -> Index:
+                               probability: Array, additional_key: Any=None) -> Index:
         """Decide an event outcome for each individual in a population from probabilities.
 
         Given a population or its index and an array of associated probabilities
@@ -542,6 +544,8 @@ class RandomnessStream:
             A 1d list of probabilities of the event under consideration
             occurring which corresponds (i.e. `len(population) == len(probability)`
             to the population view passed in.
+        additional_key :
+            Any additional information used to create the seed.
 
         Returns
         -------
@@ -549,7 +553,7 @@ class RandomnessStream:
             The sub-population of the simulants for whom the event occurred.
             The return type will be the same as type(population)
         """
-        return filter_for_probability(self._key(), population, probability, self.index_map)
+        return filter_for_probability(self._key(additional_key), population, probability, self.index_map)
 
     def choice(self, index: Index, choices: Array, p: Array=None, additional_key: Any=None) -> pd.Series:
         """Decides between a weighted or unweighted set of choices.
