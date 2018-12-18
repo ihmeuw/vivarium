@@ -74,7 +74,7 @@ class InteractiveContext(SimulationContext):
     def get_population(self, untracked=False):
         pop = self.population.population
         if not untracked:
-            pop = pop[pop.tracked is True]
+            pop = pop[pop.tracked==True]
         return pop
 
     @raise_if_not_setup(system_type='value')
