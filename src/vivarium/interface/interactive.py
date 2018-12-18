@@ -71,8 +71,11 @@ class InteractiveContext(SimulationContext):
                 self.step(step_size)
 
     @raise_if_not_setup(system_type='population')
-    def get_population(self):
-        return self.population.population
+    def get_population(self, untracked=False):
+        pop = self.population.population
+        if not untracked:
+            pop = pop[pop.tracked is True]
+        return pop
 
     @raise_if_not_setup(system_type='value')
     def list_values(self):

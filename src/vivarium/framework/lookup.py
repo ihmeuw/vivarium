@@ -68,7 +68,9 @@ class InterpolatedTable:
         pd.DataFrame
             A table with the interpolated values for the population requested.
         """
+
         pop = self.population_view.get(index)
+        del pop['tracked']
         if 'year' in [col for p in self.parameter_columns for col in p]:
             current_time = self.clock()
             fractional_year = current_time.year
@@ -96,10 +98,11 @@ class ScalarTable:
     -----
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
-    def __init__(self, values: Union[List[ScalarValue], Tuple[ScalarValue]],
+    def __init__(self, values: Union[List[ScalarValue], Tuple[ScalarValue]], population_view: PopulationView,
                  value_columns: Union[List[str], Tuple[str]]):
 
         self.values = values
+        self.population_view = population_view
         self.value_columns = value_columns
 
     def __call__(self, index) -> pd.DataFrame:
@@ -115,10 +118,11 @@ class ScalarTable:
         pd.DataFrame
             A table with a column for each of the scalar values for the population requested.
         """
+        pop = self.population_view.get(index)
         if not isinstance(self.values, (list, tuple)):
-            values = pd.Series(self.values, index=index, name=self.value_columns[0] if self.value_columns else None)
+            values = pd.Series(self.values, index=pop.index, name=self.value_columns[0] if self.value_columns else None)
         else:
-            values = dict(zip(self.value_columns, [pd.Series(v, index=index) for v in self.values]))
+            values = dict(zip(self.value_columns, [pd.Series(v, index=pop.index) for v in self.values]))
         return pd.DataFrame(values)
 
     def __repr__(self):
@@ -146,10 +150,10 @@ class LookupTable:
 
         # Note datetime catches pandas timestamps
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
-            self._table = ScalarTable(data, value_columns)
+            self._table = ScalarTable(data, population_view(['tracked']), value_columns)
         else:
             callable_parameter_columns = [p[0] for p in parameter_columns]
-            view_columns = sorted((set(key_columns) | set(callable_parameter_columns)) - {'year'})
+            view_columns = sorted((set(key_columns) | set(callable_parameter_columns)) - {'year'}) + ['tracked']
             self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
                                             parameter_columns, value_columns, interpolation_order, clock, extrapolate)
 
