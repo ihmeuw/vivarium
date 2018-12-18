@@ -42,7 +42,7 @@ class PopulationView:
     @property
     def columns(self) -> List[str]:
         if not self._columns:
-            return list(self.manager.population.columns)
+            return list(self.manager._population.columns)
         return list(self._columns)
 
     def subview(self, columns: Sequence[str]) -> 'PopulationView':
@@ -76,7 +76,7 @@ class PopulationView:
             A table with the subset of the population requested.
         """
 
-        pop = self.manager.population.loc[index]
+        pop = self.manager._population.loc[index]
 
         if self._query:
             pop = pop.query(self._query)
@@ -121,7 +121,7 @@ class PopulationView:
                 affected_columns = set(pop.columns)
 
             affected_columns = set(affected_columns).intersection(self._columns)
-            state_table = self.manager.population
+            state_table = self.manager._population
             if not self.manager.growing:
                 affected_columns = set(affected_columns).intersection(state_table.columns)
 
@@ -278,10 +278,6 @@ class PopulationManager:
         metrics['total_population_tracked'] = len(tracked)
         metrics['total_population'] = len(untracked)+len(tracked)
         return metrics
-
-    @property
-    def population(self) -> pd.DataFrame:
-        return self._population.copy()
 
     def __repr__(self):
         return "PopulationManager()"

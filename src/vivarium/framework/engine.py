@@ -64,7 +64,7 @@ class SimulationContext:
     def step(self):
         _log.debug(self.clock.time)
         for event in self.time_step_events:
-            self.time_step_emitters[event](Event(self.population.population.index))
+            self.time_step_emitters[event](Event(self.population._population.index))
         self.clock.step_forward()
 
     def initialize_simulants(self):
@@ -77,10 +77,10 @@ class SimulationContext:
         self.clock.step_forward()
 
     def finalize(self):
-        self.end_emitter(Event(self.population.population.index))
+        self.end_emitter(Event(self.population._population.index))
 
     def report(self):
-        return self.values.get_value('metrics')(self.population.population.index)
+        return self.values.get_value('metrics')(self.population._population.index)
 
     def add_components(self, component_list):
         if self._setup:
@@ -158,4 +158,4 @@ def run(simulation):
     simulation.finalize()
     metrics = simulation.report()
     metrics['simulation_run_time'] = time() - start
-    return metrics, simulation.population.population
+    return metrics, simulation.population._population

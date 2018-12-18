@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 def plot_birds(simulation, plot_velocity=False):
     width = simulation.configuration.location.width
     height = simulation.configuration.location.height
-    pop = simulation.population.population
+    pop = simulation.population._population
 
     plt.figure(figsize=[12, 12])
     plt.scatter(pop.x, pop.y, color=pop.color)

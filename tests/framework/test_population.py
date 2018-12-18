@@ -6,7 +6,7 @@ from vivarium.framework.population import PopulationView, PopulationManager, Pop
 
 class DummyPopulationManager:
     def __init__(self):
-        self.population = pd.DataFrame({'age': [0, 10, 20, 30, 40, 50, 60, 70], 'sex': ['Male', 'Female']*4})
+        self._population = pd.DataFrame({'age': [0, 10, 20, 30, 40, 50, 60, 70], 'sex': ['Male', 'Female']*4})
 
 
 def test_create_PopulationView_with_all_columns():
