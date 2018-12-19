@@ -24,30 +24,31 @@ def test_interpolated_tables(base_config):
     ages = manager.build_table(ages, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None)
     one_d_age = manager.build_table(one_d_age, key_columns=('sex',), parameter_columns=('age',), value_columns=None)
 
-    result_years = years(simulation.get_population().index)
-    result_ages = ages(simulation.get_population().index)
-    result_ages_1d = one_d_age(simulation.get_population().index)
+    pop = simulation.get_population(untracked=True)
+    result_years = years(pop.index)
+    result_ages = ages(pop.index)
+    result_ages_1d = one_d_age(pop.index)
 
     fractional_year = simulation.clock.time.year
     fractional_year += simulation.clock.time.timetuple().tm_yday / 365.25
 
     assert np.allclose(result_years, fractional_year)
-    assert np.allclose(result_ages, simulation.get_population().age)
-    assert np.allclose(result_ages_1d, simulation.get_population().age)
+    assert np.allclose(result_ages, pop.age)
+    assert np.allclose(result_ages_1d, pop.age)
 
     simulation.clock._time += pd.Timedelta(30.5 * 125, unit='D')
-    simulation.get_population().age += 125/12
+    simulation.population._population.age += 125/12
 
-    result_years = years(simulation.get_population().index)
-    result_ages = ages(simulation.get_population().index)
-    result_ages_1d = one_d_age(simulation.get_population().index)
+    result_years = years(pop.index)
+    result_ages = ages(pop.index)
+    result_ages_1d = one_d_age(pop.index)
 
     fractional_year = simulation.clock.time.year
     fractional_year += simulation.clock.time.timetuple().tm_yday / 365.25
 
     assert np.allclose(result_years, fractional_year)
-    assert np.allclose(result_ages, simulation.get_population().age)
-    assert np.allclose(result_ages_1d, simulation.get_population().age)
+    assert np.allclose(result_ages, pop.age)
+    assert np.allclose(result_ages_1d, pop.age)
 
 
 @pytest.mark.skip(reason='only order 0 interpolation with age bin edges currently supported')
