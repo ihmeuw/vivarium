@@ -172,9 +172,9 @@ def test_SimulationContext_initialize_simulants(base_config, components):
     sim.setup()
     pop_size = sim.configuration.population.population_size
     current_time = sim.clock.time
-    assert sim.population._population.empty
+    assert sim.population.get_population(True).empty
     sim.initialize_simulants()
-    assert len(sim.population._population) == pop_size
+    assert len(sim.population.get_population(True)) == pop_size
     assert sim.clock.time == current_time
 
 
@@ -226,8 +226,7 @@ def test_run(mocker):
     sim_mock.step.side_effect = step
     sim_mock.report.return_value = {}
     pop = list(range(10))
-    sim_mock.population._population = pop
-
+    sim_mock.population.get_population.return_value = pop
     metrics, population = run(sim_mock)
 
     sim_mock.initialize_simulants.assert_called_once()

@@ -279,6 +279,12 @@ class PopulationManager:
         metrics['total_population'] = len(untracked)+len(tracked)
         return metrics
 
+    def get_population(self, untracked) -> pd.DataFrame:
+        pop = self._population.copy()
+        if not untracked:
+            pop = pop[pop.tracked==True]
+        return pop
+
     def __repr__(self):
         return "PopulationManager()"
 

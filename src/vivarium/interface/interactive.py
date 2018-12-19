@@ -23,7 +23,7 @@ class InteractiveContext(SimulationContext):
 
     def initialize_simulants(self):
         super().initialize_simulants()
-        self._initial_population = self.population._population
+        self._initial_population = self.population.get_population(True)
 
     def reset(self):
         # This is super crude, but should work for a great deal of components.
@@ -72,10 +72,7 @@ class InteractiveContext(SimulationContext):
 
     @raise_if_not_setup(system_type='population')
     def get_population(self, untracked=False):
-        pop = self.population._population
-        if not untracked:
-            pop = pop[pop.tracked==True]
-        return pop
+        return self.population.get_population(untracked)
 
     @raise_if_not_setup(system_type='value')
     def list_values(self):
