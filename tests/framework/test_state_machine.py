@@ -38,8 +38,8 @@ def test_transition():
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start')])
     event_time = simulation.clock.time + simulation.clock.step_size
-    machine.transition(simulation.population._population.index, event_time)
-    assert np.all(simulation.population._population.state == 'done')
+    machine.transition(simulation.get_population().index, event_time)
+    assert np.all(simulation.get_population().state == 'done')
 
 
 def test_choice(base_config):
@@ -53,9 +53,9 @@ def test_choice(base_config):
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start')], base_config)
     event_time = simulation.clock.time + simulation.clock.step_size
-    machine.transition(simulation.population._population.index, event_time)
-    a_count = (simulation.population._population.state == 'a').sum()
-    assert round(a_count/len(simulation.population._population), 1) == 0.5
+    machine.transition(simulation.get_population().index, event_time)
+    a_count = (simulation.get_population().state == 'a').sum()
+    assert round(a_count/len(simulation.get_population()), 1) == 0.5
 
 
 def test_null_transition(base_config):
@@ -69,9 +69,9 @@ def test_null_transition(base_config):
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start')], base_config)
     event_time = simulation.clock.time + simulation.clock.step_size
-    machine.transition(simulation.population._population.index, event_time)
-    a_count = (simulation.population._population.state == 'a').sum()
-    assert round(a_count/len(simulation.population._population), 1) == 0.5
+    machine.transition(simulation.get_population().index, event_time)
+    a_count = (simulation.get_population().state == 'a').sum()
+    assert round(a_count/len(simulation.get_population()), 1) == 0.5
 
 
 def test_no_null_transition(base_config):
@@ -88,9 +88,9 @@ def test_no_null_transition(base_config):
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start')], base_config)
     event_time = simulation.clock.time + simulation.clock.step_size
-    machine.transition(simulation.population._population.index, event_time)
-    a_count = (simulation.population._population.state == 'a').sum()
-    assert round(a_count/len(simulation.population._population), 1) == 0.5
+    machine.transition(simulation.get_population().index, event_time)
+    a_count = (simulation.get_population().state == 'a').sum()
+    assert round(a_count/len(simulation.get_population()), 1) == 0.5
 
 
 def test_side_effects():
@@ -112,9 +112,9 @@ def test_side_effects():
 
     simulation = setup_simulation([machine, _population_fixture('state', 'start'), _population_fixture('count', 0)])
     event_time = simulation.clock.time + simulation.clock.step_size
-    machine.transition(simulation.population._population.index, event_time)
-    assert np.all(simulation.population._population['count'] == 1)
-    machine.transition(simulation.population._population.index, event_time)
-    assert np.all(simulation.population._population['count'] == 1)
-    machine.transition(simulation.population._population.index, event_time)
-    assert np.all(simulation.population._population['count'] == 2)
+    machine.transition(simulation.get_population().index, event_time)
+    assert np.all(simulation.get_population()['count'] == 1)
+    machine.transition(simulation.get_population().index, event_time)
+    assert np.all(simulation.get_population()['count'] == 1)
+    machine.transition(simulation.get_population().index, event_time)
+    assert np.all(simulation.get_population()['count'] == 2)
