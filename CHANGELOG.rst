@@ -1,3 +1,11 @@
+**0.8.14 - 12/20/18**
+
+ - Standardize the population getter from the the interactive interface.
+ - Added "additional_key" argument to randomness.filter for probability and for rate.
+ - Added a profile subcommand to simulate.
+ - Separated component configuration from setup.
+ - Vectorize python loops in the interpolation implementation.
+
 **0.8.13 - 11/15/18**
 
  - Fix broken doc dependency
