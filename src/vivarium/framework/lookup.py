@@ -68,7 +68,9 @@ class InterpolatedTable:
         pd.DataFrame
             A table with the interpolated values for the population requested.
         """
+
         pop = self.population_view.get(index)
+        del pop['tracked']
         if 'year' in [col for p in self.parameter_columns for col in p]:
             current_time = self.clock()
             fractional_year = current_time.year
@@ -96,8 +98,7 @@ class ScalarTable:
     -----
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
-    def __init__(self, values: Union[List[ScalarValue], Tuple[ScalarValue]],
-                 value_columns: Union[List[str], Tuple[str]]):
+    def __init__(self, values: Union[List[ScalarValue], Tuple[ScalarValue]], value_columns: Union[List[str], Tuple[str]]):
 
         self.values = values
         self.value_columns = value_columns
@@ -149,7 +150,7 @@ class LookupTable:
             self._table = ScalarTable(data, value_columns)
         else:
             callable_parameter_columns = [p[0] for p in parameter_columns]
-            view_columns = sorted((set(key_columns) | set(callable_parameter_columns)) - {'year'})
+            view_columns = sorted((set(key_columns) | set(callable_parameter_columns)) - {'year'}) + ['tracked']
             self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
                                             parameter_columns, value_columns, interpolation_order, clock, extrapolate)
 
