@@ -131,6 +131,10 @@ class Transition:
         null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
         return activated.append(null)
 
+    @property
+    def name(self):
+        return f"Transition.{self.input_state.state_id}.{self.output_state.state_id}"
+
     def __repr__(self):
         return f'Transition(from={self.input_state.state_id}, to={self.output_state.state_id})'
 
@@ -222,6 +226,10 @@ class State:
 
     def _cleanup_effect(self, index, event_time):
         pass
+
+    @property
+    def name(self):
+        return f"State.{self.state_id}"
 
     def __repr__(self):
         return f'State(state_id={self.state_id}, key={self.key})'
@@ -340,6 +348,13 @@ class TransitionSet:
     def __len__(self):
         return len(self.transitions)
 
+    @property
+    def name(self):
+        name = "TransitionSet"
+        for transition in self.transitions:
+            name += f".{transition.name}"
+        return name
+
     def __str__(self):
         return str([str(x) for x in self.transitions])
 
@@ -431,6 +446,13 @@ class Machine:
     def _get_state_pops(self, index):
         population = self.population_view.get(index)
         return [[state, population[population[self.state_column] == state.state_id]] for state in self.states]
+
+    @property
+    def name(self):
+        name = "Machine"  # Will we ever have dupes with different state columns?
+        for state in self.states:
+            name += f".{state.name}"
+        return name
 
     def __repr__(self):
         return "Machine(states= {}, state_column= {})".format(self.states, self.state_column)
