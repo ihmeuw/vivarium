@@ -61,6 +61,9 @@ class SimpleClock(SimulationClock):
         self._stop_time = builder.configuration.time.end
         self._step_size = builder.configuration.time.step_size
 
+    def __repr__(self):
+        return "SimpleClock()"
+
 
 def get_time_stamp(time):
     return pd.Timestamp(time['year'], time['month'], time['day'])
@@ -90,6 +93,9 @@ class DateTimeClock(SimulationClock):
         self._time = get_time_stamp(time.start)
         self._stop_time = get_time_stamp(time.end)
         self._step_size = pd.Timedelta(days=time.step_size // 1, hours=(time.step_size % 1) * 24)
+
+    def __repr__(self):
+        return "DateTimeClock()"
 
 
 class TimeInterface:

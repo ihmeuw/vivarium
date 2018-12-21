@@ -82,7 +82,6 @@ class ComponentInterface:
 
 
 def _setup_components(builder, component_list: Sequence, configuration: ConfigTree) -> Sequence:
-
     configured = []
     for c in component_list:  # apply top-level configurations first
         if hasattr(c, "configuration_defaults") and not c in configured:

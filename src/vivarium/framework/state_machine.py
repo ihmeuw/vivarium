@@ -131,10 +131,6 @@ class Transition:
         null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
         return activated.append(null)
 
-    def label(self):
-        """The name of this transition."""
-        return ''
-
     def __repr__(self):
         return f'Transition(from={self.input_state.state_id}, to={self.output_state.state_id})'
 
@@ -154,6 +150,7 @@ class State:
     """
     def __init__(self, state_id, key='state'):
         self.state_id = state_id
+        self.key = key
         self.transition_set = TransitionSet(key='.'.join([str(key), str(state_id)]))
         self._model = None
 
@@ -226,11 +223,8 @@ class State:
     def _cleanup_effect(self, index, event_time):
         pass
 
-    def __str__(self):
-        return repr(self)
-
     def __repr__(self):
-        return 'State({})'.format(self.state_id)
+        return f'State(state_id={self.state_id}, key={self.key})'
 
 
 class Transient:
