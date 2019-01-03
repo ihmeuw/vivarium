@@ -39,7 +39,7 @@ def test_cyclic_dependencies(num_nodes, edges):
 
     dag = make_initializer_dag(num_nodes, edges)
     for node in dag:
-        manager.register_simulant_initializer(lambda: node['name'], 
+        manager.register_simulant_initializer(lambda: node['name'],
                                                       node['creates'],
                                                       node['requires'])
 
@@ -56,11 +56,11 @@ def test_missing_dependencies(num_nodes, edges):
 
     dag = make_initializer_dag(num_nodes, edges)
     for node in dag:
-        manager.register_simulant_initializer(lambda: node['name'], 
+        manager.register_simulant_initializer(lambda: node['name'],
                                                       node['creates'],
                                                       node['requires'])
 
-    with pytest.raises(PopulationError, match="Check for missing dependencies"):
+    with pytest.raises(PopulationError, match="are not created by any components in the system"):
         manager._order_initializers()
 
 
