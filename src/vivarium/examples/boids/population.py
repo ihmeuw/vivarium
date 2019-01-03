@@ -6,7 +6,6 @@ class Population:
 
     configuration_defaults = {
         'population': {
-            'population_size': 100,
             'colors': ['red', 'blue'],
         }
     }
