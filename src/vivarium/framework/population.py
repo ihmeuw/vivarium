@@ -219,9 +219,10 @@ class PopulationManager:
             created_columns.extend(created)
             required_columns.extend(required)
 
-        if not set(required_columns) <= set(created_columns):
-            raise PopulationError(f"The initializers {initializers} could not be added.  "
-                                  "Check for missing dependencies in your components.")
+        missing_columns = set(required_columns).difference(set(created_columns))
+        if missing_columns:
+            raise PopulationError(f"The columns {missing_columns} are required, but are not "
+                                  f"created by any components in the system.")
 
     def _order_initializers(self) -> None:
         unordered_initializers = deque(self._population_initializers)
