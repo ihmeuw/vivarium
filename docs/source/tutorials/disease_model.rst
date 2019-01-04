@@ -541,7 +541,7 @@ does not reflect how the world goes. Time to introduce the grim reaper.
        }
    })
 
-   sim = setup_simulation([BasePopulation()])
+   sim = setup_simulation([BasePopulation()], config)
    sim.step()
 
 
