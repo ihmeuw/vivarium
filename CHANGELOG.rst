@@ -1,3 +1,8 @@
+**0.8.15 - 01/03/19**
+
+ - Add doctests to travis
+ - Update population initializer error message
+
 **0.8.14 - 12/20/18**
 
  - Standardize the population getter from the the interactive interface.
