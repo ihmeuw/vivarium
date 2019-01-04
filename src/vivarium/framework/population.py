@@ -219,8 +219,8 @@ class PopulationManager:
             created_columns.extend(created)
             required_columns.extend(required)
 
-        if not set(required_columns) <= set(created_columns):
-            missing_columns = set(required_columns).difference(set(created_columns))
+        missing_columns = set(required_columns).difference(set(created_columns))
+        if missing_columns:
             raise PopulationError(f"The columns {missing_columns} are required, but are not "
                                   f"created by any components in the system.")
 
