@@ -110,7 +110,7 @@ def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'val
     rows = []
     for age in range(0, 140):
         for year in range(year_start, year_end+1):
-            for sex in ['Male', 'Female', 'Both']:
+            for sex in ['Male', 'Female']:
                 r_values = []
                 for v in value:
                     if v is None:
