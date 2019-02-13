@@ -1,3 +1,11 @@
+**0.8.17 - 02/13/19**
+
+ - Fix branch/version synchronization
+
+**0.8.16 - 02/11/19**
+
+ - Remove combined sexes from the "build_table".
+
 **0.8.15 - 01/03/19**
 
  - Add doctests to travis
