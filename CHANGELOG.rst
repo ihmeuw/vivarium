@@ -1,3 +1,8 @@
+**0.8.18 - 02/13/19**
+
+ - Fix numerical issue in rate to probability calculation
+ - Alter randomness manager to keep track of randomness streams.
+
 **0.8.17 - 02/13/19**
 
  - Fix branch/version synchronization
