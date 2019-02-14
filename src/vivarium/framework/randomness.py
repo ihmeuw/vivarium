@@ -615,7 +615,7 @@ class RandomnessManager:
         self._clock = None
         self._key_columns = None
         self._key_mapping = IndexMap()
-        self._decision_points = set()
+        self._decision_points = dict()
 
     def setup(self, builder):
         self._seed = str(builder.configuration.randomness.random_seed)
@@ -651,9 +651,10 @@ class RandomnessManager:
         if decision_point in self._decision_points:
             raise RandomnessError(f"Two separate places are attempting to create "
                                   f"the same randomness stream for {decision_point}")
-        self._decision_points.add(decision_point)
-        return RandomnessStream(key=decision_point, clock=self._clock, seed=self._seed,
-                                index_map=self._key_mapping, manager=self, for_initialization=for_initialization)
+        stream = RandomnessStream(key=decision_point, clock=self._clock, seed=self._seed,
+                                  index_map=self._key_mapping, manager=self, for_initialization=for_initialization)
+        self._decision_points[decision_point] = stream
+        return stream
 
     def register_simulants(self, simulants: pd.DataFrame):
         """Adds new simulants to the randomness mapping.
@@ -675,7 +676,7 @@ class RandomnessManager:
 
     def __repr__(self) -> str:
         return f"RandomnessManager(seed={self._seed}, key_columns={self._key_columns}, " \
-               f"decision_points={self._decision_points})"
+               f"decision_points={self._decision_points.keys()})"
 
 
 class RandomnessInterface:
