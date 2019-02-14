@@ -627,8 +627,7 @@ class RandomnessManager:
         pop_size = builder.configuration.population.population_size
         self._key_mapping.map_size = max(map_size, 10*pop_size)
 
-    def get_randomness_stream(self, decision_point: str, for_initialization: bool=False,
-                              throw_error: bool=True) -> RandomnessStream:
+    def get_randomness_stream(self, decision_point: str, for_initialization: bool=False) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
         Parameters
@@ -650,15 +649,11 @@ class RandomnessManager:
             with the same identifier.
         """
         if decision_point in self._decision_points:
-            if throw_error:
-                raise RandomnessError(f"Two separate places are attempting to create "
-                                      f"the same randomness stream for {decision_point}")
-            else:
-                stream = self._decision_points[decision_point]
-        else:
-            stream = RandomnessStream(key=decision_point, clock=self._clock, seed=self._seed,
-                                      index_map=self._key_mapping, manager=self, for_initialization=for_initialization)
-            self._decision_points[decision_point] = stream
+            raise RandomnessError(f"Two separate places are attempting to create "
+                                  f"the same randomness stream for {decision_point}")
+        stream = RandomnessStream(key=decision_point, clock=self._clock, seed=self._seed,
+                                  index_map=self._key_mapping, manager=self, for_initialization=for_initialization)
+        self._decision_points[decision_point] = stream
         return stream
 
     def register_simulants(self, simulants: pd.DataFrame):
