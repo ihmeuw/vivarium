@@ -21,22 +21,22 @@ def test_to_yearly():
 
 
 def test_rate_to_probability():
-    rate = 0.001
+    rate = np.array([0.001])
     prob = rate_to_probability(rate)
-    assert round(prob, 5) == round(0.00099950016662497809, 5)
+    assert np.isclose(prob, 0.00099950016662497809)
 
 
 def test_probability_to_rate():
-    prob = 0.00099950016662497809
+    prob = np.array([0.00099950016662497809])
     rate = probability_to_rate(prob)
-    assert round(rate, 5) == round(0.001, 5)
+    assert np.isclose(rate, 0.001)
 
 
 def test_rate_to_probability_symmetry():
-    rate = 0.0001
+    rate = np.array([0.0001])
     for _ in range(100):
         prob = rate_to_probability(rate)
-        assert round(rate, 5) == round(probability_to_rate(prob), 5)
+        assert np.isclose(rate, probability_to_rate(prob))
         rate += (1-0.0001)/100.0
 
 
