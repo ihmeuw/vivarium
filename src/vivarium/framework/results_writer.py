@@ -69,7 +69,11 @@ class ResultsWriter:
             # to_hdf breaks with categorical dtypes.
             categorical_columns = data.dtypes[data.dtypes == 'category'].index
             data.loc[:, categorical_columns] = data.loc[:, categorical_columns].astype('object')
-            data.to_hdf(path, 'data')
+            # Writing to an hdf over and over balloons the file size so write to new file and move it over to avoid
+            data.to_hdf(path + "update", 'data')
+            if os.path.exists(path):
+                os.remove(path)
+            os.rename(path + "update", path)
         else:
             raise NotImplementedError(
                 f"Only 'yaml' and 'hdf' file types are supported. You requested {extension}")
