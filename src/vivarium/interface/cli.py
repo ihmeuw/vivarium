@@ -17,6 +17,12 @@ logging.getLogger(__name__)
 
 @click.group()
 def simulate():
+    """A command line utility for running a single simulation.
+
+    You may initiate a new run with the ``run`` sub-command, initiate a test
+    run of a provided model specification with the ``test`` subcommand, or
+    profile a simulation run with the ``profile`` subcommand.
+    """
     pass
 
 
@@ -25,11 +31,20 @@ def simulate():
                 type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.option('--results_directory', '-o', type=click.Path(resolve_path=True),
               default=os.path.expanduser('~/vivarium_results/'),
-              help='Top level output directory to write results to')
-@click.option('--verbose', '-v', is_flag=True, help='Report each time step')
-@click.option('--log', type=click.Path(dir_okay=False, resolve_path=True), help='Path to log file')
+              help='The directory to write results to. A folder will be created '
+                   'in this directory with the same name as the configuration file.')
+@click.option('--verbose', '-v', is_flag=True, help='Report each time step.')
+@click.option('--log', type=click.Path(dir_okay=False, resolve_path=True), help='The path to write a log file to.')
 @click.option('--pdb', 'with_debugger', is_flag=True, help='Drop into python debugger if an error occurs.')
 def run(model_specification, results_directory, verbose, log, with_debugger):
+    """Run a simulation from the command line.
+
+    The simulation itself is defined by the given MODEL_SPECIFICATION yaml file.
+
+    Within the results directory, which defaults to ~/vivarium_results if none
+    is provided, a subdirectory will be created with the same name as the
+    MODEL_SPECIFICATION if one does not exist. Results will be written to a
+    further subdirectory named after the start time of the simulation run."""
     log_level = logging.DEBUG if verbose else logging.ERROR
     logging.basicConfig(filename=log, level=log_level)
 
@@ -50,6 +65,9 @@ def run(model_specification, results_directory, verbose, log, with_debugger):
 
 @simulate.command()
 def test():
+    """Run a test simulation using the ``disease_model.yaml`` model specification
+    provided in the examples directory.
+    """
     logging.basicConfig(level=logging.DEBUG)
     model_specification = Path(vivarium.__file__).resolve().parent / 'examples' / 'disease_model' / 'disease_model.yaml'
     results_directory = Path('~/vivarium_results').expanduser()
@@ -72,8 +90,12 @@ def test():
                 type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.option('--results_directory', '-o', type=click.Path(resolve_path=True),
               default=os.path.expanduser('~/vivarium_results/'),
-              help='Top level output directory to write results to')
+              help='The directory to write results to. A folder will be created '
+                   'in this directory with the same name as the configuration file.')
 def profile(model_specification, results_directory):
+    """Run a simulation based on the provided MODEL_SPECIFICATION and profile
+    the run.
+    """
     model_specification = Path(model_specification)
     out_file = results_directory / f'{model_specification.name}'.replace('yaml', 'stats')
     command = f'run_simulation("{model_specification}", "{results_directory}")'
