@@ -1,3 +1,7 @@
+**0.8.19 - 03/27/19**
+
+ - Update results writer to write new hdfs instead of overwriting.
+
 **0.8.18 - 02/13/19**
 
  - Fix numerical issue in rate to probability calculation
