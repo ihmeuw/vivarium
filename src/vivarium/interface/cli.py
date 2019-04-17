@@ -1,6 +1,7 @@
 import os
 import shutil
 import cProfile
+import pstats
 from bdb import BdbQuit
 from pathlib import Path
 
@@ -72,10 +73,21 @@ def test():
 @click.option('--results_directory', '-o', type=click.Path(resolve_path=True),
               default=os.path.expanduser('~/vivarium_results/'),
               help='Top level output directory to write results to')
-def profile(model_specification, results_directory):
+@click.option('--process/--no-process', default=False,
+               help=('Automatically process the profile to human readable format  with pstats, '
+                     'sorted by cumulative runtime, and dump to a file'))
+def profile(model_specification, results_directory, process):
     model_specification = Path(model_specification)
     results_directory = Path(results_directory)
-    out_file = results_directory / f'{model_specification.name}'.replace('yaml', 'stats')
+
+    out_stats_file = results_directory / f'{model_specification.name}'.replace('yaml', 'stats')
     command = f'run_simulation("{model_specification}", "{results_directory}")'
-    cProfile.runctx(command, globals=globals(), locals=locals(), filename=out_file)
+    cProfile.runctx(command, globals=globals(), locals=locals(), filename=out_stats_file)
+
+    if process:
+        out_txt_file = results_directory / (out_stats_file.name + '.txt')
+        with open(out_txt_file, 'w') as f:
+            p = pstats.Stats(str(out_stats_file), stream=f)
+            p.sort_stats('cumulative')
+            p.print_stats()
 
