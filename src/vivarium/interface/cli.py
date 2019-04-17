@@ -1,14 +1,13 @@
-from bdb import BdbQuit
 import os
-from pathlib import Path
 import shutil
 import cProfile
+from bdb import BdbQuit
+from pathlib import Path
 
 import click
 
 import vivarium
 from vivarium.framework.engine import run_simulation
-
 from .utilities import verify_yaml
 
 import logging
@@ -75,6 +74,7 @@ def test():
               help='Top level output directory to write results to')
 def profile(model_specification, results_directory):
     model_specification = Path(model_specification)
+    results_directory = Path(results_directory)
     out_file = results_directory / f'{model_specification.name}'.replace('yaml', 'stats')
     command = f'run_simulation("{model_specification}", "{results_directory}")'
     cProfile.runctx(command, globals=globals(), locals=locals(), filename=out_file)
