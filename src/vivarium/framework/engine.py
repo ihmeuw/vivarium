@@ -73,7 +73,7 @@ class SimulationContext:
         # Fencepost the creation of the initial population.
         self.clock.step_backward()
         population_size = pop_params.population_size
-        self.simulant_creator(population_size)
+        self.simulant_creator(population_size, population_configuration={'sim_state': 'setup'})
         self.clock.step_forward()
 
     def finalize(self):
