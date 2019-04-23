@@ -1,3 +1,6 @@
+.. crn_concept:
+
+=====================
 Common Random Numbers
 =====================
 
