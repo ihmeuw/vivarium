@@ -13,9 +13,9 @@ For example:
 .. code-block:: python
 
     >>> config = ConfigTree(layers=['inner_layer', 'middle_layer', 'outer_layer', 'user_overrides'])
-    >>> config.read_dict({'section_a': {'item1': 'value1', 'item2': 'value2'}, 'section_b': {'item1': 'value3'}}, layer='inner_layer')
-    >>> config.read_dict({'section_a': {'item1': 'value4'}, 'section_b': {'item1': 'value5'}}, layer='middle_layer')
-    >>> config.read_dict({'section_b': {'item1': 'value6'}}, layer='outer_layer')
+    >>> config.update({'section_a': {'item1': 'value1', 'item2': 'value2'}, 'section_b': {'item1': 'value3'}}, layer='inner_layer')
+    >>> config.update({'section_a': {'item1': 'value4'}, 'section_b': {'item1': 'value5'}}, layer='middle_layer')
+    >>> config.update({'section_b': {'item1': 'value6'}}, layer='outer_layer')
     >>> config.section_a.item1
     'value4'
     >>> config.section_a.item2
