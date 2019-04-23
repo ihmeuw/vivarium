@@ -6,7 +6,7 @@ import pandas as pd
 
 from vivarium.framework.configuration import build_simulation_configuration, build_model_specification
 from vivarium.framework.plugins import PluginManager
-from vivarium.framework.time import _Timedelta, _Time
+from vivarium.framework.time import Timedelta, Time
 from vivarium.framework.values import Pipeline
 from vivarium.framework.engine import SimulationContext
 
@@ -60,7 +60,7 @@ class InteractiveContext(SimulationContext):
         return self.run_until(self.clock.stop_time, with_logging=with_logging)
 
     @raise_if_not_setup(system_type='run')
-    def run_for(self, duration: _Timedelta, with_logging: bool=True) -> int:
+    def run_for(self, duration: Timedelta, with_logging: bool=True) -> int:
         """Run the simulation for the given time duration.
 
 
@@ -79,7 +79,7 @@ class InteractiveContext(SimulationContext):
         return self.run_until(self.clock.time + duration, with_logging=with_logging)
 
     @raise_if_not_setup(system_type='run')
-    def run_until(self, end_time: _Time, with_logging=True) -> int:
+    def run_until(self, end_time: Time, with_logging=True) -> int:
         """Run the simulation until the provided end time.
 
         Parameters
@@ -103,7 +103,7 @@ class InteractiveContext(SimulationContext):
         return iterations
 
     @raise_if_not_setup(system_type='run')
-    def step(self, step_size: _Timedelta=None):
+    def step(self, step_size: Timedelta=None):
         """Advance the simulation one step.
 
         Parameters
@@ -121,7 +121,7 @@ class InteractiveContext(SimulationContext):
         self.clock._step_size = old_step_size
 
     @raise_if_not_setup(system_type='run')
-    def take_steps(self, number_of_steps: int=1, step_size: _Timedelta=None, with_logging: bool=True):
+    def take_steps(self, number_of_steps: int=1, step_size: Timedelta=None, with_logging: bool=True):
         """Run the simulation for the given number of steps.
 
         Parameters

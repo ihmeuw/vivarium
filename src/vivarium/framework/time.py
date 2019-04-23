@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 
-_Time = Union[datetime, Number]
-_Timedelta = Union[timedelta, Number]
+Time = Union[datetime, Number]
+Timedelta = Union[timedelta, Number]
 
 
 class SimulationClock:
@@ -19,19 +19,19 @@ class SimulationClock:
         self._step_size = None
 
     @property
-    def time(self) -> _Time:
+    def time(self) -> Time:
         """The current simulation time."""
         assert self._time is not None, 'No start time provided'
         return self._time
 
     @property
-    def stop_time(self) -> _Time:
+    def stop_time(self) -> Time:
         """The time at which the simulation will stop."""
         assert self._stop_time is not None, 'No stop time provided'
         return self._stop_time
 
     @property
-    def step_size(self) -> _Timedelta:
+    def step_size(self) -> Timedelta:
         """The size of the next time step."""
         assert self._step_size is not None, 'No step size provided'
         return self._step_size
