@@ -186,6 +186,27 @@ class InteractiveContext(SimulationContext):
 
 def initialize_simulation(components: List, input_config: Mapping=None,
                           plugin_config: Mapping=None) -> InteractiveContext:
+    """Construct a simulation from a list of components, component configuration, and a plugin configuration.
+
+    The simulation context returned by this method still needs to be setup by calling its setup method. It is mostly
+    useful for testing and debugging.
+
+    Parameters
+    ----------
+    components
+        A list of initialized simulation components. Corresponds to the components block of a model specification.
+    input_config
+        A nested dictionary with any additional simulation configuration information needed. Corresponds to the
+        configuration block of a model specification.
+    plugin_config
+        A dictionary containing a description of any simulation plugins to include in the simulation. If you're using
+        this argument, you're either deep in the process of simulation development or the maintainers have done
+        something wrong. Corresponds to the plugins block of a model specification.
+
+    Returns
+    -------
+        An initialized (but not set up) simulation context.
+    """
     config = build_simulation_configuration()
     config.update(input_config)
     plugin_manager = PluginManager(plugin_config)
@@ -195,6 +216,24 @@ def initialize_simulation(components: List, input_config: Mapping=None,
 
 def setup_simulation(components: List, input_config: Mapping=None,
                      plugin_config: Mapping=None) -> InteractiveContext:
+    """Construct a simulation from a list of components and call its setup method.
+
+    Parameters
+    ----------
+    components
+        A list of initialized simulation components. Corresponds to the components block of a model specification.
+    input_config
+        A nested dictionary with any additional simulation configuration information needed. Corresponds to the
+        configuration block of a model specification.
+    plugin_config
+        A dictionary containing a description of any simulation plugins to include in the simulation. If you're using
+        this argument, you're either deep in the process of simulation development or the maintainers have done
+        something wrong. Corresponds to the plugins block of a model specification.
+
+    Returns
+    -------
+        A simulation context that is setup and ready to run.
+    """
     simulation = initialize_simulation(components, input_config, plugin_config)
     simulation.setup()
 
@@ -202,6 +241,20 @@ def setup_simulation(components: List, input_config: Mapping=None,
 
 
 def initialize_simulation_from_model_specification(model_specification_file: str) -> InteractiveContext:
+    """Construct a simulation from a model specification file.
+
+    The simulation context returned by this method still needs to be setup by calling its setup method. It is mostly
+    useful for testing and debugging.
+
+    Parameters
+    ----------
+    model_specification_file
+        The path to a model specification file.
+
+    Returns
+    -------
+        An initialized (but not set up) simulation context.
+    """
     model_specification = build_model_specification(model_specification_file)
 
     plugin_config = model_specification.plugins
@@ -216,6 +269,17 @@ def initialize_simulation_from_model_specification(model_specification_file: str
 
 
 def setup_simulation_from_model_specification(model_specification_file: str) -> InteractiveContext:
+    """Construct a simulation from a model specification file and call its setup method.
+
+    Parameters
+    ----------
+    model_specification_file
+        The path to a model specification file.
+
+    Returns
+    -------
+        A simulation context that is setup and ready to run.
+    """
     simulation = initialize_simulation_from_model_specification(model_specification_file)
     simulation.setup()
 
