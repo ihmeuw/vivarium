@@ -73,7 +73,7 @@ examples:
 We can prepare and run a simulation interactively with this specification as follows. First, we initialize the
 simulation and get back an :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>` object.
 
-.. testcode:: python
+.. code-block:: python
 
     from vivarium.interface import initialize_simulation_from_model_specification
 
@@ -92,8 +92,11 @@ disease model example specification distributed with Vivarium.
     sim = initialize_simulation_from_model_specification(p)
 
 The function :func:`initialize_simulation_from_model_specification() <vivarium.interface.interactive.initialize_simulation_from_model_specification>`
-returns a simulation object that has not been setup yet so we can alter the configuration interactively, if we wish.
-Let's alter the population size to be smaller so the simulation takes less time.
+returns a simulation object that has not been setup yet so we can alter the configuration programmatically, if we wish.
+Let's alter the population size to be smaller so the simulation takes less time. After configuring population size, we
+will setup the simulation and run it as desired.  We'll take a single step, useful for inspecting the simulation
+closely. The :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>` provides several ways to
+advance a simulation, detailed below in :ref:`progressing`.
 
 .. note::
     If we did not need to alter the configuration we could have used the function's counterpart from the interface
@@ -105,15 +108,8 @@ Let's alter the population size to be smaller so the simulation takes less time.
     # note that the context attributes match what you see in the configuration file.
     sim.configuration.update({'population': {'population_size': 1_000}})
 
-After configuring population size, we setup the simulation and run it as desired.  Here, we take a single step, useful
-for inspecting the simulation closely. The :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>`
-provides several ways to advance a simulation, detailed below in :ref:`progressing`.
-
-.. code-block:: python
-
     sim.setup()
     sim.step()  # run, run_for, run_until, take_steps
-
 
 Without a Model Specification File - The Manual Way
 ---------------------------------------------------
