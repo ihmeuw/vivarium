@@ -3,6 +3,7 @@ from math import ceil
 from vivarium.framework.configuration import build_simulation_configuration, build_model_specification
 from vivarium.framework.plugins import PluginManager
 from vivarium.framework.engine import SimulationContext
+from vivarium.config_tree import ConfigTree
 
 from .utilities import run_from_ipython, log_progress, raise_if_not_setup
 
@@ -10,14 +11,6 @@ from typing import Mapping, List
 
 
 class InteractiveContext(SimulationContext):
-    """A simulation context for running simulations interactively.
-
-    The InteractiveContext provides a
-
-    There are four helper methods provided for creating an InteractiveContext
-    It is generated from one of four helper methods that can be used to create
-
-    """
 
     def __init__(self, configuration, components, plugin_manager=None):
         super().__init__(configuration, components, plugin_manager)
@@ -120,27 +113,6 @@ class InteractiveContext(SimulationContext):
 
 def initialize_simulation(components: List, input_config: Mapping=None,
                           plugin_config: Mapping=None) -> InteractiveContext:
-    """Initialize an interactive simulation without calling its setup method.
-
-    Initialize an interactive simulation from the components, configurations, and plugins passed to the function. This
-    is the alternative to `initialize_simulation_from_model_specification`, which derives the components, configurations
-    and plugins from a model specification file. The InteractiveContext object this function returns must be setup by
-    calling its setup() method before a simulation can be run.
-
-    Parameters
-    ----------
-    components
-        Components to be included in the simulation. Corresponds to the components block of a model specification
-    input_config
-        Configurations for the simulation. Corresponds to the configuration block of a model specification.
-    plugin_config
-        Plugins to be included in the simulation. Corresponds to the plugins block of a model specification.
-
-    Returns
-    -------
-    InteractiveContext
-        An initialized simulation context.
-    """
     config = build_simulation_configuration()
     config.update(input_config)
     plugin_manager = PluginManager(plugin_config)
@@ -150,26 +122,6 @@ def initialize_simulation(components: List, input_config: Mapping=None,
 
 def setup_simulation(components: List, input_config: Mapping=None,
                      plugin_config: Mapping=None) -> InteractiveContext:
-    """Initialize an interactive simulation and call its setup method.
-
-    Initialize and setup a simulation from the components, configurations and plugins passed to the function. This is
-    the alternative to `setup_simulation_from_model_specification`, which derives the components, configurations and
-    plugins from a model specification file. Since setup has been run the simulation is ready to be run.
-
-    Parameters
-    ----------
-    components
-        Components to be included in the simulation. Corresponds to the components block of a model specification
-    input_config
-        Configurations for the simulation. Corresponds to the configuration block of a model specification.
-    plugin_config
-        Plugins to be included in the simulation. Corresponds to the plugins block of a model specification.
-
-    Returns
-    -------
-    InteractiveContext
-        An initialized and setup simulation context.
-    """
     simulation = initialize_simulation(components, input_config, plugin_config)
     simulation.setup()
 
@@ -177,18 +129,6 @@ def setup_simulation(components: List, input_config: Mapping=None,
 
 
 def initialize_simulation_from_model_specification(model_specification_file: str) -> InteractiveContext:
-    """Initialize a simulation from a model specification file without calling its setup method.
-
-    Parameters
-    ----------
-    model_specification_file
-        A YAML file containing a Vivarium model specification.
-
-    Returns
-    -------
-    InteractiveContext
-        An initialized simulation context.
-    """
     model_specification = build_model_specification(model_specification_file)
 
     plugin_config = model_specification.plugins
@@ -203,18 +143,6 @@ def initialize_simulation_from_model_specification(model_specification_file: str
 
 
 def setup_simulation_from_model_specification(model_specification_file: str) -> InteractiveContext:
-    """Initialize a simulation from a model specification and call its setup method.
-
-    Parameters
-    ----------
-    model_specification_file
-            A YAML file containing a Vivarium model specification.
-
-    Returns
-    -------
-    InteractiveContext
-        An initialized and setup simulation context.
-    """
     simulation = initialize_simulation_from_model_specification(model_specification_file)
     simulation.setup()
 
