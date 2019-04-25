@@ -29,50 +29,120 @@ results are calculated, gathered, and written out.
 Initialization
 --------------
 
-There are **five** stages to the simulation life cycle in ``vivarium``. We will go through each of them as they appear
-from the entry point of ``simulate run``.
+The initialization phase of ``vivarium`` lasts from when a user first interacts
+with a simulation :ref:`entry point <entry_points_concept>` to when the
+``__init__`` method of the :class:`vivarium.framework.engine.SimulationContext`
+completes.  In it, the following things happen (roughly in this order):
 
-1. Initialization
-    First, ``vivarium`` will set up the results directory as described above, creating the necessary subdirectories. Then,
-    the core framework of ``vivarium`` takes over. It parses your model specification, setting up a PluginManager with the
-    plugins provided; creating a list of the provided components; and creating a :class:`vivarium.engine.SimulationContext`
-    to manage the running of the simulation. At this point, your model specification has been fully parsed and all
-    managers and top-level components have been initialized.
+1. Simulation outputs are configured. This is usually just setting up some
+   directories for the final results and the simulation logs.
+2. :term:`Model specification <Model Specification>` defaults are collected and
+   compiled along with the model specification file (if provided) into a
+   :class:`vivarium.config_tree.ConfigTree` object.
+3. A :class:`vivarium.framework.plugins.PluginManager` is generated around the
+   :term:`plugins <Plugin>` section of of the model specification.  The plugin
+   manager is responsible for parsing the plugin section and instantiating
+   plugin controllers and interfaces for the framework.
+4. The :class:`vivarium.framework.components.ComponentConfigurationParser` is
+   created to parse and instantiate all standard simulation
+   :term:`components <Component>`, if not provided directly by the user in
+   an interactive setting.
+5. The ``__init__`` method of the
+   :class:`vivarium.framework.engine.SimulationContext` is called with
+   the current :term:`configuration <Configuration>`, the instantiated
+   components, and the plugin manager.  This creates the
+   :ref:`builder <builder_concept>` which provides an interface to all the
+   simulation subsystems during the next phase of the simulation lifecycle.
+   It also registers all the simulation components with the
+   :class:`vivarium.framework.components.ComponentManager`.
 
-2. Setup
-    In this stage, the framework moves to setting up the components. For each top level component, the framework applies
-    any defaults of the component. Next, it calls ``setup`` on each component. At this stage, components may spawn
-    additional components, so this process continues until all components are setup. Setting up components may involve
-    loading data, registering or getting pipelines, creating lookup tables, registering population initializers, getting
-    randomness streams, etc. The specifics of this are determined by the :func:`setup` method on each component - the
-    framework itself simply calls that method.
+At this point, all input arguments have been parsed and all top-level
+components have been instantiated.  This is a useful phase in the simulation
+lifecycle because you can typically modify what components are in the system
+or how they are configured without any consequences.
 
-3. Initialization of the Base Population
-    It's not until this stage that the framework actually generates the base population for the simulation. Here, the
-    framework rewinds the simulation clock one time step and generates the population with ages smeared between the
-    simulation start time and that start time minus one time step. Note that this rewinding of the clock is purely what
-    it sounds like - there is no concept of a time step being taken here. Instead, the clock is literally reset back the
-    duration of one time step. Once the simulant population is generated, the clock is reset to the simulation start
-    time, again by changing the clock time only without any time step being taken.
+Setup
+-----
 
-4. Event Loop
-    At this stage, all the preparation work has been completed and the framework begins to move through the simulation.
-    This occurs as an event loop. The framework emits a series of events for each time step: *time_step__prepare*,
-    *time_step*, *time_step__cleanup*, *collect_metrics*. By listening for these events, individual components can
-    perform actions, including manipulating simulants. In this way does the engine drive the simulation forward.
+In this stage, the framework moves to setting up the
+:term:`components <Component>`. For each top-level component, the framework
+applies any :term:`configuration <Configuration>` defaults of the component.
+Next, it calls a special ``setup`` on each component providing each component
+access to the simulation :ref:`builder <builder_concept>` which allows the
+components to request services like :ref:`randomness <crn_concept>` or views
+into the :term:`population state table <State Table>` or to register themselves
+with various simulation subsystems. Setting up components may also involve
+loading data, registering or getting :ref:`pipelines <values_concept>`,
+creating :ref:`lookup tables <lookup_concept>`, and registering
+:ref:`population initializers <population_concept>`, among other things.
+The specifics of this are determined by the ``setup`` method on each component
+- the framework itself simply calls that method with a
+:class:`vivarium.framework.engine.Builder` object.  Part of component setup
+may sometimes spawn sub-components, so this process continues until all
+components are setup.
 
-    .. note::
+Post-setup
+----------
 
-        Note that we have multiple sources of time during this process. The :class:`vivarium.engine.SimulationContext`
-        itself holds onto a clock. This simulation clock is the actual time in the simulation. Events (including e.g.,
-        *time_step*) come with a time as well. This time is the time at the start of the next time step, that is, the
-        time when any changes made during the loop will happen.
+This is a small phase that exists in the simulation mainly so that framework
+:term:`managers <Plugin>` can coordinate shared state and do any necessary
+cleanup.  This is the first actual :ref:`event <event_concept>` emitted by
+the simulation framework.  Normal ``vivarium`` :term:`components <Component>`
+should never listen for this event.  This may be enforced at a later date.
 
-5. Finalization
-    The final stage in the simulation life cycle is fittingly enough, finalization. At this stage, the *simulation_end*
-    event is emitted to signal that the event loop has finished and the state table is final. At this point, outputs
-    should be computed.
+Population Initialization
+-------------------------
 
-These five stages together make up the life cycle of a ``vivarium`` simulation. ``simulate run`` provides your entry
-into this life cycle. Supply a model specification to ``simulate run`` and the simulation engine will use it to define
-the simulation that progresses through each of these stages.
+It's not until this stage that the framework actually generates the base
+:ref:`population <population_concept>` for the simulation. Here, the framework
+rewinds the simulation :ref:`clock <time_concept>` one time step and generates
+the population.  This time step fence-posting ensures that
+:term:`simulants <Simulant>` enter the simulation on the correct start date.
+Note that this rewinding of the clock is purely what it sounds like - there is
+no concept of a time step being taken here. Instead, the clock is literally
+reset back the duration of one time step. Once the simulant population is
+generated, the clock is reset to the simulation start time, again by changing
+the clock time only without any time step being taken.
+
+The Main Event Loop
+-------------------
+
+At this stage, all the preparation work has been completed and the framework
+begins to move through the simulation. This occurs as an
+:ref:`event loop <event_concept>`. The framework emits a series of events for
+each :ref:`time step <time_concept>`:
+
+1. *time_step__prepare*
+   A phase in which simulation :term:`components <Component>` can do any
+   work necessary to prepare for the time step.
+2. *time_step*
+   The phase in which the bulk of the simulation work is done.  Simulation
+   state is updated.
+3. *time_step__cleanup*
+   A phase for simulation components to do any post time step cleanup.
+4. *collect_metrics*
+   A life-cycle phase specifically reserved for computing and recording
+   simulation outputs.
+
+By listening for these events, individual components can perform actions,
+including manipulating simulants. This sequence of events is repeated until
+the simulation clock passes the simulation end time.
+
+.. note::
+
+    Note that we have multiple sources of time during this process. The
+    :class:`vivarium.framework.engine.SimulationContext` itself holds onto a
+    clock. This simulation clock is the actual time in the simulation. Events
+    (including e.g., *time_step*) come with a time as well. This time is the
+    time at the start of the next time step, that is, the time when any changes
+    made during the loop will happen.
+
+
+Finalization
+------------
+
+The final stage in the simulation life cycle is fittingly enough, finalization.
+At this stage, the *simulation_end* :ref:`event <event_concept>` is emitted to
+signal that the event loop has finished and the
+:ref:`state table <population_concept>` is final. At this point, final
+simulation outputs are safe to compute.

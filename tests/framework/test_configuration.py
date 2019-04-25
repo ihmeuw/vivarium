@@ -20,7 +20,7 @@ def test_get_default_specification_user_config(mocker):
     assert expand_user_mock.called_once_with('~/vivarium.yaml')
 
     with open(user_config) as f:
-        data = {'configuration': yaml.load(f)}
+        data = {'configuration': yaml.full_load(f)}
 
     data.update(DEFAULT_PLUGINS)
     data.update({'components': None})
