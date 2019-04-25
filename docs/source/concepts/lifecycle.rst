@@ -40,7 +40,7 @@ completes.  In it, the following things happen (roughly in this order):
    compiled along with the model specification file (if provided) into a
    :class:`vivarium.config_tree.ConfigTree` object.
 3. A :class:`vivarium.framework.plugins.PluginManager` is generated around the
-   :term:`plugins <Plugin>` section of of the model specification.  The plugin
+   :term:`plugins <Plugin>` section of the model specification.  The plugin
    manager is responsible for parsing the plugin section and instantiating
    plugin controllers and interfaces for the framework.
 4. The :class:`vivarium.framework.components.ComponentConfigurationParser` is
@@ -67,7 +67,7 @@ Setup
 In this stage, the framework moves to setting up the
 :term:`components <Component>`. For each top-level component, the framework
 applies any :term:`configuration <Configuration>` defaults of the component.
-Next, it calls a special ``setup`` on each component providing each component
+Next, it calls a special ``setup`` on each component, providing each component
 access to the simulation :ref:`builder <builder_concept>` which allows the
 components to request services like :ref:`randomness <crn_concept>` or views
 into the :term:`population state table <State Table>` or to register themselves
@@ -130,7 +130,7 @@ the simulation clock passes the simulation end time.
 
 .. note::
 
-    Note that we have multiple sources of time during this process. The
+    We have multiple sources of time during this process. The
     :class:`vivarium.framework.engine.SimulationContext` itself holds onto a
     clock. This simulation clock is the actual time in the simulation. Events
     (including e.g., *time_step*) come with a time as well. This time is the
