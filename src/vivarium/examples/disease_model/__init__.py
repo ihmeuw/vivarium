@@ -4,3 +4,8 @@ from .observer import Observer
 from .disease import DiseaseModel, DiseaseState, DiseaseTransition, SIS_DiseaseModel
 from .risk import Risk, DirectEffect
 from .intervention import MagicWandIntervention
+
+def get_model_specification_path():
+    from pathlib import Path
+    p = Path(__file__).parent / 'disease_model.yaml'
+    return str(p)
