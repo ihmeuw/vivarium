@@ -7,7 +7,7 @@ interpreter or Jupyter notebook.  Running a simulation in this way is useful for
 debugging and setting up validation simulations. It allows for changing a configuration of a simulation
 programmatically, stepping through a simulation at will, and examining the state of the simulation itself. For the
 following tutorial, we will assume you have set up an environment and installed vivarium. If you have not, please see
-<section>
+:doc:`getting started <getting_started>`
 
 .. contents::
     :depth: 2
@@ -16,8 +16,8 @@ following tutorial, we will assume you have set up an environment and installed 
 
 **Other Relevant Tutorials:**
 
-- To learn more about disease modeling and Vivarium simulations, see <section>
-- To go in depth and explore an Interactive simulation context, see <section>
+- To learn more about disease modeling and Vivarium simulations, see the :doc:`Disease Model tutorial <disease_model>`.
+- To go in depth and explore an Interactive simulation context, see <TBD>.
 
 Setting up a Simulation
 =======================
@@ -26,8 +26,9 @@ To run a simulation interactively, we will need to create a simulation object an
 components and (optionally) plugins -- all the things that make up a simulation. The ``Vivarium`` framework provides
 four functions to help us get started with this, all found in ``vivarium.interface``. They differ along two axes --
 how we give the simulation information about the components, plugins and configurations we'd like to simulate, and
-whether the simulation context is ``setup`` or not. However, each of these methods returns the same
-``InteractiveContext`` simulation object and can be interacted with in the same way.
+whether the simulation context is setup or not. However, each of these methods returns the same
+:func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>` simulation object and can be interacted
+with in the same way.
 
 .. list-table:: ``vivarium.interface`` **functions for creating simulations**
     :header-rows: 1
@@ -49,7 +50,7 @@ whether the simulation context is ``setup`` or not. However, each of these metho
 
 .. note:
 
-    see <section> for more on the difference between initialization and setup.
+    see <concepts section> for more on the difference between initialization and setup.
 
 The following examples will use the non-setup versions, but be aware that the counterparts exist that will call setup
 for you. Practically speaking, the utility of initializing without setting up is that it allows you to alter the
@@ -70,7 +71,7 @@ examples:
 We can prepare and run a simulation interactively with this specification as follows. First, we initialize the
 simulation and get back an ``InteractiveContext`` object.
 
-.. code-block:: python
+.. testcode:: python
 
     from vivarium.interface import initialize_simulation_from_model_specification
 
@@ -103,7 +104,7 @@ simulation takes less time.
 
 After configuring population size, we setup the simulation and run it as desired.  Here, we take a single step, useful
 for inspecting the simulation closely. The ``InteractiveContext`` provides several ways to advance a simulation,
-detailed below <link section>.
+detailed below :ref:`progressing`.
 
 .. code-block:: python
 
@@ -186,6 +187,8 @@ no matter which helper function you use, though it may or may not have had its s
 
 We can now progress the simulation as we did above. The object we get back, an ``InteractiveContext``, is the same
 no matter which helper function you use.
+
+.. _progressing
 
 Progressing the Simulation
 ==========================
