@@ -17,7 +17,7 @@ following tutorial, we will assume you have set up an environment and installed 
 **Other Relevant Tutorials:**
 
 - To learn more about disease modeling and Vivarium simulations, see the :doc:`Disease Model tutorial <disease_model>`.
-- To go in depth and explore an Interactive simulation context, see <TBD>.
+- To go in depth and explore the object that represents an interactive simulation, see <TBD>.
 
 Setting up a Simulation
 =======================
@@ -65,6 +65,8 @@ The model specification file contains all the information needed to prepare and 
 provide this for one way to get up and running quickly.  We will use the model specification from our disease model
 examples:
 
+.. _disease_model_yaml:
+
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/disease_model.yaml
     :caption: **File**: :file:`disease_model.yaml`
 
@@ -79,7 +81,7 @@ simulation and get back an :func:`InteractiveContext <vivarium.interface.interac
     sim = initialize_simulation_from_model_specification(p)
 
 In order to make it easier to follow along with this tutorial, We provide a convenience function to get the path to the
-disease model example specification distributed with Vivarium.1543.64
+disease model example specification distributed with Vivarium.
 
 .. code-block:: python
 
@@ -89,13 +91,14 @@ disease model example specification distributed with Vivarium.1543.64
     p = get_model_specification_path()
     sim = initialize_simulation_from_model_specification(p)
 
-The function `initialize_simulation_from_model_specification() <vivarium.interface.initialize_simulation_from_model_specificaiton>`
+The function :func:`initialize_simulation_from_model_specification() <vivarium.interface.interactive.initialize_simulation_from_model_specification>`
 returns a simulation object that has not been setup yet so we can alter the configuration interactively, if we wish.
 Let's alter the population size to be smaller so the simulation takes less time.
 
 .. note::
-    If we did not need to alter the configuration we could have used the function's counterpart from the interface module
-    that would implicitly call setup for us, :func:`setup_simulation_from_model_specification() <vivarium.interface.setup_simulation_from_model_specification>`.
+    If we did not need to alter the configuration we could have used the function's counterpart from the interface
+    module that would implicitly call setup for us,
+    :func:`setup_simulation_from_model_specification() <vivarium.interface.interactive.setup_simulation_from_model_specification>`.
 
 .. code-block:: python
 
@@ -117,7 +120,7 @@ Without a Model Specification File - The Manual Way
 
 It is possible to prepare a simulation by explicitly passing in the instantiated objects you wish to use rather than
 getting them from a model specification file. To demonstrate this, we will recreate the simulation from the
-``disease_model.yaml`` specification without using the actual file itself.
+:ref:`disease_model.yaml <disease_model_yaml>` specification without using the actual file itself.
 
 Components
 ~~~~~~~~~~
@@ -176,7 +179,7 @@ Initialize
 
 We can setup and progress the simulation as we did above. The object we get back, an :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>`,
 is the same no matter which helper function you use, though it may or may not have had its setup function called. Here,
-we will use :func:`setup_simulation() <vivarium.interface.setup_simulation>` to automatically initialize and setup our
+we will use :func:`setup_simulation() <vivarium.interface.interactive.setup_simulation>` to automatically initialize and setup our
 simulation context.
 
 .. code-block:: python
