@@ -14,3 +14,4 @@ Python package where you'll build your model components.
    boids
    disease_model
    running_a_simulation
+   interactive_simulation
