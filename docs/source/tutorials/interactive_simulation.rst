@@ -54,7 +54,7 @@ simulation and get back an ``InteractiveContext`` object.
 
 .. code-block:: python
 
-    from vivarium_public_health.interactive import initialize_simulation_from_model_specification
+    from vivarium.interface import initialize_simulation_from_model_specification
 
     p = "/path/to/disease_model.yaml"
     sim = initialize_simulation_from_model_specification(p)
@@ -64,7 +64,7 @@ disease model example specification distributed with Vivarium.
 
 .. code-block:: python
 
-    from vivarium_public_health.interactive import initialize_simulation_from_model_specification
+    from vivarium.interface import initialize_simulation_from_model_specification
     from vivarium.examples.disease_model import get_model_specification_path
 
     p = get_model_specification_path()
@@ -161,7 +161,7 @@ no matter which helper function you use, though it may or may not have had its s
 
 .. code-block:: python
 
-    from vivarium_public_health.interactive import setup_simulation
+    from vivarium.interface import setup_simulation
 
     sim = setup_simulation(components, config)
     sim.step()
