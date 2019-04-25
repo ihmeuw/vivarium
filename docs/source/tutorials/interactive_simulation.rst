@@ -184,10 +184,6 @@ no matter which helper function you use, though it may or may not have had its s
     sim = setup_simulation(components, config)
     sim.step()
 
-.. note::
-    If we did not need to alter the configuration we could have used the function's counterpart from ``interactive``
-    that would implicitly call setup for us, ``setup_simulation()``.
-
 We can now progress the simulation as we did above. The object we get back, an ``InteractiveContext``, is the same
 no matter which helper function you use.
 
