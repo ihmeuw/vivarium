@@ -1,4 +1,4 @@
-.. crn_concept:
+.. _crn_concept:
 
 =====================
 Common Random Numbers
