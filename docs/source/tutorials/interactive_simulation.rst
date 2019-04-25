@@ -30,21 +30,21 @@ whether the simulation context is setup or not. However, each of these methods r
 :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>` simulation object and can be interacted
 with in the same way.
 
-.. list-table:: ``vivarium.interface`` **functions for creating simulations**
+.. list-table:: vivarium.interface **functions for creating simulations**
     :header-rows: 1
     :widths: 30, 30
 
     *   - Function
         - Description
-    *   - | **initialize_simulation**
+    *   - | :func:`initialize_simulation <vivarium.interface.interactive.initialize_simulation>`
         - | Initialize a simulation from a list of components and a configuration
           | dictionary
-    *   - | **setup_simulation**
+    *   - | :func:`setup_simulation <vivarium.interface.interactive.setup_simulation>`
         - | Initialize a simulation from a list of components and a configuration
           | dictionary and call its setup method
-    *   - | **initialize_simulation_from_model_specification**
+    *   - | :func:`initialize_simulation_from_model_specification <vivarium.interface.interactive.initialize_simulation_from_model_specification>`
         - | Initialize a simulation from a model specification file
-    *   - | **setup_simulation_from_model_specification**
+    *   - | :func:`setup_simulation_from_model_specification <vivarium.interface.interactive.setup_simulation_from_model_specification>`
         - | Initialize a simulation from a model specification file and call its
           | setup method
 
@@ -173,7 +173,7 @@ We also need to create a dictionary of the configurations for the components.
 Initialize
 ~~~~~~~~~~
 
-We can setup and progress the simulation as we did above. The object we get back, an :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>`,
+We can setup and advance the simulation as we did above. The object we get back, an :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>`,
 is the same no matter which helper function you use, though it may or may not have had its setup function called. Here,
 we will use :func:`setup_simulation() <vivarium.interface.interactive.setup_simulation>` to automatically initialize and setup our
 simulation context.
@@ -187,13 +187,31 @@ simulation context.
 
 .. _progressing:
 
-Progressing the Simulation
-==========================
+Advancing the Simulation
+========================
 
-A simulation can be progressed in several ways, either in terms of steps or in terms of time in the context of the
-simulation. Above, we advanced the simulation by one step using ``step()``, which is a unit of time dictated by the
-model's configuration.  We could also take an arbitrary amount of steps using ``takesteps()``.  Perhaps the simplest
-way is to call ``run()``, which will run the simulation from it's specified start and end times.
+A simulation can be progressed in several ways, either in terms of steps of a size determined by the simulation
+configuration or in terms of the simulation's start and end time.  The simplest way to advance a simulation is to call
+:func:`run() <vivarium.interface.interactive.InteractiveContext.run>` on it, which will advance it from its specified
+start time to its specified end time.  Below is a table of the functions that can be called on an ``InteractiveContext``
+to advance a simulation in different ways.
 
-A simulation can also be run in terms of its timeframe. ``run_for()`` and ``run_until()`` will run for a period of time
-or until a timestamp, but the simulation's time frame is needed to make sense of this.
+.. list-table:: InteractiveContext **functions for advancing simulations**
+    :header-rows: 1
+    :widths: 30, 30
+
+    *   - Function
+        - Description
+    *   - | :func:`run <vivarium.interface.interactive.InteractiveContext.run>`
+        - | Run the simulation for its entire duration, from its start time to its end time. The start and end are
+          | specified in the configuration time block.
+    *   - | :func:`step <vivarium.interface.interactive.InteractiveContext.step>`
+        - | Advance the simulation one step. The step size is taken from the configuration time block.
+    *   - | :func:`take_steps <vivarium.interface.interactive.InteractiveContext.take_steps>`
+        - | Advance the simulation ``n`` steps.
+    *   - | :func:`run_until <vivarium.interface.interactive.InteractiveContext.run_until>`
+        - | Advance the simulation to a specific timestamp. This timestamp should make sense given the simulation's
+          | start and end times.
+    *   - | :func:`run_for <vivarium.interface.interactive.InteractiveContext.run_for>`
+        - | Advance the simulation for a duration. This duration should makes sense given the simulation's start and
+          | end times.
