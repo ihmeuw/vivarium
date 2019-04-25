@@ -24,10 +24,28 @@ Setting up a Simulation
 
 To run a simulation interactively, we will need to create a simulation object and furnish it with configurations,
 components and (optionally) plugins -- all the things that make up a simulation. The ``Vivarium`` framework provides
-four functions to help us get started with this, all found in ``vivarium_public_health``. They differ along two axes --
+four functions to help us get started with this, all found in ``vivarium.interface``. They differ along two axes --
 how we give the simulation information about the components, plugins and configurations we'd like to simulate, and
 whether the simulation context is ``setup`` or not. However, each of these methods returns the same
 ``InteractiveContext`` simulation object and can be interacted with in the same way.
+
+.. list-table:: ``vivarium.interface`` **functions for creating simulations**
+    :header-rows: 1
+    :widths: 30, 30
+
+    *   - Function
+        - Description
+    *   - | **initialize_simulation**
+        - | Initialize a simulation from a list of components and a configuration
+          | dictionary
+    *   - | **setup_simulation**
+        - | Initialize a simulation from a list of components and a configuration
+          | dictionary and call its setup method
+    *   - | **initialize_simulation_from_model_specification**
+        - | Initialize a simulation from a model specification file
+    *   - | **setup_simulation_from_model_specification**
+        - | Initialize a simulation from a model specification file and call its
+          | setup method
 
 .. note:
 
