@@ -9,10 +9,14 @@ the Vivarium framework.
 .. toctree::
    :maxdepth: 2
 
-   configuration
-   lifecycle
    builder
-   entry_points
+   configuration
    crn
-   values
    data
+   entry_points
+   event
+   lifecycle
+   lookup
+   population
+   time
+   values
