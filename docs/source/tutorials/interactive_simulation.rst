@@ -7,7 +7,7 @@ interpreter or Jupyter notebook.  Running a simulation in this way is useful for
 debugging and setting up validation simulations. It allows for changing a configuration of a simulation
 programmatically, stepping through a simulation at will, and examining the state of the simulation itself. For the
 following tutorial, we will assume you have set up an environment and installed vivarium. If you have not, please see
-:doc:`getting started <getting_started>`
+:doc:`Installing Vivarium <installation>`
 
 .. contents::
     :depth: 2
@@ -23,8 +23,8 @@ Setting up a Simulation
 =======================
 
 To run a simulation interactively, we will need to create a simulation object and furnish it with configurations,
-components and (optionally) plugins -- all the things that make up a simulation. The ``Vivarium`` framework provides
-four functions to help us get started with this, all found in ``vivarium.interface``. They differ along two axes --
+components and (optionally) plugins -- all the things that make up a simulation. The Vivarium framework provides
+four functions to help us get started with this, all found in `vivarium.interface`. They differ along two axes --
 how we give the simulation information about the components, plugins and configurations we'd like to simulate, and
 whether the simulation context is setup or not. However, each of these methods returns the same
 :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>` simulation object and can be interacted
@@ -48,9 +48,9 @@ with in the same way.
         - | Initialize a simulation from a model specification file and call its
           | setup method
 
-.. note:
 
-    see <concepts section> for more on the difference between initialization and setup.
+.. note::
+    see the :doc:`lifecycle section <lifecycle>` for more on the difference between initialization and setup.
 
 The following examples will use the non-setup versions, but be aware that the counterparts exist that will call setup
 for you. Practically speaking, the utility of initializing without setting up is that it allows you to alter the
@@ -69,7 +69,7 @@ examples:
     :caption: **File**: :file:`disease_model.yaml`
 
 We can prepare and run a simulation interactively with this specification as follows. First, we initialize the
-simulation and get back an ``InteractiveContext`` object.
+simulation and get back an :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>` object.
 
 .. testcode:: python
 
@@ -79,7 +79,7 @@ simulation and get back an ``InteractiveContext`` object.
     sim = initialize_simulation_from_model_specification(p)
 
 In order to make it easier to follow along with this tutorial, We provide a convenience function to get the path to the
-disease model example specification distributed with Vivarium.
+disease model example specification distributed with Vivarium.1543.64
 
 .. code-block:: python
 
@@ -89,13 +89,13 @@ disease model example specification distributed with Vivarium.
     p = get_model_specification_path()
     sim = initialize_simulation_from_model_specification(p)
 
-The function ``initialize_simulation_from_model_specification()`` returns a simulation object that has not been setup
-yet so we can alter the configuration interactively, if we wish. Let's alter the population size to be smaller so the
-simulation takes less time.
+The function `initialize_simulation_from_model_specification() <vivarium.interface.initialize_simulation_from_model_specificaiton>`
+returns a simulation object that has not been setup yet so we can alter the configuration interactively, if we wish.
+Let's alter the population size to be smaller so the simulation takes less time.
 
 .. note::
-    If we did not need to alter the configuration we could have used the function's counterpart from ``interactive``
-    that would implicitly call setup for us, ``setup_simulation_from_model_specification()``.
+    If we did not need to alter the configuration we could have used the function's counterpart from the interface module
+    that would implicitly call setup for us, :func:`setup_simulation_from_model_specification() <vivarium.interface.setup_simulation_from_model_specification>`.
 
 .. code-block:: python
 
@@ -103,8 +103,8 @@ simulation takes less time.
     sim.configuration.update({'population': {'population_size': 1_000}})
 
 After configuring population size, we setup the simulation and run it as desired.  Here, we take a single step, useful
-for inspecting the simulation closely. The ``InteractiveContext`` provides several ways to advance a simulation,
-detailed below :ref:`progressing`.
+for inspecting the simulation closely. The :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>`
+provides several ways to advance a simulation, detailed below in :ref:`progressing`.
 
 .. code-block:: python
 
@@ -174,9 +174,10 @@ We also need to create a dictionary of the configurations for the components.
 Initialize
 ~~~~~~~~~~
 
-We can setup and progress the simulation as we did above. The object we get back, an ``InteractiveContext``, is the same
-no matter which helper function you use, though it may or may not have had its setup function called. Here, we will use
-``setup_simulation`` to automatically initialize and setup our simulation context.
+We can setup and progress the simulation as we did above. The object we get back, an :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>`,
+is the same no matter which helper function you use, though it may or may not have had its setup function called. Here,
+we will use :func:`setup_simulation() <vivarium.interface.setup_simulation>` to automatically initialize and setup our
+simulation context.
 
 .. code-block:: python
 
@@ -185,10 +186,7 @@ no matter which helper function you use, though it may or may not have had its s
     sim = setup_simulation(components, config)
     sim.step()
 
-We can now progress the simulation as we did above. The object we get back, an ``InteractiveContext``, is the same
-no matter which helper function you use.
-
-.. _progressing
+.. _progressing:
 
 Progressing the Simulation
 ==========================
