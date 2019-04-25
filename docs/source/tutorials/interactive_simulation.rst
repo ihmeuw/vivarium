@@ -7,7 +7,7 @@ interpreter or Jupyter notebook.  Running a simulation in this way is useful for
 debugging and setting up validation simulations. It allows for changing a configuration of a simulation
 programmatically, stepping through a simulation at will, and examining the state of the simulation itself. For the
 following tutorial, we will assume you have set up an environment and installed vivarium. If you have not, please see
-:doc:`Installing Vivarium <installation>`
+<Installing Vivarium>.
 
 .. contents::
     :depth: 2
@@ -50,7 +50,7 @@ with in the same way.
 
 
 .. note::
-    see the :doc:`lifecycle section <lifecycle>` for more on the difference between initialization and setup.
+    see the <lifecycle section> for more on the difference between initialization and setup.
 
 The following examples will use the non-setup versions, but be aware that the counterparts exist that will call setup
 for you. Practically speaking, the utility of initializing without setting up is that it allows you to alter the
