@@ -18,7 +18,7 @@ Glossary
         attributes of the :term:`simulants <Simulant>`.
 
     Configuration
-        The configuration is a a set of parameters a user can modify to
+        The configuration is a set of parameters a user can modify to
         adjust the behavior of :term:`components <Component>`.  Components
         themselves may provide defaults for several configuration parameters.
 
@@ -52,6 +52,6 @@ Glossary
     State Table
         The core representation of the population in the simulation.  The state
         table consists of a row for each :term:`simulant <Simulant>` and a
-        column for each :term:`attribute <Attribute>` the simulant possess.
+        column for each :term:`attribute <Attribute>` the simulant possesses.
 
 
