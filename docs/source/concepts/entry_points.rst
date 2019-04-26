@@ -1,3 +1,6 @@
+.. _entry_points_concept:
+
+=======================
 Simulation Entry Points
 =======================
 

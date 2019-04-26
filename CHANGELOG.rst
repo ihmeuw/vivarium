@@ -1,3 +1,8 @@
+**0.8.20 - 04/22/19**
+
+ - Add simulation lifecycle info to the simulant creator.
+ - Bugfix in simulate profile.
+
 **0.8.19 - 03/27/19**
 
  - Update results writer to write new hdfs instead of overwriting.

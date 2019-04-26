@@ -73,7 +73,7 @@ def import_and_instantiate_mock(mocker):
 
 def test_parse_component_config(components):
 
-    source = yaml.load(components)['components']
+    source = yaml.full_load(components)['components']
     component_list = _parse_component_config(source)
     assert set(TEST_COMPONENTS_PARSED) == set(component_list)
 
@@ -100,7 +100,7 @@ def test_parse_component_syntax_error():
 
 
 def test_parse_and_prep_components(components):
-    source = yaml.load(components)['components']
+    source = yaml.full_load(components)['components']
     prepped_components = _prep_components(_parse_component_config(source))
 
     assert set(TEST_COMPONENTS_PREPPED) == set(prepped_components)
@@ -133,6 +133,6 @@ def test_ComponentConfigurationParser_get_components(import_and_instantiate_mock
 
 
 def test_components_config_valid():
-    bad_config = yaml.load(TEST_COMPONENTS_BAD)['components']
+    bad_config = yaml.full_load(TEST_COMPONENTS_BAD)['components']
     with pytest.raises(ParsingError):
         _parse_component_config(bad_config)
