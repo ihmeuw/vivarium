@@ -32,7 +32,7 @@ def validate_model_specification_file(file_path: str) -> str:
     if extension not in ['yaml', 'yml']:
         raise ConfigurationError(f'Model specification files must be in a yaml format. You provided {extension}')
     # Attempt to load
-    yaml.load(file_path)
+    yaml.full_load(file_path)
     return file_path
 
 

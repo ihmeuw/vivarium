@@ -1,14 +1,14 @@
-from bdb import BdbQuit
 import os
-from pathlib import Path
 import shutil
 import cProfile
+import pstats
+from bdb import BdbQuit
+from pathlib import Path
 
 import click
 
 import vivarium
 from vivarium.framework.engine import run_simulation
-
 from .utilities import verify_yaml
 
 import logging
@@ -92,12 +92,24 @@ def test():
               default=os.path.expanduser('~/vivarium_results/'),
               help='The directory to write results to. A folder will be created '
                    'in this directory with the same name as the configuration file.')
-def profile(model_specification, results_directory):
+@click.option('--process/--no-process', default=False,
+               help=('Automatically process the profile to human readable format  with pstats, '
+                     'sorted by cumulative runtime, and dump to a file'))
+def profile(model_specification, results_directory, process):
     """Run a simulation based on the provided MODEL_SPECIFICATION and profile
     the run.
     """
     model_specification = Path(model_specification)
-    out_file = results_directory / f'{model_specification.name}'.replace('yaml', 'stats')
+    results_directory = Path(results_directory)
+
+    out_stats_file = results_directory / f'{model_specification.name}'.replace('yaml', 'stats')
     command = f'run_simulation("{model_specification}", "{results_directory}")'
-    cProfile.runctx(command, globals=globals(), locals=locals(), filename=out_file)
+    cProfile.runctx(command, globals=globals(), locals=locals(), filename=out_stats_file)
+
+    if process:
+        out_txt_file = results_directory / (out_stats_file.name + '.txt')
+        with open(out_txt_file, 'w') as f:
+            p = pstats.Stats(str(out_stats_file), stream=f)
+            p.sort_stats('cumulative')
+            p.print_stats()
 
