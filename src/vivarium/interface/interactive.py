@@ -14,10 +14,11 @@ from .utilities import run_from_ipython, log_progress, raise_if_not_setup
 
 
 class InteractiveContext(SimulationContext):
-    """A simulation context with helper methods for running simulations interactively.
+    """A simulation context with helper methods for running simulations
+    interactively.
 
-    This class should not be instantiated directly. It should be created with a call to one
-    of the  helper methods provided in this module.
+    This class should not be instantiated directly. It should be created with a
+    call to one of the  helper methods provided in this module.
     """
 
     def __init__(self, configuration, components, plugin_manager=None):
@@ -31,7 +32,8 @@ class InteractiveContext(SimulationContext):
         self.initialize_simulants()
 
     def initialize_simulants(self):
-        """Initialize this simulation's population. Should not be called directly."""
+        """Initialize this simulation's population. Should not be called
+        directly."""
         super().initialize_simulants()
         self._initial_population = self.population.get_population(True)
 
@@ -46,12 +48,14 @@ class InteractiveContext(SimulationContext):
 
     @raise_if_not_setup(system_type='run')
     def run(self, with_logging: bool=True) -> int:
-        """Run the simulation for the time duration specified in the configuration
+        """Run the simulation for the time duration specified in the
+        configuration
 
         Parameters
         ----------
         with_logging
-            Whether or not to log the simulation steps. Only works in an ipython environment.
+            Whether or not to log the simulation steps. Only works in an ipython
+            environment.
 
         Returns
         -------
@@ -67,10 +71,12 @@ class InteractiveContext(SimulationContext):
         Parameters
         ----------
         duration
-            The length of time to run the simulation for. Should be the same type as the simulation clock's step size
-            (usually a pandas Timedelta).
+            The length of time to run the simulation for. Should be the same
+            type as the simulation clock's step size (usually a pandas
+            Timedelta).
         with_logging
-            Whether or not to log the simulation steps. Only works in an ipython environment.
+            Whether or not to log the simulation steps. Only works in an ipython
+            environment.
 
         Returns
         -------
@@ -85,10 +91,11 @@ class InteractiveContext(SimulationContext):
         Parameters
         ----------
         end_time
-            The time to run the simulation until. The simulation will run until its clock
-            is greater than or equal to the provided end time.
+            The time to run the simulation until. The simulation will run until
+            its clock is greater than or equal to the provided end time.
         with_logging
-            Whether or not to log the simulation steps. Only works in an ipython environment.
+            Whether or not to log the simulation steps. Only works in an ipython
+            environment.
 
         Returns
         -------
@@ -109,8 +116,8 @@ class InteractiveContext(SimulationContext):
         Parameters
         ----------
         step_size
-            An optional size of step to take. Must be the same type as the simulation clock's step size
-            (usually a pandas.Timedelta).
+            An optional size of step to take. Must be the same type as the
+            simulation clock's step size (usually a pandas.Timedelta).
         """
         old_step_size = self.clock.step_size
         if step_size is not None:
@@ -129,10 +136,11 @@ class InteractiveContext(SimulationContext):
         number_of_steps
             The number of steps to take.
         step_size
-            An optional size of step to take. Must be the same type as the simulation clock's step size
-            (usually a pandas.Timedelta).
+            An optional size of step to take. Must be the same type as the
+            simulation clock's step size (usually a pandas.Timedelta).
         with_logging
-            Whether or not to log the simulation steps. Only works in an ipython environment.
+            Whether or not to log the simulation steps. Only works in an ipython
+            environment.
         """
         if not isinstance(number_of_steps, int):
             raise ValueError('Number of steps must be an integer.')
@@ -186,22 +194,27 @@ class InteractiveContext(SimulationContext):
 
 def initialize_simulation(components: List, input_config: Mapping=None,
                           plugin_config: Mapping=None) -> InteractiveContext:
-    """Construct a simulation from a list of components, component configuration, and a plugin configuration.
+    """Construct a simulation from a list of components, component
+    configuration, and a plugin configuration.
 
-    The simulation context returned by this method still needs to be setup by calling its setup method. It is mostly
-    useful for testing and debugging.
+    The simulation context returned by this method still needs to be setup by
+    calling its setup method. It is mostly useful for testing and debugging.
 
     Parameters
     ----------
     components
-        A list of initialized simulation components. Corresponds to the components block of a model specification.
+        A list of initialized simulation components. Corresponds to the
+        components block of a model specification.
     input_config
-        A nested dictionary with any additional simulation configuration information needed. Corresponds to the
-        configuration block of a model specification.
+        A nested dictionary with any additional simulation configuration
+        information needed. Corresponds to the configuration block of a model
+        specification.
     plugin_config
-        A dictionary containing a description of any simulation plugins to include in the simulation. If you're using
-        this argument, you're either deep in the process of simulation development or the maintainers have done
-        something wrong. Corresponds to the plugins block of a model specification.
+        A dictionary containing a description of any simulation plugins to
+        include in the simulation. If you're using this argument, you're either
+        deep in the process of simulation development or the maintainers have
+        done something wrong. Corresponds to the plugins block of a model
+        specification.
 
     Returns
     -------
@@ -216,19 +229,24 @@ def initialize_simulation(components: List, input_config: Mapping=None,
 
 def setup_simulation(components: List, input_config: Mapping=None,
                      plugin_config: Mapping=None) -> InteractiveContext:
-    """Construct a simulation from a list of components and call its setup method.
+    """Construct a simulation from a list of components and call its setup
+    method.
 
     Parameters
     ----------
     components
-        A list of initialized simulation components. Corresponds to the components block of a model specification.
+        A list of initialized simulation components. Corresponds to the
+        components block of a model specification.
     input_config
-        A nested dictionary with any additional simulation configuration information needed. Corresponds to the
-        configuration block of a model specification.
+        A nested dictionary with any additional simulation configuration
+        information needed. Corresponds to the configuration block of a model
+        specification.
     plugin_config
-        A dictionary containing a description of any simulation plugins to include in the simulation. If you're using
-        this argument, you're either deep in the process of simulation development or the maintainers have done
-        something wrong. Corresponds to the plugins block of a model specification.
+        A dictionary containing a description of any simulation plugins to
+        include in the simulation. If you're using this argument, you're either
+        deep in the process of simulation development or the maintainers have
+        done something wrong. Corresponds to the plugins block of a model
+        specification.
 
     Returns
     -------
@@ -243,8 +261,8 @@ def setup_simulation(components: List, input_config: Mapping=None,
 def initialize_simulation_from_model_specification(model_specification_file: str) -> InteractiveContext:
     """Construct a simulation from a model specification file.
 
-    The simulation context returned by this method still needs to be setup by calling its setup method. It is mostly
-    useful for testing and debugging.
+    The simulation context returned by this method still needs to be setup by
+    calling its setup method. It is mostly useful for testing and debugging.
 
     Parameters
     ----------
@@ -269,7 +287,8 @@ def initialize_simulation_from_model_specification(model_specification_file: str
 
 
 def setup_simulation_from_model_specification(model_specification_file: str) -> InteractiveContext:
-    """Construct a simulation from a model specification file and call its setup method.
+    """Construct a simulation from a model specification file and call its setup
+    method.
 
     Parameters
     ----------
