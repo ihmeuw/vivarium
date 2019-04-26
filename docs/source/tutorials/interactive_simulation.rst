@@ -50,7 +50,7 @@ with in the same way.
 
 
 .. note::
-    see the <lifecycle section> for more on the difference between initialization and setup.
+    See the <lifecycle section> for more on the difference between initialization and setup.
 
 The following examples will use the non-setup versions, but be aware that the counterparts exist that will call setup
 for you. Practically speaking, the utility of initializing without setting up is that it allows you to alter the
@@ -61,8 +61,8 @@ going on and guarantees that a configuration parameter is set as it should be.
 With a Model Specification File - The Automatic Way
 ---------------------------------------------------
 
-The model specification file contains all the information needed to prepare and run a simulation so we need only
-provide this for one way to get up and running quickly.  We will use the model specification from our disease model
+The model specification file contains all the information needed to prepare and run a simulation so to get up 
+and running quickly, we need only provide this file.  We will use the model specification from our disease model
 examples:
 
 .. _disease_model_yaml:
@@ -80,7 +80,7 @@ simulation and get back an :func:`InteractiveContext <vivarium.interface.interac
     p = "/path/to/disease_model.yaml"
     sim = initialize_simulation_from_model_specification(p)
 
-In order to make it easier to follow along with this tutorial, We provide a convenience function to get the path to the
+In order to make it easier to follow along with this tutorial, we provide a convenience function to get the path to the
 disease model example specification distributed with Vivarium.
 
 .. code-block:: python
@@ -213,5 +213,5 @@ to advance a simulation in different ways.
         - | Advance the simulation to a specific timestamp. This timestamp should make sense given the simulation's
           | start and end times.
     *   - | :func:`run_for <vivarium.interface.interactive.InteractiveContext.run_for>`
-        - | Advance the simulation for a duration. This duration should makes sense given the simulation's start and
+        - | Advance the simulation for a duration. This duration should make sense given the simulation's start and
           | end times.
