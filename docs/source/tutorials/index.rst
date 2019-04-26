@@ -13,3 +13,4 @@ Python package where you'll build your model components.
    getting_started
    boids
    disease_model
+   running_a_simulation
