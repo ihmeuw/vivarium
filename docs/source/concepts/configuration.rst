@@ -1,3 +1,6 @@
+.. _configuration_concept:
+
+========================
 The Configuration System
 ========================
 
