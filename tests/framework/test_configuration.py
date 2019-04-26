@@ -20,7 +20,7 @@ def test_get_default_specification_user_config(mocker):
     assert expand_user_mock.called_once_with('~/vivarium.yaml')
 
     with open(user_config) as f:
-        data = {'configuration': yaml.load(f)}
+        data = {'configuration': yaml.full_load(f)}
 
     data.update(DEFAULT_PLUGINS)
     data.update({'components': None})
@@ -74,7 +74,7 @@ def test_build_simulation_configuration(mocker):
     assert expand_user_mock.called_once_with('~/vivarium.yaml')
 
     with open(user_config) as f:
-        data = yaml.load(f)
+        data = yaml.full_load(f)
 
     assert config.to_dict() == data
 
@@ -105,12 +105,12 @@ def test_build_model_specification(mocker, user_config_ext, model_config_ext):
     test_data = DEFAULT_PLUGINS
 
     with open(model_spec) as f:
-        model_data = yaml.load(f)
+        model_data = yaml.full_load(f)
 
     test_data.update(model_data)
 
     with open(user_config) as f:
-        user_data = yaml.load(f)
+        user_data = yaml.full_load(f)
 
     test_data['configuration'].update(user_data)
 

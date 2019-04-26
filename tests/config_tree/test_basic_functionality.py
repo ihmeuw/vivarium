@@ -200,13 +200,13 @@ def test_update():
     test_yaml = test_dir + '/../test_data/mock_model_specification.yaml'
     config.update(test_yaml)
     with open(test_yaml) as f:
-        yaml_config = yaml.load(f)
+        yaml_config = yaml.full_load(f)
     assert yaml_config == config.to_dict()
 
     test_yml = test_dir + '/../test_data/mock_model_specification.yml'
     config.update(test_yml)
     with open(test_yml) as f:
-        yml_config = yaml.load(f)
+        yml_config = yaml.full_load(f)
     assert yml_config == config.to_dict()
 
     non_yaml_file = test_dir + '/../test_data/bad_model_specifiaction.txt'
