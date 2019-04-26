@@ -30,7 +30,7 @@ whether the simulation context is setup or not. However, each of these methods r
 :func:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>` simulation object and can be interacted
 with in the same way.
 
-.. list-table:: vivarium.interface **functions for creating simulations**
+.. list-table:: **vivarium.interface functions for creating simulations**
     :header-rows: 1
     :widths: 30, 30
 
@@ -196,7 +196,7 @@ configuration or in terms of the simulation's start and end time.  The simplest 
 start time to its specified end time.  Below is a table of the functions that can be called on an ``InteractiveContext``
 to advance a simulation in different ways.
 
-.. list-table:: InteractiveContext **functions for advancing simulations**
+.. list-table:: **InteractiveContext functions for advancing simulations**
     :header-rows: 1
     :widths: 30, 30
 
