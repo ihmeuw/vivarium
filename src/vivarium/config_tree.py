@@ -391,7 +391,7 @@ class ConfigTree:
         source : str
             Source to attribute the values to
         """
-        data_dict = yaml.load(data_string)
+        data_dict = yaml.full_load(data_string)
         self._read_dict(data_dict, layer, source)
 
     def _load(self, f, layer=None, source=None):
