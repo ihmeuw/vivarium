@@ -38,15 +38,19 @@ completes.  In it, the following things happen (roughly in this order):
    directories for the final results and the simulation logs.
 2. :term:`Model specification <Model Specification>` defaults are collected and
    compiled along with the model specification file (if provided) into a
-   :class:`vivarium.config_tree.ConfigTree` object.
+   :class:`vivarium.config_tree.ConfigTree` object. Importantly,
+   default :term:`configuration <Configuration>` information from specific
+   components is not compiled into the :class:`vivarium.config_tree.ConfigTree`
+   at this point.
 3. A :class:`vivarium.framework.plugins.PluginManager` is generated around the
    :term:`plugins <Plugin>` section of of the model specification.  The plugin
    manager is responsible for parsing the plugin section and instantiating
    plugin controllers and interfaces for the framework.
-4. The :class:`vivarium.framework.components.ComponentConfigurationParser` is
-   created to parse and instantiate all standard simulation
-   :term:`components <Component>`, if not provided directly by the user in
-   an interactive setting.
+4. If :term:`components <Component>` are not provided directly by the user in
+   an interactive setting, the
+   :class:`vivarium.framework.components.ComponentConfigurationParser` is
+   created to parse and instantiate them from the
+   :term:`Model specification <Model Specification>`.
 5. The ``__init__`` method of the
    :class:`vivarium.framework.engine.SimulationContext` is called with
    the current :term:`configuration <Configuration>`, the instantiated
