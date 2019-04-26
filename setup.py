@@ -19,7 +19,7 @@ if __name__ == "__main__":
     install_requirements = [
         'numpy',
         'pandas',
-        'pyyaml',
+        'pyyaml>=5.1',
         'scipy',
         'click',
         'tables',
