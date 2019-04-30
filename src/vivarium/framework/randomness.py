@@ -182,7 +182,7 @@ class IndexMap:
         return 'IndexMap({})'.format("\n         ".join(repr(self._map).split("\n")))
 
 
-def random(key: str, index: Index, index_map: IndexMap=None) -> pd.Series:
+def random(key: str, index: Index, index_map: IndexMap = None) -> pd.Series:
     """Produces an indexed `pandas.Series` of uniformly distributed random numbers.
 
     The index passed in typically corresponds to a subset of rows in a
@@ -243,7 +243,7 @@ def get_hash(key: str) -> int:
     return int(hashlib.sha1(key.encode('utf8')).hexdigest(), 16) % 4294967295
 
 
-def choice(key: str, index: Index, choices: Array, p: Array=None, index_map: IndexMap=None) -> pd.Series:
+def choice(key: str, index: Index, choices: Array, p: Array = None, index_map: IndexMap = None) -> pd.Series:
     """Decides between a weighted or unweighted set of choices.
 
     Given a a set of choices with or without corresponding weights,
@@ -337,7 +337,7 @@ def _set_residual_probability(p: np.ndarray) -> np.ndarray:
 
 
 def filter_for_probability(key: str, population: Union[pd.DataFrame, pd.Series, Index],
-                           probability: Array, index_map: IndexMap=None) -> Union[pd.DataFrame, pd.Series, Index]:
+                           probability: Array, index_map: IndexMap = None) -> Union[pd.DataFrame, pd.Series, Index]:
     """Decide an event outcome for each individual in a population from probabilities.
 
     Given a population or its index and an array of associated probabilities
@@ -409,8 +409,8 @@ class RandomnessStream:
     `engine.Builder`
     """
     def __init__(self, key: str, clock: Callable, seed: Any,
-                 index_map: IndexMap=None, manager: 'RandomnessManager'=None,
-                 for_initialization: bool=False):
+                 index_map: IndexMap = None, manager: 'RandomnessManager' = None,
+                 for_initialization: bool = False):
         self.key = key
         self.clock = clock
         self.seed = seed
@@ -438,7 +438,7 @@ class RandomnessStream:
         else:
             return RandomnessStream(self.key, self.clock, self.seed, self.index_map)
 
-    def _key(self, additional_key: Any=None) -> str:
+    def _key(self, additional_key: Any = None) -> str:
         """Construct a hashable key from this object's state.
 
         Parameters
@@ -453,7 +453,7 @@ class RandomnessStream:
         """
         return '_'.join([self.key, str(self.clock()), str(additional_key), str(self.seed)])
 
-    def get_draw(self, index: Index, additional_key: Any=None) -> pd.Series:
+    def get_draw(self, index: Index, additional_key: Any = None) -> pd.Series:
         """Get an indexed sequence of floats pulled from a uniform distribution over [0.0, 1.0)
 
         Parameters
@@ -477,7 +477,7 @@ class RandomnessStream:
 
         return draw
 
-    def get_seed(self, additional_key: Any=None) -> int:
+    def get_seed(self, additional_key: Any = None) -> int:
         """Get a randomly generated seed for use with external randomness tools.
 
         Parameters
@@ -494,7 +494,7 @@ class RandomnessStream:
         return get_hash(self._key(additional_key))
 
     def filter_for_rate(self, population: Union[pd.DataFrame, pd.Series, Index],
-                        rate: Array, additional_key: Any=None) -> Index:
+                        rate: Array, additional_key: Any = None) -> Index:
         """Decide an event outcome for each individual in a population from rates.
 
         Given a population or its index and an array of associated rates for
@@ -528,7 +528,7 @@ class RandomnessStream:
         return self.filter_for_probability(population, rate_to_probability(rate), additional_key)
 
     def filter_for_probability(self, population: Union[pd.DataFrame, pd.Series, Index],
-                               probability: Array, additional_key: Any=None) -> Index:
+                               probability: Array, additional_key: Any = None) -> Index:
         """Decide an event outcome for each individual in a population from probabilities.
 
         Given a population or its index and an array of associated probabilities
@@ -555,7 +555,7 @@ class RandomnessStream:
         """
         return filter_for_probability(self._key(additional_key), population, probability, self.index_map)
 
-    def choice(self, index: Index, choices: Array, p: Array=None, additional_key: Any=None) -> pd.Series:
+    def choice(self, index: Index, choices: Array, p: Array = None, additional_key: Any = None) -> pd.Series:
         """Decides between a weighted or unweighted set of choices.
 
         Given a a set of choices with or without corresponding weights,
@@ -627,7 +627,7 @@ class RandomnessManager:
         pop_size = builder.configuration.population.population_size
         self._key_mapping.map_size = max(map_size, 10*pop_size)
 
-    def get_randomness_stream(self, decision_point: str, for_initialization: bool=False) -> RandomnessStream:
+    def get_randomness_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
         Parameters

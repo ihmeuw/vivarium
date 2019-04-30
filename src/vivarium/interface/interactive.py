@@ -1,16 +1,17 @@
-import warnings
+"""An interface for interactive simulation usage."""
 from math import ceil
 from typing import Mapping, List, Callable
+import warnings
 
 import pandas as pd
 
-from vivarium.framework.configuration import build_simulation_configuration, build_model_specification
+from vivarium.framework.configuration import build_simulation_configuration, build_model_specification, ConfigTree
+from vivarium.framework.engine import SimulationContext
 from vivarium.framework.plugins import PluginManager
 from vivarium.framework.time import Timedelta, Time
 from vivarium.framework.values import Pipeline
-from vivarium.framework.engine import SimulationContext
 
-from .utilities import run_from_ipython, log_progress, raise_if_not_setup
+from .utilities import run_from_ipython, log_progress, raise_if_not_setup, InteractiveError
 
 
 class InteractiveContext(SimulationContext):
@@ -18,10 +19,10 @@ class InteractiveContext(SimulationContext):
     interactively.
 
     This class should not be instantiated directly. It should be created with a
-    call to one of the  helper methods provided in this module.
+    call to one of the helper methods provided in this module.
     """
 
-    def __init__(self, configuration, components, plugin_manager=None):
+    def __init__(self, configuration: ConfigTree, components: List, plugin_manager: PluginManager = None):
         super().__init__(configuration, components, plugin_manager)
         self._initial_population = None
 
@@ -32,11 +33,14 @@ class InteractiveContext(SimulationContext):
         self.initialize_simulants()
 
     def initialize_simulants(self):
-        """Initialize this simulation's population. Should not be called
-        directly."""
+        """Initialize this simulation's population.
+
+        This method should be called by the framework, not by the user.
+        """
         super().initialize_simulants()
         self._initial_population = self.population.get_population(True)
 
+    @raise_if_not_setup(system_type='run')
     def reset(self):
         """Reset the simulation to its initial state."""
         warnings.warn("This reset method is very crude.  It should work for "
@@ -47,9 +51,8 @@ class InteractiveContext(SimulationContext):
         self.clock._time = self._start_time
 
     @raise_if_not_setup(system_type='run')
-    def run(self, with_logging: bool=True) -> int:
-        """Run the simulation for the time duration specified in the
-        configuration
+    def run(self, with_logging: bool = True) -> int:
+        """Run the simulation for the duration specified in the configuration.
 
         Parameters
         ----------
@@ -64,9 +67,8 @@ class InteractiveContext(SimulationContext):
         return self.run_until(self.clock.stop_time, with_logging=with_logging)
 
     @raise_if_not_setup(system_type='run')
-    def run_for(self, duration: Timedelta, with_logging: bool=True) -> int:
+    def run_for(self, duration: Timedelta, with_logging: bool = True) -> int:
         """Run the simulation for the given time duration.
-
 
         Parameters
         ----------
@@ -85,7 +87,7 @@ class InteractiveContext(SimulationContext):
         return self.run_until(self.clock.time + duration, with_logging=with_logging)
 
     @raise_if_not_setup(system_type='run')
-    def run_until(self, end_time: Time, with_logging=True) -> int:
+    def run_until(self, end_time: Time, with_logging: bool = True) -> int:
         """Run the simulation until the provided end time.
 
         Parameters
@@ -110,7 +112,7 @@ class InteractiveContext(SimulationContext):
         return iterations
 
     @raise_if_not_setup(system_type='run')
-    def step(self, step_size: Timedelta=None):
+    def step(self, step_size: Timedelta = None):
         """Advance the simulation one step.
 
         Parameters
@@ -128,7 +130,7 @@ class InteractiveContext(SimulationContext):
         self.clock._step_size = old_step_size
 
     @raise_if_not_setup(system_type='run')
-    def take_steps(self, number_of_steps: int=1, step_size: Timedelta=None, with_logging: bool=True):
+    def take_steps(self, number_of_steps: int = 1, step_size: Timedelta = None, with_logging: bool = True):
         """Run the simulation for the given number of steps.
 
         Parameters
@@ -153,8 +155,15 @@ class InteractiveContext(SimulationContext):
                 self.step(step_size)
 
     @raise_if_not_setup(system_type='population')
-    def get_population(self, untracked: bool=False) -> pd.DataFrame:
-        """Get a copy of the population state table."""
+    def get_population(self, untracked: bool = False) -> pd.DataFrame:
+        """Get a copy of the population state table.
+
+        Parameters
+        ----------
+        untracked
+            Whether or not to return simulants who are no longer being tracked
+            by the simulation.
+        """
         return self.population.get_population(untracked)
 
     @raise_if_not_setup(system_type='value')
@@ -174,14 +183,34 @@ class InteractiveContext(SimulationContext):
 
     @raise_if_not_setup(system_type='event')
     def get_listeners(self, event_type: str) -> List[Callable]:
-        """Get all listeners of a particular type of event."""
+        """Get all listeners of a particular type of event.
+
+        Available event types can be found by calling
+        :func:`InteractiveContext.list_events`.
+
+        Parameters
+        ----------
+        event_type
+            The type of event to grab the listeners for.
+
+        """
         if event_type not in self.events:
             raise ValueError(f'No event {event_type} in system.')
         return self.events.get_listeners(event_type)
 
     @raise_if_not_setup(system_type='event')
     def get_emitter(self, event_type: str) -> Callable:
-        """Get the callable that emits the given type of events."""
+        """Get the callable that emits the given type of events.
+
+        Available event types can be found by calling
+        :func:`InteractiveContext.list_events`.
+
+        Parameters
+        ----------
+        event_type
+            The type of event to grab the listeners for.
+
+        """
         if event_type not in self.events:
             raise ValueError(f'No event {event_type} in system.')
         return self.events.get_emitter(event_type)
@@ -191,9 +220,22 @@ class InteractiveContext(SimulationContext):
         """Get a list of all components in the simulation."""
         return [component for component in self.component_manager._components + self.component_manager._managers]
 
+    def add_components(self, components: List):
+        """Adds a list of components to the simulation.
 
-def initialize_simulation(components: List, input_config: Mapping=None,
-                          plugin_config: Mapping=None) -> InteractiveContext:
+        Parameters
+        ----------
+        components
+            The components to add to the simulation.
+
+        """
+        if self._setup:
+            raise InteractiveError("Can't add components to an already set up simulation.")
+        self.component_manager.add_components(components)
+
+
+def initialize_simulation(components: List, input_config: Mapping = None,
+                          plugin_config: Mapping = None) -> InteractiveContext:
     """Construct a simulation from a list of components, component
     configuration, and a plugin configuration.
 
@@ -227,8 +269,8 @@ def initialize_simulation(components: List, input_config: Mapping=None,
     return InteractiveContext(config, components, plugin_manager)
 
 
-def setup_simulation(components: List, input_config: Mapping=None,
-                     plugin_config: Mapping=None) -> InteractiveContext:
+def setup_simulation(components: List, input_config: Mapping = None,
+                     plugin_config: Mapping = None) -> InteractiveContext:
     """Construct a simulation from a list of components and call its setup
     method.
 

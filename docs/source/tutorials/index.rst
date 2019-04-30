@@ -1,3 +1,6 @@
+.. _tutorial_main:
+
+=========
 Tutorials
 =========
 Here you'll find a set of tutorials to introduce concepts and tools available
@@ -8,9 +11,9 @@ Before digging into the tutorials, please walk through the
 Python package where you'll build your model components.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    getting_started
    boids
    disease_model
-   running_a_simulation
+   running_a_simulation/index
