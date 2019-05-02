@@ -5,8 +5,7 @@ Running a Simulation Interactively
 ==================================
 
 In this tutorial, we'll walk through getting a simulation up and running in an
-interactive setting such as a Python interpreter or Jupyter notebook and
-do a little exploration of the simulation model.
+interactive setting such as a Python interpreter or Jupyter notebook.
 
 Running a simulation in this way is useful for a variety of reasons, foremost
 for debugging and validation work. It allows for changing simulation
@@ -19,50 +18,23 @@ For the following tutorial, we will assume you have set up an environment and
 installed ``vivarium``. If you have not, please see the
 :ref:`Getting Started <getting_started_tutorial>` section.  We'll be using
 the :ref:`disease model <disease_model_tutorial>` constructed
-in a separate tutorial for exploration purposes here. The
-:ref:`components <components_concept>` constructed in that tutorial are
-available in the ``vivarium`` package, so you don't need to build them yourself
-before starting this tutorial.
+in a separate tutorial here, though no background knowledge of population
+health is necessary to follow along. The :ref:`components <components_concept>`
+constructed in that tutorial are available in the ``vivarium`` package, so you
+don't need to build them yourself before starting this tutorial.
 
 .. contents::
    :depth: 2
    :local:
    :backlinks: none
 
-What are we making?
--------------------
-
-Simulations are complicated things. It's beyond the scope of this tutorial
-in particular to talk about what they are and how they work and when they
-make sense as models of the world. Luckily, once you have one in hand, you
-can start figuring out the answers to many of those questions yourself.
-
-In this tutorial, we're going to put together and examine an individual-based
-epidemiology model from a bunch of pre-constructed parts. We'll start out
-rather mechanically, just showing how to set up and run a simulation and pull
-out interesting data. As we go on, we'll talk about what we sort of results
-we should expect from the structure of the model and how we can verify those
-expectations.
-
-Our model starts with a bunch of people with uniformly distributed ages and
-sexes. They march through time 3 days at a time (we'll vary this later) in
-discrete steps. On each step for each person, the simulation will ask and
-answer several questions: Did they die? Did they get sick? If they were sick,
-did they recover? Are they exposed to any risks? At the end we'll
-examine how many people died and compare that with a theoretical life
-expectancy. Later, we'll consider two simulations that differ only by the
-presence of a new intervention and examine how effective that intervention is.
-
-.. todo::
-   Actually get to the part where we talk about expectations and explore
-   variations of particular parameters.
-
+.. _interactive_setup_tutorial:
 
 Setting up a Simulation
 -----------------------
 
 To run a simulation interactively, we will need to create a
-:class:`simulation context <vivarium.interface.interactive.InteractiveContext`.
+:class:`simulation context <vivarium.interface.interactive.InteractiveContext>`.
 At a bare minimum, we need to provide the context with a set of
 :ref:`components <components_concept>` that encode all the behavior of
 the simulation model. Frequently, we'll also provide some
@@ -70,6 +42,7 @@ the simulation model. Frequently, we'll also provide some
 those components.
 
 .. note::
+
    We can also optionally provide a set of :term:`plugins <Plugin>` to the
    simulation framework. Plugins are special components that add new
    functionality to the framework itself.  This is an advanced feature
@@ -110,6 +83,7 @@ simulation object and can be interacted with in the same way.
          | dictionary.
 
 .. note::
+
    The final function :func:`initialize_simulation <vivarium.interface.interactive.initialize_simulation>`
    rarely finds use in the interactive setting. It was written to parallel the
    `setup` functions, but won't be discussed in the following sections.
@@ -132,7 +106,7 @@ In this example, we will use the model specification from our
 
 .. _disease_model_yaml:
 
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/disease_model.yaml
+.. literalinclude:: ../../../../src/vivarium/examples/disease_model/disease_model.yaml
    :caption: **File**: :file:`disease_model.yaml`
 
 We can prepare and run a simulation interactively with this specification
@@ -140,6 +114,7 @@ using the first function from our creation function
 :ref:`table <simulation_creation>`.
 
 .. code-block:: python
+
    from vivarium import setup_simulation_from_model_specification
    p = "/path/to/disease_model.yaml"
    sim = setup_simulation_from_model_specification(p)
@@ -182,6 +157,7 @@ simulation. In this case, we will get them directly from the disease model
 example and we will place them in a normal Python list.
 
 .. code-block:: python
+
    from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
                                                 SIS_DiseaseModel, Risk, DirectEffect,
                                                 MagicWandIntervention)
@@ -205,6 +181,7 @@ this dictionary will contain all the parameters we want to change (or that
 we want to show are available to change).
 
 .. code-block:: python
+
    config = {
       'randomness': {
           'key_columns': ['entrance_time', 'age'],
@@ -239,6 +216,7 @@ simulation using the section function from our creation function
 :ref:`table <simulation_creation>`.
 
 .. code-block:: python
+
    from vivarium import setup_simulation
    sim = setup_simulation(components, config)
 
@@ -252,6 +230,7 @@ With this final step, you can proceed directly to
 one last way to set up the simulation in an interactive setting.
 
 .. testcode::
+   :hide:
 
    from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
                                                 SIS_DiseaseModel, Risk, DirectEffect,
@@ -307,6 +286,7 @@ To do this we'll use the third function from our creation function
 :ref:`table <simulation_creation>`.
 
 .. code-block:: python
+
    from vivarium import initialize_simulation_from_model_specification
    from vivarium.examples.disease_model import get_model_specification_path
 
@@ -319,17 +299,20 @@ alter the configuration programmatically, if we wish. Let's alter the
 population size to be smaller so the simulation takes less time to run.
 
 .. code-block:: python
+
    sim.configuration.update({'population': {'population_size': 1_000}})
 
 We then need to call the :meth:`setup` method on the simulation context to
 prepare it to run.
 
 .. code-block:: python
+
    sim.setup()
 
 After this step, we are ready to  :ref:`run the simulation <interactive_run>`.
 
 .. note::
+
    While this is a kind of trivial example, this last use case is extremely
    important. Practically speaking, the utility of initializing the simulation
    without setting it up is that it allows you to alter the configuration data
@@ -339,6 +322,7 @@ After this step, we are ready to  :ref:`run the simulation <interactive_run>`.
    configuration parameters that produce unexpected outputs.
 
 .. testcode::
+
    from vivarium import initialize_simulation_from_model_specification
    from vivarium.examples.disease_model import get_model_specification_path
 
@@ -382,215 +366,6 @@ into our disease model. We could do the following.
 This is an easy way to take an old model and toy around with new components
 to immediately see their effects.
 
-
-Exploring the Simulation, Part 1
---------------------------------
-
-Before we run the simulation, we'll examine the starting state. This is a good
-way to check if your simulation has all the properties you expect it to.
-
-We've provided a second convenience function that we can use to get a new
-copy of the disease model simulation so you don't have to repeat all of
-the boilerplate code from the above sections as you explore or modify
-the simulation.
-
-.. testcode::
-
-   from vivarium.examples.disease_model import get_disease_model_simulation
-
-   sim = get_disease_model_simulation()
-
-This is just a wrapper around some of the setup stuff from the previous
-section.
-
-Checking Out the Configuration
-++++++++++++++++++++++++++++++
-
-One of the things we might want to look at is the simulation
-:term:`configuration <Configuration>. Typically, a
-:term:`model specification <Model Specification>` encodes some configuration
-information, but leaves many things set to defaults. We can see what's in the
-configuration by simply printing it.
-
-.. testsetup::
-
-   from vivarium.examples.disease_model import get_disease_model_simulation
-
-   sim = get_disease_model_simulation()
-
-   if 'input_data' in sim.configuration:
-       del sim.configuration['input_data']
-
-.. testcode::
-
-   print(sim.configuration)
-
-.. testoutput::
-
-   randomness:
-       key_columns:
-           model_override: ['entrance_time', 'age']
-       map_size:
-           component_configs: 1000000
-       random_seed:
-           component_configs: 0
-       additional_seed:
-           component_configs: None
-   time:
-       start:
-           year:
-               model_override: 2005
-           month:
-               model_override: 7
-           day:
-               model_override: 1
-       end:
-           year:
-               model_override: 2006
-           month:
-               model_override: 7
-           day:
-               model_override: 1
-       step_size:
-           model_override: 3
-   population:
-       population_size:
-           model_override: 10000
-       age_start:
-           model_override: 0
-       age_end:
-           model_override: 30
-   mortality:
-       mortality_rate:
-           model_override: 0.05
-       life_expectancy:
-           component_configs: 80
-   diarrhea:
-       incidence:
-           model_override: 2.5
-       remission:
-           model_override: 42
-       excess_mortality:
-           model_override: 12
-   child_growth_failure:
-       proportion_exposed:
-           model_override: 0.5
-   effect_of_child_growth_failure_on_infected_with_diarrhea.incidence_rate:
-       relative_risk:
-           model_override: 5
-   effect_of_child_growth_failure_on_infected_with_diarrhea.excess_mortality_rate:
-       relative_risk:
-           model_override: 5
-   breastfeeding_promotion:
-       effect_size:
-           model_override: 0.5
-   interpolation:
-       order:
-           component_configs: 1
-
-What do we see here?  The configuration is *hierarchical*.  There are a set of
-top level *keys* that define named subsets of configuration data. We can access
-just those subsets if we like.
-
-.. testcode::
-
-   print(sim.configuration.randomness)
-
-.. testoutput::
-
-   key_columns:
-       model_override: ['entrance_time', 'age']
-   map_size:
-       component_configs: 1000000
-   random_seed:
-       component_configs: 0
-   additional_seed:
-       component_configs: None
-
-This subset of configuration data contains more keys.  All of the keys in
-our example here (key_columns, map_size, random_seed, and additional_seed)
-point directly to values. We can access these values from the simulation
-as well.
-
-.. testcode::
-
-   print(sim.configuration.randomness.key_columns)
-   print(sim.configuration.randomness.map_size)
-   print(sim.configuration.randomness.random_seed)
-   print(sim.configuration.randomness.additional_seed)
-
-
-.. testoutput::
-
-   ['entrance_time', 'age']
-   1000000
-   0
-   None
-
-However, we can no longer modify the configuration since the simulation
-has already been setup.
-
-.. testcode::
-
-   try:
-       sim.configuration.randomness.update({'random_seed': 5})
-   except TypeError:
-       print("Can't update configuration after setup")
-
-.. testoutput::
-
-   Can't update configuration after setup
-
-If we look again at the randomness configuration, it appears that there
-should be one more layer of keys.
-
-.. code-block:: python
-
-   key_columns:
-       model_override: ['entrance_time', 'age']
-   map_size:
-       component_configs: 1000000
-   random_seed:
-       component_configs: 0
-   additional_seed:
-       component_configs: None
-
-This last layer reflects a priority level in the way simulation configuration
-is managed. The ``component_configs`` under ``map_size``, ``random_seed``, and
-additional_seed tells us that the value was set by a simulation component's
-``configuration_defaults``.  The ``model_override`` under key_columns
-tells us that a model specification file set the value. If you're trying
-to debug issues, you may want more information than this.  You can also
-type ``repr(sim.configuration)`` (this is the equivalent of evaluating
-``sim.configuration`` in a jupyter notebook or ipython cell).  This will
-give you considerable information about where each configuration value was
-set and at what priority level.  You can read more about how the
-configuration works in the
-:ref:`configuration concept section <configuration_concept>`
-
-Looking at the simulation population
-++++++++++++++++++++++++++++++++++++
-
-Another interesting thing to look at at the beginning of the simulation is
-your starting population.
-
-.. testcode::
-
-   pop = sim.get_population()
-   print(pop.head())
-
-.. testoutput::
-
-      tracked     sex entrance_time  alive        age  child_growth_failure_propensity                 diarrhea
-   0     True  Female    2005-06-28  alive   3.452598                         0.552276  susceptible_to_diarrhea
-   1     True  Female    2005-06-28  alive   4.773249                         0.019633  susceptible_to_diarrhea
-   2     True    Male    2005-06-28  alive  23.423383                         0.578892  susceptible_to_diarrhea
-   3     True  Female    2005-06-28  alive  13.792463                         0.988650  susceptible_to_diarrhea
-   4     True    Male    2005-06-28  alive   0.449368                         0.407759  susceptible_to_diarrhea
-
-This gives you a ``pandas.DataFrame`` representing your starting population.
-You can use it to check all sorts of characteristics about individuals or
-the population as a whole.
 
 .. _interactive_run:
 

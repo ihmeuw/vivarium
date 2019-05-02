@@ -1,4 +1,4 @@
-.. component_concept:
+.. _components_concept:
 
 ====================
 What is a Component?

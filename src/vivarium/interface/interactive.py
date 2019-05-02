@@ -11,7 +11,7 @@ from vivarium.framework.plugins import PluginManager
 from vivarium.framework.time import Timedelta, Time
 from vivarium.framework.values import Pipeline
 
-from .utilities import run_from_ipython, log_progress, raise_if_not_setup, InteractiveError
+from .utilities import run_from_ipython, log_progress, raise_if_not_setup
 
 
 class InteractiveContext(SimulationContext):
@@ -220,18 +220,6 @@ class InteractiveContext(SimulationContext):
         """Get a list of all components in the simulation."""
         return [component for component in self.component_manager._components + self.component_manager._managers]
 
-    def add_components(self, components: List):
-        """Adds a list of components to the simulation.
-
-        Parameters
-        ----------
-        components
-            The components to add to the simulation.
-
-        """
-        if self._setup:
-            raise InteractiveError("Can't add components to an already set up simulation.")
-        self.component_manager.add_components(components)
 
 
 def initialize_simulation(components: List, input_config: Mapping = None,
