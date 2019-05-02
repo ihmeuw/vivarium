@@ -22,9 +22,6 @@ For example:
     'value2'
     >>> config.section_b.item1
     'value6'
-    >>> config.section_b.item1 = 'value7'
-    >>> config.section_b.item1
-    'value7'
 """
 from typing import Mapping, Union
 import yaml
@@ -186,12 +183,11 @@ class ConfigNode:
             del self._values[layer]
 
     def __repr__(self):
-        return 'ConfigNode(layers={}, values={}, frozen={}, accessed={})'.format(
-            self._layers, self._values, self._frozen, self._accessed)
+        return '\n'.join(reversed([f'{layer}: {value[1]}\n    source: {value[0]}'
+                                   for layer, value in self._values.items()]))
 
     def __str__(self):
-        return '\n'.join(reversed(['{}: {}\n    source: {}'.format(layer, value[1], value[0])
-                                   for layer, value in self._values.items()]))
+        return [f'{layer}: {value[1]}' for layer, value in self._values.items()][0]
 
 
 class ConfigTree:
@@ -518,8 +514,8 @@ class ConfigTree:
         return list(self._children.keys()) + dir(super(ConfigTree, self))
 
     def __repr__(self):
-        return 'ConfigTree(children={}, frozen={})'.format(
-            ' '.join([repr(c) for c in self._children.values()]), self._frozen)
+        return '\n'.join(['{}:\n    {}'.format(name, repr(c).replace('\n', '\n    '))
+                          for name, c in self._children.items()])
 
     def __str__(self):
         return '\n'.join(['{}:\n    {}'.format(name, str(c).replace('\n', '\n    '))

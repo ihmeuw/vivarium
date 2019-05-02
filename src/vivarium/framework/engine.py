@@ -6,7 +6,7 @@ from time import time
 
 import pandas as pd
 
-from vivarium import VivariumError
+from vivarium.exceptions import VivariumError
 from vivarium.framework.configuration import build_model_specification
 from .components import ComponentInterface
 from .event import Event, EventInterface
@@ -59,6 +59,7 @@ class SimulationContext:
         self.time_step_emitters = {k: self.builder.event.get_emitter(k) for k in self.time_step_events}
         self.end_emitter = self.builder.event.get_emitter('simulation_end')
         self._setup = True
+        self.configuration.freeze()
         self.builder.event.get_emitter('post_setup')(None)
 
     def step(self):

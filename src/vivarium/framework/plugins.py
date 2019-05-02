@@ -1,5 +1,5 @@
-from vivarium import VivariumError
 from vivarium.config_tree import ConfigTree
+from vivarium.exceptions import VivariumError
 
 from .utilities import import_by_path
 

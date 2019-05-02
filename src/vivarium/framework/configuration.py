@@ -2,7 +2,7 @@ import os.path
 
 import yaml
 
-from vivarium import VivariumError
+from vivarium.exceptions import VivariumError
 from vivarium.config_tree import ConfigTree
 
 from .plugins import DEFAULT_PLUGINS
