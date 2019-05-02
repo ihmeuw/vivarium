@@ -273,19 +273,50 @@ You can use it to check all sorts of characteristics about individuals or
 the population as a whole.
 
 .. testcode::
+   :hide:
 
    pop = sim.get_population()
    pop = pop.reindex(sorted(pop.columns), axis=1)
-   print(pop.head())
+   print(pop.age.describe())
+   print(pop.alive.value_counts())
+   print(pop.child_growth_failure_propensity.describe())
+   print(pop.diarrhea.value_counts())
+   print(pop.entrance_time.value_counts())
+   print(pop.sex.value_counts())
+   print(pop.tracked.value_counts())
+
 
 .. testoutput::
 
-             age  alive  child_growth_failure_propensity                 diarrhea entrance_time     sex  tracked
-    0   3.452598  alive                         0.552276  susceptible_to_diarrhea    2005-06-28  Female     True
-    1   4.773249  alive                         0.019633  susceptible_to_diarrhea    2005-06-28  Female     True
-    2  23.423383  alive                         0.578892  susceptible_to_diarrhea    2005-06-28    Male     True
-    3  13.792463  alive                         0.988650  susceptible_to_diarrhea    2005-06-28  Female     True
-    4   0.449368  alive                         0.407759  susceptible_to_diarrhea    2005-06-28    Male     True
+   count    10000.000000
+   mean        15.076739
+   std          8.707947
+   min          0.000118
+   25%          7.526312
+   50%         15.004701
+   75%         22.687441
+   max         29.998082
+   Name: age, dtype: float64
+   alive    10000
+   Name: alive, dtype: int64
+   count    10000.000000
+   mean         0.503233
+   std          0.288712
+   min          0.000002
+   25%          0.255108
+   50%          0.504047
+   75%          0.752366
+   max          0.999943
+   Name: child_growth_failure_propensity, dtype: float64
+   susceptible_to_diarrhea    10000
+   Name: diarrhea, dtype: int64
+   2005-06-28    10000
+   Name: entrance_time, dtype: int64
+   Female    5015
+   Male      4985
+   Name: sex, dtype: int64
+   True    10000
+   Name: tracked, dtype: int64
 
 
 Understanding the Simulation Data
