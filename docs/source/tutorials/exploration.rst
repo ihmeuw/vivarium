@@ -53,7 +53,7 @@ Case Study #1: Population Epidemiology
 In this case study, we're going to put together and examine an individual-based
 epidemiology model from a bunch of pre-constructed parts. We'll start out
 rather mechanically, just showing how to set up and run a simulation and pull
-out interesting data. As we go on, we'll talk about what we sort of results
+out interesting data. As we go on, we'll talk about what sort of results
 we should expect from the structure of the model and how we can verify those
 expectations.
 
@@ -236,8 +236,8 @@ should be one more layer of keys.
 
 This last layer reflects a priority level in the way simulation configuration
 is managed. The ``component_configs`` under ``map_size``, ``random_seed``, and
-additional_seed tells us that the value was set by a simulation component's
-``configuration_defaults``.  The ``model_override`` under key_columns
+``additional_seed`` tells us that the value was set by a simulation component's
+``configuration_defaults``.  The ``model_override`` under ``key_columns``
 tells us that a model specification file set the value. If you're trying
 to debug issues, you may want more information than this.  You can also
 type ``repr(sim.configuration)`` (this is the equivalent of evaluating
@@ -248,7 +248,7 @@ configuration works in the
 :ref:`configuration concept section <configuration_concept>`
 
 
-Looking at the simulation population
+Looking at the Simulation Population
 ++++++++++++++++++++++++++++++++++++
 
 Another interesting thing to look at at the beginning of the simulation is
