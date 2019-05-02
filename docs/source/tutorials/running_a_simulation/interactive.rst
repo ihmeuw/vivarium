@@ -95,10 +95,10 @@ With a Model Specification File - The Automatic Way
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
 A :term:`model specification <Model Specification>` file contains all the
-information needed to prepare and run a simulation so to get up and running
+information needed to prepare and run a simulation, so to get up and running
 quickly, we need only provide this file. You typically find yourself in this
 use case if you already have a well-developed model and you're either looking
-to explore it's behavior in more detail than you'd be able to using the
+to explore its behavior in more detail than you'd be able to using the
 command line utility :ref:`simulate <cli_tutorial>`.
 
 In this example, we will use the model specification from our
@@ -142,7 +142,7 @@ It is possible to prepare a simulation by explicitly passing in the
 instantiated objects you wish to use rather than getting them from a
 :term:`model specification <Model Specification>` file. This method requires
 initializing all the model components and building the simulation configuration
-by hand. This requires a lot of boilerplate code but it frequently very useful
+by hand. This requires a lot of boilerplate code but is frequently very useful
 during model development and debugging.
 
 To demonstrate this, we will recreate the simulation from the
@@ -212,7 +212,7 @@ Setting up
 ~~~~~~~~~~
 
 With our components and configuration in hand, we can then set up the
-simulation using the section function from our creation function
+simulation using the setup function from our creation function
 :ref:`table <simulation_creation>`.
 
 .. code-block:: python
