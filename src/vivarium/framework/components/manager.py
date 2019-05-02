@@ -1,9 +1,3 @@
-"""The ``vivarium`` component management system.
-
-This module contains the interface and the default implementation of the ``vivarium`` component manager.
-The manager is responsible for tracking all components in the system and for initiating the ``setup``
-life-cycle stage of each component.
-"""
 import inspect
 from typing import Sequence, Any
 
@@ -16,47 +10,63 @@ class ComponentConfigError(VivariumError):
 
 
 class ComponentManager:
-    """Handles the setup and access patterns for components in the system."""
+    """Responsible for tracking all components in a Vivarium simulation, enabling
+    access to them, and for initiating the ``setup`` life-cycle stage of each
+    component."""
 
     def __init__(self):
         self._managers = []
         self._components = []
 
     def add_managers(self, managers: Sequence):
-        """Register new managers with the system.
-
-        Managers are setup before components
+        """Registers new managers with the system. Managers are setup before
+        components.
 
         Parameters
         ----------
         managers:
-          Components to register
+          Instantiated managers to register
         """
         self._add_components(self._managers, managers)
 
     def add_components(self, components: Sequence):
-        """Register new components.
+        """Register new components with the system. Components are setup after
+        managers.
 
         Parameters
         ----------
         components:
-          Components to register
+          Instantiated components to register
         """
         self._add_components(self._components, components)
 
-    def _add_components(self, component_list, components):
+    def _add_components(self, component_list: Sequence, components: Sequence):
         for component in components:
             if isinstance(component, Sequence):
                 self._add_components(component_list, component)
             else:
                 component_list.append(component)
 
-    def get_components(self, component_type: Any):
+    def get_components(self, component_type: Any) -> Sequence:
+        """Return a list of components that are instances of a certain type
+        currently maintained by  the component manager. Does not include other
+        managers.
+
+        Parameters
+        ----------
+        component_type
+            A component class.
+        Returns
+        -------
+            A list of components.
+        """
         return [c for c in self._components if isinstance(c, component_type)]
 
-    def setup_components(self, builder, configuration):
-        """Apply component level configuration defaults to the global config and run setup methods on the components
-        registering and setting up any child components generated in the process.
+    def setup_components(self, builder, configuration: ConfigTree):
+        """Apply component-level configuration defaults to the global configuration
+        and run setup methods. Runs first on managers, then on components.
+
+        This can result in new components due to side effects of setup.
 
         Parameters
         ----------
@@ -70,11 +80,19 @@ class ComponentManager:
 
 
 class ComponentInterface:
-
+    """The component manager interface available from the builder."""
     def __init__(self, component_manager: ComponentManager):
         self._component_manager = component_manager
 
     def add_components(self, components: Sequence):
+        """Register new components with the system. Components are setup after
+        managers.
+
+        Parameters
+        ----------
+        components:
+          Instantiated components to register
+        """
         self._component_manager.add_components(components)
 
     def get_components(self, component_type: str):
