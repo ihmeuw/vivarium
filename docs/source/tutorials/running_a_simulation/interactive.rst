@@ -97,7 +97,7 @@ With a Model Specification File - The Automatic Way
 A :term:`model specification <Model Specification>` file contains all the
 information needed to prepare and run a simulation, so to get up and running
 quickly, we need only provide this file. You typically find yourself in this
-use case if you already have a well-developed model and you're either looking
+use case if you already have a well-developed model and you're looking
 to explore its behavior in more detail than you'd be able to using the
 command line utility :ref:`simulate <cli_tutorial>`.
 
