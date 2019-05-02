@@ -6,7 +6,7 @@ import logging
 
 import pandas as pd
 
-from vivarium import VivariumError
+from vivarium.exceptions import VivariumError
 from .utilities import from_yearly
 
 

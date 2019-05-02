@@ -4,7 +4,7 @@ from collections import deque
 
 import pandas as pd
 
-from vivarium import VivariumError
+from vivarium.exceptions import VivariumError
 
 
 class PopulationError(VivariumError):

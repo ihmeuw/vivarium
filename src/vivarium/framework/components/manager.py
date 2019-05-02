@@ -7,7 +7,8 @@ life-cycle stage of each component.
 import inspect
 from typing import Sequence, Any
 
-from vivarium import VivariumError, ConfigTree
+from vivarium.config_tree import ConfigTree
+from vivarium.exceptions import VivariumError
 
 
 class ComponentConfigError(VivariumError):

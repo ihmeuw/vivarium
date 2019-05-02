@@ -33,7 +33,7 @@ import datetime
 import numpy as np
 import pandas as pd
 
-from vivarium import VivariumError
+from vivarium.exceptions import VivariumError
 from .utilities import rate_to_probability
 
 Array = Union[List, Tuple, np.ndarray, pd.Series]

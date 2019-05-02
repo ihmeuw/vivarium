@@ -6,7 +6,7 @@ from time import time
 
 import pandas as pd
 
-from vivarium import VivariumError
+from vivarium.exceptions import VivariumError
 from vivarium.framework.configuration import build_model_specification
 from .components import ComponentInterface
 from .event import Event, EventInterface

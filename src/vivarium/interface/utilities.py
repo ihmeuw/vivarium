@@ -1,6 +1,6 @@
 import functools
 
-from vivarium import VivariumError
+from vivarium.exceptions import VivariumError
 from vivarium.framework.configuration import validate_model_specification_file
 
 

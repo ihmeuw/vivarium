@@ -1,12 +1,6 @@
 import numpy
 numpy.seterr(all='raise')
 
-
-class VivariumError(Exception):
-    """Generic exception raised for errors in ``vivarium`` simulations."""
-    pass
-
-
 from vivarium.config_tree import ConfigTree
 from vivarium.interface import (build_simulation_configuration, setup_simulation,
                                 setup_simulation_from_model_specification, initialize_simulation,
