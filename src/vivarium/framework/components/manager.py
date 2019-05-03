@@ -120,7 +120,7 @@ def _setup_components(builder, component_list: Sequence, configuration: ConfigTr
     configuration.
 
     Importantly, this function is called by the ComponentManager and it is
-    passed a a reference to one of the lists the Component manager holds. This
+    passed a reference to one of the lists the Component manager holds. This
     list is also accessible through the interface on the builder, so a
     component's setup method can mutate the list.
 
