@@ -1,3 +1,12 @@
+"""
+===========================
+Interface Utility Functions
+===========================
+
+The functions defined here are used to support the interactive and command-line
+interfaces for ``vivarium``.
+
+"""
 import functools
 
 from vivarium.exceptions import VivariumError
