@@ -1,0 +1,1 @@
+.. automodule:: vivarium.interface.interactive
