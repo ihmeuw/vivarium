@@ -1,4 +1,22 @@
-"""An interface for interactive simulation usage."""
+"""
+==========================
+Vivarium Interactive Tools
+==========================
+
+This module provides an interface for interactive simulation usage. The main
+part is the :class:`InteractiveContext`, a sub-class of the main simulation
+object in ``vivarium`` that has been extended to include convenience
+methods for running and exploring the simulation in an interactive setting.
+
+Rather than initializing the :class:`InteractiveContext` directly, users should
+acquire one using one of the four simulation creation
+:ref:`functions <simulation_creation>` provided
+in this module.
+
+See the associated tutorials for :ref:`running <interactive_tutorial>` and
+:ref:`exploring <exploration_tutorial>` for more information.
+
+"""
 from math import ceil
 from typing import Mapping, List, Callable
 import warnings

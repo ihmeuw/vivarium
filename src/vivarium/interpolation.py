@@ -1,3 +1,12 @@
+"""
+=============
+Interpolation
+=============
+
+Provides interpolation algorithms across tabular data for ``vivarium``
+simulations.
+
+"""
 import pandas as pd
 import numpy as np
 from typing import Union, List, Tuple, TypeVar

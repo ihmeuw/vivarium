@@ -3,9 +3,7 @@ API Reference
 
 .. toctree::
    :maxdepth: 2
+   :glob:
 
-   config_tree
-   interface
-   interpolation
-   framework/index
-   testing_utilities
+   *
+   */index
