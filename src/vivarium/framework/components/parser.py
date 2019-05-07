@@ -14,8 +14,8 @@ There are three steps to this process.
 2. Validating the arguments and prepping each component
 3. Importing and instantiating the actual components
 """
-from typing import Sequence, Tuple, List, Dict, Union, Any
 
+from typing import Sequence, Tuple, List, Dict, Union, Any
 
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.utilities import import_by_path
@@ -102,8 +102,8 @@ class ComponentConfigurationParser:
         Returns
         -------
             A list of standardized component definitions. Component definition
-            strings are specified as ``'absolute.import.path.ClassName(
-            "argument1", "argument2", ...)'``.
+            strings are specified as
+            ``'absolute.import.path.ClassName("argument1", "argument2", ...)'``.
 
         """
         return _parse_component_config(component_config)
