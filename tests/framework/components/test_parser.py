@@ -2,8 +2,8 @@ import pytest
 import yaml
 
 from vivarium.framework.configuration import build_simulation_configuration
-from vivarium.framework.components.parser import (ComponentConfigurationParser, _parse_component_config,
-                                                  _prep_components, _import_and_instantiate_components,
+from vivarium.framework.components.parser import (ComponentConfigurationParser, parse_component_config_to_list,
+                                                  prep_components, import_and_instantiate_components,
                                                   ParsingError)
 
 from .mocks import MockComponentA, MockComponentB
@@ -68,19 +68,19 @@ def components(request):
 
 @pytest.fixture
 def import_and_instantiate_mock(mocker):
-    return mocker.patch('vivarium.framework.components.parser._import_and_instantiate_components')
+    return mocker.patch('vivarium.framework.components.parser.import_and_instantiate_components')
 
 
 def test_parse_component_config(components):
 
     source = yaml.full_load(components)['components']
-    component_list = _parse_component_config(source)
+    component_list = parse_component_config_to_list(source)
     assert set(TEST_COMPONENTS_PARSED) == set(component_list)
 
 
 def test_prep_components():
     desc = 'cave_system.monsters.Rabbit("timid", "squeak")'
-    component, args = _prep_components([desc])[0]
+    component, args = prep_components([desc])[0]
     assert component == 'cave_system.monsters.Rabbit'
     assert set(args) == {'timid', 'squeak'}
 
@@ -88,20 +88,20 @@ def test_prep_components():
 def test_parse_component_syntax_error():
     desc = 'cave_system.monsters.Rabbit("timid", 0.01)'
     with pytest.raises(ParsingError):
-        _prep_components([desc])
+        prep_components([desc])
 
     desc = 'cave_system.monsters.Rabbit("timid\', "0.01")'
     with pytest.raises(ParsingError):
-        _prep_components([desc])
+        prep_components([desc])
 
     desc = "cave_system.monsters.Rabbit(\"timid', '0.01')"
     with pytest.raises(ParsingError):
-        _prep_components([desc])
+        prep_components([desc])
 
 
 def test_parse_and_prep_components(components):
     source = yaml.full_load(components)['components']
-    prepped_components = _prep_components(_parse_component_config(source))
+    prepped_components = prep_components(parse_component_config_to_list(source))
 
     assert set(TEST_COMPONENTS_PREPPED) == set(prepped_components)
 
@@ -113,7 +113,7 @@ def test_import_and_instantiate_components(monkeypatch):
         ('test_components.MockComponentA', ("A Hundred and One Ways to Start a Fight",)),
         ('test_components.MockComponentB', ("Ethel the Aardvark goes Quantity Surveying",)),
     ]
-    component_list = _import_and_instantiate_components(component_descriptions)
+    component_list = import_and_instantiate_components(component_descriptions)
 
     assert len(component_list) == 2
     assert isinstance(component_list[0], MockComponentA)
@@ -135,4 +135,4 @@ def test_ComponentConfigurationParser_get_components(import_and_instantiate_mock
 def test_components_config_valid():
     bad_config = yaml.full_load(TEST_COMPONENTS_BAD)['components']
     with pytest.raises(ParsingError):
-        _parse_component_config(bad_config)
+        parse_component_config_to_list(bad_config)
