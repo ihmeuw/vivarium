@@ -78,8 +78,8 @@ class ComponentConfigurationParser:
             component_list = self.parse_component_config(component_config.to_dict())
         else:  # Components were specified in a list rather than a tree.
             component_list = component_config
-        component_list = _prep_components(component_list)
-        return _import_and_instantiate_components(component_list)
+        component_list = prep_components(component_list)
+        return import_and_instantiate_components(component_list)
 
     def parse_component_config(self, component_config: Dict[str, Union[Dict, List]]) -> List[str]:
         """Parses a hierarchical component specification into a list of
@@ -106,10 +106,10 @@ class ComponentConfigurationParser:
             ``'absolute.import.path.ClassName("argument1", "argument2", ...)'``.
 
         """
-        return _parse_component_config(component_config)
+        return parse_component_config_to_list(component_config)
 
 
-def _parse_component_config(component_config: Dict[str, Union[Dict, List]]) -> List[str]:
+def parse_component_config_to_list(component_config: Dict[str, Union[Dict, List]]) -> List[str]:
     """Helper function for parsing hierarchical component configuration into a
     flat list.
 
@@ -167,7 +167,7 @@ def _parse_component_config(component_config: Dict[str, Union[Dict, List]]) -> L
     return _process_level(component_config, [])
 
 
-def _prep_components(component_list: Union[List[str], Tuple[str]]) -> List[Tuple[str, Tuple[str]]]:
+def prep_components(component_list: Union[List[str], Tuple[str]]) -> List[Tuple[str, Tuple[str]]]:
     """Transform component description strings into tuples of component paths
     and required arguments.
 
@@ -183,12 +183,12 @@ def _prep_components(component_list: Union[List[str], Tuple[str]]) -> List[Tuple
     components = []
     for c in component_list:
         path, args_plus = c.split('(')
-        cleaned_args = _clean_args(args_plus[:-1].split(','), path)
+        cleaned_args = clean_args(args_plus[:-1].split(','), path)
         components.append((path, cleaned_args))
     return components
 
 
-def _clean_args(args: List, path: str):
+def clean_args(args: List, path: str):
     """Transform component arguments into a tuple, validating that each argument
     is a string.
 
@@ -217,7 +217,7 @@ def _clean_args(args: List, path: str):
     return tuple(out)
 
 
-def _import_and_instantiate_components(component_list: List[Tuple[str, Tuple[str]]]) -> List[Any]:
+def import_and_instantiate_components(component_list: List[Tuple[str, Tuple[str]]]) -> List[Any]:
     """Transform the list of tuples representing components into the actual
     instantiated component objects.
 
@@ -234,4 +234,4 @@ def _import_and_instantiate_components(component_list: List[Tuple[str, Tuple[str
         A list of instantiated component objects.
 
     """
-    return [import_by_path(component[0])(*component[1]) for component in component_list]
+    return [import_by_path(component)(*args) for component, args in component_list]
