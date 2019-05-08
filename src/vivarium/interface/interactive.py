@@ -239,7 +239,6 @@ class InteractiveContext(SimulationContext):
         return [component for component in self.component_manager._components + self.component_manager._managers]
 
 
-
 def initialize_simulation(components: List, input_config: Mapping = None,
                           plugin_config: Mapping = None) -> InteractiveContext:
     """Construct a simulation from a list of components, component

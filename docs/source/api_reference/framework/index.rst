@@ -1,5 +1,6 @@
-Framework
-=========
+======================
+The Vivarium Framework
+======================
 
 .. toctree::
    :maxdepth: 2

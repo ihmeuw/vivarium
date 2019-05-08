@@ -1,4 +1,11 @@
-"""Defines the parsing rules for the ``components`` section of ``yaml`` configuration files."""
+"""
+==================================
+The Component Configuration Parser
+==================================
+
+Defines the parsing rules for the ``components`` section of ``yaml`` configuration files.
+
+"""
 from typing import Sequence, Tuple, List, Dict, Union
 
 

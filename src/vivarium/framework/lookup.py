@@ -1,4 +1,18 @@
-"""A set of tools for managing data lookups."""
+"""
+=============
+Lookup Tables
+=============
+
+Simulations tend to require a large quantity of data to run.  ``vivarium``
+provides the :class:`LookupTable` abstraction to make sure the right parameters
+are used in the right places.
+
+As discussed in the population :ref:`concept note <population_concept>`,
+``vivarium`` uses a :class:`pandas.Index` as the fundamental representation
+of the simulated population. The :class:`LookupTable` is then a callable object
+that takes in the population index and returns parameters specific to the
+individuals represented by that index.
+"""
 from numbers import Number
 from datetime import datetime, timedelta
 from typing import Union, List, Tuple, Callable, TypeVar
