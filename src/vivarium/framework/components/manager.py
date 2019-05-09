@@ -1,11 +1,19 @@
-"""This module contains the interface and the default implementation of the
+"""
+============================
+The Component Manager System
+============================
+
+
+
+
+This module contains the interface and the default implementation of the
 ``vivarium`` component manager system.
 
 The component manager is a plugin that manages all of the components in a
 simulation and is responsible for the ``setup`` phase of their lifecycle.  It
 maintains a distinction between the top-level (or "manager") components that are
 core to the framework's operation and lower-level components that are
-simulation-specific. This is the only dependency management currently provided.
+simulation-specific.
 """
 import inspect
 from typing import Union, List, Tuple, Any
@@ -19,8 +27,11 @@ class ComponentConfigError(VivariumError):
 
 
 class ComponentManager:
-    """Handles tracking and access patterns for all components in a Vivarium
-    and initiating the ``setup`` life-cycle stage of each component."""
+    """Handles tracking and access patterns for all components in a ``vivarium``
+    simulation as well as initiating the ``setup`` life-cycle stage of each
+    component.
+
+    """
 
     def __init__(self):
         self._managers = []
@@ -84,8 +95,8 @@ class ComponentManager:
         configuration:
             Simulation configuration parameters.
         """
-        self._managers = _setup_components(builder, self._managers, configuration)
-        self._components = _setup_components(builder, self._components, configuration)
+        self._managers = setup_components(builder, self._managers, configuration)
+        self._components = setup_components(builder, self._components, configuration)
 
 
 class ComponentInterface:
@@ -102,18 +113,31 @@ class ComponentInterface:
         ----------
         components:
           Instantiated components to register.
+
         """
         self._component_manager.add_components(components)
 
-    def get_components(self, component_type: str):
+    def get_components(self, component_type: Any) -> List:
+        """Get all components matching component_type currently held by the
+        Component Manager.
+
+        Parameters
+        ----------
+        component_type
+            A component type to retrieve, to be compared using isinstance().
+        Returns
+        -------
+            A list of components.
+
+        """
         return self._component_manager.get_components(component_type)
 
 
-def _setup_components(builder, component_list: Union[List, Tuple], configuration: ConfigTree) -> List:
+def setup_components(builder, component_list: Union[List, Tuple], configuration: ConfigTree) -> List:
     """Helper method for configuring and setting up a list of components.
 
-    This function first loops over `component_list` and applies configuration
-    defaults if present.  The application entails updating the `configuration`
+    This function first loops over ``component_list`` and applies configuration
+    defaults if present.  The application entails updating the ``configuration``
     object. Then, the list is looped over until empty, with components being
     popped and setup. Because of the side effect below, new components can be
     added. This necessitates the while loop and also another check of
@@ -140,7 +164,7 @@ def _setup_components(builder, component_list: Union[List, Tuple], configuration
     configured = []
     for c in component_list:  # apply top-level configurations first
         if hasattr(c, "configuration_defaults") and c not in configured:
-            _apply_component_default_configuration(configuration, c)
+            apply_component_default_configuration(configuration, c)
             configured.append(c)
 
     setup = []
@@ -151,7 +175,7 @@ def _setup_components(builder, component_list: Union[List, Tuple], configuration
                                        'indicates a bug in a factory function')
 
         if hasattr(c, "configuration_defaults") and c not in configured:
-            _apply_component_default_configuration(configuration, c)
+            apply_component_default_configuration(configuration, c)
             configured.append(c)
 
         if c not in setup:
@@ -162,9 +186,9 @@ def _setup_components(builder, component_list: Union[List, Tuple], configuration
     return setup
 
 
-def _apply_component_default_configuration(configuration: ConfigTree, component: Any):
+def apply_component_default_configuration(configuration: ConfigTree, component: Any):
     """Checks if a default configuration attached to a component is duplicated in
-    the current config tree, which will raise. If it is not, the configuration
+    the simulation configuration, which will raise. If it is not, the configuration
     is applied.
 
     Parameters
@@ -173,6 +197,7 @@ def _apply_component_default_configuration(configuration: ConfigTree, component:
         A vivarium configuration object.
     component
         A vivarium component.
+
     """
 
     # This reapplies configuration from some components but it is idempotent so there's no effect.
@@ -181,11 +206,11 @@ def _apply_component_default_configuration(configuration: ConfigTree, component:
         source = '__main__'
     else:
         source = inspect.getfile(component.__class__)
-    _check_duplicated_default_configuration(component.configuration_defaults, configuration, source)
+    check_duplicated_default_configuration(component.configuration_defaults, configuration, source)
     configuration.update(component.configuration_defaults, layer='component_configs', source=source)
 
 
-def _check_duplicated_default_configuration(component: Any, config: ConfigTree, source: str):
+def check_duplicated_default_configuration(component: Any, config: ConfigTree, source: str):
     """Checks that the keys present in a component's default configuration are
     not already present in the configtree. Source is just for making a cogent
     error message.
@@ -203,6 +228,7 @@ def _check_duplicated_default_configuration(component: Any, config: ConfigTree, 
     -------
     ComponentConfigError
         A component's default configuration is already present in the config tree.
+
     """
     overlapped = set(component.keys()).intersection(config.keys())
     if not overlapped:
@@ -216,7 +242,7 @@ def _check_duplicated_default_configuration(component: Any, config: ConfigTree, 
             sub_component = component[key]
 
             if isinstance(sub_component, dict) and isinstance(sub_config, ConfigTree):
-                _check_duplicated_default_configuration(sub_component, sub_config, source)
+                check_duplicated_default_configuration(sub_component, sub_config, source)
             elif isinstance(sub_component, dict) or isinstance(sub_config, ConfigTree):
                 raise ComponentConfigError(f'These two sources have different structure of configurations for {component}.'
                                            f' Check {source} and {sub_config}')
