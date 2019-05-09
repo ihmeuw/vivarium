@@ -8,7 +8,7 @@ core to the framework's operation and lower-level components that are
 simulation-specific. This is the only dependency management currently provided.
 """
 import inspect
-from typing import Sequence, Any
+from typing import Union, List, Tuple, Any
 
 from vivarium import VivariumError, ConfigTree
 
@@ -26,36 +26,36 @@ class ComponentManager:
         self._managers = []
         self._components = []
 
-    def add_managers(self, managers: Sequence):
+    def add_managers(self, managers: Union[List, Tuple, Any]):
         """Registers new managers with the system. Managers are setup before
         components.
 
         Parameters
         ----------
         managers:
-          Instantiated managers to register
+          Instantiated managers to register.
         """
         self._add_components(self._managers, managers)
 
-    def add_components(self, components: Sequence):
+    def add_components(self, components: Union[List, Tuple, Any]):
         """Registers new components with the system. Components are setup after
         managers.
 
         Parameters
         ----------
         components:
-          Instantiated components to register
+          Instantiated components to register.
         """
         self._add_components(self._components, components)
 
-    def _add_components(self, component_list: Sequence, components: Sequence):
+    def _add_components(self, component_list: Union[List, Tuple], components: Union[List, Tuple, Any]):
         for component in components:
-            if isinstance(component, Sequence):
+            if isinstance(component, list) or isinstance(component, tuple):
                 self._add_components(component_list, component)
             else:
                 component_list.append(component)
 
-    def get_components(self, component_type: Any) -> Sequence:
+    def get_components(self, component_type: Any) -> List:
         """Return a list of components that are instances of a certain type
         currently maintained by  the component manager. Does not include other
         managers.
@@ -94,14 +94,14 @@ class ComponentInterface:
     def __init__(self, component_manager: ComponentManager):
         self._component_manager = component_manager
 
-    def add_components(self, components: Sequence):
+    def add_components(self, components: Union[List, Tuple, Any]):
         """Register new components with the system. Components are setup after
         managers.
 
         Parameters
         ----------
         components:
-          Instantiated components to register
+          Instantiated components to register.
         """
         self._component_manager.add_components(components)
 
@@ -109,7 +109,7 @@ class ComponentInterface:
         return self._component_manager.get_components(component_type)
 
 
-def _setup_components(builder, component_list: Sequence, configuration: ConfigTree) -> Sequence:
+def _setup_components(builder, component_list: Union[List, Tuple], configuration: ConfigTree) -> List:
     """Helper method for configuring and setting up a list of components.
 
     This function first loops over `component_list` and applies configuration
@@ -129,9 +129,9 @@ def _setup_components(builder, component_list: Sequence, configuration: ConfigTr
     builder
         Interface to several simulation tools.
     component_list
-        A list of vivarium components
+        A list of vivarium components.
     configuration
-        A vivarium configuration object
+        A vivarium configuration object.
 
     Returns
     -------
@@ -139,7 +139,7 @@ def _setup_components(builder, component_list: Sequence, configuration: ConfigTr
     """
     configured = []
     for c in component_list:  # apply top-level configurations first
-        if hasattr(c, "configuration_defaults") and not c in configured:
+        if hasattr(c, "configuration_defaults") and c not in configured:
             _apply_component_default_configuration(configuration, c)
             configured.append(c)
 
@@ -170,9 +170,9 @@ def _apply_component_default_configuration(configuration: ConfigTree, component:
     Parameters
     ----------
     configuration
-        A vivarium configuration object
+        A vivarium configuration object.
     component
-        A vivarium component
+        A vivarium component.
     """
 
     # This reapplies configuration from some components but it is idempotent so there's no effect.
@@ -193,17 +193,16 @@ def _check_duplicated_default_configuration(component: Any, config: ConfigTree, 
     Parameters
     ----------
     component
-        A vivarium component
+        A vivarium component.
     config
-        A vivarium configuration object
+        A vivarium configuration object.
     source
-        The file containing the code that describes the component
+        The file containing the code that describes the component.
 
     Raises
     -------
     ComponentConfigError
-        A component's default configuration is already present in the config
-        tree.
+        A component's default configuration is already present in the config tree.
     """
     overlapped = set(component.keys()).intersection(config.keys())
     if not overlapped:
@@ -227,6 +226,3 @@ def _check_duplicated_default_configuration(component: Any, config: ConfigTree, 
 
         except KeyError:
             pass
-
-
-
