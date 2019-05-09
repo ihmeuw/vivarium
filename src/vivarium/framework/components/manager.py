@@ -1,19 +1,19 @@
 """
-============================
-The Component Manager System
-============================
+=====================
+The Component Manager
+=====================
 
+The ``vivarium`` component manager system is responsible for maintaining a
+reference to all of the managers and components in a simulation, as well as
+initiating the ``setup`` stage of their lifecycle. This module provides the
+default implementation and interface.
 
+TODO: note about letting components add to and ask for components
 
+The :class:`ComponentManager` is the first plugin loaded by the :class:`SimulationContext`,
+and managers and components are given to it by the context. It is called on to setup
+everything it holds when the context itself is setup.
 
-This module contains the interface and the default implementation of the
-``vivarium`` component manager system.
-
-The component manager is a plugin that manages all of the components in a
-simulation and is responsible for the ``setup`` phase of their lifecycle.  It
-maintains a distinction between the top-level (or "manager") components that are
-core to the framework's operation and lower-level components that are
-simulation-specific.
 """
 import inspect
 from typing import Union, List, Tuple, Any
@@ -27,9 +27,9 @@ class ComponentConfigError(VivariumError):
 
 
 class ComponentManager:
-    """Handles tracking and access patterns for all components in a ``vivarium``
-    simulation as well as initiating the ``setup`` life-cycle stage of each
-    component.
+    """Maintains references to all components and managers in a ``vivarium``
+    simulation and is responsible for applying their default configuration and
+    initiating their ``setup`` life-cycle stage.
 
     """
 
@@ -38,8 +38,8 @@ class ComponentManager:
         self._components = []
 
     def add_managers(self, managers: Union[List, Tuple, Any]):
-        """Registers new managers with the system. Managers are setup before
-        components.
+        """Registers new managers with the component manager. Managers are
+        configured and setup before components.
 
         Parameters
         ----------
@@ -49,8 +49,8 @@ class ComponentManager:
         self._add_components(self._managers, managers)
 
     def add_components(self, components: Union[List, Tuple, Any]):
-        """Registers new components with the system. Components are setup after
-        managers.
+        """Register new components with the component manager. Components are
+        configured and setup after managers.
 
         Parameters
         ----------
@@ -67,9 +67,8 @@ class ComponentManager:
                 component_list.append(component)
 
     def get_components(self, component_type: Any) -> List:
-        """Return a list of components that are instances of a certain type
-        currently maintained by  the component manager. Does not include other
-        managers.
+        """Gets a list of components currently held by the component manager
+        that are instances of a specific type. Does not include managers.
 
         Parameters
         ----------
@@ -82,11 +81,13 @@ class ComponentManager:
         return [c for c in self._components if isinstance(c, component_type)]
 
     def setup_components(self, builder, configuration: ConfigTree):
-        """Apply component-level configuration defaults to the global
+        """Apply default configurations to the global configuration and run
+        component-level configuration defaults to the global
         configuration and run setup methods. Runs first on managers, then on
         components.
 
-        This can result in new components due to side effects of setup.
+        This can result in new components due to side effects of a component's
+        setup function.
 
         Parameters
         ----------
@@ -100,14 +101,18 @@ class ComponentManager:
 
 
 class ComponentInterface:
-    """The component manager interface made available from the builder."""
+    """The builder interface for the component manager system. This class
+    defines the methods other components can access from the builder. It
+    provides methods for querying and adding components to the simulation.
+
+    """
 
     def __init__(self, component_manager: ComponentManager):
         self._component_manager = component_manager
 
     def add_components(self, components: Union[List, Tuple, Any]):
-        """Register new components with the system. Components are setup after
-        managers.
+        """Register new components with the component manager. Components are
+        configured  and setup after managers.
 
         Parameters
         ----------
@@ -118,13 +123,14 @@ class ComponentInterface:
         self._component_manager.add_components(components)
 
     def get_components(self, component_type: Any) -> List:
-        """Get all components matching component_type currently held by the
-        Component Manager.
+        """Get all components that are an instance of ``component_type``
+        currently held by the component manager.
 
         Parameters
         ----------
         component_type
-            A component type to retrieve, to be compared using isinstance().
+            A component type to get, compared against internal components
+            using isinstance().
         Returns
         -------
             A list of components.
@@ -134,18 +140,18 @@ class ComponentInterface:
 
 
 def setup_components(builder, component_list: Union[List, Tuple], configuration: ConfigTree) -> List:
-    """Helper method for configuring and setting up a list of components.
+    """Configures and sets up a list of components or managers.
 
     This function first loops over ``component_list`` and applies configuration
-    defaults if present.  The application entails updating the ``configuration``
-    object. Then, the list is looped over until empty, with components being
-    popped and setup. Because of the side effect below, new components can be
-    added. This necessitates the while loop and also another check of
-    configuration.
+    defaults if present, modifying the ``configuration`` object in the process.
+    Then, the ``component_list`` is looped over until empty, with components
+    being popped and setup. Because of the side effect described below, new
+    components can be added to the list. This necessitates a while loop and a
+    check against unconfigured components.
 
-    Importantly, this function is called by the ComponentManager and it is
-    passed a reference to one of the lists the Component manager holds. This
-    list is also accessible through the interface on the builder, so a
+    Importantly, this function is called by the :class:`ComponentManager` and it
+    is passed a reference to one of the lists that manager holds. This list is
+    also accessible through the :class:`ComponentInterface` on the builder, so a
     component's setup method can mutate the list.
 
     Parameters
@@ -187,9 +193,9 @@ def setup_components(builder, component_list: Union[List, Tuple], configuration:
 
 
 def apply_component_default_configuration(configuration: ConfigTree, component: Any):
-    """Checks if a default configuration attached to a component is duplicated in
-    the simulation configuration, which will raise. If it is not, the configuration
-    is applied.
+    """Checks if a default configuration attached to a component is duplicated
+    in the simulation configuration, which will raise. If it is not, the
+    configuration is applied.
 
     Parameters
     ----------
