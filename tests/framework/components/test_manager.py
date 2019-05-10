@@ -11,10 +11,10 @@ from .mocks import MockComponentA, MockComponentB
 
 @pytest.fixture
 def apply_default_config_mock(mocker):
-    return mocker.patch('vivarium.framework.components.manager._apply_component_default_configuration')
+    return mocker.patch('vivarium.framework.components.manager.apply_component_default_configuration')
 
 
-def test__apply_component_default_configuration():
+def test_apply_component_default_configuration():
 
     class UnladenSwallow:
 
@@ -43,7 +43,7 @@ def test__apply_component_default_configuration():
     ]
 
 
-def test__setup_components(mocker, apply_default_config_mock):
+def test_setup_components(mocker, apply_default_config_mock):
     config = build_simulation_configuration()
     builder = mocker.Mock()
 
@@ -151,7 +151,7 @@ class DummyMechanic:
     }
 
 
-def test__default_configuration_set_by_one_component(mocker):
+def test_default_configuration_set_by_one_component(mocker):
 
     machine = DummyMachine()
     mechanic = DummyMechanic()
@@ -170,7 +170,7 @@ def test__default_configuration_set_by_one_component(mocker):
         manager.setup_components(builder, config)
 
 
-def test__default_configuration_set_by_one_component_as_0(mocker):
+def test_default_configuration_set_by_one_component_as_0(mocker):
 
     DummyMachine.configuration_defaults['dummy_machine']['id'] = 0
     machine = DummyMachine()
@@ -199,7 +199,7 @@ def test__default_configuration_set_by_one_component_as_0(mocker):
         manager.setup_components(builder, config)
 
 
-def test__default_configuration_set_by_one_component_different_tree_depths(mocker):
+def test_default_configuration_set_by_one_component_different_tree_depths(mocker):
 
     DummyMachine.configuration_defaults['dummy_machine']['id'] = {'number': 1, 'type': 'machine'}
     machine = DummyMachine()
