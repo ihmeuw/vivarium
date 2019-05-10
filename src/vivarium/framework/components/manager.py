@@ -9,7 +9,7 @@ configurations and initiating the ``setup`` stage of the lifecycle. This module
 provides the default implementation and interface.
 
 The :class:`ComponentManager` is the first plugin loaded by the
-:class:`vivarium.framework.engine.SimulationContext`,
+:class:`vivarium.framework.engine.SimulationContext`<SimulationContext>
 and managers and components are given to it by the context. It is called on to
 setup everything it holds when the context itself is setup.
 
