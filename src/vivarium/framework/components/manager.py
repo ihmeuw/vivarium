@@ -1,18 +1,17 @@
 """
-=====================
-The Component Manager
-=====================
-
+============================
+The Component Manager System
+============================
 The ``vivarium`` component manager system is responsible for maintaining a
-reference to all of the managers and components in a simulation, as well as
-initiating the ``setup`` stage of their lifecycle. This module provides the
-default implementation and interface.
+reference to all of the managers and components in a simulation, providing an
+interface for adding additional components or managers, and applying default
+configurations and initiating the ``setup`` stage of the lifecycle. This module
+provides the default implementation and interface.
 
-TODO: note about letting components add to and ask for components
-
-The :class:`ComponentManager` is the first plugin loaded by the :class:`SimulationContext`,
-and managers and components are given to it by the context. It is called on to setup
-everything it holds when the context itself is setup.
+The :class:`ComponentManager` is the first plugin loaded by the
+:class:`SimulationContext`[vivarium.framework.engine.SimulationContext],
+and managers and components are given to it by the context. It is called on to
+setup everything it holds when the context itself is setup.
 
 """
 import inspect
@@ -28,8 +27,15 @@ class ComponentConfigError(VivariumError):
 
 class ComponentManager:
     """Maintains references to all components and managers in a ``vivarium``
-    simulation and is responsible for applying their default configuration and
-    initiating their ``setup`` life-cycle stage.
+    simulation, applies their default configuration and initiates their
+    ``setup`` life-cycle stage.
+
+    The component manager maintains a separate list of managers and components
+    and provides methods for adding to these lists and getting members that
+    correspond to a specific type.  It also initiates the ``setup`` lifecycle
+    phase for all components and managers it controls. This is done first for
+    managers and then components, and involves applying default configurations
+    and calling the object's ``setup`` method.
 
     """
 
@@ -81,13 +87,13 @@ class ComponentManager:
         return [c for c in self._components if isinstance(c, component_type)]
 
     def setup_components(self, builder, configuration: ConfigTree):
-        """Apply default configurations to the global configuration and run
-        component-level configuration defaults to the global
-        configuration and run setup methods. Runs first on managers, then on
-        components.
+        """Separately configure and set up the managers and components held by
+        the component manager, in that order.
 
-        This can result in new components due to side effects of a component's
-        setup function.
+        The setup process involves applying default configurations and then
+        calling the manager or component's setup method. This can result in new
+        components as a side effect of setup because components themselves have
+        access to this interface through the builder in their setup method.
 
         Parameters
         ----------
@@ -102,8 +108,9 @@ class ComponentManager:
 
 class ComponentInterface:
     """The builder interface for the component manager system. This class
-    defines the methods other components can access from the builder. It
-    provides methods for querying and adding components to the simulation.
+    defines component manager methods a ``vivarium`` component can access from
+    the builder. It provides methods for querying and adding components to the
+    :class:`ComponentManager`.
 
     """
 
@@ -140,7 +147,7 @@ class ComponentInterface:
 
 
 def setup_components(builder, component_list: Union[List, Tuple], configuration: ConfigTree) -> List:
-    """Configures and sets up a list of components or managers.
+    """Configure and set up a list of components or managers.
 
     This function first loops over ``component_list`` and applies configuration
     defaults if present, modifying the ``configuration`` object in the process.
@@ -193,9 +200,9 @@ def setup_components(builder, component_list: Union[List, Tuple], configuration:
 
 
 def apply_component_default_configuration(configuration: ConfigTree, component: Any):
-    """Checks if a default configuration attached to a component is duplicated
-    in the simulation configuration, which will raise. If it is not, the
-    configuration is applied.
+    """Check if a default configuration attached to a component is duplicated
+    in the simulation configuration, which will raise. If it is not, apply the
+    configuration.
 
     Parameters
     ----------
@@ -217,9 +224,8 @@ def apply_component_default_configuration(configuration: ConfigTree, component: 
 
 
 def check_duplicated_default_configuration(component: Any, config: ConfigTree, source: str):
-    """Checks that the keys present in a component's default configuration are
-    not already present in the configtree. Source is just for making a cogent
-    error message.
+    """Check that the keys present in a component's default configuration
+    ``component`` are not already present in the global configtree ``config``.
 
     Parameters
     ----------
@@ -228,7 +234,8 @@ def check_duplicated_default_configuration(component: Any, config: ConfigTree, s
     config
         A vivarium configuration object.
     source
-        The file containing the code that describes the component.
+        The file containing the code that describes the component. Only used
+        to generate a cogent error message.
 
     Raises
     -------
