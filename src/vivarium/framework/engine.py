@@ -1,4 +1,23 @@
-"""The engine."""
+"""
+===================
+The Vivarium Engine
+===================
+
+The engine houses the :class:`SimulationContext` -- the key ``vivarium`` object
+for running and interacting with simulations. It is the top level manager
+for all state information in ``vivarium``.  By intention, it exposes a very
+simple interface for managing the
+:ref:`simulation lifecycle <lifecycle_concept>`.
+
+Also included here is the simulation :class:`Builder`, which is the main
+interface that components use to interact with the simulation framework. You
+can read more about how the builder works and what services is exposes
+:ref:`here <builder_concept>`.
+
+Finally, there are a handful of wrapper methods that allow a user or user
+tools to easily setup and run a simulation.
+
+"""
 import gc
 import logging
 from pprint import pformat

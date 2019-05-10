@@ -1,4 +1,17 @@
-"""The mutable value system"""
+"""
+=========================
+The Value Pipeline System
+=========================
+
+The value pipeline system is a vital part of the ``vivarium`` infrastructure.
+It allows for values that determine the behavior of individual
+:term:`simulants` to be constructed across across multiple
+:ref:`components <components_concept>`.
+
+For more information about when and how you should use pipelines in your
+simulations, see the value system :ref:`concept note <values_concept>`.
+
+"""
 from collections import defaultdict
 from typing import Callable
 from types import MethodType

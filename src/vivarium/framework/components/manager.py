@@ -1,8 +1,14 @@
-"""The ``vivarium`` component management system.
+"""
+=====================
+The Component Manager
+=====================
+
+The ``vivarium`` component management system.
 
 This module contains the interface and the default implementation of the ``vivarium`` component manager.
 The manager is responsible for tracking all components in the system and for initiating the ``setup``
 life-cycle stage of each component.
+
 """
 import inspect
 from typing import Sequence, Any

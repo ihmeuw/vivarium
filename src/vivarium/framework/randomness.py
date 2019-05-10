@@ -1,4 +1,9 @@
-"""This module contains classes and functions supporting common random numbers.
+"""
+==============================
+Random Numbers in ``vivarium``
+==============================
+
+This module contains classes and functions supporting common random numbers.
 
 Vivarium has some peculiar needs around randomness. We need to be totally consistent
 between branches in a comparison. For example, if a simulant gets hit by a truck
@@ -25,6 +30,11 @@ RESIDUAL_CHOICE : object
     ----
     Currently this object is only used in the `choice` function of this
     module.
+
+
+For mor information, see the Common Random Numbers
+:ref:`concept note <crn_concept>`.
+
 """
 from typing import Union, List, Tuple, Callable, Any
 import hashlib

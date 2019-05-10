@@ -1,4 +1,9 @@
-"""The :class:`ComponentConfigurationParser` is responsible for taking a list or
+"""
+==================================
+The Component Configuration Parser
+==================================
+
+The :class:`ComponentConfigurationParser` is responsible for taking a list or
 hierarchical :class:`ConfigTree <vivarium.ConfigTree>`of components derived
 from a model specification yaml file and turning it into a list of
 instantiated component objects. When a model specification yaml file is loaded,
@@ -13,8 +18,8 @@ There are three steps to this process.
 1. Parsing the model specification's components
 2. Validating the arguments and prepping each component
 3. Importing and instantiating the actual components
-"""
 
+"""
 from typing import Sequence, Tuple, List, Dict, Union, Any
 
 from vivarium.config_tree import ConfigTree
