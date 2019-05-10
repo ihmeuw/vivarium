@@ -17,7 +17,8 @@ setup everything it holds when the context itself is setup.
 import inspect
 from typing import Union, List, Tuple, Any
 
-from vivarium import VivariumError, ConfigTree
+from vivarium.config_tree import ConfigTree
+from vivarium.exceptions import VivariumError
 
 
 class ComponentConfigError(VivariumError):

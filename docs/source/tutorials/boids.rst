@@ -1,3 +1,5 @@
+.. _boids_tutorial:
+
 =====
 Boids
 =====

@@ -1,4 +1,1 @@
-Interpolation
-=============
-
 .. automodule:: vivarium.interpolation

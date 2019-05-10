@@ -1,3 +1,11 @@
+"""
+==========================
+Vivarium Testing Utilities
+==========================
+
+Utility functions and classes to make testing ``vivarium`` components easier.
+
+"""
 import os
 
 import numpy as np

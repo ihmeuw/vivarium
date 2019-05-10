@@ -1,3 +1,34 @@
+"""
+===========================
+Vivarium Command Line Tools
+===========================
+
+``vivarium`` provides the tool :command:`simulate` for running simulations
+from the command line.  It provides three subcommands:
+
+.. list-table:: ``simulate`` sub-commands
+    :header-rows: 1
+    :widths: 30, 40
+
+    *   - Name
+        - Description
+    *   - | **run**
+        - | Runs a single simulation from a model specification file.
+    *   - | **test**
+        - | Runs an example simulation that comes packaged with ``vivarium``.
+           | Useful as an installation test.
+    *   - | **profile**
+        - | Produces a profile of a simulation using the python
+          | :mod:`cProfile` module
+
+For more information, see the :ref:`tutorial <cli_tutorial>` on running
+simulations from the command line.
+
+.. click:: vivarium.interface.cli:simulate
+   :prog: simulate
+   :show-nested:
+
+"""
 import os
 import shutil
 import cProfile

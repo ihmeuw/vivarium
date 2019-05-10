@@ -1,6 +1,12 @@
 
 class Observer:
 
+    configuration_defaults = {
+        'mortality': {
+            'life_expectancy': 80,
+        }
+    }
+
     def setup(self, builder):
         self.life_expectancy = builder.configuration.mortality.life_expectancy
         self.population_view = builder.population.get_view(['age', 'alive'])
