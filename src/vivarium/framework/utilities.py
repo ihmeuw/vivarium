@@ -1,3 +1,11 @@
+"""
+===========================
+Framework Utility Functions
+===========================
+
+Collection of utility functions shared by the ``vivarium`` framework.
+
+"""
 from importlib import import_module
 from typing import Callable
 

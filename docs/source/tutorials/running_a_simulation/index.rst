@@ -11,4 +11,7 @@ time to run the simulation defined by that model specification using
 ``vivarium``. There are two ways to run a single simulation.
 
 
-.. include:: cli.rst
+.. toctree::
+
+   cli
+   interactive

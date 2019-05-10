@@ -1,4 +1,16 @@
-"""Provides a class for consistently managing and writing vivarium outputs and output paths."""
+"""
+===============
+Writing Results
+===============
+
+Provides a class for consistently managing and writing vivarium outputs and
+output paths.
+
+.. note::
+   This class is currently under re-design and will likely not exist in the
+   next major update.  - J.C. 05/08/19
+
+"""
 import shutil
 from collections import defaultdict
 import os

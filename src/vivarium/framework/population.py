@@ -1,10 +1,21 @@
-"""System for managing population creation, updating and viewing."""
+"""
+================================
+The Population Management System
+================================
+
+This module provides tools for managing the :term:`state table <State Table>`
+in a ``vivarium`` simulation. It gives components the ability to modify and
+view the population state safely through :class:`PopulationView`s. In addition
+to read/write access to the population state, the tools here also manage when
+and how new :term:`simulants <Simulant>` are added to the system.
+
+"""
 from typing import Sequence, List, Callable, Union, Mapping, Any, NamedTuple, Tuple
 from collections import deque
 
 import pandas as pd
 
-from vivarium import VivariumError
+from vivarium.exceptions import VivariumError
 
 
 class PopulationError(VivariumError):

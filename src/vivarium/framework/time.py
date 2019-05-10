@@ -1,4 +1,15 @@
-"""Vivarium time manager."""
+"""
+====================
+The Simulation Clock
+====================
+
+The components here provide implementations of different kinds of simulation
+clocks for use in ``vivarium``.
+
+For more information about time in the simulation, see the associated
+:ref:`concept note <time_concept>`.
+
+"""
 from typing import Union, Callable
 from numbers import Number
 from datetime import datetime, timedelta

@@ -43,7 +43,7 @@ Glossary
         to the core framework.  Unlike a normal :term:`component <Component>`
         which adds new behaviors and attributes to
         :term:`simulants <Simulant>`, a plugin adds new services to the
-         framework itself.  Examples might include a new simulation clock,
+        framework itself.  Examples might include a new simulation clock,
         a results handling service, or a logging service.
 
     Simulant

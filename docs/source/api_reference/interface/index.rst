@@ -1,9 +1,9 @@
-API Reference
-=============
+=========
+Interface
+=========
 
 .. toctree::
    :maxdepth: 2
    :glob:
 
    *
-   */index
