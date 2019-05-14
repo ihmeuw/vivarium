@@ -175,7 +175,6 @@ def setup_components(builder, component_list: Union[List, Tuple], configuration:
     -------
         A list of components which have been configured and setup.
     """
->>>>>>> develop
     configured = []
     for c in component_list:  # apply top-level configurations first
         if hasattr(c, "configuration_defaults") and c not in configured:
