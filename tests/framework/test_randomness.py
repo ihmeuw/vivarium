@@ -126,7 +126,7 @@ def test_RandomnessManager_get_randomness_stream():
     assert stream.key == 'test'
     assert stream.seed == seed
     assert stream.clock is mock_clock
-    assert rm._decision_points == {'test'}
+    assert set(rm._decision_points.keys()) == {'test'}
 
     with pytest.raises(RandomnessError):
         rm.get_randomness_stream('test')

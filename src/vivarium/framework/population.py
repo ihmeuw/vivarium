@@ -1,10 +1,21 @@
-"""System for managing population creation, updating and viewing."""
+"""
+================================
+The Population Management System
+================================
+
+This module provides tools for managing the :term:`state table <State Table>`
+in a ``vivarium`` simulation. It gives components the ability to modify and
+view the population state safely through :class:`PopulationView`s. In addition
+to read/write access to the population state, the tools here also manage when
+and how new :term:`simulants <Simulant>` are added to the system.
+
+"""
 from typing import Sequence, List, Callable, Union, Mapping, Any, NamedTuple, Tuple
 from collections import deque
 
 import pandas as pd
 
-from vivarium import VivariumError
+from vivarium.exceptions import VivariumError
 
 
 class PopulationError(VivariumError):
@@ -219,9 +230,10 @@ class PopulationManager:
             created_columns.extend(created)
             required_columns.extend(required)
 
-        if not set(required_columns) <= set(created_columns):
-            raise PopulationError(f"The initializers {initializers} could not be added.  "
-                                  "Check for missing dependencies in your components.")
+        missing_columns = set(required_columns).difference(set(created_columns))
+        if missing_columns:
+            raise PopulationError(f"The columns {missing_columns} are required, but are not "
+                                  f"created by any components in the system.")
 
     def _order_initializers(self) -> None:
         unordered_initializers = deque(self._population_initializers)

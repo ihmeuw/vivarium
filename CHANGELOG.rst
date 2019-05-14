@@ -1,3 +1,38 @@
+**0.8.20 - 04/22/19**
+
+ - Add simulation lifecycle info to the simulant creator.
+ - Bugfix in simulate profile.
+
+**0.8.19 - 03/27/19**
+
+ - Update results writer to write new hdfs instead of overwriting.
+
+**0.8.18 - 02/13/19**
+
+ - Fix numerical issue in rate to probability calculation
+ - Alter randomness manager to keep track of randomness streams.
+
+**0.8.17 - 02/13/19**
+
+ - Fix branch/version synchronization
+
+**0.8.16 - 02/11/19**
+
+ - Remove combined sexes from the "build_table".
+
+**0.8.15 - 01/03/19**
+
+ - Add doctests to travis
+ - Update population initializer error message
+
+**0.8.14 - 12/20/18**
+
+ - Standardize the population getter from the the interactive interface.
+ - Added "additional_key" argument to randomness.filter for probability and for rate.
+ - Added a profile subcommand to simulate.
+ - Separated component configuration from setup.
+ - Vectorize python loops in the interpolation implementation.
+
 **0.8.13 - 11/15/18**
 
  - Fix broken doc dependency

@@ -1,4 +1,23 @@
-"""The engine."""
+"""
+===================
+The Vivarium Engine
+===================
+
+The engine houses the :class:`SimulationContext` -- the key ``vivarium`` object
+for running and interacting with simulations. It is the top level manager
+for all state information in ``vivarium``.  By intention, it exposes a very
+simple interface for managing the
+:ref:`simulation lifecycle <lifecycle_concept>`.
+
+Also included here is the simulation :class:`Builder`, which is the main
+interface that components use to interact with the simulation framework. You
+can read more about how the builder works and what services is exposes
+:ref:`here <builder_concept>`.
+
+Finally, there are a handful of wrapper methods that allow a user or user
+tools to easily setup and run a simulation.
+
+"""
 import gc
 import logging
 from pprint import pformat
@@ -6,7 +25,7 @@ from time import time
 
 import pandas as pd
 
-from vivarium import VivariumError
+from vivarium.exceptions import VivariumError
 from vivarium.framework.configuration import build_model_specification
 from .components import ComponentInterface
 from .event import Event, EventInterface
@@ -59,6 +78,7 @@ class SimulationContext:
         self.time_step_emitters = {k: self.builder.event.get_emitter(k) for k in self.time_step_events}
         self.end_emitter = self.builder.event.get_emitter('simulation_end')
         self._setup = True
+        self.configuration.freeze()
         self.builder.event.get_emitter('post_setup')(None)
 
     def step(self):
@@ -73,7 +93,7 @@ class SimulationContext:
         # Fencepost the creation of the initial population.
         self.clock.step_backward()
         population_size = pop_params.population_size
-        self.simulant_creator(population_size)
+        self.simulant_creator(population_size, population_configuration={'sim_state': 'setup'})
         self.clock.step_forward()
 
     def finalize(self):

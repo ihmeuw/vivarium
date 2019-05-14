@@ -1,4 +1,11 @@
-"""A framework for generic state machines."""
+"""
+=============
+State Machine
+=============
+
+A state machine implementation for use in ``vivarium`` simulations.
+
+"""
 from enum import Enum
 
 import pandas as pd

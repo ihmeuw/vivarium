@@ -1,7 +1,12 @@
-"""A configuration structure which supports cascading layers.
+"""
+===============
+The Config Tree
+===============
 
-In Vivarium it allows base configurations to be overridden by component level
-configurations which are in turn overridden by model level configuration
+A configuration structure which supports cascading layers.
+
+In ``vivarium`` it allows base configurations to be overridden by component
+level configurations which are in turn overridden by model level configuration
 which can be overridden by user supplied overrides. From the perspective
 of normal client code the cascading is hidden and configuration values
 are presented as attributes of the configuration object the values of
@@ -13,18 +18,15 @@ For example:
 .. code-block:: python
 
     >>> config = ConfigTree(layers=['inner_layer', 'middle_layer', 'outer_layer', 'user_overrides'])
-    >>> config.read_dict({'section_a': {'item1': 'value1', 'item2': 'value2'}, 'section_b': {'item1': 'value3'}}, layer='inner_layer')
-    >>> config.read_dict({'section_a': {'item1': 'value4'}, 'section_b': {'item1': 'value5'}}, layer='middle_layer')
-    >>> config.read_dict({'section_b': {'item1': 'value6'}}, layer='outer_layer')
+    >>> config.update({'section_a': {'item1': 'value1', 'item2': 'value2'}, 'section_b': {'item1': 'value3'}}, layer='inner_layer')
+    >>> config.update({'section_a': {'item1': 'value4'}, 'section_b': {'item1': 'value5'}}, layer='middle_layer')
+    >>> config.update({'section_b': {'item1': 'value6'}}, layer='outer_layer')
     >>> config.section_a.item1
     'value4'
     >>> config.section_a.item2
     'value2'
     >>> config.section_b.item1
     'value6'
-    >>> config.section_b.item1 = 'value7'
-    >>> config.section_b.item1
-    'value7'
 """
 from typing import Mapping, Union
 import yaml
@@ -186,12 +188,11 @@ class ConfigNode:
             del self._values[layer]
 
     def __repr__(self):
-        return 'ConfigNode(layers={}, values={}, frozen={}, accessed={})'.format(
-            self._layers, self._values, self._frozen, self._accessed)
+        return '\n'.join(reversed([f'{layer}: {value[1]}\n    source: {value[0]}'
+                                   for layer, value in self._values.items()]))
 
     def __str__(self):
-        return '\n'.join(reversed(['{}: {}\n    source: {}'.format(layer, value[1], value[0])
-                                   for layer, value in self._values.items()]))
+        return [f'{layer}: {value[1]}' for layer, value in self._values.items()][0]
 
 
 class ConfigTree:
@@ -391,7 +392,7 @@ class ConfigTree:
         source : str
             Source to attribute the values to
         """
-        data_dict = yaml.load(data_string)
+        data_dict = yaml.full_load(data_string)
         self._read_dict(data_dict, layer, source)
 
     def _load(self, f, layer=None, source=None):
@@ -518,8 +519,8 @@ class ConfigTree:
         return list(self._children.keys()) + dir(super(ConfigTree, self))
 
     def __repr__(self):
-        return 'ConfigTree(children={}, frozen={})'.format(
-            ' '.join([repr(c) for c in self._children.values()]), self._frozen)
+        return '\n'.join(['{}:\n    {}'.format(name, repr(c).replace('\n', '\n    '))
+                          for name, c in self._children.items()])
 
     def __str__(self):
         return '\n'.join(['{}:\n    {}'.format(name, str(c).replace('\n', '\n    '))

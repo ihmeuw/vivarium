@@ -56,6 +56,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
+    'sphinx_click.ext',
     'sphinx_autodoc_typehints',
     'matplotlib.sphinxext.plot_directive',
 ]
@@ -194,4 +195,4 @@ autodoc_member_order = 'bysource'
 
 # Defaults for automodule and autoclass
 # To negate add `:no-undoc-members:` flag to a particular instance
-autodoc_default_flags = ['members', 'undoc-members' ]
+autodoc_default_flags = ['members', 'undoc-members']

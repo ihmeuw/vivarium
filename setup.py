@@ -19,7 +19,7 @@ if __name__ == "__main__":
     install_requirements = [
         'numpy',
         'pandas',
-        'pyyaml',
+        'pyyaml>=5.1',
         'scipy',
         'click',
         'tables',
@@ -41,6 +41,7 @@ if __name__ == "__main__":
         'sphinx',
         'sphinx-autodoc-typehints',
         'sphinx-rtd-theme',
+        'sphinx-click',
         'IPython',
         'matplotlib'
     ]

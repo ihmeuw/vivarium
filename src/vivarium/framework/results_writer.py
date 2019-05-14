@@ -1,4 +1,16 @@
-"""Provides a class for consistently managing and writing vivarium outputs and output paths."""
+"""
+===============
+Writing Results
+===============
+
+Provides a class for consistently managing and writing vivarium outputs and
+output paths.
+
+.. note::
+   This class is currently under re-design and will likely not exist in the
+   next major update.  - J.C. 05/08/19
+
+"""
 import shutil
 from collections import defaultdict
 import os
@@ -69,7 +81,11 @@ class ResultsWriter:
             # to_hdf breaks with categorical dtypes.
             categorical_columns = data.dtypes[data.dtypes == 'category'].index
             data.loc[:, categorical_columns] = data.loc[:, categorical_columns].astype('object')
-            data.to_hdf(path, 'data')
+            # Writing to an hdf over and over balloons the file size so write to new file and move it over to avoid
+            data.to_hdf(path + "update", 'data')
+            if os.path.exists(path):
+                os.remove(path)
+            os.rename(path + "update", path)
         else:
             raise NotImplementedError(
                 f"Only 'yaml' and 'hdf' file types are supported. You requested {extension}")

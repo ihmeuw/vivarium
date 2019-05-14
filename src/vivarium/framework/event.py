@@ -1,4 +1,18 @@
-"""The event framework"""
+"""
+============================
+The Vivarium Event Framework
+============================
+
+``vivarium`` constructs and manages the flow of :ref:`time <time_concept>`
+through the emission of regularly scheduled events. The tools in this module
+manage the relationships between event emitters and listeners and provide
+an interface for user :ref:`components <components_concept>` to register
+themselves as emitters or listeners to particular events.
+
+For more information, see the associated event
+:ref:`concept note <event_concept>`.
+
+"""
 from collections import defaultdict
 from typing import Callable
 
