@@ -107,6 +107,7 @@ class Transition:
     """
     def __init__(self, input_state, output_state, probability_func=lambda index: pd.Series(1, index=index),
                  triggered=Trigger.NOT_TRIGGERED):
+        self.name = f"transition.{input_state.name}.{output_state.name}"
         self.input_state = input_state
         self.output_state = output_state
         self._probability = probability_func
@@ -138,12 +139,8 @@ class Transition:
         null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
         return activated.append(null)
 
-    @property
-    def name(self):
-        return f"Transition.{self.input_state.state_id}.{self.output_state.state_id}"
-
     def __repr__(self):
-        return f'Transition(from={self.input_state.state_id}, to={self.output_state.state_id})'
+        return f'Transition({self.input_state}, {self.output_state})'
 
 
 class State:
@@ -152,7 +149,7 @@ class State:
     Attributes
     ----------
     state_id : str
-        The name of this state.
+        The unique name of this state.
     transition_set : `TransitionSet`
         A container for potential transitions out of this state.
     key : object, optional
@@ -160,6 +157,7 @@ class State:
         however, any object may be used.
     """
     def __init__(self, state_id, key='state'):
+        self.name = f'state_{state_id}'
         self.state_id = state_id
         self.key = key
         self.transition_set = TransitionSet(key='.'.join([str(key), str(state_id)]))
@@ -234,12 +232,8 @@ class State:
     def _cleanup_effect(self, index, event_time):
         pass
 
-    @property
-    def name(self):
-        return f"State.{self.state_id}"
-
     def __repr__(self):
-        return f'State(state_id={self.state_id}, key={self.key})'
+        return f'State({self.state_id}, key={self.key})'
 
 
 class Transient:
@@ -249,7 +243,7 @@ class Transient:
 
 class TransientState(State, Transient):
     def __repr__(self):
-        return 'TransientState({})'.format(self.state_id)
+        return f'TransientState({self.state_id}, key={self.key})'
 
 
 class TransitionSet:
@@ -385,6 +379,7 @@ class Machine:
         A view of the internal state of the simulation.
     """
     def __init__(self, state_column, states=None):
+        self.name = "machine"
         self.states = []
         self.state_column = state_column
         if states:
@@ -461,5 +456,8 @@ class Machine:
             name += f".{state.name}"
         return name
 
+    def __str__(self):
+        return "Machine()"
+
     def __repr__(self):
-        return "Machine(states= {}, state_column= {})".format(self.states, self.state_column)
+        return f"Machine(states= {self.states}, state_column= {self.state_column})"
