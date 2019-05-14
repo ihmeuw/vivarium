@@ -65,6 +65,7 @@ class PluginConfigurationError(VivariumError):
 class PluginManager:
 
     def __init__(self, plugin_configuration=None):
+        self.name = "plugin_manager"
         self._plugin_configuration = ConfigTree(DEFAULT_PLUGINS['plugins'])
         self._plugin_configuration.update(plugin_configuration)
         self._plugins = {}
@@ -125,6 +126,9 @@ class PluginManager:
             return _MANAGERS[name]
         else:
             raise PluginConfigurationError(f'Plugin {name} not found.')
+
+    def __str__(self):
+        return "PluginManager()"
 
     def __repr__(self):
         return f"PluginManager(_plugins = {self._plugins})"

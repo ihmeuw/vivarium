@@ -13,6 +13,9 @@ It is included by default in all simulations.
 
 class Metrics:
     """This class declares a value pipeline that allows other components to store summary metrics."""
+    def __init__(self):
+        self.name = "metrics"
+
     def setup(self, builder):
         self.metrics = builder.value.register_value_producer('metrics', source=lambda index: {})
 

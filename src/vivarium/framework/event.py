@@ -88,6 +88,7 @@ class EventManager:
     """
 
     def __init__(self):
+        self.name = "event_manager"
         self._event_types = defaultdict(lambda: _EventChannel(self))
 
     def setup(self, builder):
@@ -152,8 +153,11 @@ class EventManager:
     def __contains__(self, item):
         return item in self._event_types
 
+    def __str__(self):
+        return "EventManager()"
+
     def __repr__(self):
-        return "EventManager(event_types: {})".format(self._event_types.keys())
+        return f"EventManager(event_types: {self._event_types.keys()})"
 
 
 class EventInterface:

@@ -136,6 +136,7 @@ class ValuesManager:
     """
 
     def __init__(self):
+        self.name = "values_manager"
         self._pipelines = defaultdict(Pipeline)
 
     def setup(self, builder):
@@ -185,8 +186,11 @@ class ValuesManager:
     def items(self):
         return self._pipelines.items()
 
+    def __str__(self):
+        return "ValuesManager()"
+
     def __repr__(self):
-        return "ValuesManager(_pipelines= {})".format(list(self._pipelines.keys()))
+        return f"ValuesManager(_pipelines= {self._pipelines.keys()})"
 
 
 class ValuesInterface:

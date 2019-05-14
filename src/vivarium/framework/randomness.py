@@ -621,6 +621,7 @@ class RandomnessManager:
     }
 
     def __init__(self):
+        self.name = "randomness_manager"
         self._seed = None
         self._clock = None
         self._key_columns = None
@@ -683,6 +684,9 @@ class RandomnessManager:
         if not all(k in simulants.columns for k in self._key_columns):
             raise RandomnessError("The simulants dataframe does not have all specified key_columns.")
         self._key_mapping.update(simulants.set_index(self._key_columns).index)
+
+    def __str__(self):
+        return "RandomnessManager()"
 
     def __repr__(self) -> str:
         return f"RandomnessManager(seed={self._seed}, key_columns={self._key_columns}, " \

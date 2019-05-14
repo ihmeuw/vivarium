@@ -67,6 +67,10 @@ class SimpleClock(SimulationClock):
         }
     }
 
+    def __init__(self):
+        super().__init__()
+        self.name = "simple_clock"
+
     def setup(self, builder):
         self._time = builder.configuration.time.start
         self._stop_time = builder.configuration.time.end
@@ -98,6 +102,10 @@ class DateTimeClock(SimulationClock):
             'step_size': 1,  # Days
         }
     }
+
+    def __init__(self):
+        super().__init__()
+        self.name = "datetime_clock"
 
     def setup(self, builder):
         time = builder.configuration.time
