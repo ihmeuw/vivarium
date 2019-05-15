@@ -104,10 +104,13 @@ class Transition:
         The end state of the entity that undergoes the transition.
     probability_func : Callable
         A method or function that describing the probability of this transition occurring.
+    key : object, optional
+        Typically a string used to label with the `input_state` and `output_state`
+        to label this transition, however, any object implementing __str__ may be used.
     """
     def __init__(self, input_state, output_state, probability_func=lambda index: pd.Series(1, index=index),
-                 triggered=Trigger.NOT_TRIGGERED):
-        self.name = f"transition.{input_state.name}.{output_state.name}"
+                 triggered=Trigger.NOT_TRIGGERED, key='transition'):
+        self.name = f"{str(key)}.{input_state.name}.{output_state.name}"
         self.input_state = input_state
         self.output_state = output_state
         self._probability = probability_func
@@ -149,18 +152,18 @@ class State:
     Attributes
     ----------
     state_id : str
-        The unique name of this state.
+        The name of this state.
     transition_set : `TransitionSet`
         A container for potential transitions out of this state.
     key : object, optional
-        Typically a string used with the state_id to label this state's `transition_set`,
-        however, any object may be used.
+        Typically a string used with the state_id to label this state and the
+        state's `transition_set`, however, any object implementing __str__  may be used.
     """
     def __init__(self, state_id, key='state'):
-        self.name = f'state_{state_id}'
+        self.name = '.'.join([str(state_id), str(key)])
         self.state_id = state_id
         self.key = key
-        self.transition_set = TransitionSet(key='.'.join([str(key), str(state_id)]))
+        self.transition_set = TransitionSet(context_name=self.name)
         self._model = None
 
     def setup(self, builder):
@@ -177,7 +180,9 @@ class State:
         iterable
             This component's sub-components.
         """
-        builder.components.add_components([self.transition_set])
+        # States like ExcessMortalityState don't have any transitions
+        if len(self.transition_set.transitions) > 0:
+            builder.components.add_components([self.transition_set])
 
     def next_state(self, index, event_time, population_view):
         """Moves a population between different states using information this state's `transition_set`.
@@ -254,12 +259,14 @@ class TransitionSet:
     iterable : iterable
         Any iterable whose elements are `Transition` objects.
     allow_null_transition : bool, optional
-    key : object, optional
-        Typically a string labelling an instance of this class, but any object will do.
+    context_name : object
+        Typically a string used to give this transition set a unique name based
+        on the state it is an attribute of, but any object implementing __str__
+        will do.
     """
-    def __init__(self, *iterable, allow_null_transition=False, key='state_machine'):
+    def __init__(self, *iterable, context_name, allow_null_transition=False):
+        self.name = f'transition_set.{str(context_name)}'
         self.allow_null_transition = allow_null_transition
-        self.key = str(key)
         self.transitions = []
 
         self.extend(iterable)
@@ -279,7 +286,7 @@ class TransitionSet:
             This component's sub-components.
         """
         builder.components.add_components(self.transitions)
-        self.random = builder.randomness.get_stream(self.key)
+        self.random = builder.randomness.get_stream(self.name)
 
     def choose_new_state(self, index):
         """Chooses a new state for each simulant in the index.
@@ -349,18 +356,11 @@ class TransitionSet:
     def __len__(self):
         return len(self.transitions)
 
-    @property
-    def name(self):
-        name = "TransitionSet"
-        for transition in self.transitions:
-            name += f".{transition.name}"
-        return name
-
     def __str__(self):
-        return str([str(x) for x in self.transitions])
+        return "TransitionSet()"
 
     def __repr__(self):
-        return repr([repr(x) for x in self.transitions])
+        return f"TransitionSet(transitions={[repr(x) for x in self.transitions]})"
 
     def __hash__(self):
         return hash(id(self))
@@ -379,7 +379,6 @@ class Machine:
         A view of the internal state of the simulation.
     """
     def __init__(self, state_column, states=None):
-        self.name = "machine"
         self.states = []
         self.state_column = state_column
         if states:
@@ -451,7 +450,7 @@ class Machine:
 
     @property
     def name(self):
-        name = "Machine"  # Will we ever have dupes with different state columns?
+        name = "machine"  # Will we ever have dupes with different state columns?
         for state in self.states:
             name += f".{state.name}"
         return name
