@@ -105,8 +105,9 @@ class Transition:
     probability_func : Callable
         A method or function that describing the probability of this transition occurring.
     key : object, optional
-        Typically a string used to label with the `input_state` and `output_state`
-        to label this transition, however, any object implementing __str__ may be used.
+        Typically a string used with the `input_state` and `output_state`
+        to label this transition, however, any object implementing __str__ may
+        be used.
     """
     def __init__(self, input_state, output_state, probability_func=lambda index: pd.Series(1, index=index),
                  triggered=Trigger.NOT_TRIGGERED, key='transition'):
@@ -450,7 +451,7 @@ class Machine:
 
     @property
     def name(self):
-        name = "machine"  # Will we ever have dupes with different state columns?
+        name = "machine"
         for state in self.states:
             name += f".{state.name}"
         return name
