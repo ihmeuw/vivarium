@@ -161,10 +161,10 @@ class State:
         state's `transition_set`, however, any object implementing __str__  may be used.
     """
     def __init__(self, state_id, key='state'):
-        self.name = '.'.join([str(state_id), str(key)])
-        self.state_id = state_id
+        self.name = f'{key}.{state_id}'
         self.key = key
-        self.transition_set = TransitionSet(context_name=self.name)
+        self.state_id = state_id
+        self.transition_set = TransitionSet(key=self.name)
         self._model = None
 
     def setup(self, builder):
@@ -260,13 +260,13 @@ class TransitionSet:
     iterable : iterable
         Any iterable whose elements are `Transition` objects.
     allow_null_transition : bool, optional
-    context_name : object
+    key : object
         Typically a string used to give this transition set a unique name based
         on the state it is an attribute of, but any object implementing __str__
         will do.
     """
-    def __init__(self, *iterable, context_name, allow_null_transition=False):
-        self.name = f'transition_set.{str(context_name)}'
+    def __init__(self, *iterable, key, allow_null_transition=False):
+        self.name = f'transition_set.{str(key)}'
         self.allow_null_transition = allow_null_transition
         self.transitions = []
 
