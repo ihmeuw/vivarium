@@ -43,6 +43,7 @@ class ComponentManager:
     def __init__(self):
         self._managers = []
         self._components = []
+        self._names = []
 
     def add_managers(self, managers: Union[List, Tuple, Any]):
         """Registers new managers with the component manager. Managers are
@@ -71,7 +72,11 @@ class ComponentManager:
             if isinstance(component, list) or isinstance(component, tuple):
                 self._add_components(component_list, component)
             else:
-                component_list.append(component)
+                if component.name in self._names:
+                    raise ComponentConfigError(f"Attempting to add duplicate component with name {component.name}")
+                else:
+                    component_list.append(component)
+                    self._names.append(component.name)
 
     def get_components(self, component_type: Any) -> List:
         """Gets a list of components currently held by the component manager
