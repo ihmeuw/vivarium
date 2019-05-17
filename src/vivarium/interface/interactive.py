@@ -18,7 +18,7 @@ See the associated tutorials for :ref:`running <interactive_tutorial>` and
 
 """
 from math import ceil
-from typing import Mapping, List, Callable
+from typing import Mapping, List, Callable, Any
 import warnings
 
 import pandas as pd
@@ -237,6 +237,14 @@ class InteractiveContext(SimulationContext):
     def get_components(self) -> List:
         """Get a list of all components in the simulation."""
         return [component for component in self.component_manager._components + self.component_manager._managers]
+
+    @raise_if_not_setup(system_type='component')
+    def get_named_component(self, name: str) -> Any:
+        """Get a component by name"""
+        if name in self.component_manager._names:
+            for component in self.component_manager._components + self.component_manager._managers:
+                if component.name == name:
+                    return component
 
 
 def initialize_simulation(components: List, input_config: Mapping = None,
