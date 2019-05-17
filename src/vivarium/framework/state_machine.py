@@ -181,9 +181,7 @@ class State:
         iterable
             This component's sub-components.
         """
-        # States like ExcessMortalityState don't have any transitions
-        if len(self.transition_set.transitions) > 0:
-            builder.components.add_components([self.transition_set])
+        builder.components.add_components([self.transition_set])
 
     def next_state(self, index, event_time, population_view):
         """Moves a population between different states using information this state's `transition_set`.
