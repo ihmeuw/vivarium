@@ -171,7 +171,7 @@ class EventInterface:
         Parameters
         ----------
         name :
-            The name of the event he requested emitter will emit.
+            The name of the event the requested emitter will emit.
             Users may provide their own named events by requesting an emitter with this function,
             but should do so with caution as it makes time much more difficult to think about.
 
