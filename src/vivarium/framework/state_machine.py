@@ -383,6 +383,13 @@ class Machine:
         if states:
             self.add_states(states)
 
+    @property
+    def name(self):
+        name = "machine"
+        for state in self.states:
+            name += f".{state.name}"
+        return name
+
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
 
@@ -446,13 +453,6 @@ class Machine:
     def _get_state_pops(self, index):
         population = self.population_view.get(index)
         return [[state, population[population[self.state_column] == state.state_id]] for state in self.states]
-
-    @property
-    def name(self):
-        name = "machine"
-        for state in self.states:
-            name += f".{state.name}"
-        return name
 
     def __str__(self):
         return "Machine()"
