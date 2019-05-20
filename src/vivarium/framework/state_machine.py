@@ -111,11 +111,15 @@ class Transition:
     """
     def __init__(self, input_state, output_state, probability_func=lambda index: pd.Series(1, index=index),
                  triggered=Trigger.NOT_TRIGGERED, key='transition'):
-        self.name = f"{str(key)}.{input_state.name}.{output_state.name}"
         self.input_state = input_state
         self.output_state = output_state
+        self._key = key
         self._probability = probability_func
         self._active_index, self.start_active = _process_trigger(triggered)
+
+    @property
+    def name(self):
+        return f"transition.{str(self._key)}.{self.input_state.name}.{self.output_state.name}"
 
     def setup(self, builder):
         pass
@@ -153,19 +157,18 @@ class State:
     Attributes
     ----------
     state_id : str
-        The name of this state.
+        The name of this state. This should be unique
     transition_set : `TransitionSet`
         A container for potential transitions out of this state.
-    key : object, optional
-        Typically a string used with the state_id to label this state and the
-        state's `transition_set`, however, any object implementing __str__  may be used.
     """
-    def __init__(self, state_id, key='state'):
-        self.name = f'{key}.{state_id}'
-        self.key = key
-        self.state_id = state_id
-        self.transition_set = TransitionSet(key=self.name)
+    def __init__(self, state_id):
+        self._state_id = state_id
+        self.transition_set = TransitionSet(self.name)
         self._model = None
+
+    @property
+    def name(self):
+        return f"state.{self._state_id}"
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -209,7 +212,7 @@ class State:
         population_view : `vivarium.framework.population.PopulationView`
             A view of the internal state of the simulation.
         """
-        population_view.update(pd.Series(self.state_id, index=index))
+        population_view.update(pd.Series(self._state_id, index=index))
         self._transition_side_effect(index, event_time)
 
     def cleanup_effect(self, index, event_time):
@@ -237,7 +240,7 @@ class State:
         pass
 
     def __repr__(self):
-        return f'State({self.state_id}, key={self.key})'
+        return f'State({self._state_id})'
 
 
 class Transient:
@@ -247,7 +250,7 @@ class Transient:
 
 class TransientState(State, Transient):
     def __repr__(self):
-        return f'TransientState({self.state_id}, key={self.key})'
+        return f'TransientState({self._state_id})'
 
 
 class TransitionSet:
@@ -255,20 +258,23 @@ class TransitionSet:
 
     Parameters
     ----------
+    state_name: object
+        The unique name of the state that instantiated this TransitionSet. Typically
+        a string but any object implementing __str__ will do.
     iterable : iterable
         Any iterable whose elements are `Transition` objects.
     allow_null_transition : bool, optional
-    key : object
-        Typically a string used to give this transition set a unique name based
-        on the state it is an attribute of, but any object implementing __str__
-        will do.
     """
-    def __init__(self, *iterable, key, allow_null_transition=False):
-        self.name = f'transition_set.{str(key)}'
+    def __init__(self, state_name, *iterable, allow_null_transition=False):
+        self._state_name = state_name
         self.allow_null_transition = allow_null_transition
         self.transitions = []
 
         self.extend(iterable)
+
+    @property
+    def name(self):
+        return f'transition_set.{self._state_name}'
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -385,10 +391,7 @@ class Machine:
 
     @property
     def name(self):
-        name = "machine"
-        for state in self.states:
-            name += f".{state.name}"
-        return name
+        return f"machine.{self.state_column}"
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -443,16 +446,16 @@ class Machine:
         dot = Digraph(format='png')
         for state in self.states:
             if isinstance(state, TransientState):
-                dot.node(state.state_id, style='dashed')
+                dot.node(state._state_id, style='dashed')
             else:
-                dot.node(state.state_id)
+                dot.node(state._state_id)
             for transition in state.transition_set:
-                dot.edge(state.state_id, transition.output.state_id, transition.label())
+                dot.edge(state._state_id, transition.output._state_id, transition.label())
         return dot
 
     def _get_state_pops(self, index):
         population = self.population_view.get(index)
-        return [[state, population[population[self.state_column] == state.state_id]] for state in self.states]
+        return [[state, population[population[self.state_column] == state._state_id]] for state in self.states]
 
     def __str__(self):
         return "Machine()"
