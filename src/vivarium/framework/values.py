@@ -136,7 +136,6 @@ class ValuesManager:
     """
 
     def __init__(self):
-        self.name = "values_manager"
         self._pipelines = defaultdict(Pipeline)
 
     @property

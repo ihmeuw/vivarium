@@ -88,7 +88,6 @@ class EventManager:
     """
 
     def __init__(self):
-        self.name = "event_manager"
         self._event_types = defaultdict(lambda: _EventChannel(self))
 
     @property
