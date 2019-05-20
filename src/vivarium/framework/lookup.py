@@ -234,8 +234,9 @@ class LookupTableManager:
         }
     }
 
-    def __init__(self):
-        self.name = "lookup_table_manager"
+    @property
+    def name(self):
+        return "lookup_table_manager"
 
     def setup(self, builder):
         self._pop_view_builder = builder.population.get_view

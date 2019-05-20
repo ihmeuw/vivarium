@@ -186,11 +186,14 @@ class PopulationManager:
     }
 
     def __init__(self):
-        self.name = "population_manager"
         self._population = pd.DataFrame()
         self._population_initializers = [(self.on_create_simulants, ['tracked'], [])]
         self._initializers_ordered = False
         self.growing = False
+
+    @property
+    def name(self):
+        return "population_manager"
 
     def setup(self, builder):
         self.clock = builder.time.clock()

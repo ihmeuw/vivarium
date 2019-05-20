@@ -91,6 +91,10 @@ class EventManager:
         self.name = "event_manager"
         self._event_types = defaultdict(lambda: _EventChannel(self))
 
+    @property
+    def name(self):
+        return "event_manager"
+
     def setup(self, builder):
         """Performs this components simulation setup.
 

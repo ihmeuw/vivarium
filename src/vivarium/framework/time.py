@@ -30,6 +30,10 @@ class SimulationClock:
         self._step_size = None
 
     @property
+    def name(self):
+        return "simulation_clock"
+
+    @property
     def time(self) -> Time:
         """The current simulation time."""
         assert self._time is not None, 'No start time provided'
@@ -67,9 +71,9 @@ class SimpleClock(SimulationClock):
         }
     }
 
-    def __init__(self):
-        super().__init__()
-        self.name = "simple_clock"
+    @property
+    def name(self):
+        return "simple_clock"
 
     def setup(self, builder):
         self._time = builder.configuration.time.start
@@ -103,9 +107,9 @@ class DateTimeClock(SimulationClock):
         }
     }
 
-    def __init__(self):
-        super().__init__()
-        self.name = "datetime_clock"
+    @property
+    def name(self):
+        return "datetime_clock"
 
     def setup(self, builder):
         time = builder.configuration.time

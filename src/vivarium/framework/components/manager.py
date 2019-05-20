@@ -41,9 +41,12 @@ class ComponentManager:
     """
 
     def __init__(self):
-        self.name = "component_manager"
         self._managers = []
         self._components = []
+
+    @property
+    def name(self):
+        return "component_manager"
 
     def add_managers(self, managers: Union[List, Tuple, Any]):
         """Registers new managers with the component manager. Managers are
@@ -107,11 +110,9 @@ class ComponentManager:
         self._managers = setup_components(builder, self._managers, configuration)
         self._components = setup_components(builder, self._components, configuration)
 
-    def __str__(self):
-        return "ComponentManager()"
-
     def __repr__(self):
-        return f"ComponentManager(_components={self._components}, _managers={self._managers})"
+        return f"ComponentManager()"
+
 
 class ComponentInterface:
     """The builder interface for the component manager system. This class
