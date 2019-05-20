@@ -104,22 +104,17 @@ class Transition:
         The end state of the entity that undergoes the transition.
     probability_func : Callable
         A method or function that describing the probability of this transition occurring.
-    key : object, optional
-        Typically a string used with the `input_state` and `output_state`
-        to label this transition, however, any object implementing __str__ may
-        be used.
     """
     def __init__(self, input_state, output_state, probability_func=lambda index: pd.Series(1, index=index),
-                 triggered=Trigger.NOT_TRIGGERED, key='transition'):
+                 triggered=Trigger.NOT_TRIGGERED):
         self.input_state = input_state
         self.output_state = output_state
-        self._key = key
         self._probability = probability_func
         self._active_index, self.start_active = _process_trigger(triggered)
 
     @property
     def name(self):
-        return f"transition.{str(self._key)}.{self.input_state.name}.{self.output_state.name}"
+        return f"transition.{self.input_state.name}.{self.output_state.name}"
 
     def setup(self, builder):
         pass
