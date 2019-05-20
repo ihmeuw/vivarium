@@ -156,11 +156,8 @@ class EventManager:
     def __contains__(self, item):
         return item in self._event_types
 
-    def __str__(self):
-        return "EventManager()"
-
     def __repr__(self):
-        return f"EventManager(event_types: {self._event_types.keys()})"
+        return "EventManager()"
 
 
 class EventInterface:
