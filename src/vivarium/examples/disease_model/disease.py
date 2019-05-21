@@ -9,7 +9,6 @@ class DiseaseTransition(Transition):
 
     def __init__(self, name, rate, input_state, output_state, **kwargs):
         super().__init__(input_state, output_state, probability_func=self._probability, **kwargs)
-        self.name = name
         self.base_rate = lambda index: pd.Series(rate, index=index)
 
     def setup(self, builder):
