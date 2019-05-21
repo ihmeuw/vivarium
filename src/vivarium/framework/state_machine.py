@@ -449,8 +449,5 @@ class Machine:
         population = self.population_view.get(index)
         return [[state, population[population[self.state_column] == state.state_id]] for state in self.states]
 
-    def __str__(self):
-        return "Machine()"
-
     def __repr__(self):
         return f"Machine(state_column= {self.state_column})"
