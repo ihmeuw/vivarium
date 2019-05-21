@@ -157,13 +157,13 @@ class State:
         A container for potential transitions out of this state.
     """
     def __init__(self, state_id):
-        self._state_id = state_id
+        self.state_id = state_id
         self.transition_set = TransitionSet(self.name)
         self._model = None
 
     @property
     def name(self):
-        return f"state.{self._state_id}"
+        return f"state.{self.state_id}"
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -207,7 +207,7 @@ class State:
         population_view : `vivarium.framework.population.PopulationView`
             A view of the internal state of the simulation.
         """
-        population_view.update(pd.Series(self._state_id, index=index))
+        population_view.update(pd.Series(self.state_id, index=index))
         self._transition_side_effect(index, event_time)
 
     def cleanup_effect(self, index, event_time):
@@ -235,7 +235,7 @@ class State:
         pass
 
     def __repr__(self):
-        return f'State({self._state_id})'
+        return f'State({self.state_id})'
 
 
 class Transient:
@@ -245,7 +245,7 @@ class Transient:
 
 class TransientState(State, Transient):
     def __repr__(self):
-        return f'TransientState({self._state_id})'
+        return f'TransientState({self.state_id})'
 
 
 class TransitionSet:
@@ -441,16 +441,16 @@ class Machine:
         dot = Digraph(format='png')
         for state in self.states:
             if isinstance(state, TransientState):
-                dot.node(state._state_id, style='dashed')
+                dot.node(state.state_id, style='dashed')
             else:
-                dot.node(state._state_id)
+                dot.node(state.state_id)
             for transition in state.transition_set:
-                dot.edge(state._state_id, transition.output._state_id, transition.label())
+                dot.edge(state.state_id, transition.output.state_id, transition.label())
         return dot
 
     def _get_state_pops(self, index):
         population = self.population_view.get(index)
-        return [[state, population[population[self.state_column] == state._state_id]] for state in self.states]
+        return [[state, population[population[self.state_column] == state.state_id]] for state in self.states]
 
     def __str__(self):
         return "Machine()"
