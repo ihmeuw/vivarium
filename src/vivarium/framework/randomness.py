@@ -627,6 +627,10 @@ class RandomnessManager:
         self._key_mapping = IndexMap()
         self._decision_points = dict()
 
+    @property
+    def name(self):
+        return "randomness_manager"
+
     def setup(self, builder):
         self._seed = str(builder.configuration.randomness.random_seed)
         if builder.configuration.randomness.additional_seed is not None:
@@ -684,9 +688,11 @@ class RandomnessManager:
             raise RandomnessError("The simulants dataframe does not have all specified key_columns.")
         self._key_mapping.update(simulants.set_index(self._key_columns).index)
 
+    def __str__(self):
+        return "RandomnessManager()"
+
     def __repr__(self) -> str:
-        return f"RandomnessManager(seed={self._seed}, key_columns={self._key_columns}, " \
-               f"decision_points={self._decision_points.keys()})"
+        return f"RandomnessManager(seed={self._seed}, key_columns={self._key_columns})"
 
 
 class RandomnessInterface:

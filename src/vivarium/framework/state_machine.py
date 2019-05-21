@@ -112,6 +112,10 @@ class Transition:
         self._probability = probability_func
         self._active_index, self.start_active = _process_trigger(triggered)
 
+    @property
+    def name(self):
+        return f"transition.{self.input_state.name}.{self.output_state.name}"
+
     def setup(self, builder):
         pass
 
@@ -138,12 +142,8 @@ class Transition:
         null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
         return activated.append(null)
 
-    def label(self):
-        """The name of this transition."""
-        return ''
-
     def __repr__(self):
-        return f'Transition(from={self.input_state.state_id}, to={self.output_state.state_id})'
+        return f'Transition({self.input_state}, {self.output_state})'
 
 
 class State:
@@ -152,17 +152,18 @@ class State:
     Attributes
     ----------
     state_id : str
-        The name of this state.
+        The name of this state. This should be unique
     transition_set : `TransitionSet`
         A container for potential transitions out of this state.
-    key : object, optional
-        Typically a string used with the state_id to label this state's `transition_set`,
-        however, any object may be used.
     """
-    def __init__(self, state_id, key='state'):
+    def __init__(self, state_id):
         self.state_id = state_id
-        self.transition_set = TransitionSet(key='.'.join([str(key), str(state_id)]))
+        self.transition_set = TransitionSet(self.name)
         self._model = None
+
+    @property
+    def name(self):
+        return f"state.{self.state_id}"
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -233,11 +234,8 @@ class State:
     def _cleanup_effect(self, index, event_time):
         pass
 
-    def __str__(self):
-        return repr(self)
-
     def __repr__(self):
-        return 'State({})'.format(self.state_id)
+        return f'State({self.state_id})'
 
 
 class Transient:
@@ -247,7 +245,7 @@ class Transient:
 
 class TransientState(State, Transient):
     def __repr__(self):
-        return 'TransientState({})'.format(self.state_id)
+        return f'TransientState({self.state_id})'
 
 
 class TransitionSet:
@@ -255,18 +253,23 @@ class TransitionSet:
 
     Parameters
     ----------
+    state_name: object
+        The unique name of the state that instantiated this TransitionSet. Typically
+        a string but any object implementing __str__ will do.
     iterable : iterable
         Any iterable whose elements are `Transition` objects.
     allow_null_transition : bool, optional
-    key : object, optional
-        Typically a string labelling an instance of this class, but any object will do.
     """
-    def __init__(self, *iterable, allow_null_transition=False, key='state_machine'):
+    def __init__(self, state_name, *iterable, allow_null_transition=False):
+        self._state_name = state_name
         self.allow_null_transition = allow_null_transition
-        self.key = str(key)
         self.transitions = []
 
         self.extend(iterable)
+
+    @property
+    def name(self):
+        return f'transition_set.{self._state_name}'
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -283,7 +286,7 @@ class TransitionSet:
             This component's sub-components.
         """
         builder.components.add_components(self.transitions)
-        self.random = builder.randomness.get_stream(self.key)
+        self.random = builder.randomness.get_stream(self.name)
 
     def choose_new_state(self, index):
         """Chooses a new state for each simulant in the index.
@@ -353,11 +356,8 @@ class TransitionSet:
     def __len__(self):
         return len(self.transitions)
 
-    def __str__(self):
-        return str([str(x) for x in self.transitions])
-
     def __repr__(self):
-        return repr([repr(x) for x in self.transitions])
+        return f"TransitionSet(transitions={[x for x in self.transitions]})"
 
     def __hash__(self):
         return hash(id(self))
@@ -380,6 +380,10 @@ class Machine:
         self.state_column = state_column
         if states:
             self.add_states(states)
+
+    @property
+    def name(self):
+        return f"machine.{self.state_column}"
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -446,4 +450,4 @@ class Machine:
         return [[state, population[population[self.state_column] == state.state_id]] for state in self.states]
 
     def __repr__(self):
-        return "Machine(states= {}, state_column= {})".format(self.states, self.state_column)
+        return f"Machine(state_column= {self.state_column})"

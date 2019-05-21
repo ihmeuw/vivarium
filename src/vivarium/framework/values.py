@@ -138,6 +138,10 @@ class ValuesManager:
     def __init__(self):
         self._pipelines = defaultdict(Pipeline)
 
+    @property
+    def name(self):
+        return "values_manager"
+
     def setup(self, builder):
         self.step_size = builder.time.step_size()
         builder.event.register_listener('post_setup', self.on_post_setup)
@@ -186,7 +190,7 @@ class ValuesManager:
         return self._pipelines.items()
 
     def __repr__(self):
-        return "ValuesManager(_pipelines= {})".format(list(self._pipelines.keys()))
+        return "ValuesManager()"
 
 
 class ValuesInterface:

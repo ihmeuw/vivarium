@@ -30,6 +30,10 @@ class SimulationClock:
         self._step_size = None
 
     @property
+    def name(self):
+        return "simulation_clock"
+
+    @property
     def time(self) -> Time:
         """The current simulation time."""
         assert self._time is not None, 'No start time provided'
@@ -67,10 +71,17 @@ class SimpleClock(SimulationClock):
         }
     }
 
+    @property
+    def name(self):
+        return "simple_clock"
+
     def setup(self, builder):
         self._time = builder.configuration.time.start
         self._stop_time = builder.configuration.time.end
         self._step_size = builder.configuration.time.step_size
+
+    def __repr__(self):
+        return "SimpleClock()"
 
 
 def get_time_stamp(time):
@@ -96,11 +107,18 @@ class DateTimeClock(SimulationClock):
         }
     }
 
+    @property
+    def name(self):
+        return "datetime_clock"
+
     def setup(self, builder):
         time = builder.configuration.time
         self._time = get_time_stamp(time.start)
         self._stop_time = get_time_stamp(time.end)
         self._step_size = pd.Timedelta(days=time.step_size // 1, hours=(time.step_size % 1) * 24)
+
+    def __repr__(self):
+        return "DateTimeClock()"
 
 
 class TimeInterface:

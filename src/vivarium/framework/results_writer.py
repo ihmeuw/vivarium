@@ -103,6 +103,9 @@ class ResultsWriter:
         path = os.path.join(self._directories[key], file_name)
         shutil.copyfile(src_path, path)
 
+    def __repr__(self):
+        return f"ResultsWriter({self.results_root})"
+
 
 def get_results_writer(results_directory, model_specification_file):
     launch_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")

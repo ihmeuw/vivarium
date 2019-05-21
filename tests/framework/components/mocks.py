@@ -4,6 +4,10 @@ class MockComponentA:
         self.args = args
         self.builder_used_for_setup = None
 
+    @property
+    def name(self):
+        return 'mock_component_a'
+
 
 class MockComponentB(MockComponentA):
     def setup(self, builder):
@@ -15,6 +19,10 @@ class MockComponentB(MockComponentA):
                 children.append(MockComponentB(arg))
             builder.components.add_components(children)
         builder.value.register_value_modifier('metrics', self.metrics)
+
+    @property
+    def name(self):
+        return "mock_component_b"
 
     def metrics(self, _, metrics):
         if 'test' in metrics:
@@ -33,6 +41,10 @@ class Listener(MockComponentB):
         self.time_step__cleanup_called = False
         self.collect_metrics_called = False
         self.simulation_end_called = False
+
+    @property
+    def name(self):
+        return "test_listenter"
 
     def setup(self, builder):
         super().setup(builder)

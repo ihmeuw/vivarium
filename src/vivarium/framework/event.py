@@ -90,6 +90,10 @@ class EventManager:
     def __init__(self):
         self._event_types = defaultdict(lambda: _EventChannel(self))
 
+    @property
+    def name(self):
+        return "event_manager"
+
     def setup(self, builder):
         """Performs this components simulation setup.
 
@@ -153,7 +157,7 @@ class EventManager:
         return item in self._event_types
 
     def __repr__(self):
-        return "EventManager(event_types: {})".format(self._event_types.keys())
+        return "EventManager()"
 
 
 class EventInterface:
@@ -167,7 +171,7 @@ class EventInterface:
         Parameters
         ----------
         name :
-            The name of the event he requested emitter will emit.
+            The name of the event the requested emitter will emit.
             Users may provide their own named events by requesting an emitter with this function,
             but should do so with caution as it makes time much more difficult to think about.
 

@@ -191,6 +191,10 @@ class PopulationManager:
         self._initializers_ordered = False
         self.growing = False
 
+    @property
+    def name(self):
+        return "population_manager"
+
     def setup(self, builder):
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
