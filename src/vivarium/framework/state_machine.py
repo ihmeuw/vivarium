@@ -356,11 +356,8 @@ class TransitionSet:
     def __len__(self):
         return len(self.transitions)
 
-    def __str__(self):
-        return "TransitionSet()"
-
     def __repr__(self):
-        return f"TransitionSet(transitions={[repr(x) for x in self.transitions]})"
+        return f"TransitionSet(transitions={[x for x in self.transitions]})"
 
     def __hash__(self):
         return hash(id(self))
@@ -456,4 +453,4 @@ class Machine:
         return "Machine()"
 
     def __repr__(self):
-        return f"Machine(states= {self.states}, state_column= {self.state_column})"
+        return f"Machine(state_column= {self.state_column})"
