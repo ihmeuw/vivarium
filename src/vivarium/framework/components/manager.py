@@ -77,7 +77,7 @@ class ComponentManager:
                                                "requires each component in a simulation have a name attribute with"
                                                "a unique name.")
                 if component.name in self._names:
-                    raise ComponentConfigError(f"Attempting to add duplicate component with name {component.name}")
+                    raise ComponentConfigError(f"Attempting to add duplicate component with name {component.name}.")
 
                 component_list.append(component)
                 self._names.append(component.name)
