@@ -234,6 +234,10 @@ class LookupTableManager:
         }
     }
 
+    @property
+    def name(self):
+        return "lookup_table_manager"
+
     def setup(self, builder):
         self._pop_view_builder = builder.population.get_view
         self.clock = builder.time.clock()

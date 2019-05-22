@@ -125,3 +125,6 @@ class PluginManager:
             return _MANAGERS[name]
         else:
             raise PluginConfigurationError(f'Plugin {name} not found.')
+
+    def __repr__(self):
+        return "PluginManager()"
