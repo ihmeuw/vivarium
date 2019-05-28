@@ -121,10 +121,6 @@ def test_ComponentManager__setup_components(mocker):
     builder = mocker.Mock()
     builder.components = manager
 
-    manager.add_components([None, MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')])
-    with pytest.raises(ComponentConfigError, match='no name'):
-        manager.setup_components(builder, config)
-
     manager._components = []
     manager.add_components([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')])
     manager.setup_components(builder, config)
