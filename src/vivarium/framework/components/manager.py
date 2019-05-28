@@ -26,38 +26,67 @@ class ComponentConfigError(VivariumError):
     pass
 
 
-class ComponentList(list):
+class ComponentList:
     """Container for Vivarium components that enforces uniqueness according to name."""
+
+    def __init__(self, *args):
+        self.names = set()
+        self.components = []
+        if args:
+            self.extend(args)
 
     def _check_conditions(self, component):
         if not hasattr(component, "name"):
             raise ComponentConfigError(f"Attempting to add a component {component} with no name. Vivarium "
                                        "requires each component in a simulation have a name attribute with"
                                        "a unique name.")
-        if component in self:
+        if component.name in self.names:
             raise ComponentConfigError(f"Attempting to append component with duplicate name: {component}")
 
     def append(self, component) -> None:
         self._check_conditions(component)
-        super().append(component)
+        self.names.add(component.name)
+        self.components.append(component)
 
     def extend(self, components):
         for c in components:
             self.append(c)
 
-    def insert(self, i, component):
-        self._check_conditions(component)
-        super().insert(i, component)
-
-    def __setitem__(self, key, component):
-        self._check_conditions(component)
-        super().__setitem__(key, component)
+    def __getitem__(self, name) -> Any:
+        if name not in self.names:
+            raise KeyError(f"{name} not in ComponentList()")
+        for c in self.components:
+            if c.name == name:
+                return c
 
     def __contains__(self, component) -> bool:
-        for c in self:
-            if component.name == c.name:
-                return True
+        if component.name in self.names:
+            return True
         return False
+
+    def __iter__(self) -> any:
+        for component in self.components:
+            yield component
+
+    def __len__(self) -> int:
+        return len(self.components)
+
+    def __bool__(self) -> bool:
+        return bool(self.components)
+
+    def __eq__(self, other) -> bool:
+        for a, b in zip(self, other):
+            if a.name != b.name:
+                return False
+        return True
+
+    def pop(self, index) -> Any:
+        component = self.components.pop(index)
+        self.names.remove(component.name)
+        return component
+
+    def __repr__(self):
+        return "ComponentList()"
 
 
 class ComponentManager:
@@ -104,7 +133,7 @@ class ComponentManager:
         """
         self._add_components(self._components, components)
 
-    def _add_components(self, component_list: Union[List, Tuple], components: Union[List, Tuple]):
+    def _add_components(self, component_list: ComponentList, components: Union[List, Tuple]):
         for component in components:
             if isinstance(component, list) or isinstance(component, tuple):
                 self._add_components(component_list, component)
