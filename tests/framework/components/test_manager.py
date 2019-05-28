@@ -229,7 +229,7 @@ def test_default_configuration_set_by_one_component_different_tree_depths(mocker
         manager.setup_components(builder, config)
 
 
-def test_Component_List():
+def test_Component_List_append():
     component_list = ComponentList()
 
     component_0 = MockComponentA(name='component_0')
@@ -241,10 +241,64 @@ def test_Component_List():
     # duplicates by name
     with pytest.raises(ComponentConfigError, match='duplicate name'):
         component_list.append(component_0)
+
     # no name
     with pytest.raises(ComponentConfigError, match='no name'):
         component_list.append(NamelessComponent())
 
 
-    # __contains__
-    assert component_0 in component_list
+def test_Component_List_extend():
+    component_list = ComponentList()
+
+    components = [MockComponentA(name='component_0'), MockComponentA('component_1')]
+
+    component_list.extend(components)
+
+    with pytest.raises(ComponentConfigError, match='duplicate name'):
+        component_list.extend(components)
+    with pytest.raises(ComponentConfigError, match='no name'):
+        component_list.extend([NamelessComponent()])
+
+
+def test_Component_List_initialization():
+    component_1 = MockComponentA()
+    component_2 = MockComponentB()
+
+    component_list = ComponentList(component_1, component_2)
+    assert component_list.components == [component_1, component_2]
+
+
+def test_Component_List_pop():
+    component = MockComponentA()
+    component_list = ComponentList(component)
+
+    c = component_list.pop()
+    assert c == component
+
+    with pytest.raises(IndexError):
+        component_list.pop()
+
+
+def test_Component_List_dunders():
+    component_list = ComponentList()
+
+    assert not bool(component_list)
+    assert len(component_list) == 0
+
+    component_1 = MockComponentA()
+    component_2 = MockComponentB()
+    component_3 = MockComponentA(name='absent')
+    component_list = ComponentList(component_1, component_2)
+
+    # test various dunder method behavior
+    assert bool(component_list)
+    assert len(component_list) == 2
+    assert component_1 in component_list
+    assert component_3 not in component_list
+    assert component_list == component_list
+    assert not component_list == 10
+    assert component_1 == component_list[component_1.name]
+    for c in component_list:
+        assert c in component_list
+    with pytest.raises(KeyError):
+        c = component_list['garbage']
