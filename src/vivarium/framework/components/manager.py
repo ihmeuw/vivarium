@@ -41,7 +41,7 @@ class ComponentList:
                                        "requires each component in a simulation have a name attribute with"
                                        "a unique name.")
         if component.name in self.names:
-            raise ComponentConfigError(f"Attempting to append component with duplicate name: {component}")
+            raise ComponentConfigError(f"Attempting to add a component with duplicate name: {component}")
 
     def append(self, component) -> None:
         self._check_conditions(component)
@@ -75,12 +75,15 @@ class ComponentList:
         return bool(self.components)
 
     def __eq__(self, other) -> bool:
-        for a, b in zip(self, other):
-            if a.name != b.name:
-                return False
-        return True
+        try:
+            for a, b in zip(self, other):
+                if a.name != b.name:
+                    return False
+            return True
+        except TypeError:
+            return False
 
-    def pop(self, index) -> Any:
+    def pop(self, index=-1) -> Any:
         component = self.components.pop(index)
         self.names.remove(component.name)
         return component
