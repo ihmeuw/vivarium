@@ -279,7 +279,7 @@ def test_Component_List_pop():
         component_list.pop()
 
 
-def test_Component_List_dunders():
+def test_Component_List_contains():
     component_list = ComponentList()
 
     assert not bool(component_list)
@@ -290,15 +290,45 @@ def test_Component_List_dunders():
     component_3 = MockComponentA(name='absent')
     component_list = ComponentList(component_1, component_2)
 
-    # test various dunder method behavior
-    assert bool(component_list)
-    assert len(component_list) == 2
     assert component_1 in component_list
     assert component_3 not in component_list
-    assert component_list == component_list
-    assert not component_list == 10
+
+    with pytest.raises(ValueError, match='with a name attribute'):
+        throwaway = 10 in component_list
+
+
+def test_Component_List_get_item():
+    component_1 = MockComponentA()
+    component_2 = MockComponentB()
+    component_list = ComponentList(component_1, component_2)
+
     assert component_1 == component_list[component_1.name]
-    for c in component_list:
-        assert c in component_list
-    with pytest.raises(KeyError):
+
+    with pytest.raises(KeyError, match='not in ComponentList'):
         c = component_list['garbage']
+
+
+def test_Component_List_eq():
+    component_1 = MockComponentA()
+    component_2 = MockComponentB()
+    component_list = ComponentList(component_1, component_2)
+
+    assert component_list == component_list
+    assert component_list != 10
+
+    second_list = ComponentList(component_1)
+    assert component_list != second_list
+
+
+def test_Component_List_bool_len():
+    component_list = ComponentList()
+
+    assert not bool(component_list)
+    assert len(component_list) == 0
+
+    component_1 = MockComponentA()
+    component_2 = MockComponentB()
+    component_list = ComponentList(component_1, component_2)
+
+    assert bool(component_list)
+    assert len(component_list) == 2
