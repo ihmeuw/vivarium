@@ -54,12 +54,15 @@ class ComponentList:
 
     def __getitem__(self, name) -> Any:
         if name not in self.names:
-            raise KeyError(f"{name} not in ComponentList()")
+            raise KeyError(f"{name} not in ComponentList")
         for c in self.components:
             if c.name == name:
                 return c
 
     def __contains__(self, component) -> bool:
+        if not hasattr(component, "name"):
+            raise ValueError("Must use an object with a name attribute when checking "
+                             "membership against ComponentList")
         if component.name in self.names:
             return True
         return False
@@ -76,6 +79,8 @@ class ComponentList:
 
     def __eq__(self, other) -> bool:
         try:
+            if len(self) != len(other):
+                return False
             for a, b in zip(self, other):
                 if a.name != b.name:
                     return False
