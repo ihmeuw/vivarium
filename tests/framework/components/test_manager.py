@@ -47,12 +47,7 @@ def test_setup_components(mocker, apply_default_config_mock):
     config = build_simulation_configuration()
     builder = mocker.Mock()
 
-    components = ComponentList([None, MockComponentA('Eric'),  MockComponentB('half', 'a', 'bee')])
-
-    with pytest.raises(ComponentConfigError, match='None in component list'):
-        setup_components(builder, components, config)
-
-    components = ComponentList([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')])
+    components = ComponentList(MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'))
     finished = setup_components(builder, components, config)
     mock_a, mock_b = finished
 
@@ -70,8 +65,11 @@ def test_setup_components(mocker, apply_default_config_mock):
             }
         }
 
+        def __init__(self):
+            self.name = 'TestBee'
+
     test_bee = TestBee()
-    components = ComponentList([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'), test_bee])
+    components = ComponentList(MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'), test_bee)
     apply_default_config_mock.reset_mock()
     setup_components(builder, components, config)
 
@@ -87,7 +85,7 @@ def test_ComponentManager__add_components(components):
 
     for list_type in ['_managers', '_components']:
         manager._add_components(getattr(manager, list_type), components)
-        assert getattr(manager, list_type) == list(components)
+        assert getattr(manager, list_type) == ComponentList(*components)
 
 
 @pytest.mark.parametrize("components", (
@@ -238,22 +236,15 @@ def test_Component_List():
     component_list.append(component_0)
 
     component_1 = MockComponentA(name='component_1')
-    component_list.insert(-1, component_1)
+    component_list.append(component_1)
 
     # duplicates by name
     with pytest.raises(ComponentConfigError, match='duplicate name'):
         component_list.append(component_0)
-    with pytest.raises(ComponentConfigError, match='duplicate name'):
-        component_list.insert(-1, component_0)
-    with pytest.raises(ComponentConfigError, match='duplicate name'):
-        component_list[1] = component_0
     # no name
     with pytest.raises(ComponentConfigError, match='no name'):
         component_list.append(NamelessComponent())
-    with pytest.raises(ComponentConfigError, match='no name'):
-        component_list.insert(0, NamelessComponent())
-    with pytest.raises(ComponentConfigError, match='no name'):
-        component_list[0] = NamelessComponent()
+
 
     # __contains__
     assert component_0 in component_list
