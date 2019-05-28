@@ -26,6 +26,39 @@ class ComponentConfigError(VivariumError):
     pass
 
 
+class ComponentList(list):
+
+    def _check_conditions(self, component):
+        if not hasattr(component, "name"):
+            raise ComponentConfigError(f"Attempting to add a component {component} with no name. Vivarium "
+                                       "requires each component in a simulation have a name attribute with"
+                                       "a unique name.")
+        if component in self:
+            raise ComponentConfigError(f"Attempting to append component with duplicate name: {component}")
+
+    def append(self, component) -> None:
+        self._check_conditions(component)
+        super().append(component)
+
+    def extend(self, components):
+        for c in components:
+            self.append(c)
+
+    def insert(self, i, component):
+        self._check_conditions(component)
+        super().insert(i, component)
+
+    def __setitem__(self, key, value):
+        self._check_conditions(value)
+        super().__setitem__(key, value)
+
+    def __contains__(self, component):
+        for c in self:
+            if component.name == c.name:
+                return True
+        return False
+
+
 class ComponentManager:
     """Maintains references to all components and managers in a ``vivarium``
     simulation, applies their default configuration and initiates their
@@ -41,15 +74,14 @@ class ComponentManager:
     """
 
     def __init__(self):
-        self._managers = []
-        self._components = []
-        self._names = []
+        self._managers = ComponentList()
+        self._components = ComponentList()
 
     @property
     def name(self):
         return "component_manager"
 
-    def add_managers(self, managers: Union[List, Tuple, Any]):
+    def add_managers(self, managers: Union[List, Tuple]):
         """Registers new managers with the component manager. Managers are
         configured and setup before components.
 
@@ -60,7 +92,7 @@ class ComponentManager:
         """
         self._add_components(self._managers, managers)
 
-    def add_components(self, components: Union[List, Tuple, Any]):
+    def add_components(self, components: Union[List, Tuple]):
         """Register new components with the component manager. Components are
         configured and setup after managers.
 
@@ -71,20 +103,12 @@ class ComponentManager:
         """
         self._add_components(self._components, components)
 
-    def _add_components(self, component_list: Union[List, Tuple], components: Union[List, Tuple, Any]):
+    def _add_components(self, component_list: Union[List, Tuple], components: Union[List, Tuple]):
         for component in components:
             if isinstance(component, list) or isinstance(component, tuple):
                 self._add_components(component_list, component)
             else:
-                if not hasattr(component, "name"):
-                    raise ComponentConfigError(f"Attempting to add a component {component} with no name. Vivarium "
-                                               "requires each component in a simulation have a name attribute with"
-                                               "a unique name.")
-                if component.name in self._names:
-                    raise ComponentConfigError(f"Attempting to add duplicate component with name {component.name}.")
-
                 component_list.append(component)
-                self._names.append(component.name)
 
     def get_components(self, component_type: Any) -> List:
         """Gets a list of components currently held by the component manager
@@ -163,7 +187,7 @@ class ComponentInterface:
         return self._component_manager.get_components(component_type)
 
 
-def setup_components(builder, component_list: Union[List, Tuple], configuration: ConfigTree) -> List:
+def setup_components(builder, component_list: ComponentList, configuration: ConfigTree) -> List:
     """Configure and set up a list of components or managers.
 
     This function first loops over ``component_list`` and applies configuration
