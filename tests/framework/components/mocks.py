@@ -6,9 +6,11 @@ class MockComponentA:
         self.builder_used_for_setup = None
 
 
-class MockComponentB(MockComponentA):
+class MockComponentB:
     def __init__(self, *args, name='mock_component_b'):
-        super().__init__(*args, name=name)
+        self.name = name
+        self.args = args
+        self.builder_used_for_setup = None
 
     def setup(self, builder):
         self.builder_used_for_setup = builder
@@ -16,7 +18,7 @@ class MockComponentB(MockComponentA):
         if len(self.args) > 1:
             children = []
             for arg in self.args:
-                children.append(MockComponentB(name=arg))
+                children.append(MockComponentB(arg, name=arg))
             builder.components.add_components(children)
         builder.value.register_value_modifier('metrics', self.metrics)
 
