@@ -52,11 +52,6 @@ def test_setup_components(mocker, apply_default_config_mock):
     with pytest.raises(ComponentConfigError, match='None in component list'):
         setup_components(builder, components, config)
 
-    # # child adds duplicate components
-    # components = ComponentList([MockComponentA('Eric'), MockComponentB('Lucy', 'Lucy')])
-    # with pytest.raises(ComponentConfigError, match='duplicate name'):
-    #     setup_components(builder, components, config)
-
     components = ComponentList([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')])
     finished = setup_components(builder, components, config)
     mock_a, mock_b = finished
@@ -120,26 +115,26 @@ def test_ComponentManager__add_components_unnamed(components):
             manager._add_components(getattr(manager, list_type), components)
 
 
-# def test_ComponentManager__setup_components(mocker):
-#     config = build_simulation_configuration()
-#     manager = ComponentManager()
-#     builder = mocker.Mock()
-#     builder.components = manager
-#
-#     manager._components = []
-#     manager.add_components([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')])
-#     manager.setup_components(builder, config)
-#
-#     mock_a, mock_b, mock_b_child1, mock_b_child2, mock_b_child3 = manager._components
-#
-#     assert mock_a.builder_used_for_setup is None  # class has no setup method
-#     assert mock_b.builder_used_for_setup is builder
-#     assert mock_b_child1.args == ('half',)
-#     assert mock_b_child1.builder_used_for_setup is builder
-#     assert mock_b_child2.args == ('a',)
-#     assert mock_b_child2.builder_used_for_setup is builder
-#     assert mock_b_child3.args == ('bee',)
-#     assert mock_b_child3.builder_used_for_setup is builder
+def test_ComponentManager__setup_components(mocker):
+    config = build_simulation_configuration()
+    manager = ComponentManager()
+    builder = mocker.Mock()
+    builder.components = manager
+
+    manager._components = []
+    manager.add_components([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')])
+    manager.setup_components(builder, config)
+
+    mock_a, mock_b, mock_b_child1, mock_b_child2, mock_b_child3 = manager._components
+
+    assert mock_a.builder_used_for_setup is None  # class has no setup method
+    assert mock_b.builder_used_for_setup is builder
+    assert mock_b_child1.args == ('half',)
+    assert mock_b_child1.builder_used_for_setup is builder
+    assert mock_b_child2.args == ('a',)
+    assert mock_b_child2.builder_used_for_setup is builder
+    assert mock_b_child3.args == ('bee',)
+    assert mock_b_child3.builder_used_for_setup is builder
 
 
 class DummyMachine:
@@ -234,20 +229,6 @@ def test_default_configuration_set_by_one_component_different_tree_depths(mocker
 
     with pytest.raises(ComponentConfigError):
         manager.setup_components(builder, config)
-
-
-# # TODO:
-# """
-# test the component list
-# test _add_components
-#
-# make sure you can get value error, has no name errors
-#
-# """
-#
-# # def test_component_list():
-# # def test_ComponentManager_add_duplicate_components
-# # def test_ComponentManager_add_unnamed_component
 
 
 def test_Component_List():
