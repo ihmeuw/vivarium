@@ -27,6 +27,7 @@ class ComponentConfigError(VivariumError):
 
 
 class ComponentList(list):
+    """Container for Vivarium components that enforces uniqueness according to name."""
 
     def _check_conditions(self, component):
         if not hasattr(component, "name"):
@@ -48,11 +49,11 @@ class ComponentList(list):
         self._check_conditions(component)
         super().insert(i, component)
 
-    def __setitem__(self, key, value):
-        self._check_conditions(value)
-        super().__setitem__(key, value)
+    def __setitem__(self, key, component):
+        self._check_conditions(component)
+        super().__setitem__(key, component)
 
-    def __contains__(self, component):
+    def __contains__(self, component) -> bool:
         for c in self:
             if component.name == c.name:
                 return True
