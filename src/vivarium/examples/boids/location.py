@@ -11,6 +11,9 @@ class Location:
         }
     }
 
+    def __init__(self):
+        self.name = 'location'
+
     def setup(self, builder):
         self.width = builder.configuration.location.width
         self.height = builder.configuration.location.height

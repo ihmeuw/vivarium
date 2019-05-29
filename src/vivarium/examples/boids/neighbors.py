@@ -10,6 +10,9 @@ class Neighbors:
         }
     }
 
+    def __init__(self):
+        self.name = 'Neighbors'
+
     def setup(self, builder):
         self.radius = builder.configuration.neighbors.radius
 
