@@ -35,16 +35,9 @@ class ComponentList:
         if args:
             self.extend(args)
 
-    def _check_conditions(self, component):
-        if not hasattr(component, "name"):
-            raise ComponentConfigError(f"Attempting to add a component {component} with no name. Vivarium "
-                                       "requires each component in a simulation have a name attribute with"
-                                       "a unique name.")
-        if component.name in self.names:
-            raise ComponentConfigError(f"Attempting to add a component with duplicate name: {component}")
-
     def append(self, component) -> None:
-        self._check_conditions(component)
+        if component in self:
+            raise ComponentConfigError(f"Attempting to add a component with duplicate name: {component}")
         self.names.add(component.name)
         self.components.append(component)
 
@@ -63,15 +56,11 @@ class ComponentList:
 
     def __contains__(self, component) -> bool:
         if not hasattr(component, "name"):
-            raise ValueError("Must use an object with a name attribute when checking "
-                             "membership against ComponentList")
-        if component.name in self.names:
-            return True
-        return False
+            raise ComponentConfigError(f"Component {component} has no name attribute")
+        return component.name in self.names
 
     def __iter__(self) -> any:
-        for component in self.components:
-            yield component
+        return iter(self.components)
 
     def __len__(self) -> int:
         return len(self.components)
