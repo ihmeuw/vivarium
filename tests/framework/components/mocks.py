@@ -36,18 +36,14 @@ class NamelessComponent:
 
 
 class Listener(MockComponentB):
-    def __init__(self, *args):
-        super().__init__(*args)
+    def __init__(self, *args, name='test_listener'):
+        super().__init__(*args, name=name)
         self.post_setup_called = False
         self.time_step__prepare_called = False
         self.time_step_called = False
         self.time_step__cleanup_called = False
         self.collect_metrics_called = False
         self.simulation_end_called = False
-
-    @property
-    def name(self):
-        return "test_listener"
 
     def setup(self, builder):
         super().setup(builder)

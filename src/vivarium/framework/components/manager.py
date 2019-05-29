@@ -53,6 +53,8 @@ class ComponentList:
             self.append(c)
 
     def __getitem__(self, name) -> Any:
+        if isinstance(name, slice):
+            raise TypeError("ComponentList does not support slicing")
         if name not in self.names:
             raise KeyError(f"{name} not in ComponentList")
         for c in self.components:

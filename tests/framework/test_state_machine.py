@@ -12,7 +12,7 @@ def _population_fixture(column, initial_value):
 
         @property
         def name(self):
-            return "test_pop_fixture"
+            return f"test_pop_fixture_{column}_{initial_value}"
 
         def setup(self, builder):
             self.population_view = builder.population.get_view([column])
