@@ -293,7 +293,7 @@ def test_Component_List_contains():
     assert component_1 in component_list
     assert component_3 not in component_list
 
-    with pytest.raises(ValueError, match='with a name attribute'):
+    with pytest.raises(ComponentConfigError, match='no name'):
         throwaway = 10 in component_list
 
 
