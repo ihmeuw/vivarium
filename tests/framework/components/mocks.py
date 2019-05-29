@@ -1,18 +1,24 @@
 
 class MockComponentA:
-    def __init__(self, *args):
+    def __init__(self, *args, name='mock_component_a'):
+        self.name = name
         self.args = args
         self.builder_used_for_setup = None
 
 
-class MockComponentB(MockComponentA):
+class MockComponentB:
+    def __init__(self, *args, name='mock_component_b'):
+        self.name = name
+        self.args = args
+        self.builder_used_for_setup = None
+
     def setup(self, builder):
         self.builder_used_for_setup = builder
 
         if len(self.args) > 1:
             children = []
             for arg in self.args:
-                children.append(MockComponentB(arg))
+                children.append(MockComponentB(arg, name=arg))
             builder.components.add_components(children)
         builder.value.register_value_modifier('metrics', self.metrics)
 
@@ -24,9 +30,14 @@ class MockComponentB(MockComponentA):
         return metrics
 
 
-class Listener(MockComponentB):
+class NamelessComponent:
     def __init__(self, *args):
-        super().__init__(*args)
+        self.args = args
+
+
+class Listener(MockComponentB):
+    def __init__(self, *args, name='test_listener'):
+        super().__init__(*args, name=name)
         self.post_setup_called = False
         self.time_step__prepare_called = False
         self.time_step_called = False

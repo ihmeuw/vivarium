@@ -26,6 +26,10 @@ class NonCRNTestPopulation:
         }
     }
 
+    @property
+    def name(self):
+        return "non_crn_test_population"
+
     def setup(self, builder):
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream('population_age_fuzz')
@@ -53,6 +57,11 @@ class NonCRNTestPopulation:
 
 
 class TestPopulation(NonCRNTestPopulation):
+
+    @property
+    def name(self):
+        return "test_population"
+
     def setup(self, builder):
         super().setup(builder)
         self.age_randomness = builder.randomness.get_stream('age_initialization', for_initialization=True)
@@ -135,6 +144,11 @@ def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'val
 
 def make_dummy_column(name, initial_value):
     class DummyColumnMaker:
+
+        @property
+        def name(self):
+            return "dummy_column_maker"
+
         def setup(self, builder):
             self.population_view = builder.population.get_view([name])
             builder.population.initializes_simulants(self.make_column,

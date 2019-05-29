@@ -25,6 +25,9 @@ class BasePopulation:
         },
     }
 
+    def __init__(self):
+        self.name = 'base_population'
+
     def setup(self, builder: Builder):
         """Performs this component's simulation setup.
 

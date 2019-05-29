@@ -9,6 +9,11 @@ from vivarium.interface.interactive import setup_simulation
 
 def _population_fixture(column, initial_value):
     class PopFixture:
+
+        @property
+        def name(self):
+            return f"test_pop_fixture_{column}_{initial_value}"
+
         def setup(self, builder):
             self.population_view = builder.population.get_view([column])
             builder.population.initializes_simulants(self.inner, creates_columns=[column])
@@ -20,6 +25,11 @@ def _population_fixture(column, initial_value):
 
 def _even_population_fixture(column, values):
     class pop_fixture:
+
+        @property
+        def name(self):
+            return "test_pop_fixture"
+
         def setup(self, builder):
             self.population_view = builder.population.get_view([column])
             builder.population.initializes_simulants(self.inner, creates_columns=[column])
@@ -95,6 +105,11 @@ def test_no_null_transition(base_config):
 
 def test_side_effects():
     class DoneState(State):
+
+        @property
+        def name(self):
+            return "test_done_state"
+
         def setup(self, builder):
             super().setup(builder)
             self.population_view = builder.population.get_view(['count'])

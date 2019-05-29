@@ -3,10 +3,10 @@ import os
 import pytest
 
 from vivarium.framework.configuration import build_simulation_configuration
-from vivarium.framework.components.manager import (ComponentManager, ComponentConfigError,
+from vivarium.framework.components.manager import (ComponentManager, ComponentConfigError, ComponentList,
                                                    setup_components, apply_component_default_configuration)
 
-from .mocks import MockComponentA, MockComponentB
+from .mocks import MockComponentA, MockComponentB, NamelessComponent
 
 
 @pytest.fixture
@@ -47,20 +47,7 @@ def test_setup_components(mocker, apply_default_config_mock):
     config = build_simulation_configuration()
     builder = mocker.Mock()
 
-    components = [None, MockComponentA('Eric'),  MockComponentB('half', 'a', 'bee')]
-
-    with pytest.raises(ComponentConfigError):
-        setup_components(builder, components, config)
-
-    duplicate = MockComponentA('Eric')
-    components = [duplicate, duplicate]
-    finished = setup_components(builder, components, config)
-
-    apply_default_config_mock.assert_not_called()
-    assert [duplicate] == finished
-    apply_default_config_mock.reset_mock()
-
-    components = [MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')]
+    components = ComponentList(MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'))
     finished = setup_components(builder, components, config)
     mock_a, mock_b = finished
 
@@ -78,28 +65,52 @@ def test_setup_components(mocker, apply_default_config_mock):
             }
         }
 
+        def __init__(self):
+            self.name = 'TestBee'
+
     test_bee = TestBee()
-    components = [MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'), test_bee]
+    components = ComponentList(MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'), test_bee)
     apply_default_config_mock.reset_mock()
     setup_components(builder, components, config)
 
     apply_default_config_mock.assert_called_once()
 
 
-def test_ComponentManager_add_components():
+@pytest.mark.parametrize("components", (
+        (MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')),
+        (MockComponentA('Eric'),)
+))
+def test_ComponentManager__add_components(components):
     manager = ComponentManager()
 
-    components = [None, MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')]
     for list_type in ['_managers', '_components']:
         manager._add_components(getattr(manager, list_type), components)
-        assert getattr(manager, list_type) == components
-        setattr(manager, list_type, [])
+        assert getattr(manager, list_type) == ComponentList(*components)
 
-    components.append(components[:])
+
+@pytest.mark.parametrize("components", (
+        (MockComponentA(), MockComponentA()),
+        (MockComponentA(), MockComponentA(), MockComponentB('foo', 'bar')),
+))
+def test_ComponentManager__add_components_duplicated(components):
+    manager = ComponentManager()
+
     for list_type in ['_managers', '_components']:
-        manager._add_components(getattr(manager, list_type), components)
-        assert getattr(manager, list_type) == 2*components[:-1]
+        with pytest.raises(ComponentConfigError, match='duplicate name'):
+            manager._add_components(getattr(manager, list_type), components)
 
+
+@pytest.mark.parametrize("components", (
+        (None,),
+        (NamelessComponent(),),
+        (NamelessComponent(), MockComponentA())
+))
+def test_ComponentManager__add_components_unnamed(components):
+    manager = ComponentManager()
+
+    for list_type in ['_managers', '_components']:
+        with pytest.raises(ComponentConfigError, match='no name'):
+            manager._add_components(getattr(manager, list_type), components)
 
 
 def test_ComponentManager__setup_components(mocker):
@@ -107,11 +118,6 @@ def test_ComponentManager__setup_components(mocker):
     manager = ComponentManager()
     builder = mocker.Mock()
     builder.components = manager
-
-    manager.add_components([None, MockComponentA('Eric'),
-                            MockComponentB('half', 'a', 'bee')])
-    with pytest.raises(ComponentConfigError):
-        manager.setup_components(builder, config)
 
     manager._components = []
     manager.add_components([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')])
@@ -139,6 +145,10 @@ class DummyMachine:
         }
     }
 
+    def __init__(self):
+        self.name = 'dummy_machine'
+
+
 class DummyMechanic:
     configuration_defaults = {
         'work_level': {
@@ -149,6 +159,9 @@ class DummyMechanic:
             'id': 123,
         }
     }
+
+    def __init__(self):
+        self.name = 'dummy_mechanic'
 
 
 def test_default_configuration_set_by_one_component(mocker):
@@ -216,3 +229,106 @@ def test_default_configuration_set_by_one_component_different_tree_depths(mocker
         manager.setup_components(builder, config)
 
 
+def test_Component_List_append():
+    component_list = ComponentList()
+
+    component_0 = MockComponentA(name='component_0')
+    component_list.append(component_0)
+
+    component_1 = MockComponentA(name='component_1')
+    component_list.append(component_1)
+
+    # duplicates by name
+    with pytest.raises(ComponentConfigError, match='duplicate name'):
+        component_list.append(component_0)
+
+    # no name
+    with pytest.raises(ComponentConfigError, match='no name'):
+        component_list.append(NamelessComponent())
+
+
+def test_Component_List_extend():
+    component_list = ComponentList()
+
+    components = [MockComponentA(name='component_0'), MockComponentA('component_1')]
+
+    component_list.extend(components)
+
+    with pytest.raises(ComponentConfigError, match='duplicate name'):
+        component_list.extend(components)
+    with pytest.raises(ComponentConfigError, match='no name'):
+        component_list.extend([NamelessComponent()])
+
+
+def test_Component_List_initialization():
+    component_1 = MockComponentA()
+    component_2 = MockComponentB()
+
+    component_list = ComponentList(component_1, component_2)
+    assert component_list.components == [component_1, component_2]
+
+
+def test_Component_List_pop():
+    component = MockComponentA()
+    component_list = ComponentList(component)
+
+    c = component_list.pop()
+    assert c == component
+
+    with pytest.raises(IndexError):
+        component_list.pop()
+
+
+def test_Component_List_contains():
+    component_list = ComponentList()
+
+    assert not bool(component_list)
+    assert len(component_list) == 0
+
+    component_1 = MockComponentA()
+    component_2 = MockComponentB()
+    component_3 = MockComponentA(name='absent')
+    component_list = ComponentList(component_1, component_2)
+
+    assert component_1 in component_list
+    assert component_3 not in component_list
+
+    with pytest.raises(ValueError, match='with a name attribute'):
+        throwaway = 10 in component_list
+
+
+def test_Component_List_get_item():
+    component_1 = MockComponentA()
+    component_2 = MockComponentB()
+    component_list = ComponentList(component_1, component_2)
+
+    assert component_1 == component_list[component_1.name]
+
+    with pytest.raises(KeyError, match='not in ComponentList'):
+        c = component_list['garbage']
+
+
+def test_Component_List_eq():
+    component_1 = MockComponentA()
+    component_2 = MockComponentB()
+    component_list = ComponentList(component_1, component_2)
+
+    assert component_list == component_list
+    assert component_list != 10
+
+    second_list = ComponentList(component_1)
+    assert component_list != second_list
+
+
+def test_Component_List_bool_len():
+    component_list = ComponentList()
+
+    assert not bool(component_list)
+    assert len(component_list) == 0
+
+    component_1 = MockComponentA()
+    component_2 = MockComponentB()
+    component_list = ComponentList(component_1, component_2)
+
+    assert bool(component_list)
+    assert len(component_list) == 2

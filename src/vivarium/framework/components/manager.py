@@ -26,6 +26,79 @@ class ComponentConfigError(VivariumError):
     pass
 
 
+class ComponentList:
+    """Container for Vivarium components that enforces uniqueness according to name."""
+
+    def __init__(self, *args):
+        self.names = set()
+        self.components = []
+        if args:
+            self.extend(args)
+
+    def _check_conditions(self, component):
+        if not hasattr(component, "name"):
+            raise ComponentConfigError(f"Attempting to add a component {component} with no name. Vivarium "
+                                       "requires each component in a simulation have a name attribute with"
+                                       "a unique name.")
+        if component.name in self.names:
+            raise ComponentConfigError(f"Attempting to add a component with duplicate name: {component}")
+
+    def append(self, component) -> None:
+        self._check_conditions(component)
+        self.names.add(component.name)
+        self.components.append(component)
+
+    def extend(self, components):
+        for c in components:
+            self.append(c)
+
+    def __getitem__(self, name) -> Any:
+        if isinstance(name, slice):
+            raise TypeError("ComponentList does not support slicing")
+        if name not in self.names:
+            raise KeyError(f"{name} not in ComponentList")
+        for c in self.components:
+            if c.name == name:
+                return c
+
+    def __contains__(self, component) -> bool:
+        if not hasattr(component, "name"):
+            raise ValueError("Must use an object with a name attribute when checking "
+                             "membership against ComponentList")
+        if component.name in self.names:
+            return True
+        return False
+
+    def __iter__(self) -> any:
+        for component in self.components:
+            yield component
+
+    def __len__(self) -> int:
+        return len(self.components)
+
+    def __bool__(self) -> bool:
+        return bool(self.components)
+
+    def __eq__(self, other) -> bool:
+        try:
+            if len(self) != len(other):
+                return False
+            for a, b in zip(self, other):
+                if a.name != b.name:
+                    return False
+            return True
+        except TypeError:
+            return False
+
+    def pop(self, index=-1) -> Any:
+        component = self.components.pop(index)
+        self.names.remove(component.name)
+        return component
+
+    def __repr__(self):
+        return "ComponentList()"
+
+
 class ComponentManager:
     """Maintains references to all components and managers in a ``vivarium``
     simulation, applies their default configuration and initiates their
@@ -41,10 +114,14 @@ class ComponentManager:
     """
 
     def __init__(self):
-        self._managers = []
-        self._components = []
+        self._managers = ComponentList()
+        self._components = ComponentList()
 
-    def add_managers(self, managers: Union[List, Tuple, Any]):
+    @property
+    def name(self):
+        return "component_manager"
+
+    def add_managers(self, managers: Union[List, Tuple]):
         """Registers new managers with the component manager. Managers are
         configured and setup before components.
 
@@ -55,7 +132,7 @@ class ComponentManager:
         """
         self._add_components(self._managers, managers)
 
-    def add_components(self, components: Union[List, Tuple, Any]):
+    def add_components(self, components: Union[List, Tuple]):
         """Register new components with the component manager. Components are
         configured and setup after managers.
 
@@ -66,7 +143,7 @@ class ComponentManager:
         """
         self._add_components(self._components, components)
 
-    def _add_components(self, component_list: Union[List, Tuple], components: Union[List, Tuple, Any]):
+    def _add_components(self, component_list: ComponentList, components: Union[List, Tuple]):
         for component in components:
             if isinstance(component, list) or isinstance(component, tuple):
                 self._add_components(component_list, component)
@@ -105,6 +182,9 @@ class ComponentManager:
         """
         self._managers = setup_components(builder, self._managers, configuration)
         self._components = setup_components(builder, self._components, configuration)
+
+    def __repr__(self):
+        return f"ComponentManager()"
 
 
 class ComponentInterface:
@@ -147,7 +227,7 @@ class ComponentInterface:
         return self._component_manager.get_components(component_type)
 
 
-def setup_components(builder, component_list: Union[List, Tuple], configuration: ConfigTree) -> List:
+def setup_components(builder, component_list: ComponentList, configuration: ConfigTree) -> List:
     """Configure and set up a list of components or managers.
 
     This function first loops over ``component_list`` and applies configuration
