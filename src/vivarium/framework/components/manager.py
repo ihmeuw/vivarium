@@ -31,7 +31,6 @@ class OrderedComponentSet:
     uniqueness by name, and provides a subset of set-like semantics."""
 
     def __init__(self, *args):
-        self.names = []
         self.components = []
         if args:
             self.update(args)
@@ -39,7 +38,6 @@ class OrderedComponentSet:
     def add(self, component: Any) -> None:
         if component in self:
             raise ComponentConfigError(f"Attempting to add a component with duplicate name: {component}")
-        self.names.append(component.name)
         self.components.append(component)
 
     def update(self, components: Union[List, Tuple]):
@@ -49,7 +47,7 @@ class OrderedComponentSet:
     def __contains__(self, component: Any) -> bool:
         if not hasattr(component, "name"):
             raise ComponentConfigError(f"Component {component} has no name attribute")
-        return component.name in self.names
+        return component.name in [c.name for c in self.components]
 
     def __iter__(self) -> Iterator:
         return iter(self.components)
@@ -62,13 +60,12 @@ class OrderedComponentSet:
 
     def __eq__(self, other) -> bool:
         try:
-            return type(self) is type(other) and self.names == other.names
+            return type(self) is type(other) and [c.name for c in self.components] == [c.name for c in other.components]
         except TypeError:
             return False
 
     def pop(self) -> Any:
         component = self.components.pop(0)
-        self.names.remove(component.name)
         return component
 
     def __repr__(self):
