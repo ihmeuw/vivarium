@@ -62,7 +62,7 @@ class OrderedComponentSet:
 
     def __eq__(self, other) -> bool:
         try:
-            return type(self) is type(other) and self.names == other.anmes
+            return type(self) is type(other) and self.names == other.names
         except TypeError:
             return False
 
