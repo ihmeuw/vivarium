@@ -10,6 +10,9 @@ class Population:
         }
     }
 
+    def __init__(self):
+        self.name = 'population'
+
     def setup(self, builder):
         self.colors = builder.configuration.population.colors
 

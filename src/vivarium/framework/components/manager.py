@@ -15,7 +15,7 @@ setup everything it holds when the context itself is setup.
 
 """
 import inspect
-from typing import Union, List, Tuple, Any
+from typing import Union, List, Tuple, Any, Iterator
 
 from vivarium.config_tree import ConfigTree
 from vivarium.exceptions import VivariumError
@@ -24,6 +24,52 @@ from vivarium.exceptions import VivariumError
 class ComponentConfigError(VivariumError):
     """Error while interpreting configuration file or initializing components"""
     pass
+
+
+class OrderedComponentSet:
+    """A container for Vivarium components. It preserves ordering, enforces
+    uniqueness by name, and provides a subset of set-like semantics."""
+
+    def __init__(self, *args):
+        self.components = []
+        if args:
+            self.update(args)
+
+    def add(self, component: Any) -> None:
+        if component in self:
+            raise ComponentConfigError(f"Attempting to add a component with duplicate name: {component}")
+        self.components.append(component)
+
+    def update(self, components: Union[List, Tuple]):
+        for c in components:
+            self.add(c)
+
+    def __contains__(self, component: Any) -> bool:
+        if not hasattr(component, "name"):
+            raise ComponentConfigError(f"Component {component} has no name attribute")
+        return component.name in [c.name for c in self.components]
+
+    def __iter__(self) -> Iterator:
+        return iter(self.components)
+
+    def __len__(self) -> int:
+        return len(self.components)
+
+    def __bool__(self) -> bool:
+        return bool(self.components)
+
+    def __eq__(self, other) -> bool:
+        try:
+            return type(self) is type(other) and [c.name for c in self.components] == [c.name for c in other.components]
+        except TypeError:
+            return False
+
+    def pop(self) -> Any:
+        component = self.components.pop(0)
+        return component
+
+    def __repr__(self):
+        return "OrderedComponentSet()"
 
 
 class ComponentManager:
@@ -41,14 +87,14 @@ class ComponentManager:
     """
 
     def __init__(self):
-        self._managers = []
-        self._components = []
+        self._managers = OrderedComponentSet()
+        self._components = OrderedComponentSet()
 
     @property
     def name(self):
         return "component_manager"
 
-    def add_managers(self, managers: Union[List, Tuple, Any]):
+    def add_managers(self, managers: Union[List, Tuple]):
         """Registers new managers with the component manager. Managers are
         configured and setup before components.
 
@@ -59,7 +105,7 @@ class ComponentManager:
         """
         self._add_components(self._managers, managers)
 
-    def add_components(self, components: Union[List, Tuple, Any]):
+    def add_components(self, components: Union[List, Tuple]):
         """Register new components with the component manager. Components are
         configured and setup after managers.
 
@@ -70,12 +116,12 @@ class ComponentManager:
         """
         self._add_components(self._components, components)
 
-    def _add_components(self, component_list: Union[List, Tuple], components: Union[List, Tuple, Any]):
+    def _add_components(self, component_list: OrderedComponentSet, components: Union[List, Tuple]):
         for component in components:
             if isinstance(component, list) or isinstance(component, tuple):
                 self._add_components(component_list, component)
             else:
-                component_list.append(component)
+                component_list.add(component)
 
     def get_components(self, component_type: Any) -> List:
         """Gets a list of components currently held by the component manager
@@ -154,7 +200,7 @@ class ComponentInterface:
         return self._component_manager.get_components(component_type)
 
 
-def setup_components(builder, component_list: Union[List, Tuple], configuration: ConfigTree) -> List:
+def setup_components(builder, component_list: OrderedComponentSet, configuration: ConfigTree) -> OrderedComponentSet:
     """Configure and set up a list of components or managers.
 
     This function first loops over ``component_list`` and applies configuration
@@ -190,7 +236,7 @@ def setup_components(builder, component_list: Union[List, Tuple], configuration:
 
     setup = []
     while component_list:  # mutated at runtime by calls to setup
-        c = component_list.pop(0)
+        c = component_list.pop()
         if c is None:
             raise ComponentConfigError('None in component list. This likely '
                                        'indicates a bug in a factory function')
@@ -204,7 +250,7 @@ def setup_components(builder, component_list: Union[List, Tuple], configuration:
                 c.setup(builder)
             setup.append(c)
 
-    return setup
+    return OrderedComponentSet(*setup)
 
 
 def apply_component_default_configuration(configuration: ConfigTree, component: Any):
