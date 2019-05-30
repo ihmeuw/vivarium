@@ -15,7 +15,7 @@ setup everything it holds when the context itself is setup.
 
 """
 import inspect
-from typing import Union, List, Tuple, Any
+from typing import Union, List, Tuple, Any, Iterator
 
 from vivarium.config_tree import ConfigTree
 from vivarium.exceptions import VivariumError
@@ -51,7 +51,7 @@ class OrderedComponentSet:
             raise ComponentConfigError(f"Component {component} has no name attribute")
         return component.name in self.names
 
-    def __iter__(self) -> any:
+    def __iter__(self) -> Iterator:
         return iter(self.components)
 
     def __len__(self) -> int:
