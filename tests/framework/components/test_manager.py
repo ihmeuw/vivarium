@@ -3,7 +3,7 @@ import os
 import pytest
 
 from vivarium.framework.configuration import build_simulation_configuration
-from vivarium.framework.components.manager import (ComponentManager, ComponentConfigError, ComponentList,
+from vivarium.framework.components.manager import (ComponentManager, ComponentConfigError, OrderedComponentSet,
                                                    setup_components, apply_component_default_configuration)
 
 from .mocks import MockComponentA, MockComponentB, NamelessComponent
@@ -47,7 +47,7 @@ def test_setup_components(mocker, apply_default_config_mock):
     config = build_simulation_configuration()
     builder = mocker.Mock()
 
-    components = ComponentList(MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'))
+    components = OrderedComponentSet(MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'))
     finished = setup_components(builder, components, config)
     mock_a, mock_b = finished
 
@@ -69,7 +69,7 @@ def test_setup_components(mocker, apply_default_config_mock):
             self.name = 'TestBee'
 
     test_bee = TestBee()
-    components = ComponentList(MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'), test_bee)
+    components = OrderedComponentSet(MockComponentA('Eric'), MockComponentB('half', 'a', 'bee'), test_bee)
     apply_default_config_mock.reset_mock()
     setup_components(builder, components, config)
 
@@ -85,7 +85,7 @@ def test_ComponentManager__add_components(components):
 
     for list_type in ['_managers', '_components']:
         manager._add_components(getattr(manager, list_type), components)
-        assert getattr(manager, list_type) == ComponentList(*components)
+        assert getattr(manager, list_type) == OrderedComponentSet(*components)
 
 
 @pytest.mark.parametrize("components", (
@@ -119,7 +119,7 @@ def test_ComponentManager__setup_components(mocker):
     builder = mocker.Mock()
     builder.components = manager
 
-    manager._components = []
+    # manager._components = []
     manager.add_components([MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')])
     manager.setup_components(builder, config)
 
@@ -229,48 +229,48 @@ def test_default_configuration_set_by_one_component_different_tree_depths(mocker
         manager.setup_components(builder, config)
 
 
-def test_Component_List_append():
-    component_list = ComponentList()
+def test_ComponentSet_add():
+    component_list = OrderedComponentSet()
 
     component_0 = MockComponentA(name='component_0')
-    component_list.append(component_0)
+    component_list.add(component_0)
 
     component_1 = MockComponentA(name='component_1')
-    component_list.append(component_1)
+    component_list.add(component_1)
 
     # duplicates by name
     with pytest.raises(ComponentConfigError, match='duplicate name'):
-        component_list.append(component_0)
+        component_list.add(component_0)
 
     # no name
     with pytest.raises(ComponentConfigError, match='no name'):
-        component_list.append(NamelessComponent())
+        component_list.add(NamelessComponent())
 
 
-def test_Component_List_extend():
-    component_list = ComponentList()
+def test_ComponentSet_update():
+    component_list = OrderedComponentSet()
 
     components = [MockComponentA(name='component_0'), MockComponentA('component_1')]
 
-    component_list.extend(components)
+    component_list.update(components)
 
     with pytest.raises(ComponentConfigError, match='duplicate name'):
-        component_list.extend(components)
+        component_list.update(components)
     with pytest.raises(ComponentConfigError, match='no name'):
-        component_list.extend([NamelessComponent()])
+        component_list.update([NamelessComponent()])
 
 
-def test_Component_List_initialization():
+def test_ComponentSet_initialization():
     component_1 = MockComponentA()
     component_2 = MockComponentB()
 
-    component_list = ComponentList(component_1, component_2)
+    component_list = OrderedComponentSet(component_1, component_2)
     assert component_list.components == [component_1, component_2]
 
 
-def test_Component_List_pop():
+def test_ComponentSet_pop():
     component = MockComponentA()
-    component_list = ComponentList(component)
+    component_list = OrderedComponentSet(component)
 
     c = component_list.pop()
     assert c == component
@@ -279,8 +279,8 @@ def test_Component_List_pop():
         component_list.pop()
 
 
-def test_Component_List_contains():
-    component_list = ComponentList()
+def test_ComponentSet_contains():
+    component_list = OrderedComponentSet()
 
     assert not bool(component_list)
     assert len(component_list) == 0
@@ -288,7 +288,7 @@ def test_Component_List_contains():
     component_1 = MockComponentA()
     component_2 = MockComponentB()
     component_3 = MockComponentA(name='absent')
-    component_list = ComponentList(component_1, component_2)
+    component_list = OrderedComponentSet(component_1, component_2)
 
     assert component_1 in component_list
     assert component_3 not in component_list
@@ -297,38 +297,27 @@ def test_Component_List_contains():
         throwaway = 10 in component_list
 
 
-def test_Component_List_get_item():
+def test_ComponentSet_eq():
     component_1 = MockComponentA()
     component_2 = MockComponentB()
-    component_list = ComponentList(component_1, component_2)
-
-    assert component_1 == component_list[component_1.name]
-
-    with pytest.raises(KeyError, match='not in ComponentList'):
-        c = component_list['garbage']
-
-
-def test_Component_List_eq():
-    component_1 = MockComponentA()
-    component_2 = MockComponentB()
-    component_list = ComponentList(component_1, component_2)
+    component_list = OrderedComponentSet(component_1, component_2)
 
     assert component_list == component_list
     assert component_list != 10
 
-    second_list = ComponentList(component_1)
+    second_list = OrderedComponentSet(component_1)
     assert component_list != second_list
 
 
-def test_Component_List_bool_len():
-    component_list = ComponentList()
+def test_ComponentSet_bool_len():
+    component_list = OrderedComponentSet()
 
     assert not bool(component_list)
     assert len(component_list) == 0
 
     component_1 = MockComponentA()
     component_2 = MockComponentB()
-    component_list = ComponentList(component_1, component_2)
+    component_list = OrderedComponentSet(component_1, component_2)
 
     assert bool(component_list)
     assert len(component_list) == 2
