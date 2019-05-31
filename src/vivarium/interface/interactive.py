@@ -365,7 +365,7 @@ def initialize_simulation_from_model_specification(model_specification_file: str
 
     plugin_manager = PluginManager(plugin_config)
     component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
-    components = component_config_parser.get_components_by_type(component_config)
+    components = component_config_parser.get_components(component_config)
 
     return InteractiveContext(simulation_config, components, plugin_manager)
 

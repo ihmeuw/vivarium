@@ -203,14 +203,14 @@ def test_setup_simulation(model_specification, mocker):
     context_mock = mocker.MagicMock()
     context_constructor_mock.return_value = context_mock
     component_config_parser = mocker.MagicMock()
-    component_config_parser.get_components_by_type.return_value = ['test']
+    component_config_parser.get_components.return_value = ['test']
     plugin_manager_mock.get_plugin.return_value = component_config_parser
 
     setup_simulation(model_specification)
 
     plugin_manager_constructor_mock.assert_called_once_with(model_specification.plugins)
     plugin_manager_mock.get_plugin.assert_called_once_with('component_configuration_parser')
-    component_config_parser.get_components_by_type.assert_called_once_with(model_specification.components)
+    component_config_parser.get_components.assert_called_once_with(model_specification.components)
     context_constructor_mock.assert_called_once_with(model_specification.configuration, ['test'], plugin_manager_mock)
     context_mock.setup.assert_called_once()
 
