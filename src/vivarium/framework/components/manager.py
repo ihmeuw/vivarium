@@ -15,7 +15,7 @@ setup everything it holds when the context itself is setup.
 
 """
 import inspect
-from typing import Union, List, Tuple, Iterator, Dict, Any
+from typing import Union, List, Tuple, Iterator, Dict, Any, Type
 
 from vivarium.config_tree import ConfigTree
 from vivarium.exceptions import VivariumError
@@ -123,7 +123,7 @@ class ComponentManager:
             else:
                 component_list.add(component)
 
-    def get_components_by_type(self, component_type: Any) -> List[Any]:
+    def get_components_by_type(self, component_type: Type) -> List[Any]:
         """Get all components currently held by the component manager that are an
         instance of ``component_type``.
 
@@ -152,6 +152,7 @@ class ComponentManager:
         for c in self._components:
             if c.name == name:
                 return c
+        raise ValueError(f"No component found with name {name}")
 
     def list_components(self) -> Dict[str, Any]:
         """Get a mapping of component names to components held by the manager.
@@ -223,7 +224,7 @@ class ComponentInterface:
         """
         return self._component_manager.get_component(name)
 
-    def get_components_by_type(self, component_type: Any) -> List[Any]:
+    def get_components_by_type(self, component_type: Type) -> List[Any]:
         """Get all components that are an instance of ``component_type``
         currently held by the component manager.
 

@@ -260,21 +260,6 @@ class InteractiveContext(SimulationContext):
         """
         return self.component_manager.get_component(name)
 
-    @raise_if_not_setup(system_type='component')
-    def get_components_by_type(self, component_type: Any) -> List[Any]:
-        """Get all components in the simulation that are an instance of ``component_type``.
-
-        Parameters
-        ----------
-        component_type
-            A component type.
-        Returns
-        -------
-            A list of components of type ``component_type``.
-
-        """
-        return self.component_manager.get_components_by_type(component_type)
-
 
 def initialize_simulation(components: List, input_config: Mapping = None,
                           plugin_config: Mapping = None) -> InteractiveContext:
