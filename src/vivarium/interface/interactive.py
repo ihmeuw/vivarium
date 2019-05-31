@@ -18,7 +18,7 @@ See the associated tutorials for :ref:`running <interactive_tutorial>` and
 
 """
 from math import ceil
-from typing import Mapping, List, Callable, Any
+from typing import Mapping, List, Callable, Dict
 import warnings
 
 import pandas as pd
@@ -28,6 +28,7 @@ from vivarium.framework.engine import SimulationContext
 from vivarium.framework.plugins import PluginManager
 from vivarium.framework.time import Timedelta, Time
 from vivarium.framework.values import Pipeline
+from vivarium.framework.components import ComponentType
 
 from .utilities import run_from_ipython, log_progress, raise_if_not_setup
 
@@ -234,17 +235,46 @@ class InteractiveContext(SimulationContext):
         return self.events.get_emitter(event_type)
 
     @raise_if_not_setup(system_type='component')
-    def get_components(self) -> List:
-        """Get a list of all components in the simulation."""
-        return [component for component in self.component_manager._components + self.component_manager._managers]
+    def list_components(self) -> Dict[str, ComponentType]:
+        """Get a mapping of component names to components currently in the simulation.
+
+        Returns
+        -------
+            A dictionary mapping component names to components.
+
+        """
+        return  self.component_manager.list_components()
 
     @raise_if_not_setup(system_type='component')
-    def get_named_component(self, name: str) -> Any:
-        """Get a component by name"""
-        if name in self.component_manager._names:
-            for component in self.component_manager._components + self.component_manager._managers:
-                if component.name == name:
-                    return component
+    def get_component(self, name: str) -> ComponentType:
+        """Get the component in the simulation that has ``name``, if present.
+        Names are guaranteed to be unique.
+
+        Parameters
+        ----------
+        name
+            A component name.
+        Returns
+        -------
+            A component that has the name ``name`` else None.
+
+        """
+        return self.component_manager.get_component(name)
+
+    @raise_if_not_setup(system_type='component')
+    def get_component_by_type(self, component_type: ComponentType) -> List[ComponentType]:
+        """Get all components in the simulation that are an instance of ``component_type``.
+
+        Parameters
+        ----------
+        component_type
+            A component type.
+        Returns
+        -------
+            A list of components of type ``component_type``.
+
+        """
+        return self.component_manager.get_components_by_type(component_type)
 
 
 def initialize_simulation(components: List, input_config: Mapping = None,
