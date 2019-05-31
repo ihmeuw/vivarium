@@ -15,11 +15,13 @@ setup everything it holds when the context itself is setup.
 
 """
 import inspect
-from typing import Union, List, Tuple, Iterator, Dict
+from typing import Union, List, Tuple, Iterator, Dict, Type
 
 from vivarium.config_tree import ConfigTree
 from vivarium.exceptions import VivariumError
-from vivarium.framework.components import ComponentType
+
+
+ComponentType = Type  # human readable type
 
 
 class ComponentConfigError(VivariumError):

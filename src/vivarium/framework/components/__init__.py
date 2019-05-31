@@ -1,5 +1,2 @@
-from typing import Type
-from .manager import ComponentManager, ComponentInterface, ComponentConfigError
+from .manager import ComponentManager, ComponentInterface, ComponentConfigError, ComponentType
 from .parser import ComponentConfigurationParser
-
-ComponentType = Type  # human readable type
