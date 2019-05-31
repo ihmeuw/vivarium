@@ -15,10 +15,11 @@ setup everything it holds when the context itself is setup.
 
 """
 import inspect
-from typing import Union, List, Tuple, Any, Iterator
+from typing import Union, List, Tuple, Type, Iterator, Dict
 
 from vivarium.config_tree import ConfigTree
 from vivarium.exceptions import VivariumError
+from vivarium.framework.components import ComponentType
 
 
 class ComponentConfigError(VivariumError):
@@ -36,17 +37,17 @@ class OrderedComponentSet:
         if args:
             self.update(args)
 
-    def add(self, component: Any) -> None:
+    def add(self, component: ComponentType):
         if component in self:
             raise ComponentConfigError(f"Attempting to add a component with duplicate name: {component}")
         self.names.add(component.name)
         self.components.append(component)
 
-    def update(self, components: Union[List, Tuple]):
+    def update(self, components: Union[List[ComponentType], Tuple[ComponentType]]):
         for c in components:
             self.add(c)
 
-    def __contains__(self, component: Any) -> bool:
+    def __contains__(self, component: ComponentType) -> bool:
         if not hasattr(component, "name"):
             raise ComponentConfigError(f"Component {component} has no name attribute")
         return component.name in self.names
@@ -71,7 +72,7 @@ class OrderedComponentSet:
         except TypeError:
             return False
 
-    def pop(self) -> Any:
+    def pop(self) -> ComponentType:
         component = self.components.pop(0)
         self.names.remove(component.name)
         return component
@@ -102,7 +103,7 @@ class ComponentManager:
     def name(self):
         return "component_manager"
 
-    def add_managers(self, managers: Union[List, Tuple]):
+    def add_managers(self, managers: Union[List[ComponentType], Tuple[ComponentType]]):
         """Registers new managers with the component manager. Managers are
         configured and setup before components.
 
@@ -113,7 +114,7 @@ class ComponentManager:
         """
         self._add_components(self._managers, managers)
 
-    def add_components(self, components: Union[List, Tuple]):
+    def add_components(self, components: Union[List[ComponentType], Tuple[ComponentType]]):
         """Register new components with the component manager. Components are
         configured and setup after managers.
 
@@ -124,16 +125,16 @@ class ComponentManager:
         """
         self._add_components(self._components, components)
 
-    def _add_components(self, component_list: OrderedComponentSet, components: Union[List, Tuple]):
+    def _add_components(self, component_list: OrderedComponentSet, components: Union[List[ComponentType], Tuple[ComponentType]]):
         for component in components:
             if isinstance(component, list) or isinstance(component, tuple):
                 self._add_components(component_list, component)
             else:
                 component_list.add(component)
 
-    def get_components(self, component_type: Any) -> List:
-        """Gets a list of components currently held by the component manager
-        that are instances of a specific type. Does not include managers.
+    def get_components_by_type(self, component_type: ComponentType) -> List[ComponentType]:
+        """Get all components currently held by the component manager that are an
+        instance of ``component_type``.
 
         Parameters
         ----------
@@ -141,9 +142,34 @@ class ComponentManager:
             A component type.
         Returns
         -------
-            A list of components.
+            A list of components of type ``component_type``.
         """
         return [c for c in self._components if isinstance(c, component_type)]
+
+    def get_component(self, name: str) -> ComponentType:
+        """Get the component that has ``name`` if presently held by the component
+        manager. Names are guaranteed to be unique.
+
+        Parameters
+        ----------
+        name
+            A component name.
+        Returns
+        -------
+            A component that has name ``name`` else None.
+        """
+        for c in self._components:
+            if c.name == name:
+                return c
+
+    def list_components(self) -> Dict[str, ComponentType]:
+        """Get a mapping of component names to components held by the manager.
+
+        Returns
+        -------
+            A mapping of component names to components.
+        """
+        return {c.name: c for c in self._components}
 
     def setup_components(self, builder, configuration: ConfigTree):
         """Separately configure and set up the managers and components held by
@@ -179,7 +205,7 @@ class ComponentInterface:
     def __init__(self, component_manager: ComponentManager):
         self._component_manager = component_manager
 
-    def add_components(self, components: Union[List, Tuple, Any]):
+    def add_components(self, components: Union[List[ComponentType], Tuple[ComponentType]]):
         """Register new components with the component manager. Components are
         configured  and setup after managers.
 
@@ -191,21 +217,46 @@ class ComponentInterface:
         """
         self._component_manager.add_components(components)
 
-    def get_components(self, component_type: Any) -> List:
+    def get_component(self, name: str) -> ComponentType:
+        """Get the component that has ``name`` if presently held by the component
+        manager. Names are guaranteed to be unique.
+
+        Parameters
+        ----------
+        name
+            A component name.
+        Returns
+        -------
+            A component that has name ``name`` else None.
+
+        """
+        return self._component_manager.get_component(name)
+
+    def get_components_by_type(self, component_type: ComponentType) -> List[ComponentType]:
         """Get all components that are an instance of ``component_type``
         currently held by the component manager.
 
         Parameters
         ----------
         component_type
-            A component type to get, compared against internal components
+            A component type to retrieve, compared against internal components
             using isinstance().
         Returns
         -------
-            A list of components.
+            A list of components of type ``component_type``.
 
         """
-        return self._component_manager.get_components(component_type)
+        return self._component_manager.get_components_by_type(component_type)
+
+    def list_components(self) -> Dict[str, ComponentType]:
+        """Get a mapping of component names to components held by the manager.
+
+        Returns
+        -------
+            A dictionary mapping component names to components.
+
+        """
+        return self._component_manager.list_components()
 
 
 def setup_components(builder, component_list: OrderedComponentSet, configuration: ConfigTree) -> OrderedComponentSet:
@@ -261,7 +312,7 @@ def setup_components(builder, component_list: OrderedComponentSet, configuration
     return OrderedComponentSet(*setup)
 
 
-def apply_component_default_configuration(configuration: ConfigTree, component: Any):
+def apply_component_default_configuration(configuration: ConfigTree, component: ComponentType):
     """Check if a default configuration attached to a component is duplicated
     in the simulation configuration, which will raise. If it is not, apply the
     configuration.
@@ -285,7 +336,7 @@ def apply_component_default_configuration(configuration: ConfigTree, component: 
     configuration.update(component.configuration_defaults, layer='component_configs', source=source)
 
 
-def check_duplicated_default_configuration(component: Any, config: ConfigTree, source: str):
+def check_duplicated_default_configuration(component: ComponentType, config: ConfigTree, source: str):
     """Check that the keys present in a component's default configuration
     ``component`` are not already present in the global configtree ``config``.
 
