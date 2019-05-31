@@ -123,7 +123,7 @@ class ComponentManager:
             else:
                 component_list.add(component)
 
-    def get_components_by_type(self, component_type: Type) -> List[Any]:
+    def get_components_by_type(self, component_type: Union[type, Tuple[type]]) -> List[Any]:
         """Get all components currently held by the component manager that are an
         instance of ``component_type``.
 
@@ -147,7 +147,11 @@ class ComponentManager:
             A component name.
         Returns
         -------
-            A component that has name ``name`` else None.
+            A component that has name ``name``.
+        Raises
+        ------
+        ValueError
+            No component exists in the component manager with ``name``.
         """
         for c in self._components:
             if c.name == name:
@@ -219,7 +223,7 @@ class ComponentInterface:
             A component name.
         Returns
         -------
-            A component that has name ``name`` else None.
+            A component that has name ``name``.
 
         """
         return self._component_manager.get_component(name)
