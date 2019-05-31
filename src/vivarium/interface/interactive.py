@@ -18,7 +18,7 @@ See the associated tutorials for :ref:`running <interactive_tutorial>` and
 
 """
 from math import ceil
-from typing import Mapping, List, Callable, Dict
+from typing import Mapping, List, Callable, Dict, Any
 import warnings
 
 import pandas as pd
@@ -28,7 +28,6 @@ from vivarium.framework.engine import SimulationContext
 from vivarium.framework.plugins import PluginManager
 from vivarium.framework.time import Timedelta, Time
 from vivarium.framework.values import Pipeline
-from vivarium.framework.components import ComponentType
 
 from .utilities import run_from_ipython, log_progress, raise_if_not_setup
 
@@ -235,7 +234,7 @@ class InteractiveContext(SimulationContext):
         return self.events.get_emitter(event_type)
 
     @raise_if_not_setup(system_type='component')
-    def list_components(self) -> Dict[str, ComponentType]:
+    def list_components(self) -> Dict[str, Any]:
         """Get a mapping of component names to components currently in the simulation.
 
         Returns
@@ -246,7 +245,7 @@ class InteractiveContext(SimulationContext):
         return  self.component_manager.list_components()
 
     @raise_if_not_setup(system_type='component')
-    def get_component(self, name: str) -> ComponentType:
+    def get_component(self, name: str) -> Any:
         """Get the component in the simulation that has ``name``, if present.
         Names are guaranteed to be unique.
 
@@ -262,7 +261,7 @@ class InteractiveContext(SimulationContext):
         return self.component_manager.get_component(name)
 
     @raise_if_not_setup(system_type='component')
-    def get_components_by_type(self, component_type: ComponentType) -> List[ComponentType]:
+    def get_components_by_type(self, component_type: Any) -> List[Any]:
         """Get all components in the simulation that are an instance of ``component_type``.
 
         Parameters
