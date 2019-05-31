@@ -1,2 +1,2 @@
-from .manager import ComponentManager, ComponentInterface, ComponentConfigError
+from .manager import OrderedComponentSet, ComponentManager, ComponentInterface, ComponentConfigError
 from .parser import ComponentConfigurationParser

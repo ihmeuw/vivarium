@@ -3,7 +3,7 @@ import pytest
 from vivarium.framework.engine import SimulationContext, Builder, setup_simulation, run, run_simulation
 from vivarium.framework.event import EventManager, EventInterface
 from vivarium.framework.lookup import LookupTableManager, LookupTableInterface
-from vivarium.framework.components import ComponentManager, ComponentInterface
+from vivarium.framework.components import OrderedComponentSet, ComponentManager, ComponentInterface
 from vivarium.framework.metrics import Metrics
 from vivarium.framework.plugins import PluginManager
 from vivarium.framework.population import PopulationManager, PopulationInterface
@@ -61,7 +61,7 @@ def test_SimulationContext_init_default(base_config, components):
 
     # Ordering matters.
     managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables]
-    assert sim.component_manager._managers == managers
+    assert sim.component_manager._managers == OrderedComponentSet(*managers)
     assert list(sim.component_manager._components)[:-1] == components
     assert isinstance(list(sim.component_manager._components)[-1], Metrics)
 
@@ -110,7 +110,7 @@ def test_SimulationContext_init_custom(base_config, components):
 
     # Ordering matters.
     managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables, beekeeper]
-    assert sim.component_manager._managers == managers
+    assert sim.component_manager._managers == OrderedComponentSet(*managers)
     assert list(sim.component_manager._components)[:-1] == components
     assert isinstance(list(sim.component_manager._components)[-1], Metrics)
 
