@@ -18,7 +18,7 @@ See the associated tutorials for :ref:`running <interactive_tutorial>` and
 
 """
 from math import ceil
-from typing import Mapping, List, Callable
+from typing import Mapping, List, Callable, Dict, Any
 import warnings
 
 import pandas as pd
@@ -234,9 +234,31 @@ class InteractiveContext(SimulationContext):
         return self.events.get_emitter(event_type)
 
     @raise_if_not_setup(system_type='component')
-    def get_components(self) -> List:
-        """Get a list of all components in the simulation."""
-        return [component for component in self.component_manager._components + self.component_manager._managers]
+    def list_components(self) -> Dict[str, Any]:
+        """Get a mapping of component names to components currently in the simulation.
+
+        Returns
+        -------
+            A dictionary mapping component names to components.
+
+        """
+        return  self.component_manager.list_components()
+
+    @raise_if_not_setup(system_type='component')
+    def get_component(self, name: str) -> Any:
+        """Get the component in the simulation that has ``name``, if present.
+        Names are guaranteed to be unique.
+
+        Parameters
+        ----------
+        name
+            A component name.
+        Returns
+        -------
+            A component that has the name ``name`` else None.
+
+        """
+        return self.component_manager.get_component(name)
 
 
 def initialize_simulation(components: List, input_config: Mapping = None,
