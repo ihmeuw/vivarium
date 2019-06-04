@@ -1,3 +1,22 @@
+"""
+====
+Dependency Management in Vivarium
+=================================
+
+This module provides a tool to manage dependencies on resources within a
+``Vivarium`` simulation. These resources take the form of things that can be
+created and utilized by components, for example columns in the state table or
+named value pipelines. Because these need to be created before they can be used,
+they are sensitive to ordering. The intent behind this tool is to provide an
+interface that allows other managers to register resources with the dependency
+manager and in turn ask for ordered sequences of these resources according to
+their dependencies or raise exceptions if this is not possible.
+
+Currently, the dependency manager only oversees population initializers for the
+Population manager. In the future its work will expand.
+
+"""
+
 from typing import Sequence, List, Tuple, Callable
 from collections import deque
 
@@ -20,11 +39,11 @@ class DependencyManager:
         return "DependencyManager"
 
     @staticmethod
-    def _validate_population_initializers(resources: Sequence[Tuple]):
-        """Resources are of the form (Callable, Created, Required"""
+    def _validate_population_initializers(initializers: Sequence[Tuple]):
+        """Initializers are of the form (Callable, Created, Required"""
         created_columns = []
         required_columns = []
-        for _, created, required in resources:
+        for _, created, required in initializers:
             created_columns.extend(created)
             required_columns.extend(required)
 
@@ -69,7 +88,7 @@ class DependencyManager:
             self.population_initializers = self._order_population_initializers(self.population_initializers)
         return self.population_initializers
 
-    def register_population_initializer(self, initializer: [Callable, Sequence[str], Sequence[str]]):
+    def register_population_initializer(self, initializer: Tuple[Callable, Sequence[str], Sequence[str]]):
         self.population_initializers.append(initializer)
         self.population_initializers_ordered = False
 
@@ -80,7 +99,26 @@ class DependencyInterface:
         self._dependency_manager = dependency_manager
 
     def register_population_initializer(self, initializer: Tuple[Callable, Sequence[str], Sequence[str]]):
+        """Register a population initializer with the dependency manager.
+
+        Parameters
+        ----------
+        initializer
+            A tuple defining an initializer: a callable function, the columns created,
+            and the columns required.
+
+        """
         self._dependency_manager.register_population_initializer(initializer)
 
-    def get_ordered_population_initializers(self):
+    def get_ordered_population_initializers(self) -> List[Tuple]:
+        """Retrieve the list of population initializers ordered by dependency
+        held by the dependency manager.
+
+        Returns
+        -------
+            A list of initializers ordered by dependency, defined as a tuple
+            containing a callable function, the columns created, and the columns
+            required.
+
+        """
         return self._dependency_manager.get_ordered_population_initializers()
