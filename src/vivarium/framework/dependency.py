@@ -17,7 +17,7 @@ Population manager. In the future its work will expand.
 
 """
 
-from typing import Sequence, List, Tuple, Callable
+from typing import Sequence, List, Tuple, Callable, Union
 from collections import deque
 
 from vivarium.exceptions import VivariumError
@@ -36,7 +36,7 @@ class DependencyManager:
 
     @property
     def name(self):
-        return "DependencyManager"
+        return "dependency_manager"
 
     @staticmethod
     def _validate_population_initializers(initializers: Sequence[Tuple]):
@@ -88,7 +88,7 @@ class DependencyManager:
             self.population_initializers = self._order_population_initializers(self.population_initializers)
         return self.population_initializers
 
-    def register_population_initializer(self, initializer: Tuple[Callable, Sequence[str], Sequence[str]]):
+    def register_population_initializer(self, initializer: Tuple[Callable, Union[List[str], Tuple[str]], Union[List[str], Tuple[str]]]):
         self.population_initializers.append(initializer)
         self.population_initializers_ordered = False
 
@@ -98,7 +98,7 @@ class DependencyInterface:
     def __init__(self, dependency_manager: DependencyManager):
         self._dependency_manager = dependency_manager
 
-    def register_population_initializer(self, initializer: Tuple[Callable, Sequence[str], Sequence[str]]):
+    def register_population_initializer(self, initializer: Tuple[Callable, Union[List[str], Tuple[str]], Union[List[str], Tuple[str]]]):
         """Register a population initializer with the dependency manager.
 
         Parameters
