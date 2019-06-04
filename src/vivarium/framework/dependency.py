@@ -1,4 +1,4 @@
-from typing import Sequence, List, Tuple
+from typing import Sequence, List, Tuple, Callable
 from collections import deque
 
 from vivarium.exceptions import VivariumError
@@ -69,11 +69,17 @@ class DependencyManager:
             self.population_initializers = self._order_population_initializers(self.population_initializers)
         return self.population_initializers
 
-    def register_population_resource(self):
-        pass
+    def register_population_initializer(self, initializer: [Callable, Sequence[str], Sequence[str]]):
+        self.population_initializers.append(initializer)
 
 
 class DependencyInterface:
 
     def __init__(self, dependency_manager: DependencyManager):
         self._dependency_manager = dependency_manager
+
+    def register_population_initializer(self, initializer: Tuple[Callable, Sequence[str], Sequence[str]]):
+        self._dependency_manager.register_population_initializer(initializer)
+
+    def get_ordered_population_initializers(self):
+        return self._dependency_manager.get_ordered_population_initializers()

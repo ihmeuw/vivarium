@@ -197,8 +197,8 @@ class PopulationManager:
         self.step_size = builder.time.step_size()
         builder.value.register_value_modifier('metrics', modifier=self.metrics)
 
-        self.register_population_initializer = builder.dependency.register_population_resource
-        self.get_ordered_population_initializers = builder.dependency.get_ordered_population_resources
+        self.register_population_initializer = builder.dependency.register_population_initializer
+        self.get_ordered_population_initializers = builder.dependency.get_ordered_population_initializers
         self.register_population_initializer((self.on_create_simulants, ['tracked'], []))
 
     def get_view(self, columns: Sequence[str], query: str=None) -> PopulationView:
