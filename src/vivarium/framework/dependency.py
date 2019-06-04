@@ -64,13 +64,14 @@ class DependencyManager:
         return ordered_resources
 
     def get_ordered_population_initializers(self):
-        self._validate_population_initializers(self.population_initializers)
         if not self.population_initializers_ordered:
+            self._validate_population_initializers(self.population_initializers)
             self.population_initializers = self._order_population_initializers(self.population_initializers)
         return self.population_initializers
 
     def register_population_initializer(self, initializer: [Callable, Sequence[str], Sequence[str]]):
         self.population_initializers.append(initializer)
+        self.population_initializers_ordered = False
 
 
 class DependencyInterface:
