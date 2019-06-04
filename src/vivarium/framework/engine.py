@@ -33,6 +33,7 @@ from .lookup import LookupTableInterface
 from .metrics import Metrics
 from .plugins import PluginManager
 from .population import PopulationInterface
+from .dependency import DependencyInterface
 from .randomness import RandomnessInterface
 from .results_writer import get_results_writer
 from .values import ValuesInterface
@@ -56,6 +57,7 @@ class SimulationContext:
         self.values = plugin_manager.get_plugin('value')
         self.events = plugin_manager.get_plugin('event')
         self.population = plugin_manager.get_plugin('population')
+        self.dependency = plugin_manager.get_plugin('dependency')
         self.tables = plugin_manager.get_plugin('lookup')
         self.randomness = plugin_manager.get_plugin('randomness')
         for name, controller in plugin_manager.get_optional_controllers().items():
@@ -70,6 +72,7 @@ class SimulationContext:
         self.add_components(components + [Metrics()])
 
     def setup(self):
+
         self.component_manager.setup_components(self.builder, self.configuration)
         self.simulant_creator = self.builder.population.get_simulant_creator()
 
@@ -121,6 +124,7 @@ class Builder:
         self.value = plugin_manager.get_plugin_interface('value')                   # type: ValuesInterface
         self.event = plugin_manager.get_plugin_interface('event')                   # type: EventInterface
         self.population = plugin_manager.get_plugin_interface('population')         # type: PopulationInterface
+        self.dependency = plugin_manager.get_plugin_interface('dependency')         # type: DependencyInterface
         self.randomness = plugin_manager.get_plugin_interface('randomness')         # type: RandomnessInterface
         self.time = plugin_manager.get_plugin_interface('clock')                    # type: TimeInterface
         self.components = plugin_manager.get_plugin_interface('component_manager')  # type: ComponentInterface

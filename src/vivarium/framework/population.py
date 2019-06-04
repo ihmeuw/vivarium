@@ -10,8 +10,7 @@ to read/write access to the population state, the tools here also manage when
 and how new :term:`simulants <Simulant>` are added to the system.
 
 """
-from typing import Sequence, List, Callable, Union, Mapping, Any, NamedTuple, Tuple
-from collections import deque
+from typing import Sequence, List, Callable, Union, Mapping, Any, NamedTuple
 
 import pandas as pd
 
@@ -187,8 +186,6 @@ class PopulationManager:
 
     def __init__(self):
         self._population = pd.DataFrame()
-        self._population_initializers = [(self.on_create_simulants, ['tracked'], [])]
-        self._initializers_ordered = False
         self.growing = False
 
     @property
@@ -199,6 +196,10 @@ class PopulationManager:
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         builder.value.register_value_modifier('metrics', modifier=self.metrics)
+
+        self.register_population_initializer = builder.dependency.register_population_resource
+        self.get_ordered_population_initializers = builder.dependency.get_ordered_population_resources
+        self.register_population_initializer((self.on_create_simulants, ['tracked'], []))
 
     def get_view(self, columns: Sequence[str], query: str=None) -> PopulationView:
         """Return a configured PopulationView
@@ -217,7 +218,7 @@ class PopulationManager:
 
     def register_simulant_initializer(self, initializer: Callable,
                                       creates_columns: Sequence[str]=(), requires_columns: Sequence[str]=()):
-        self._population_initializers.append((initializer, creates_columns, tuple(requires_columns)+('tracked',)))
+        self.register_population_initializer((initializer, creates_columns, tuple(requires_columns) + ('tracked',)))
 
     def get_simulant_creator(self) -> Callable:
         return self._create_simulants
@@ -226,60 +227,15 @@ class PopulationManager:
         status = pd.Series(True, index=pop_data.index)
         self.get_view(['tracked']).update(status)
 
-    @staticmethod
-    def _validate_no_missing_initializers(initializers: Sequence[Tuple]) -> None:
-        created_columns = []
-        required_columns = []
-        for _, created, required in initializers:
-            created_columns.extend(created)
-            required_columns.extend(required)
-
-        missing_columns = set(required_columns).difference(set(created_columns))
-        if missing_columns:
-            raise PopulationError(f"The columns {missing_columns} are required, but are not "
-                                  f"created by any components in the system.")
-
-    def _order_initializers(self) -> None:
-        unordered_initializers = deque(self._population_initializers)
-        starting_length = -1
-        available_columns = []
-        self._population_initializers = []
-
-        self._validate_no_missing_initializers(unordered_initializers)
-
-        # This is the brute force N! way because constructing a dependency graph is work
-        # and in practice this should run in about order N time due to the way dependencies are
-        # typically specified.  N is also very small in all current applications.
-        while len(unordered_initializers) != starting_length:
-            starting_length = len(unordered_initializers)
-            for _ in range(len(unordered_initializers)):
-                initializer, columns_created, columns_required = unordered_initializers.popleft()
-                if set(columns_required) <= set(available_columns):
-                    self._population_initializers.append((initializer, columns_created, columns_required))
-                    available_columns.extend(columns_created)
-                else:
-                    unordered_initializers.append((initializer, columns_created, columns_required))
-
-        if unordered_initializers:
-            raise PopulationError(f"The initializers {unordered_initializers} could not be added.  "
-                                  "Check for cyclic dependencies in your components.")
-
-        if len(set(available_columns)) < len(available_columns):
-            raise PopulationError("Multiple components are attempting to initialize the "
-                                  "same columns in the state table.")
-
-        self._initializers_ordered = True
-
     def _create_simulants(self, count: int, population_configuration: Mapping[str, Any]=None) -> pd.Index:
         population_configuration = population_configuration if population_configuration else {}
-        if not self._initializers_ordered:
-            self._order_initializers()
+        population_initializers = self.get_ordered_population_initializers()
         new_index = range(len(self._population) + count)
         new_population = self._population.reindex(new_index)
         index = new_population.index.difference(self._population.index)
         self._population = new_population
         self.growing = True
-        for initializer, *_ in self._population_initializers:
+        for initializer, *_ in population_initializers:
             initializer(SimulantData(index, population_configuration, self.clock(), self.step_size()))
         self.growing = False
         return index
