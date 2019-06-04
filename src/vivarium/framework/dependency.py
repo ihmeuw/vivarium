@@ -5,10 +5,10 @@ Dependency Management in Vivarium
 
 This module provides a tool to manage dependencies on resources within a
 ``Vivarium`` simulation. These resources take the form of things that can be
-created and utilized by components, for example columns in the state table or
-named value pipelines. Because these need to be created before they can be used,
-they are sensitive to ordering. The intent behind this tool is to provide an
-interface that allows other managers to register resources with the dependency
+created and utilized by components, for example columns in the state table
+or named value pipelines. Because these need to be created before they can be
+used, they are sensitive to ordering. The intent behind this tool is to provide
+an interface that allows other managers to register resources with the dependency
 manager and in turn ask for ordered sequences of these resources according to
 their dependencies or raise exceptions if this is not possible.
 
@@ -40,7 +40,7 @@ class DependencyManager:
 
     @staticmethod
     def _validate_population_initializers(initializers: Sequence[Tuple]):
-        """Initializers are of the form (Callable, Created, Required"""
+        """Initializers are of the form (Callable, Created, Required)"""
         created_columns = []
         required_columns = []
         for _, created, required in initializers:
