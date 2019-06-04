@@ -240,10 +240,10 @@ class EventInterface:
 
         The framework creates the following events and emits them at different
         points in the simulation:
-            At the end of the setup phase: ``post_setup``
-            Every time step: ``time_step__prepare``, ``time_step``,
-                             ``time_step__cleanup``, ``collect_metrics``
-            At simulation end: ``simulation_end``
+
+            - At the end of the setup phase: ``post_setup``
+            - Every time step: ``time_step__prepare``, ``time_step``, ``time_step__cleanup``, ``collect_metrics``
+            - At simulation end: ``simulation_end``
 
         Parameters
         ----------
