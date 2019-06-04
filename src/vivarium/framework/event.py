@@ -30,7 +30,6 @@ from collections import defaultdict
 from typing import Callable, Dict, List
 
 import pandas as pd
-from vivarium.framework.engine import Builder
 
 
 class Event:
@@ -126,7 +125,7 @@ class EventManager:
     def name(self):
         return "event_manager"
 
-    def setup(self, builder: Builder):
+    def setup(self, builder):
         """Performs this component's simulation setup.
 
         Parameters
@@ -219,6 +218,9 @@ class EventInterface:
         ----------
         name :
             The name of the event the requested emitter will emit.
+            Users may provide their own named events by requesting an emitter
+            with this function, but should do so with caution as it makes time
+            much more difficult to think about.
 
         Returns
         -------
