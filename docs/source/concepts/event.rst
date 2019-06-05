@@ -86,7 +86,7 @@ The listener itself should be a callable function that takes as its only argumen
 the :class:`Event <vivarium.framework.event.Event>` that is emitted.
 
 Suppose we wish to track how many simulants are affected each time step. We
-could do this by creating an observer component with a ``on_time_step`` method
+could do this by creating an observer component with an ``on_time_step`` method
 that we will register as a listener for the ``time_step`` event. Our component
 would look something like the following:
 
