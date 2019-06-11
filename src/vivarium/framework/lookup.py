@@ -212,8 +212,8 @@ def validate_parameters(data, key_columns, parameter_columns, value_columns):
                              f'and parameter columns: {parameter_columns}.')
 
         if value_columns:
-            data_value_columns = sorted(data.columns.difference(set(key_columns)|set(all_parameter_columns)))
-            if value_columns != data_value_columns:
+            data_value_columns = data.columns.difference(set(key_columns)|set(all_parameter_columns))
+            if set(value_columns) != set(data_value_columns):
                 raise ValueError(f'The value columns you supplied: {value_columns} do not match '
                                  f'the non-parameter columns in the passed data: {data_value_columns}')
 
