@@ -3,7 +3,6 @@ import pandas as pd
 
 from vivarium.testing_utilities import build_table, TestPopulation
 from vivarium.interface.interactive import setup_simulation
-from vivarium.framework.lookup import validate_parameters
 import pytest
 
 
@@ -155,50 +154,3 @@ def test_lookup_table_interpolated_return_types(base_config):
 
     assert isinstance(table, pd.DataFrame)
 
-
-@pytest.mark.parametrize('data', [None, pd.DataFrame(), pd.DataFrame(columns=['a', 'b', 'c']), [], tuple()])
-def test_validate_parameters_no_data(data):
-    with pytest.raises(ValueError, match='supply some data'):
-        validate_parameters(data, [], [], [])
-
-
-@pytest.mark.parametrize('key_cols, param_cols, val_cols, match',
-                         [(None, None, None, 'supply value_columns'),
-                          (None, None, [], 'supply value_columns'),
-                          (None, None, ['a', 'b'], 'match the number of values')])
-def test_validate_parameters_error_scalar_data(key_cols, param_cols, val_cols, match):
-    with pytest.raises(ValueError, match=match):
-        validate_parameters([1, 2, 3], key_cols, param_cols, val_cols)
-
-
-@pytest.mark.parametrize('key_cols, param_cols, val_cols, match',
-                         [(['a', 'b'], [('b', 'b_left', 'b_right')], ['c'], 'no overlap'),
-                          ([], [('b', 'b_left', 'b_right')], ['c'], 'do not match')])
-def test_validate_parameters_error_dataframe(key_cols, param_cols, val_cols, match):
-    data = pd.DataFrame({'a': [1, 2], 'b_left': [0, 5], 'b_right': [5, 10], 'c': [100, 150]})
-    with pytest.raises(ValueError, match=match):
-        validate_parameters(data, key_cols, param_cols, val_cols)
-
-
-@pytest.mark.parametrize('data', ['FAIL', pd.Interval(5, 10), '2019-05-17', {'a': 5, 'b': 10}])
-def test_validate_parameters_fail_other_data(data):
-    with pytest.raises(TypeError, match='only allowable types'):
-        validate_parameters(data, [], [], [])
-
-
-@pytest.mark.parametrize('key_cols, param_cols, val_cols',
-                         [(None, None, ['a', 'b', 'c']),
-                          (None, ['d'], ['one', 'two', 'three']),
-                          (['KEY'], None, ['a', 'b', 'c']),
-                          (['KEY'], ['d'], ['a', 'b', 'c'])])
-def test_validate_parameters_pass_scalar_data(key_cols, param_cols, val_cols):
-    validate_parameters([1, 2, 3], key_cols, param_cols, val_cols)
-
-
-@pytest.mark.parametrize('key_cols, param_cols, val_cols',
-                         [(['a'], [('b', 'b_left', 'b_right')], ['c']),
-                          ([], [('b', 'b_left', 'b_right')], ['c', 'a']),
-                          ([], [('b', 'b_left', 'b_right')], ['a', 'c'])])
-def test_validate_parameters_pass_dataframe(key_cols, param_cols, val_cols):
-    data = pd.DataFrame({'a': [1, 2], 'b_left': [0, 5], 'b_right': [5, 10], 'c': [100, 150]})
-    validate_parameters(data, key_cols, param_cols, val_cols)
