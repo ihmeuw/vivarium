@@ -191,7 +191,7 @@ class LookupTable:
 
 
 def validate_parameters(data, key_columns, parameter_columns, value_columns):
-    if data is None or (isinstance(data, pd.DataFrame) and data.empty):
+    if data is None or (isinstance(data, pd.DataFrame) and data.empty) or (isinstance(data, (list, tuple)) and not data):
         raise ValueError("Must supply some data")
 
     if not isinstance(data, (Number, datetime, timedelta, list, tuple, pd.DataFrame)):
