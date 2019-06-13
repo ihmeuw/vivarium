@@ -441,12 +441,13 @@ class RandomnessStream:
         RandomnessStream
             A new RandomnessStream with a combined key.
         """
+        copy_key = '_'.join([self.key, key])
         if self._for_initialization:
             raise RandomnessError('Initialization streams cannot be copied.')
         elif self._manager:
-            return self._manager.get_randomness_stream('_'.join([self.key, key]))
+            return self._manager.get_randomness_stream(copy_key)
         else:
-            return RandomnessStream(self.key, self.clock, self.seed, self.index_map)
+            return RandomnessStream(copy_key, self.clock, self.seed, self.index_map)
 
     def _key(self, additional_key: Any = None) -> str:
         """Construct a hashable key from this object's state.
