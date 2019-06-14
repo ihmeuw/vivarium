@@ -1,3 +1,17 @@
+**0.8.21 - 06/14/19**
+
+ - Add names and better reprs to some of the managers.
+ - ConfigTree documentation
+ - Yaml load bugfix.
+ - Documentation for ``simulate run`` and the interactive context.
+ - Tutorials for running a simulation interactively and from the command line.
+ - Headers for API documentation.
+ - Component management documentation.
+ - Enforce all components have a unique name.
+ - Add ``get_components_by_type`` and ``get_component(name)`` to
+   the component manager.
+ - Bugfix in the lookup table.
+
 **0.8.20 - 04/22/19**
 
  - Add simulation lifecycle info to the simulant creator.
