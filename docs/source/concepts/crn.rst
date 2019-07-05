@@ -54,5 +54,4 @@ simulations.
 
 include pictures of cube and lining up sims here
 
-
 also what lets you run multiple small sims and aggregate up?
