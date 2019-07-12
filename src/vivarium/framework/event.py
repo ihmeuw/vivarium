@@ -11,9 +11,9 @@ themselves as emitters or listeners to particular events.
 
 The :class:`EventManager` maintains a mapping between event types and channels.
 Each event type (and event types must be unique so event type is equivalent to
-event name, e.g., ``time_step_prepare``) corresponds to an :class:`_EventChannel`,
-which tracks listeners to that event in prioritized levels and passes on the
-event to those listeners when emitted.
+event name, e.g., ``time_step_prepare``) corresponds to an
+:class:`_EventChannel`, which tracks listeners to that event in prioritized
+levels and passes on the event to those listeners when emitted.
 
 The :class:`EventInterface` is exposed off the :ref:`builder <builder_concept>`
 and provides two methods: :func:`get_emitter <EventInterface.get_emitter>`,
@@ -35,28 +35,46 @@ import pandas as pd
 class Event:
     """An Event object represents the context of an event.
 
+    Events themselves are just a bundle of data.  They must be emitted
+    along an :class:`_EventChannel` in order for other simulation components
+    to respond to them.
+
     Attributes
     ----------
-    time  : pandas.Timestamp
-        The simulation time at which this event was emitted.
     index : pandas.Index
         An index into the population table containing all simulants
-        effected by this event.
-    user_data : dict
-        Any additional data provided by the user about the event.
+        affected by this event.
+    time  : pandas.Timestamp
+        The simulation time at which this event will resolve. The current
+        simulation size plus the current time step size.
     step_size : pandas.Timedelta
         The current step size at the time of the event.
+    user_data : dict
+        Any additional data provided by the user about the event.
 
     """
-
     def __init__(self, index: pd.Index, user_data: Dict = None):
         self.index = index
         self.user_data = user_data if user_data is not None else {}
         self.time = None
         self.step_size = None
 
-    def split(self, new_index: pd.Index):
-        """Create a new event which is a copy of this one but with a new index.
+    def split(self, new_index: pd.Index) -> 'Event':
+        """Create a copy of this event with a new index.
+
+        This function should be used to emit an event in a new
+        :class:`_EventChannel` in response to an event emitted from a
+        different channel.
+
+        Parameters
+        ----------
+        new_index
+            An index into the population table containing all simulants
+            affected by this event.
+
+        Returns
+        -------
+            The new event.
 
         """
         new_event = Event(new_index, self.user_data)
@@ -72,13 +90,9 @@ class Event:
 
 
 class _EventChannel:
-    """An EventChannel manages the conveyance of a particular event to all the
-    listeners that subscribe to it.
-
-    """
+    """A named subscription channel that passes events to event listeners."""
     def __init__(self, manager):
         self.manager = manager
-
         self.listeners = [[] for _ in range(10)]
 
     def emit(self, event: Event) -> Event:
@@ -123,6 +137,7 @@ class EventManager:
 
     @property
     def name(self):
+        """The name of this component."""
         return "event_manager"
 
     def setup(self, builder):
@@ -207,6 +222,7 @@ class EventManager:
 
 
 class EventInterface:
+    """The public interface for the event system."""
 
     def __init__(self, event_manager: EventManager):
         self._event_manager = event_manager
@@ -216,7 +232,7 @@ class EventInterface:
 
         Parameters
         ----------
-        name :
+        name
             The name of the event the requested emitter will emit.
             Users may provide their own named events by requesting an emitter
             with this function, but should do so with caution as it makes time
@@ -242,7 +258,11 @@ class EventInterface:
         points in the simulation:
 
             - At the end of the setup phase: ``post_setup``
-            - Every time step: ``time_step__prepare``, ``time_step``, ``time_step__cleanup``, ``collect_metrics``
+            - Every time step:
+              - ``time_step__prepare``
+              - ``time_step``
+              - ``time_step__cleanup``
+              - ``collect_metrics``
             - At simulation end: ``simulation_end``
 
         Parameters
