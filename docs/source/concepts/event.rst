@@ -35,7 +35,7 @@ the event.  Events have the following attributes:
        | time plus the size of the current time step.
    * - | step_size
      - | A :class:`~pandas.Timedelta` or :class:`int` representing the
-       | size of of the next simulation time step.
+       | size of the next simulation time step.
    * - | user_data
      - | A :class:`dict` that allows an event emitter to pass arbitrary
        | information to event listeners.
@@ -44,7 +44,7 @@ the event.  Events have the following attributes:
 framework maintains several named event channels where it and user
 :ref:`components <components_concept>` can emit (or publish) events.  User
 components may then register methods or functions as *listeners* (or
-subscribers)to events on a particular channel.  The *listeners* will then be
+subscribers) to events on a particular channel.  The *listeners* will then be
 called any time an event is emitted on the channel and will receive the event
 as an argument.
 
