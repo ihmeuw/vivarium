@@ -19,28 +19,28 @@ What is an Event?
 
 An :class:`Event <vivarium.framework.event.Event>` is a simple container for a
 group of attributes that provide all the necessary information to respond to
-the event.
+the event.  Events have the following attributes:
 
-+----------------------------------------------------------------------------+
-| Event Attributes                                                           |
-+----------------------------------------------------------------------------+
-| Name      | Description                                                    |
-+===========+================================================================+
-| index     | An index into the population table that contains all           |
-|           | individuals that may respond to the event.                     |
-+-----------+----------------------------------------------------------------+
-|           | A :class:`~pandas.Timestamp` or :class:`int` representing the  |
-| time      | time at which the event will resolve.  The current simulation  |
-|           | time plus the size of the current time step.                   |
-+-----------+----------------------------------------------------------------+
-| step_size | A :class:`~pandas.Timedelta` or :class:`int` representing the  |
-|           | size of of the next simulation time step.                      |
-+-----------+----------------------------------------------------------------+
-| user_data | A :class:`dict` that allows an event emitter to pass arbitrary |
-|           | information to event listeners.                                |
-+-----------+----------------------------------------------------------------+
+.. list-table:: **Event Attributes**
+   :header-rows: 1
+   :widths: 20, 60
 
-``vivarium`` manages these events with a publication-subscriber system.  The
+   * - Name
+     - Description
+   * - | index
+     - | An index into the population table that contains all
+       | individuals that may respond to the event.
+   * - | time
+     - | The time at which the event will resolve.  The current simulation
+       | time plus the size of the current time step.
+   * - | step_size
+     - | A :class:`~pandas.Timedelta` or :class:`int` representing the
+       | size of of the next simulation time step.
+   * - | user_data
+     - | A :class:`dict` that allows an event emitter to pass arbitrary
+       | information to event listeners.
+
+:mod:`vivarium` manages these events with a publication-subscriber system.  The
 framework maintains several named event channels where it and user
 :ref:`components <components_concept>` can emit (or publish) events.  User
 components may then register methods or functions as *listeners* (or
