@@ -7,3 +7,4 @@ The Vivarium Framework
    :glob:
 
    *
+   */index
