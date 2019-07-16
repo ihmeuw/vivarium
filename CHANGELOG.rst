@@ -1,3 +1,8 @@
+**0.8.22 - 07/16/19**
+
+ - Bugfix for lookup table input validation.
+ - Event subsytem documentation.
+
 **0.8.21 - 06/14/19**
 
  - Add names and better reprs to some of the managers.
