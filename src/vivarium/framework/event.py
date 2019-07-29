@@ -54,10 +54,34 @@ class Event:
 
     """
     def __init__(self, index: pd.Index, user_data: Dict = None):
-        self.index = index
-        self.user_data = user_data if user_data is not None else {}
-        self.time = None
-        self.step_size = None
+        self._index = index
+        self._user_data = user_data if user_data is not None else {}
+        self._time = None
+        self._step_size = None
+
+    @property
+    def index(self):
+        return self._index
+
+    @property
+    def user_data(self):
+        return self._user_data
+
+    @property
+    def time(self):
+        return self._time
+
+    @time.setter
+    def time(self, the_time):
+        self._time = the_time
+
+    @property
+    def step_size(self):
+        return self._step_size
+
+    @step_size.setter
+    def step_size(self, the_step_size):
+        self._step_size = the_step_size
 
     def split(self, new_index: pd.Index) -> 'Event':
         """Create a copy of this event with a new index.
@@ -77,13 +101,13 @@ class Event:
             The new event.
 
         """
-        new_event = Event(new_index, self.user_data)
-        new_event.time = self.time
-        new_event.step_size = self.step_size
+        new_event = Event(new_index, self._user_data)
+        new_event.time = self._time
+        new_event.step_size = self._step_size
         return new_event
 
     def __repr__(self):
-        return f"Event(user_data={self.user_data}, time={self.time}, step_size={self.step_size})"
+        return f"Event(user_data={self._user_data}, time={self._time}, step_size={self._step_size})"
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__

@@ -1,7 +1,32 @@
 import pandas as pd
 import numpy as np
+import pytest
 
 from vivarium.framework.event import Event, EventManager
+
+
+def test_proper_access():
+    idx = pd.Index(range(10))
+    user_data = {'specific_event_data': 'the_data'}
+    e1 = Event(idx, user_data)
+    assert (idx == e1.index).all()
+    assert user_data == e1.user_data
+    assert e1.time == None
+    assert e1.step_size == None
+
+    test_ts = pd.Timestamp('1/1/2000')
+    e1.time = test_ts
+    assert test_ts == e1.time
+
+    test_ss = 43
+    e1.step_size = test_ss
+    assert test_ss == e1.step_size
+
+    with pytest.raises(AttributeError) as _:
+        e1.index = pd.Index(range(3))
+
+    with pytest.raises(AttributeError) as _:
+        e1.user_data = {'key': 'value'}
 
 
 def test_split_event():
@@ -13,7 +38,6 @@ def test_split_event():
 
     assert e1.index is index1
     assert e2.index is index2
-
 
 def test_emission():
     signal = [False]
