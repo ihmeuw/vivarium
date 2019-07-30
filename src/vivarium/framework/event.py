@@ -71,17 +71,9 @@ class Event:
     def time(self):
         return self._time
 
-    @time.setter
-    def time(self, the_time):
-        self._time = the_time
-
     @property
     def step_size(self):
         return self._step_size
-
-    @step_size.setter
-    def step_size(self, the_step_size):
-        self._step_size = the_step_size
 
     def split(self, new_index: pd.Index) -> 'Event':
         """Create a copy of this event with a new index.
@@ -102,8 +94,8 @@ class Event:
 
         """
         new_event = Event(new_index, self._user_data)
-        new_event.time = self._time
-        new_event.step_size = self._step_size
+        new_event._time = self._time
+        new_event._step_size = self._step_size
         return new_event
 
     def __repr__(self):
@@ -129,12 +121,13 @@ class _EventChannel:
         Parameters
         ----------
         event
+
             The event to be emitted.
 
         """
         if hasattr(event, 'time'):
-            event.step_size = self.manager.step_size()
-            event.time = self.manager.clock() + self.manager.step_size()
+            event._step_size = self.manager.step_size()
+            event._time = self.manager.clock() + self.manager.step_size()
 
         for priority_bucket in self.listeners:
             for listener in priority_bucket:
