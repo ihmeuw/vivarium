@@ -27,12 +27,12 @@ For more information, see the associated event
 
 """
 from collections import defaultdict
-from typing import Callable, Dict, List
+from typing import Callable, Dict, List, NamedTuple, Mapping, Any
+from .time import Time, Timedelta
 
 import pandas as pd
 
-
-class Event:
+class Event(NamedTuple):
     """An Event object represents the context of an event.
 
     Events themselves are just a bundle of data.  They must be emitted
@@ -44,36 +44,18 @@ class Event:
     index : pandas.Index
         An index into the population table containing all simulants
         affected by this event.
-    time  : pandas.Timestamp
-        The simulation time at which this event will resolve. The current
-        simulation size plus the current time step size.
-    step_size : pandas.Timedelta
-        The current step size at the time of the event.
     user_data : dict
         Any additional data provided by the user about the event.
-
+    time  : time.Time
+        The simulation time at which this event will resolve. The current
+        simulation size plus the current time step size.
+    step_size : time.Timedelta
+        The current step size at the time of the event.
     """
-    def __init__(self, index: pd.Index, user_data: Dict = None):
-        self._index = index
-        self._user_data = user_data if user_data is not None else {}
-        self._time = None
-        self._step_size = None
-
-    @property
-    def index(self):
-        return self._index
-
-    @property
-    def user_data(self):
-        return self._user_data
-
-    @property
-    def time(self):
-        return self._time
-
-    @property
-    def step_size(self):
-        return self._step_size
+    index: pd.Index
+    user_data: Mapping[str, Any]
+    time: Time
+    step_size: Timedelta
 
     def split(self, new_index: pd.Index) -> 'Event':
         """Create a copy of this event with a new index.
@@ -93,16 +75,7 @@ class Event:
             The new event.
 
         """
-        new_event = Event(new_index, self._user_data)
-        new_event._time = self._time
-        new_event._step_size = self._step_size
-        return new_event
-
-    def __repr__(self):
-        return f"Event(user_data={self._user_data}, time={self._time}, step_size={self._step_size})"
-
-    def __eq__(self, other):
-        return self.__dict__ == other.__dict__
+        return Event(new_index, self.user_data, self.time, self.step_size)
 
 
 class _EventChannel:
@@ -111,7 +84,7 @@ class _EventChannel:
         self.manager = manager
         self.listeners = [[] for _ in range(10)]
 
-    def emit(self, event: Event) -> Event:
+    def emit(self, index: pd.Index, user_data: Dict = None) -> Event:
         """Notifies all listeners to this channel that an event has occurred.
 
         Events are emitted to listeners in order of priority (with order 0 being
@@ -125,14 +98,14 @@ class _EventChannel:
             The event to be emitted.
 
         """
-        if hasattr(event, 'time'):
-            event._step_size = self.manager.step_size()
-            event._time = self.manager.clock() + self.manager.step_size()
+        e = Event(index, user_data,
+            self.manager.clock() + self.manager.step_size(),
+            self.manager.step_size())
 
         for priority_bucket in self.listeners:
             for listener in priority_bucket:
-                listener(event)
-        return event
+                listener(e)
+        return e
 
     def __repr__(self):
         return f"_EventChannel(listeners: {[listener for bucket in self.listeners for listener in bucket]})"
@@ -169,7 +142,7 @@ class EventManager:
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
 
-    def get_emitter(self, name: str) -> Callable:
+    def get_emitter(self, name: str) -> Callable[[pd.Index, Dict], Event]:
         """Get an emitter function for the named event.
 
         Parameters
