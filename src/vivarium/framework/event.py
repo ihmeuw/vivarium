@@ -77,6 +77,12 @@ class Event(NamedTuple):
         """
         return Event(new_index, self.user_data, self.time, self.step_size)
 
+    def __repr__(self):
+        return f"Event(user_data={self.user_data}, time={self.time}, step_size={self.step_size})"
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
 
 class _EventChannel:
     """A named subscription channel that passes events to event listeners."""
