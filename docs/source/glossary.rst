@@ -22,6 +22,9 @@ Glossary
         adjust the behavior of :term:`components <Component>`.  Components
         themselves may provide defaults for several configuration parameters.
 
+    Lookup Table
+        Lorem Ipsum
+
     Metrics
         A special :term:`pipeline <Pipeline>` in the simulation that produces
         the simulation outputs.
