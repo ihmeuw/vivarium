@@ -27,7 +27,7 @@ For more information, see the associated event
 
 """
 from collections import defaultdict
-from typing import Callable, Dict, List, NamedTuple, Mapping, Any
+from typing import Callable, Dict, List, NamedTuple, Mapping, Any, Optional
 from .time import Time, Timedelta
 
 import pandas as pd
@@ -41,15 +41,15 @@ class Event(NamedTuple):
 
     Attributes
     ----------
-    index : pandas.Index
+    index :
         An index into the population table containing all simulants
         affected by this event.
-    user_data : dict
+    user_data :
         Any additional data provided by the user about the event.
-    time  : time.Time
+    time  :
         The simulation time at which this event will resolve. The current
         simulation size plus the current time step size.
-    step_size : time.Timedelta
+    step_size :
         The current step size at the time of the event.
     """
     index: pd.Index
@@ -93,14 +93,16 @@ class _EventChannel:
 
         Parameters
         ----------
-        event
-
-            The event to be emitted.
+        index :
+            An index into the population table containing all simulants
+            affected by this event.
+        user_data :
+            Any additional data provided by the user about the event.
 
         """
         e = Event(index, user_data,
-            self.manager.clock() + self.manager.step_size(),
-            self.manager.step_size())
+                self.manager.clock() + self.manager.step_size(),
+                self.manager.step_size())
 
         for priority_bucket in self.listeners:
             for listener in priority_bucket:
@@ -142,7 +144,7 @@ class EventManager:
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
 
-    def get_emitter(self, name: str) -> Callable[[pd.Index, Dict], Event]:
+    def get_emitter(self, name: str) -> Callable[[pd.Index, Optional[Dict]], Event]:
         """Get an emitter function for the named event.
 
         Parameters
@@ -152,8 +154,9 @@ class EventManager:
 
         Returns
         -------
-            A function that accepts an Event object and distributes
-            it to all listeners for this event.
+            A function that accepts an index and optional user data. This function
+            creates and timestamps an Event and distributes it to all interested
+            listeners
 
         """
         return self._event_types[name].emit
@@ -217,7 +220,7 @@ class EventInterface:
     def __init__(self, event_manager: EventManager):
         self._event_manager = event_manager
 
-    def get_emitter(self, name: str) -> Callable[[Event], Event]:
+    def get_emitter(self, name: str) -> Callable[[pd.Index, Optional[Dict]], Event]:
         """Gets an emitter for a named event.
 
         Parameters
