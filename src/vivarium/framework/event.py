@@ -41,15 +41,15 @@ class Event(NamedTuple):
 
     Attributes
     ----------
-    index :
+    index 
         An index into the population table containing all simulants
         affected by this event.
-    user_data :
+    user_data 
         Any additional data provided by the user about the event.
-    time  :
+    time  
         The simulation time at which this event will resolve. The current
         simulation size plus the current time step size.
-    step_size :
+    step_size 
         The current step size at the time of the event.
     """
     index: pd.Index
@@ -99,10 +99,10 @@ class _EventChannel:
 
         Parameters
         ----------
-        index :
+        index 
             An index into the population table containing all simulants
             affected by this event.
-        user_data :
+        user_data 
             Any additional data provided by the user about the event.
 
         """
