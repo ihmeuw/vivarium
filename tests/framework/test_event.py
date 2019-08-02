@@ -20,7 +20,7 @@ def event_init():
             'step_size': 30,
         }
     }
-def test_proper_access2(event_init):
+def test_proper_access(event_init):
     # Event attributes are meant to be read-only
     event_data = event_init['orig']
     e1 = Event(event_data['index'],

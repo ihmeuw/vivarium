@@ -90,7 +90,7 @@ class _EventChannel:
         self.manager = manager
         self.listeners = [[] for _ in range(10)]
 
-    def emit(self, index: pd.Index, user_data: Dict = None) -> Event:
+    def emit(self, index: pd.Index, user_data: Dict = {}) -> Event:
         """Notifies all listeners to this channel that an event has occurred.
 
         Events are emitted to listeners in order of priority (with order 0 being
