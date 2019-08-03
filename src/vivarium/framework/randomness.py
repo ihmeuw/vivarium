@@ -13,7 +13,7 @@ explicitly deals with traffic accidents. That means that the system can't rely
 on standard global randomness sources because small changes to the number of
 bits consumed or the order in which randomness consuming operations occur will
 cause the system to diverge.
-# FIXME: I don't think this key is correct - isn't it determined by users?
+
 The current approach is to generate hash-based
 seeds where the key is the simulation time, the simulant's id, the draw number
 and a unique id for the decision point which needs the randomness.
@@ -74,7 +74,7 @@ class IndexMap:
 
         Parameters
         ----------
-        new_keys :
+        new_keys
             The new index to hash.
         """
         if not self._map.index.intersection(new_keys).empty:
@@ -99,9 +99,9 @@ class IndexMap:
 
         Parameters
         ----------
-        keys :
+        keys
             The new index to hash.
-        salt :
+        salt
             An integer used to perturb the hash in a deterministic way.  Useful
             in dealing with collisions.
 
@@ -131,11 +131,12 @@ class IndexMap:
         return new_map % self.map_size
 
     def convert_to_ten_digit_int(self, column: pd.Series) -> pd.Series:
-        """Converts a column of datetimes, integers, or floats into a column of 10 digit integers.
+        """Converts a column of datetimes, integers, or floats into a column
+        of 10 digit integers.
 
         Parameters
         ----------
-        column :
+        column
             A series of datetimes, integers, or floats.
 
         Returns
@@ -145,8 +146,9 @@ class IndexMap:
 
         Raises
         ------
-        RandomnessError :
-            If the column contains data that is neither a datetime-like nor numeric.
+        RandomnessError
+            If the column contains data that is neither a datetime-like nor
+            numeric.
         """
         if isinstance(column.iloc[0], datetime.datetime):
             column = self.clip_to_seconds(column.astype(int))
@@ -351,7 +353,8 @@ def _set_residual_probability(p: np.ndarray) -> np.ndarray:
 
 def filter_for_probability(key: str, population: Union[pd.DataFrame, pd.Series, Index],
                            probability: Array, index_map: IndexMap = None) -> Union[pd.DataFrame, pd.Series, Index]:
-    """Decide an event outcome for each individual in a population from probabilities.
+    """Decide an event outcome for each individual in a population from
+    probabilities.
 
     Given a population or its index and an array of associated probabilities
     for some event to happen, we create and return the sub-population for whom
@@ -679,7 +682,7 @@ class RandomnessManager:
 
         Parameters
         ----------
-        simulants :
+        simulants
             A table with state data representing the new simulants.  Each simulant should
             pass through this function exactly once.
 
@@ -707,22 +710,24 @@ class RandomnessInterface:
     def get_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
-        ``vivarium`` provides a framework for Common Random Numbers which allows for variance reduction
-        when modeling counter-factual scenarios. Users interested in causal analysis and comparisons
-        between simulation scenarios should be careful to use randomness streams provided by the framework
-        wherever randomness is employed.
+        ``vivarium`` provides a framework for Common Random Numbers which
+        allows for variance reduction when modeling counter-factual scenarios.
+        Users interested in causal analysis and comparisons between simulation
+        scenarios should be careful to use randomness streams provided by the
+        framework wherever randomness is employed.
 
         Parameters
         ----------
-        decision_point :
-            A unique identifier for a stream of random numbers.  Typically represents
-            a decision that needs to be made each time step like 'moves_left' or
-            'gets_disease'.
-        for_initialization :
-            A flag indicating whether this stream is used to generate key initialization information
-            that will be used to identify simulants in the Common Random Number framework. These streams
-            cannot be copied and should only be used to generate the state table columns specified
-            in ``builder.configuration.randomness.key_columns``.
+        decision_point
+            A unique identifier for a stream of random numbers.  Typically
+            represents a decision that needs to be made each time step like
+            'moves_left' or 'gets_disease'.
+        for_initialization
+            A flag indicating whether this stream is used to generate key
+            initialization information that will be used to identify simulants
+            in the Common Random Number framework. These streams cannot be
+            copied and should only be used to generate the state table columns
+            specified in ``builder.configuration.randomness.key_columns``.
 
         Returns
         -------
@@ -737,7 +742,7 @@ class RandomnessInterface:
 
         Parameters
         ----------
-        simulants :
+        simulants
             A section of the state table with new simulants and at least the columns specified
             in ``builder.configuration.randomness.key_columns``.  This function should be called
             as soon as the key columns are generated.
