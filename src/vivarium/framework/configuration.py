@@ -43,7 +43,14 @@ def validate_model_specification_file(file_path: str) -> str:
     if extension not in ['yaml', 'yml']:
         raise ConfigurationError(f'Model specification files must be in a yaml format. You provided {extension}')
     # Attempt to load
-    yaml.full_load(file_path)
+    with open(file_path) as f:
+        raw_spec = yaml.full_load(f)
+    top_keys = set(raw_spec.keys())
+    valid_keys = {'plugins', 'components', 'configuration'}
+    if not top_keys <= valid_keys:
+        raise ConfigurationError(f'Model specification contains additional top level '
+                                 f'keys {valid_keys.difference(top_keys)}.')
+
     return file_path
 
 
