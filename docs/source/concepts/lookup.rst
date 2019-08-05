@@ -46,16 +46,19 @@ value
 Along with data about these variables, A lookup table is instantiated with the
 corresponding column names which are used to query an internal population view
 when the table itself is called. This means the lookup table only needs to be
-called with a population index. It gathers the population information it needs
+called with a population index -- it gathers the population information it needs
 itself. It also means the data must be available in the
 :term:`population state table <State Table>` with the same column name.
 
 This is difficult to describe textually and may be easier understood with
 numbers. In the table below is an example of (unrealistic) data that could be
 used to create a lookup table for a quantity of interest about a population,
-in this case, Body Mass Index (BMI). When called, the lookup table will return
-values of BMI for the simulants defined by the population index. See the example
-below.
+in this case, Body Mass Index (BMI). We may find ourselves in a situation where
+we want to know the BMI of a simulant in order to make a treatment decision.
+If we construct a lookup table with these data, we can cleanly get the
+information we want and go on implementing our treatment. When called, the
+lookup table will return values of BMI for the simulants defined by the
+population index.
 
 ======  =========  =======  ======
 Key         Parameter       Value
@@ -76,12 +79,12 @@ Example Usage
 ~~~~~~~~~~~~~
 
 The following is an example of creating and calling a lookup table in an
-`interactive setting <_interactive_tutorial>`. The interface and process are the
-same when integrating a lookup table into a :term:`component <Component>`, which
-is primarily how they are used. Assuming you have a valid simulation object
-named `sim` and the data from the above table in a pandas dataframe named
-`data`, you can construct a lookup table in the following way, using the
-interface from the builder.
+`interactive setting <_interactive_tutorial>` using the data aabove. The
+interface and process are the same when integrating a lookup table into a
+:term:`component <Component>`, which is primarily how they are used. Assuming
+you have a valid simulation object named `sim` and the data from the above table
+in a pandas dataframe named `data`, you can construct a lookup table in the
+following way, using the interface from the builder.
 
 .. code-block:: python
 
@@ -98,7 +101,7 @@ interface from the builder.
       Name: BMI, dtype: float64
 
 .. note::
-    constructing a lookup table currently requires your data meet specific
+    Constructing a lookup table currently requires your data meet specific
     conditions. These are a consequence of the method the lookup table uses to
     arrive at the correct data. Specifically, your parameter columns must
     represent bins and they must overlap.
