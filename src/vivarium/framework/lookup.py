@@ -10,7 +10,7 @@ population index and returns data specific to the individuals represented by
 that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 """
 from numbers import Number
-from typing import Iterable, Union
+from typing import Iterable
 from datetime import datetime, timedelta
 from typing import Union, List, Tuple, Callable, TypeVar
 
@@ -261,10 +261,10 @@ class LookupTableInterface:
         self._lookup_table_manager = manager
 
     def build_table(self, data,
-                    key_columns: Iterable[str]=('sex',),
-                    parameter_columns: Iterable[Union[str, Iterable[str]]]=(['age', 'age_group_start', 'age_group_end'],
-                                                                            ['year', 'year_start', 'year_end']),
-                    value_columns: Iterable[str]=None) -> LookupTable:
+                    key_columns: Union[List[str], Tuple[str]]=('sex',),
+                    parameter_columns: Union[List[str], Tuple[str]]=(['age', 'age_group_start', 'age_group_end'],
+                                                                     ['year', 'year_start', 'year_end']),
+                    value_columns: Union[List[str], Tuple[str]]=None) -> LookupTable:
         """Construct a LookupTable from input data.
 
         If data is a ``pandas.DataFrame``, an interpolation function of the
