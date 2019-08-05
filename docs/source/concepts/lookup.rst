@@ -37,10 +37,9 @@ key
     A categorical variable, such as sex, that a quantity depends on.
 parameter
     A continuous variable, such as age, that a quantity depends on. This data
-    is frequetly partitioned into bins.
-    .. :TODO: Is this always assumed to be bins?
+    frequently represents bins for which values are defined.
 value
-    Values of the quantity of interest, which varies with the keys and
+    Known values of the quantity of interest, which vary with the keys and
     parameters.
 
 A lookup table is instantiated with column names corresponding to these
@@ -59,7 +58,7 @@ defined by the population index. See the example below.
 Example
 ~~~~~~~
 
-.. :TODO: Code snippet of instantiating and getting data from an interpolation table
+.. :TODO: code snippet of instantiating and getting data from an interpolation table
 
 Estimating Unknown Values
 -------------------------
