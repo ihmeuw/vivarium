@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from vivarium.framework.utilities import (from_yearly, to_yearly, rate_to_probability, probability_to_rate,
-                                          collapse_nested_dict, import_by_path)
+                                          collapse_nested_dict, import_by_path, handle_exceptions)
 
 
 def test_from_yearly():
@@ -74,3 +74,13 @@ def test_bad_import_by_path():
         import_by_path('junk.garbage.SillyClass')
     with pytest.raises(AttributeError):
         import_by_path('vivarium.framework.components.SillyClass')
+
+class CustomException(Exception): pass
+@pytest.mark.parametrize("test_input", [KeyboardInterrupt, RuntimeError, CustomException])
+def test_handle_exceptions(test_input):
+    def raise_me(ex):
+        raise ex
+
+    with pytest.raises(test_input):
+        func = handle_exceptions(raise_me(test_input), False)
+        func()

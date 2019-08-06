@@ -4,3 +4,4 @@ pyyaml
 scipy
 tables
 click
+loguru
