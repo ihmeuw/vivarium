@@ -50,7 +50,7 @@ fit into our cube.
     Decision points are an important concept here and worth talking about
     explicitly. Within a simulation and specifically within a single time step,
     decisions need to be made: does a machine lose power? does a person contract
-    a disease? does a robot move to the left etc. Each of these questions we
+    a disease? does a robot make a widget? etc. Each of these questions we
     consider a decision point and each should have a dedicated set (or
     :class:`RandomnessStream <vivarium.framework.randomness.RandomnessStream>`
     as we will discuss shortly) of random numbers to make the decision.
@@ -111,15 +111,15 @@ baseline) concerns increasing fertility?
 
 Here is where the **randomness index** we touched on earlier becomes key.
 
-Let's say sim A is baseline and sim B is counterfactual. Our intervention means
-that fertility rates are twice as high in sim B than sim A. We initialize both
-simulations to start with a population of 300 people. In sim A, let's say it
-takes us 2 years to get to 500 people - that is, John will be born two years
-after the beginning of the simulation. But in sim B, the 500th person born will
-be born after 1 year. If we say that entrance time identifies simulants, that
-person is not John. John is the simulant who enters the simulation two years
-after the beginning of the simulation. In the counterfactual, that's probably
-more like the 1000th person.
+Let's say simulation A is baseline and simulation B is counterfactual. Our
+intervention means that fertility rates are twice as high in simulation B than
+simulation A. We initialize both simulations to start with a population of 300
+people. In simulation A, let's say it takes us 2 years to get to 500 people -
+that is, John will be born two years after the beginning of the simulation. But
+in simulation B, the 500th person born will be born after 1 year. If we say that
+entrance time identifies simulants, that person is not John. John is the
+simulant who enters the simulation two years after the beginning of the
+simulation. In the counterfactual, that's probably more like the 1000th person.
 
 Let's see what this looks like. In the image below, the black line on the left
 is the simulation index (i.e., the state table index) in the intervention
@@ -127,7 +127,7 @@ simulation and the black line on the left is the simulation index in the
 baseline. The green line in the middle represents the **randomness index**. The
 horizontal lines (blue and red) represent the mapping from the simulation index
 to the **randomness index**. The horizontal blue lines are simulants created
-during the intialization of the simulation and we see that these can map
+during the initialization of the simulation and we see that these can map
 straight across.
 
 The red lines are simulations created during the running of the simulation and
