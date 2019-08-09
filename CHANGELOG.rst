@@ -1,3 +1,7 @@
+**0.8.23 - 08/09/19**
+
+ - Move handle_exceptions() up to vivarium to eliminate duplication
+
 **0.8.22 - 07/16/19**
 
  - Bugfix for lookup table input validation.
