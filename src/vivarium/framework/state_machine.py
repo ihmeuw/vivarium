@@ -442,7 +442,7 @@ class Machine:
             else:
                 dot.node(state.state_id)
             for transition in state.transition_set:
-                dot.edge(state.state_id, transition.output.state_id, transition.label())
+                dot.edge(state.state_id, transition.output_state.state_id, transition.name)
         return dot
 
     def _get_state_pops(self, index):
