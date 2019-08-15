@@ -46,12 +46,22 @@ class SimulationContext:
     def __init__(self, configuration, components, plugin_manager=None):
         plugin_manager = plugin_manager if plugin_manager else PluginManager()
 
-        self._setup = False
         self.configuration = configuration
+
+        self.lifecycle = plugin_manager.get_plugin('lifecycle')
+        self.lifecycle.add_phase('initialization', ['initialization'])
+        self.lifecycle.add_phase('setup', ['setup', 'post_setup', 'population_creation'])
+        self.lifecycle.add_phase(
+            'main_loop', ['time_step__prepare', 'time_step', 'time_step__cleanup', 'collect_metrics'], loop=True
+        )
+        self.lifecycle.add_phase('simulation_end', ['simulation_end'])
+        self.lifecycle.set_state('initialization')
+
+        # TODO: remove when lifecycle restrictions are implemented.
+        self._setup = False
+
         self.builder = Builder(configuration, plugin_manager)
-
         self.component_manager = plugin_manager.get_plugin('component_manager')
-
         self.clock = plugin_manager.get_plugin('clock')
         self.values = plugin_manager.get_plugin('value')
         self.events = plugin_manager.get_plugin('event')
@@ -61,42 +71,52 @@ class SimulationContext:
         for name, controller in plugin_manager.get_optional_controllers().items():
             setattr(self, name, controller)
 
-        # The order the managers are added is important.  It represents the order in which they
-        # will be set up.  The clock is required by several of the other managers.  The randomness
-        # manager requires the population manager.  The remaining managers need no ordering.
+        # The order the managers are added is important.  It represents the
+        # order in which they will be set up.  The clock is required by
+        # several of the other managers, including the lifecycle manager.  The
+        # lifecycle manager is also required by most manager. The randomness
+        # manager requires the population manager.  The remaining managers need
+        # no ordering.
         self.component_manager.add_managers(
-            [self.clock, self.population, self.randomness, self.values, self.events, self.tables])
+            [self.clock, self.lifecycle, self.population, self.randomness, self.values, self.events, self.tables])
         self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()))
         self.add_components(components + [Metrics()])
 
     def setup(self):
+        self.lifecycle.set_state('setup')
         self.component_manager.setup_components(self.builder, self.configuration)
         self.simulant_creator = self.builder.population.get_simulant_creator()
 
-        # The order here matters.
-        self.time_step_events = ['time_step__prepare', 'time_step', 'time_step__cleanup', 'collect_metrics']
+        self.time_step_events = self.lifecycle.get_states('main_loop')
         self.time_step_emitters = {k: self.builder.event.get_emitter(k) for k in self.time_step_events}
         self.end_emitter = self.builder.event.get_emitter('simulation_end')
-        self._setup = True
         self.configuration.freeze()
+
+        # TODO: Remove when lifecycle restrictions are implemented.
+        self._setup = True
+
+        self.lifecycle.set_state('post_setup')
         self.builder.event.get_emitter('post_setup')(None)
 
-    def step(self):
-        _log.debug(self.clock.time)
-        for event in self.time_step_events:
-            self.time_step_emitters[event](Event(self.population.get_population(True).index))
-        self.clock.step_forward()
-
     def initialize_simulants(self):
-        pop_params = self.configuration.population
+        self.lifecycle.set_state('population_creation')
 
+        pop_params = self.configuration.population
         # Fencepost the creation of the initial population.
         self.clock.step_backward()
         population_size = pop_params.population_size
         self.simulant_creator(population_size, population_configuration={'sim_state': 'setup'})
         self.clock.step_forward()
 
+    def step(self):
+        _log.debug(self.clock.time)
+        for event in self.time_step_events:
+            self.lifecycle.set_state(f'main_loop.{event}')
+            self.time_step_emitters[event](Event(self.population.get_population(True).index))
+        self.clock.step_forward()
+
     def finalize(self):
+        self.lifecycle.set_state('simulation_end.simulation_end')
         self.end_emitter(Event(self.population.get_population(True).index))
 
     def report(self):
@@ -124,6 +144,7 @@ class Builder:
         self.randomness = plugin_manager.get_plugin_interface('randomness')         # type: RandomnessInterface
         self.time = plugin_manager.get_plugin_interface('clock')                    # type: TimeInterface
         self.components = plugin_manager.get_plugin_interface('component_manager')  # type: ComponentInterface
+        self.lifecycle = plugin_manager.get_plugin_interface('lifecycle')
 
         for name, interface in plugin_manager.get_optional_interfaces().items():
             setattr(self, name, interface)

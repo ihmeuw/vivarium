@@ -41,15 +41,19 @@ DEFAULT_PLUGINS = {
         'required': {
             'component_manager': {
                 'controller': 'vivarium.framework.components.ComponentManager',
-                'builder_interface': 'vivarium.framework.components.ComponentInterface'
+                'builder_interface': 'vivarium.framework.components.ComponentInterface',
             },
             'clock': {
                 'controller': 'vivarium.framework.time.DateTimeClock',
-                'builder_interface': 'vivarium.framework.time.TimeInterface'
+                'builder_interface': 'vivarium.framework.time.TimeInterface',
             },
             'component_configuration_parser': {
                 'controller': 'vivarium.framework.components.ComponentConfigurationParser',
-                'builder_interface': None
+                'builder_interface': None,
+            },
+            'lifecycle': {
+                'controller': 'vivarium.framework.lifecycle.LifeCycleManager',
+                'builder_interface': 'vivarium.framework.lifecycle.LifeCycleInterface',
             },
         },
         'optional': {}

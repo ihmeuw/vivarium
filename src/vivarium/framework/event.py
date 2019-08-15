@@ -152,6 +152,10 @@ class EventManager:
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
 
+        builder.event.register_listener('post_setup', self.on_post_setup)
+        self.add_handlers = builder.lifecycle.add_handlers
+
+    def on_post_setup(self, event):
     def get_emitter(self, name: str) -> Callable:
         """Get an emitter function for the named event.
 
