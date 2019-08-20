@@ -51,6 +51,10 @@ DEFAULT_PLUGINS = {
                 'controller': 'vivarium.framework.components.ComponentConfigurationParser',
                 'builder_interface': None
             },
+            'data': {
+                'controller': 'vivarium.framework.artifact.ArtifactManager',
+                'builder_interface': 'vivarium.framework.artifact.ArtifactInterface'
+            }
         },
         'optional': {}
     }

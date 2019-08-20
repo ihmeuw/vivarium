@@ -95,7 +95,7 @@ class ArtifactManager:
         return "ArtifactManager()"
 
 
-class ArtifactManagerInterface:
+class ArtifactInterface:
     """The builder interface for accessing a data artifact."""
     def __init__(self, controller):
         self._controller = controller
