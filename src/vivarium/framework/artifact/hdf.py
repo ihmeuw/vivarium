@@ -141,13 +141,12 @@ def load(path: Union[str, Path], entity_key: str, filter_terms: Optional[List[st
     path = _get_valid_hdf_path(path)
     entity_key = _EntityKey(entity_key)
 
-    with tables.open_file(str(path), mode='r') as file:
+    with tables.open_file(str(path)) as file:
         node = file.get_node(entity_key.path)
         if isinstance(node, tables.earray.EArray):
             # This should be a json encoded document rather than a pandas dataframe
-            with filenode.open_node(node, 'r') as file_node:
+            with filenode.open_node(node) as file_node:
                 data = json.load(file_node)
-            loaded = True
         else:
             filter_terms = _get_valid_filter_terms(filter_terms, node.table.colnames)
             with pd.HDFStore(str(path), complevel=9, mode='r') as store:
@@ -198,7 +197,7 @@ def get_keys(path: str) -> List[str]:
         A list of key representations of the internal paths in the HDF.
     """
     path = _get_valid_hdf_path(path)
-    with tables.open_file(str(path), mode='r') as file:
+    with tables.open_file(str(path)) as file:
         keys = _get_keys(file.root)
     return keys
 

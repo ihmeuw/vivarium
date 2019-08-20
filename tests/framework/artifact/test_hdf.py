@@ -299,3 +299,42 @@ def _complicate_terms_to_parse(terms):
         term_2 = '(' + ' | '.join(terms[(n_terms//2+n_terms % 2):]) + ')'
         terms = [term_1, term_2] + terms
     return ['(' + t + ')' for t in terms]
+
+
+def test_EntityKey_init_failure():
+    bad_keys = ['hello', 'a.b.c.d', '', '.', '.coconut', 'a.', 'a..c']
+
+    for k in bad_keys:
+        with pytest.raises(ValueError):
+            hdf._EntityKey(k)
+
+
+def test_EntityKey_no_name():
+    type_ = 'population'
+    measure = 'structure'
+    key = hdf._EntityKey(f'{type_}.{measure}')
+
+    assert key.type == type_
+    assert key.name == ''
+    assert key.measure == measure
+    assert key.group_prefix == '/'
+    assert key.group_name == type_
+    assert key.group == f'/{type_}'
+    assert key.path == f'/{type_}/{measure}'
+    assert key.with_measure('age_groups') == hdf._EntityKey('population.age_groups')
+
+
+def test_EntityKey_with_name():
+    type_ = 'cause'
+    name = 'diarrheal_diseases'
+    measure = 'incidence'
+    key = hdf._EntityKey(f'{type_}.{name}.{measure}')
+
+    assert key.type == type_
+    assert key.name == name
+    assert key.measure == measure
+    assert key.group_prefix == f'/{type_}'
+    assert key.group_name == name
+    assert key.group == f'/{type_}/{name}'
+    assert key.path == f'/{type_}/{name}/{measure}'
+    assert key.with_measure('prevalence') == hdf._EntityKey(f'{type_}.{name}.prevalence')
