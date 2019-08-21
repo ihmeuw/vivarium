@@ -9,12 +9,11 @@ for handling complex data bound up in a data artifact.
 """
 import logging
 from pathlib import Path
-from typing import Union, Sequence
+from typing import Union, Sequence, Optional
 import re
 
 import pandas as pd
 from vivarium.config_tree import ConfigTree
-from vivarium.framework.engine import Builder
 from vivarium.framework.artifact.artifact import Artifact
 
 
@@ -36,13 +35,13 @@ class ArtifactManager:
     def name(self):
         return 'artifact_manager'
 
-    def setup(self, builder: Builder):
+    def setup(self, builder):
         """Performs this component's simulation setup."""
         # because not all columns are accessible via artifact filter terms, apply config filters separately
         self.config_filter_term = validate_filter_term(builder.configuration.input_data.artifact_filter_term)
         self.artifact = self._load_artifact(builder.configuration)
 
-    def _load_artifact(self, configuration: ConfigTree) -> Artifact:
+    def _load_artifact(self, configuration: ConfigTree) -> Optional[Artifact]:
         """Looks up the path to the artifact hdf file, builds a default filter,
         and generates the data artifact. Stores any configuration specified filter
         terms separately to be applied on loading, because not all columns are
@@ -57,6 +56,9 @@ class ArtifactManager:
         -------
             An interface to the data artifact.
         """
+        if not configuration.input_data.artifact_path:
+            return None
+
         artifact_path = parse_artifact_path_config(configuration)
         draw = configuration.input_data.input_draw_number
         location = configuration.input_data.location
