@@ -1,3 +1,8 @@
+**0.8.24 - 08/20/19**
+
+ - Bugfix to prevent component list from not including setup components during setup phase.
+ - Bugfix to dot diagram of state machine.
+
 **0.8.23 - 08/09/19**
 
  - Move handle_exceptions() up to vivarium to eliminate duplication
