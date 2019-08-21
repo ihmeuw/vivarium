@@ -64,6 +64,9 @@ class OrderedComponentSet:
         except TypeError:
             return False
 
+    def __getitem__(self, key):
+        return self.components[key]
+
     def pop(self) -> Any:
         component = self.components.pop(0)
         return component
@@ -290,8 +293,9 @@ def setup_components(builder, component_list: OrderedComponentSet, configuration
             configured.append(c)
 
     setup = []
-    while component_list:  # mutated at runtime by calls to setup
-        c = component_list.pop()
+    i = 0
+    while i < len(component_list):  # mutated at runtime by calls to setup
+        c = component_list[i]
         if c is None:
             raise ComponentConfigError('None in component list. This likely '
                                        'indicates a bug in a factory function')
@@ -305,7 +309,9 @@ def setup_components(builder, component_list: OrderedComponentSet, configuration
                 c.setup(builder)
             setup.append(c)
 
-    return OrderedComponentSet(*setup)
+        i += 1
+
+    return component_list
 
 
 def apply_component_default_configuration(configuration: ConfigTree, component: Any):
