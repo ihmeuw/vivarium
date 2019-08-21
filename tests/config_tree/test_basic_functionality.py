@@ -212,3 +212,11 @@ def test_update():
     non_yaml_file = test_dir + '/../test_data/bad_model_specifiaction.txt'
     with pytest.raises(ValueError):
         config.update(non_yaml_file)
+
+
+def test_freeze():
+    config = ConfigTree(data={'configuration': {'time': {'start': {'year': 2000}}}})
+    config.freeze()
+
+    with pytest.raises(TypeError):
+        config.update(data={'configuration': {'time': {'end': {'year': 2001}}}})
