@@ -220,3 +220,22 @@ def test_freeze():
 
     with pytest.raises(TypeError):
         config.update(data={'configuration': {'time': {'end': {'year': 2001}}}})
+
+LAYER_INNER = 'inner'
+LAYER_MIDDLE = 'middle'
+LAYER_OUTER = 'outer'
+
+DEFAULT_CFG_VALUE='value_a'
+def test_retrieval_behavior():
+    layer_list = [LAYER_INNER, LAYER_MIDDLE, LAYER_OUTER]
+    # update the ConfigTree layers in different order and verify that has no effect on
+    #  the values retrieved ("outer" is retrieved when no layer is specified regardless of
+    #  the initialization order
+    for scenario in [layer_list, reversed(layer_list)]:
+        cfg = ConfigTree(layers=layer_list)
+        for layer in scenario:
+            cfg.update({DEFAULT_CFG_VALUE: layer}, layer=layer)
+        assert cfg.get_from_layer(DEFAULT_CFG_VALUE) == LAYER_OUTER
+        assert cfg.get_from_layer(DEFAULT_CFG_VALUE, layer=LAYER_OUTER) == LAYER_OUTER
+        assert cfg.get_from_layer(DEFAULT_CFG_VALUE, layer=LAYER_MIDDLE) == LAYER_MIDDLE
+        assert cfg.get_from_layer(DEFAULT_CFG_VALUE, layer=LAYER_INNER) == LAYER_INNER

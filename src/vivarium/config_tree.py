@@ -192,7 +192,9 @@ class ConfigNode:
                                    for layer, value in self._values.items()]))
 
     def __str__(self):
-        return '{}'.format(self.get_value_with_source()[1])
+        last_override_layer = [layer for layer in self._layers if layer in self._values][-1]
+        value = self._values[last_override_layer][1]
+        return f'{last_override_layer}: {value}'
 
 
 class ConfigTree:
