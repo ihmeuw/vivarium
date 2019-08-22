@@ -119,7 +119,7 @@ class Artifact:
         if entity_key in self.keys:
             raise ArtifactException(f'{entity_key} already in artifact.')
         elif data is None:
-            pass
+            raise ArtifactException(f'Attempting to write to key {entity_key} with no data.')
         else:
             self._keys.append(entity_key)
             hdf.write(self._path, entity_key, data)
