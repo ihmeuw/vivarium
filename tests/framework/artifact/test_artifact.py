@@ -157,7 +157,8 @@ def test_artifact_write_no_data(hdf_mock):
 
     assert key not in a.keys
 
-    a.write(key, None)
+    with pytest.raises(ArtifactException):
+        a.write(key, None)
 
     assert key not in a.keys
     assert key not in a._cache

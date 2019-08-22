@@ -60,7 +60,7 @@ def test_SimulationContext_init_default(base_config, components):
     assert sim.builder.components._component_manager is sim.component_manager
 
     # Ordering matters.
-    managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables]
+    managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables, sim.data]
     assert sim.component_manager._managers == OrderedComponentSet(*managers)
     assert list(sim.component_manager._components)[:-1] == components
     assert isinstance(list(sim.component_manager._components)[-1], Metrics)
@@ -109,7 +109,7 @@ def test_SimulationContext_init_custom(base_config, components):
     assert sim.builder.beehive == beehive
 
     # Ordering matters.
-    managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables, beekeeper]
+    managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables, sim.data, beekeeper]
     assert sim.component_manager._managers == OrderedComponentSet(*managers)
     assert list(sim.component_manager._components)[:-1] == components
     assert isinstance(list(sim.component_manager._components)[-1], Metrics)

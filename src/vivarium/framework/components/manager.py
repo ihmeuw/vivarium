@@ -69,7 +69,7 @@ class OrderedComponentSet:
         return component
 
     def __repr__(self):
-        return "OrderedComponentSet()"
+        return f"OrderedComponentSet({[c.name for c in self.components]})"
 
 
 class ComponentManager:
