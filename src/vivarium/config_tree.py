@@ -192,7 +192,7 @@ class ConfigNode:
                                    for layer, value in self._values.items()]))
 
     def __str__(self):
-        return [f'{layer}: {value[1]}' for layer, value in self._values.items()][-1]
+        return '{}'.format(self.get_value_with_source()[1])
 
 
 class ConfigTree:
