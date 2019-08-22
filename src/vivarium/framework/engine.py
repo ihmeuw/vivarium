@@ -27,8 +27,9 @@ import pandas as pd
 
 from vivarium.exceptions import VivariumError
 from vivarium.framework.configuration import build_model_specification
+from .artifact import ArtifactInterface
 from .components import ComponentInterface
-from .event import Event, EventInterface
+from .event import EventInterface
 from .lookup import LookupTableInterface
 from .metrics import Metrics
 from .plugins import PluginManager
@@ -58,6 +59,7 @@ class SimulationContext:
         self.population = plugin_manager.get_plugin('population')
         self.tables = plugin_manager.get_plugin('lookup')
         self.randomness = plugin_manager.get_plugin('randomness')
+        self.data = plugin_manager.get_plugin('data')
         for name, controller in plugin_manager.get_optional_controllers().items():
             setattr(self, name, controller)
 
@@ -65,7 +67,7 @@ class SimulationContext:
         # will be set up.  The clock is required by several of the other managers.  The randomness
         # manager requires the population manager.  The remaining managers need no ordering.
         self.component_manager.add_managers(
-            [self.clock, self.population, self.randomness, self.values, self.events, self.tables])
+            [self.clock, self.population, self.randomness, self.values, self.events, self.tables, self.data])
         self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()))
         self.add_components(components + [Metrics()])
 
@@ -124,6 +126,7 @@ class Builder:
         self.randomness = plugin_manager.get_plugin_interface('randomness')         # type: RandomnessInterface
         self.time = plugin_manager.get_plugin_interface('clock')                    # type: TimeInterface
         self.components = plugin_manager.get_plugin_interface('component_manager')  # type: ComponentInterface
+        self.data = plugin_manager.get_plugin_interface('data')                     # type: ArtifactInterface
 
         for name, interface in plugin_manager.get_optional_interfaces().items():
             setattr(self, name, interface)
