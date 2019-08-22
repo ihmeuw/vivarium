@@ -208,8 +208,8 @@ def _to_tree(keys: List[str]) -> Dict[str, Dict[str, List[str]]]:
 
 
 class Keys:
-    """A convenient wrapper around the keyspace which makes easier for Artifact
-     to maintain its keyspace when EntityKey is added or removed.
+    """A convenient wrapper around the keyspace which makes it easier for 
+     Artifact to maintain its keyspace when an entity key is added or removed.
      With the artifact_path, Keys object is initialized when the Artifact is
      initialized """
 
@@ -236,7 +236,7 @@ class Keys:
         hdf.write(self._path, self.keyspace_node, self._keys)
 
     def to_list(self) -> List[str]:
-        """A list of all the EntityKeys in the associated artifact."""
+        """A list of all the entity keys in the associated artifact."""
 
         return self._keys
 
