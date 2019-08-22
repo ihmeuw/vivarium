@@ -57,14 +57,15 @@ Filter Terms
 The data stored in artifacts may be large, potentially on the order of millions
 of rows for a single dataset, and loading a full dataset requires time and
 memory, both of which may be limited. If you are only interested in certain
-subsets of the data, either rows or columns, you may want to read only the
-portion you need. This is the idea behind filter terms. Filter terms are built
-into an :class:`~vivarium.Artifact` on its creation and apply to all data
-loaded from that Artifact. You can think of filter terms as somewhat similar
-to the :func:`pandas.DataFrame.query` method, although the key difference is
-that filter terms apply to what data is actually read off disk. This means
-that they can reduce the time and memory required to load a single dataset
-from an Artifact.
+subsets of the data you may want to read only the portion you need. This is 
+the idea behind filter terms. 
+
+Filter terms are built into an :class:`~vivarium.Artifact` on its creation 
+and apply to all data loaded from that Artifact. You can think of filter 
+terms as somewhat similar to the :func:`pandas.DataFrame.query` method, 
+although the key difference is that filter terms apply to what data is 
+actually read off disk. This means that they can reduce the time and memory 
+required to load a single dataset from an Artifact.
 
 Filter terms should be specified as a list of strings, with each item in the
 list corresponding to a single filter.  This allows multiple filters to be
