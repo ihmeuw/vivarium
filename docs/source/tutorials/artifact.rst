@@ -181,9 +181,9 @@ to load a key not present in our Artifact, we will get an error:
 
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
-      File "/home/kate/code/vivarium/vivarium_public_health/src/vivarium_public_health/dataset_manager/artifact.py", line 75, in load
+      File "/home/kate/code/vivarium/vivarium/src/vivarium/framework/artifact/artifact.py", line 75, in load
         raise ArtifactException(f"{entity_key} should be in {self.path}.")
-    vivarium_public_health.dataset_manager.artifact.ArtifactException: a.fake.key should be in tests/dataset_manager/artifact.hdf.
+    vivarium.framework.artifact.ArtifactException: a.fake.key should be in tests/dataset_manager/artifact.hdf.
 
 Writing data
 ------------
@@ -218,13 +218,13 @@ wrote to. We get an error:
 
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
-      File "/home/kate/code/vivarium/vivarium_public_health/src/vivarium_public_health/dataset_manager/artifact.py", line 105, in write
+      File "/home/kate/code/vivarium/vivarium/src/vivarium/framework/artifact/artifact.py", line 105, in write
         raise ArtifactException(f'{entity_key} already in artifact.')
-    vivarium_public_health.dataset_manager.artifact.ArtifactException: locations.names already in artifact.
+    vivarium.framework.artifact.ArtifactException: locations.names already in artifact.
 
 If the key you want to write to is already in the artifact, you'll want to
 use the :func:`~vivarium.Artifact.replace` method instead of
-:func:`vivarium.artifact.Artifact.write`. This allows you to replace the data
+:func:`~vivarium.artifact.Artifact.write`. This allows you to replace the data
 in the artifact at the given key with the passed data.
 
 .. code-block:: python
