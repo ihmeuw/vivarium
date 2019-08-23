@@ -103,68 +103,68 @@ configuration by simply printing it.
 
 .. testoutput::
 
-    randomness:
-        key_columns:
-            model_override: ['entrance_time', 'age']
-        map_size:
-            component_configs: 1000000
-        random_seed:
-            component_configs: 0
-        additional_seed:
-            component_configs: None
-    time:
-        start:
-            year:
-                model_override: 2005
-            month:
-                model_override: 7
-            day:
-                model_override: 1
-        end:
-            year:
-                model_override: 2006
-            month:
-                model_override: 7
-            day:
-                model_override: 1
-        step_size:
-            model_override: 3
-    population:
-        population_size:
-            model_override: 10000
-        age_start:
-            model_override: 0
-        age_end:
-            model_override: 30
-    mortality:
-        mortality_rate:
-            model_override: 0.05
-        life_expectancy:
-            model_override: 80
-    diarrhea:
-        incidence:
-            model_override: 2.5
-        remission:
-            model_override: 42
-        excess_mortality:
-            model_override: 12
-    child_growth_failure:
-        proportion_exposed:
-            model_override: 0.5
-    effect_of_child_growth_failure_on_infected_with_diarrhea.incidence_rate:
-        relative_risk:
-            model_override: 5
-    effect_of_child_growth_failure_on_infected_with_diarrhea.excess_mortality_rate:
-        relative_risk:
-            model_override: 5
-    breastfeeding_promotion:
-        effect_size:
-            model_override: 0.5
-    interpolation:
-        order:
-            component_configs: 0
-        extrapolate:
-            component_configs: True
+   randomness:
+       key_columns:
+           model_override: ['entrance_time', 'age']
+       map_size:
+           component_configs: 1000000
+       random_seed:
+           component_configs: 0
+       additional_seed:
+           component_configs: None
+   time:
+       start:
+           year:
+               model_override: 2005
+           month:
+               model_override: 7
+           day:
+               model_override: 1
+       end:
+           year:
+               model_override: 2006
+           month:
+               model_override: 7
+           day:
+               model_override: 1
+       step_size:
+           model_override: 3
+   population:
+       population_size:
+           model_override: 10000
+       age_start:
+           model_override: 0
+       age_end:
+           model_override: 30
+   mortality:
+       mortality_rate:
+           model_override: 0.05
+       life_expectancy:
+           model_override: 80
+   diarrhea:
+       incidence:
+           model_override: 2.5
+       remission:
+           model_override: 42
+       excess_mortality:
+           model_override: 12
+   child_growth_failure:
+       proportion_exposed:
+           model_override: 0.5
+   effect_of_child_growth_failure_on_infected_with_diarrhea.incidence_rate:
+       relative_risk:
+           model_override: 5
+   effect_of_child_growth_failure_on_infected_with_diarrhea.excess_mortality_rate:
+       relative_risk:
+           model_override: 5
+   breastfeeding_promotion:
+       effect_size:
+           model_override: 0.5
+   interpolation:
+       order:
+           component_configs: 0
+       extrapolate:
+           component_configs: True
 
 
 What do we see here?  The configuration is *hierarchical*.  There are a set of
@@ -177,14 +177,14 @@ just those subsets if we like.
 
 .. testoutput::
 
-    key_columns:
-        model_override: ['entrance_time', 'age']
-    map_size:
-        component_configs: 1000000
-    random_seed:
-        component_configs: 0
-    additional_seed:
-        component_configs: None
+   key_columns:
+       model_override: ['entrance_time', 'age']
+   map_size:
+       component_configs: 1000000
+   random_seed:
+       component_configs: 0
+   additional_seed:
+       component_configs: None
 
 This subset of configuration data contains more keys.  All of the keys in
 our example here (key_columns, map_size, random_seed, and additional_seed)

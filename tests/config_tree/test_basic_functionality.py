@@ -221,6 +221,7 @@ def test_freeze():
     with pytest.raises(TypeError):
         config.update(data={'configuration': {'time': {'end': {'year': 2001}}}})
 
+
 LAYER_INNER = 'inner'
 LAYER_MIDDLE = 'middle'
 LAYER_OUTER = 'outer'
@@ -239,3 +240,34 @@ def test_retrieval_behavior():
         assert cfg.get_from_layer(DEFAULT_CFG_VALUE, layer=LAYER_OUTER) == LAYER_OUTER
         assert cfg.get_from_layer(DEFAULT_CFG_VALUE, layer=LAYER_MIDDLE) == LAYER_MIDDLE
         assert cfg.get_from_layer(DEFAULT_CFG_VALUE, layer=LAYER_INNER) == LAYER_INNER
+
+
+EXPECTED_REPR= \
+'''Key1:
+    override_2: value_ov_2
+        source: ov2_src
+    override_1: value_ov_1
+        source: ov1_src
+    base: value_base
+        source: base_src'''
+def test_repr_display():
+    # codifies the notion that repr() displays values from most to least overridden
+    #  regardless of initialization order
+    layers = ['base', 'override_1', 'override_2']
+    cfg = ConfigTree(layers=layers)
+
+    cfg.update({'Key1': 'value_ov_2'}, layer='override_2', source='ov2_src')
+    cfg.update({'Key1': 'value_ov_1'}, layer='override_1', source='ov1_src')
+    cfg.update({'Key1': 'value_base'}, layer='base', source='base_src')
+    assert repr(cfg) == EXPECTED_REPR
+
+    cfg = ConfigTree(layers=layers)
+    cfg.update({'Key1': 'value_base'}, layer='base', source='base_src')
+    cfg.update({'Key1': 'value_ov_1'}, layer='override_1', source='ov1_src')
+    cfg.update({'Key1': 'value_ov_2'}, layer='override_2', source='ov2_src')
+    assert repr(cfg) == EXPECTED_REPR
+
+
+
+
+

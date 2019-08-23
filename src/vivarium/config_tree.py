@@ -188,8 +188,11 @@ class ConfigNode:
             del self._values[layer]
 
     def __repr__(self):
-        return '\n'.join(reversed([f'{layer}: {value[1]}\n    source: {value[0]}'
-                                   for layer, value in self._values.items()]))
+        out = []
+        for layer in reversed(self._layers):
+            if layer in self._values:
+                out.append(f'{layer}: {self._values[layer][1]}\n    source: {self._values[layer][0]}')
+        return '\n'.join(out)
 
     def __str__(self):
         last_override_layer = [layer for layer in self._layers if layer in self._values][-1]
