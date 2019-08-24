@@ -17,7 +17,7 @@ setup everything it holds when the context itself is setup.
 import inspect
 from typing import Union, List, Tuple, Iterator, Dict, Any, Type
 
-from vivarium.config_tree import ConfigTree
+from vivarium.config_tree import ConfigTree, DuplicatedConfigurationError, ConfigurationError
 from vivarium.exceptions import VivariumError
 
 
@@ -334,49 +334,9 @@ def apply_component_default_configuration(configuration: ConfigTree, component: 
         source = '__main__'
     else:
         source = inspect.getfile(component.__class__)
-    check_duplicated_default_configuration(component.configuration_defaults, configuration, source)
-    configuration.update(component.configuration_defaults, layer='component_configs', source=source)
 
-
-def check_duplicated_default_configuration(component: Any, config: ConfigTree, source: str):
-    """Check that the keys present in a component's default configuration
-    ``component`` are not already present in the global configtree ``config``.
-
-    Parameters
-    ----------
-    component
-        A vivarium component.
-    config
-        A vivarium configuration object.
-    source
-        The file containing the code that describes the component. Only used
-        to generate a cogent error message.
-
-    Raises
-    -------
-    ComponentConfigError
-        A component's default configuration is already present in the config tree.
-
-    """
-    overlapped = set(component.keys()).intersection(config.keys())
-    if not overlapped:
-        pass
-
-    while overlapped:
-        key = overlapped.pop()
-
-        try:
-            sub_config = config.get_from_layer(key, layer='component_configs')
-            sub_component = component[key]
-
-            if isinstance(sub_component, dict) and isinstance(sub_config, ConfigTree):
-                check_duplicated_default_configuration(sub_component, sub_config, source)
-            elif isinstance(sub_component, dict) or isinstance(sub_config, ConfigTree):
-                raise ComponentConfigError(f'These two sources have different structure of configurations for {component}.'
-                                           f' Check {source} and {sub_config}')
-            else:
-                raise ComponentConfigError(f'Check these two {source} and {config._children[key].get_value_with_source()}'
-                                           f'Both try to set the default configurations for {component}/{key}')
-
-        except KeyError:
-            pass
+    try:
+        configuration.update(component.configuration_defaults, layer='component_configs', source=source)
+    except (DuplicatedConfigurationError, ConfigurationError):
+        # TODO: Replace will real error handling code.
+        raise ComponentConfigError

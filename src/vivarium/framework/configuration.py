@@ -8,8 +8,7 @@ representations of :term:`model specifications <Model Specification>` and
 :term:`configurations <Configuration>`.
 
 """
-
-import os.path
+from pathlib import Path
 
 import yaml
 
@@ -33,17 +32,17 @@ def build_model_specification(model_specification_file_path: str) -> ConfigTree:
     return model_specification
 
 
-def validate_model_specification_file(file_path: str) -> str:
+def validate_model_specification_file(file_path: str) -> Path:
     """Ensures the provided file is a yaml file"""
-    if not os.path.isfile(file_path):
+    file_path = Path(file_path)
+    if not file_path.exists():
         raise ConfigurationError('If you provide a model specification file, it must be a file. '
-                                 f'You provided {file_path}')
+                                 f'You provided {str(file_path)}')
 
-    extension = file_path.split('.')[-1]
-    if extension not in ['yaml', 'yml']:
-        raise ConfigurationError(f'Model specification files must be in a yaml format. You provided {extension}')
+    if file_path.suffix not in ['.yaml', '.yml']:
+        raise ConfigurationError(f'Model specification files must be in a yaml format. You provided {file_path.suffix}')
     # Attempt to load
-    with open(file_path) as f:
+    with file_path.open() as f:
         raw_spec = yaml.full_load(f)
     top_keys = set(raw_spec.keys())
     valid_keys = {'plugins', 'components', 'configuration'}
@@ -64,10 +63,11 @@ def _get_default_specification():
 
     model_specification = ConfigTree(layers=default_config_layers)
     model_specification.update(DEFAULT_PLUGINS, **default_metadata)
-    model_specification.update({'components': None})
+    model_specification.update({'components': {},
+                                'configuration': {}})
 
-    user_config_path = os.path.expanduser('~/vivarium.yaml')
-    if os.path.exists(user_config_path):
+    user_config_path = Path('~/vivarium.yaml').expanduser()
+    if user_config_path.exists():
         model_specification.configuration.update(user_config_path, layer='component_configs')
 
     return model_specification

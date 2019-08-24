@@ -139,8 +139,8 @@ def run_simulation(model_specification_file, results_directory):
     results_writer = get_results_writer(results_directory, model_specification_file)
 
     model_specification = build_model_specification(model_specification_file)
-    model_specification.configuration.output_data.update(
-        {'results_directory': results_writer.results_root}, layer='override', source='command_line')
+    model_specification.configuration.update({'output_data': {'results_directory': results_writer.results_root}},
+                                             layer='override', source='command_line')
 
     simulation = setup_simulation(model_specification)
     metrics, final_state = run(simulation)

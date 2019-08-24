@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 import pytest
 
@@ -30,7 +30,7 @@ def test_apply_component_default_configuration():
     apply_component_default_configuration(config, us)
     assert config.unladen_swallow.metadata('airspeed_velocity') == [
         {'layer': 'component_configs', 'value': 11,
-         'source': os.path.realpath(__file__), 'default': False}
+         'source': str(Path(__file__).resolve())}
     ]
 
     us = UnladenSwallow()
@@ -39,7 +39,7 @@ def test_apply_component_default_configuration():
     assert 'unladen_swallow' not in config
     apply_component_default_configuration(config, us)
     assert config.unladen_swallow.metadata('airspeed_velocity') == [
-        {'layer': 'component_configs', 'value': 11, 'source': '__main__', 'default': False}
+        {'layer': 'component_configs', 'value': 11, 'source': '__main__'}
     ]
 
 

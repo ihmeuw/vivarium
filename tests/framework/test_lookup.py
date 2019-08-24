@@ -16,8 +16,8 @@ def test_interpolated_tables(base_config):
     one_d_age = ages.copy()
     del one_d_age['year']
     one_d_age = one_d_age.drop_duplicates()
-    base_config.population.update({'population_size': 10000,})
-    base_config.interpolation.update({'order': 1})  # the results we're checking later assume interp order 1
+    base_config.update({'population': {'population_size': 10000},
+                        'interpolation': {'order': 1}})  # the results we're checking later assume interp order 1
 
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
@@ -59,8 +59,8 @@ def test_interpolated_tables_without_uninterpolated_columns(base_config):
     years = build_table(lambda age, sex, year: year, year_start, year_end)
     del years['sex']
     years = years.drop_duplicates()
-    base_config.population.update({'population_size': 10000})
-    base_config.interpolation.update({'order': 1})  # the results we're checking later assume interp order 1
+    base_config.update({'population': {'population_size': 10000},
+                        'interpolation': {'order': 1}})  # the results we're checking later assume interp order 1
 
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
@@ -88,8 +88,8 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
     year_end = base_config.time.end.year
     years = build_table(lambda age, sex, year: year, year_start, year_end)
     input_years = years.year_start.unique()
-    base_config.population.update({'population_size': 10000})
-    base_config.interpolation.update({'order': 0})
+    base_config.update({'population': {'population_size': 10000},
+                        'interpolation': {'order': 0}})  # the results we're checking later assume interp order 1
 
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
@@ -107,7 +107,7 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
 def test_lookup_table_scalar_from_list(base_config):
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
-    table = (manager.build_table((1,2), key_columns=None, parameter_columns=None,
+    table = (manager.build_table((1, 2), key_columns=None, parameter_columns=None,
                                  value_columns=['a', 'b'])(simulation.get_population().index))
 
     assert isinstance(table, pd.DataFrame)

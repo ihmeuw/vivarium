@@ -12,39 +12,6 @@ from vivarium.testing_utilities import build_table
 from vivarium.framework.artifact import hdf
 
 
-@pytest.fixture
-def hdf_file_path(tmpdir):
-    """This file contains the following:
-    Object Tree:
-        / (RootGroup) ''
-        /cause (Group) ''
-        /population (Group) ''
-        /population/age_bins (Group) ''
-        /population/age_bins/table (Table(23,), shuffle, zlib(9)) ''
-        /population/structure (Group) ''
-        /population/structure/table (Table(1863,), shuffle, zlib(9)) ''
-        /population/theoretical_minimum_risk_life_expectancy (Group) ''
-        /population/theoretical_minimum_risk_life_expectancy/table (Table(10502,), shuffle, zlib(9)) ''
-        /population/structure/meta (Group) ''
-        /population/structure/meta/values_block_1 (Group) ''
-        /population/structure/meta/values_block_1/meta (Group) ''
-        /population/structure/meta/values_block_1/meta/table (Table(3,), shuffle, zlib(9)) ''
-        /cause/all_causes (Group) ''
-        /cause/all_causes/restrictions (EArray(166,)) ''
-    """
-    # Make temporary copy of file for test.
-    p = tmpdir.join('artifact.hdf')
-    with tables.open_file(str(Path(__file__).parent / 'artifact.hdf')) as file:
-        file.copy_file(str(p), overwrite=True)
-    return p
-
-
-@pytest.fixture
-def hdf_file(hdf_file_path):
-    with tables.open_file(str(hdf_file_path)) as file:
-        yield file
-
-
 _KEYS = ['population.age_bins',
          'population.structure',
          'population.theoretical_minimum_risk_life_expectancy',

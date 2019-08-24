@@ -63,8 +63,8 @@ def test_location_term():
         get_location_term("W'eird \"location\"")
 
 
-def test_parse_artifact_path_config(base_config):
-    artifact_path = Path(__file__).parent / 'artifact.hdf'
+def test_parse_artifact_path_config(base_config, test_data_dir):
+    artifact_path = test_data_dir / 'artifact.hdf'
     base_config.update({'input_data': {'artifact_path': str(artifact_path)}}, **metadata(str(Path('/'))))
 
     assert parse_artifact_path_config(base_config) == str(artifact_path)
@@ -72,16 +72,16 @@ def test_parse_artifact_path_config(base_config):
 
 def test_parse_artifact_path_relative_no_source(base_config):
     artifact_path = './artifact.hdf'
-    base_config.update({'input_data': {'artifact_path': str(artifact_path)}}, {})
+    base_config.update({'input_data': {'artifact_path': str(artifact_path)}})
 
     with pytest.raises(ValueError):
         parse_artifact_path_config(base_config)
 
 
-def test_parse_artifact_path_relative(base_config):
-    base_config.update({'input_data': {'artifact_path': './artifact.hdf'}}, **metadata(__file__))
-
-    assert parse_artifact_path_config(base_config) == str(Path(__file__).parent / 'artifact.hdf')
+def test_parse_artifact_path_relative(base_config, test_data_dir):
+    base_config.update({'input_data': {'artifact_path': '../../test_data/artifact.hdf'}},
+                       **metadata(__file__))
+    assert parse_artifact_path_config(base_config) == str(test_data_dir / 'artifact.hdf')
 
 
 def test_parse_artifact_path_config_fail(base_config):
