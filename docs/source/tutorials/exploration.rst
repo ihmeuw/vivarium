@@ -217,9 +217,11 @@ has already been setup.
 
 .. testcode::
 
+   from vivarium.config_tree import ConfigurationError
+
    try:
        sim.configuration.randomness.update({'random_seed': 5})
-   except TypeError:
+   except ConfigurationError:
        print("Can't update configuration after setup")
 
 .. testoutput::

@@ -119,7 +119,7 @@ class ConfigNode:
         return result
 
     def freeze(self):
-        """Causes the :class:`ConfigNode`node to become read only.
+        """Causes the :class:`ConfigNode` node to become read only.
 
         This can be used to create a contract around when the configuration is
         modifiable.
@@ -473,6 +473,14 @@ class ConfigTree:
     def __getitem__(self, name):
         """Get a value from the outermost layer in which it appears."""
         return self.get_from_layer(name)
+
+    def __delattr__(self, name):
+        if name in self:
+            del self._children[name]
+
+    def __delitem__(self, name):
+        if name in self:
+            del self._children[name]
 
     def __contains__(self, name):
         """Test if a configuration key exists in any layer."""
