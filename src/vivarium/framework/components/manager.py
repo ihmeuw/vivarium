@@ -222,7 +222,7 @@ class ComponentManager:
         except ConfigurationError as e:
             new_name, new_file = component.name, self._get_file(component)
             raise ComponentConfigError(f'Component {new_name} in file {new_file} is attempting to '
-                                       f'alter the structure of the of the configuration at key {e.name}. '
+                                       f'alter the structure of the configuration at key {e.name}. '
                                        f'This happens if one component attempts to set a value at an interior '
                                        f'configuration key or if it attempts to turn an interior key into a '
                                        f'configuration value.')
