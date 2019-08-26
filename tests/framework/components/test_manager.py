@@ -3,15 +3,10 @@ from pathlib import Path
 import pytest
 
 from vivarium.framework.configuration import build_simulation_configuration
-from vivarium.framework.components.manager import (ComponentManager, ComponentConfigError, OrderedComponentSet,
-                                                   setup_components, apply_component_default_configuration)
+from vivarium.framework.components.manager import ComponentManager, ComponentConfigError, OrderedComponentSet
 
 from .mocks import MockComponentA, MockComponentB, NamelessComponent
 
-
-@pytest.fixture
-def apply_default_config_mock(mocker):
-    return mocker.patch('vivarium.framework.components.manager.apply_component_default_configuration')
 
 
 def test_apply_component_default_configuration():
@@ -321,3 +316,11 @@ def test_ComponentSet_bool_len():
 
     assert bool(component_list)
     assert len(component_list) == 2
+
+
+def test_ComponentSet_dunder_add():
+    l1 = OrderedComponentSet(*[MockComponentA(name=str(i))for i in range(5)])
+    l2 = OrderedComponentSet(*[MockComponentA(name=str(i)) for i in range(5, 10)])
+    combined = OrderedComponentSet(*[MockComponentA(name=str(i)) for i in range(10)])
+
+    assert l1 + l2 == combined

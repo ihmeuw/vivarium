@@ -11,15 +11,13 @@ class MockComponentB:
         self.name = name
         self.args = args
         self.builder_used_for_setup = None
+        self.sub_components = []
+        if len(self.args) > 1:
+            for arg in self.args:
+                self.sub_components.append(MockComponentB(arg, name=arg))
 
     def setup(self, builder):
         self.builder_used_for_setup = builder
-
-        if len(self.args) > 1:
-            children = []
-            for arg in self.args:
-                children.append(MockComponentB(arg, name=arg))
-            builder.components.add_components(children)
         builder.value.register_value_modifier('metrics', self.metrics)
 
     def metrics(self, _, metrics):

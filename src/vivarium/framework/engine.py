@@ -63,16 +63,18 @@ class SimulationContext:
         for name, controller in plugin_manager.get_optional_controllers().items():
             setattr(self, name, controller)
 
-        # The order the managers are added is important.  It represents the order in which they
-        # will be set up.  The clock is required by several of the other managers.  The randomness
-        # manager requires the population manager.  The remaining managers need no ordering.
-        self.component_manager.add_managers(
-            [self.clock, self.population, self.randomness, self.values, self.events, self.tables, self.data])
-        self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()))
-        self.add_components(components + [Metrics()])
+        # The order the managers are added is important.  It represents the
+        # order in which they will be set up.  The clock is required by
+        # several of the other managers.  The randomness manager requires the
+        # population manager.  The remaining managers need no ordering.
+        self.component_manager.add_managers([self.clock, self.population, self.randomness,
+                                             self.values, self.events, self.tables, self.data], self.configuration)
+        self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()),
+                                            self.configuration)
+        self.component_manager.add_components(components + [Metrics()], self.configuration)
 
     def setup(self):
-        self.component_manager.setup_components(self.builder, self.configuration)
+        self.component_manager.setup_components(self.builder)
         self.simulant_creator = self.builder.population.get_simulant_creator()
 
         # The order here matters.
@@ -107,7 +109,7 @@ class SimulationContext:
     def add_components(self, component_list):
         if self._setup:
             raise VivariumError('Components cannot be added to a simulation once it is setup.')
-        self.component_manager.add_components(component_list)
+        self.component_manager.add_components(component_list, self.configuration)
 
     def __repr__(self):
         return "SimulationContext()"
