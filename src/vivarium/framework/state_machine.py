@@ -160,6 +160,7 @@ class State:
         self.state_id = state_id
         self.transition_set = TransitionSet(self.name)
         self._model = None
+        self._sub_components = [self.transition_set]
 
     @property
     def name(self):
@@ -167,7 +168,7 @@ class State:
 
     @property
     def sub_components(self):
-        return [self.transition_set]
+        self._sub_components
 
     def setup(self, builder):
         pass
