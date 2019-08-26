@@ -52,6 +52,7 @@ class SimulationContext:
         self.builder = Builder(configuration, plugin_manager)
 
         self.component_manager = plugin_manager.get_plugin('component_manager')
+        self.component_manager.configuration = self.configuration
 
         self.clock = plugin_manager.get_plugin('clock')
         self.values = plugin_manager.get_plugin('value')
@@ -68,10 +69,9 @@ class SimulationContext:
         # several of the other managers.  The randomness manager requires the
         # population manager.  The remaining managers need no ordering.
         self.component_manager.add_managers([self.clock, self.population, self.randomness,
-                                             self.values, self.events, self.tables, self.data], self.configuration)
-        self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()),
-                                            self.configuration)
-        self.component_manager.add_components(components + [Metrics()], self.configuration)
+                                             self.values, self.events, self.tables, self.data])
+        self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()))
+        self.component_manager.add_components(components + [Metrics()])
 
     def setup(self):
         self.component_manager.setup_components(self.builder)
@@ -109,7 +109,7 @@ class SimulationContext:
     def add_components(self, component_list):
         if self._setup:
             raise VivariumError('Components cannot be added to a simulation once it is setup.')
-        self.component_manager.add_components(component_list, self.configuration)
+        self.component_manager.add_components(component_list)
 
     def __repr__(self):
         return "SimulationContext()"

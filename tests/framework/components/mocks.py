@@ -5,6 +5,9 @@ class MockComponentA:
         self.args = args
         self.builder_used_for_setup = None
 
+    def __eq__(self, other):
+        return type(self) == type(other) and self.name == other.name
+
 
 class MockComponentB:
     def __init__(self, *args, name='mock_component_b'):
@@ -26,6 +29,35 @@ class MockComponentB:
         else:
             metrics['test'] = 1
         return metrics
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.name == other.name
+
+
+class MockGenericComponent:
+
+    configuration_defaults = {
+        'component': {
+            'key1': 'val',
+            'key2': {
+                'subkey1': 'val',
+                'subkey2': 'val',
+            },
+            'key3': ['val', 'val', 'val']
+        }
+    }
+
+    def __init__(self, name):
+        self.name = name
+        self.configuration_defaults = {self.name: MockGenericComponent.configuration_defaults['component']}
+        self.builder_used_for_setup = None
+
+    def setup(self, builder):
+        self.builder_used_for_setup = builder
+        self.config = builder.configuration[self.name]
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.name == other.name
 
 
 class NamelessComponent:

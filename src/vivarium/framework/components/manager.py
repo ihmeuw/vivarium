@@ -16,10 +16,14 @@ setup everything it holds when the context itself is setup.
 
 """
 import inspect
+import typing
 from typing import Union, List, Tuple, Iterator, Dict, Any, Type
 
-from vivarium.config_tree import ConfigTree, DuplicatedConfigurationError, ConfigurationError
+from vivarium.config_tree import DuplicatedConfigurationError, ConfigurationError
 from vivarium.exceptions import VivariumError
+
+if typing.TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
 
 
 class ComponentConfigError(VivariumError):
@@ -49,6 +53,10 @@ class OrderedComponentSet:
         for c in components:
             self.add(c)
 
+    def pop(self) -> Any:
+        component = self.components.pop(0)
+        return component
+
     def __contains__(self, component: Any) -> bool:
         if not hasattr(component, "name"):
             raise ComponentConfigError(f"Component {component} has no name attribute")
@@ -63,18 +71,17 @@ class OrderedComponentSet:
     def __bool__(self) -> bool:
         return bool(self.components)
 
-    def __eq__(self, other) -> bool:
+    def __add__(self, other: 'OrderedComponentSet') -> 'OrderedComponentSet':
+        return OrderedComponentSet(*(self.components + other.components))
+
+    def __eq__(self, other: 'OrderedComponentSet') -> bool:
         try:
             return type(self) is type(other) and [c.name for c in self.components] == [c.name for c in other.components]
         except TypeError:
             return False
 
-    def __getitem__(self, key):
-        return self.components[key]
-
-    def pop(self) -> Any:
-        component = self.components.pop(0)
-        return component
+    def __getitem__(self, index: int) -> Any:
+        return self.components[index]
 
     def __repr__(self):
         return f"OrderedComponentSet({[c.name for c in self.components]})"
@@ -100,12 +107,14 @@ class ComponentManager:
     def __init__(self):
         self._managers = OrderedComponentSet()
         self._components = OrderedComponentSet()
+        self.configuration = None
 
     @property
     def name(self):
+        """The name of this component."""
         return "component_manager"
 
-    def add_managers(self, managers: Union[List[Any], Tuple[Any]], configuration: ConfigTree):
+    def add_managers(self, managers: Union[List[Any], Tuple[Any]]):
         """Registers new managers with the component manager.
 
         Managers are configured and setup before components.
@@ -116,11 +125,11 @@ class ComponentManager:
             Instantiated managers to register.
 
         """
-        for m in self.flatten(managers):
-            self.apply_configuration_defaults(configuration, m)
+        for m in self._flatten(managers):
+            self.apply_configuration_defaults(m)
             self._managers.add(m)
 
-    def add_components(self, components: Union[List[Any], Tuple[Any]], configuration: ConfigTree):
+    def add_components(self, components: Union[List[Any], Tuple[Any]]):
         """Register new components with the component manager.
 
         Components are configured and setup after managers.
@@ -131,8 +140,8 @@ class ComponentManager:
             Instantiated components to register.
 
         """
-        for c in self.flatten(components):
-            self.apply_configuration_defaults(configuration, c)
+        for c in self._flatten(components):
+            self.apply_configuration_defaults(c)
             self._components.add(c)
 
     def get_components_by_type(self, component_type: Union[type, Tuple[type]]) -> List[Any]:
@@ -197,19 +206,38 @@ class ComponentManager:
         self._setup_components(builder, self._managers)
         self._setup_components(builder, self._components)
 
-    def apply_configuration_defaults(self, configuration: ConfigTree, component: Any):
+    def apply_configuration_defaults(self, component: Any):
         if not hasattr(component, 'configuration_defaults'):
             return
         try:
-            configuration.update(component.configuration_defaults,
-                                 layer='component_configs', source=component.name)
+            self.configuration.update(component.configuration_defaults,
+                                      layer='component_configs', source=component.name)
         except DuplicatedConfigurationError as e:
-            raise ComponentConfigError
+            new_name, new_file = component.name, self._get_file(component)
+            old_name, old_file = e.source, self._get_file(self.get_component(e.source))
+
+            raise ComponentConfigError(f'Component {new_name} in file {new_file} is attempting to '
+                                       f'set the configuration value {e.name}, but it has already '
+                                       f'been set by {old_name} in file {old_file}.')
         except ConfigurationError as e:
-            raise ComponentConfigError
+            new_name, new_file = component.name, self._get_file(component)
+            raise ComponentConfigError(f'Component {new_name} in file {new_file} is attempting to '
+                                       f'alter the structure of the of the configuration at key {e.name}. '
+                                       f'This happens if one component attempts to set a value at an interior '
+                                       f'configuration key or if it attempts to turn an interior key into a '
+                                       f'configuration value.')
 
     @staticmethod
-    def flatten(components: List):
+    def _get_file(component):
+        if component.__module__ == '__main__':
+            # This is defined directly in a script or notebook so there's no
+            # file to attribute it to.
+            return '__main__'
+        else:
+            return inspect.getfile(component.__class__)
+
+    @staticmethod
+    def _flatten(components: List):
         out = []
         components = components[::-1]
         while components:
@@ -223,59 +251,13 @@ class ComponentManager:
         return out
 
     @staticmethod
-    def _check_duplicated_default_configuration(component: Any, config: ConfigTree, source: str):
-        """Check that the keys present in a component's default configuration
-        ``component`` are not already present in the global configtree ``config``.
-
-        Parameters
-        ----------
-        component
-            A vivarium component.
-        config
-            A vivarium configuration object.
-        source
-            The file containing the code that describes the component. Only used
-            to generate a cogent error message.
-
-        Raises
-        -------
-        ComponentConfigError
-            A component's default configuration is already present in the config tree.
-
-        """
-        overlapped = set(component.keys()).intersection(config.keys())
-        if not overlapped:
-            pass
-
-        while overlapped:
-            key = overlapped.pop()
-
-            try:
-                sub_config = config.get_from_layer(key, layer='component_configs')
-                sub_component = component[key]
-
-                if isinstance(sub_component, dict) and isinstance(sub_config, ConfigTree):
-                    ComponentManager._check_duplicated_default_configuration(sub_component, sub_config, source)
-                elif isinstance(sub_component, dict) or isinstance(sub_config, ConfigTree):
-                    raise ComponentConfigError(
-                        f'These two sources have different structure of configurations for {component}.'
-                        f' Check {source} and {sub_config}')
-                else:
-                    raise ComponentConfigError(
-                        f'Check these two {source} and {config._children[key].get_value_with_source()}'
-                        f'Both try to set the default configurations for {component}/{key}')
-
-            except KeyError:
-                pass
-
-    @staticmethod
-    def _setup_components(builder, components):
+    def _setup_components(builder: 'Builder', components: OrderedComponentSet):
         for c in components:
             if hasattr(c, 'setup'):
                 c.setup(builder)
 
     def __repr__(self):
-        return f"ComponentManager()"
+        return "ComponentManager()"
 
 
 class ComponentInterface:
