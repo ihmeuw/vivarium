@@ -54,12 +54,12 @@ def test_full_node_update(full_node):
 def test_node_update_no_args():
     n = ConfigNode(['base'])
     n.update('test_value', layer=None, source=None)
-    assert n._values['base'] == ('no source', 'test_value')
+    assert n._values['base'] == (None, 'test_value')
 
     n = ConfigNode(['layer_1', 'layer_2'])
     n.update('test_value', layer=None, source=None)
     assert 'layer_1' not in n._values
-    assert n._values['layer_2'] == ('no source', 'test_value')
+    assert n._values['layer_2'] == (None, 'test_value')
 
 
 def test_node_update_with_args():
@@ -125,10 +125,10 @@ def test_node_get_value_with_source_empty(empty_node):
 
 
 def test_node_get_value_with_source(full_node):
-    assert full_node._get_value_with_source(layer=None) == ('no source', f'test_value_{len(full_node._layers)}')
+    assert full_node._get_value_with_source(layer=None) == (None, f'test_value_{len(full_node._layers)}')
 
     for i, layer in enumerate(full_node._layers):
-        assert full_node._get_value_with_source(layer=layer) == ('no source', f'test_value_{i+1}')
+        assert full_node._get_value_with_source(layer=layer) == (None, f'test_value_{i+1}')
 
     assert not full_node.accessed
 

@@ -184,7 +184,6 @@ class ConfigNode:
             raise DuplicatedConfigurationError(f'Value has already been set at layer {layer}.',
                                                layer=layer, source=source, value=value)
         else:
-            source = source if source is not None else 'no source'
             self._values[layer] = (source, value)
 
     def _get_value_with_source(self, layer: Optional[str]) -> Tuple[str, Any]:
