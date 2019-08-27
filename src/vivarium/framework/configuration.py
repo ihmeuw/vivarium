@@ -12,15 +12,9 @@ from pathlib import Path
 
 import yaml
 
-from vivarium.exceptions import VivariumError
-from vivarium.config_tree import ConfigTree
+from vivarium.config_tree import ConfigTree, ConfigurationError
 
 from .plugins import DEFAULT_PLUGINS
-
-
-class ConfigurationError(VivariumError):
-    """Error raised when invalid configuration is received."""
-    pass
 
 
 def build_model_specification(model_specification_file_path: str) -> ConfigTree:
