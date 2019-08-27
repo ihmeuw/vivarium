@@ -55,6 +55,10 @@ DEFAULT_PLUGINS = {
                 'controller': 'vivarium.framework.lifecycle.LifeCycleManager',
                 'builder_interface': 'vivarium.framework.lifecycle.LifeCycleInterface',
             },
+            'data': {
+                'controller': 'vivarium.framework.artifact.ArtifactManager',
+                'builder_interface': 'vivarium.framework.artifact.ArtifactInterface'
+            }
         },
         'optional': {}
     }
@@ -69,8 +73,8 @@ class PluginConfigurationError(VivariumError):
 class PluginManager:
 
     def __init__(self, plugin_configuration=None):
-        self._plugin_configuration = ConfigTree(DEFAULT_PLUGINS['plugins'])
-        self._plugin_configuration.update(plugin_configuration)
+        self._plugin_configuration = ConfigTree(DEFAULT_PLUGINS['plugins'], layers=['base', 'override'])
+        self._plugin_configuration.update(plugin_configuration, source='initialization_args')
         self._plugins = {}
 
     def get_plugin(self, name):

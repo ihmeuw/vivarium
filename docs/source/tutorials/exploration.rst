@@ -165,6 +165,12 @@ configuration by simply printing it.
            component_configs: 0
        extrapolate:
            component_configs: True
+   input_data:
+       artifact_path:
+           component_configs: None
+       artifact_filter_term:
+           component_configs: None
+
 
 
 What do we see here?  The configuration is *hierarchical*.  There are a set of
@@ -211,9 +217,11 @@ has already been setup.
 
 .. testcode::
 
+   from vivarium.config_tree import ConfigurationError
+
    try:
        sim.configuration.randomness.update({'random_seed': 5})
-   except TypeError:
+   except ConfigurationError:
        print("Can't update configuration after setup")
 
 .. testoutput::

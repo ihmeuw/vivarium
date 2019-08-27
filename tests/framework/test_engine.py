@@ -1,6 +1,7 @@
 import pytest
 
 from vivarium.framework.engine import SimulationContext, Builder, setup_simulation, run, run_simulation
+from vivarium.framework.artifact import ArtifactManager, ArtifactInterface
 from vivarium.framework.event import EventManager, EventInterface
 from vivarium.framework.lookup import LookupTableManager, LookupTableInterface
 from vivarium.framework.components import OrderedComponentSet, ComponentManager, ComponentInterface
@@ -36,6 +37,7 @@ def test_SimulationContext_init_default(base_config, components):
     assert sim.configuration == base_config
     assert isinstance(sim.component_manager, ComponentManager)
     assert isinstance(sim.clock, DateTimeClock)
+    assert isinstance(sim.data, ArtifactManager)
     assert isinstance(sim.values, ValuesManager)
     assert isinstance(sim.events, EventManager)
     assert isinstance(sim.population, PopulationManager)
@@ -58,11 +60,18 @@ def test_SimulationContext_init_default(base_config, components):
     assert sim.builder.time._clock is sim.clock
     assert isinstance(sim.builder.components, ComponentInterface)
     assert sim.builder.components._component_manager is sim.component_manager
+    assert isinstance(sim.builder.data, ArtifactInterface)
+    assert sim.builder.data._manager is sim.data
 
     # Ordering matters.
-    managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables]
+    managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables, sim.data]
     assert sim.component_manager._managers == OrderedComponentSet(*managers)
-    assert list(sim.component_manager._components)[:-1] == components
+    unpacked_components = []
+    for c in components:
+        unpacked_components.append(c)
+        if hasattr(c, 'sub_components'):
+            unpacked_components.extend(c.sub_components)
+    assert list(sim.component_manager._components)[:-1] == unpacked_components
     assert isinstance(list(sim.component_manager._components)[-1], Metrics)
 
 
@@ -84,6 +93,7 @@ def test_SimulationContext_init_custom(base_config, components):
     assert sim.configuration == base_config
     assert isinstance(sim.component_manager, ComponentManager)
     assert isinstance(sim.clock, DateTimeClock)
+    assert isinstance(sim.data, ArtifactManager)
     assert isinstance(sim.values, ValuesManager)
     assert isinstance(sim.events, EventManager)
     assert isinstance(sim.population, PopulationManager)
@@ -106,12 +116,19 @@ def test_SimulationContext_init_custom(base_config, components):
     assert sim.builder.time._clock is sim.clock
     assert isinstance(sim.builder.components, ComponentInterface)
     assert sim.builder.components._component_manager is sim.component_manager
+    assert isinstance(sim.builder.data, ArtifactInterface)
+    assert sim.builder.data._manager is sim.data
     assert sim.builder.beehive == beehive
 
     # Ordering matters.
-    managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables, beekeeper]
+    managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables, sim.data, beekeeper]
     assert sim.component_manager._managers == OrderedComponentSet(*managers)
-    assert list(sim.component_manager._components)[:-1] == components
+    unpacked_components = []
+    for c in components:
+        unpacked_components.append(c)
+        if hasattr(c, 'sub_components'):
+            unpacked_components.extend(c.sub_components)
+    assert list(sim.component_manager._components)[:-1] == unpacked_components
     assert isinstance(list(sim.component_manager._components)[-1], Metrics)
 
 
@@ -121,12 +138,13 @@ def test_SimulationContext_setup_default(base_config, components):
     assert not listener.post_setup_called
     sim.setup()
 
-    def unpack(component):
-        if isinstance(component, MockComponentB) and len(component.args) > 1:
-            return [component] + [MockComponentB(arg) for arg in component.args]
-        return [component]
-    unpacked_components = [c for component in components for c in unpack(component)]
-    unpacked_components.insert(len(components), Metrics())
+    unpacked_components = []
+    for c in components:
+        unpacked_components.append(c)
+        if hasattr(c, 'sub_components'):
+            unpacked_components.extend(c.sub_components)
+    unpacked_components.append(Metrics())
+
     for a, b in zip(sim.component_manager._components, unpacked_components):
         assert type(a) == type(b)
         if hasattr(a, 'args'):

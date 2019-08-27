@@ -27,8 +27,9 @@ import pandas as pd
 
 from vivarium.exceptions import VivariumError
 from vivarium.framework.configuration import build_model_specification
+from .artifact import ArtifactInterface
 from .components import ComponentInterface
-from .event import Event, EventInterface
+from .event import EventInterface
 from .lookup import LookupTableInterface
 from .metrics import Metrics
 from .plugins import PluginManager
@@ -37,6 +38,7 @@ from .randomness import RandomnessInterface
 from .results_writer import get_results_writer
 from .values import ValuesInterface
 from .time import TimeInterface
+from .lifecycle import LifeCycleInterface
 
 _log = logging.getLogger(__name__)
 
@@ -56,6 +58,8 @@ class SimulationContext:
         )
         self.lifecycle.add_phase('simulation_end', ['simulation_end'])
         self.lifecycle.set_state('initialization')
+        self.component_manager = plugin_manager.get_plugin('component_manager')
+        self.component_manager.configuration = self.configuration
 
         # TODO: remove when lifecycle restrictions are implemented.
         self._setup = False
@@ -68,6 +72,7 @@ class SimulationContext:
         self.population = plugin_manager.get_plugin('population')
         self.tables = plugin_manager.get_plugin('lookup')
         self.randomness = plugin_manager.get_plugin('randomness')
+        self.data = plugin_manager.get_plugin('data')
         for name, controller in plugin_manager.get_optional_controllers().items():
             setattr(self, name, controller)
 
@@ -78,13 +83,15 @@ class SimulationContext:
         # manager requires the population manager.  The remaining managers need
         # no ordering.
         self.component_manager.add_managers(
-            [self.clock, self.lifecycle, self.population, self.randomness, self.values, self.events, self.tables])
+            [self.clock, self.lifecycle, self.population, self.randomness,
+             self.values, self.events, self.tables, self.data]
+        )
         self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()))
-        self.add_components(components + [Metrics()])
+        self.component_manager.add_components(components + [Metrics()])
 
     def setup(self):
         self.lifecycle.set_state('setup')
-        self.component_manager.setup_components(self.builder, self.configuration)
+        self.component_manager.setup_components(self.builder)
         self.simulant_creator = self.builder.population.get_simulant_creator()
 
         self.time_step_events = self.lifecycle.get_states('main_loop')
@@ -112,12 +119,12 @@ class SimulationContext:
         _log.debug(self.clock.time)
         for event in self.time_step_events:
             self.lifecycle.set_state(f'main_loop.{event}')
-            self.time_step_emitters[event](Event(self.population.get_population(True).index))
+            self.time_step_emitters[event](self.population.get_population(True).index)
         self.clock.step_forward()
 
     def finalize(self):
         self.lifecycle.set_state('simulation_end.simulation_end')
-        self.end_emitter(Event(self.population.get_population(True).index))
+        self.end_emitter(self.population.get_population(True).index)
 
     def report(self):
         return self.values.get_value('metrics')(self.population.get_population(True).index)
@@ -144,7 +151,8 @@ class Builder:
         self.randomness = plugin_manager.get_plugin_interface('randomness')         # type: RandomnessInterface
         self.time = plugin_manager.get_plugin_interface('clock')                    # type: TimeInterface
         self.components = plugin_manager.get_plugin_interface('component_manager')  # type: ComponentInterface
-        self.lifecycle = plugin_manager.get_plugin_interface('lifecycle')
+        self.lifecycle = plugin_manager.get_plugin_interface('lifecycle')           # type: LifeCycleInterface
+        self.data = plugin_manager.get_plugin_interface('data')                     # type: ArtifactInterface
 
         for name, interface in plugin_manager.get_optional_interfaces().items():
             setattr(self, name, interface)
@@ -157,8 +165,8 @@ def run_simulation(model_specification_file, results_directory):
     results_writer = get_results_writer(results_directory, model_specification_file)
 
     model_specification = build_model_specification(model_specification_file)
-    model_specification.configuration.output_data.update(
-        {'results_directory': results_writer.results_root}, layer='override', source='command_line')
+    model_specification.configuration.update({'output_data': {'results_directory': results_writer.results_root}},
+                                             layer='override', source='command_line')
 
     simulation = setup_simulation(model_specification)
     metrics, final_state = run(simulation)

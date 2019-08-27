@@ -12,9 +12,7 @@ Python package where you'll build your model components.
 
 .. toctree::
    :maxdepth: 2
+   :glob:
 
-   getting_started
-   boids
-   disease_model
-   running_a_simulation/index
-   exploration
+   *
+   */index
