@@ -1,4 +1,3 @@
-import os
 import textwrap
 
 import pytest
@@ -116,20 +115,20 @@ def test_node_duplicate_update():
 
 def test_node_get_value_with_source_empty(empty_node):
     with pytest.raises(ConfigurationKeyError):
-        empty_node.get_value_with_source(layer=None)
+        empty_node._get_value_with_source(layer=None)
 
     for layer in empty_node._layers:
         with pytest.raises(ConfigurationKeyError):
-            empty_node.get_value_with_source(layer=layer)
+            empty_node._get_value_with_source(layer=layer)
 
     assert not empty_node.accessed
 
 
 def test_node_get_value_with_source(full_node):
-    assert full_node.get_value_with_source(layer=None) == ('no source', f'test_value_{len(full_node._layers)}')
+    assert full_node._get_value_with_source(layer=None) == ('no source', f'test_value_{len(full_node._layers)}')
 
     for i, layer in enumerate(full_node._layers):
-        assert full_node.get_value_with_source(layer=layer) == ('no source', f'test_value_{i+1}')
+        assert full_node._get_value_with_source(layer=layer) == ('no source', f'test_value_{i+1}')
 
     assert not full_node.accessed
 
