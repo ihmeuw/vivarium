@@ -29,7 +29,6 @@ simulations from the command line.
    :show-nested:
 
 """
-import os
 import shutil
 import cProfile
 import pstats
@@ -61,7 +60,7 @@ def simulate():
 @click.argument('model_specification', callback=verify_yaml,
                 type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.option('--results_directory', '-o', type=click.Path(resolve_path=True),
-              default=os.path.expanduser('~/vivarium_results/'),
+              default=Path('~/vivarium_results/').expanduser(),
               help='The directory to write results to. A folder will be created '
                    'in this directory with the same name as the configuration file.')
 @click.option('--verbose', '-v', is_flag=True, help='Report each time step.')
@@ -120,12 +119,12 @@ def test():
 @click.argument('model_specification', callback=verify_yaml,
                 type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @click.option('--results_directory', '-o', type=click.Path(resolve_path=True),
-              default=os.path.expanduser('~/vivarium_results/'),
+              default=Path('~/vivarium_results/').expanduser(),
               help='The directory to write results to. A folder will be created '
                    'in this directory with the same name as the configuration file.')
 @click.option('--process/--no-process', default=False,
-               help=('Automatically process the profile to human readable format  with pstats, '
-                     'sorted by cumulative runtime, and dump to a file'))
+              help=('Automatically process the profile to human readable format  with pstats, '
+                    'sorted by cumulative runtime, and dump to a file'))
 def profile(model_specification, results_directory, process):
     """Run a simulation based on the provided MODEL_SPECIFICATION and profile
     the run.
@@ -139,7 +138,7 @@ def profile(model_specification, results_directory, process):
 
     if process:
         out_txt_file = results_directory / (out_stats_file.name + '.txt')
-        with open(out_txt_file, 'w') as f:
+        with out_txt_file.open('w') as f:
             p = pstats.Stats(str(out_stats_file), stream=f)
             p.sort_stats('cumulative')
             p.print_stats()

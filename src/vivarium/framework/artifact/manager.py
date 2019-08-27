@@ -223,7 +223,7 @@ def parse_artifact_path_config(config: ConfigTree) -> str:
         path_config = config.input_data.metadata('artifact_path')[-1]
         if path_config['source'] is None:
             raise ValueError("Insufficient information provided to find artifact.")
-        path = Path(path_config['source']).parent.joinpath(path)
+        path = Path(path_config['source']).parent.joinpath(path).resolve()
 
     if not path.exists():
         raise FileNotFoundError(f"Cannot find artifact at path {path}")

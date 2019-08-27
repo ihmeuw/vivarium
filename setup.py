@@ -1,19 +1,19 @@
 #!/usr/bin/env python
-import os
+from pathlib import Path
 
 from setuptools import setup, find_packages
 
 
 if __name__ == "__main__":
 
-    base_dir = os.path.dirname(__file__)
-    src_dir = os.path.join(base_dir, "src")
+    base_dir = Path(__file__).parent
+    src_dir = base_dir / 'src'
 
     about = {}
-    with open(os.path.join(src_dir, "vivarium", "__about__.py")) as f:
+    with (src_dir / "vivarium" / "__about__.py").open() as f:
         exec(f.read(), about)
 
-    with open(os.path.join(base_dir, "README.rst")) as f:
+    with (base_dir / "README.rst").open() as f:
         long_description = f.read()
 
     install_requirements = [
