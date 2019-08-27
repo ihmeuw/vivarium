@@ -136,32 +136,6 @@ class ConfigNode:
         """
         self._frozen = True
 
-    def get_value_with_source(self, layer: Optional[str]) -> Tuple[str, Any]:
-        """Returns a (source, value) tuple at the specified layer.
-
-        If no layer is specified, the outermost (highest priority) layer
-        at which a value has been set will be used.
-
-        Parameters
-        ----------
-        layer
-            Name of the layer to retrieve the (source, value) pair from.
-
-        Raises
-        ------
-        KeyError
-            If no value has been set at any layer.
-
-        """
-        if layer and layer in self._values:
-            return self._values[layer]
-
-        for layer in reversed(self._layers):
-            if layer in self._values:
-                return self._values[layer]
-
-        raise ConfigurationKeyError(f'No value stored in this ConfigNode {self.name}.', self.name)
-
     def get_value(self, layer: Optional[str]) -> Any:
         """Returns the value at the specified layer.
 
@@ -179,7 +153,7 @@ class ConfigNode:
             If no value has been set at any layer.
 
         """
-        value = self.get_value_with_source(layer)[1]
+        value = self._get_value_with_source(layer)[1]
         self._accessed = True
         return value
 
@@ -219,8 +193,33 @@ class ConfigNode:
             raise DuplicatedConfigurationError(f'Value has already been set at layer {layer}.',
                                                name=self.name, layer=layer, source=source, value=value)
         else:
-            source = source if source is not None else 'no source'
             self._values[layer] = (source, value)
+
+    def _get_value_with_source(self, layer: Optional[str]) -> Tuple[str, Any]:
+        """Returns a (source, value) tuple at the specified layer.
+
+        If no layer is specified, the outermost (highest priority) layer
+        at which a value has been set will be used.
+
+        Parameters
+        ----------
+        layer
+            Name of the layer to retrieve the (source, value) pair from.
+
+        Raises
+        ------
+        KeyError
+            If no value has been set at any layer.
+
+        """
+        if layer and layer in self._values:
+            return self._values[layer]
+
+        for layer in reversed(self._layers):
+            if layer in self._values:
+                return self._values[layer]
+
+        raise ConfigurationKeyError(f'No value stored in this ConfigNode {self.name}.', self.name)
 
     def __bool__(self):
         return bool(self._values)
@@ -267,7 +266,9 @@ class ConfigTree:
                be interpreted the same as a string representation.
 
             All values will be set with 'initial_data' as the source and
-            will use the lowest priority level.
+            will use the lowest priority level. If values are set at higher
+            priorities they will be used when the :class:`ConfigTree` is
+            accessed.
         layers
             A list of layer names. The order in which layers defined
             determines their priority.  Later layers override the values from

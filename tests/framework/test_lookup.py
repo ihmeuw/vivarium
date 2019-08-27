@@ -88,8 +88,7 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
     year_end = base_config.time.end.year
     years = build_table(lambda age, sex, year: year, year_start, year_end)
     input_years = years.year_start.unique()
-    base_config.update({'population': {'population_size': 10000},
-                        'interpolation': {'order': 0}})  # the results we're checking later assume interp order 1
+    base_config.update({'population': {'population_size': 10000}})
 
     simulation = setup_simulation([TestPopulation()], input_config=base_config)
     manager = simulation.tables
