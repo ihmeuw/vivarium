@@ -256,6 +256,7 @@ class TransitionSet:
         self._state_name = state_name
         self.allow_null_transition = allow_null_transition
         self.transitions = []
+        self._sub_components = self.transitions
 
         self.extend(transitions)
 
@@ -265,7 +266,7 @@ class TransitionSet:
 
     @property
     def sub_components(self):
-        return self.transitions
+        return self._sub_components
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.

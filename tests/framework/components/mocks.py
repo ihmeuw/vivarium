@@ -11,13 +11,21 @@ class MockComponentA:
 
 class MockComponentB:
     def __init__(self, *args, name='mock_component_b'):
-        self.name = name
+        self._name = name
         self.args = args
         self.builder_used_for_setup = None
-        self.sub_components = []
+        self._sub_components = []
         if len(self.args) > 1:
             for arg in self.args:
-                self.sub_components.append(MockComponentB(arg, name=arg))
+                self._sub_components.append(MockComponentB(arg, name=arg))
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def sub_components(self):
+        return self._sub_components
 
     def setup(self, builder):
         self.builder_used_for_setup = builder

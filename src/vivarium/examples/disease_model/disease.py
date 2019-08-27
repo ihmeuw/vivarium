@@ -139,18 +139,26 @@ class SIS_DiseaseModel:
     }
 
     def __init__(self, disease_name):
-        self.name = disease_name
+        self._name = disease_name
         self.configuration_defaults = {disease_name: SIS_DiseaseModel.configuration_defaults['disease']}
 
-        susceptible_state = DiseaseState(f'susceptible_to_{self.name}', self.name)
-        infected_state = DiseaseState(f'infected_with_{self.name}', self.name, with_excess_mortality=True)
+        susceptible_state = DiseaseState(f'susceptible_to_{self._name}', self._name)
+        infected_state = DiseaseState(f'infected_with_{self._name}', self._name, with_excess_mortality=True)
 
         susceptible_state.allow_self_transitions()
         susceptible_state.add_transition(infected_state, measure='incidence')
         infected_state.allow_self_transitions()
         infected_state.add_transition(susceptible_state, measure='remission')
 
-        model = DiseaseModel(self.name,
+        model = DiseaseModel(self._name,
                              initial_state=susceptible_state,
                              states=[susceptible_state, infected_state])
-        self.sub_components = [model]
+        self._sub_components = [model]
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def sub_components(self):
+        return self._sub_components
