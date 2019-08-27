@@ -32,6 +32,7 @@ from .time import Time, Timedelta
 
 import pandas as pd
 
+
 class Event(NamedTuple):
     """An Event object represents the context of an event.
 
@@ -109,8 +110,8 @@ class _EventChannel:
         if not user_data:
             user_data = {}
         e = Event(index, user_data,
-                self.manager.clock() + self.manager.step_size(),
-                self.manager.step_size())
+                  self.manager.clock() + self.manager.step_size(),
+                  self.manager.step_size())
 
         for priority_bucket in self.listeners:
             for listener in priority_bucket:
@@ -156,7 +157,8 @@ class EventManager:
         self.add_handlers = builder.lifecycle.add_handlers
 
     def on_post_setup(self, event):
-        pass
+        for name, channel in self._event_types.items():
+            self.add_handlers(name, [h for level in channel.listeners for h in level])
 
     def get_emitter(self, name: str) -> Callable[[pd.Index, Optional[Dict]], Event]:
         """Get an emitter function for the named event.

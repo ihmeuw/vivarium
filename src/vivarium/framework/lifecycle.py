@@ -1,3 +1,4 @@
+import textwrap
 from typing import List, Union, Tuple
 
 from vivarium.exceptions import VivariumError
@@ -16,6 +17,7 @@ class LifeCycleState:
         self._next = None
         self._loop_next = None
         self._entrance_count = 0
+        self.handlers = []
 
     @property
     def name(self) -> str:
@@ -40,14 +42,20 @@ class LifeCycleState:
     def enter(self):
         self._entrance_count += 1
 
+    def add_handlers(self, handlers):
+        for h in handlers:
+            name = h.__name__
+            if hasattr(h, '__self__'):
+                obj = h.__self__
+                self.handlers.append(f'{obj.__class__.__name__}({obj.name}).{name}')
+            else:
+                self.handlers.append(f'anonymous function {name}')
+
     def __repr__(self):
         return f'LifeCycleState(name={self.name})'
 
     def __str__(self):
-        out = self.name
-        if self._loop_next:
-            out += '*'
-        return out
+        return '\n\t'.join([self.name] + self.handlers)
 
 
 class LifeCyclePhase:
@@ -61,10 +69,11 @@ class LifeCyclePhase:
         self._name = name
         self._next = None
         self._states = [LifeCycleState(states[0])]
+        self._loop = loop
         for s in states[1:]:
             self._states.append(LifeCycleState(s))
             self._states[-2].add_next(self._states[-1])
-        if loop:
+        if self._loop:
             self._states[-1].add_next(self._states[0], loop=True)
 
     @property
@@ -82,11 +91,18 @@ class LifeCyclePhase:
     def get_state(self, state_name: str) -> LifeCycleState:
         return [s for s in self._states if s.name == state_name].pop()
 
+    def __contains__(self, state_name):
+        return bool([s for s in self._states if s.name == state_name])
+
     def __repr__(self):
         return f'LifeCyclePhase(name={self.name}, states={[s.name for s in self.states]})'
 
     def __str__(self):
-        return self.name + '\n\t' + '\n\t'.join([str(state) for state in self.states])
+        out = self.name
+        if self._loop:
+            out += '*'
+        out += '\n' + textwrap.indent('\n'.join([str(state) for state in self.states]), '\t')
+        return out
 
 
 class LifeCycle:
@@ -102,16 +118,16 @@ class LifeCycle:
         self._phases[-1].add_next(new_phase)
         self._phases.append(new_phase)
 
-    def get_state(self, full_name):
-        phase_name, state_name = full_name.split('.')
-        phase = [p for p in self._phases if p.name == phase_name].pop()
+    def get_state(self, state_name):
+        phase = [p for p in self._phases if state_name in p].pop()
         return phase.get_state(state_name)
 
     def get_states(self, phase_name):
         phase = [p for p in self._phases if p.name == phase_name].pop()
         return [s.name for s in phase.states]
 
-    def __contains__(self, item):
+    def __contains__(self, state_name):
+        return bool([p for p in self._phases if state_name in p])
 
     def __repr__(self):
         return f'LifeCycle(phases={[p.name for p in self._phases]})'
@@ -124,7 +140,7 @@ class LifeCycleManager:
 
     def __init__(self, ):
         self.lifecycle = LifeCycle()
-        self.current_state = self.lifecycle.get_state('bootstrap.bootstrap')
+        self.current_state = self.lifecycle.get_state('bootstrap')
 
     @property
     def name(self):
@@ -144,6 +160,10 @@ class LifeCycleManager:
     def get_states(self, phase):
         return self.lifecycle.get_states(phase)
 
+    def add_handlers(self, state_name, handlers):
+        s = self.lifecycle.get_state(state_name)
+        s.add_handlers(handlers)
+
     def __repr__(self):
         return f'LifeCycleManager(state={self.current_state})'
 
@@ -157,7 +177,4 @@ class LifeCycleInterface:
         self._manager = manager
 
     def add_handlers(self, state, handlers):
-        pass
-
-
-
+        self._manager.add_handlers(state, handlers)

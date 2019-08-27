@@ -58,6 +58,7 @@ class SimulationContext:
         )
         self.lifecycle.add_phase('simulation_end', ['simulation_end'])
         self.lifecycle.set_state('initialization')
+
         self.component_manager = plugin_manager.get_plugin('component_manager')
         self.component_manager.configuration = self.configuration
 
@@ -65,6 +66,7 @@ class SimulationContext:
         self._setup = False
 
         self.builder = Builder(configuration, plugin_manager)
+
         self.component_manager = plugin_manager.get_plugin('component_manager')
         self.clock = plugin_manager.get_plugin('clock')
         self.values = plugin_manager.get_plugin('value')
@@ -73,6 +75,7 @@ class SimulationContext:
         self.tables = plugin_manager.get_plugin('lookup')
         self.randomness = plugin_manager.get_plugin('randomness')
         self.data = plugin_manager.get_plugin('data')
+
         for name, controller in plugin_manager.get_optional_controllers().items():
             setattr(self, name, controller)
 
@@ -118,12 +121,12 @@ class SimulationContext:
     def step(self):
         _log.debug(self.clock.time)
         for event in self.time_step_events:
-            self.lifecycle.set_state(f'main_loop.{event}')
+            self.lifecycle.set_state(event)
             self.time_step_emitters[event](self.population.get_population(True).index)
         self.clock.step_forward()
 
     def finalize(self):
-        self.lifecycle.set_state('simulation_end.simulation_end')
+        self.lifecycle.set_state('simulation_end')
         self.end_emitter(self.population.get_population(True).index)
 
     def report(self):
