@@ -5,21 +5,22 @@ class MockComponentA:
         self.args = args
         self.builder_used_for_setup = None
 
+    def __eq__(self, other):
+        return type(self) == type(other) and self.name == other.name
+
 
 class MockComponentB:
     def __init__(self, *args, name='mock_component_b'):
         self.name = name
         self.args = args
         self.builder_used_for_setup = None
+        self.sub_components = []
+        if len(self.args) > 1:
+            for arg in self.args:
+                self.sub_components.append(MockComponentB(arg, name=arg))
 
     def setup(self, builder):
         self.builder_used_for_setup = builder
-
-        if len(self.args) > 1:
-            children = []
-            for arg in self.args:
-                children.append(MockComponentB(arg, name=arg))
-            builder.components.add_components(children)
         builder.value.register_value_modifier('metrics', self.metrics)
 
     def metrics(self, _, metrics):
@@ -28,6 +29,35 @@ class MockComponentB:
         else:
             metrics['test'] = 1
         return metrics
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.name == other.name
+
+
+class MockGenericComponent:
+
+    configuration_defaults = {
+        'component': {
+            'key1': 'val',
+            'key2': {
+                'subkey1': 'val',
+                'subkey2': 'val',
+            },
+            'key3': ['val', 'val', 'val']
+        }
+    }
+
+    def __init__(self, name):
+        self.name = name
+        self.configuration_defaults = {self.name: MockGenericComponent.configuration_defaults['component']}
+        self.builder_used_for_setup = None
+
+    def setup(self, builder):
+        self.builder_used_for_setup = builder
+        self.config = builder.configuration[self.name]
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.name == other.name
 
 
 class NamelessComponent:

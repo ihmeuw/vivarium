@@ -99,8 +99,8 @@ class ArtifactManager:
 
 class ArtifactInterface:
     """The builder interface for accessing a data artifact."""
-    def __init__(self, controller):
-        self._controller = controller
+    def __init__(self, manager):
+        self._manager = manager
 
     def load(self, entity_key: str, **column_filters: Union[_Filter]) -> pd.DataFrame:
         """Loads data associated with a formatted entity key.
@@ -132,7 +132,7 @@ class ArtifactInterface:
         -------
             The data associated with the given key filtered down to the requested subset.
         """
-        return self._controller.load(entity_key, **column_filters)
+        return self._manager.load(entity_key, **column_filters)
 
     def __repr__(self):
         return "ArtifactManagerInterface()"

@@ -19,12 +19,12 @@ def layers_and_values(layers):
 
 @pytest.fixture
 def empty_node(layers):
-    return ConfigNode(layers)
+    return ConfigNode(layers, name='test_node')
 
 
 @pytest.fixture
 def full_node(layers_and_values):
-    n = ConfigNode(list(layers_and_values.keys()))
+    n = ConfigNode(list(layers_and_values.keys()), name='test_node')
     for layer, value in layers_and_values.items():
         n.update(value, layer, source=None)
     return n
@@ -52,41 +52,41 @@ def test_full_node_update(full_node):
 
 
 def test_node_update_no_args():
-    n = ConfigNode(['base'])
+    n = ConfigNode(['base'], name='test_node')
     n.update('test_value', layer=None, source=None)
     assert n._values['base'] == (None, 'test_value')
 
-    n = ConfigNode(['layer_1', 'layer_2'])
+    n = ConfigNode(['layer_1', 'layer_2'], name='test_node')
     n.update('test_value', layer=None, source=None)
     assert 'layer_1' not in n._values
     assert n._values['layer_2'] == (None, 'test_value')
 
 
 def test_node_update_with_args():
-    n = ConfigNode(['base'])
+    n = ConfigNode(['base'], name='test_node')
     n.update('test_value', layer=None, source='test')
     assert n._values['base'] == ('test', 'test_value')
 
-    n = ConfigNode(['base'])
+    n = ConfigNode(['base'], name='test_node')
     n.update('test_value', layer='base', source='test')
     assert n._values['base'] == ('test', 'test_value')
 
-    n = ConfigNode(['layer_1', 'layer_2'])
+    n = ConfigNode(['layer_1', 'layer_2'], name='test_node')
     n.update('test_value', layer=None, source='test')
     assert 'layer_1' not in n._values
     assert n._values['layer_2'] == ('test', 'test_value')
 
-    n = ConfigNode(['layer_1', 'layer_2'])
+    n = ConfigNode(['layer_1', 'layer_2'], name='test_node')
     n.update('test_value', layer='layer_1', source='test')
     assert 'layer_2' not in n._values
     assert n._values['layer_1'] == ('test', 'test_value')
 
-    n = ConfigNode(['layer_1', 'layer_2'])
+    n = ConfigNode(['layer_1', 'layer_2'], name='test_node')
     n.update('test_value', layer='layer_2', source='test')
     assert 'layer_1' not in n._values
     assert n._values['layer_2'] == ('test', 'test_value')
 
-    n = ConfigNode(['layer_1', 'layer_2'])
+    n = ConfigNode(['layer_1', 'layer_2'], name='test_node')
     n.update('test_value', layer='layer_1', source='test')
     n.update('test_value', layer='layer_2', source='test')
     assert n._values['layer_1'] == ('test', 'test_value')
@@ -94,20 +94,20 @@ def test_node_update_with_args():
 
 
 def test_node_frozen_update():
-    n = ConfigNode(['base'])
+    n = ConfigNode(['base'], name='test_node')
     n.freeze()
     with pytest.raises(ConfigurationError):
         n.update('test_val', layer=None, source=None)
 
 
 def test_node_bad_layer_update():
-    n = ConfigNode(['base'])
+    n = ConfigNode(['base'], name='test_node')
     with pytest.raises(ConfigurationKeyError):
         n.update('test_value', layer='layer_1', source=None)
 
 
 def test_node_duplicate_update():
-    n = ConfigNode(['base'])
+    n = ConfigNode(['base'], name='test_node')
     n.update('test_value', layer=None, source=None)
     with pytest.raises(DuplicatedConfigurationError):
         n.update('test_value', layer=None, source=None)
@@ -158,28 +158,28 @@ def test_node_get_value(full_node):
 
 
 def test_node_repr():
-    n = ConfigNode(['base'])
+    n = ConfigNode(['base'], name='test_node')
     n.update('test_value', layer='base', source='test')
     s = '''\
         base: test_value
             source: test'''
     assert repr(n) == textwrap.dedent(s)
 
-    n = ConfigNode(['base', 'layer_1'])
+    n = ConfigNode(['base', 'layer_1'], name='test_node')
     n.update('test_value', layer='base', source='test')
     s = '''\
         base: test_value
             source: test'''
     assert repr(n) == textwrap.dedent(s)
 
-    n = ConfigNode(['base', 'layer_1'])
+    n = ConfigNode(['base', 'layer_1'], name='test_node')
     n.update('test_value', layer=None, source='test')
     s = '''\
         layer_1: test_value
             source: test'''
     assert repr(n) == textwrap.dedent(s)
 
-    n = ConfigNode(['base', 'layer_1'])
+    n = ConfigNode(['base', 'layer_1'], name='test_node')
     n.update('test_value', layer='base', source='test')
     n.update('test_value', layer='layer_1', source='test')
     s = '''\
@@ -191,22 +191,22 @@ def test_node_repr():
 
 
 def test_node_str():
-    n = ConfigNode(['base'])
+    n = ConfigNode(['base'], name='test_node')
     n.update('test_value', layer='base', source='test')
     s = 'base: test_value'
     assert str(n) == s
 
-    n = ConfigNode(['base', 'layer_1'])
+    n = ConfigNode(['base', 'layer_1'], name='test_node')
     n.update('test_value', layer='base', source='test')
     s = 'base: test_value'
     assert str(n) == s
 
-    n = ConfigNode(['base', 'layer_1'])
+    n = ConfigNode(['base', 'layer_1'], name='test_node')
     n.update('test_value', layer=None, source='test')
     s = 'layer_1: test_value'
     assert str(n) == s
 
-    n = ConfigNode(['base', 'layer_1'])
+    n = ConfigNode(['base', 'layer_1'], name='test_node')
     n.update('test_value', layer='base', source='test')
     n.update('test_value', layer='layer_1', source='test')
     s = 'layer_1: test_value'
@@ -485,8 +485,3 @@ def test_repr_display():
     cfg.update({'Key1': 'value_ov_1'}, layer='override_1', source='ov1_src')
     cfg.update({'Key1': 'value_ov_2'}, layer='override_2', source='ov2_src')
     assert repr(cfg) == textwrap.dedent(expected_repr)
-
-
-
-
-
