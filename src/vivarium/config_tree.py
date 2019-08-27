@@ -257,7 +257,9 @@ class ConfigTree:
                be interpreted the same as a string representation.
 
             All values will be set with 'initial_data' as the source and
-            will use the lowest priority level.
+            will use the lowest priority level. If values are set at higher
+            priorities they will be used when the :class:`ConfigTree` is
+            accessed.
         layers
             A list of layer names. The order in which layers defined
             determines their priority.  Later layers override the values from
