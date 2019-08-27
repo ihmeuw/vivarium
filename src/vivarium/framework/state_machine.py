@@ -168,7 +168,7 @@ class State:
 
     @property
     def sub_components(self):
-        self._sub_components
+        return self._sub_components
 
     def setup(self, builder):
         pass
