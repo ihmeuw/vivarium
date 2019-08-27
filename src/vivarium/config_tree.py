@@ -40,8 +40,8 @@ from vivarium.exceptions import VivariumError
 class ConfigurationError(VivariumError):
     """Base class for configuration errors."""
 
-    def __init__(self, message: str, name: Optional[str]):
-        self.name = name
+    def __init__(self, message: str, value_name: Optional[str]):
+        self.value_name = value_name
         super().__init__(message)
 
 
@@ -345,7 +345,8 @@ class ConfigTree:
 
         """
         if name not in self:
-            raise ConfigurationKeyError(f'No value at name {self._name}.{name}.', f'{self._name}.{name}')
+            name = f'{self._name}.{name}' if self._name else name
+            raise ConfigurationKeyError(f'No value at name {name}.', name)
 
         child = self._children[name]
         if isinstance(child, ConfigNode):
@@ -399,7 +400,8 @@ class ConfigTree:
     def metadata(self, name: str) -> List[Dict[str, Any]]:
         if name in self:
             return self._children[name].metadata
-        raise ConfigurationKeyError(f'No configuration value with name {self._name}.{name}', f'{self._name}.{name}')
+        name = f'{self._name}.{name}' if self._name else name
+        raise ConfigurationKeyError(f'No configuration value with name {name}', name)
 
     @staticmethod
     def _coerce(data: Union[Dict, str, Path, 'ConfigTree'], source: Union[str, None]) -> Tuple[Dict, Union[str, None]]:
@@ -419,7 +421,7 @@ class ConfigTree:
             return data.to_dict(), source
         else:
             raise ConfigurationError(f"ConfigTree can only update from dictionaries, strings, paths and ConfigTrees. "
-                                     f"You passed in {type(data)}", name=None)
+                                     f"You passed in {type(data)}", value_name=None)
 
     def _set_with_metadata(self, name: str, value: Any, layer: Optional[str], source: Optional[str]):
         """Set a value in the named layer with the given source.
@@ -454,14 +456,16 @@ class ConfigTree:
 
         if isinstance(value, dict):
             if name not in self:
-                self._children[name] = ConfigTree(layers=list(self._layers), name=f'{self._name}.{name}')
+                self._children[name] = ConfigTree(layers=list(self._layers), name=name)
             if isinstance(self._children[name], ConfigNode):
-                raise ConfigurationError(f"Can't assign a dictionary as a value to a ConfigNode.", f'{self._name}.{name}')
+                name = f'{self._name}.{name}' if self._name else name
+                raise ConfigurationError(f"Can't assign a dictionary as a value to a ConfigNode.", name)
         else:
             if name not in self:
                 self._children[name] = ConfigNode(list(self._layers), name=self._name)
             if isinstance(self._children[name], ConfigTree):
-                raise ConfigurationError(f"Can't assign a value to a ConfigTree.", f'{self._name}.{name}')
+                name = f'{self._name}.{name}' if self._name else name
+                raise ConfigurationError(f"Can't assign a value to a ConfigTree.", name)
 
         self._children[name].update(value, layer, source)
 

@@ -31,11 +31,11 @@ def validate_model_specification_file(file_path: str) -> Path:
     file_path = Path(file_path)
     if not file_path.exists():
         raise ConfigurationError('If you provide a model specification file, it must be a file. '
-                                 f'You provided {str(file_path)}', name=None)
+                                 f'You provided {str(file_path)}', value_name=None)
 
     if file_path.suffix not in ['.yaml', '.yml']:
         raise ConfigurationError(f'Model specification files must be in a yaml format. You provided {file_path.suffix}',
-                                 name=None)
+                                 value_name=None)
     # Attempt to load
     with file_path.open() as f:
         raw_spec = yaml.full_load(f)
@@ -43,7 +43,7 @@ def validate_model_specification_file(file_path: str) -> Path:
     valid_keys = {'plugins', 'components', 'configuration'}
     if not top_keys <= valid_keys:
         raise ConfigurationError(f'Model specification contains additional top level '
-                                 f'keys {valid_keys.difference(top_keys)}.', name=None)
+                                 f'keys {valid_keys.difference(top_keys)}.', value_name=None)
 
     return file_path
 

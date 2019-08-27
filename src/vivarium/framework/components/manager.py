@@ -107,7 +107,7 @@ class ComponentManager:
     def __init__(self):
         self._managers = OrderedComponentSet()
         self._components = OrderedComponentSet()
-        self.configuration = None
+        self.configuration = None  # Set directly by the simulation context.
 
     @property
     def name(self):
@@ -203,8 +203,7 @@ class ComponentManager:
             Interface to several simulation tools.
 
         """
-        self._setup_components(builder, self._managers)
-        self._setup_components(builder, self._components)
+        self._setup_components(builder, self._managers + self._components)
 
     def apply_configuration_defaults(self, component: Any):
         if not hasattr(component, 'configuration_defaults'):
@@ -217,12 +216,12 @@ class ComponentManager:
             old_name, old_file = e.source, self._get_file(self.get_component(e.source))
 
             raise ComponentConfigError(f'Component {new_name} in file {new_file} is attempting to '
-                                       f'set the configuration value {e.name}, but it has already '
+                                       f'set the configuration value {e.value_name}, but it has already '
                                        f'been set by {old_name} in file {old_file}.')
         except ConfigurationError as e:
             new_name, new_file = component.name, self._get_file(component)
             raise ComponentConfigError(f'Component {new_name} in file {new_file} is attempting to '
-                                       f'alter the structure of the configuration at key {e.name}. '
+                                       f'alter the structure of the configuration at key {e.value_name}. '
                                        f'This happens if one component attempts to set a value at an interior '
                                        f'configuration key or if it attempts to turn an interior key into a '
                                        f'configuration value.')
