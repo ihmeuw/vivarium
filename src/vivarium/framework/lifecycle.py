@@ -128,10 +128,14 @@ class LifeCycle:
         self._phases.append(new_phase)
 
     def get_state(self, state_name):
+        if state_name not in self:
+            raise LifeCycleError(f'Attempting to look up non-existent state {state_name}')
         phase = [p for p in self._phases if state_name in p].pop()
         return phase.get_state(state_name)
 
     def get_states(self, phase_name):
+        if phase_name not in self._phase_names:
+            raise LifeCycleError(f'Attempting to look up states from non-existent phase {phase_name}')
         phase = [p for p in self._phases if p.name == phase_name].pop()
         return [s.name for s in phase.states]
 
@@ -148,10 +152,10 @@ class LifeCycle:
                                  f"to add {duplicates} but they already exist.")
 
     def __contains__(self, state_name):
-        return bool([p for p in self._phases if state_name in p])
+        return state_name in self._state_names
 
     def __repr__(self):
-        return f'LifeCycle(phases={[p.name for p in self._phases]})'
+        return f'LifeCycle(phases={self._phase_names})'
 
     def __str__(self):
         return '\n'.join([str(phase) for phase in self._phases])
