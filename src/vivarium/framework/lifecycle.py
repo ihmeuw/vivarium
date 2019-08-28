@@ -1,5 +1,5 @@
+from typing import List
 import textwrap
-from typing import List, Union, Tuple
 
 from vivarium.exceptions import VivariumError
 
@@ -108,14 +108,23 @@ class LifeCyclePhase:
 class LifeCycle:
 
     def __init__(self):
-        self._phases = [LifeCyclePhase('bootstrap', ['bootstrap'], loop=False)]
+        self._state_names = set()
+        self._phase_names = set()
+        self._phases = []
+        self.add_phase('bootstrap', ['bootstrap'], loop=False)
 
     def add_phase(self, phase_name: str, states: List[str], loop):
         """Add a new phase to the lifecycle.
 
         Phases must be added in order."""
+        self._validate(phase_name, states)
+
         new_phase = LifeCyclePhase(phase_name, states, loop)
-        self._phases[-1].add_next(new_phase)
+        if self._phases:
+            self._phases[-1].add_next(new_phase)
+
+        self._state_names.update(states)
+        self._phase_names.add(phase_name)
         self._phases.append(new_phase)
 
     def get_state(self, state_name):
@@ -125,6 +134,15 @@ class LifeCycle:
     def get_states(self, phase_name):
         phase = [p for p in self._phases if p.name == phase_name].pop()
         return [s.name for s in phase.states]
+
+    def _validate(self, phase_name: str, states: List[str]):
+        if phase_name in self._phase_names:
+            raise LifeCycleError(f"Lifecycle phase names must be unique. You're attempting "
+                                 f"to add {phase_name} but it already exists.")
+        duplicates = self._state_names.intersection(states)
+        if duplicates:
+            raise LifeCycleError(f"Lifecycle state names must be unique.  You're attempting "
+                                 f"to add {duplicates} but they already exist.")
 
     def __contains__(self, state_name):
         return bool([p for p in self._phases if state_name in p])
