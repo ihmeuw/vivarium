@@ -82,7 +82,7 @@ class SimulationContext:
         # The order the managers are added is important.  It represents the
         # order in which they will be set up.  The clock is required by
         # several of the other managers, including the lifecycle manager.  The
-        # lifecycle manager is also required by most manager. The randomness
+        # lifecycle manager is also required by most managers. The randomness
         # manager requires the population manager.  The remaining managers need
         # no ordering.
         self.component_manager.add_managers(
