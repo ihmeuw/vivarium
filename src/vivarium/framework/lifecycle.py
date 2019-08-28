@@ -139,6 +139,9 @@ class LifeCycle:
         if phase_name in self._phase_names:
             raise LifeCycleError(f"Lifecycle phase names must be unique. You're attempting "
                                  f"to add {phase_name} but it already exists.")
+        if len(states) != len(set(states)):
+            raise LifeCycleError(f'Attempting to create a life cycle phase with duplicate state names. '
+                                 f'States: {states}')
         duplicates = self._state_names.intersection(states)
         if duplicates:
             raise LifeCycleError(f"Lifecycle state names must be unique.  You're attempting "
