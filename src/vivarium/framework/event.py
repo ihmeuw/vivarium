@@ -32,6 +32,7 @@ from .time import Time, Timedelta
 
 import pandas as pd
 
+
 class Event(NamedTuple):
     """An Event object represents the context of an event.
 
@@ -41,15 +42,15 @@ class Event(NamedTuple):
 
     Attributes
     ----------
-    index 
+    index
         An index into the population table containing all simulants
         affected by this event.
-    user_data 
+    user_data
         Any additional data provided by the user about the event.
-    time  
+    time
         The simulation time at which this event will resolve. The current
         simulation size plus the current time step size.
-    step_size 
+    step_size
         The current step size at the time of the event.
     """
     index: pd.Index
@@ -99,18 +100,18 @@ class _EventChannel:
 
         Parameters
         ----------
-        index 
+        index
             An index into the population table containing all simulants
             affected by this event.
-        user_data 
+        user_data
             Any additional data provided by the user about the event.
 
         """
         if not user_data:
             user_data = {}
         e = Event(index, user_data,
-                self.manager.clock() + self.manager.step_size(),
-                self.manager.step_size())
+                  self.manager.clock() + self.manager.step_size(),
+                  self.manager.step_size())
 
         for priority_bucket in self.listeners:
             for listener in priority_bucket:
@@ -151,6 +152,13 @@ class EventManager:
         """
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
+
+        builder.event.register_listener('post_setup', self.on_post_setup)
+        self.add_handlers = builder.lifecycle.add_handlers
+
+    def on_post_setup(self, event):
+        for name, channel in self._event_types.items():
+            self.add_handlers(name, [h for level in channel.listeners for h in level])
 
     def get_emitter(self, name: str) -> Callable[[pd.Index, Optional[Dict]], Event]:
         """Get an emitter function for the named event.

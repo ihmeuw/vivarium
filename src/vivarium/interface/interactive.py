@@ -242,7 +242,7 @@ class InteractiveContext(SimulationContext):
             A dictionary mapping component names to components.
 
         """
-        return  self.component_manager.list_components()
+        return self.component_manager.list_components()
 
     @raise_if_not_setup(system_type='component')
     def get_component(self, name: str) -> Any:

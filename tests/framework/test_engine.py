@@ -64,7 +64,7 @@ def test_SimulationContext_init_default(base_config, components):
     assert sim.builder.data._manager is sim.data
 
     # Ordering matters.
-    managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables, sim.data]
+    managers = [sim.clock, sim.lifecycle, sim.population, sim.randomness, sim.values, sim.events, sim.tables, sim.data]
     assert sim.component_manager._managers == OrderedComponentSet(*managers)
     unpacked_components = []
     for c in components:
@@ -121,7 +121,7 @@ def test_SimulationContext_init_custom(base_config, components):
     assert sim.builder.beehive == beehive
 
     # Ordering matters.
-    managers = [sim.clock, sim.population, sim.randomness, sim.values, sim.events, sim.tables, sim.data, beekeeper]
+    managers = [sim.clock, sim.lifecycle, sim.population, sim.randomness, sim.values, sim.events, sim.tables, sim.data, beekeeper]
     assert sim.component_manager._managers == OrderedComponentSet(*managers)
     unpacked_components = []
     for c in components:
@@ -160,9 +160,21 @@ def test_SimulationContext_setup_default(base_config, components):
     assert listener.post_setup_called
 
 
+def test_SimulationContext_initialize_simulants(base_config, components):
+    sim = SimulationContext(base_config, components)
+    sim.setup()
+    pop_size = sim.configuration.population.population_size
+    current_time = sim.clock.time
+    assert sim.population.get_population(True).empty
+    sim.initialize_simulants()
+    assert len(sim.population.get_population(True)) == pop_size
+    assert sim.clock.time == current_time
+
+
 def test_SimulationContext_step(log, base_config, components):
     sim = SimulationContext(base_config, components)
     sim.setup()
+    sim.initialize_simulants()
 
     current_time = sim.clock.time
     step_size = sim.clock.step_size
@@ -185,21 +197,12 @@ def test_SimulationContext_step(log, base_config, components):
     assert sim.clock.time == current_time + step_size
 
 
-def test_SimulationContext_initialize_simulants(base_config, components):
-    sim = SimulationContext(base_config, components)
-    sim.setup()
-    pop_size = sim.configuration.population.population_size
-    current_time = sim.clock.time
-    assert sim.population.get_population(True).empty
-    sim.initialize_simulants()
-    assert len(sim.population.get_population(True)) == pop_size
-    assert sim.clock.time == current_time
-
-
 def test_SimulationContext_finalize(base_config, components):
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if 'listener' in c.args][0]
     sim.setup()
+    sim.initialize_simulants()
+    sim.step()
     assert not listener.simulation_end_called
     sim.finalize()
     assert listener.simulation_end_called
