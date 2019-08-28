@@ -155,7 +155,7 @@ class LifeCycleManager:
             new_state.enter()
             self.current_state = new_state
         else:
-            raise LifeCycleError(f'Invalid transition from {self.current_state} to {new_state} requested.')
+            raise LifeCycleError(f'Invalid transition from {self.current_state.name} to {new_state.name} requested.')
 
     def get_states(self, phase):
         return self.lifecycle.get_states(phase)
