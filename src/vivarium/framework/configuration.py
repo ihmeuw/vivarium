@@ -9,24 +9,31 @@ representations of :term:`model specifications <Model Specification>` and
 
 """
 from pathlib import Path
+from typing import Union, Dict
 
 import yaml
 
 from vivarium.config_tree import ConfigTree, ConfigurationError
-
-from .plugins import DEFAULT_PLUGINS
-
-
-def build_model_specification(model_specification_file_path: str) -> ConfigTree:
-    model_specification_file_path = validate_model_specification_file(model_specification_file_path)
-
-    model_specification = _get_default_specification()
-    model_specification.update(model_specification_file_path, layer='model_override')
-
-    return model_specification
+from vivarium.framework.plugins import DEFAULT_PLUGINS
 
 
-def validate_model_specification_file(file_path: str) -> Path:
+def build_model_specification(model_specification: Union[str, Path, ConfigTree] = None,
+                              component_configuration: Union[Dict, ConfigTree] = None,
+                              configuration: Union[Dict, ConfigTree] = None,
+                              plugin_configuration: Union[Dict, ConfigTree] = None) -> ConfigTree:
+    if isinstance(model_specification, (str, Path)):
+        validate_model_specification_file(model_specification)
+
+    output_spec = _get_default_specification()
+    output_spec.update(model_specification, layer='model_override', source=str(model_specification))
+    output_spec.components.update(component_configuration, layer='override', source='user_supplied_args')
+    output_spec.configuration.update(configuration, layer='override', source='user_supplied_args')
+    output_spec.plugins.update(plugin_configuration, layer='override', source='user_supplied_args')
+
+    return output_spec
+
+
+def validate_model_specification_file(file_path: Union[str, Path]) -> None:
     """Ensures the provided file is a yaml file"""
     file_path = Path(file_path)
     if not file_path.exists():
@@ -45,8 +52,6 @@ def validate_model_specification_file(file_path: str) -> Path:
         raise ConfigurationError(f'Model specification contains additional top level '
                                  f'keys {valid_keys.difference(top_keys)}.', value_name=None)
 
-    return file_path
-
 
 def build_simulation_configuration() -> ConfigTree:
     return _get_default_specification().configuration
@@ -63,6 +68,6 @@ def _get_default_specification():
 
     user_config_path = Path('~/vivarium.yaml').expanduser()
     if user_config_path.exists():
-        model_specification.configuration.update(user_config_path, layer='component_configs')
+        model_specification.configuration.update(user_config_path, layer='base')
 
     return model_specification

@@ -49,7 +49,7 @@ class LifeCycleState:
                 obj = h.__self__
                 self.handlers.append(f'{obj.__class__.__name__}({obj.name}).{name}')
             else:
-                self.handlers.append(f'anonymous function {name}')
+                self.handlers.append(f'Unbound function {name}')
 
     def __repr__(self):
         return f'LifeCycleState(name={self.name})'
