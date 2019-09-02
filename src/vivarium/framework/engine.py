@@ -103,13 +103,6 @@ class SimulationContext:
                       + [Metrics()])
         self.add_components(components)
 
-    def add_components(self, component_list):
-        """Adds new components to the simulation."""
-        # TODO: Set with life cycle restrictions.
-        if self._lifecycle.current_state.name != 'initialization':
-            raise LifeCycleError
-        self._component_manager.add_components(component_list)
-
     def setup(self):
         self._lifecycle.set_state('setup')
         self._component_manager.setup_components(self._builder)
@@ -160,6 +153,13 @@ class SimulationContext:
         metrics = self._values.get_value('metrics')(self._population.get_population(True).index)
         _log.debug(pformat(metrics))
         return metrics
+
+    def add_components(self, component_list):
+        """Adds new components to the simulation."""
+        # TODO: Set with life cycle restrictions.
+        if self._lifecycle.current_state.name != 'initialization':
+            raise LifeCycleError
+        self._component_manager.add_components(component_list)
 
     def get_population(self, untracked: bool = True):
         # TODO: Set with life cycle restrictions.
