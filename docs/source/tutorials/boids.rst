@@ -192,25 +192,22 @@ we can set up our simulation with the following code:
 
 .. code-block:: python
 
-   from vivarium.interface import setup_simulation
+   from vivarium import InteractiveContext
    from vivarium_examples.boids.population import Population
 
-   sim = setup_simulation([Population()])
+   sim = InteractiveContext(components[Population()])
 
    # Peek at the population table
    print(sim.get_population().head())
 
-:func:`~vivarium.interface.setup_simulation` returns an
-:class:`~vivarium.interface.interactive.InteractiveContext` object which
-has several convenience methods for running and inspecting a simulation.
 
 .. testcode::
    :hide:
 
-   from vivarium.interface import setup_simulation
+   from vivarium import InteractiveContext
    from vivarium.examples.boids import Population
 
-   sim = setup_simulation([Population()])
+   sim = InteractiveContext(components=[Population()])
 
 ::
 
@@ -245,11 +242,11 @@ Let's add this component to our model and look again at the population table.
 
 .. code-block:: python
 
-   from vivarium.interface import setup_simulation
+   from vivarium import InteractiveContext
    from vivarium_examples.boids.population import Population
    from vivarium_examples.boids.location import Location
 
-   sim = setup_simulation([Population(), Location()])
+   sim = InteractiveContext(components=[Population(), Location()])
 
    # Peek at the population table
    print(sim.get_population().head())
@@ -257,10 +254,10 @@ Let's add this component to our model and look again at the population table.
 .. testcode::
    :hide:
 
-   from vivarium.interface import setup_simulation
+   from vivarium import InteractiveContext
    from vivarium.examples.boids import Population, Location
 
-   sim = setup_simulation([Population(), Location()])
+   sim = InteractiveContext(components=[Population(), Location()])
 
 ::
 
@@ -296,21 +293,21 @@ We can then visualize our flock with
 
 .. code-block:: python
 
-   from vivarium.interface import setup_simulation
+   from vivarium import InteractiveContext
    from vivarium_examples.boids.population import Population
    from vivarium_examples.boids.location import Location
    from vivarium_examples.boids.visualization import plot_birds
 
-   sim = setup_simulation([Population(), Location()])
+   sim = InteractiveContext(components=[Population(), Location()])
 
    plot_birds(sim, plot_velocity=True)
 
 .. plot::
 
-   from vivarium.interface import setup_simulation
+   from vivarium import InteractiveContext
    from vivarium.examples.boids import Population, Location, plot_birds
 
-   sim = setup_simulation([Population(), Location()])
+   sim = InteractiveContext(components=[Population(), Location()])
    plot_birds(sim, plot_velocity=True)
 
 Calculating Neighbors
@@ -334,5 +331,3 @@ __ https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.ht
    - Describe rationale for neighbors component
    - Start building behavior components
    - Build animation component
-
-
