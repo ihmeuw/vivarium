@@ -93,10 +93,9 @@ def test_build_model_specification_failure(mocker, test_data_dir, test_spec):
 def test_build_model_specification(mocker, test_spec, test_user_config):
     expand_user_mock = mocker.patch('vivarium.framework.configuration.Path.expanduser')
     expand_user_mock.return_value = test_user_config
-
     loaded_model_spec = build_model_specification(test_spec)
 
-    test_data = DEFAULT_PLUGINS
+    test_data = DEFAULT_PLUGINS.copy()
 
     with test_spec.open() as f:
         model_data = yaml.full_load(f)

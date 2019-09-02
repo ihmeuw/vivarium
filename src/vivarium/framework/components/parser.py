@@ -55,7 +55,7 @@ class ComponentConfigurationParser:
     either take no arguments or take arguments specified as strings.
     """
 
-    def get_components(self, component_config: Union[ConfigTree, List]) -> List:
+    def get_components(self, component_config: ConfigTree) -> List:
         """Extracts component specifications from configuration information and
         returns initialized components.
 
@@ -155,6 +155,8 @@ def parse_component_config_to_list(component_config: Dict[str, Union[Dict, List]
         A flat list of strings, each string representing the full python import
         path to the component, the component name, and any arguments.
     """
+    if not component_config:
+        return []
 
     def _process_level(level, prefix):
         if not level:
