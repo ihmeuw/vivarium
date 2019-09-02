@@ -175,7 +175,7 @@ def test_flatten_with_nested_sub_components():
     assert out == 2*expected
 
 
-def test_setup_components(mocker):
+def test_setup_components():
     builder = mocker.Mock()
     mock_a = MockComponentA('test_a')
     mock_b = MockComponentB('test_b')
@@ -239,7 +239,7 @@ def test_apply_configuration_defaults_bad_structure():
         cm.apply_configuration_defaults(component2)
 
 
-def test_add_components(mocker):
+def test_add_components():
     config = build_simulation_configuration()
     cm = ComponentManager()
     cm.configuration = config
@@ -261,7 +261,7 @@ def test_add_components(mocker):
         [MockComponentA('Eric'), MockComponentB('half', 'a', 'bee')],
         [MockComponentA('Eric')]
 ))
-def test_ComponentManager_add_components(components, mocker):
+def test_ComponentManager_add_components(components):
     config = build_simulation_configuration()
     cm = ComponentManager()
     cm.configuration = config
@@ -279,7 +279,7 @@ def test_ComponentManager_add_components(components, mocker):
         [MockComponentA(), MockComponentA()],
         [MockComponentA(), MockComponentA(), MockComponentB('foo', 'bar')],
 ))
-def test_ComponentManager_add_components_duplicated(components, mocker):
+def test_ComponentManager_add_components_duplicated(components):
     config = build_simulation_configuration()
     cm = ComponentManager()
     cm.configuration = config
@@ -297,7 +297,7 @@ def test_ComponentManager_add_components_duplicated(components, mocker):
         [NamelessComponent()],
         [NamelessComponent(), MockComponentA()]
 ))
-def test_ComponentManager_add_components_unnamed(components, mocker):
+def test_ComponentManager_add_components_unnamed(components):
     config = build_simulation_configuration()
     cm = ComponentManager()
     cm.configuration = config
