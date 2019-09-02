@@ -141,15 +141,12 @@ class SimulationContext:
     def finalize(self):
         self._lifecycle.set_state('simulation_end')
         self.end_emitter(self._population.get_population(True).index)
-        self._lifecycle.set_state('report')
         unused_config_keys = self.configuration.unused_keys()
         if unused_config_keys:
             _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
 
     def report(self):
-        # TODO: Set with life cycle restrictions.
-        if self._lifecycle.current_state.name != 'report':
-            raise LifeCycleError
+        self._lifecycle.set_state('report')
         metrics = self._values.get_value('metrics')(self._population.get_population(True).index)
         _log.debug(pformat(metrics))
         return metrics
