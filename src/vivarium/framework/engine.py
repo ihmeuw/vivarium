@@ -46,7 +46,7 @@ class SimulationContext:
                  components: Union[List, Dict[str, str], ConfigTree] = None,
                  configuration: Union[Dict, ConfigTree] = None,
                  plugin_configuration: Union[Dict[str, str], ConfigTree] = None):
-        # Bootstrap part 1: Parse arguments
+        # Bootstrap phase: Parse arguments, make private managers
         component_configuration = components if isinstance(components, (dict, ConfigTree)) else None
         self._additional_components = components if isinstance(components, List) else []
         model_specification = build_model_specification(model_specification, component_configuration,
@@ -56,15 +56,16 @@ class SimulationContext:
         self._component_configuration = model_specification.components
         self.configuration = model_specification.configuration
 
-        # Bootstrap part 2: Manager creation and setup.
         self._plugin_manager = PluginManager(model_specification.plugins)
 
         # TODO: Setup logger here.
 
+
         self._builder = Builder(self.configuration, self._plugin_manager)
 
+        # This formally starts the initialization phase (this call makes the
+        # life-cycle manager).
         self._lifecycle = self._plugin_manager.get_plugin('lifecycle')
-        self._lifecycle.add_phase('initialization', ['initialization'])
         self._lifecycle.add_phase('setup', ['setup', 'post_setup', 'population_creation'])
         self._lifecycle.add_phase(
             'main_loop', ['time_step__prepare', 'time_step', 'time_step__cleanup', 'collect_metrics'], loop=True
@@ -93,20 +94,21 @@ class SimulationContext:
         # no ordering.
         managers = [self._clock, self._lifecycle, self._population, self._randomness, self._values, self._events,
                     self._tables, self._data] + list(self._plugin_manager.get_optional_controllers().values())
-        self._component_manager.add_managers(managers, self._builder)
+        self._component_manager.add_managers(managers)
 
-    def add_components(self, component_list):
-        """Adds new components to the simulation."""
-        self._component_manager.add_components(component_list)
-
-    def initialize(self):
-        self._lifecycle.set_state('initialization')
         component_config_parser = self._plugin_manager.get_plugin('component_configuration_parser')
         # Tack extra components onto the end of the list generated from the model specification.
         components = (component_config_parser.get_components(self._component_configuration)
                       + self._additional_components
                       + [Metrics()])
         self.add_components(components)
+
+    def add_components(self, component_list):
+        """Adds new components to the simulation."""
+        # TODO: Set with life cycle restrictions.
+        if self._lifecycle.current_state.name != 'initialization':
+            raise LifeCycleError
+        self._component_manager.add_components(component_list)
 
     def setup(self):
         self._lifecycle.set_state('setup')
@@ -197,7 +199,6 @@ def run_simulation(model_specification: Union[str, Path, ConfigTree] = None,
                    configuration: Union[Dict, ConfigTree] = None,
                    plugin_configuration: Union[Dict[str, str], ConfigTree] = None):
     simulation = SimulationContext(model_specification, components, configuration, plugin_configuration)
-    simulation.initialize()
     simulation.setup()
     simulation.initialize_simulants()
     simulation.run()

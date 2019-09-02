@@ -10,7 +10,6 @@ import pytest
 def get_context(components, configuration):
     simulation = SimulationContext(components=components,
                                    configuration=configuration)
-    simulation.initialize()
     simulation.setup()
     simulation.initialize_simulants()
     return simulation

@@ -42,7 +42,6 @@ def _even_population_fixture(column, values):
 def get_context(components, configuration=None):
     simulation = SimulationContext(components=components,
                                    configuration=configuration)
-    simulation.initialize()
     simulation.setup()
     simulation.initialize_simulants()
     return simulation

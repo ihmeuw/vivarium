@@ -122,7 +122,7 @@ class ComponentManager:
         # TODO: Add lifecycle restrictions.
         # self.lifecycle.add_constraint(self.add_components, allow_during='initialization')
 
-    def add_managers(self, managers: Union[List[Any], Tuple[Any]], builder: 'Builder'):
+    def add_managers(self, managers: Union[List[Any], Tuple[Any]]):
         """Registers new managers with the component manager.
 
         Managers are configured and setup before components.
@@ -131,14 +131,11 @@ class ComponentManager:
         ----------
         managers
             Instantiated managers to register.
-        builder
-            Toolbox for constructing and configuring simulation components.
 
         """
         for m in self._flatten(managers):
             self.apply_configuration_defaults(m)
             self._managers.add(m)
-        self._setup_components(builder, self._managers)
 
     def add_components(self, components: Union[List[Any], Tuple[Any]]):
         """Register new components with the component manager.
@@ -214,7 +211,7 @@ class ComponentManager:
             Interface to several simulation tools.
 
         """
-        self._setup_components(builder, self._components)
+        self._setup_components(builder, self._managers + self._components)
 
     def apply_configuration_defaults(self, component: Any):
         if not hasattr(component, 'configuration_defaults'):

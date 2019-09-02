@@ -6,7 +6,6 @@ from vivarium.framework.event import EventManager, EventInterface
 from vivarium.framework.lookup import LookupTableManager, LookupTableInterface
 from vivarium.framework.components import OrderedComponentSet, ComponentManager, ComponentInterface
 from vivarium.framework.metrics import Metrics
-from vivarium.framework.plugins import PluginManager
 from vivarium.framework.population import PopulationManager, PopulationInterface
 from vivarium.framework.randomness import RandomnessManager, RandomnessInterface
 from vivarium.framework.time import DateTimeClock, TimeInterface
@@ -66,8 +65,6 @@ def test_SimulationContext_init_default(components):
     managers = [sim._clock, sim._lifecycle, sim._population, sim._randomness,
                 sim._values, sim._events, sim._tables, sim._data]
     assert sim._component_manager._managers == OrderedComponentSet(*managers)
-    assert sim._component_manager._components == OrderedComponentSet()
-    sim.initialize()
     unpacked_components = []
     for c in components:
         unpacked_components.append(c)
@@ -81,7 +78,6 @@ def test_SimulationContext_setup_default(base_config, components):
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if 'listener' in c.args][0]
     assert not listener.post_setup_called
-    sim.initialize()
     sim.setup()
 
     unpacked_components = []
@@ -108,7 +104,6 @@ def test_SimulationContext_setup_default(base_config, components):
 
 def test_SimulationContext_initialize_simulants(base_config, components):
     sim = SimulationContext(base_config, components)
-    sim.initialize()
     sim.setup()
     pop_size = sim.configuration.population.population_size
     current_time = sim._clock.time
@@ -120,7 +115,6 @@ def test_SimulationContext_initialize_simulants(base_config, components):
 
 def test_SimulationContext_step(log, base_config, components):
     sim = SimulationContext(base_config, components)
-    sim.initialize()
     sim.setup()
     sim.initialize_simulants()
 
@@ -148,7 +142,6 @@ def test_SimulationContext_step(log, base_config, components):
 def test_SimulationContext_finalize(base_config, components):
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if 'listener' in c.args][0]
-    sim.initialize()
     sim.setup()
     sim.initialize_simulants()
     sim.step()
@@ -159,7 +152,6 @@ def test_SimulationContext_finalize(base_config, components):
 
 def test_SimulationContext_report(base_config, components):
     sim = SimulationContext(base_config, components)
-    sim.initialize()
     sim.setup()
     sim.initialize_simulants()
     sim.run()

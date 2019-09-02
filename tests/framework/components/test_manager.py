@@ -247,7 +247,7 @@ def test_add_components(mocker):
     assert not cm._managers
     managers = [MockGenericComponent(f'manager_{i}') for i in range(5)]
     components = [MockGenericComponent(f'component_{i}') for i in range(5)]
-    cm.add_managers(managers, mocker.MagicMock())
+    cm.add_managers(managers)
     cm.add_components(components)
     assert cm._managers == OrderedComponentSet(*managers)
     assert cm._components == OrderedComponentSet(*components)
@@ -265,7 +265,7 @@ def test_ComponentManager_add_components(components, mocker):
     config = build_simulation_configuration()
     cm = ComponentManager()
     cm.configuration = config
-    cm.add_managers(components, mocker.MagicMock())
+    cm.add_managers(components)
     assert cm._managers == OrderedComponentSet(*ComponentManager._flatten(components))
 
     config = build_simulation_configuration()
@@ -284,7 +284,7 @@ def test_ComponentManager_add_components_duplicated(components, mocker):
     cm = ComponentManager()
     cm.configuration = config
     with pytest.raises(ComponentConfigError, match='duplicate name'):
-        cm.add_managers(components, mocker.MagicMock())
+        cm.add_managers(components)
 
     config = build_simulation_configuration()
     cm = ComponentManager()
@@ -302,7 +302,7 @@ def test_ComponentManager_add_components_unnamed(components, mocker):
     cm = ComponentManager()
     cm.configuration = config
     with pytest.raises(ComponentConfigError, match='no name'):
-        cm.add_managers(components, mocker.MagicMock())
+        cm.add_managers(components)
 
     config = build_simulation_configuration()
     cm = ComponentManager()

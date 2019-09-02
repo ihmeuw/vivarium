@@ -111,7 +111,7 @@ class LifeCycle:
         self._state_names = set()
         self._phase_names = set()
         self._phases = []
-        self.add_phase('bootstrap', ['bootstrap'], loop=False)
+        self.add_phase('initialization', ['initialization'], loop=False)
 
     def add_phase(self, phase_name: str, states: List[str], loop):
         """Add a new phase to the lifecycle.
@@ -165,7 +165,7 @@ class LifeCycleManager:
 
     def __init__(self, ):
         self.lifecycle = LifeCycle()
-        self.current_state = self.lifecycle.get_state('bootstrap')
+        self.current_state = self.lifecycle.get_state('initialization')
 
     @property
     def name(self):
