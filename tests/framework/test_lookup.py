@@ -21,9 +21,9 @@ def test_interpolated_tables(base_config):
 
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
-    years = manager.build_table(years, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None)
-    ages = manager.build_table(ages, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None)
-    one_d_age = manager.build_table(one_d_age, key_columns=('sex',), parameter_columns=('age',), value_columns=None)
+    years = manager.build_table(years, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None).call
+    ages = manager.build_table(ages, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None).call
+    one_d_age = manager.build_table(one_d_age, key_columns=('sex',), parameter_columns=('age',), value_columns=None).call
 
     pop = simulation.get_population(untracked=True)
     result_years = years(pop.index)
@@ -64,7 +64,7 @@ def test_interpolated_tables_without_uninterpolated_columns(base_config):
 
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
-    years = manager.build_table(years, key_columns=(), parameter_columns=('year', 'age',), value_columns=None)
+    years = manager.build_table(years, key_columns=(), parameter_columns=('year', 'age',), value_columns=None).call
 
     result_years = years(simulation.get_population().index)
 
@@ -92,10 +92,10 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
 
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
-    years = manager.build_table(years, key_columns=('sex',),
-                                parameter_columns=(['age', 'age_group_start', 'age_group_end'],
-                                                   ['year', 'year_start', 'year_end'],),
-                                value_columns=None)
+    years = manager._build_table(years, key_columns=('sex',),
+                                 parameter_columns=(['age', 'age_group_start', 'age_group_end'],
+                                                    ['year', 'year_start', 'year_end'],),
+                                 value_columns=None).call
 
     for year in input_years:
         simulation._clock._time = pd.Timestamp(year, 1, 1)
@@ -106,8 +106,8 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
 def test_lookup_table_scalar_from_list(base_config):
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
-    table = (manager.build_table((1, 2), key_columns=None, parameter_columns=None,
-                                 value_columns=['a', 'b'])(simulation.get_population().index))
+    table = (manager._build_table((1, 2), key_columns=None, parameter_columns=None,
+                                  value_columns=['a', 'b']).call(simulation.get_population().index))
 
     assert isinstance(table, pd.DataFrame)
     assert table.columns.values.tolist() == ['a', 'b']
@@ -118,8 +118,8 @@ def test_lookup_table_scalar_from_list(base_config):
 def test_lookup_table_scalar_from_single_value(base_config):
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
-    table = (manager.build_table(1, key_columns=None, parameter_columns=None,
-                                 value_columns=['a'])(simulation.get_population().index))
+    table = (manager._build_table(1, key_columns=None, parameter_columns=None,
+                                  value_columns=['a']).call(simulation.get_population().index))
     assert isinstance(table, pd.Series)
     assert np.all(table == 1)
 
@@ -128,7 +128,7 @@ def test_invalid_data_type_build_table(base_config):
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     with pytest.raises(TypeError):
-        manager.build_table('break', key_columns=None, parameter_columns=None, value_columns=None)
+        manager._build_table('break', key_columns=None, parameter_columns=None, value_columns=None)
 
 
 def test_lookup_table_interpolated_return_types(base_config):
@@ -138,19 +138,19 @@ def test_lookup_table_interpolated_return_types(base_config):
 
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
-    table = (manager.build_table(data, key_columns=('sex',),
-                                 parameter_columns=[['age', 'age_group_start', 'age_group_end'],
-                                                    ['year', 'year_start', 'year_end']],
-                                 value_columns=None)(simulation.get_population().index))
+    table = (manager._build_table(data, key_columns=('sex',),
+                                  parameter_columns=[['age', 'age_group_start', 'age_group_end'],
+                                                     ['year', 'year_start', 'year_end']],
+                                  value_columns=None).call(simulation.get_population().index))
     # make sure a single value column is returned as a series
     assert isinstance(table, pd.Series)
 
     # now add a second value column to make sure the result is a df
     data['value2'] = data.value
-    table = (manager.build_table(data, key_columns=('sex',),
-                                 parameter_columns=[['age', 'age_group_start', 'age_group_end'],
-                                                    ['year', 'year_start', 'year_end']],
-                                 value_columns=None)(simulation.get_population().index))
+    table = (manager._build_table(data, key_columns=('sex',),
+                                  parameter_columns=[['age', 'age_group_start', 'age_group_end'],
+                                                     ['year', 'year_start', 'year_end']],
+                                  value_columns=None).call(simulation.get_population().index))
 
     assert isinstance(table, pd.DataFrame)
 

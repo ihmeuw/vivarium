@@ -165,10 +165,10 @@ class LookupTable:
         else:
             callable_parameter_columns = [p[0] for p in parameter_columns]
             view_columns = sorted((set(key_columns) | set(callable_parameter_columns)) - {'year'}) + ['tracked']
-            self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
+            self._table = InterpolatedTable(data, population_view.subview(view_columns), key_columns,
                                             parameter_columns, value_columns, interpolation_order, clock, extrapolate)
 
-    def __call__(self, index) -> Union[pd.DataFrame, pd.Series]:
+    def call(self, index) -> Union[pd.DataFrame, pd.Series]:
         """Get the interpolated or scalar table values for the given index.
 
         Parameters
@@ -239,13 +239,21 @@ class LookupTableManager:
         return "lookup_table_manager"
 
     def setup(self, builder):
-        self._pop_view_builder = builder.population.get_view
+        self._pop_view = builder.population.get_view([])
         self.clock = builder.time.clock()
         self._interpolation_order = builder.configuration.interpolation.order
         self._extrapolate = builder.configuration.interpolation.extrapolate
+        self._add_constraint = builder.lifecycle.add_constraint
 
-    def build_table(self, data, key_columns, parameter_columns, value_columns) -> LookupTable:
-        return LookupTable(data, self._pop_view_builder, key_columns, parameter_columns,
+        builder.lifecycle.add_constraint(self.build_table, allow_during=['setup'])
+
+    def build_table(self, data, key_columns, parameter_columns, value_columns) -> Callable:
+        table = self._build_table(data, key_columns, parameter_columns, value_columns)
+        self._add_constraint(table.call, restrict_during=['initialization', 'setup', 'post_setup'])
+        return table.call
+
+    def _build_table(self, data, key_columns, parameter_columns, value_columns):
+        return LookupTable(data, self._pop_view, key_columns, parameter_columns,
                            value_columns, self._interpolation_order, self.clock, self._extrapolate)
 
     def __repr__(self):

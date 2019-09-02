@@ -1,3 +1,4 @@
+import functools
 from typing import List
 import textwrap
 
@@ -6,6 +7,10 @@ from vivarium.exceptions import VivariumError
 
 class LifeCycleError(VivariumError):
     """Error raised when lifecycle contracts are violated."""
+    pass
+
+
+class ConstraintError(LifeCycleError):
     pass
 
 
@@ -161,11 +166,35 @@ class LifeCycle:
         return '\n'.join([str(phase) for phase in self._phases])
 
 
+class ConstraintMaker:
+
+    def __init__(self, lifecycle_manager):
+        self.lifecycle_manager = lifecycle_manager
+
+    def __call__(self, constrained_function, permitted_states):
+
+        @functools.wraps(constrained_function)
+        def _wrapped(*args, **kwargs):
+            current_state = self.lifecycle_manager.current_state
+            if current_state not in permitted_states:
+                raise ConstraintError(f'Trying to call {constrained_function} during {current_state},'
+                                      f' but it may only be called during {permitted_states}.')
+            return constrained_function(*args, **kwargs)
+
+        if hasattr(constrained_function, '__self__'):
+            setattr(constrained_function.__self__, constrained_function.__name__, _wrapped)
+        else:
+            raise UnboundLocalError
+
+
 class LifeCycleManager:
 
     def __init__(self, ):
         self.lifecycle = LifeCycle()
         self._current_state = self.lifecycle.get_state('initialization')
+        self._make_constraint = ConstraintMaker(self)
+        self.add_constraint(self.add_constraint, allow_during=['initialization', 'setup'])
+        self.add_constraint(self.add_handlers, allow_during=['post_setup'])
 
     @property
     def name(self):
@@ -196,6 +225,13 @@ class LifeCycleManager:
         s = self.lifecycle.get_state(state_name)
         s.add_handlers(handlers)
 
+    def add_constraint(self, constrained_function, allow_during=None, restrict_during=None):
+        if allow_during and restrict_during or not (allow_during or restrict_during):
+            raise ValueError('Must provide exactly one of "allow_during" or "restrict_during"')
+        if restrict_during:
+            allow_during = [s for s in self.lifecycle._state_names if s not in restrict_during]
+        self._make_constraint(constrained_function, allow_during)
+
     def __repr__(self):
         return f'LifeCycleManager(state={self.current_state})'
 
@@ -210,3 +246,6 @@ class LifeCycleInterface:
 
     def add_handlers(self, state, handlers):
         self._manager.add_handlers(state, handlers)
+
+    def add_constraint(self, constrained_function, allow_during=None, restrict_during=None):
+        self._manager.add_constraint(constrained_function, allow_during, restrict_during)

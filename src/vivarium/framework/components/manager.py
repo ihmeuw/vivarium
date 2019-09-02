@@ -119,8 +119,10 @@ class ComponentManager:
         """Called by the simulation context."""
         self.configuration = configuration
         self.lifecycle = lifecycle_manager
-        # TODO: Add lifecycle restrictions.
-        # self.lifecycle.add_constraint(self.add_components, allow_during='initialization')
+
+        self.lifecycle.add_constraint(self.get_components_by_type, restrict_during=['initialization'])
+        self.lifecycle.add_constraint(self.get_component, restrict_during=['initialization'])
+        self.lifecycle.add_constraint(self.list_components, restrict_during=['initialization'])
 
     def add_managers(self, managers: Union[List[Any], Tuple[Any]]):
         """Registers new managers with the component manager.

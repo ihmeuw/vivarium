@@ -4,6 +4,7 @@ import pytest
 
 from vivarium.framework.event import Event, EventManager
 
+
 @pytest.fixture
 def event_init():
     return {
@@ -20,6 +21,8 @@ def event_init():
             'step_size': 30,
         }
     }
+
+
 def test_proper_access(event_init):
     # Event attributes are meant to be read-only
     event_data = event_init['orig']
@@ -38,6 +41,7 @@ def test_proper_access(event_init):
         with pytest.raises(AttributeError) as _:
             setattr(e1, key, value)
 
+
 def test_split_event(event_init):
     event_data = event_init['orig']
     e1 = Event(event_data['index'],
@@ -51,6 +55,7 @@ def test_split_event(event_init):
     assert e1.index is event_data['index']
     assert e2.index is new_idx
 
+
 def test_emission(event_init):
     signal = [False]
 
@@ -60,6 +65,7 @@ def test_emission(event_init):
     manager = EventManager()
     manager.clock = lambda: pd.Timestamp(1990, 1, 1)
     manager.step_size = lambda: pd.Timedelta(30, unit='D')
+    manager.add_constraint = lambda f, **kwargs: f
     emitter = manager.get_emitter('test_event')
     manager.register_listener('test_event', listener)
     emitter(event_init['orig']['index'])
@@ -94,6 +100,7 @@ def test_listener_priority(event_init):
     manager = EventManager()
     manager.clock = lambda: pd.Timestamp(1990, 1, 1)
     manager.step_size = lambda: pd.Timedelta(30, 'D')
+    manager.add_constraint = lambda f, **kwargs: f
     emitter = manager.get_emitter('test_event')
     manager.register_listener('test_event', listener1, priority=0)
     manager.register_listener('test_event', listener2)
@@ -107,6 +114,7 @@ def test_contains():
     event = 'test_event'
 
     manager = EventManager()
+    manager.add_constraint = lambda f, **kwargs: f
     assert event not in manager
     manager.get_emitter(event)
     assert event in manager

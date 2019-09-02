@@ -32,8 +32,9 @@ class InteractiveContext(SimulationContext):
     call to one of the helper methods provided in this module.
     """
 
-    def __init__(self, *args, setup=True, **kwargs):
+    def __init__(self, *args, setup=True, initialize_simulants=True, **kwargs):
         super().__init__(*args, **kwargs)
+
         if setup:
             self.setup()
 
