@@ -648,19 +648,22 @@ class RandomnessManager:
             If another location in the simulation has already created a randomness stream
             with the same identifier.
         """
-        if decision_point in self._decision_points:
-            raise RandomnessError(f"Two separate places are attempting to create "
-                                  f"the same randomness stream for {decision_point}")
-        stream = RandomnessStream(key=decision_point, clock=self._clock, seed=self._seed,
-                                  index_map=self._key_mapping, manager=self, for_initialization=for_initialization)
-        self._decision_points[decision_point] = stream
-
+        stream = self._get_randomness_stream(decision_point, for_initialization)
         self._add_constraint(stream.get_draw, restrict_during=['initialization', 'setup', 'post_setup'])
         self._add_constraint(stream.get_seed, restrict_during=['initialization'])
         self._add_constraint(stream.filter_for_probability, restrict_during=['initialization', 'setup', 'post_setup'])
         self._add_constraint(stream.filter_for_rate, restrict_during=['initialization', 'setup', 'post_setup'])
         self._add_constraint(stream.choice, restrict_during=['initialization', 'setup', 'post_setup'])
 
+        return stream
+
+    def _get_randomness_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
+        if decision_point in self._decision_points:
+            raise RandomnessError(f"Two separate places are attempting to create "
+                                  f"the same randomness stream for {decision_point}")
+        stream = RandomnessStream(key=decision_point, clock=self._clock, seed=self._seed,
+                                  index_map=self._key_mapping, manager=self, for_initialization=for_initialization)
+        self._decision_points[decision_point] = stream
         return stream
 
     def register_simulants(self, simulants: pd.DataFrame):

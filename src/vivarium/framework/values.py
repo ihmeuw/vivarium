@@ -104,7 +104,10 @@ class Pipeline:
         self.manager = None
         self.configured = False
 
-    def call(self, *args, skip_post_processor=False, **kwargs):
+    def __call__(self, *args, skip_post_processor=False, **kwargs):
+        return self._call(*args, skip_post_processor=skip_post_processor, **kwargs)
+
+    def _call(self, *args, skip_post_processor=False, **kwargs):
         if not self.source:
             raise DynamicValueError(f"The dynamic value pipeline for {self.name} has no source. This likely means"
                                     f"you are attempting to modify a value that hasn't been created.")
@@ -163,6 +166,12 @@ class ValuesManager:
 
     def register_value_producer(self, value_name, source=None,
                                 preferred_combiner=replace_combiner, preferred_post_processor=None):
+        pipeline = self._register_value_producer(value_name, source, preferred_combiner, preferred_post_processor)
+        self.add_constraint(pipeline._call, restrict_during=['initialization', 'setup', 'post_setup'])
+        return pipeline
+
+    def _register_value_producer(self, value_name, source=None,
+                                 preferred_combiner=replace_combiner, preferred_post_processor=None):
         _log.debug(f"Registering value pipeline {value_name}")
         pipeline = self._pipelines[value_name]
         pipeline.name = value_name
@@ -170,15 +179,14 @@ class ValuesManager:
         pipeline.combiner = preferred_combiner
         pipeline.post_processor = preferred_post_processor
         pipeline.manager = self
-        self.add_constraint(pipeline.call, restrict_during=['initialization', 'setup', 'post_setup'])
         pipeline.configured = True
-        return pipeline.call
+        return pipeline
 
     def register_rate_producer(self, rate_name, source=None):
         return self.register_value_producer(rate_name, source, preferred_post_processor=rescale_post_processor)
 
     def get_value(self, name):
-        return self._pipelines[name].call
+        return self._pipelines[name]
 
     def __contains__(self, item):
         return item in self._pipelines

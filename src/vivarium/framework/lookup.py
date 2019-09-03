@@ -153,7 +153,7 @@ class LookupTable:
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
     def __init__(self, data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
-                 population_view: Callable, key_columns: Union[List[str], Tuple[str]],
+                 population_view: PopulationView, key_columns: Union[List[str], Tuple[str]],
                  parameter_columns: ParameterType, value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int, clock: Callable, extrapolate: bool):
 
@@ -168,7 +168,7 @@ class LookupTable:
             self._table = InterpolatedTable(data, population_view.subview(view_columns), key_columns,
                                             parameter_columns, value_columns, interpolation_order, clock, extrapolate)
 
-    def call(self, index) -> Union[pd.DataFrame, pd.Series]:
+    def __call__(self, index) -> Union[pd.DataFrame, pd.Series]:
         """Get the interpolated or scalar table values for the given index.
 
         Parameters
@@ -181,6 +181,10 @@ class LookupTable:
         pandas.Series if interpolated or scalar values for index are one column,
         pandas.DataFrame if multiple columns
         """
+        return self._call(index)
+
+    def _call(self, index):
+        """Private method to allow LookupManager to add constraints."""
         table_view = self._table(index)
         if len(table_view.columns) == 1:
             return table_view[table_view.columns[0]]
@@ -249,8 +253,8 @@ class LookupTableManager:
 
     def build_table(self, data, key_columns, parameter_columns, value_columns) -> Callable:
         table = self._build_table(data, key_columns, parameter_columns, value_columns)
-        self._add_constraint(table.call, restrict_during=['initialization', 'setup', 'post_setup'])
-        return table.call
+        self._add_constraint(table._call, restrict_during=['initialization', 'setup', 'post_setup'])
+        return table
 
     def _build_table(self, data, key_columns, parameter_columns, value_columns):
         return LookupTable(data, self._pop_view, key_columns, parameter_columns,

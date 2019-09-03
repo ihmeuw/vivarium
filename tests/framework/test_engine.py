@@ -15,7 +15,7 @@ from .components.mocks import MockComponentA, MockComponentB, Listener
 
 
 def is_same_object_method(m1, m2):
-    return id(m1) == id(m2) or (m1.__func__ is m2.__func__ and m1.__self__ is m2.__self__)
+    return m1.__func__ is m2.__func__ and m1.__self__ is m2.__self__
 
 
 @pytest.fixture

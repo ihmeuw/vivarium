@@ -171,20 +171,39 @@ class ConstraintMaker:
     def __init__(self, lifecycle_manager):
         self.lifecycle_manager = lifecycle_manager
 
-    def __call__(self, constrained_function, permitted_states):
+    def check_valid_state(self, method, permitted_states):
+        current_state = self.lifecycle_manager.current_state
+        if current_state not in permitted_states:
+            raise ConstraintError(f'Trying to call {method} during {current_state},'
+                                  f' but it may only be called during {permitted_states}.')
 
-        @functools.wraps(constrained_function)
+    def constrain_normal_method(self, method, permitted_states):
+        """Only permit a method to be called during the provided states."""
+        @functools.wraps(method)
         def _wrapped(*args, **kwargs):
-            current_state = self.lifecycle_manager.current_state
-            if current_state not in permitted_states:
-                raise ConstraintError(f'Trying to call {constrained_function} during {current_state},'
-                                      f' but it may only be called during {permitted_states}.')
-            return constrained_function(*args, **kwargs)
+            self.check_valid_state(method, permitted_states)
+            # Call the __func__ because we're rebinding _wrapped to the method
+            # name on the object.  If we called method directly, we'd get
+            # two copies of self.
+            return method.__func__(*args, **kwargs)
 
-        if hasattr(constrained_function, '__self__'):
-            setattr(constrained_function.__self__, constrained_function.__name__, _wrapped)
-        else:
-            raise UnboundLocalError
+        # Invoke the descriptor protocol to bind the wrapped method to the
+        # component instance.
+        rebound_method = _wrapped.__get__(method.__self__, method.__self__.__class__)
+        # Then update the instance dictionary to reflect that the wrapped
+        # method is bound to the original name.
+        setattr(method.__self__, method.__name__, rebound_method)
+
+    def __call__(self, method, permitted_states):
+
+        if not hasattr(method, '__self__'):
+            raise UnboundLocalError('Can only apply constraints to bound object methods. '
+                                    f'You supplied the function {method}.')
+        name = method.__name__
+        if name.startswith('__') and name.endswith('__'):
+            raise ValueError('Can only apply constraints to normal object methods. '
+                             f' You supplied {method}.')
+        self.constrain_normal_method(method, permitted_states)
 
 
 class LifeCycleManager:

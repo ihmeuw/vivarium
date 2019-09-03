@@ -218,13 +218,16 @@ class PopulationManager:
         generated column names that aren't known at definition time. Otherwise
         components should use ``uses_columns``.
         """
-        if columns and 'tracked' not in columns:
-            query = query + 'and tracked == True' if query else 'tracked == True'
-        view = PopulationView(self, columns, query)
+        view = self._get_view(columns, query)
         self._add_constraint(view.get, restrict_during=['initialization', 'setup', 'post_setup'])
         self._add_constraint(view.subview, restrict_during=['initialization', 'setup', 'post_setup'])
         self._add_constraint(view.update, restrict_during=['initialization', 'setup', 'post_setup',
                                                            'simulation_end', 'report'])
+        return view
+
+    def _get_view(self, columns: Sequence[str], query: str=None):
+        if columns and 'tracked' not in columns:
+            query = query + 'and tracked == True' if query else 'tracked == True'
         return PopulationView(self, columns, query)
 
     def register_simulant_initializer(self, initializer: Callable,
