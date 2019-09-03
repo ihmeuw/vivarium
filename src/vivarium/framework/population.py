@@ -56,7 +56,7 @@ class PopulationView:
         return list(self._columns)
 
     def subview(self, columns: Sequence[str]) -> 'PopulationView':
-        if set(columns) > set(self._columns):
+        if set(columns) > set(self.columns):
             raise PopulationError(f"Invalid subview requested.  Requested columns must be a subset of this view's "
                                   f"columns.  Requested columns: {columns}, Available columns: {self.columns}")
         return PopulationView(self.manager, columns, self.query)
@@ -65,7 +65,7 @@ class PopulationView:
     def query(self) -> str:
         return self._query
 
-    def get(self, index: pd.Index, query: str='', omit_missing_columns: bool=False) -> pd.DataFrame:
+    def get(self, index: pd.Index, query: str='') -> pd.DataFrame:
         """For the rows in ``index`` get the columns from the simulation's population which this view is configured.
         The result may be further filtered by the view's query.
 
@@ -75,10 +75,6 @@ class PopulationView:
             Index of the population to get.
         query :
             Conditions used to filter the index.  May use columns not in the requested view.
-        omit_missing_columns :
-            Silently skip loading columns which are not present in the population table. In general you want this to
-            be False because that situation indicates an error but sometimes, like during population initialization,
-            it can be convenient to just load whatever data is actually available.
 
         Returns
         -------
@@ -96,10 +92,7 @@ class PopulationView:
         if not self._columns:
             return pop
         else:
-            if omit_missing_columns:
-                columns = list(set(self._columns).intersection(pop.columns))
-            else:
-                columns = self._columns
+            columns = self._columns
             try:
                 return pop[columns].copy()
             except KeyError:
@@ -201,6 +194,15 @@ class PopulationManager:
         self.get_ordered_population_initializers = builder.dependency.get_ordered_population_initializers
         self.register_population_initializer((self.on_create_simulants, ['tracked'], []))
 
+        self._add_constraint = builder.lifecycle.add_constraint
+
+        builder.lifecycle.add_constraint(self.get_view, allow_during=['setup', 'post_setup', 'population_creation',
+                                                                      'simulation_end', 'report'])
+        builder.lifecycle.add_constraint(self.get_simulant_creator, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.register_simulant_initializer, allow_during=['setup'])
+
+        self._view = self.get_view(['tracked'])
+
     def get_view(self, columns: Sequence[str], query: str=None) -> PopulationView:
         """Return a configured PopulationView
 
@@ -211,9 +213,15 @@ class PopulationManager:
         generated column names that aren't known at definition time. Otherwise
         components should use ``uses_columns``.
         """
-        if 'tracked' not in columns:
-            query_with_track = query + 'and tracked == True' if query else 'tracked == True'
-            return PopulationView(self, columns, query_with_track)
+        view = self._get_view(columns, query)
+        self._add_constraint(view.get, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(view.update, restrict_during=['initialization', 'setup', 'post_setup',
+                                                           'simulation_end', 'report'])
+        return view
+
+    def _get_view(self, columns: Sequence[str], query: str=None):
+        if columns and 'tracked' not in columns:
+            query = query + 'and tracked == True' if query else 'tracked == True'
         return PopulationView(self, columns, query)
 
     def register_simulant_initializer(self, initializer: Callable,
@@ -225,7 +233,7 @@ class PopulationManager:
 
     def on_create_simulants(self, pop_data):
         status = pd.Series(True, index=pop_data.index)
-        self.get_view(['tracked']).update(status)
+        self._view.update(status)
 
     def _create_simulants(self, count: int, population_configuration: Mapping[str, Any]=None) -> pd.Index:
         population_configuration = population_configuration if population_configuration else {}
@@ -241,7 +249,7 @@ class PopulationManager:
         return index
 
     def metrics(self, index, metrics):
-        population = self.get_view(['tracked']).get(index)
+        population = self._view.get(index)
         untracked = population[~population.tracked]
         tracked = population[population.tracked]
 

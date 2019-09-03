@@ -5,7 +5,7 @@ The Value Pipeline System
 
 The value pipeline system is a vital part of the ``vivarium`` infrastructure.
 It allows for values that determine the behavior of individual
-:term:`simulants` to be constructed across across multiple
+:term:`simulants <Simulant>` to be constructed across across multiple
 :ref:`components <components_concept>`.
 
 For more information about when and how you should use pipelines in your
@@ -98,13 +98,16 @@ class Pipeline:
     def __init__(self):
         self.name = None
         self.source = None
-        self.mutators = [[] for _ in range(10)]
+        self.mutators = []
         self.combiner = None
         self.post_processor = None
         self.manager = None
         self.configured = False
 
     def __call__(self, *args, skip_post_processor=False, **kwargs):
+        return self._call(*args, skip_post_processor=skip_post_processor, **kwargs)
+
+    def _call(self, *args, skip_post_processor=False, **kwargs):
         if not self.source:
             raise DynamicValueError(f"The dynamic value pipeline for {self.name} has no source. This likely means"
                                     f"you are attempting to modify a value that hasn't been created.")
@@ -113,9 +116,8 @@ class Pipeline:
                                     f"has not been configured.  You've done a weird thing to get in this state.")
 
         value = self.source(*args, **kwargs)
-        for priority_bucket in self.mutators:
-            for mutator in priority_bucket:
-                value = self.combiner(value, mutator, *args, **kwargs)
+        for mutator in self.mutators:
+            value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
             return self.post_processor(value, self.manager.step_size())
 
@@ -145,19 +147,32 @@ class ValuesManager:
     def setup(self, builder):
         self.step_size = builder.time.step_size()
         builder.event.register_listener('post_setup', self.on_post_setup)
+        self.add_constraint = builder.lifecycle.add_constraint
+
+        builder.lifecycle.add_constraint(self.register_value_producer, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.register_rate_producer, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.register_value_modifier, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.get_value, allow_during=['setup', 'post_setup', 'population_creation',
+                                                                       'simulation_end', 'report'])
 
     def on_post_setup(self, event):
         # FIXME: This should raise an error, but can't due to risk effect generation
         _log.debug(f"Unsourced pipelines: {[p for p, v in self._pipelines.items() if not v.source]}")
 
-    def register_value_modifier(self, value_name, modifier, priority=5):
+    def register_value_modifier(self, value_name, modifier):
         m = modifier if isinstance(modifier, MethodType) else modifier.__call__
         _log.debug(f"Registering {str(m).split()[2]} as modifier to {value_name}")
         pipeline = self._pipelines[value_name]
-        pipeline.mutators[priority].append(modifier)
+        pipeline.mutators.append(modifier)
 
     def register_value_producer(self, value_name, source=None,
                                 preferred_combiner=replace_combiner, preferred_post_processor=None):
+        pipeline = self._register_value_producer(value_name, source, preferred_combiner, preferred_post_processor)
+        self.add_constraint(pipeline._call, restrict_during=['initialization', 'setup', 'post_setup'])
+        return pipeline
+
+    def _register_value_producer(self, value_name, source=None,
+                                 preferred_combiner=replace_combiner, preferred_post_processor=None):
         _log.debug(f"Registering value pipeline {value_name}")
         pipeline = self._pipelines[value_name]
         pipeline.name = value_name
@@ -172,9 +187,6 @@ class ValuesManager:
         return self.register_value_producer(rate_name, source, preferred_post_processor=rescale_post_processor)
 
     def get_value(self, name):
-        return self._pipelines[name]
-
-    def get_rate(self, name):
         return self._pipelines[name]
 
     def __contains__(self, item):
@@ -199,7 +211,7 @@ class ValuesInterface:
 
     def register_value_producer(self, value_name: str, source: Callable[..., pd.DataFrame]=None,
                                 preferred_combiner: Callable=replace_combiner,
-                                preferred_post_processor: Callable[..., pd.DataFrame]=None) -> Pipeline:
+                                preferred_post_processor: Callable[..., pd.DataFrame]=None) -> Callable:
         """Marks a ``Callable`` as the producer of a named value.
 
         Parameters
@@ -227,7 +239,7 @@ class ValuesInterface:
                                                            preferred_combiner,
                                                            preferred_post_processor)
 
-    def register_rate_producer(self, rate_name: str, source: Callable[..., pd.DataFrame]=None) -> Pipeline:
+    def register_rate_producer(self, rate_name: str, source: Callable[..., pd.DataFrame]=None) -> Callable:
         """Marks a ``Callable`` as the producer of a named rate.
 
         This is a convenience wrapper around ``register_value_producer`` that makes sure
@@ -249,7 +261,7 @@ class ValuesInterface:
         """
         return self._value_manager.register_rate_producer(rate_name, source)
 
-    def register_value_modifier(self, value_name: str, modifier: Callable, priority: int=5):
+    def register_value_modifier(self, value_name: str, modifier: Callable):
         """Marks a ``Callable`` as the modifier of a named value.
 
         Parameters
@@ -268,7 +280,7 @@ class ValuesInterface:
             smaller priority values will be called earlier in the pipeline.  Modifiers with
             the same priority have no guaranteed ordering, and so should be commutative.
         """
-        self._value_manager.register_value_modifier(value_name, modifier, priority)
+        self._value_manager.register_value_modifier(value_name, modifier)
 
     def get_value(self, name):
         return self._value_manager.get_value(name)

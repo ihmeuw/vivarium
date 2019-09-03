@@ -55,8 +55,6 @@ file though.
 .. code-block:: python
    :caption: **File**: ``~/code/vivarium_examples/setup.py``
 
-    import os
-
     from setuptools import setup, find_packages
 
 

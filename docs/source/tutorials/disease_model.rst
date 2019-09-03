@@ -91,12 +91,12 @@ initial population of simulants. It also notes that there is a
 `'population_size'` key. This key has a default value set by  Vivarium's
 population management system.
 
-Where's the ``__init__()``?
-+++++++++++++++++++++++++++
+The ``__init__()`` method
++++++++++++++++++++++++++
 
 Though Vivarium components are represented are represented by Python
 `classes <https://docs.python.org/3/tutorial/classes.html>`_ you'll notice
-that many of the classes we write lack the typical ``__init__`` constructor.
+that many of the classes have very sparse ``__init__`` methods.
 Due to the way the simulation bootstraps itself, the ``__init__`` method is
 usually only used to assign names to generic components and muck with
 the ``configuration_defaults`` a bit. We'll see more of this later.
@@ -108,7 +108,7 @@ Instead of the ``__init__`` method, most of the component initialization
 takes place in the ``setup`` method.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 28, 40-59
+   :lines: 31, 43-62
    :dedent: 4
    :linenos:
 
@@ -154,7 +154,7 @@ Line 2 simply grabs a copy of the simulation
 a dictionary that supports ``.``-access notation.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 40
+   :lines: 43
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -169,7 +169,7 @@ it easier to perform counterfactual analysis. It's not important to have a full
 grasp of this system at this point.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 42-47
+   :lines: 45-50
    :dedent: 4
    :linenos:
    :lineno-start: 4
@@ -210,7 +210,7 @@ The next thing we do is grab actual
 from the framework.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 49-51
+   :lines: 52-54
    :dedent: 4
    :linenos:
    :lineno-start: 11
@@ -241,7 +241,7 @@ know that it is responsible for generating the ``'age'``, ``'sex'``,
 ``'alive'``, and ``'entrance_time'`` columns in the population state table.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 53-55
+   :lines: 56-58
    :dedent: 4
    :linenos:
    :lineno-start: 15
@@ -261,7 +261,7 @@ know that it is responsible for generating the ``'age'``, ``'sex'``,
 Next we get a view into the population table.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 57
+   :lines: 60
    :dedent: 4
    :linenos:
    :lineno-start: 19
@@ -280,7 +280,7 @@ simulation. Any time the ``'time_step'`` event is called, the ``age_simulants``
 method will be called as well.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 59
+   :lines: 62
    :dedent: 4
    :linenos:
    :lineno-start: 21
@@ -304,7 +304,7 @@ describe where in the simulation life-cycle they occur. This helps me think
 more clearly about what's going on and helps debugging.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 61, 87-111
+   :lines: 64, 90-114
    :dedent: 4
    :linenos:
 
@@ -348,7 +348,7 @@ we specified an ``'age_start'`` and ``'age_end'``.  Here we use these
 to generate the age distribution of our initial population.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 87-95
+   :lines: 90-98
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -388,7 +388,7 @@ These ``key_columns`` are what the randomness system uses to uniquely
 identify simulants across simulations.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 97-102
+   :lines: 100-105
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -408,7 +408,7 @@ If we're not using CRN, we can just generate the full set of simulant
 attributes straightaway.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 103-109
+   :lines: 106-112
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -434,7 +434,7 @@ The last piece of our population component is the ``'time_step'`` listener
 method ``age_simulants``.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 113, 123-125
+   :lines: 116, 126-128
    :dedent: 4
    :linenos:
 
@@ -486,17 +486,12 @@ Now that we've done all this hard work, let's see what it gives us.
 
 .. code-block:: python
 
-   from vivarium import setup_simulation, build_simulation_configuration
+   from vivarium import InteractiveContext
    from vivarium_examples.disease_model.population import BasePopulation
 
-   config = build_simulation_configuration()
-   config.update({
-       'randomness': {
-           'key_columns': ['entrance_time', 'age']
-       }
-   })
+   config = {'randomness': {'key_columns': ['entrance_time', 'age']}}
 
-   sim = setup_simulation([BasePopulation()], config)
+   sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
    print(sim.get_population().head())
 
@@ -517,6 +512,7 @@ Let's see what happens when our simulation takes a time step.
    sim.step()
    print(sim.get_population().head())
 
+
 ::
 
           tracked  alive     sex        age entrance_time
@@ -533,17 +529,11 @@ does not reflect how the world goes. Time to introduce the grim reaper.
 .. testcode::
    :hide:
 
-   from vivarium import setup_simulation, build_simulation_configuration
+   from vivarium import InteractiveContext
    from vivarium.examples.disease_model import BasePopulation
 
-   config = build_simulation_configuration()
-   config.update({
-       'randomness': {
-           'key_columns': ['entrance_time', 'age']
-       }
-   })
-
-   sim = setup_simulation([BasePopulation()], config)
+   config = {'randomness': {'key_columns': ['entrance_time', 'age']}}
+   sim = InteractiveContext(components=[BasePopulation()], configuration=config)
    sim.step()
 
 
@@ -585,7 +575,7 @@ Many of the tools we explored in the ``BasePopulation`` component are
 used again here. There are two new things to look at.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 25, 37-43
+   :lines: 28, 40-46
    :dedent: 4
    :linenos:
 
@@ -629,7 +619,7 @@ a ``pandas.Series`` that assigns each individual the mortality rate
 specified in the configuration.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 45, 58
+   :lines: 48, 61
    :dedent: 4
    :linenos:
 
@@ -646,7 +636,7 @@ Like our aging method in the population component, our ``determine_deaths``
 method responds to ``'time_step'`` events.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 60, 70-74
+   :lines: 63, 73-77
    :dedent: 4
    :linenos:
 
@@ -659,14 +649,15 @@ steps we're taking.
 
 In lines 3-5, we determine who died this time step.  We turn our mortality rate
 into a probability of death in the given time step by assuming deaths are
-`exponentially distributed`__ and using the inverse distribution function.
+`exponentially distributed <https://en.wikipedia.org/wiki/Exponential_distribution#Occurrence_of_events>`_
+and using the inverse distribution function.
 We then draw a uniformly distributed random number for each person and
 determine who died by comparing that number to the computed probability of
 death for the individual.
 
 Finally, in line 6, we update the state table with the newly dead simulants.
 
-__ https://en.wikipedia.org/wiki/Exponential_distribution#Occurrence_of_events
+__
 
 Did it work?
 ++++++++++++
@@ -678,21 +669,20 @@ can see the impact of our mortality component without taking too many steps.
 
 .. code-block:: python
 
-   from vivarium import setup_simulation, build_simulation_configuration
+   from vivarium InteractiveContext
    from vivarium_examples.disease_model.population import BasePopulation
    from vivarium_examples.disease_model.mortality import Mortality
 
-   config = build_simulation_configuration()
-   config.update({
+   config = {
        'population': {
            'population_size': 100_000
        },
        'randomness': {
            'key_columns': ['entrance_time', 'age']
        }
-   })
+   }
 
-   sim = setup_simulation([BasePopulation(), Mortality()], config)
+   sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
    print(sim.get_population().head())
 
 ::
@@ -737,20 +727,19 @@ to 0.0097 deaths per person-year, very close to the 0.01 rate we provided.
 .. testcode::
    :hide:
 
-   from vivarium import setup_simulation, build_simulation_configuration
+   from vivarium import InteractiveContext
    from vivarium.examples.disease_model import BasePopulation, Mortality
 
-   config = build_simulation_configuration()
-   config.update({
+   config = {
        'population': {
-           'population_size': 100000,
+           'population_size': 100_000
        },
        'randomness': {
            'key_columns': ['entrance_time', 'age']
-       },
-   })
+       }
+   }
 
-   sim = setup_simulation([BasePopulation(), Mortality()], config)
+   sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
    sim.take_steps(2)
 
 

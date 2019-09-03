@@ -160,26 +160,18 @@ class State:
         self.state_id = state_id
         self.transition_set = TransitionSet(self.name)
         self._model = None
+        self._sub_components = [self.transition_set]
 
     @property
     def name(self):
         return f"state.{self.state_id}"
 
+    @property
+    def sub_components(self):
+        return self._sub_components
+
     def setup(self, builder):
-        """Performs this component's simulation setup and return sub-components.
-
-        Parameters
-        ----------
-        builder : `engine.Builder`
-            Interface to several simulation tools including access to common random
-            number generation, in particular.
-
-        Returns
-        -------
-        iterable
-            This component's sub-components.
-        """
-        builder.components.add_components([self.transition_set])
+        pass
 
     def next_state(self, index, event_time, population_view):
         """Moves a population between different states using information this state's `transition_set`.
@@ -260,16 +252,21 @@ class TransitionSet:
         Any iterable whose elements are `Transition` objects.
     allow_null_transition : bool, optional
     """
-    def __init__(self, state_name, *iterable, allow_null_transition=False):
+    def __init__(self, state_name, *transitions, allow_null_transition=False):
         self._state_name = state_name
         self.allow_null_transition = allow_null_transition
         self.transitions = []
+        self._sub_components = self.transitions
 
-        self.extend(iterable)
+        self.extend(transitions)
 
     @property
     def name(self):
         return f'transition_set.{self._state_name}'
+
+    @property
+    def sub_components(self):
+        return self._sub_components
 
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
@@ -285,7 +282,6 @@ class TransitionSet:
         iterable
             This component's sub-components.
         """
-        builder.components.add_components(self.transitions)
         self.random = builder.randomness.get_stream(self.name)
 
     def choose_new_state(self, index):
@@ -385,6 +381,10 @@ class Machine:
     def name(self):
         return f"machine.{self.state_column}"
 
+    @property
+    def sub_components(self):
+        return self.states
+
     def setup(self, builder):
         """Performs this component's simulation setup and return sub-components.
 
@@ -399,7 +399,6 @@ class Machine:
         iterable
             This component's sub-components.
         """
-        builder.components.add_components(self.states)
         self.population_view = builder.population.get_view([self.state_column])
 
     def add_states(self, states):
@@ -442,7 +441,7 @@ class Machine:
             else:
                 dot.node(state.state_id)
             for transition in state.transition_set:
-                dot.edge(state.state_id, transition.output.state_id, transition.label())
+                dot.edge(state.state_id, transition.output_state.state_id, transition.name)
         return dot
 
     def _get_state_pops(self, index):

@@ -6,7 +6,7 @@ Vivarium Testing Utilities
 Utility functions and classes to make testing ``vivarium`` components easier.
 
 """
-import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -172,4 +172,4 @@ def reset_mocks(mocks):
 
 
 def metadata(file_path):
-    return {'layer': 'override', 'source': os.path.realpath(file_path)}
+    return {'layer': 'override', 'source': str(Path(file_path).resolve())}

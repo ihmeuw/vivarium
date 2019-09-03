@@ -155,6 +155,8 @@ def parse_component_config_to_list(component_config: Dict[str, Union[Dict, List]
         A flat list of strings, each string representing the full python import
         path to the component, the component name, and any arguments.
     """
+    if not component_config:
+        return []
 
     def _process_level(level, prefix):
         if not level:
