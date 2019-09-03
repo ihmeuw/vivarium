@@ -153,7 +153,7 @@ class LookupTable:
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
     def __init__(self, data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
-                 population_view: PopulationView, key_columns: Union[List[str], Tuple[str]],
+                 population_view: Callable, key_columns: Union[List[str], Tuple[str]],
                  parameter_columns: ParameterType, value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int, clock: Callable, extrapolate: bool):
 
@@ -165,7 +165,7 @@ class LookupTable:
         else:
             callable_parameter_columns = [p[0] for p in parameter_columns]
             view_columns = sorted((set(key_columns) | set(callable_parameter_columns)) - {'year'}) + ['tracked']
-            self._table = InterpolatedTable(data, population_view.subview(view_columns), key_columns,
+            self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
                                             parameter_columns, value_columns, interpolation_order, clock, extrapolate)
 
     def __call__(self, index) -> Union[pd.DataFrame, pd.Series]:
@@ -243,7 +243,7 @@ class LookupTableManager:
         return "lookup_table_manager"
 
     def setup(self, builder):
-        self._pop_view = builder.population.get_view([])
+        self._pop_view_builder = builder.population.get_view
         self.clock = builder.time.clock()
         self._interpolation_order = builder.configuration.interpolation.order
         self._extrapolate = builder.configuration.interpolation.extrapolate
@@ -257,7 +257,7 @@ class LookupTableManager:
         return table
 
     def _build_table(self, data, key_columns, parameter_columns, value_columns):
-        return LookupTable(data, self._pop_view, key_columns, parameter_columns,
+        return LookupTable(data, self._pop_view_builder, key_columns, parameter_columns,
                            value_columns, self._interpolation_order, self.clock, self._extrapolate)
 
     def __repr__(self):

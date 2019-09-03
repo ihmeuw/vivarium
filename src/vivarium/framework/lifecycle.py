@@ -212,7 +212,6 @@ class LifeCycleManager:
         self.lifecycle = LifeCycle()
         self._current_state = self.lifecycle.get_state('initialization')
         self._make_constraint = ConstraintMaker(self)
-        self.add_constraint(self.add_constraint, allow_during=['initialization', 'setup'])
         self.add_constraint(self.add_handlers, allow_during=['post_setup'])
 
     @property

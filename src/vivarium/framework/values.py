@@ -152,7 +152,8 @@ class ValuesManager:
         builder.lifecycle.add_constraint(self.register_value_producer, allow_during=['setup'])
         builder.lifecycle.add_constraint(self.register_rate_producer, allow_during=['setup'])
         builder.lifecycle.add_constraint(self.register_value_modifier, allow_during=['setup'])
-        builder.lifecycle.add_constraint(self.get_value, allow_during=['setup', 'simulation_end', 'report'])
+        builder.lifecycle.add_constraint(self.get_value, allow_during=['setup', 'post_setup', 'population_creation',
+                                                                       'simulation_end', 'report'])
 
     def on_post_setup(self, event):
         # FIXME: This should raise an error, but can't due to risk effect generation

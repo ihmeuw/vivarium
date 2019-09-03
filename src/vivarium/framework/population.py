@@ -202,7 +202,8 @@ class PopulationManager:
 
         self._add_constraint = builder.lifecycle.add_constraint
 
-        builder.lifecycle.add_constraint(self.get_view, allow_during=['setup', 'simulation_end', 'report'])
+        builder.lifecycle.add_constraint(self.get_view, allow_during=['setup', 'post_setup', 'population_creation',
+                                                                      'simulation_end', 'report'])
         builder.lifecycle.add_constraint(self.get_simulant_creator, allow_during=['setup'])
         builder.lifecycle.add_constraint(self.register_simulant_initializer, allow_during=['setup'])
 
@@ -220,7 +221,6 @@ class PopulationManager:
         """
         view = self._get_view(columns, query)
         self._add_constraint(view.get, restrict_during=['initialization', 'setup', 'post_setup'])
-        self._add_constraint(view.subview, restrict_during=['initialization', 'setup', 'post_setup'])
         self._add_constraint(view.update, restrict_during=['initialization', 'setup', 'post_setup',
                                                            'simulation_end', 'report'])
         return view
