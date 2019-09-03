@@ -156,9 +156,9 @@ we want to show are available to change).
           'population_size': 10_000,
       },
       'diarrhea': {
-          'incidence': 2.5,        # Approximately 2.5 cases per person per year.
-          'remission': 42,         # Approximately 6 day median recovery time
-          'excess_mortality': 12,  # Approximately 22 % of cases result in death
+          'incidence_rate': 2.5,        # Approximately 2.5 cases per person per year.
+          'remission_rate': 42,         # Approximately 6 day median recovery time
+          'excess_mortality_rate': 12,  # Approximately 22 % of cases result in death
       },
       'child_growth_failure': {
           'proportion_exposed': 0.5,
@@ -210,9 +210,9 @@ one last way to set up the simulation in an interactive setting.
            'population_size': 10_000,
        },
        'diarrhea': {
-           'incidence': 2.5,        # Approximately 2.5 cases per person per year.
-           'remission': 42,         # Approximately 6 day median recovery time
-           'excess_mortality': 12,  # Approximately 22 % of cases result in death
+           'incidence_rate': 2.5,        # Approximately 2.5 cases per person per year.
+           'remission_rate': 42,         # Approximately 6 day median recovery time
+           'excess_mortality_rate': 12,  # Approximately 22 % of cases result in death
        },
        'child_growth_failure': {
            'proportion_exposed': 0.5,
