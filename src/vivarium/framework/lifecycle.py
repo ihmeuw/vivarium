@@ -184,7 +184,7 @@ class LifeCycleManager:
             new_state.enter()
             self._current_state = new_state
         else:
-            raise LifeCycleError(f'Invalid transition from {self._current_state.name} to {new_state.name} requested.')
+            raise LifeCycleError(f'Invalid transition from {self.current_state} to {new_state.name} requested.')
 
     def valid_next_state(self, state):
         return self._current_state.valid_next_state(state)
