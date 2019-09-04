@@ -257,7 +257,7 @@ class LookupTableInterface:
     def __init__(self, manager):
         self._lookup_table_manager = manager
 
-    def build_table(self, data, key_columns=('sex',), parameter_columns=(['age', 'age_group_start', 'age_group_end'],
+    def build_table(self, data, key_columns=('sex',), parameter_columns=(['age', 'age_start', 'age_end'],
                                                                          ['year', 'year_start', 'year_end']),
                     value_columns=None) -> LookupTable:
         """Construct a LookupTable from input data.

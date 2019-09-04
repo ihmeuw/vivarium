@@ -71,22 +71,22 @@ Filter terms should be specified as a list of strings, with each item in the
 list corresponding to a single filter.  This allows multiple filters to be
 applied to a single Artifact. These terms are combined logically using 'AND',
 so filter terms of
-``['draw == 0', 'year_start > 2010', 'age_group_start < 5']`` would mean only
-return rows with ``draw == 0 AND year_start > 2010 AND age_group_start < 5``.
+``['draw == 0', 'year_start > 2010', 'age_start < 5']`` would mean only
+return rows with ``draw == 0 AND year_start > 2010 AND age_start < 5``.
 Note that if some data stored in your Artifact does not contain the column or
 columns included in your filter terms, the non-applicable filter terms will be
 skipped for that data. So if a dataset in an Artifact created with the draw,
-year_start, and age_group_start filter terms only included a draw column,
+year_start, and age_start filter terms only included a draw column,
 only ``draw == 0`` would be applied to that data.
 
 Here's how we would construct an Artifact with the draw, year_start, and
-age_group_start filters we just described:
+age_start filters we just described:
 
 .. code-block:: python
 
     from vivarium_public_health.dataset_manager import Artifact
 
-    art = Artifact('test_artifact.hdf', filter_terms=['draw == 0', 'year_start > 2005', 'age_group_start <= 5'])
+    art = Artifact('test_artifact.hdf', filter_terms=['draw == 0', 'year_start > 2005', 'age_start <= 5'])
     print(art)
 
 ::
@@ -143,32 +143,34 @@ data from our Artifact we do:
 
 ::
 
-                                                                           value
-    age_group_end age_group_start location sex    year_end year_start
-    0.019178      0.0             Ethiopia Female 2007     2006        25610.50
-                                           Male   2012     2011        29136.66
-                                                  2009     2008        27492.91
-                                           Female 2000     1999        22157.50
-                                                  1993     1992        19066.45
+                                                               value
+    age_end  age_start location sex    year_end year_start
+    0.019178 0.0       Ethiopia Female 2007     2006        25610.50
+                                Male   2012     2011        29136.66
+                                       2009     2008        27492.91
+                                Female 2000     1999        22157.50
+                                       1993     1992        19066.45
+
 
 Notice that if we construct our artifact with filter terms as discussed
 above, we'll filter the data that gets loaded out of it:
 
 .. code-block:: python
 
-    art = Artifact('test_artifact.hdf', filter_terms=['age_group_start > 5'])
+    art = Artifact('test_artifact.hdf', filter_terms=['age_start > 5'])
     pop = art.load('population.structure')
     print(pop.head()))
 
 ::
 
-                                                                            value
-    age_group_end age_group_start location sex    year_end year_start
-    15.0          10.0            Ethiopia Male   2011     2010        6009393.00
-                                                  2003     2002        4489336.99
-                                           Female 2016     2015        6424674.99
-                                           Male   2017     2016        6610845.00
-                                           Female 2006     2005        4922733.99
+                                                                value
+    age_end age_start location sex    year_end year_start
+    15.0    10.0      Ethiopia Male   2011     2010        6009393.00
+                                      2003     2002        4489336.99
+                               Female 2016     2015        6424674.99
+                               Male   2017     2016        6610845.00
+                               Female 2006     2005        4922733.99
+
 
 We can only load keys that already exist in the Artifact, however. If we try
 to load a key not present in our Artifact, we will get an error:

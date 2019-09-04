@@ -137,7 +137,7 @@ def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'val
                     else:
                         r_values.append(v)
                 rows.append([age, age+1, year, year+1, sex] + r_values)
-    return pd.DataFrame(rows, columns=['age_group_start', 'age_group_end',
+    return pd.DataFrame(rows, columns=['age_start', 'age_end',
                                        'year_start', 'year_end', 'sex']
                                       + list(value_columns))
 
