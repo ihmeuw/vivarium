@@ -7,19 +7,20 @@ from vivarium.framework.values import list_combiner, joint_value_post_processor
 
 class DiseaseTransition(Transition):
 
-    def __init__(self, input_state, output_state, cause_key, measure, **kwargs):
+    def __init__(self, input_state, output_state, cause_key, measure, rate_name, **kwargs):
         super().__init__(input_state, output_state, probability_func=self._probability, **kwargs)
         self.cause_key = cause_key
         self.measure = measure
+        self.rate_name = rate_name
 
     def setup(self, builder):
         rate = builder.configuration[self.cause_key][self.measure]
 
         self.base_rate = lambda index: pd.Series(rate, index=index)
-        self.transition_rate = builder.value.register_rate_producer(f'{self.name}_rate',
-                                                                      source=self._risk_deleted_rate)
+        self.transition_rate = builder.value.register_rate_producer(self.rate_name,
+                                                                    source=self._risk_deleted_rate)
         self.joint_population_attributable_fraction = builder.value.register_value_producer(
-            f'{self.name}_rate.population_attributable_fraction',
+            f'{self.rate_name}.population_attributable_fraction',
             source=lambda index: [pd.Series(0, index=index)],
             preferred_combiner=list_combiner,
             preferred_post_processor=joint_value_post_processor)
@@ -49,7 +50,7 @@ class DiseaseState(State):
         """
         super().setup(builder)
         if self.with_excess_mortality:
-            self._excess_mortality_rate = builder.configuration[self.cause_key].excess_mortality
+            self._excess_mortality_rate = builder.configuration[self.cause_key].excess_mortality_rate
         else:
             self._excess_mortality_rate = 0
 
@@ -70,8 +71,8 @@ class DiseaseState(State):
         self.population_view = builder.population.get_view(
             [self._model], query=f"alive == 'alive' and {self._model} == '{self.state_id}'")
 
-    def add_transition(self, output, measure, **kwargs):
-        t = DiseaseTransition(self, output, self.cause_key, measure, **kwargs)
+    def add_transition(self, output, measure, rate_name, **kwargs):
+        t = DiseaseTransition(self, output, self.cause_key, measure, rate_name, **kwargs)
         self.transition_set.append(t)
         return t
 
@@ -146,9 +147,11 @@ class SIS_DiseaseModel:
         infected_state = DiseaseState(f'infected_with_{self._name}', self._name, with_excess_mortality=True)
 
         susceptible_state.allow_self_transitions()
-        susceptible_state.add_transition(infected_state, measure='incidence')
+        susceptible_state.add_transition(infected_state, measure='incidence_rate',
+                                         rate_name=f'{infected_state.state_id}.incidence_rate')
         infected_state.allow_self_transitions()
-        infected_state.add_transition(susceptible_state, measure='remission')
+        infected_state.add_transition(susceptible_state, measure='remission_rate',
+                                      rate_name=f'{infected_state.state_id}.remission_rate')
 
         model = DiseaseModel(self._name,
                              initial_state=susceptible_state,
