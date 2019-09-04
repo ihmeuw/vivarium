@@ -62,7 +62,7 @@ def test_SimulationContext_init_default(components):
     assert sim._builder.data._manager is sim._data
 
     # Ordering matters.
-    managers = [sim._clock, sim._lifecycle, sim._population, sim._randomness,
+    managers = [sim._clock, sim._lifecycle, sim._dependency, sim._population, sim._randomness,
                 sim._values, sim._events, sim._tables, sim._data]
     assert sim._component_manager._managers == OrderedComponentSet(*managers)
     unpacked_components = []
