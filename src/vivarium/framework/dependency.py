@@ -5,19 +5,16 @@ Dependency Management
 
 This module provides a tool to manage dependencies on resources within a
 ``Vivarium`` simulation. These resources take the form of things that can be
-created and utilized by components, for example columns in the :mod:`state table <vivarium.framework.population>`
+created and utilized by components, for example columns in the
+:mod:`state table <vivarium.framework.population>`
 or :mod:`named value pipelines <vivarium.framework.values>`. Because these
-need to be created before they can be used, they are sensitive to ordering. The
-intent behind this tool is to provide an interface that allows other managers to
-register resources with the dependency manager and in turn ask for ordered
-sequences of these resources according to their dependencies or raise exceptions
-if this is not possible.
-
-Currently, the dependency manager only oversees population initializers for the
-Population manager. In the future its work will expand.
+need to be created before they can be used, they are sensitive to ordering.
+The intent behind this tool is to provide an interface that allows other
+managers to register resources with the dependency manager and in turn ask for
+ordered sequences of these resources according to their dependencies or raise
+exceptions if this is not possible.
 
 """
-
 from typing import Sequence, List, Tuple, Callable, Union
 from collections import deque
 
