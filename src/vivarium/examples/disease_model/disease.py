@@ -96,8 +96,8 @@ class DiseaseModel(Machine):
         super().setup(builder)
         config = builder.configuration[self.state_column]
         # Reasonable approximation for short duration diseases.
-        case_fatality_rate = config.excess_mortality / (config.excess_mortality + config.remission)
-        cause_specific_mortality_rate = config.incidence * case_fatality_rate
+        case_fatality_rate = config.excess_mortality_rate / (config.excess_mortality_rate + config.remission_rate)
+        cause_specific_mortality_rate = config.incidence_rate * case_fatality_rate
 
         self.cause_specific_mortality_rate = builder.value.register_rate_producer(
             f'{self.state_column}.cause_specific_mortality_rate',
@@ -132,9 +132,9 @@ class SIS_DiseaseModel:
 
     configuration_defaults = {
         'disease': {
-            'incidence': 0.005,
-            'remission': 0.05,
-            'excess_mortality': 0.01,
+            'incidence_rate': 0.005,
+            'remission_rate': 0.05,
+            'excess_mortality_rate': 0.01,
         }
     }
 

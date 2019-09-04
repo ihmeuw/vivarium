@@ -40,6 +40,7 @@ class ArtifactManager:
         # because not all columns are accessible via artifact filter terms, apply config filters separately
         self.config_filter_term = validate_filter_term(builder.configuration.input_data.artifact_filter_term)
         self.artifact = self._load_artifact(builder.configuration)
+        builder.lifecycle.add_constraint(self.load, allow_during=['setup'])
 
     def _load_artifact(self, configuration: ConfigTree) -> Optional[Artifact]:
         """Looks up the path to the artifact hdf file, builds a default filter,

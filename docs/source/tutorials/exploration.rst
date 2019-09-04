@@ -142,11 +142,11 @@ configuration by simply printing it.
        life_expectancy:
            model_override: 80
    diarrhea:
-       incidence:
+       incidence_rate:
            model_override: 2.5
-       remission:
+       remission_rate:
            model_override: 42
-       excess_mortality:
+       excess_mortality_rate:
            model_override: 12
    child_growth_failure:
        proportion_exposed:

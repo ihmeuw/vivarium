@@ -107,12 +107,22 @@ class ComponentManager:
     def __init__(self):
         self._managers = OrderedComponentSet()
         self._components = OrderedComponentSet()
-        self.configuration = None  # Set directly by the simulation context.
+        self.configuration = None
+        self.lifecycle = None
 
     @property
     def name(self):
         """The name of this component."""
         return "component_manager"
+
+    def setup(self, configuration, lifecycle_manager):
+        """Called by the simulation context."""
+        self.configuration = configuration
+        self.lifecycle = lifecycle_manager
+
+        self.lifecycle.add_constraint(self.get_components_by_type, restrict_during=['initialization'])
+        self.lifecycle.add_constraint(self.get_component, restrict_during=['initialization'])
+        self.lifecycle.add_constraint(self.list_components, restrict_during=['initialization'])
 
     def add_managers(self, managers: Union[List[Any], Tuple[Any]]):
         """Registers new managers with the component manager.
