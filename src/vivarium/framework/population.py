@@ -57,7 +57,7 @@ class PopulationView:
         return list(self._columns)
 
     def subview(self, columns: Sequence[str]) -> 'PopulationView':
-        if set(columns) > set(self._columns):
+        if set(columns) > set(self.columns):
             raise PopulationError(f"Invalid subview requested.  Requested columns must be a subset of this view's "
                                   f"columns.  Requested columns: {columns}, Available columns: {self.columns}")
         return PopulationView(self.manager, columns, self.query)
@@ -200,6 +200,15 @@ class PopulationManager:
         self.step_size = builder.time.step_size()
         builder.value.register_value_modifier('metrics', modifier=self.metrics)
 
+        self._add_constraint = builder.lifecycle.add_constraint
+
+        builder.lifecycle.add_constraint(self.get_view, allow_during=['setup', 'post_setup', 'population_creation',
+                                                                      'simulation_end', 'report'])
+        builder.lifecycle.add_constraint(self.get_simulant_creator, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.register_simulant_initializer, allow_during=['setup'])
+
+        self._view = self.get_view(['tracked'])
+
     def get_view(self, columns: Sequence[str], query: str=None) -> PopulationView:
         """Return a configured PopulationView
 
@@ -210,9 +219,15 @@ class PopulationManager:
         generated column names that aren't known at definition time. Otherwise
         components should use ``uses_columns``.
         """
-        if 'tracked' not in columns:
-            query_with_track = query + 'and tracked == True' if query else 'tracked == True'
-            return PopulationView(self, columns, query_with_track)
+        view = self._get_view(columns, query)
+        self._add_constraint(view.get, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(view.update, restrict_during=['initialization', 'setup', 'post_setup',
+                                                           'simulation_end', 'report'])
+        return view
+
+    def _get_view(self, columns: Sequence[str], query: str=None):
+        if columns and 'tracked' not in columns:
+            query = query + 'and tracked == True' if query else 'tracked == True'
         return PopulationView(self, columns, query)
 
     def register_simulant_initializer(self, initializer: Callable,
@@ -224,7 +239,7 @@ class PopulationManager:
 
     def on_create_simulants(self, pop_data):
         status = pd.Series(True, index=pop_data.index)
-        self.get_view(['tracked']).update(status)
+        self._view.update(status)
 
     @staticmethod
     def _validate_no_missing_initializers(initializers: Sequence[Tuple]) -> None:
@@ -285,7 +300,7 @@ class PopulationManager:
         return index
 
     def metrics(self, index, metrics):
-        population = self.get_view(['tracked']).get(index)
+        population = self._view.get(index)
         untracked = population[~population.tracked]
         tracked = population[population.tracked]
 

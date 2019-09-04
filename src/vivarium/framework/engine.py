@@ -100,6 +100,10 @@ class SimulationContext:
         components = (component_config_parser.get_components(self._component_configuration)
                       + self._additional_components
                       + [Metrics()])
+
+        self._lifecycle.add_constraint(self.add_components, allow_during=['initialization'])
+        self._lifecycle.add_constraint(self.get_population, restrict_during=['initialization', 'setup', 'post_setup'])
+
         self.add_components(components)
 
     def setup(self):
@@ -113,8 +117,9 @@ class SimulationContext:
         self.end_emitter = self._builder.event.get_emitter('simulation_end')
         self.configuration.freeze()
 
+        post_setup = self._builder.event.get_emitter('post_setup')
         self._lifecycle.set_state('post_setup')
-        self._builder.event.get_emitter('post_setup')(None)
+        post_setup(None)
 
     def initialize_simulants(self):
         self._lifecycle.set_state('population_creation')
@@ -151,15 +156,9 @@ class SimulationContext:
 
     def add_components(self, component_list):
         """Adds new components to the simulation."""
-        # TODO: Set with life cycle restrictions.
-        if self._lifecycle.current_state != 'initialization':
-            raise LifeCycleError
         self._component_manager.add_components(component_list)
 
     def get_population(self, untracked: bool = True):
-        # TODO: Set with life cycle restrictions.
-        if self._lifecycle.current_state in ['bootstrap', 'initialization', 'setup', 'post_setup']:
-            raise LifeCycleError
         return self._population.get_population(untracked)
 
     def __repr__(self):

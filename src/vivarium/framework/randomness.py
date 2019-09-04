@@ -428,26 +428,6 @@ class RandomnessStream:
         self._manager = manager
         self._for_initialization = for_initialization
 
-    def copy_with_additional_key(self, key: Any) -> 'RandomnessStream':
-        """Creates a copy of this stream that combines this streams key with a new one.
-
-        Parameters
-        ----------
-        key :
-            The additional key to describe the new stream with.
-
-        Returns
-        -------
-        RandomnessStream
-            A new RandomnessStream with a combined key.
-        """
-        if self._for_initialization:
-            raise RandomnessError('Initialization streams cannot be copied.')
-        elif self._manager:
-            return self._manager.get_randomness_stream('_'.join([self.key, key]))
-        else:
-            return RandomnessStream(self.key, self.clock, self.seed, self.index_map)
-
     def _key(self, additional_key: Any = None) -> str:
         """Construct a hashable key from this object's state.
 
@@ -641,6 +621,12 @@ class RandomnessManager:
         pop_size = builder.configuration.population.population_size
         self._key_mapping.map_size = max(map_size, 10*pop_size)
 
+        self._add_constraint = builder.lifecycle.add_constraint
+        builder.lifecycle.add_constraint(self.get_randomness_stream, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.register_simulants,
+                                         restrict_during=['initialization', 'setup', 'post_setup',
+                                                          'simulation_end', 'report'])
+
     def get_randomness_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -662,6 +648,16 @@ class RandomnessManager:
             If another location in the simulation has already created a randomness stream
             with the same identifier.
         """
+        stream = self._get_randomness_stream(decision_point, for_initialization)
+        self._add_constraint(stream.get_draw, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(stream.get_seed, restrict_during=['initialization'])
+        self._add_constraint(stream.filter_for_probability, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(stream.filter_for_rate, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(stream.choice, restrict_during=['initialization', 'setup', 'post_setup'])
+
+        return stream
+
+    def _get_randomness_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
         if decision_point in self._decision_points:
             raise RandomnessError(f"Two separate places are attempting to create "
                                   f"the same randomness stream for {decision_point}")

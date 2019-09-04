@@ -1,3 +1,4 @@
+import functools
 from typing import List
 import textwrap
 
@@ -6,6 +7,10 @@ from vivarium.exceptions import VivariumError
 
 class LifeCycleError(VivariumError):
     """Error raised when lifecycle contracts are violated."""
+    pass
+
+
+class ConstraintError(LifeCycleError):
     pass
 
 
@@ -161,11 +166,53 @@ class LifeCycle:
         return '\n'.join([str(phase) for phase in self._phases])
 
 
+class ConstraintMaker:
+
+    def __init__(self, lifecycle_manager):
+        self.lifecycle_manager = lifecycle_manager
+
+    def check_valid_state(self, method, permitted_states):
+        current_state = self.lifecycle_manager.current_state
+        if current_state not in permitted_states:
+            raise ConstraintError(f'Trying to call {method} during {current_state},'
+                                  f' but it may only be called during {permitted_states}.')
+
+    def constrain_normal_method(self, method, permitted_states):
+        """Only permit a method to be called during the provided states."""
+        @functools.wraps(method)
+        def _wrapped(*args, **kwargs):
+            self.check_valid_state(method, permitted_states)
+            # Call the __func__ because we're rebinding _wrapped to the method
+            # name on the object.  If we called method directly, we'd get
+            # two copies of self.
+            return method.__func__(*args, **kwargs)
+
+        # Invoke the descriptor protocol to bind the wrapped method to the
+        # component instance.
+        rebound_method = _wrapped.__get__(method.__self__, method.__self__.__class__)
+        # Then update the instance dictionary to reflect that the wrapped
+        # method is bound to the original name.
+        setattr(method.__self__, method.__name__, rebound_method)
+
+    def __call__(self, method, permitted_states):
+
+        if not hasattr(method, '__self__'):
+            raise UnboundLocalError('Can only apply constraints to bound object methods. '
+                                    f'You supplied the function {method}.')
+        name = method.__name__
+        if name.startswith('__') and name.endswith('__'):
+            raise ValueError('Can only apply constraints to normal object methods. '
+                             f' You supplied {method}.')
+        self.constrain_normal_method(method, permitted_states)
+
+
 class LifeCycleManager:
 
     def __init__(self, ):
         self.lifecycle = LifeCycle()
         self._current_state = self.lifecycle.get_state('initialization')
+        self._make_constraint = ConstraintMaker(self)
+        self.add_constraint(self.add_handlers, allow_during=['post_setup'])
 
     @property
     def name(self):
@@ -196,6 +243,17 @@ class LifeCycleManager:
         s = self.lifecycle.get_state(state_name)
         s.add_handlers(handlers)
 
+    def add_constraint(self, constrained_function, allow_during=None, restrict_during=None):
+        if allow_during and restrict_during or not (allow_during or restrict_during):
+            raise ValueError('Must provide exactly one of "allow_during" or "restrict_during".')
+        if restrict_during:
+            allow_during = [s for s in self.lifecycle._state_names if s not in restrict_during]
+        unknown_states = set(allow_during).difference(self.lifecycle._state_names)
+        if unknown_states:
+            raise LifeCycleError(f'Attempting to constrain {constrained_function} to '
+                                 f'unknown states {list(unknown_states)}.')
+        self._make_constraint(constrained_function, allow_during)
+
     def __repr__(self):
         return f'LifeCycleManager(state={self.current_state})'
 
@@ -210,3 +268,6 @@ class LifeCycleInterface:
 
     def add_handlers(self, state, handlers):
         self._manager.add_handlers(state, handlers)
+
+    def add_constraint(self, constrained_function, allow_during=None, restrict_during=None):
+        self._manager.add_constraint(constrained_function, allow_during, restrict_during)

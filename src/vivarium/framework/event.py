@@ -155,6 +155,10 @@ class EventManager:
 
         builder.event.register_listener('post_setup', self.on_post_setup)
         self.add_handlers = builder.lifecycle.add_handlers
+        self.add_constraint = builder.lifecycle.add_constraint
+
+        builder.lifecycle.add_constraint(self.get_emitter, allow_during=['setup', 'simulation_end', 'report'])
+        builder.lifecycle.add_constraint(self.register_listener, allow_during=['setup'])
 
     def on_post_setup(self, event):
         for name, channel in self._event_types.items():
@@ -175,7 +179,9 @@ class EventManager:
             listeners
 
         """
-        return self._event_types[name].emit
+        channel = self._event_types[name]
+        self.add_constraint(channel.emit, allow_during=[name])
+        return channel.emit
 
     def register_listener(self, name: str, listener: Callable, priority: int = 5):
         """Registers a new listener to the named event.

@@ -181,6 +181,10 @@ class LookupTable:
         pandas.Series if interpolated or scalar values for index are one column,
         pandas.DataFrame if multiple columns
         """
+        return self._call(index)
+
+    def _call(self, index):
+        """Private method to allow LookupManager to add constraints."""
         table_view = self._table(index)
         if len(table_view.columns) == 1:
             return table_view[table_view.columns[0]]
@@ -243,8 +247,16 @@ class LookupTableManager:
         self.clock = builder.time.clock()
         self._interpolation_order = builder.configuration.interpolation.order
         self._extrapolate = builder.configuration.interpolation.extrapolate
+        self._add_constraint = builder.lifecycle.add_constraint
 
-    def build_table(self, data, key_columns, parameter_columns, value_columns) -> LookupTable:
+        builder.lifecycle.add_constraint(self.build_table, allow_during=['setup'])
+
+    def build_table(self, data, key_columns, parameter_columns, value_columns) -> Callable:
+        table = self._build_table(data, key_columns, parameter_columns, value_columns)
+        self._add_constraint(table._call, restrict_during=['initialization', 'setup', 'post_setup'])
+        return table
+
+    def _build_table(self, data, key_columns, parameter_columns, value_columns):
         return LookupTable(data, self._pop_view_builder, key_columns, parameter_columns,
                            value_columns, self._interpolation_order, self.clock, self._extrapolate)
 

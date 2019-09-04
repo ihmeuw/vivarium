@@ -34,6 +34,7 @@ class InteractiveContext(SimulationContext):
 
     def __init__(self, *args, setup=True, **kwargs):
         super().__init__(*args, **kwargs)
+
         if setup:
             self.setup()
 
