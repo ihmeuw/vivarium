@@ -66,7 +66,7 @@ class PopulationView:
     def query(self) -> str:
         return self._query
 
-    def get(self, index: pd.Index, query: str='', omit_missing_columns: bool=False) -> pd.DataFrame:
+    def get(self, index: pd.Index, query: str='') -> pd.DataFrame:
         """For the rows in ``index`` get the columns from the simulation's population which this view is configured.
         The result may be further filtered by the view's query.
 
@@ -76,10 +76,6 @@ class PopulationView:
             Index of the population to get.
         query :
             Conditions used to filter the index.  May use columns not in the requested view.
-        omit_missing_columns :
-            Silently skip loading columns which are not present in the population table. In general you want this to
-            be False because that situation indicates an error but sometimes, like during population initialization,
-            it can be convenient to just load whatever data is actually available.
 
         Returns
         -------
@@ -97,10 +93,7 @@ class PopulationView:
         if not self._columns:
             return pop
         else:
-            if omit_missing_columns:
-                columns = list(set(self._columns).intersection(pop.columns))
-            else:
-                columns = self._columns
+            columns = self._columns
             try:
                 return pop[columns].copy()
             except KeyError:
