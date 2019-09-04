@@ -245,9 +245,13 @@ class LifeCycleManager:
 
     def add_constraint(self, constrained_function, allow_during=None, restrict_during=None):
         if allow_during and restrict_during or not (allow_during or restrict_during):
-            raise ValueError('Must provide exactly one of "allow_during" or "restrict_during"')
+            raise ValueError('Must provide exactly one of "allow_during" or "restrict_during".')
         if restrict_during:
             allow_during = [s for s in self.lifecycle._state_names if s not in restrict_during]
+        unknown_states = set(allow_during).difference(self.lifecycle._state_names)
+        if unknown_states:
+            raise LifeCycleError(f'Attempting to constrain {constrained_function} to '
+                                 f'unknown states {list(unknown_states)}.')
         self._make_constraint(constrained_function, allow_during)
 
     def __repr__(self):
