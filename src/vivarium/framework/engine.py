@@ -83,7 +83,7 @@ class SimulationContext:
         self._data = self._plugin_manager.get_plugin('data')
 
         for name, controller in self._plugin_manager.get_optional_controllers().items():
-            setattr(self, f'_name', controller)
+            setattr(self, f'_{name}', controller)
 
         # The order the managers are added is important.  It represents the
         # order in which they will be set up.  The clock is required by
