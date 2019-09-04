@@ -1,18 +1,10 @@
 import numpy as np
 import pandas as pd
 
+from vivarium import InteractiveContext
 from vivarium.testing_utilities import build_table, TestPopulation
-from vivarium.framework.engine import SimulationContext
 from vivarium.framework.lookup import validate_parameters
 import pytest
-
-
-def get_context(components, configuration):
-    simulation = SimulationContext(components=components,
-                                   configuration=configuration)
-    simulation.setup()
-    simulation.initialize_simulants()
-    return simulation
 
 
 @pytest.mark.skip(reason='only order 0 interpolation with age bin edges currently supported')
@@ -27,7 +19,7 @@ def test_interpolated_tables(base_config):
     base_config.update({'population': {'population_size': 10000},
                         'interpolation': {'order': 1}})  # the results we're checking later assume interp order 1
 
-    simulation = get_context([TestPopulation()], base_config)
+    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     years = manager.build_table(years, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None)
     ages = manager.build_table(ages, key_columns=('sex',), parameter_columns=('age', 'year',), value_columns=None)
@@ -70,7 +62,7 @@ def test_interpolated_tables_without_uninterpolated_columns(base_config):
     base_config.update({'population': {'population_size': 10000},
                         'interpolation': {'order': 1}})  # the results we're checking later assume interp order 1
 
-    simulation = get_context([TestPopulation()], base_config)
+    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     years = manager.build_table(years, key_columns=(), parameter_columns=('year', 'age',), value_columns=None)
 
@@ -98,7 +90,7 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
     input_years = years.year_start.unique()
     base_config.update({'population': {'population_size': 10000}})
 
-    simulation = get_context([TestPopulation()], base_config)
+    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     years = manager.build_table(years, key_columns=('sex',),
                                 parameter_columns=(['age', 'age_group_start', 'age_group_end'],
@@ -112,7 +104,7 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
 
 
 def test_lookup_table_scalar_from_list(base_config):
-    simulation = get_context([TestPopulation()], base_config)
+    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     table = (manager.build_table((1, 2), key_columns=None, parameter_columns=None,
                                  value_columns=['a', 'b'])(simulation.get_population().index))
@@ -124,7 +116,7 @@ def test_lookup_table_scalar_from_list(base_config):
 
 
 def test_lookup_table_scalar_from_single_value(base_config):
-    simulation = get_context([TestPopulation()], base_config)
+    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     table = (manager.build_table(1, key_columns=None, parameter_columns=None,
                                  value_columns=['a'])(simulation.get_population().index))
@@ -133,7 +125,7 @@ def test_lookup_table_scalar_from_single_value(base_config):
 
 
 def test_invalid_data_type_build_table(base_config):
-    simulation = get_context([TestPopulation()], base_config)
+    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     with pytest.raises(TypeError):
         manager.build_table('break', key_columns=None, parameter_columns=None, value_columns=None)
@@ -144,7 +136,7 @@ def test_lookup_table_interpolated_return_types(base_config):
     year_end = base_config.time.end.year
     data = build_table(lambda age, sex, year: year, year_start, year_end)
 
-    simulation = get_context([TestPopulation()], base_config)
+    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     table = (manager.build_table(data, key_columns=('sex',),
                                  parameter_columns=[['age', 'age_group_start', 'age_group_end'],

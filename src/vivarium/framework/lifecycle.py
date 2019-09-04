@@ -165,25 +165,29 @@ class LifeCycleManager:
 
     def __init__(self, ):
         self.lifecycle = LifeCycle()
-        self.current_state = self.lifecycle.get_state('initialization')
+        self._current_state = self.lifecycle.get_state('initialization')
 
     @property
     def name(self):
         return 'life_cycle_manager'
+
+    @property
+    def current_state(self):
+        return self._current_state.name
 
     def add_phase(self, phase_name: str, states: List[str], loop: bool = False):
         self.lifecycle.add_phase(phase_name, states, loop)
 
     def set_state(self, state):
         new_state = self.lifecycle.get_state(state)
-        if self.current_state.valid_next_state(new_state):
+        if self._current_state.valid_next_state(new_state):
             new_state.enter()
-            self.current_state = new_state
+            self._current_state = new_state
         else:
-            raise LifeCycleError(f'Invalid transition from {self.current_state.name} to {new_state.name} requested.')
+            raise LifeCycleError(f'Invalid transition from {self.current_state} to {new_state.name} requested.')
 
     def valid_next_state(self, state):
-        return self.current_state.valid_next_state(state)
+        return self._current_state.valid_next_state(state)
 
     def get_states(self, phase):
         return self.lifecycle.get_states(phase)

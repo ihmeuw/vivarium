@@ -8,11 +8,6 @@ part is the :class:`InteractiveContext`, a sub-class of the main simulation
 object in ``vivarium`` that has been extended to include convenience
 methods for running and exploring the simulation in an interactive setting.
 
-Rather than initializing the :class:`InteractiveContext` directly, users should
-acquire one using one of the four simulation creation
-:ref:`functions <simulation_creation>` provided
-in this module.
-
 See the associated tutorials for :ref:`running <interactive_tutorial>` and
 :ref:`exploring <exploration_tutorial>` for more information.
 
@@ -36,6 +31,15 @@ class InteractiveContext(SimulationContext):
     This class should not be instantiated directly. It should be created with a
     call to one of the helper methods provided in this module.
     """
+
+    def __init__(self, *args, setup=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        if setup:
+            self.setup()
+
+    def setup(self):
+        super().setup()
+        self.initialize_simulants()
 
     def step(self, step_size: Timedelta = None):
         """Advance the simulation one step.

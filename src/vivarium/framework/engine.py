@@ -60,7 +60,6 @@ class SimulationContext:
 
         # TODO: Setup logger here.
 
-
         self._builder = Builder(self.configuration, self._plugin_manager)
 
         # This formally starts the initialization phase (this call makes the
@@ -119,7 +118,6 @@ class SimulationContext:
 
     def initialize_simulants(self):
         self._lifecycle.set_state('population_creation')
-
         pop_params = self.configuration.population
         # Fencepost the creation of the initial population.
         self._clock.step_backward()
@@ -154,13 +152,13 @@ class SimulationContext:
     def add_components(self, component_list):
         """Adds new components to the simulation."""
         # TODO: Set with life cycle restrictions.
-        if self._lifecycle.current_state.name != 'initialization':
+        if self._lifecycle.current_state != 'initialization':
             raise LifeCycleError
         self._component_manager.add_components(component_list)
 
     def get_population(self, untracked: bool = True):
         # TODO: Set with life cycle restrictions.
-        if self._lifecycle.current_state.name in ['bootstrap', 'initialization', 'setup', 'post_setup']:
+        if self._lifecycle.current_state in ['bootstrap', 'initialization', 'setup', 'post_setup']:
             raise LifeCycleError
         return self._population.get_population(untracked)
 
