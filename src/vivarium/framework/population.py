@@ -23,28 +23,34 @@ class PopulationError(VivariumError):
 
 
 class PopulationView:
-    """A PopulationView provides access to the simulations population table. It can be used to both read and write
-    the state of the population. A PopulationView can only read and write columns for which it is configured. Attempts
-    to write to non-existent columns are ignored except during resolution of the ``initialize_simulants`` event when new
-    columns are allowed to be created.
+    """A PopulationView provides access to the simulations population table.
+
+    It can be used to both read and write the state of the population. A
+    PopulationView can only read and write columns for which it is configured.
+    Attempts to write to non-existent columns are ignored except during
+    resolution of the ``initialize_simulants`` event when new columns are
+    allowed to be created.
 
     Attributes
     ----------
-    columns :
-        The columns for which this view is configured. If columns is None then the view will return all columns.
-        That case should be only be used in situations where the full state table is actually needed, like some
+    columns
+        The columns for which this view is configured. If columns is None then
+        the view will return all columns. That case should be only be used in
+        situations where the full state table is actually needed, like some
         metrics collection applications.
-    query :
-        The query which will be used to filter the population table for this view. This query may reference columns
-        not in the view's columns.
+    query
+        The query which will be used to filter the population table for this
+        view. This query may reference columns not in the view's columns.
 
     Notes
     -----
-    PopulationViews can only be created by the simulation itself. Client code receives them via functions decorated
-    by ``uses_columns`` or the builder's ``population_view`` method during setup.
+        PopulationViews can only be created by the simulation itself. Client
+        code receives them via functions decorated by ``uses_columns`` or the
+        builder's ``population_view`` method during setup.
+
     """
 
-    def __init__(self, manager: 'PopulationManager', columns: Sequence[str]=(), query: str=None):
+    def __init__(self, manager: 'PopulationManager', columns: Sequence[str] = (), query: str = None):
         self.manager = manager
         self._columns = list(columns)
         self._query = query
@@ -65,23 +71,26 @@ class PopulationView:
     def query(self) -> str:
         return self._query
 
-    def get(self, index: pd.Index, query: str='') -> pd.DataFrame:
-        """For the rows in ``index`` get the columns from the simulation's population which this view is configured.
-        The result may be further filtered by the view's query.
+    def get(self, index: pd.Index, query: str = '') -> pd.DataFrame:
+        """Select the rows represented by the given index from this view.
+
+        For the rows in ``index`` get the columns from the simulation's
+        population which this view is configured. The result may be further
+        filtered by the view's query.
 
         Parameters
         ----------
-        index :
+        index
             Index of the population to get.
-        query :
-            Conditions used to filter the index.  May use columns not in the requested view.
+        query
+            Conditions used to filter the index.  May use columns not in the
+            requested view.
 
         Returns
         -------
-        pd.DataFrame
             A table with the subset of the population requested.
-        """
 
+        """
         pop = self.manager.get_population(True).loc[index]
 
         if self._query:
@@ -100,17 +109,19 @@ class PopulationView:
                 raise PopulationError(f'Requested column(s) {non_existent_columns} not in population table.')
 
     def update(self, pop: Union[pd.DataFrame, pd.Series]):
-        """Update the simulation's state to match ``pop``
+        """Update the simulation's state to match ``pop``.
 
         Parameters
         ----------
-        pop :
-              The data which should be copied into the simulation's state. If ``pop`` is a DataFrame only those columns
-              included in the view's columns will be used. If ``pop`` is a Series it must have a name that matches
-              one of the view's columns unless the view only has one column in which case the Series will be assumed to
-              refer to that regardless of its name.
-        """
+        pop
+            The data which should be copied into the simulation's state. If
+            ``pop`` is a DataFrame only those columns included in the view's
+            columns will be used. If ``pop`` is a Series it must have a name
+            that matches one of the view's columns unless the view only has
+            one column in which case the Series will be assumed to refer to
+            that regardless of its name.
 
+        """
         if not pop.empty:
             if isinstance(pop, pd.Series):
                 if pop.name in self._columns:
@@ -166,8 +177,8 @@ class SimulantData(NamedTuple):
 class PopulationManager:
     """The configuration for the population management system.
 
-        Notes
-        -----
+    Notes
+    -----
         Client code should never need to interact with this class
         except through the ``population_view`` function on the builder
         during setup.
@@ -204,14 +215,15 @@ class PopulationManager:
         self._view = self.get_view(['tracked'])
 
     def get_view(self, columns: Sequence[str], query: str=None) -> PopulationView:
-        """Return a configured PopulationView
+        """Return a configured PopulationView.
 
         Notes
         -----
-        Client code should only need this (and only through the version exposed as
-        ``population_view`` on the builder during setup) if it uses dynamically
-        generated column names that aren't known at definition time. Otherwise
-        components should use ``uses_columns``.
+            Client code should only need this (and only through the version
+            exposed as ``population_view`` on the builder during setup) if it
+            uses dynamically generated column names that aren't known at
+            definition time. Otherwise components should use ``uses_columns``.
+
         """
         view = self._get_view(columns, query)
         self._add_constraint(view.get, restrict_during=['initialization', 'setup', 'post_setup'])
@@ -219,13 +231,13 @@ class PopulationManager:
                                                            'simulation_end', 'report'])
         return view
 
-    def _get_view(self, columns: Sequence[str], query: str=None):
+    def _get_view(self, columns: Sequence[str], query: str = None):
         if columns and 'tracked' not in columns:
             query = query + 'and tracked == True' if query else 'tracked == True'
         return PopulationView(self, columns, query)
 
     def register_simulant_initializer(self, initializer: Callable,
-                                      creates_columns: Sequence[str]=(), requires_columns: Sequence[str]=()):
+                                      creates_columns: Sequence[str] = (), requires_columns: Sequence[str] = ()):
         self.register_population_initializer((initializer, creates_columns, tuple(requires_columns) + ('tracked',)))
 
     def get_simulant_creator(self) -> Callable:
@@ -235,7 +247,7 @@ class PopulationManager:
         status = pd.Series(True, index=pop_data.index)
         self._view.update(status)
 
-    def _create_simulants(self, count: int, population_configuration: Mapping[str, Any]=None) -> pd.Index:
+    def _create_simulants(self, count: int, population_configuration: Mapping[str, Any] = None) -> pd.Index:
         population_configuration = population_configuration if population_configuration else {}
         population_initializers = self.get_ordered_population_initializers()
         new_index = range(len(self._population) + count)
@@ -276,55 +288,66 @@ class PopulationInterface:
     def get_view(self, columns: Sequence[str], query: str = None) -> PopulationView:
         """Get a time-varying view of the population state table.
 
-        The requested population view can be used to view the current state or to update the state
-        with new values.
+        The requested population view can be used to view the current state or
+        to update the state with new values.
 
         Parameters
         ----------
-        columns :
-            A subset of the state table columns that will be available in the returned view.
-        query :
-            A filter on the population state.  This filters out particular rows (simulants) based
-            on their current state.  The query should be provided in a way that is understood by
-            the ``pandas.DataFrame.query`` method and may reference state table columns not
-            requested in the ``columns`` argument.
+        columns
+            A subset of the state table columns that will be available in the
+            returned view.
+        query
+            A filter on the population state.  This filters out particular
+            rows (simulants) based on their current state.  The query should
+            be provided in a way that is understood by the
+            ``pandas.DataFrame.query`` method and may reference state table
+            columns not requested in the ``columns`` argument.
 
         Returns
         -------
         PopulationView
-            A filtered view of the requested columns of the population state table.
+            A filtered view of the requested columns of the population state
+            table.
+
         """
         return self._population_manager.get_view(columns, query)
 
     def get_simulant_creator(self) -> Callable[[int, Union[Mapping[str, Any], None]], pd.Index]:
-        """Grabs a reference to the function that creates new simulants (adds rows to the state table).
+        """Gets a function that can generate new simulants.
 
         Returns
         -------
         Callable
-           The simulant creator function. The creator function takes the number of simulants to be
-           created as it's first argument and a dict or other mapping of population configuration
-           that will be available to simulant initializers as it's second argument. It generates
-           the new rows in the population state table and then calls each initializer
-           registered with the population system with a data object containing the state table
-           index of the new simulants, the configuration info passed to the creator, the current
-           simulation time, and the size of the next time step.
+           The simulant creator function. The creator function takes the
+           number of simulants to be created as it's first argument and a dict
+           or other mapping of population configuration that will be available
+           to simulant initializers as it's second argument. It generates the
+           new rows in the population state table and then calls each
+           initializer registered with the population system with a data
+           object containing the state table index of the new simulants, the
+           configuration info passed to the creator, the current simulation
+           time, and the size of the next time step.
+
         """
         return self._population_manager.get_simulant_creator()
 
     def initializes_simulants(self, initializer: Callable[[SimulantData], None],
-                              creates_columns: Sequence[str]=(),
-                              requires_columns: Sequence[str]=()):
-        """Marks a callable as a source of initial state information for new simulants.
+                              creates_columns: Sequence[str] = (),
+                              requires_columns: Sequence[str] = ()):
+        """Marks a source of initial state information for new simulants.
 
         Parameters
         ----------
-        initializer :
-            A callable that adds or updates initial state information about new simulants.
-        creates_columns :
-            A list of the state table columns that the given initializer provides the initial state information for.
-        requires_columns :
-            A list of the state table columns that already need to be present and populated
-            in the state table before the provided initializer is called.
+        initializer
+            A callable that adds or updates initial state information about
+            new simulants.
+        creates_columns
+            A list of the state table columns that the given initializer
+            provides the initial state information for.
+        requires_columns
+            A list of the state table columns that already need to be present
+            and populated in the state table before the provided initializer
+            is called.
+
         """
         self._population_manager.register_simulant_initializer(initializer, creates_columns, requires_columns)
