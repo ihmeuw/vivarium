@@ -18,7 +18,7 @@ from vivarium.exceptions import VivariumError
 
 
 class PopulationError(VivariumError):
-    """Error raised when the population system is invalidly queried or updated."""
+    """Error raised when the population is invalidly queried or updated."""
     pass
 
 
