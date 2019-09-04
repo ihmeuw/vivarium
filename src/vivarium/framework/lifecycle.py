@@ -134,13 +134,13 @@ class LifeCycle:
 
     def get_state(self, state_name):
         if state_name not in self:
-            raise LifeCycleError(f'Attempting to look up non-existent state {state_name}')
+            raise LifeCycleError(f'Attempting to look up non-existent state {state_name}.')
         phase = [p for p in self._phases if state_name in p].pop()
         return phase.get_state(state_name)
 
     def get_states(self, phase_name):
         if phase_name not in self._phase_names:
-            raise LifeCycleError(f'Attempting to look up states from non-existent phase {phase_name}')
+            raise LifeCycleError(f'Attempting to look up states from non-existent phase {phase_name}.')
         phase = [p for p in self._phases if p.name == phase_name].pop()
         return [s.name for s in phase.states]
 
@@ -231,7 +231,7 @@ class LifeCycleManager:
             new_state.enter()
             self._current_state = new_state
         else:
-            raise LifeCycleError(f'Invalid transition from {self._current_state.name} to {new_state.name} requested.')
+            raise LifeCycleError(f'Invalid transition from {self.current_state} to {new_state.name} requested.')
 
     def valid_next_state(self, state):
         return self._current_state.valid_next_state(state)

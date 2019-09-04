@@ -195,7 +195,7 @@ we can set up our simulation with the following code:
    from vivarium import InteractiveContext
    from vivarium_examples.boids.population import Population
 
-   sim = InteractiveContext(components[Population()])
+   sim = InteractiveContext(components=[Population()])
 
    # Peek at the population table
    print(sim.get_population().head())
