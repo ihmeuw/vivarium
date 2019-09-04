@@ -175,7 +175,7 @@ def test_flatten_with_nested_sub_components():
     assert out == 2*expected
 
 
-def test_setup_components():
+def test_setup_components(mocker):
     builder = mocker.Mock()
     mock_a = MockComponentA('test_a')
     mock_b = MockComponentB('test_b')

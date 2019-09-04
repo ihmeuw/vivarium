@@ -23,9 +23,12 @@ def build_model_specification(model_specification: Union[str, Path, ConfigTree] 
                               plugin_configuration: Union[Dict, ConfigTree] = None) -> ConfigTree:
     if isinstance(model_specification, (str, Path)):
         validate_model_specification_file(model_specification)
+        source = str(model_specification)
+    else:
+        source = 'user_supplied_args'
 
     output_spec = _get_default_specification()
-    output_spec.update(model_specification, layer='model_override', source=str(model_specification))
+    output_spec.update(model_specification, layer='model_override', source=source)
     output_spec.components.update(component_configuration, layer='override', source='user_supplied_args')
     output_spec.configuration.update(configuration, layer='override', source='user_supplied_args')
     output_spec.plugins.update(plugin_configuration, layer='override', source='user_supplied_args')
