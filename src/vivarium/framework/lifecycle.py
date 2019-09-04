@@ -49,7 +49,7 @@ class LifeCycleState:
                 obj = h.__self__
                 self.handlers.append(f'{obj.__class__.__name__}({obj.name}).{name}')
             else:
-                self.handlers.append(f'anonymous function {name}')
+                self.handlers.append(f'Unbound function {name}')
 
     def __repr__(self):
         return f'LifeCycleState(name={self.name})'
@@ -111,7 +111,7 @@ class LifeCycle:
         self._state_names = set()
         self._phase_names = set()
         self._phases = []
-        self.add_phase('bootstrap', ['bootstrap'], loop=False)
+        self.add_phase('initialization', ['initialization'], loop=False)
 
     def add_phase(self, phase_name: str, states: List[str], loop):
         """Add a new phase to the lifecycle.
@@ -165,7 +165,7 @@ class LifeCycleManager:
 
     def __init__(self, ):
         self.lifecycle = LifeCycle()
-        self.current_state = self.lifecycle.get_state('bootstrap')
+        self.current_state = self.lifecycle.get_state('initialization')
 
     @property
     def name(self):
@@ -181,6 +181,9 @@ class LifeCycleManager:
             self.current_state = new_state
         else:
             raise LifeCycleError(f'Invalid transition from {self.current_state.name} to {new_state.name} requested.')
+
+    def valid_next_state(self, state):
+        return self.current_state.valid_next_state(state)
 
     def get_states(self, phase):
         return self.lifecycle.get_states(phase)

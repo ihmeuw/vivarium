@@ -18,14 +18,12 @@ Finally, there are a handful of wrapper methods that allow a user or user
 tools to easily setup and run a simulation.
 
 """
-import gc
 import logging
+from pathlib import Path
 from pprint import pformat
-from time import time
+from typing import Union, List, Dict
 
-import pandas as pd
-
-from vivarium.exceptions import VivariumError
+from vivarium.config_tree import ConfigTree
 from vivarium.framework.configuration import build_model_specification
 from .artifact import ArtifactInterface
 from .components import ComponentInterface
@@ -35,49 +33,58 @@ from .metrics import Metrics
 from .plugins import PluginManager
 from .population import PopulationInterface
 from .randomness import RandomnessInterface
-from .results_writer import get_results_writer
 from .values import ValuesInterface
 from .time import TimeInterface
-from .lifecycle import LifeCycleInterface
+from .lifecycle import LifeCycleInterface, LifeCycleError
 
 _log = logging.getLogger(__name__)
 
 
 class SimulationContext:
-    """context"""
-    def __init__(self, configuration, components, plugin_manager=None):
-        plugin_manager = plugin_manager if plugin_manager else PluginManager()
 
-        self.configuration = configuration
+    def __init__(self, model_specification: Union[str, Path, ConfigTree] = None,
+                 components: Union[List, Dict[str, str], ConfigTree] = None,
+                 configuration: Union[Dict, ConfigTree] = None,
+                 plugin_configuration: Union[Dict[str, str], ConfigTree] = None):
+        # Bootstrap phase: Parse arguments, make private managers
+        component_configuration = components if isinstance(components, (dict, ConfigTree)) else None
+        self._additional_components = components if isinstance(components, List) else []
+        model_specification = build_model_specification(model_specification, component_configuration,
+                                                        configuration, plugin_configuration)
 
-        self.lifecycle = plugin_manager.get_plugin('lifecycle')
-        self.lifecycle.add_phase('initialization', ['initialization'])
-        self.lifecycle.add_phase('setup', ['setup', 'post_setup', 'population_creation'])
-        self.lifecycle.add_phase(
+        self._plugin_configuration = model_specification.plugins
+        self._component_configuration = model_specification.components
+        self.configuration = model_specification.configuration
+
+        self._plugin_manager = PluginManager(model_specification.plugins)
+
+        # TODO: Setup logger here.
+
+
+        self._builder = Builder(self.configuration, self._plugin_manager)
+
+        # This formally starts the initialization phase (this call makes the
+        # life-cycle manager).
+        self._lifecycle = self._plugin_manager.get_plugin('lifecycle')
+        self._lifecycle.add_phase('setup', ['setup', 'post_setup', 'population_creation'])
+        self._lifecycle.add_phase(
             'main_loop', ['time_step__prepare', 'time_step', 'time_step__cleanup', 'collect_metrics'], loop=True
         )
-        self.lifecycle.add_phase('simulation_end', ['simulation_end'])
-        self.lifecycle.set_state('initialization')
+        self._lifecycle.add_phase('simulation_end', ['simulation_end', 'report'])
 
-        self.component_manager = plugin_manager.get_plugin('component_manager')
-        self.component_manager.configuration = self.configuration
+        self._component_manager = self._plugin_manager.get_plugin('component_manager')
+        self._component_manager.setup(self.configuration, self._lifecycle)
 
-        # TODO: remove when lifecycle restrictions are implemented.
-        self._setup = False
+        self._clock = self._plugin_manager.get_plugin('clock')
+        self._values = self._plugin_manager.get_plugin('value')
+        self._events = self._plugin_manager.get_plugin('event')
+        self._population = self._plugin_manager.get_plugin('population')
+        self._tables = self._plugin_manager.get_plugin('lookup')
+        self._randomness = self._plugin_manager.get_plugin('randomness')
+        self._data = self._plugin_manager.get_plugin('data')
 
-        self.builder = Builder(configuration, plugin_manager)
-
-        self.component_manager = plugin_manager.get_plugin('component_manager')
-        self.clock = plugin_manager.get_plugin('clock')
-        self.values = plugin_manager.get_plugin('value')
-        self.events = plugin_manager.get_plugin('event')
-        self.population = plugin_manager.get_plugin('population')
-        self.tables = plugin_manager.get_plugin('lookup')
-        self.randomness = plugin_manager.get_plugin('randomness')
-        self.data = plugin_manager.get_plugin('data')
-
-        for name, controller in plugin_manager.get_optional_controllers().items():
-            setattr(self, name, controller)
+        for name, controller in self._plugin_manager.get_optional_controllers().items():
+            setattr(self, f'_{name}', controller)
 
         # The order the managers are added is important.  It represents the
         # order in which they will be set up.  The clock is required by
@@ -85,57 +92,77 @@ class SimulationContext:
         # lifecycle manager is also required by most managers. The randomness
         # manager requires the population manager.  The remaining managers need
         # no ordering.
-        self.component_manager.add_managers(
-            [self.clock, self.lifecycle, self.population, self.randomness,
-             self.values, self.events, self.tables, self.data]
-        )
-        self.component_manager.add_managers(list(plugin_manager.get_optional_controllers().values()))
-        self.component_manager.add_components(components + [Metrics()])
+        managers = [self._clock, self._lifecycle, self._population, self._randomness, self._values, self._events,
+                    self._tables, self._data] + list(self._plugin_manager.get_optional_controllers().values())
+        self._component_manager.add_managers(managers)
+
+        component_config_parser = self._plugin_manager.get_plugin('component_configuration_parser')
+        # Tack extra components onto the end of the list generated from the model specification.
+        components = (component_config_parser.get_components(self._component_configuration)
+                      + self._additional_components
+                      + [Metrics()])
+        self.add_components(components)
 
     def setup(self):
-        self.lifecycle.set_state('setup')
-        self.component_manager.setup_components(self.builder)
-        self.simulant_creator = self.builder.population.get_simulant_creator()
+        self._lifecycle.set_state('setup')
+        self._component_manager.setup_components(self._builder)
 
-        self.time_step_events = self.lifecycle.get_states('main_loop')
-        self.time_step_emitters = {k: self.builder.event.get_emitter(k) for k in self.time_step_events}
-        self.end_emitter = self.builder.event.get_emitter('simulation_end')
+        self.simulant_creator = self._builder.population.get_simulant_creator()
+
+        self.time_step_events = self._lifecycle.get_states('main_loop')
+        self.time_step_emitters = {k: self._builder.event.get_emitter(k) for k in self.time_step_events}
+        self.end_emitter = self._builder.event.get_emitter('simulation_end')
         self.configuration.freeze()
 
-        # TODO: Remove when lifecycle restrictions are implemented.
-        self._setup = True
-
-        self.lifecycle.set_state('post_setup')
-        self.builder.event.get_emitter('post_setup')(None)
+        self._lifecycle.set_state('post_setup')
+        self._builder.event.get_emitter('post_setup')(None)
 
     def initialize_simulants(self):
-        self.lifecycle.set_state('population_creation')
+        self._lifecycle.set_state('population_creation')
 
         pop_params = self.configuration.population
         # Fencepost the creation of the initial population.
-        self.clock.step_backward()
+        self._clock.step_backward()
         population_size = pop_params.population_size
         self.simulant_creator(population_size, population_configuration={'sim_state': 'setup'})
-        self.clock.step_forward()
+        self._clock.step_forward()
 
     def step(self):
-        _log.debug(self.clock.time)
+        _log.debug(self._clock.time)
         for event in self.time_step_events:
-            self.lifecycle.set_state(event)
-            self.time_step_emitters[event](self.population.get_population(True).index)
-        self.clock.step_forward()
+            self._lifecycle.set_state(event)
+            self.time_step_emitters[event](self._population.get_population(True).index)
+        self._clock.step_forward()
+
+    def run(self):
+        while self._clock.time < self._clock.stop_time:
+            self.step()
 
     def finalize(self):
-        self.lifecycle.set_state('simulation_end')
-        self.end_emitter(self.population.get_population(True).index)
+        self._lifecycle.set_state('simulation_end')
+        self.end_emitter(self._population.get_population(True).index)
+        unused_config_keys = self.configuration.unused_keys()
+        if unused_config_keys:
+            _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
 
     def report(self):
-        return self.values.get_value('metrics')(self.population.get_population(True).index)
+        self._lifecycle.set_state('report')
+        metrics = self._values.get_value('metrics')(self._population.get_population(True).index)
+        _log.debug(pformat(metrics))
+        return metrics
 
     def add_components(self, component_list):
-        if self._setup:
-            raise VivariumError('Components cannot be added to a simulation once it is setup.')
-        self.component_manager.add_components(component_list)
+        """Adds new components to the simulation."""
+        # TODO: Set with life cycle restrictions.
+        if self._lifecycle.current_state.name != 'initialization':
+            raise LifeCycleError
+        self._component_manager.add_components(component_list)
+
+    def get_population(self, untracked: bool = True):
+        # TODO: Set with life cycle restrictions.
+        if self._lifecycle.current_state.name in ['bootstrap', 'initialization', 'setup', 'post_setup']:
+            raise LifeCycleError
+        return self._population.get_population(untracked)
 
     def __repr__(self):
         return "SimulationContext()"
@@ -164,50 +191,13 @@ class Builder:
         return "Builder()"
 
 
-def run_simulation(model_specification_file, results_directory):
-    results_writer = get_results_writer(results_directory, model_specification_file)
-
-    model_specification = build_model_specification(model_specification_file)
-    model_specification.configuration.update({'output_data': {'results_directory': results_writer.results_root}},
-                                             layer='override', source='command_line')
-
-    simulation = setup_simulation(model_specification)
-    metrics, final_state = run(simulation)
-
-    _log.debug(pformat(metrics))
-    unused_config_keys = simulation.configuration.unused_keys()
-    if unused_config_keys:
-        _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
-
-    idx = pd.Index([simulation.configuration.randomness.random_seed], name='random_seed')
-    metrics = pd.DataFrame(metrics, index=idx)
-    results_writer.write_output(metrics, 'output.hdf')
-    results_writer.write_output(final_state, 'final_state.hdf')
-
-
-def setup_simulation(model_specification):
-    plugin_config = model_specification.plugins
-    component_config = model_specification.components
-    simulation_config = model_specification.configuration
-
-    plugin_manager = PluginManager(plugin_config)
-    component_config_parser = plugin_manager.get_plugin('component_configuration_parser')
-    components = component_config_parser.get_components(component_config)
-
-    simulation = SimulationContext(simulation_config, components, plugin_manager)
+def run_simulation(model_specification: Union[str, Path, ConfigTree] = None,
+                   components: Union[List, Dict[str, str], ConfigTree] = None,
+                   configuration: Union[Dict, ConfigTree] = None,
+                   plugin_configuration: Union[Dict[str, str], ConfigTree] = None):
+    simulation = SimulationContext(model_specification, components, configuration, plugin_configuration)
     simulation.setup()
-    return simulation
-
-
-def run(simulation):
-    start = time()
     simulation.initialize_simulants()
-
-    while simulation.clock.time < simulation.clock.stop_time:
-        gc.collect()  # TODO: Actually figure out where the memory leak is.
-        simulation.step()
-
+    simulation.run()
     simulation.finalize()
-    metrics = simulation.report()
-    metrics['simulation_run_time'] = time() - start
-    return metrics, simulation.population.get_population(True)
+    return simulation
