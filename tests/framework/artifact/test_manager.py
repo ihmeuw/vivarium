@@ -47,11 +47,11 @@ def test_subset_columns():
     values = [0, 'Kenya', 'red', 100]
     data = build_table(values, 1990, 2010, columns=('age', 'year', 'sex', 'draw', 'location', 'color', 'value'))
 
-    filtered_data = _subset_columns(data, keep_age_edges=True)
+    filtered_data = _subset_columns(data)
     assert filtered_data.equals(data[['age_start', 'age_end', 'year_start',
                                       'year_end', 'sex', 'color', 'value']])
 
-    filtered_data = _subset_columns(data, keep_age_edges=True, color='red')
+    filtered_data = _subset_columns(data, color='red')
     assert filtered_data.equals(data[['age_start', 'age_end', 'year_start',
                                       'year_end', 'sex', 'value']])
 
