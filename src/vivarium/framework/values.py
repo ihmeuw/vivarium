@@ -156,9 +156,8 @@ class ValuesManager:
                                                                        'simulation_end', 'report'])
 
     def on_post_setup(self, event):
-        unsourced_pipelines = [p for p, v in self._pipelines.items() if not v.source]
-        if unsourced_pipelines:
-            raise DynamicValueError(f"The pipelines {unsourced_pipelines} are unsourced at simulation start.")
+        # FIXME: This should raise an error, but can't due to risk effect generation
+        _log.debug(f"Unsourced pipelines: {[p for p, v in self._pipelines.items() if not v.source]}")
 
     def register_value_modifier(self, value_name, modifier):
         m = modifier if isinstance(modifier, MethodType) else modifier.__call__
