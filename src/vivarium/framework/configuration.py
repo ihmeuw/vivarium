@@ -61,7 +61,7 @@ def build_simulation_configuration() -> ConfigTree:
 
 
 def _get_default_specification():
-    default_config_layers = ['base', 'component_configs', 'model_override', 'override']
+    default_config_layers = ['base', 'user_configs', 'component_configs', 'model_override', 'override']
     default_metadata = {'layer': 'base', 'source': 'vivarium_defaults'}
 
     model_specification = ConfigTree(layers=default_config_layers)
@@ -71,6 +71,6 @@ def _get_default_specification():
 
     user_config_path = Path('~/vivarium.yaml').expanduser()
     if user_config_path.exists():
-        model_specification.configuration.update(user_config_path, layer='base')
+        model_specification.configuration.update(user_config_path, layer='user_configs')
 
     return model_specification
