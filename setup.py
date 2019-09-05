@@ -23,6 +23,7 @@ if __name__ == "__main__":
         'scipy',
         'click',
         'tables',
+        'networkx',
     ]
 
     interactive_requirements = [

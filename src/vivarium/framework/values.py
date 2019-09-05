@@ -13,7 +13,7 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 
 """
 from collections import defaultdict
-from typing import Callable
+from typing import Callable, List
 from types import MethodType
 import logging
 
@@ -141,10 +141,11 @@ class ValuesManager:
     def setup(self, builder):
         self.step_size = builder.time.step_size()
         builder.event.register_listener('post_setup', self.on_post_setup)
+
+        self._register_prodicer = builder.resource.register_resource_producer
         self.add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(self.register_value_producer, allow_during=['setup'])
-        builder.lifecycle.add_constraint(self.register_rate_producer, allow_during=['setup'])
         builder.lifecycle.add_constraint(self.register_value_modifier, allow_during=['setup'])
         builder.lifecycle.add_constraint(self.get_value, allow_during=['setup', 'post_setup', 'population_creation',
                                                                        'simulation_end', 'report'])
@@ -159,7 +160,7 @@ class ValuesManager:
         pipeline = self._pipelines[value_name]
         pipeline.mutators.append(modifier)
 
-    def register_value_producer(self, value_name, source=None,
+    def register_value_producer(self, value_name, source=None, required_columns=None, required_values=None,
                                 preferred_combiner=replace_combiner, preferred_post_processor=None):
         pipeline = self._register_value_producer(value_name, source, preferred_combiner, preferred_post_processor)
         self.add_constraint(pipeline._call, restrict_during=['initialization', 'setup', 'post_setup'])
@@ -176,9 +177,6 @@ class ValuesManager:
         pipeline.manager = self
         pipeline.configured = True
         return pipeline
-
-    def register_rate_producer(self, rate_name, source=None):
-        return self.register_value_producer(rate_name, source, preferred_post_processor=rescale_post_processor)
 
     def get_value(self, name):
         return self._pipelines[name]
@@ -200,10 +198,15 @@ class ValuesManager:
 
 
 class ValuesInterface:
+
     def __init__(self, value_manager: ValuesManager):
         self._value_manager = value_manager
 
-    def register_value_producer(self, value_name: str, source: Callable[..., pd.DataFrame] = None,
+    def register_value_producer(self,
+                                value_name: str,
+                                source: Callable[..., pd.DataFrame] = None,
+                                required_columns: List[str] = None,
+                                required_values: List[str] = None,
                                 preferred_combiner: Callable = replace_combiner,
                                 preferred_post_processor: Callable[..., pd.DataFrame] = None) -> Callable:
         """Marks a ``Callable`` as the producer of a named value.
@@ -233,11 +236,14 @@ class ValuesInterface:
             A callable reference to the named dynamic value pipeline.
 
         """
-        return self._value_manager.register_value_producer(value_name, source,
-                                                           preferred_combiner,
-                                                           preferred_post_processor)
+        return self._value_manager.register_value_producer(value_name, source, required_columns, required_values,
+                                                           preferred_combiner, preferred_post_processor)
 
-    def register_rate_producer(self, rate_name: str, source: Callable[..., pd.DataFrame] = None) -> Callable:
+    def register_rate_producer(self,
+                               rate_name: str,
+                               source: Callable[..., pd.DataFrame] = None,
+                               required_columns: List[str] = None,
+                               required_values: List[str] = None) -> Callable:
         """Marks a ``Callable`` as the producer of a named rate.
 
         This is a convenience wrapper around ``register_value_producer`` that
@@ -259,9 +265,14 @@ class ValuesInterface:
             A callable reference to the named dynamic rate pipeline.
 
         """
-        return self._value_manager.register_rate_producer(rate_name, source)
+        return self.register_value_producer(rate_name, source, required_columns, required_values,
+                                            preferred_post_processor=rescale_post_processor)
 
-    def register_value_modifier(self, value_name: str, modifier: Callable):
+    def register_value_modifier(self,
+                                value_name: str,
+                                modifier: Callable,
+                                required_columns: List[str] = None,
+                                required_values: List[str] = None):
         """Marks a ``Callable`` as the modifier of a named value.
 
         Parameters
@@ -278,7 +289,7 @@ class ValuesInterface:
             the same signature as the pipeline source.
 
         """
-        self._value_manager.register_value_modifier(value_name, modifier)
+        self._value_manager.register_value_modifier(value_name, modifier, required_columns, required_values)
 
     def get_value(self, name):
         return self._value_manager.get_value(name)

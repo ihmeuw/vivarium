@@ -18,6 +18,8 @@ exceptions if this is not possible.
 from typing import Sequence, List, Tuple, Callable, Union
 from collections import deque
 
+import networkx as nx
+
 from vivarium.exceptions import VivariumError
 
 
@@ -26,97 +28,92 @@ class DependencyError(VivariumError):
     pass
 
 
-class DependencyManager:
+class ResourceProducer:
+
+    def __init__(self, resource_type, resource_names, producer, dependencies):
+        self.resource_type = resource_type
+        self.resource_names = resource_names
+        self.producer = producer
+        self.dependencies = dependencies
+
+
+class EmptySet:
+
+    def add(self, item):
+        pass
+
+    def __contains__(self, item):
+        return False
+
+
+class ResourceGroup:
+
+    def __init__(self, resource_type, single_producer=False):
+        self.type = resource_type
+        # One initializer per component, maybe multiple value producers
+        self.producer_components = set() if single_producer else EmptySet()
+        self.resources = {}
+
+    def add_resources(self, resource_type, resource_names, producer, dependencies):
+        if producer.__self__.name in self.producer_components:
+            raise  # Component has more than one producer for resource type ...
+        self.producer_components.add(producer.__self__.name)
+
+        producer = ResourceProducer(resource_type, resource_names, producer, dependencies)
+        for resource_name in resource_names:
+            key = f'{resource_type}.{resource_name}'
+            if key in self.resources:
+                raise  # More than one producer for resource ...
+            self.resources[key] = producer
+
+    def __iter__(self):
+        for resource_producer in self._to_graph():
+            yield resource_producer.producer
+
+    def _to_graph(self):
+        g = nx.DiGraph()
+        g.add_nodes_from(set([r for r in self.resources.values() if r.type == self.type]))
+
+        def _add_in_edges_to(node, from_keys):
+            for dependency_key in from_keys:
+                d = self.resources[dependency_key]
+                if d.type == self.type:
+                    try:
+                        g.add_edge(d, node)
+                    except:  # Some kind of node doesn't exist error
+                        raise  # Resource r depends on d but d has no producer.
+                else:
+                    _add_in_edges_to(node, from_keys=d.dependencies)
+
+        for r in set(self.resources.values()):
+            _add_in_edges_to(r, r.dependencies)
+
+        return nx.algorithms.topological_sort(g)
+
+
+class ResourceManager:
 
     def __init__(self):
-        self.population_initializers = []
-        self.population_initializers_ordered = False
+        self._resource_groups = {'column': ResourceGroup('column', single_producer=True)}
 
     @property
     def name(self):
-        return "dependency_manager"
+        return "resource_manager"
 
-    @staticmethod
-    def _validate_population_initializers(initializers: Sequence[Tuple]):
-        """Initializers are of the form (Callable, Created, Required)"""
-        created_columns = []
-        required_columns = []
-        for _, created, required in initializers:
-            created_columns.extend(created)
-            required_columns.extend(required)
+    def register_resource_producer(self, resource_names, resource_type, producer, dependencies):
+        self._resource_groups[resource_type].add_resources(resource_names, resource_type, producer, dependencies)
 
-        missing_columns = set(required_columns).difference(set(created_columns))
-        if missing_columns:
-            raise DependencyError(f"The population columns {missing_columns} are required, but are not "
-                                  f"created by any components in the system.")
-
-    @staticmethod
-    def _order_population_initializers(resources: Sequence[Tuple]) -> List[Tuple]:
-        unordered_resources = deque(resources)
-        ordered_resources = []
-        starting_length = -1
-        available_columns = []
-
-        # This is the brute force N! way because constructing a dependency graph is work
-        # and in practice this should run in about order N time due to the way dependencies are
-        # typically specified.  N is also very small in all current applications.
-        while len(unordered_resources) != starting_length:
-            starting_length = len(unordered_resources)
-            for _ in range(len(unordered_resources)):
-                initializer, columns_created, columns_required = unordered_resources.popleft()
-                if set(columns_required) <= set(available_columns):
-                    ordered_resources.append((initializer, columns_created, columns_required))
-                    available_columns.extend(columns_created)
-                else:
-                    unordered_resources.append((initializer, columns_created, columns_required))
-
-        if unordered_resources:
-            raise DependencyError(f"The initializers {unordered_resources} could not be added.  "
-                                  "Check for cyclic dependencies in your components.")
-
-        if len(set(available_columns)) < len(available_columns):
-            raise DependencyError("Multiple components are attempting to initialize the "
-                                  "same columns in the state table.")
-
-        return ordered_resources
-
-    def get_ordered_population_initializers(self):
-        if not self.population_initializers_ordered:
-            self._validate_population_initializers(self.population_initializers)
-            self.population_initializers = self._order_population_initializers(self.population_initializers)
-        return self.population_initializers
-
-    def register_population_initializer(self, initializer: Tuple[Callable, Union[List[str], Tuple[str]], Union[List[str], Tuple[str]]]):
-        self.population_initializers.append(initializer)
-        self.population_initializers_ordered = False
+    def get_resource_producers(self, resource_type):
+        return lambda: self._resource_groups[resource_type]
 
 
-class DependencyInterface:
+class ResourceInterface:
 
-    def __init__(self, dependency_manager: DependencyManager):
-        self._dependency_manager = dependency_manager
+    def __init__(self, manager: ResourceManager):
+        self._manager = manager
 
-    def register_population_initializer(self, initializer: Tuple[Callable, Union[List[str], Tuple[str]], Union[List[str], Tuple[str]]]):
-        """Register a population initializer with the dependency manager.
+    def register_resource_producer(self, resource_names, resource_type, producer, dependencies):
+        self._manager.register_resource_producer(resource_names, resource_type, producer, dependencies)
 
-        Parameters
-        ----------
-        initializer
-            A tuple defining an initializer: a callable function, the columns created,
-            and the columns required.
-
-        """
-        self._dependency_manager.register_population_initializer(initializer)
-
-    def get_ordered_population_initializers(self) -> List[Tuple]:
-        """Retrieve the list of population initializers ordered by dependency
-        held by the dependency manager.
-
-        Returns
-        -------
-            A list of initializers ordered by dependency, defined as a tuple
-            containing a callable function, the columns created, and the columns
-            required.
-
-        """
-        return self._dependency_manager.get_ordered_population_initializers()
+    def get_resource_producers(self, resource_type):
+        return self._manager.get_resource_producers(resource_type)

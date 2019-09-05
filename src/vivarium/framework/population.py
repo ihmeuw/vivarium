@@ -199,11 +199,13 @@ class PopulationManager:
     def setup(self, builder):
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
+
         builder.value.register_value_modifier('metrics', modifier=self.metrics)
 
-        self.register_population_initializer = builder.dependency.register_population_initializer
-        self.get_ordered_population_initializers = builder.dependency.get_ordered_population_initializers
-        self.register_population_initializer((self.on_create_simulants, ['tracked'], []))
+        self._register_producer = builder.resource.register_resource_producer
+        self.initializers = builder.resource.get_resource_producers('column')
+
+        self.register_simulant_initializer(self.on_create_simulants, ['tracked'])
 
         self._add_constraint = builder.lifecycle.add_constraint
 
@@ -237,8 +239,11 @@ class PopulationManager:
         return PopulationView(self, columns, query)
 
     def register_simulant_initializer(self, initializer: Callable,
-                                      creates_columns: Sequence[str] = (), requires_columns: Sequence[str] = ()):
-        self.register_population_initializer((initializer, creates_columns, tuple(requires_columns) + ('tracked',)))
+                                      creates_columns: List[str] = (),
+                                      requires_columns: List[str] = (),
+                                      requires_values: List[str] = ()):
+        dependencies = [f'column.{name}' for name in requires_columns] + [f'value.{name}' for name in requires_values]
+        self._register_producer('column', list(creates_columns), initializer, dependencies)
 
     def get_simulant_creator(self) -> Callable:
         return self._create_simulants
@@ -249,13 +254,12 @@ class PopulationManager:
 
     def _create_simulants(self, count: int, population_configuration: Mapping[str, Any] = None) -> pd.Index:
         population_configuration = population_configuration if population_configuration else {}
-        population_initializers = self.get_ordered_population_initializers()
         new_index = range(len(self._population) + count)
         new_population = self._population.reindex(new_index)
         index = new_population.index.difference(self._population.index)
         self._population = new_population
         self.growing = True
-        for initializer, *_ in population_initializers:
+        for initializer in self.initializers():
             initializer(SimulantData(index, population_configuration, self.clock(), self.step_size()))
         self.growing = False
         return index
@@ -273,7 +277,7 @@ class PopulationManager:
     def get_population(self, untracked) -> pd.DataFrame:
         pop = self._population.copy()
         if not untracked:
-            pop = pop[pop.tracked==True]
+            pop = pop[pop.tracked]
         return pop
 
     def __repr__(self):
@@ -332,8 +336,9 @@ class PopulationInterface:
         return self._population_manager.get_simulant_creator()
 
     def initializes_simulants(self, initializer: Callable[[SimulantData], None],
-                              creates_columns: Sequence[str] = (),
-                              requires_columns: Sequence[str] = ()):
+                              creates_columns: List[str] = (),
+                              requires_columns: List[str] = (),
+                              requires_values: List[str] = ()):
         """Marks a source of initial state information for new simulants.
 
         Parameters
@@ -348,6 +353,10 @@ class PopulationInterface:
             A list of the state table columns that already need to be present
             and populated in the state table before the provided initializer
             is called.
+        requires_values
+            A list of the value pipelines that need to be properly sourced
+            before the provided initializer is called.
 
         """
-        self._population_manager.register_simulant_initializer(initializer, creates_columns, requires_columns)
+        self._population_manager.register_simulant_initializer(initializer, creates_columns,
+                                                               requires_columns, requires_values)
