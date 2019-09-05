@@ -20,6 +20,7 @@ class NonCRNTestPopulation:
         'population': {
             'age_start': 0,
             'age_end': 100,
+            'exit_age': None,
         },
         'input_data': {
             'location': "Kenya",
