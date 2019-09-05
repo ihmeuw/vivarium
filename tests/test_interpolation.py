@@ -186,9 +186,9 @@ def test_order_zero_1d_constant_extrapolation():
 
 def test_validate_parameters__empty_data():
     with pytest.raises(ValueError) as error:
-        validate_parameters(pd.DataFrame(columns=["age_group_left", "age_group_right",
+        validate_parameters(pd.DataFrame(columns=["age_left", "age_right",
                                                   "sex", "year_left", "year_right", "value"]), ["sex"],
-                            [("age", "age_group_left", "age_group_right"),
+                            [("age", "age_left", "age_right"),
                              ["year", "year_left", "year_right"]])
     message = error.value.args[0]
     assert 'empty' in message

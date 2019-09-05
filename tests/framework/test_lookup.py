@@ -93,7 +93,7 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     years = manager._build_table(years, key_columns=('sex',),
-                                 parameter_columns=(['age', 'age_group_start', 'age_group_end'],
+                                 parameter_columns=(['age', 'age_start', 'age_end'],
                                                     ['year', 'year_start', 'year_end'],),
                                 value_columns=None)
 
@@ -139,7 +139,7 @@ def test_lookup_table_interpolated_return_types(base_config):
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     table = (manager._build_table(data, key_columns=('sex',),
-                                  parameter_columns=[['age', 'age_group_start', 'age_group_end'],
+                                  parameter_columns=[['age', 'age_start', 'age_end'],
                                                      ['year', 'year_start', 'year_end']],
                                   value_columns=None)(simulation.get_population().index))
     # make sure a single value column is returned as a series
@@ -148,7 +148,7 @@ def test_lookup_table_interpolated_return_types(base_config):
     # now add a second value column to make sure the result is a df
     data['value2'] = data.value
     table = (manager._build_table(data, key_columns=('sex',),
-                                  parameter_columns=[['age', 'age_group_start', 'age_group_end'],
+                                  parameter_columns=[['age', 'age_start', 'age_end'],
                                                      ['year', 'year_start', 'year_end']],
                                   value_columns=None)(simulation.get_population().index))
 
