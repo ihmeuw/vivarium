@@ -34,7 +34,7 @@ def hdf_key(request):
 @pytest.fixture(params=['totally.new.thing', 'other.new_thing', 'cause.sort_of_new', 'cause.also.new',
                         'cause.all_cause.kind_of_new'])
 def mock_key(request):
-    return hdf._EntityKey(request.param)
+    return hdf.EntityKey(request.param)
 
 
 @pytest.fixture(params=[[], {}, ['data'], {'thing': 'value'}, 'bananas'])
@@ -64,7 +64,7 @@ def test_touch_existing_file(tmpdir):
     path = f'{str(tmpdir)}/test.hdf'
 
     hdf.touch(path)
-    hdf.write(path, hdf._EntityKey('test.key'), 'data')
+    hdf.write(path, hdf.EntityKey('test.key'), 'data')
     assert hdf.get_keys(path) == ['test.key']
 
     # should wipe out and make it again
@@ -88,7 +88,7 @@ def test_write_json(hdf_file_path, mock_key, json_data, mocker):
 
 
 def test_load(hdf_file_path, hdf_key):
-    key = hdf._EntityKey(hdf_key)
+    key = hdf.EntityKey(hdf_key)
     data = hdf.load(hdf_file_path, key, filter_terms=None, column_filters=None)
     if 'restrictions' in key or 'versions' in key:
         assert isinstance(data, dict)
@@ -99,7 +99,7 @@ def test_load(hdf_file_path, hdf_key):
 
 
 def test_load_with_invalid_filters(hdf_file_path, hdf_key):
-    key = hdf._EntityKey(hdf_key)
+    key = hdf.EntityKey(hdf_key)
     data = hdf.load(hdf_file_path, key, filter_terms=["fake_filter==0"], column_filters=None)
     if 'restrictions' in key or 'versions' in key:
         assert isinstance(data, dict)
@@ -110,7 +110,7 @@ def test_load_with_invalid_filters(hdf_file_path, hdf_key):
 
 
 def test_load_with_valid_filters(hdf_file_path, hdf_key):
-    key = hdf._EntityKey(hdf_key)
+    key = hdf.EntityKey(hdf_key)
     data = hdf.load(hdf_file_path, key, filter_terms=["year == 2006"], column_filters=None)
     if 'restrictions' in key or 'versions' in key:
         assert isinstance(data, dict)
@@ -123,7 +123,7 @@ def test_load_with_valid_filters(hdf_file_path, hdf_key):
 
 
 def test_load_filter_empty_data_frame_index(hdf_file_path):
-    key = hdf._EntityKey('cause.test.prevalence')
+    key = hdf.EntityKey('cause.test.prevalence')
     data = pd.DataFrame(data={'age': range(10),
                               'year': range(10),
                               'draw': range(10)})
@@ -136,7 +136,7 @@ def test_load_filter_empty_data_frame_index(hdf_file_path):
 
 
 def test_remove(hdf_file_path, hdf_key):
-    key = hdf._EntityKey(hdf_key)
+    key = hdf.EntityKey(hdf_key)
     hdf.remove(hdf_file_path, key)
     with tables.open_file(str(hdf_file_path)) as file:
         assert key.path not in file
@@ -157,7 +157,7 @@ def test_write_json_blob(hdf_file_path, mock_key, json_data):
 
 
 def test_write_empty_data_frame(hdf_file_path):
-    key = hdf._EntityKey('cause.test.prevalence')
+    key = hdf.EntityKey('cause.test.prevalence')
     data = pd.DataFrame(columns=('age', 'year', 'sex', 'draw', 'location', 'value'))
 
     with pytest.raises(ValueError):
@@ -165,7 +165,7 @@ def test_write_empty_data_frame(hdf_file_path):
 
 
 def test_write_empty_data_frame_index(hdf_file_path):
-    key = hdf._EntityKey('cause.test.prevalence')
+    key = hdf.EntityKey('cause.test.prevalence')
     data = pd.DataFrame(data={'age': range(10),
                               'year': range(10),
                               'draw': range(10)})
@@ -178,7 +178,7 @@ def test_write_empty_data_frame_index(hdf_file_path):
 
 
 def test_write_load_empty_data_frame_index(hdf_file_path):
-    key = hdf._EntityKey('cause.test.prevalence')
+    key = hdf.EntityKey('cause.test.prevalence')
     data = pd.DataFrame(data={'age': range(10),
                               'year': range(10),
                               'draw': range(10)})
@@ -190,7 +190,7 @@ def test_write_load_empty_data_frame_index(hdf_file_path):
 
 
 def test_write_data_frame(hdf_file_path):
-    key = hdf._EntityKey('cause.test.prevalence')
+    key = hdf.EntityKey('cause.test.prevalence')
     data = build_table([lambda *args, **kwargs: random.choice([0, 1]), "Kenya", 1],
                        2005, 2010, columns=('age', 'year', 'sex', 'draw', 'location', 'value'))
 
@@ -212,12 +212,12 @@ def test_get_keys_private(hdf_file, hdf_keys):
 
 
 def test_get_node_name(hdf_file, hdf_key):
-    key = hdf._EntityKey(hdf_key)
+    key = hdf.EntityKey(hdf_key)
     assert hdf._get_node_name(hdf_file.get_node(key.path)) == key.measure
 
 
 def test_get_valid_filter_terms_all_invalid(hdf_key, hdf_file):
-    node = hdf_file.get_node(hdf._EntityKey(hdf_key).path)
+    node = hdf_file.get_node(hdf.EntityKey(hdf_key).path)
     if not isinstance(node, tables.earray.EArray):
         columns = node.table.colnames
         invalid_filter_terms = _construct_no_valid_filters(columns)
@@ -225,7 +225,7 @@ def test_get_valid_filter_terms_all_invalid(hdf_key, hdf_file):
 
 
 def test_get_valid_filter_terms_all_valid(hdf_key, hdf_file):
-    node = hdf_file.get_node(hdf._EntityKey(hdf_key).path)
+    node = hdf_file.get_node(hdf.EntityKey(hdf_key).path)
     if not isinstance(node, tables.earray.EArray):
         columns = node.table.colnames
         valid_filter_terms = _construct_all_valid_filters(columns)
@@ -233,7 +233,7 @@ def test_get_valid_filter_terms_all_valid(hdf_key, hdf_file):
 
 
 def test_get_valid_filter_terms_some_valid(hdf_key, hdf_file):
-    node = hdf_file.get_node(hdf._EntityKey(hdf_key).path)
+    node = hdf_file.get_node(hdf.EntityKey(hdf_key).path)
     if not isinstance(node, tables.earray.EArray):
         columns = node.table.colnames
         invalid_filter_terms = _construct_no_valid_filters(columns)
@@ -273,13 +273,13 @@ def test_EntityKey_init_failure():
 
     for k in bad_keys:
         with pytest.raises(ValueError):
-            hdf._EntityKey(k)
+            hdf.EntityKey(k)
 
 
 def test_EntityKey_no_name():
     type_ = 'population'
     measure = 'structure'
-    key = hdf._EntityKey(f'{type_}.{measure}')
+    key = hdf.EntityKey(f'{type_}.{measure}')
 
     assert key.type == type_
     assert key.name == ''
@@ -288,14 +288,14 @@ def test_EntityKey_no_name():
     assert key.group_name == type_
     assert key.group == f'/{type_}'
     assert key.path == f'/{type_}/{measure}'
-    assert key.with_measure('age_groups') == hdf._EntityKey('population.age_groups')
+    assert key.with_measure('age_groups') == hdf.EntityKey('population.age_groups')
 
 
 def test_EntityKey_with_name():
     type_ = 'cause'
     name = 'diarrheal_diseases'
     measure = 'incidence'
-    key = hdf._EntityKey(f'{type_}.{name}.{measure}')
+    key = hdf.EntityKey(f'{type_}.{name}.{measure}')
 
     assert key.type == type_
     assert key.name == name
@@ -304,4 +304,4 @@ def test_EntityKey_with_name():
     assert key.group_name == name
     assert key.group == f'/{type_}/{name}'
     assert key.path == f'/{type_}/{name}/{measure}'
-    assert key.with_measure('prevalence') == hdf._EntityKey(f'{type_}.{name}.prevalence')
+    assert key.with_measure('prevalence') == hdf.EntityKey(f'{type_}.{name}.prevalence')
