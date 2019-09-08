@@ -202,8 +202,7 @@ class PopulationManager:
 
         builder.value.register_value_modifier('metrics', modifier=self.metrics)
 
-        self._register_producer = builder.resource.register_resource_producer
-        self.initializers = builder.resource.get_resource_producers('column')
+        self.initialization_resources = builder.resource.get_resource_group('initialization')
 
         self.register_simulant_initializer(self.on_create_simulants, ['tracked'])
 
@@ -243,7 +242,7 @@ class PopulationManager:
                                       requires_columns: List[str] = (),
                                       requires_values: List[str] = ()):
         dependencies = [f'column.{name}' for name in requires_columns] + [f'value.{name}' for name in requires_values]
-        self._register_producer('column', list(creates_columns), initializer, dependencies)
+        self.initialization_resources.add_resources('column', list(creates_columns), initializer, dependencies)
 
     def get_simulant_creator(self) -> Callable:
         return self._create_simulants
@@ -259,7 +258,7 @@ class PopulationManager:
         index = new_population.index.difference(self._population.index)
         self._population = new_population
         self.growing = True
-        for initializer in self.initializers():
+        for initializer in self.initialization_resources:
             initializer(SimulantData(index, population_configuration, self.clock(), self.step_size()))
         self.growing = False
         return index

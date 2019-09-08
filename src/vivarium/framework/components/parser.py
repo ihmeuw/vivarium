@@ -20,7 +20,7 @@ There are three steps to this process.
 3. Importing and instantiating the actual components
 
 """
-from typing import Sequence, Tuple, List, Dict, Union, Any
+from typing import Tuple, List, Dict, Union, Any
 
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.utilities import import_by_path

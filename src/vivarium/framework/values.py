@@ -14,7 +14,6 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 """
 from collections import defaultdict
 from typing import Callable, List
-from types import MethodType
 import logging
 
 import pandas as pd
@@ -142,7 +141,7 @@ class ValuesManager:
         self.step_size = builder.time.step_size()
         builder.event.register_listener('post_setup', self.on_post_setup)
 
-        self._register_prodicer = builder.resource.register_resource_producer
+        self.initialization_resources = builder.resource.get_resource_group('initialization')
         self.add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(self.register_value_producer, allow_during=['setup'])
@@ -154,15 +153,24 @@ class ValuesManager:
         # FIXME: This should raise an error, but can't due to downstream dependants.
         _log.debug(f"Unsourced pipelines: {[p for p, v in self._pipelines.items() if not v.source]}")
 
-    def register_value_modifier(self, value_name, modifier):
-        m = modifier if isinstance(modifier, MethodType) else modifier.__call__
-        _log.debug(f"Registering {str(m).split()[2]} as modifier to {value_name}")
-        pipeline = self._pipelines[value_name]
-        pipeline.mutators.append(modifier)
+        for name, pipe in self._pipelines.items():
+            dependencies = []
+            if pipe.source:  # Same fixme as above.
+                dependencies += [f'value_source.{name}']
+            dependencies += [f'value_modifier.{name}_{i+1}' for i in range(len(pipe.mutators))]
+            self.initialization_resources.add_resources('value', name, pipe._call, dependencies)
 
-    def register_value_producer(self, value_name, source=None, required_columns=None, required_values=None,
+    def register_value_producer(self, value_name, source, required_columns=None, required_values=None,
                                 preferred_combiner=replace_combiner, preferred_post_processor=None):
         pipeline = self._register_value_producer(value_name, source, preferred_combiner, preferred_post_processor)
+
+        # The resource we add here is just the pipeline source.
+        # The value will depend on the source and its modifiers, and we'll
+        # declare that resource at post-setup once all sources and modifiers
+        # are registered.
+        dependencies = [f'column.{name}' for name in required_columns] + [f'value.{name}' for name in required_values]
+        self.initialization_resources.add_resources('value_source', value_name, source, dependencies)
+
         self.add_constraint(pipeline._call, restrict_during=['initialization', 'setup', 'post_setup'])
         return pipeline
 
@@ -177,6 +185,15 @@ class ValuesManager:
         pipeline.manager = self
         pipeline.configured = True
         return pipeline
+
+    def register_value_modifier(self, value_name, modifier, required_columns, required_values):
+        _log.debug(f"Registering {modifier.__name__} as modifier to {value_name}")
+        pipeline = self._pipelines[value_name]
+        pipeline.mutators.append(modifier)
+
+        name = f'{value_name}_{len(pipeline.mutators)}'
+        dependencies = [f'column.{name}' for name in required_columns] + [f'value.{name}' for name in required_values]
+        self.initialization_resources.add_resources('value_modifier', name, modifier, dependencies)
 
     def get_value(self, name):
         return self._pipelines[name]
@@ -204,7 +221,7 @@ class ValuesInterface:
 
     def register_value_producer(self,
                                 value_name: str,
-                                source: Callable[..., pd.DataFrame] = None,
+                                source: Callable[..., pd.DataFrame],
                                 required_columns: List[str] = None,
                                 required_values: List[str] = None,
                                 preferred_combiner: Callable = replace_combiner,
@@ -241,7 +258,7 @@ class ValuesInterface:
 
     def register_rate_producer(self,
                                rate_name: str,
-                               source: Callable[..., pd.DataFrame] = None,
+                               source: Callable[..., pd.DataFrame],
                                required_columns: List[str] = None,
                                required_values: List[str] = None) -> Callable:
         """Marks a ``Callable`` as the producer of a named rate.

@@ -32,7 +32,7 @@ from .lookup import LookupTableInterface
 from .metrics import Metrics
 from .plugins import PluginManager
 from .population import PopulationInterface
-from .dependency import DependencyInterface
+from .resource import ResourceInterface
 from .randomness import RandomnessInterface
 from .values import ValuesInterface
 from .time import TimeInterface
@@ -79,7 +79,7 @@ class SimulationContext:
         self._values = self._plugin_manager.get_plugin('value')
         self._events = self._plugin_manager.get_plugin('event')
         self._population = self._plugin_manager.get_plugin('population')
-        self._dependency = self._plugin_manager.get_plugin('dependency')
+        self._resource = self._plugin_manager.get_plugin('resource')
         self._tables = self._plugin_manager.get_plugin('lookup')
         self._randomness = self._plugin_manager.get_plugin('randomness')
         self._data = self._plugin_manager.get_plugin('data')
@@ -87,13 +87,15 @@ class SimulationContext:
         for name, controller in self._plugin_manager.get_optional_controllers().items():
             setattr(self, f'_{name}', controller)
 
+        self._resource.add_group('initialization', single_producer=True)
+
         # The order the managers are added is important.  It represents the
         # order in which they will be set up.  The clock is required by
         # several of the other managers, including the lifecycle manager.  The
         # lifecycle manager is also required by most managers. The randomness
         # manager requires the population manager.  The remaining managers need
         # no ordering.
-        managers = [self._clock, self._lifecycle, self._dependency, self._population,
+        managers = [self._clock, self._lifecycle, self._resource, self._population,
                     self._randomness, self._values, self._events, self._tables,
                     self._data] + list(self._plugin_manager.get_optional_controllers().values())
         self._component_manager.add_managers(managers)
@@ -110,6 +112,8 @@ class SimulationContext:
         self.add_components(components)
 
     def setup(self):
+        self.configuration.freeze()
+
         self._lifecycle.set_state('setup')
         self._component_manager.setup_components(self._builder)
 
@@ -118,7 +122,6 @@ class SimulationContext:
         self.time_step_events = self._lifecycle.get_states('main_loop')
         self.time_step_emitters = {k: self._builder.event.get_emitter(k) for k in self.time_step_events}
         self.end_emitter = self._builder.event.get_emitter('simulation_end')
-        self.configuration.freeze()
 
         post_setup = self._builder.event.get_emitter('post_setup')
         self._lifecycle.set_state('post_setup')
@@ -178,7 +181,7 @@ class Builder:
         self.value = plugin_manager.get_plugin_interface('value')                   # type: ValuesInterface
         self.event = plugin_manager.get_plugin_interface('event')                   # type: EventInterface
         self.population = plugin_manager.get_plugin_interface('population')         # type: PopulationInterface
-        self.dependency = plugin_manager.get_plugin_interface('dependency')         # type: DependencyInterface
+        self.resource = plugin_manager.get_plugin_interface('resource')             # type: ResourceInterface
         self.randomness = plugin_manager.get_plugin_interface('randomness')         # type: RandomnessInterface
         self.time = plugin_manager.get_plugin_interface('clock')                    # type: TimeInterface
         self.components = plugin_manager.get_plugin_interface('component_manager')  # type: ComponentInterface
