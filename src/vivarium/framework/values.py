@@ -158,9 +158,9 @@ class ValuesManager:
             if pipe.source:  # Same fixme as above.
                 dependencies += [f'value_source.{name}']
             dependencies += [f'value_modifier.{name}_{i+1}' for i in range(len(pipe.mutators))]
-            self.initialization_resources.add_resources('value', name, pipe._call, dependencies)
+            self.initialization_resources.add_resources('value', [name], pipe._call, dependencies)
 
-    def register_value_producer(self, value_name, source, required_columns=None, required_values=None,
+    def register_value_producer(self, value_name, source, required_columns=(), required_values=(),
                                 preferred_combiner=replace_combiner, preferred_post_processor=None):
         pipeline = self._register_value_producer(value_name, source, preferred_combiner, preferred_post_processor)
 
@@ -169,7 +169,7 @@ class ValuesManager:
         # declare that resource at post-setup once all sources and modifiers
         # are registered.
         dependencies = [f'column.{name}' for name in required_columns] + [f'value.{name}' for name in required_values]
-        self.initialization_resources.add_resources('value_source', value_name, source, dependencies)
+        self.initialization_resources.add_resources('value_source', [value_name], source, dependencies)
 
         self.add_constraint(pipeline._call, restrict_during=['initialization', 'setup', 'post_setup'])
         return pipeline
@@ -186,14 +186,15 @@ class ValuesManager:
         pipeline.configured = True
         return pipeline
 
-    def register_value_modifier(self, value_name, modifier, required_columns, required_values):
+    def register_value_modifier(self, value_name, modifier,
+                                required_columns=(), required_values=()):
         _log.debug(f"Registering {modifier.__name__} as modifier to {value_name}")
         pipeline = self._pipelines[value_name]
         pipeline.mutators.append(modifier)
 
         name = f'{value_name}_{len(pipeline.mutators)}'
         dependencies = [f'column.{name}' for name in required_columns] + [f'value.{name}' for name in required_values]
-        self.initialization_resources.add_resources('value_modifier', name, modifier, dependencies)
+        self.initialization_resources.add_resources('value_modifier', [name], modifier, dependencies)
 
     def get_value(self, name):
         return self._pipelines[name]
@@ -222,8 +223,8 @@ class ValuesInterface:
     def register_value_producer(self,
                                 value_name: str,
                                 source: Callable[..., pd.DataFrame],
-                                required_columns: List[str] = None,
-                                required_values: List[str] = None,
+                                required_columns: List[str] = (),
+                                required_values: List[str] = (),
                                 preferred_combiner: Callable = replace_combiner,
                                 preferred_post_processor: Callable[..., pd.DataFrame] = None) -> Callable:
         """Marks a ``Callable`` as the producer of a named value.
@@ -259,8 +260,8 @@ class ValuesInterface:
     def register_rate_producer(self,
                                rate_name: str,
                                source: Callable[..., pd.DataFrame],
-                               required_columns: List[str] = None,
-                               required_values: List[str] = None) -> Callable:
+                               required_columns: List[str] = (),
+                               required_values: List[str] = ()) -> Callable:
         """Marks a ``Callable`` as the producer of a named rate.
 
         This is a convenience wrapper around ``register_value_producer`` that
@@ -288,8 +289,8 @@ class ValuesInterface:
     def register_value_modifier(self,
                                 value_name: str,
                                 modifier: Callable,
-                                required_columns: List[str] = None,
-                                required_values: List[str] = None):
+                                required_columns: List[str] = (),
+                                required_values: List[str] = ()):
         """Marks a ``Callable`` as the modifier of a named value.
 
         Parameters

@@ -1,6 +1,6 @@
 import pytest
 
-from vivarium.framework.engine import SimulationContext, Builder, run_simulation
+from vivarium.framework.engine import SimulationContext, Builder
 from vivarium.framework.artifact import ArtifactManager, ArtifactInterface
 from vivarium.framework.event import EventManager, EventInterface
 from vivarium.framework.lookup import LookupTableManager, LookupTableInterface
@@ -8,6 +8,7 @@ from vivarium.framework.components import OrderedComponentSet, ComponentManager,
 from vivarium.framework.metrics import Metrics
 from vivarium.framework.population import PopulationManager, PopulationInterface
 from vivarium.framework.randomness import RandomnessManager, RandomnessInterface
+from vivarium.framework.resource import ResourceManager, ResourceInterface
 from vivarium.framework.time import DateTimeClock, TimeInterface
 from vivarium.framework.values import ValuesManager, ValuesInterface
 
@@ -54,6 +55,8 @@ def test_SimulationContext_init_default(components):
     assert sim._builder.population._population_manager is sim._population
     assert isinstance(sim._builder.randomness, RandomnessInterface)
     assert sim._builder.randomness._randomness_manager is sim._randomness
+    assert isinstance(sim._builder.resource, ResourceInterface)
+    assert sim._builder.resource._manager is sim._resource
     assert isinstance(sim._builder.time, TimeInterface)
     assert sim._builder.time._clock is sim._clock
     assert isinstance(sim._builder.components, ComponentInterface)
@@ -62,8 +65,9 @@ def test_SimulationContext_init_default(components):
     assert sim._builder.data._manager is sim._data
 
     # Ordering matters.
-    managers = [sim._clock, sim._lifecycle, sim._dependency, sim._population, sim._randomness,
-                sim._values, sim._events, sim._tables, sim._data]
+    managers = [sim._clock, sim._lifecycle, sim._resource, sim._values,
+                sim._population, sim._randomness, sim._events,
+                sim._tables, sim._data]
     assert sim._component_manager._managers == OrderedComponentSet(*managers)
     unpacked_components = []
     for c in components:

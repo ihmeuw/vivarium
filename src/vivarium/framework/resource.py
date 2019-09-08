@@ -21,7 +21,7 @@ import networkx as nx
 from vivarium.exceptions import VivariumError
 
 
-class DependencyError(VivariumError):
+class ResourceError(VivariumError):
     """Error raised when a dependency requirement is violated"""
     pass
 
@@ -56,15 +56,16 @@ class ResourceGroup:
         self.resources = {}
 
     def add_resources(self, resource_type, resource_names, producer, dependencies):
-        if resource_type == 'column' and producer.__self__.name in self.producer_components:
-            raise  # Component has more than one producer for resource type ...
-        self.producer_components.add(producer.__self__.name)
+        if resource_type == 'column':
+            if producer.__self__.name in self.producer_components:
+                raise ResourceError  # Component has more than one producer for resource type ...
+            self.producer_components.add(producer.__self__.name)
 
         producer = ResourceProducer(resource_type, resource_names, producer, dependencies)
         for resource_name in resource_names:
             key = f'{resource_type}.{resource_name}'
             if key in self.resources:
-                raise  # More than one producer for resource ...
+                raise ResourceError  # More than one producer for resource ...
             self.resources[key] = producer
 
     def __iter__(self):
@@ -73,16 +74,16 @@ class ResourceGroup:
 
     def _to_graph(self):
         g = nx.DiGraph()
-        g.add_nodes_from(set([r for r in self.resources.values() if r.type == 'column']))
+        g.add_nodes_from(set([r for r in self.resources.values() if r.resource_type == 'column']))
 
         def _add_in_edges_to(node, from_keys):
             for dependency_key in from_keys:
                 d = self.resources[dependency_key]
-                if d.type == 'column':
+                if d.resource_type == 'column':
                     try:
                         g.add_edge(d, node)
                     except:  # Some kind of node doesn't exist error
-                        raise  # Resource r depends on d but d has no producer.
+                        raise ResourceError # Resource r depends on d but d has no producer.
                 else:
                     _add_in_edges_to(node, from_keys=d.dependencies)
 
@@ -103,7 +104,7 @@ class ResourceManager:
 
     def add_group(self, phase, single_producer=False):
         if phase in self._resource_groups:
-            raise  # One resource group per phase
+            raise  ResourceError  # One resource group per phase
         self._resource_groups[phase] = ResourceGroup(phase, single_producer)
 
     def get_resource_group(self, phase):

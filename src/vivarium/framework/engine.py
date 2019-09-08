@@ -95,8 +95,8 @@ class SimulationContext:
         # lifecycle manager is also required by most managers. The randomness
         # manager requires the population manager.  The remaining managers need
         # no ordering.
-        managers = [self._clock, self._lifecycle, self._resource, self._population,
-                    self._randomness, self._values, self._events, self._tables,
+        managers = [self._clock, self._lifecycle, self._resource, self._values,
+                    self._population, self._randomness, self._events, self._tables,
                     self._data] + list(self._plugin_manager.get_optional_controllers().values())
         self._component_manager.add_managers(managers)
 

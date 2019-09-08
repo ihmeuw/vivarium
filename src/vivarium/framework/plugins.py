@@ -34,9 +34,9 @@ _MANAGERS = {
         'controller': 'vivarium.framework.population.PopulationManager',
         'builder_interface': 'vivarium.framework.population.PopulationInterface',
     },
-    'dependency': {
-        'controller': 'vivarium.framework.dependency.DependencyManager',
-        'builder_interface': 'vivarium.framework.dependency.DependencyInterface'
+    'resource': {
+        'controller': 'vivarium.framework.resource.ResourceManager',
+        'builder_interface': 'vivarium.framework.resource.ResourceInterface'
     }
 }
 
