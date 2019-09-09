@@ -31,7 +31,7 @@ can be grouped into five important phases.
    * - | :ref:`Simulation End <lifecycle_simulation_end>`
      - | The population state is finalized and results are tabulated.
 
-The simulation itself maintains a formal representation of it's internal
+The simulation itself maintains a formal representation of its internal
 execution state using the tools in the :mod:`~vivarium.framework.lifecycle`
 module. The tools allow the simulation to make concrete contracts about flow
 of execution in simulations and to constrain the availability of certain
