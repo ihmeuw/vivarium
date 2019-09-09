@@ -5,7 +5,7 @@ Life Cycle Management
 
 The life cycle is a representation of the run state of a :mod:`vivarium`
 simulation. The tools in this model allow a simulation to formally represent
-it's run state and use the formal representation to enforce run-time
+its run state and use the formal representation to enforce run-time
 contracts.
 
 There are two flavors of contracts that this system enforces:
@@ -21,7 +21,7 @@ There are two flavors of contracts that this system enforces:
  - **Ordering Contracts**: The
    :class:`~vivarium.framework.engine.SimulationContext` will construct
    the formal representation of the life cycle during its initialization.
-   Once generated, the the context declares as it transitions between
+   Once generated, the context declares as it transitions between
    different lifecycle states and the tools here ensure that only valid
    transitions occur.  These kinds of contracts are particularly useful
    during interactive usage, as they prevent users from, for example,
@@ -39,12 +39,12 @@ from vivarium.exceptions import VivariumError
 
 
 class LifeCycleError(VivariumError):
-    """Error raised when lifecycle ordering contracts are violated."""
+    """Error raised when life cycle ordering contracts are violated."""
     pass
 
 
 class ConstraintError(LifeCycleError):
-    """Error raised when lifecycle constraint contracts are violated."""
+    """Error raised when life cycle constraint contracts are violated."""
     pass
 
 
@@ -187,7 +187,7 @@ class LifeCyclePhase:
 
 
 class LifeCycle:
-    """A Concrete representation of the flow of simulation execution states."""
+    """A concrete representation of the flow of simulation execution states."""
 
     def __init__(self):
         self._state_names = set()
