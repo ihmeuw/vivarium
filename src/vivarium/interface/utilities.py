@@ -131,7 +131,7 @@ def add_logging_sink(sink, verbose, colorize=False, serialize=False):
 
 
 def configure_logging_to_terminal(verbose):
-    logger.remove()  # Clear default configuration
+    logger.remove(0)  # Clear default configuration
     add_logging_sink(sys.stdout, verbose, colorize=True)
 
 
