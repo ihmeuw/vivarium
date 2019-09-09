@@ -142,7 +142,7 @@ generated, the clock is reset to the simulation start time, again by changing
 the clock time only without any time step being taken.
 
 
-.. lifecycle_main_loop:
+.. _lifecycle_main_loop:
 
 The Main Event Loop
 -------------------
@@ -179,6 +179,8 @@ the simulation clock passes the simulation end time.
     time at the start of the next time step, that is, the time when any changes
     made during the loop will happen.
 
+
+.. _lifecycle_simulation_end:
 
 The Simulation End Phase
 ------------------------
