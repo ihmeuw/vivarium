@@ -148,7 +148,7 @@ class SimulationContext:
         self.end_emitter(self._population.get_population(True).index)
         unused_config_keys = self.configuration.unused_keys()
         if unused_config_keys:
-            logger.debug("Some configuration keys not used during run: %s", unused_config_keys)
+            logger.debug(f"Some configuration keys not used during run: {unused_config_keys}.")
 
     def report(self):
         self._lifecycle.set_state('report')
