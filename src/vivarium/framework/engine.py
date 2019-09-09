@@ -112,9 +112,8 @@ class SimulationContext:
         self.add_components(components)
 
     def setup(self):
-        self.configuration.freeze()
-
         self._lifecycle.set_state('setup')
+        self.configuration.freeze()
         self._component_manager.setup_components(self._builder)
 
         self.simulant_creator = self._builder.population.get_simulant_creator()
@@ -169,6 +168,9 @@ class SimulationContext:
 
     def __repr__(self):
         return "SimulationContext()"
+
+    def __str__(self):
+        return str(self._lifecycle)
 
 
 class Builder:

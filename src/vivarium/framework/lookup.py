@@ -12,6 +12,7 @@ As discussed in the population :ref:`concept note <population_concept>`,
 of the simulated population. The :class:`LookupTable` is then a callable object
 that takes in the population index and returns parameters specific to the
 individuals represented by that index.
+
 """
 from numbers import Number
 from datetime import datetime, timedelta

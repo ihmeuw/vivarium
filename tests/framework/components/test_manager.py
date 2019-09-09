@@ -1,8 +1,5 @@
-from pathlib import Path
-
 import pytest
 
-from vivarium import ConfigTree
 from vivarium.framework.configuration import build_simulation_configuration
 from vivarium.framework.components.manager import ComponentManager, ComponentConfigError, OrderedComponentSet
 

@@ -132,6 +132,7 @@ def test_config_filter_on_nonexistent_column():
 
     assert df.equals(filtered)
 
+
 def test_validate_filter_term():
     multiple_filter_terms = 'draw in [0, 1] and year > 1990'
 
