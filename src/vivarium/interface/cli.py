@@ -29,7 +29,6 @@ simulations from the command line.
    :show-nested:
 
 """
-from bdb import BdbQuit
 import cProfile
 from pathlib import Path
 import pstats
@@ -38,14 +37,12 @@ import shutil
 
 import click
 import pandas as pd
+from loguru import logger
 
 from vivarium.examples import disease_model
 from vivarium.framework.engine import run_simulation
 from vivarium.framework.utilities import handle_exceptions
-from .utilities import get_output_root
-
-import logging
-_log = logging.getLogger(__name__)
+from .utilities import get_output_root, configure_logging_to_file, configure_logging_to_terminal
 
 
 @click.group()
@@ -77,15 +74,16 @@ def run(model_specification, results_directory, verbose, with_debugger):
     is provided, a subdirectory will be created with the same name as the
     MODEL_SPECIFICATION if one does not exist. Results will be written to a
     further subdirectory named after the start time of the simulation run."""
+    configure_logging_to_terminal(verbose)
+
     start = time()
     results_root = get_output_root(results_directory, model_specification)
     results_root.mkdir(parents=True, exist_ok=False)
 
-    log_level = logging.DEBUG if verbose else logging.ERROR
-    logging.basicConfig(filename=results_root / 'simulation.log', level=log_level)
+    configure_logging_to_file(results_root)
     shutil.copy(model_specification, results_root / 'model_specification.yaml')
 
-    main = handle_exceptions(run_simulation, _log, with_debugger)
+    main = handle_exceptions(run_simulation, logger, with_debugger)
     override_configuration = {'output_data': {'results_directory': str(results_root)}}
     finished_sim = main(model_specification, configuration=override_configuration)
 
@@ -100,18 +98,14 @@ def test():
     """Run a test simulation using the ``disease_model.yaml`` model specification
     provided in the examples directory.
     """
-    logging.basicConfig(level=logging.DEBUG)
+    configure_logging_to_terminal(verbose=True)
     model_specification = disease_model.get_model_specification_path()
 
-    try:
-        run_simulation(model_specification)
-        click.echo()
-        click.secho("Installation test successful!", fg='green')
-    except (BdbQuit, KeyboardInterrupt):
-        raise
-    except Exception as e:
-        _log.exception("Uncaught exception {}".format(e))
-        raise
+    main = handle_exceptions(run_simulation, logger, with_debugger=False)
+
+    main(model_specification)
+    click.echo()
+    click.secho("Installation test successful!", fg='green')
 
 
 @simulate.command()

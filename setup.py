@@ -23,6 +23,7 @@ if __name__ == "__main__":
         'scipy',
         'click',
         'tables',
+        'loguru',
     ]
 
     interactive_requirements = [

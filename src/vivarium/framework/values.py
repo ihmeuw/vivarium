@@ -15,15 +15,12 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 from collections import defaultdict
 from typing import Callable
 from types import MethodType
-import logging
 
+from loguru import logger
 import pandas as pd
 
 from vivarium.exceptions import VivariumError
 from .utilities import from_yearly
-
-
-_log = logging.getLogger(__name__)
 
 
 class DynamicValueError(VivariumError):
@@ -151,11 +148,11 @@ class ValuesManager:
 
     def on_post_setup(self, event):
         # FIXME: This should raise an error, but can't due to downstream dependants.
-        _log.debug(f"Unsourced pipelines: {[p for p, v in self._pipelines.items() if not v.source]}")
+        logger.debug(f"Unsourced pipelines: {[p for p, v in self._pipelines.items() if not v.source]}")
 
     def register_value_modifier(self, value_name, modifier):
         m = modifier if isinstance(modifier, MethodType) else modifier.__call__
-        _log.debug(f"Registering {str(m).split()[2]} as modifier to {value_name}")
+        logger.debug(f"Registering {str(m).split()[2]} as modifier to {value_name}")
         pipeline = self._pipelines[value_name]
         pipeline.mutators.append(modifier)
 
@@ -167,7 +164,7 @@ class ValuesManager:
 
     def _register_value_producer(self, value_name, source=None,
                                  preferred_combiner=replace_combiner, preferred_post_processor=None):
-        _log.debug(f"Registering value pipeline {value_name}")
+        logger.debug(f"Registering value pipeline {value_name}")
         pipeline = self._pipelines[value_name]
         pipeline.name = value_name
         pipeline.source = source
