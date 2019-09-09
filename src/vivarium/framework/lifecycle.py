@@ -56,12 +56,17 @@ class LifeCycleState:
         self._next = None
         self._loop_next = None
         self._entrance_count = 0
-        self.handlers = []
+        self._handlers = []
 
     @property
     def name(self) -> str:
         """The name of the lifecycle state."""
         return self._name
+
+    @property
+    def entrance_count(self) -> int:
+        """The number of times this state has been entered."""
+        return self._entrance_count
 
     def add_next(self, next_state: 'LifeCycleState', loop: bool = False):
         """Link this state to the next state in the simulation life cycle.
@@ -122,15 +127,15 @@ class LifeCycleState:
             name = h.__name__
             if hasattr(h, '__self__'):
                 obj = h.__self__
-                self.handlers.append(f'{obj.__class__.__name__}({obj.name}).{name}')
+                self._handlers.append(f'{obj.__class__.__name__}({obj.name}).{name}')
             else:
-                self.handlers.append(f'Unbound function {name}')
+                self._handlers.append(f'Unbound function {name}')
 
     def __repr__(self) -> str:
         return f'LifeCycleState(name={self.name})'
 
     def __str__(self) -> str:
-        return '\n\t'.join([self.name] + self.handlers)
+        return '\n\t'.join([self.name] + self._handlers)
 
 
 class LifeCyclePhase:
