@@ -513,14 +513,14 @@ class LifeCycleManager:
         if unknown_states:
             raise LifeCycleError(f'Attempting to constrain {method} with '
                                  f'states not in the life cycle: {list(unknown_states)}.')
-        if id(method) in self._constraints:
+        if method in self._constraints:
             raise ConstraintError(f'Method {method} has already been constrained.')
 
         if restrict_during:
             allow_during = [s for s in self.lifecycle._state_names if s not in restrict_during]
 
         constrained_method = self._make_constraint(method, allow_during)
-        self._constraints.update({id(method), id(constrained_method)})
+        self._constraints.update({method, constrained_method})
 
     def __repr__(self) -> str:
         return f'LifeCycleManager(state={self.current_state})'
