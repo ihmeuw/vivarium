@@ -27,7 +27,7 @@ def components():
 
 @pytest.fixture
 def log(mocker):
-    return mocker.patch('vivarium.framework.engine._log')
+    return mocker.patch('vivarium.framework.engine.logger')
 
 
 def test_SimulationContext_init_default(components):
