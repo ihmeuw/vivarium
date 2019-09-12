@@ -1,1 +1,1 @@
-.. automodule:: vivarium.framework.dependency
+.. automodule:: vivarium.framework.resource

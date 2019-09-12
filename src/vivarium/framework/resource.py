@@ -30,7 +30,7 @@ class ResourceError(VivariumError):
     pass
 
 
-RESOURCE_TYPES = {'value', 'value_source', 'value_modifier', 'column'}
+RESOURCE_TYPES = {'value', 'value_source', 'value_modifier', 'column', 'stream'}
 
 
 class ResourceProducer:
@@ -40,6 +40,9 @@ class ResourceProducer:
         self.resource_names = resource_names
         self.producer = producer
         self.dependencies = dependencies
+
+    def __repr__(self):
+        return f'ResourceProducer({self.resource_type}, {self.resource_names})'
 
 
 class EmptySet:
