@@ -30,7 +30,7 @@ class ResourceError(VivariumError):
     pass
 
 
-RESOURCE_TYPES = {'value', 'value_source', 'value_modifier', 'column'}
+RESOURCE_TYPES = {'value', 'value_source', 'value_modifier', 'column', 'stream'}
 
 
 class ResourceProducer:
@@ -40,6 +40,10 @@ class ResourceProducer:
         self.resource_names = resource_names
         self.producer = producer
         self.dependencies = dependencies
+
+    def __repr__(self):
+        resources = ','.join([f'{self.resource_type}.{name}' for name in self.resource_names])
+        return f'ResourceProducer({resources})'
 
 
 class EmptySet:
@@ -58,6 +62,13 @@ class ResourceGroup:
         # One initializer per component, maybe multiple value producers
         self.producer_components = set() if single_producer else EmptySet()
         self.resources = {}
+        self._graph = None
+
+    @property
+    def graph(self):
+        if self._graph is None:
+            self._graph = self._to_graph()
+        return self._graph
 
     def add_resources(self, resource_type: str, resource_names: List[str],
                       producer: MethodType, dependencies: List[str]):
@@ -76,33 +87,28 @@ class ResourceGroup:
             self.resources[key] = producer
 
     def __iter__(self) -> Iterable[MethodType]:
-        for resource_producer in self._to_graph():
-            yield resource_producer.producer
+        try:
+            sorted_nodes = nx.algorithms.topological_sort(self.graph)
+        except nx.NetworkXUnfeasible:
+            raise ResourceError(f'The resource group {self.phase} contains at least one cycle.')
+
+        return iter([r.producer for r in sorted_nodes if r.resource_type == 'column'])
 
     def _to_graph(self) -> Iterable[ResourceProducer]:
         g = nx.DiGraph()
-        g.add_nodes_from(set([r for r in self.resources.values() if r.resource_type == 'column']))
+        g.add_nodes_from(self.resources.values())
 
-        def _add_in_edges_to(node: ResourceProducer, from_keys: List[str]):
-            for dependency_key in from_keys:
+        for r in g.nodes:
+            for dependency_key in r.dependencies:
                 if dependency_key not in self.resources:
                     warnings.warn(f'Resource {dependency_key} is not provided by any component but is needed to '
-                                  f'compute {node.resource_names}.')
+                                  f'compute {r.resource_names}.')
                     continue
 
                 d = self.resources[dependency_key]
-                if d.resource_type == 'column':
-                    g.add_edge(d, node)
-                else:
-                    _add_in_edges_to(node, from_keys=d.dependencies)
+                g.add_edge(d, r)
+        return g
 
-        for r in set(self.resources.values()):
-            _add_in_edges_to(r, r.dependencies)
-
-        try:
-            return nx.algorithms.topological_sort(g)
-        except nx.NetworkXUnfeasible:
-            raise ResourceError(f'The resource group {self.phase} contains at least one cycle.')
 
 
 class ResourceManager:

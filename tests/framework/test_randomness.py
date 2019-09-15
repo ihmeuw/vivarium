@@ -122,7 +122,7 @@ def test_RandomnessManager_get_randomness_stream():
     rm._add_constraint = lambda f, **kwargs: f
     rm._seed = seed
     rm._clock = mock_clock
-    stream = rm.get_randomness_stream('test')
+    stream = rm._get_randomness_stream('test')
 
     assert stream.key == 'test'
     assert stream.seed == seed

@@ -240,8 +240,11 @@ class PopulationManager:
     def register_simulant_initializer(self, initializer: Callable,
                                       creates_columns: List[str] = (),
                                       requires_columns: List[str] = (),
-                                      requires_values: List[str] = ()):
-        dependencies = [f'column.{name}' for name in requires_columns] + [f'value.{name}' for name in requires_values]
+                                      requires_values: List[str] = (),
+                                      requires_streams: List[str] = ()):
+        dependencies = ([f'column.{name}' for name in requires_columns]
+                        + [f'value.{name}' for name in requires_values]
+                        + [f'stream.{name}' for name in requires_streams])
         self.initialization_resources.add_resources('column', list(creates_columns), initializer, dependencies)
 
     def get_simulant_creator(self) -> Callable:
@@ -337,7 +340,8 @@ class PopulationInterface:
     def initializes_simulants(self, initializer: Callable[[SimulantData], None],
                               creates_columns: List[str] = (),
                               requires_columns: List[str] = (),
-                              requires_values: List[str] = ()):
+                              requires_values: List[str] = (),
+                              requires_streams: List[str] = ()):
         """Marks a source of initial state information for new simulants.
 
         Parameters
@@ -355,7 +359,10 @@ class PopulationInterface:
         requires_values
             A list of the value pipelines that need to be properly sourced
             before the provided initializer is called.
+        requires_streams
+            A list of the randomness streams necessary to initialize the
+            simulant attributes.
 
         """
         self._population_manager.register_simulant_initializer(initializer, creates_columns,
-                                                               requires_columns, requires_values)
+                                                               requires_columns, requires_values, requires_streams)

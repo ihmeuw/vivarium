@@ -108,7 +108,8 @@ class DiseaseModel(Machine):
         builder.value.register_value_modifier('metrics', modifier=self.metrics)
 
         creates_columns = [self.state_column]
-        builder.population.initializes_simulants(self.on_initialize_simulants, creates_columns=creates_columns)
+        builder.population.initializes_simulants(self.on_initialize_simulants,
+                                                 creates_columns=creates_columns)
         self.population_view = builder.population.get_view(['age', 'sex', self.state_column])
 
         builder.event.register_listener('time_step', self.on_time_step)
