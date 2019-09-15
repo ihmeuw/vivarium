@@ -160,7 +160,8 @@ class ValuesManager:
             dependencies += [f'value_modifier.{name}_{i+1}' for i in range(len(pipe.mutators))]
             self.initialization_resources.add_resources('value', [name], pipe._call, dependencies)
 
-    def register_value_producer(self, value_name, source, required_columns=(), required_values=(), required_streams=(),
+    def register_value_producer(self, value_name, source,
+                                requires_columns=(), requires_values=(), requires_streams=(),
                                 preferred_combiner=replace_combiner, preferred_post_processor=None):
         pipeline = self._register_value_producer(value_name, source, preferred_combiner, preferred_post_processor)
 
@@ -168,9 +169,9 @@ class ValuesManager:
         # The value will depend on the source and its modifiers, and we'll
         # declare that resource at post-setup once all sources and modifiers
         # are registered.
-        dependencies = ([f'column.{name}' for name in required_columns]
-                        + [f'value.{name}' for name in required_values]
-                        + [f'stream.{name}' for name in required_streams])
+        dependencies = ([f'column.{name}' for name in requires_columns]
+                        + [f'value.{name}' for name in requires_values]
+                        + [f'stream.{name}' for name in requires_streams])
         self.initialization_resources.add_resources('value_source', [value_name], source, dependencies)
 
         self.add_constraint(pipeline._call, restrict_during=['initialization', 'setup', 'post_setup'])
@@ -189,13 +190,15 @@ class ValuesManager:
         return pipeline
 
     def register_value_modifier(self, value_name, modifier,
-                                required_columns=(), required_values=(), required_streams=()):
+                                requires_columns=(), requires_values=(), requires_streams=()):
         _log.debug(f"Registering {modifier.__name__} as modifier to {value_name}")
         pipeline = self._pipelines[value_name]
         pipeline.mutators.append(modifier)
 
         name = f'{value_name}_{len(pipeline.mutators)}'
-        dependencies = [f'column.{name}' for name in required_columns] + [f'value.{name}' for name in required_values]
+        dependencies = ([f'column.{name}' for name in requires_columns]
+                        + [f'value.{name}' for name in requires_values]
+                        + [f'stream.{name}' for name in requires_streams])
         self.initialization_resources.add_resources('value_modifier', [name], modifier, dependencies)
 
     def get_value(self, name):
@@ -238,6 +241,16 @@ class ValuesInterface:
             The name of the new dynamic value pipeline.
         source
             A callable source for the dynamic value pipeline.
+        requires_columns
+            A list of the state table columns that already need to be present
+            and populated in the state table before the pipeline source
+            is called.
+        requires_values
+            A list of the value pipelines that need to be properly sourced
+            before the pipeline source is called.
+        requires_streams
+            A list of the randomness streams that need to be properly sourced
+            before the pipeline source is called.
         preferred_combiner
             A strategy for combining the source and the results of any calls
             to mutators in the pipeline. ``vivarium`` provides the strategies
@@ -282,6 +295,16 @@ class ValuesInterface:
             The name of the new dynamic rate pipeline.
         source
             A callable source for the dynamic rate pipeline.
+        requires_columns
+            A list of the state table columns that already need to be present
+            and populated in the state table before the pipeline source
+            is called.
+        requires_values
+            A list of the value pipelines that need to be properly sourced
+            before the pipeline source is called.
+        requires_streams
+            A list of the randomness streams that need to be properly sourced
+            before the pipeline source is called.
 
         Returns
         -------
@@ -312,6 +335,16 @@ class ValuesInterface:
             previous stage in the pipeline. For the ``list_combiner`` and
             ``set_combiner`` strategies, the pipeline modifiers should have
             the same signature as the pipeline source.
+        requires_columns
+            A list of the state table columns that already need to be present
+            and populated in the state table before the pipeline modifier
+            is called.
+        requires_values
+            A list of the value pipelines that need to be properly sourced
+            before the pipeline modifier is called.
+        requires_streams
+            A list of the randomness streams that need to be properly sourced
+            before the pipeline modifier is called.
 
         """
         self._value_manager.register_value_modifier(value_name, modifier,

@@ -87,9 +87,8 @@ class ResourceGroup:
             self.resources[key] = producer
 
     def __iter__(self) -> Iterable[MethodType]:
-        dependency_graph = self._to_graph()
         try:
-            sorted_nodes = nx.algorithms.topological_sort(dependency_graph)
+            sorted_nodes = nx.algorithms.topological_sort(self.graph)
         except nx.NetworkXUnfeasible:
             raise ResourceError(f'The resource group {self.phase} contains at least one cycle.')
 

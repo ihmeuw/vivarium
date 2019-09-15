@@ -359,6 +359,9 @@ class PopulationInterface:
         requires_values
             A list of the value pipelines that need to be properly sourced
             before the provided initializer is called.
+        requires_streams
+            A list of the randomness streams necessary to initialize the
+            simulant attributes.
 
         """
         self._population_manager.register_simulant_initializer(initializer, creates_columns,
