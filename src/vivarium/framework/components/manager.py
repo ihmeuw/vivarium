@@ -120,8 +120,9 @@ class ComponentManager:
         self.configuration = configuration
         self.lifecycle = lifecycle_manager
 
-        self.lifecycle.add_constraint(self.get_components_by_type, restrict_during=['initialization'])
-        self.lifecycle.add_constraint(self.get_component, restrict_during=['initialization'])
+        self.lifecycle.add_constraint(self.get_components_by_type,
+                                      restrict_during=['initialization', 'population_creation'])
+        self.lifecycle.add_constraint(self.get_component, restrict_during=['population_creation'])
         self.lifecycle.add_constraint(self.list_components, restrict_during=['initialization'])
 
     def add_managers(self, managers: Union[List[Any], Tuple[Any]]):

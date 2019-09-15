@@ -18,10 +18,11 @@ Finally, there are a handful of wrapper methods that allow a user or user
 tools to easily setup and run a simulation.
 
 """
-import logging
 from pathlib import Path
 from pprint import pformat
 from typing import Union, List, Dict
+
+from loguru import logger
 
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.configuration import build_model_specification
@@ -37,8 +38,6 @@ from .randomness import RandomnessInterface
 from .values import ValuesInterface
 from .time import TimeInterface
 from .lifecycle import LifeCycleInterface, LifeCycleError
-
-_log = logging.getLogger(__name__)
 
 
 class SimulationContext:
@@ -137,7 +136,7 @@ class SimulationContext:
         self._clock.step_forward()
 
     def step(self):
-        _log.debug(self._clock.time)
+        logger.debug(self._clock.time)
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
             self.time_step_emitters[event](self._population.get_population(True).index)
@@ -152,12 +151,12 @@ class SimulationContext:
         self.end_emitter(self._population.get_population(True).index)
         unused_config_keys = self.configuration.unused_keys()
         if unused_config_keys:
-            _log.debug("Some configuration keys not used during run: %s", unused_config_keys)
+            logger.debug(f"Some configuration keys not used during run: {unused_config_keys}.")
 
     def report(self):
         self._lifecycle.set_state('report')
         metrics = self._values.get_value('metrics')(self._population.get_population(True).index)
-        _log.debug(pformat(metrics))
+        logger.debug(pformat(metrics))
         return metrics
 
     def add_components(self, component_list):

@@ -7,17 +7,17 @@ This module contains the :class:`ArtifactManager`, a ``vivarium`` plugin
 for handling complex data bound up in a data artifact.
 
 """
-import logging
 from pathlib import Path
 from typing import Union, Sequence, Optional
 import re
 
+from loguru import logger
 import pandas as pd
+
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.artifact.artifact import Artifact
 
 
-_log = logging.getLogger(__name__)
 _Filter = (str, int, Sequence[int], Sequence[str])
 
 
@@ -64,9 +64,9 @@ class ArtifactManager:
         draw = configuration.input_data.input_draw_number
         location = configuration.input_data.location
         base_filter_terms = [f'draw == {draw}', get_location_term(location)]
-        _log.debug(f'Running simulation from artifact located at {artifact_path}.')
-        _log.debug(f'Artifact base filter terms are {base_filter_terms}.')
-        _log.debug(f'Artifact additional filter terms are {self.config_filter_term}.')
+        logger.debug(f'Running simulation from artifact located at {artifact_path}.')
+        logger.debug(f'Artifact base filter terms are {base_filter_terms}.')
+        logger.debug(f'Artifact additional filter terms are {self.config_filter_term}.')
         return Artifact(artifact_path, base_filter_terms)
 
     def load(self, entity_key: str, **column_filters: _Filter):
