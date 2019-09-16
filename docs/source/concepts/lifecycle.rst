@@ -5,8 +5,13 @@ The Simulation Lifecycle
 ========================
 
 The life cycle of a :mod:`vivarium` simulation is a representation of
-the different execution states and their transitions.  These states
-can be grouped into five important phases.
+the different execution **states** and their transitions.  An execution state
+is a clearly delineated execution period during the simulation around which
+we build and enforce concrete programmatic contracts. These states
+can be grouped into five important **phases**.  The phases are closely related
+groups of execution states.  Contracts are not enforced directly around
+phases, but they are a useful tool for thinking about the execution flow
+during a simulation.
 
 .. list-table:: **Life Cycle Phases**
    :widths: 15 65
@@ -186,9 +191,9 @@ The Simulation End Phase
 ------------------------
 
 The final phase in the simulation life cycle is fittingly enough,
-simulation end. It is split into two stages.  During the first, the
+simulation end. It is split into two states.  During the first, the
 *simulation_end* :ref:`event <event_concept>` is emitted to
 signal that the event loop has finished and the
 :ref:`state table <population_concept>` is final. At this point, final
-simulation outputs are safe to compute. The second stage is *report* in
+simulation outputs are safe to compute. The second state is *report* in
 which the simulation will accumulate all final outputs and return them.
