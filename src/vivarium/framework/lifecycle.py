@@ -3,10 +3,10 @@
 Life Cycle Management
 =====================
 
-The life cycle is a representation of the run state of a :mod:`vivarium`
-simulation. The tools in this model allow a simulation to formally represent
-its run state and use the formal representation to enforce run-time
-contracts.
+The life cycle is a representation of the flow of execution states in a
+:mod:`vivarium` simulation. The tools in this model allow a simulation to
+formally represent its execution state and use the formal representation to
+enforce run-time contracts.
 
 There are two flavors of contracts that this system enforces:
 
@@ -39,6 +39,11 @@ from vivarium.exceptions import VivariumError
 
 
 class LifeCycleError(VivariumError):
+    """Generic error class for the life cycle management system."""
+    pass
+
+
+class InvalidTransitionError(LifeCycleError):
     """Error raised when life cycle ordering contracts are violated."""
     pass
 
@@ -336,6 +341,10 @@ class ConstraintMaker:
         permitted_states
             The life cycle states in which the method can be called.
 
+        Returns
+        -------
+            The constrained method.
+
         """
         @functools.wraps(method)
         def _wrapped(*args, **kwargs):
@@ -365,6 +374,10 @@ class ConstraintMaker:
             The method to constrain.
         permitted_states
             The life cycle states in which the method can be called.
+
+        Returns
+        -------
+            The constrained method.
 
         Raises
         ------
@@ -439,8 +452,10 @@ class LifeCycleManager:
         Raises
         ------
         LifeCycleError
-            If the requested state doesn't exist in the life cycle or
-            it represents an invalid transition.
+            If the requested state doesn't exist in the life cycle.
+        InvalidTransitionError
+            If setting the provided state represents an invalid life cycle
+            transition.
 
         """
         new_state = self.lifecycle.get_state(state)
@@ -448,7 +463,8 @@ class LifeCycleManager:
             new_state.enter()
             self._current_state = new_state
         else:
-            raise LifeCycleError(f'Invalid transition from {self.current_state} to {new_state.name} requested.')
+            raise InvalidTransitionError(f'Invalid transition from {self.current_state} '
+                                         f'to {new_state.name} requested.')
 
     def get_states(self, phase: str) -> List[str]:
         """Gets all states in the phase in their order of execution.
@@ -505,6 +521,9 @@ class LifeCycleManager:
             or if both are provided.
         LifeCycleError
             If states provided as arguments are not in the life cycle.
+        ConstraintError
+            If a lifecycle constraint has already been applied to the provided
+            method.
 
         """
         if allow_during and restrict_during or not (allow_during or restrict_during):
@@ -578,6 +597,9 @@ class LifeCycleInterface:
             or if both are provided.
         LifeCycleError
             If states provided as arguments are not in the life cycle.
+        ConstraintError
+            If a life cycle constraint has already been applied to the
+            provided method.
 
         """
         self._manager.add_constraint(method, allow_during, restrict_during)
