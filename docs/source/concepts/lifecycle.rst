@@ -28,7 +28,7 @@ during a simulation.
        | initialized and all :ref:`configuration <configuration_concept>`
        | information is loaded.
    * - | :ref:`Setup <lifecycle_setup>`
-     - | Components request register themselves with simulation services and
+     - | Components register themselves with simulation services and
        | request access to resources by interacting with the simulation
        | :ref:`builder <builder_concept>`; the initial population is created.
    * - | :ref:`Main Loop <lifecycle_main_loop>`
@@ -59,7 +59,7 @@ simulation models.
 The Bootstrap Phase
 -------------------
 
-The bootstrap and initialization phase look like an atomic operation to an
+The bootstrap and initialization phases look like an atomic operation to an
 external user.  Bootstrap only exists as a separate phase because certain
 operations must take place before the internal representation of the simulation
 life cycle exists.
@@ -172,8 +172,9 @@ the state transitions by emitting a series of events for each
    simulation outputs.
 
 By listening for these events, individual components can perform actions,
-including manipulating the. This sequence of events is repeated until
-the simulation clock passes the simulation end time.
+including manipulating the :ref:`state table <population_concept>`. This
+sequence of events is repeated until the simulation clock passes the
+simulation end time.
 
 .. note::
 
