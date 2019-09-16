@@ -263,6 +263,8 @@ class LookupTableManager:
         return table
 
     def _build_table(self, data, key_columns, parameter_columns, value_columns):
+        # We don't want to required explicit names for tables, but giving them
+        # generic names is useful for introspection.
         table_number = len(self.tables)
         table = LookupTable(table_number, data, self._pop_view_builder, key_columns, parameter_columns,
                             value_columns, self._interpolation_order, self.clock, self._extrapolate)
