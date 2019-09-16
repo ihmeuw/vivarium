@@ -28,9 +28,12 @@ For more information, see the associated event
 """
 from collections import defaultdict
 from typing import Callable, Dict, List, NamedTuple, Mapping, Any, Optional
-from .time import Time, Timedelta
 
 import pandas as pd
+
+from .lifecycle import ConstraintError
+from .time import Time, Timedelta
+
 
 
 class Event(NamedTuple):
@@ -180,7 +183,12 @@ class EventManager:
 
         """
         channel = self._event_types[name]
-        self.add_constraint(channel.emit, allow_during=[name])
+        try:
+            self.add_constraint(channel.emit, allow_during=[name])
+        except ConstraintError:
+            # Multiple components have requested this emitter.
+            # Shouldn't happen in production, but happens frequently in tests.
+            pass
         return channel.emit
 
     def register_listener(self, name: str, listener: Callable, priority: int = 5):

@@ -223,6 +223,3 @@ class InteractiveContext(SimulationContext):
 
     def __repr__(self):
         return 'InteractiveContext()'
-
-    def __str__(self):
-        return str(self._lifecycle)
