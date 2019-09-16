@@ -152,11 +152,12 @@ class LookupTable:
     -----
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
-    def __init__(self, data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
+    def __init__(self, table_number: int,
+                 data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
                  population_view: Callable, key_columns: Union[List[str], Tuple[str]],
                  parameter_columns: ParameterType, value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int, clock: Callable, extrapolate: bool):
-
+        self.table_number = table_number
         validate_parameters(data, key_columns, parameter_columns, value_columns)
 
         # Note datetime catches pandas timestamps
@@ -167,6 +168,10 @@ class LookupTable:
             view_columns = sorted((set(key_columns) | set(callable_parameter_columns)) - {'year'}) + ['tracked']
             self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
                                             parameter_columns, value_columns, interpolation_order, clock, extrapolate)
+
+    @property
+    def name(self):
+        return f'lookup_table_{self.table_number}'
 
     def __call__(self, index) -> Union[pd.DataFrame, pd.Series]:
         """Get the interpolated or scalar table values for the given index.
@@ -243,6 +248,7 @@ class LookupTableManager:
         return "lookup_table_manager"
 
     def setup(self, builder):
+        self.tables = {}
         self._pop_view_builder = builder.population.get_view
         self.clock = builder.time.clock()
         self._interpolation_order = builder.configuration.interpolation.order
@@ -257,8 +263,13 @@ class LookupTableManager:
         return table
 
     def _build_table(self, data, key_columns, parameter_columns, value_columns):
-        return LookupTable(data, self._pop_view_builder, key_columns, parameter_columns,
-                           value_columns, self._interpolation_order, self.clock, self._extrapolate)
+        # We don't want to required explicit names for tables, but giving them
+        # generic names is useful for introspection.
+        table_number = len(self.tables)
+        table = LookupTable(table_number, data, self._pop_view_builder, key_columns, parameter_columns,
+                            value_columns, self._interpolation_order, self.clock, self._extrapolate)
+        self.tables[table_number] = table
+        return table
 
     def __repr__(self):
         return "LookupTableManager()"
