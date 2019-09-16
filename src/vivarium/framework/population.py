@@ -246,6 +246,8 @@ class PopulationManager:
                         + [f'value.{name}' for name in requires_values]
                         + [f'stream.{name}' for name in requires_streams])
         if creates_columns != ['tracked']:
+            # The population view itself uses the tracked column, so include
+            # to be safe.
             dependencies += ['column.tracked']
         self.initialization_resources.add_resources('column', list(creates_columns), initializer, dependencies)
 
