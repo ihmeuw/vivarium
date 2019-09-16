@@ -245,6 +245,8 @@ class PopulationManager:
         dependencies = ([f'column.{name}' for name in requires_columns]
                         + [f'value.{name}' for name in requires_values]
                         + [f'stream.{name}' for name in requires_streams])
+        if creates_columns != ['tracked']:
+            dependencies += ['column.tracked']
         self.initialization_resources.add_resources('column', list(creates_columns), initializer, dependencies)
 
     def get_simulant_creator(self) -> Callable:

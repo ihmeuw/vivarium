@@ -154,7 +154,9 @@ class ValuesManager:
             dependencies = []
             if pipe.source:  # Same fixme as above.
                 dependencies += [f'value_source.{name}']
-            dependencies += [f'value_modifier.{name}_{i+1}' for i in range(len(pipe.mutators))]
+            for i, m in enumerate(pipe.mutators):
+                mutator_name = self._get_modifier_name(m)
+                dependencies.append(f'value_modifier.{name}.{i}.{mutator_name}')
             self.initialization_resources.add_resources('value', [name], pipe._call, dependencies)
 
     def register_value_producer(self, value_name, source,
@@ -166,11 +168,8 @@ class ValuesManager:
         # The value will depend on the source and its modifiers, and we'll
         # declare that resource at post-setup once all sources and modifiers
         # are registered.
-        dependencies = ([f'column.{name}' for name in requires_columns]
-                        + [f'value.{name}' for name in requires_values]
-                        + [f'stream.{name}' for name in requires_streams])
+        dependencies = self._convert_dependencies(source, requires_columns, requires_values, requires_streams)
         self.initialization_resources.add_resources('value_source', [value_name], source, dependencies)
-
         self.add_constraint(pipeline._call, restrict_during=['initialization', 'setup', 'post_setup'])
         return pipeline
 
@@ -188,14 +187,14 @@ class ValuesManager:
 
     def register_value_modifier(self, value_name, modifier,
                                 requires_columns=(), requires_values=(), requires_streams=()):
-        logger.debug(f"Registering {modifier.__name__} as modifier to {value_name}")
+        modifier_name = self._get_modifier_name(modifier)
+        logger.debug(f"Registering {modifier_name} as modifier to {value_name}")
+
         pipeline = self._pipelines[value_name]
         pipeline.mutators.append(modifier)
 
-        name = f'{value_name}_{len(pipeline.mutators)}'
-        dependencies = ([f'column.{name}' for name in requires_columns]
-                        + [f'value.{name}' for name in requires_values]
-                        + [f'stream.{name}' for name in requires_streams])
+        name = f'{value_name}.{len(pipeline.mutators)}.{modifier_name}'
+        dependencies = self._convert_dependencies(modifier, requires_columns, requires_values, requires_streams)
         self.initialization_resources.add_resources('value_modifier', [name], modifier, dependencies)
 
     def get_value(self, name):
@@ -212,6 +211,28 @@ class ValuesManager:
 
     def items(self):
         return self._pipelines.items()
+
+    @staticmethod
+    def _convert_dependencies(func, requires_columns, requires_values, requires_streams):
+        if isinstance(func, Pipeline):
+            dependencies = [f'value.{func.name}']
+        else:
+            dependencies = ([f'column.{name}' for name in requires_columns]
+                            + [f'value.{name}' for name in requires_values]
+                            + [f'stream.{name}' for name in requires_streams])
+        return dependencies
+
+    @staticmethod
+    def _get_modifier_name(modifier):
+        if hasattr(modifier, 'name'):  # This is Pipeline or lookup table or something similar
+            modifier_name = modifier.name
+        elif hasattr(modifier, '__self__'):  # This is a bound method of a component or other object
+            owner = modifier.__self__
+            owner_name = owner.name if hasattr(owner, 'name') else owner.__class__.__name__
+            modifier_name = f'{owner_name}.{modifier.__name__}'
+        else:  # Some unbound function
+            modifier_name = modifier.__name__
+        return modifier_name
 
     def __repr__(self):
         return "ValuesManager()"

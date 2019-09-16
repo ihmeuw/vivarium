@@ -109,6 +109,12 @@ class ResourceGroup:
                 g.add_edge(d, r)
         return g
 
+    def __repr__(self):
+        out = {}
+        for resource in set(self.resources.values()):
+            produced = ', '.join([f'{resource.resource_type}.{name}' for name in resource.resource_names])
+            out[produced] = ', '.join(resource.dependencies)
+        return '\n'.join([f'{produced} : {depends}' for produced, depends in out.items()])
 
 
 class ResourceManager:
