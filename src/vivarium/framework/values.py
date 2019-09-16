@@ -214,6 +214,11 @@ class ValuesManager:
 
     @staticmethod
     def _convert_dependencies(func, requires_columns, requires_values, requires_streams):
+        # If declaring a pipeline as a value source or modifier, columns and
+        # streams are optional since the pipeline itself will have all the
+        # appropriate dependencies. In any situation, make sure we don't have
+        # provide the pipeline function to source/modifier as well as
+        # explicitly stating the pipeline name in 'requires_values'.
         if isinstance(func, Pipeline):
             dependencies = [f'value.{func.name}']
         else:
@@ -230,8 +235,12 @@ class ValuesManager:
             owner = modifier.__self__
             owner_name = owner.name if hasattr(owner, 'name') else owner.__class__.__name__
             modifier_name = f'{owner_name}.{modifier.__name__}'
-        else:  # Some unbound function
+        elif hasattr(modifier, '__name__'):  # Some unbound function
             modifier_name = modifier.__name__
+        elif hasattr(modifier, '__call__'):  # Some anonymous callable
+            modifier_name = f'{modifier.__class__.name__}.__call__'
+        else:  # I don't know what this is.
+            raise ValueError(f'Unknown modifier type: {type(modifier)}')
         return modifier_name
 
     def __repr__(self):
