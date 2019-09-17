@@ -4,10 +4,10 @@ The Population Management System
 ================================
 
 This module provides tools for managing the :term:`state table <State Table>`
-in a ``vivarium`` simulation. It gives components the ability to modify and
-view the population state safely through :class:`PopulationView`s. In addition
-to read/write access to the population state, the tools here also manage when
-and how new :term:`simulants <Simulant>` are added to the system.
+in a ``vivarium`` simulation, which is the record of all simulants in a
+simulation and their state. It's main tasks are managing the creation of new
+simulants and providing the ability for components to view and update simulant
+state safely during runtime.
 
 """
 from typing import Sequence, List, Callable, Union, Mapping, Any, NamedTuple, Tuple
