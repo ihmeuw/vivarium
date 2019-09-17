@@ -16,7 +16,7 @@ them to components in the simulation that wish to perform interesting actions.
 We call the set of simulants the population, and the tooling to support working
 with them is the population management system.
 
-the core representation is a table
+controls access
 
 - Pop system manages the pop of simulants -- represented by the state table
 - It provides ways to modify and view the state table
@@ -27,6 +27,16 @@ supplies the interface for looking at it and modifying it.
 
 The State Table
 ---------------
+
+The core representation of the simulants and their state information in a
+``Vivarium`` simulation is a pandas DataFrame known as the state table.
+
+Under this representation, rows correspond to simulants while columns correspond
+to attributes or categories of state, like age, sex or blood pressure. The
+PopulationManager holds this state table and controls access to it.
+
+
+
 
 
 The population of simulants and their state information in a ``Vivarium``
@@ -83,23 +93,4 @@ loop.
 creating simulants is quite similar to updating state. However, we are allowed
 to create columns on initialization.
 
-Outline
--------
 
-It provides access to the state table through controlled "views"
-
-It modifies the state table in two ways, adding rows and adding
-columns. Adding rows corresponds to creating new simulants, like
-during simulation bootstrapping or when introducing new simulants
-in an already-running simulation, like through a fertility mechanism.
-Adding columns corresponds to adding new categories of state to
-simulants. [For instance, we may have simulants whose state is
-is age and sex ... this is a shitty example]
-
-The population system provides access to the function that
-initializes new simulants and affords the ability to register
-functions that are called when simulants are initialized. This
-is how it modifies rows and columns.
-
-The population system affords creation of columns through its views,
-provided the columns to be created are properly declared.
