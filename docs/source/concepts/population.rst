@@ -9,44 +9,18 @@ Population Management
    :local:
    :backlinks: none
 
-``Vivarium`` is an agent-based simulation so we must keep track of agents, or
-:term:`simulants`, somewhere. Our simulation needs the ability to create these
-simulants, give them state and update it, and provide access to
-them to components in the simulation that wish to perform interesting actions.
-We call the set of simulants the population, and the tooling to support working
-with them is the population management system.
-
-controls access
-
-- Pop system manages the pop of simulants -- represented by the state table
-- It provides ways to modify and view the state table
-
-The population system manages the population of simulants in a simulation and
-supplies the interface for looking at it and modifying it.
-
+Since ``Vivarium`` is an agent-based simulation framework, managing a group of :term:`simulants` is a critical task. Our simulations need the ability to create simulants, update their state, and furnish access to the simulants to components in the simulation so they can do interesting things.  We call the set of simulants the population, and the tooling to support working with them is the population management system.
 
 The State Table
 ---------------
 
-The core representation of the simulants and their state information in a
-``Vivarium`` simulation is a pandas DataFrame known as the state table.
+The core representation of simulants and their state information in ``Vivarium`` is a pandas DataFrame known as the state table. In this representation, rows correspond to simulants while columns correspond to state: attributes like age, sex or systolic blood pressure. These columns represent one of several important resources within ``Vivarium`` that other components can draw on to do things..
 
-Under this representation, rows correspond to simulants while columns correspond
-to attributes or categories of state, like age, sex or blood pressure. The
-PopulationManager holds this state table and controls access to it.
+The population manager holds the state table directly and tightly controls access to it. Since the state table is two-dimensional, we can think about altering it in two ways, by adding rows ( new simulants) or by adding columns (new categories of state).
 
+In general, we are interested in 
 
-
-
-
-The population of simulants and their state information in a ``Vivarium``
-simulation is maintained in a pandas DataFrame known as the state table.
-In this table, rows correspond to simulants and columns correspond to attributes
-or categories of state, like sex, age or blood pressure. The PopulationManager
-holds this table and controls access to it. It directly controls the addition
-of rows (simulants) and columns (attributes) to the state table and allows
-access to the values in the state table, enabling updates to values that already
-exist.
+It directly controls the addition of rows (simulants) and columns (attributes) to the state table and allows access to the values in the state table, enabling updates to values that already exist.
 
 
 
@@ -71,11 +45,9 @@ Viewing and Updating Simulants
 ------------------------------
 
 We will put off discussing how simulants are made and first talk about how
-simulant state is viewed and updated. The mechanism of viewing and updating
-state is the PopulationView.
+simulant state is viewed and updated because the underlying mechanism is the same. The population manager interface provides a function for generating PopulationView objects that can be used to retrieve and update state information for simulants. A population view is rigidly controlled. It is instantiated with a set of columns that dictate what data is retrieved, and only that data can be updated. The only exception to this is when simulants are being created.
 
-It provides access to the state table through controlled "views"
-
+Population views optionall
 
 Creating Simulants
 -------------------
