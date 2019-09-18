@@ -23,7 +23,7 @@ from .utilities import from_yearly
 
 
 class DynamicValueError(VivariumError):
-    """Indicates and improperly configured value was invoked."""
+    """Indicates an improperly configured value was invoked."""
     pass
 
 
@@ -377,5 +377,17 @@ class ValuesInterface:
         self._value_manager.register_value_modifier(value_name, modifier,
                                                     requires_columns, requires_values, requires_streams)
 
-    def get_value(self, name):
+    def get_value(self, name: str) -> Pipeline:
+        """ Returns the pipeline registered with the simulation under the given
+        name.
+
+        Parameters
+        ----------
+        name
+            Name of the pipeline to return.
+
+        Returns
+        -------
+            A callable reference to the named pipeline.
+        """
         return self._value_manager.get_value(name)
