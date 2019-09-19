@@ -90,8 +90,8 @@ def test_no_null_transition(base_config):
     a_state = State('a')
     b_state = State('b')
     start_state = State('start')
-    a_transition = Transition(start_state, a_state)
-    b_transition = Transition(start_state, b_state)
+    a_transition = Transition(start_state, a_state, probability_func=lambda index: pd.Series(0.5, index=index))
+    b_transition = Transition(start_state, b_state, probability_func=lambda index: pd.Series(0.5, index=index))
     start_state.transition_set.allow_null_transition = False
     start_state.transition_set.extend((a_transition, b_transition))
     machine = Machine('state')
