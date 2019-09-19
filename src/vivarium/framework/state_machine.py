@@ -326,11 +326,20 @@ class TransitionSet:
             include a null transition weight.
         """
         outputs = list(outputs)
+
+        default_transition_count = np.sum(probabilities == 1, axis=1)
+        if np.any(default_transition_count) > 1:
+            raise ValueError("Multiple transitions specified with probability 1.")
+        has_default = default_transition_count == 1
         total = np.sum(probabilities, axis=1)
-        if self.allow_null_transition or not np.any(total):
+        probabilities[has_default] /= total[has_default, np.newaxis]
+        total = np.sum(probabilities, axis=1)
+        if not self.allow_null_transition and np.any(total == 0):
+            raise ValueError("No valid transitions.")
+        elif self.allow_null_transition:
             if np.any(total > 1+1e-08):  # Accommodate rounding errors
-                raise ValueError(
-                    "Null transition requested with un-normalized probability weights: {}".format(probabilities))
+                raise ValueError(f"Null transition requested with un-normalized "
+                                 f"probability weights: {probabilities}")
             total[total > 1] = 1  # Correct allowed rounding errors.
             probabilities = np.concatenate([probabilities, (1-total)[:, np.newaxis]], axis=1)
             outputs.append('null_transition')
