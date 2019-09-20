@@ -93,10 +93,11 @@ class PopulationView:
         """
         pop = self.manager.get_population(True).loc[index]
 
-        if self._query:
-            pop = pop.query(self._query)
-        if query:
-            pop = pop.query(query)
+        if not index.empty:
+            if self._query:
+                pop = pop.query(self._query)
+            if query:
+                pop = pop.query(query)
 
         if not self._columns:
             return pop
