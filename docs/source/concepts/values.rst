@@ -16,8 +16,8 @@ state in the simulation: pipelines. Pipelines are dynamically calculated values
 that can be constructed across multiple components. This ability for multiple
 components to together compose a single value is the biggest advantage pipelines
 provide over the standard state representation of the population state table.
-You should use the values system when you have a value that must be composed
-across multiple components.
+**You should use the values system when you have a value that must be composed
+across multiple components.**
 
 The values system also inverts the direction of control from information that
 is stored in the state table. Components that update columns in the state table
