@@ -134,7 +134,9 @@ class PopulationView:
                                           'name or there is only a single column in the view')
             else:
                 if not set(pop.columns).issubset(self._columns):
-                    raise PopulationError('Cannot update with a DataFrame that contains columns the view does not.')
+                    raise PopulationError(f'Cannot update with a DataFrame that contains columns the view does not. '
+                                          f'Dataframe contains the following extra columns: '
+                                          f'{set(pop.columns).difference(self._columns)}.')
                 affected_columns = set(pop.columns)
 
             affected_columns = set(affected_columns).intersection(self._columns)
