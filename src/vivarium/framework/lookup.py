@@ -285,8 +285,7 @@ class LookupTableInterface:
     def __init__(self, manager):
         self._lookup_table_manager = manager
 
-    def build_table(self, data, key_columns=('sex',), parameter_columns=('age', 'year'),
-                    value_columns=None) -> LookupTable:
+    def build_table(self, data, key_columns=None, parameter_columns=None, value_columns=None) -> LookupTable:
         """Construct a LookupTable from input data.
 
         If data is a ``pandas.DataFrame``, an interpolation function of the specified
