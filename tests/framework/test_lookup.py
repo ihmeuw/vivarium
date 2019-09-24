@@ -92,10 +92,7 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
 
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
-    years = manager._build_table(years, key_columns=('sex',),
-                                 parameter_columns=(['age', 'age_start', 'age_end'],
-                                                    ['year', 'year_start', 'year_end'],),
-                                value_columns=None)
+    years = manager._build_table(years, key_columns=('sex',), parameter_columns=('age', 'year'), value_columns=None)
 
     for year in input_years:
         simulation._clock._time = pd.Timestamp(year, 1, 1)
@@ -138,9 +135,7 @@ def test_lookup_table_interpolated_return_types(base_config):
 
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
-    table = (manager._build_table(data, key_columns=('sex',),
-                                  parameter_columns=[['age', 'age_start', 'age_end'],
-                                                     ['year', 'year_start', 'year_end']],
+    table = (manager._build_table(data, key_columns=('sex',), parameter_columns=['age', 'year'],
                                   value_columns=None)(simulation.get_population().index))
     # make sure a single value column is returned as a series
     assert isinstance(table, pd.Series)
@@ -148,8 +143,7 @@ def test_lookup_table_interpolated_return_types(base_config):
     # now add a second value column to make sure the result is a df
     data['value2'] = data.value
     table = (manager._build_table(data, key_columns=('sex',),
-                                  parameter_columns=[['age', 'age_start', 'age_end'],
-                                                     ['year', 'year_start', 'year_end']],
+                                  parameter_columns=['age', 'year'],
                                   value_columns=None)(simulation.get_population().index))
 
     assert isinstance(table, pd.DataFrame)
@@ -171,10 +165,10 @@ def test_validate_parameters_error_scalar_data(key_cols, param_cols, val_cols, m
 
 
 @pytest.mark.parametrize('key_cols, param_cols, val_cols, match',
-                         [(['a', 'b'], [('b', 'b_left', 'b_right')], ['c'], 'no overlap'),
-                          ([], [('b', 'b_left', 'b_right')], ['c'], 'do not match')])
+                         [(['a', 'b'], ['b'], ['c'], 'no overlap'),
+                          ([], ['b'], ['c'], 'do not match')])
 def test_validate_parameters_error_dataframe(key_cols, param_cols, val_cols, match):
-    data = pd.DataFrame({'a': [1, 2], 'b_left': [0, 5], 'b_right': [5, 10], 'c': [100, 150]})
+    data = pd.DataFrame({'a': [1, 2], 'b_start': [0, 5], 'b_end': [5, 10], 'c': [100, 150]})
     with pytest.raises(ValueError, match=match):
         validate_parameters(data, key_cols, param_cols, val_cols)
 
@@ -195,9 +189,9 @@ def test_validate_parameters_pass_scalar_data(key_cols, param_cols, val_cols):
 
 
 @pytest.mark.parametrize('key_cols, param_cols, val_cols',
-                         [(['a'], [('b', 'b_left', 'b_right')], ['c']),
-                          ([], [('b', 'b_left', 'b_right')], ['c', 'a']),
-                          ([], [('b', 'b_left', 'b_right')], ['a', 'c'])])
+                         [(['a'], ['b'], ['c']),
+                          ([], ['b'], ['c', 'a']),
+                          ([], ['b'], ['a', 'c'])])
 def test_validate_parameters_pass_dataframe(key_cols, param_cols, val_cols):
-    data = pd.DataFrame({'a': [1, 2], 'b_left': [0, 5], 'b_right': [5, 10], 'c': [100, 150]})
+    data = pd.DataFrame({'a': [1, 2], 'b_start': [0, 5], 'b_end': [5, 10], 'c': [100, 150]})
     validate_parameters(data, key_cols, param_cols, val_cols)
