@@ -162,6 +162,7 @@ class LookupTable:
                  parameter_columns: Union[List[str], Tuple], value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int, clock: Callable, extrapolate: bool):
         self.table_number = table_number
+        key_columns = [] if key_columns is None else key_columns
         validate_parameters(data, key_columns, parameter_columns, value_columns)
 
         # Note datetime catches pandas timestamps
