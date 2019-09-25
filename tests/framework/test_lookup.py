@@ -92,7 +92,7 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
 
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
-    years = manager._build_table(years, key_columns=('sex',), parameter_columns=('age', 'year'), value_columns=None)
+    years = manager._build_table(years, key_columns=['sex'], parameter_columns=['age', 'year'], value_columns=None)
 
     for year in input_years:
         simulation._clock._time = pd.Timestamp(year, 1, 1)
@@ -135,14 +135,14 @@ def test_lookup_table_interpolated_return_types(base_config):
 
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
-    table = (manager._build_table(data, key_columns=('sex',), parameter_columns=['age', 'year'],
+    table = (manager._build_table(data, key_columns=['sex'], parameter_columns=['age', 'year'],
                                   value_columns=None)(simulation.get_population().index))
     # make sure a single value column is returned as a series
     assert isinstance(table, pd.Series)
 
     # now add a second value column to make sure the result is a df
     data['value2'] = data.value
-    table = (manager._build_table(data, key_columns=('sex',),
+    table = (manager._build_table(data, key_columns=['sex'],
                                   parameter_columns=['age', 'year'],
                                   value_columns=None)(simulation.get_population().index))
 
