@@ -191,9 +191,9 @@ class ValuesManager:
         logger.debug(f"Registering {modifier_name} as modifier to {value_name}")
 
         pipeline = self._pipelines[value_name]
+        name = f'{value_name}.{len(pipeline.mutators)}.{modifier_name}'
         pipeline.mutators.append(modifier)
 
-        name = f'{value_name}.{len(pipeline.mutators)}.{modifier_name}'
         dependencies = self._convert_dependencies(modifier, requires_columns, requires_values, requires_streams)
         self.initialization_resources.add_resources('value_modifier', [name], modifier, dependencies)
 
