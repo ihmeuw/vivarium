@@ -87,17 +87,17 @@ class ResourceGroup:
                 raise ResourceError  # Component has more than one producer for resource type ...
             self.producer_components.add(producer.__self__.name)
 
-        producer = self.get_producer(resource_type, resource_names, producer, dependencies)
+        producer = self._get_producer(resource_type, resource_names, producer, dependencies)
         for resource_name in producer.resource_names:
             key = f'{producer.resource_type}.{resource_name}'
             if key in self.resources:
                 raise ResourceError  # More than one producer for resource ...
             self.resources[key] = producer
 
-    def get_producer(self, resource_type, resource_names, producer, dependencies):
+    def _get_producer(self, resource_type, resource_names, producer, dependencies):
         if not resource_names:  # null producer
             resource_type = NULL_RESOURCE_TYPE
-            resource_names = [self._null_producer_count]
+            resource_names = [str(self._null_producer_count)]
             self._null_producer_count += 1
 
         return ResourceProducer(resource_type, resource_names, producer, dependencies)
