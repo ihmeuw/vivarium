@@ -68,8 +68,8 @@ class ResourceGroup:
         self.producer_components = set() if single_producer else EmptySet()
         self.resources = {}
         self._graph = None
-        # null producers are those that don't produce any resources externally but still have dependencies
-        # these are only population initializers as of 9/26/2019
+        # null producers are those that don't produce any resources externally but still consume 
+        # other resources (i.e., have dependencies) - these are only pop initializers as of 9/26/2019
         self._null_producer_count = 0
 
     @property
