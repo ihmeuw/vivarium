@@ -31,6 +31,7 @@ class ResourceError(VivariumError):
 
 
 RESOURCE_TYPES = {'value', 'value_source', 'value_modifier', 'column', 'stream'}
+NULL_RESOURCE_TYPE = 'null'
 
 
 class ResourceProducer:
@@ -67,6 +68,9 @@ class ResourceGroup:
         self.producer_components = set() if single_producer else EmptySet()
         self.resources = {}
         self._graph = None
+        # null producers are those that don't produce any resources externally but still have dependencies
+        # these are only population initializers as of 9/26/2019
+        self._null_producer_count = 0
 
     @property
     def graph(self):
@@ -83,12 +87,20 @@ class ResourceGroup:
                 raise ResourceError  # Component has more than one producer for resource type ...
             self.producer_components.add(producer.__self__.name)
 
-        producer = ResourceProducer(resource_type, resource_names, producer, dependencies)
-        for resource_name in resource_names:
-            key = f'{resource_type}.{resource_name}'
+        producer = self.get_producer(resource_type, resource_names, producer, dependencies)
+        for resource_name in producer.resource_names:
+            key = f'{producer.resource_type}.{resource_name}'
             if key in self.resources:
                 raise ResourceError  # More than one producer for resource ...
             self.resources[key] = producer
+
+    def get_producer(self, resource_type, resource_names, producer, dependencies):
+        if not resource_names:  # null producer
+            resource_type = NULL_RESOURCE_TYPE
+            resource_names = [self._null_producer_count]
+            self._null_producer_count += 1
+
+        return ResourceProducer(resource_type, resource_names, producer, dependencies)
 
     def __iter__(self) -> Iterable[MethodType]:
         try:
@@ -96,8 +108,7 @@ class ResourceGroup:
         except nx.NetworkXUnfeasible:
             raise ResourceError(f'The resource group {self.phase} contains at least one cycle: '
                                 f'{nx.find_cycle(self.graph)}.')
-
-        return iter([r.producer for r in sorted_nodes if r.resource_type == 'column'])
+        return iter([r.producer for r in sorted_nodes if r.resource_type in {'column', NULL_RESOURCE_TYPE}])
 
     def _to_graph(self) -> Iterable[ResourceProducer]:
         g = nx.DiGraph()
