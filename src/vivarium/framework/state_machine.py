@@ -326,15 +326,34 @@ class TransitionSet:
             include a null transition weight.
         """
         outputs = list(outputs)
+
+        # This is mainly for flexibility with the triggered transitions.
+        # We may have multiple out transitions from a state where one of them
+        # is gated until some criteria is met.  After the criteria is
+        # met, the gated transition becomes the default (likely as opposed
+        # to a self transition).
+        default_transition_count = np.sum(probabilities == 1, axis=1)
+        if np.any(default_transition_count) > 1:
+            raise ValueError("Multiple transitions specified with probability 1.")
+        has_default = default_transition_count == 1
         total = np.sum(probabilities, axis=1)
-        if self.allow_null_transition or not np.any(total):
+        probabilities[has_default] /= total[has_default, np.newaxis]
+
+        total = np.sum(probabilities, axis=1)  # All totals should be ~<= 1 at this point.
+        if self.allow_null_transition:
             if np.any(total > 1+1e-08):  # Accommodate rounding errors
-                raise ValueError(
-                    "Null transition requested with un-normalized probability weights: {}".format(probabilities))
+                raise ValueError(f"Null transition requested with un-normalized "
+                                 f"probability weights: {probabilities}")
             total[total > 1] = 1  # Correct allowed rounding errors.
             probabilities = np.concatenate([probabilities, (1-total)[:, np.newaxis]], axis=1)
             outputs.append('null_transition')
-        return outputs, probabilities/(np.sum(probabilities, axis=1)[:, np.newaxis])
+        else:
+            if np.any(total == 0):
+                raise ValueError("No valid transitions for some simulants.")
+            else:  # total might be less than zero in some places
+                probabilities /= total[:, np.newaxis]
+
+        return outputs, probabilities
 
     def append(self, transition):
         if not isinstance(transition, Transition):

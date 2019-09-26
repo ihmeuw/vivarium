@@ -93,10 +93,11 @@ class PopulationView:
         """
         pop = self.manager.get_population(True).loc[index]
 
-        if self._query:
-            pop = pop.query(self._query)
-        if query:
-            pop = pop.query(query)
+        if not index.empty:
+            if self._query:
+                pop = pop.query(self._query)
+            if query:
+                pop = pop.query(query)
 
         if not self._columns:
             return pop
@@ -115,10 +116,10 @@ class PopulationView:
         ----------
         pop
             The data which should be copied into the simulation's state. If
-            ``pop`` is a DataFrame only those columns included in the view's
-            columns will be used. If ``pop`` is a Series it must have a name
-            that matches one of the view's columns unless the view only has
-            one column in which case the Series will be assumed to refer to
+            ``pop`` is a DataFrame, it can contain a subset of the view's
+            columns but no extra columns. If ``pop`` is a Series it must have
+            a name that matches one of the view's columns unless the view only
+            has one column in which case the Series will be assumed to refer to
             that regardless of its name.
 
         """
@@ -132,6 +133,10 @@ class PopulationView:
                     raise PopulationError('Cannot update with a Series unless the series name equals a column '
                                           'name or there is only a single column in the view')
             else:
+                if not set(pop.columns).issubset(self._columns):
+                    raise PopulationError(f'Cannot update with a DataFrame that contains columns the view does not. '
+                                          f'Dataframe contains the following extra columns: '
+                                          f'{set(pop.columns).difference(self._columns)}.')
                 affected_columns = set(pop.columns)
 
             affected_columns = set(affected_columns).intersection(self._columns)

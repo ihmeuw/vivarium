@@ -20,7 +20,7 @@ from typing import Union, List, Tuple, Callable, TypeVar
 
 import pandas as pd
 
-from vivarium.interpolation import Interpolation, ParameterType
+from vivarium.interpolation import Interpolation
 from vivarium.framework.population import PopulationView
 
 ScalarValue = TypeVar('ScalarValue', Number, timedelta, datetime)
@@ -56,13 +56,16 @@ class InterpolatedTable:
     These should not be created directly. Use the `lookup` method on the builder during setup.
     """
     def __init__(self, data: pd.DataFrame, population_view: PopulationView, key_columns: Union[List[str], Tuple[str]],
-                 parameter_columns: ParameterType, value_columns: Union[List[str], Tuple[str]],
+                 parameter_columns: Union[List[str], Tuple], value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int, clock: Callable, extrapolate: bool):
 
         self.data = data
         self.population_view = population_view
         self.key_columns = key_columns
-        self.parameter_columns = parameter_columns
+        param_cols_with_edges = []
+        for p in parameter_columns:
+            param_cols_with_edges += [(p, f'{p}_start', f'{p}_end')]
+        self.parameter_columns = param_cols_with_edges
         self.interpolation_order = interpolation_order
         self.value_columns = value_columns
         self.clock = clock
@@ -156,17 +159,17 @@ class LookupTable:
     def __init__(self, table_number: int,
                  data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
                  population_view: Callable, key_columns: Union[List[str], Tuple[str]],
-                 parameter_columns: ParameterType, value_columns: Union[List[str], Tuple[str]],
+                 parameter_columns: Union[List[str], Tuple], value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int, clock: Callable, extrapolate: bool):
         self.table_number = table_number
+        key_columns = [] if key_columns is None else key_columns
         validate_parameters(data, key_columns, parameter_columns, value_columns)
 
         # Note datetime catches pandas timestamps
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
             self._table = ScalarTable(data, value_columns)
         else:
-            callable_parameter_columns = [p[0] for p in parameter_columns]
-            view_columns = sorted((set(key_columns) | set(callable_parameter_columns)) - {'year'}) + ['tracked']
+            view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'}) + ['tracked']
             self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
                                             parameter_columns, value_columns, interpolation_order, clock, extrapolate)
 
@@ -216,7 +219,9 @@ def validate_parameters(data, key_columns, parameter_columns, value_columns):
                              f'You supplied values: {data} and value_columns: {value_columns}')
 
     if isinstance(data, pd.DataFrame):
-        all_parameter_columns = [col for p in parameter_columns for col in p]
+        all_parameter_columns = []
+        for p in parameter_columns:
+            all_parameter_columns += [p, f'{p}_start', f'{p}_end']
         if set(key_columns).intersection(set(all_parameter_columns)):
             raise ValueError(f'There should be no overlap between key columns: {key_columns} '
                              f'and parameter columns: {parameter_columns}.')
@@ -264,7 +269,7 @@ class LookupTableManager:
         return table
 
     def _build_table(self, data, key_columns, parameter_columns, value_columns):
-        # We don't want to required explicit names for tables, but giving them
+        # We don't want to require explicit names for tables, but giving them
         # generic names is useful for introspection.
         table_number = len(self.tables)
         table = LookupTable(table_number, data, self._pop_view_builder, key_columns, parameter_columns,
@@ -281,9 +286,7 @@ class LookupTableInterface:
     def __init__(self, manager):
         self._lookup_table_manager = manager
 
-    def build_table(self, data, key_columns=('sex',), parameter_columns=(['age', 'age_start', 'age_end'],
-                                                                         ['year', 'year_start', 'year_end']),
-                    value_columns=None) -> LookupTable:
+    def build_table(self, data, key_columns=None, parameter_columns=None, value_columns=None) -> LookupTable:
         """Construct a LookupTable from input data.
 
         If data is a ``pandas.DataFrame``, an interpolation function of the specified
@@ -306,7 +309,9 @@ class LookupTableInterface:
         parameter_columns : [str]
                       The columns which contain the parameters to the interpolation functions.
                       These should be the continuous variables. For example 'age'
-                      in data about a population.
+                      in data about a population. If `data` is a dataframe, it
+                      must contain columns <c>_start and <c>_end for c in
+                      parameter_columns.
         value_columns : [str]
                       The data columns that will be in the resulting LookupTable. Columns to be
                       interpolated over if interpolation or the names of the columns in the scalar

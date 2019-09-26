@@ -42,8 +42,12 @@ class ResourceProducer:
         self.dependencies = dependencies
 
     def __repr__(self):
-        resources = ','.join([f'{self.resource_type}.{name}' for name in self.resource_names])
+        resources = ', '.join([f'{self.resource_type}.{name}' for name in self.resource_names])
         return f'ResourceProducer({resources})'
+
+    def __str__(self):
+        resources = ', '.join([f'{self.resource_type}.{name}' for name in self.resource_names])
+        return f'({resources})'
 
 
 class EmptySet:
@@ -88,9 +92,10 @@ class ResourceGroup:
 
     def __iter__(self) -> Iterable[MethodType]:
         try:
-            sorted_nodes = nx.algorithms.topological_sort(self.graph)
+            sorted_nodes = list(nx.algorithms.topological_sort(self.graph))
         except nx.NetworkXUnfeasible:
-            raise ResourceError(f'The resource group {self.phase} contains at least one cycle.')
+            raise ResourceError(f'The resource group {self.phase} contains at least one cycle: '
+                                f'{nx.find_cycle(self.graph)}.')
 
         return iter([r.producer for r in sorted_nodes if r.resource_type == 'column'])
 
