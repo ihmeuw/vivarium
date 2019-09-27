@@ -221,5 +221,18 @@ class InteractiveContext(SimulationContext):
         """
         return self._component_manager.get_component(name)
 
+    def get_resource_graph(self, phase: str):
+        """Get the dependency graph in the simulation for the given phase.
+
+        Parameters
+        ----------
+        phase
+            The name of the phase for which to retrieve the graph.
+        Returns
+        -------
+            The resource dependency graph for the given phase.
+        """
+        return self._resource.get_resource_group(phase).graph
+
     def __repr__(self):
         return 'InteractiveContext()'
