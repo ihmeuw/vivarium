@@ -1,5 +1,6 @@
 .. _entry_points_concept:
 
+
 =======================
 Simulation Entry Points
 =======================
@@ -8,6 +9,7 @@ Simulation Entry Points
    :depth: 2
    :local:
    :backlinks: none
+
 
 The Vivarium Engine
 -------------------
@@ -45,6 +47,7 @@ the population state table from the simulation at the final state.
 ``simulate run --help``. Specifying the verbose flag, ``-v`` or ``--verbose``, prints
 timesteps of the simulation and is a good way to track progress of the simulation.
 
+
 The Interactive Interface
 -------------------------
 
@@ -56,6 +59,7 @@ to a model specification file as an argument.
 There are 3 other ways to create a ``simulation context``. These methods involve considerably
 more manual setup but could prove helpful in building and debugging a model.
 See :ref:`the interactive tutorial <interactive_tutorial>` for a detailed walkthrough.
+
 
 Architecture for a distributed interface
 ----------------------------------------
