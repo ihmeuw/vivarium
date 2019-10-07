@@ -339,9 +339,9 @@ class ValuesManager:
             when called. If the pipeline has a ``replace_combiner``, the
             modifier should accept the same arguments as the pipeline source
             with an additional last positional argument for the results of the
-            previous stage in the pipeline. For the ``list_combiner`` and
-            ``set_combiner`` strategies, the pipeline modifiers should have
-            the same signature as the pipeline source.
+            previous stage in the pipeline. For the ``list_combiner`` strategy,
+            the pipeline modifiers should have the same signature as the pipeline
+            source.
         requires_columns
             A list of the state table columns that already need to be present
             and populated in the state table before the pipeline modifier
@@ -477,10 +477,9 @@ class ValuesInterface:
         preferred_combiner
             A strategy for combining the source and the results of any calls
             to mutators in the pipeline. ``vivarium`` provides the strategies
-            ``replace_combiner`` (the default), ``list_combiner``, and
-            ``set_combiner`` which are importable from
-            ``vivarium.framework.values``.  Client code may define additional
-            strategies as necessary.
+            ``replace_combiner`` (the default) and ``list_combiner``, which
+            are importable from ``vivarium.framework.values``.  Client code
+            may define additional strategies as necessary.
         preferred_post_processor
             A strategy for processing the final output of the pipeline.
             ``vivarium`` provides the strategies ``rescale_post_processor``
@@ -555,9 +554,9 @@ class ValuesInterface:
             when called. If the pipeline has a ``replace_combiner``, the
             modifier should accept the same arguments as the pipeline source
             with an additional last positional argument for the results of the
-            previous stage in the pipeline. For the ``list_combiner`` and
-            ``set_combiner`` strategies, the pipeline modifiers should have
-            the same signature as the pipeline source.
+            previous stage in the pipeline. For the ``list_combiner`` strategy,
+            the pipeline modifiers should have the same signature as the pipeline
+            source.
         requires_columns
             A list of the state table columns that already need to be present
             and populated in the state table before the pipeline modifier
