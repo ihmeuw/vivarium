@@ -14,17 +14,17 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import os
+from pathlib import Path
 import sys
 
 import vivarium
-base_dir = os.path.dirname(vivarium.__file__)
+base_dir = Path(vivarium.__file__).parent
 
 about = {}
-with open(os.path.join(base_dir, "__about__.py")) as f:
+with (base_dir / "__about__.py").open() as f:
     exec(f.read(), about)
 
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, Path('..').resolve())
 
 # -- Project information -----------------------------------------------------
 

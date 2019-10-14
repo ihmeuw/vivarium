@@ -12,7 +12,7 @@ test_section2:
 
 def test_load_yaml_string():
     d = ConfigTree()
-    d._loads(TEST_YAML_ONE, source='inline_test')
+    d.update(TEST_YAML_ONE, source='inline_test')
 
     assert d.test_section.test_key == 'test_value'
     assert d.test_section.test_key2 == 'test_value2'
@@ -24,7 +24,7 @@ def test_load_yaml_file(tmpdir):
     tmp_file.write(TEST_YAML_ONE)
 
     d = ConfigTree()
-    d._load(str(tmp_file))
+    d.update(str(tmp_file))
 
     assert d.test_section.test_key == 'test_value'
     assert d.test_section.test_key2 == 'test_value2'

@@ -1,6 +1,0 @@
-numpy
-pandas
-pyyaml
-scipy
-tables
-click

@@ -13,54 +13,44 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 
 """
 from collections import defaultdict
-from typing import Callable
-from types import MethodType
-import logging
+from typing import Callable, List
 
+from loguru import logger
 import pandas as pd
 
 from vivarium.exceptions import VivariumError
 from .utilities import from_yearly
 
 
-_log = logging.getLogger(__name__)
-
-
 class DynamicValueError(VivariumError):
-    """Indicates that a value was invoked without being properly configured.
-    i.e. no source specified.
-    """
+    """Indicates and improperly configured value was invoked."""
     pass
 
 
 def replace_combiner(value, mutator, *args, **kwargs):
-    """Replaces the output of the source or mutator with the output
-    of the subsequent mutator. This is the default combiner.
+    """Replace the previous pipeline output with the output of the mutator.
+
+    This is the default combiner.
+
     """
     args = list(args) + [value]
     return mutator(*args, **kwargs)
 
 
 def set_combiner(value, mutator, *args, **kwargs):
-    """Expects the output of the source to be a set to which
-    the result of each mutator is added.
-    """
+    """Aggregates source and mutator output into a set."""
     value.add(mutator(*args, **kwargs))
     return value
 
 
 def list_combiner(value, mutator, *args, **kwargs):
-    """Expects the output of the source to be a list to which
-    the result of each mutator is appended.
-    """
+    """Aggregates source and mutator output into a list."""
     value.append(mutator(*args, **kwargs))
     return value
 
 
 def rescale_post_processor(a, time_step):
-    """Assumes that the value is an annual rate and rescales it to the
-    current time step.
-    """
+    """Rescales annual rates to time-step appropriate rates."""
     return from_yearly(a, pd.Timedelta(time_step, unit='D'))
 
 
@@ -98,13 +88,16 @@ class Pipeline:
     def __init__(self):
         self.name = None
         self.source = None
-        self.mutators = [[] for _ in range(10)]
+        self.mutators = []
         self.combiner = None
         self.post_processor = None
         self.manager = None
         self.configured = False
 
     def __call__(self, *args, skip_post_processor=False, **kwargs):
+        return self._call(*args, skip_post_processor=skip_post_processor, **kwargs)
+
+    def _call(self, *args, skip_post_processor=False, **kwargs):
         if not self.source:
             raise DynamicValueError(f"The dynamic value pipeline for {self.name} has no source. This likely means"
                                     f"you are attempting to modify a value that hasn't been created.")
@@ -113,9 +106,8 @@ class Pipeline:
                                     f"has not been configured.  You've done a weird thing to get in this state.")
 
         value = self.source(*args, **kwargs)
-        for priority_bucket in self.mutators:
-            for mutator in priority_bucket:
-                value = self.combiner(value, mutator, *args, **kwargs)
+        for mutator in self.mutators:
+            value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
             return self.post_processor(value, self.manager.step_size())
 
@@ -130,11 +122,11 @@ class ValuesManager:
 
     Notes
     -----
-    Client code should never need to interact with this class
-    except through the dynamic value and rate constructors exposed
-    via the builder during the setup phase.
-    """
+        Client code should never need to interact with this class
+        except through the dynamic value and rate constructors exposed
+        via the builder during the setup phase.
 
+    """
     def __init__(self):
         self._pipelines = defaultdict(Pipeline)
 
@@ -146,19 +138,44 @@ class ValuesManager:
         self.step_size = builder.time.step_size()
         builder.event.register_listener('post_setup', self.on_post_setup)
 
+        self.initialization_resources = builder.resource.get_resource_group('initialization')
+        self.add_constraint = builder.lifecycle.add_constraint
+
+        builder.lifecycle.add_constraint(self.register_value_producer, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.register_value_modifier, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.get_value, allow_during=['setup', 'post_setup', 'population_creation',
+                                                                       'simulation_end', 'report'])
+
     def on_post_setup(self, event):
-        # FIXME: This should raise an error, but can't due to risk effect generation
-        _log.debug(f"Unsourced pipelines: {[p for p, v in self._pipelines.items() if not v.source]}")
+        # FIXME: This should raise an error, but can't due to downstream dependants.
+        logger.debug(f"Unsourced pipelines: {[p for p, v in self._pipelines.items() if not v.source]}")
 
-    def register_value_modifier(self, value_name, modifier, priority=5):
-        m = modifier if isinstance(modifier, MethodType) else modifier.__call__
-        _log.debug(f"Registering {str(m).split()[2]} as modifier to {value_name}")
-        pipeline = self._pipelines[value_name]
-        pipeline.mutators[priority].append(modifier)
+        for name, pipe in self._pipelines.items():
+            dependencies = []
+            if pipe.source:  # Same fixme as above.
+                dependencies += [f'value_source.{name}']
+            for i, m in enumerate(pipe.mutators):
+                mutator_name = self._get_modifier_name(m)
+                dependencies.append(f'value_modifier.{name}.{i}.{mutator_name}')
+            self.initialization_resources.add_resources('value', [name], pipe._call, dependencies)
 
-    def register_value_producer(self, value_name, source=None,
+    def register_value_producer(self, value_name, source,
+                                requires_columns=(), requires_values=(), requires_streams=(),
                                 preferred_combiner=replace_combiner, preferred_post_processor=None):
-        _log.debug(f"Registering value pipeline {value_name}")
+        pipeline = self._register_value_producer(value_name, source, preferred_combiner, preferred_post_processor)
+
+        # The resource we add here is just the pipeline source.
+        # The value will depend on the source and its modifiers, and we'll
+        # declare that resource at post-setup once all sources and modifiers
+        # are registered.
+        dependencies = self._convert_dependencies(source, requires_columns, requires_values, requires_streams)
+        self.initialization_resources.add_resources('value_source', [value_name], source, dependencies)
+        self.add_constraint(pipeline._call, restrict_during=['initialization', 'setup', 'post_setup'])
+        return pipeline
+
+    def _register_value_producer(self, value_name, source=None,
+                                 preferred_combiner=replace_combiner, preferred_post_processor=None):
+        logger.debug(f"Registering value pipeline {value_name}")
         pipeline = self._pipelines[value_name]
         pipeline.name = value_name
         pipeline.source = source
@@ -168,13 +185,19 @@ class ValuesManager:
         pipeline.configured = True
         return pipeline
 
-    def register_rate_producer(self, rate_name, source=None):
-        return self.register_value_producer(rate_name, source, preferred_post_processor=rescale_post_processor)
+    def register_value_modifier(self, value_name, modifier,
+                                requires_columns=(), requires_values=(), requires_streams=()):
+        modifier_name = self._get_modifier_name(modifier)
+        logger.debug(f"Registering {modifier_name} as modifier to {value_name}")
+
+        pipeline = self._pipelines[value_name]
+        name = f'{value_name}.{len(pipeline.mutators)}.{modifier_name}'
+        pipeline.mutators.append(modifier)
+
+        dependencies = self._convert_dependencies(modifier, requires_columns, requires_values, requires_streams)
+        self.initialization_resources.add_resources('value_modifier', [name], modifier, dependencies)
 
     def get_value(self, name):
-        return self._pipelines[name]
-
-    def get_rate(self, name):
         return self._pipelines[name]
 
     def __contains__(self, item):
@@ -189,67 +212,142 @@ class ValuesManager:
     def items(self):
         return self._pipelines.items()
 
+    @staticmethod
+    def _convert_dependencies(func, requires_columns, requires_values, requires_streams):
+        # If declaring a pipeline as a value source or modifier, columns and
+        # streams are optional since the pipeline itself will have all the
+        # appropriate dependencies. In any situation, make sure we don't have
+        # provide the pipeline function to source/modifier as well as
+        # explicitly stating the pipeline name in 'requires_values'.
+        if isinstance(func, Pipeline):
+            dependencies = [f'value.{func.name}']
+        else:
+            dependencies = ([f'column.{name}' for name in requires_columns]
+                            + [f'value.{name}' for name in requires_values]
+                            + [f'stream.{name}' for name in requires_streams])
+        return dependencies
+
+    @staticmethod
+    def _get_modifier_name(modifier):
+        if hasattr(modifier, 'name'):  # This is Pipeline or lookup table or something similar
+            modifier_name = modifier.name
+        elif hasattr(modifier, '__self__'):  # This is a bound method of a component or other object
+            owner = modifier.__self__
+            owner_name = owner.name if hasattr(owner, 'name') else owner.__class__.__name__
+            modifier_name = f'{owner_name}.{modifier.__name__}'
+        elif hasattr(modifier, '__name__'):  # Some unbound function
+            modifier_name = modifier.__name__
+        elif hasattr(modifier, '__call__'):  # Some anonymous callable
+            modifier_name = f'{modifier.__class__.name__}.__call__'
+        else:  # I don't know what this is.
+            raise ValueError(f'Unknown modifier type: {type(modifier)}')
+        return modifier_name
+
     def __repr__(self):
         return "ValuesManager()"
 
 
 class ValuesInterface:
+
     def __init__(self, value_manager: ValuesManager):
         self._value_manager = value_manager
 
-    def register_value_producer(self, value_name: str, source: Callable[..., pd.DataFrame]=None,
-                                preferred_combiner: Callable=replace_combiner,
-                                preferred_post_processor: Callable[..., pd.DataFrame]=None) -> Pipeline:
+    def register_value_producer(self,
+                                value_name: str,
+                                source: Callable[..., pd.DataFrame],
+                                requires_columns: List[str] = (),
+                                requires_values: List[str] = (),
+                                requires_streams: List[str] = (),
+                                preferred_combiner: Callable = replace_combiner,
+                                preferred_post_processor: Callable[..., pd.DataFrame] = None) -> Callable:
         """Marks a ``Callable`` as the producer of a named value.
 
         Parameters
         ----------
-        value_name :
+        value_name
             The name of the new dynamic value pipeline.
-        source :
+        source
             A callable source for the dynamic value pipeline.
-        preferred_combiner :
-            A strategy for combining the source and the results of any calls to mutators in the pipeline.
-            ``vivarium`` provides the strategies ``replace_combiner`` (the default), ``list_combiner``,
-            and ``set_combiner`` which are importable from ``vivarium.framework.values``.  Client code
-            may define additional strategies as necessary.
-        preferred_post_processor :
-            A strategy for processing the final output of the pipeline. ``vivarium`` provides the strategies
-            ``rescale_post_processor`` and ``joint_value_post_processor`` which are importable from
-            ``vivarium.framework.values``.  Client code may define additional strategies as necessary.
+        requires_columns
+            A list of the state table columns that already need to be present
+            and populated in the state table before the pipeline source
+            is called.
+        requires_values
+            A list of the value pipelines that need to be properly sourced
+            before the pipeline source is called.
+        requires_streams
+            A list of the randomness streams that need to be properly sourced
+            before the pipeline source is called.
+        preferred_combiner
+            A strategy for combining the source and the results of any calls
+            to mutators in the pipeline. ``vivarium`` provides the strategies
+            ``replace_combiner`` (the default), ``list_combiner``, and
+            ``set_combiner`` which are importable from
+            ``vivarium.framework.values``.  Client code may define additional
+            strategies as necessary.
+        preferred_post_processor
+            A strategy for processing the final output of the pipeline.
+            ``vivarium`` provides the strategies ``rescale_post_processor``
+            and ``joint_value_post_processor`` which are importable from
+            ``vivarium.framework.values``.  Client code may define additional
+            strategies as necessary.
 
         Returns
         -------
-        Callable
             A callable reference to the named dynamic value pipeline.
+
         """
         return self._value_manager.register_value_producer(value_name, source,
-                                                           preferred_combiner,
-                                                           preferred_post_processor)
+                                                           requires_columns, requires_values, requires_streams,
+                                                           preferred_combiner, preferred_post_processor)
 
-    def register_rate_producer(self, rate_name: str, source: Callable[..., pd.DataFrame]=None) -> Pipeline:
+    def register_rate_producer(self,
+                               rate_name: str,
+                               source: Callable[..., pd.DataFrame],
+                               requires_columns: List[str] = (),
+                               requires_values: List[str] = (),
+                               requires_streams: List[str] = ()) -> Callable:
         """Marks a ``Callable`` as the producer of a named rate.
 
-        This is a convenience wrapper around ``register_value_producer`` that makes sure
-        rate data is appropriately scaled to the size of the simulation time step.
-        It is equivalent to ``register_value_producer(value_name, source,
-        preferred_combiner=replace_combiner, preferred_post_processor=rescale_post_processor)``
+        This is a convenience wrapper around ``register_value_producer`` that
+        makes sure rate data is appropriately scaled to the size of the
+        simulation time step.  It is equivalent to
+        ``register_value_producer(value_name, source,
+        preferred_combiner=replace_combiner,
+        preferred_post_processor=rescale_post_processor)``
 
         Parameters
         ----------
-        rate_name :
+        rate_name
             The name of the new dynamic rate pipeline.
-        source :
+        source
             A callable source for the dynamic rate pipeline.
+        requires_columns
+            A list of the state table columns that already need to be present
+            and populated in the state table before the pipeline source
+            is called.
+        requires_values
+            A list of the value pipelines that need to be properly sourced
+            before the pipeline source is called.
+        requires_streams
+            A list of the randomness streams that need to be properly sourced
+            before the pipeline source is called.
 
         Returns
         -------
-        Callable
             A callable reference to the named dynamic rate pipeline.
-        """
-        return self._value_manager.register_rate_producer(rate_name, source)
 
-    def register_value_modifier(self, value_name: str, modifier: Callable, priority: int=5):
+        """
+        return self.register_value_producer(rate_name, source,
+                                            requires_columns, requires_values, requires_streams,
+                                            preferred_post_processor=rescale_post_processor)
+
+    def register_value_modifier(self,
+                                value_name: str,
+                                modifier: Callable,
+                                requires_columns: List[str] = (),
+                                requires_values: List[str] = (),
+                                requires_streams: List[str] = (),):
         """Marks a ``Callable`` as the modifier of a named value.
 
         Parameters
@@ -257,18 +355,27 @@ class ValuesInterface:
         value_name :
             The name of the dynamic value pipeline to be modified.
         modifier :
-            A function that modifies the source of the dynamic value pipeline when called.
-            If the pipeline has a ``replace_combiner``, the modifier should accept the same
-            arguments as the pipeline source with an additional last positional argument
-            for the results of the previous stage in the pipeline. For the ``list_combiner`` and
-            ``set_combiner`` strategies, the pipeline modifiers should have the same signature
-            as the pipeline source.
-        priority : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-            An indication of the order in which pipeline modifiers should be called. Modifiers with
-            smaller priority values will be called earlier in the pipeline.  Modifiers with
-            the same priority have no guaranteed ordering, and so should be commutative.
+            A function that modifies the source of the dynamic value pipeline
+            when called. If the pipeline has a ``replace_combiner``, the
+            modifier should accept the same arguments as the pipeline source
+            with an additional last positional argument for the results of the
+            previous stage in the pipeline. For the ``list_combiner`` and
+            ``set_combiner`` strategies, the pipeline modifiers should have
+            the same signature as the pipeline source.
+        requires_columns
+            A list of the state table columns that already need to be present
+            and populated in the state table before the pipeline modifier
+            is called.
+        requires_values
+            A list of the value pipelines that need to be properly sourced
+            before the pipeline modifier is called.
+        requires_streams
+            A list of the randomness streams that need to be properly sourced
+            before the pipeline modifier is called.
+
         """
-        self._value_manager.register_value_modifier(value_name, modifier, priority)
+        self._value_manager.register_value_modifier(value_name, modifier,
+                                                    requires_columns, requires_values, requires_streams)
 
     def get_value(self, name):
         return self._value_manager.get_value(name)

@@ -119,9 +119,10 @@ def test_RandomnessManager_get_randomness_stream():
     seed = 123456
 
     rm = RandomnessManager()
+    rm._add_constraint = lambda f, **kwargs: f
     rm._seed = seed
     rm._clock = mock_clock
-    stream = rm.get_randomness_stream('test')
+    stream = rm._get_randomness_stream('test')
 
     assert stream.key == 'test'
     assert stream.seed == seed
@@ -135,6 +136,7 @@ def test_RandomnessManager_get_randomness_stream():
 def test_RandomnessManager_register_simulants():
     seed = 123456
     rm = RandomnessManager()
+    rm._add_constraint = lambda f, **kwargs: f
     rm._seed = seed
     rm._clock = mock_clock
     rm._key_columns = ['age', 'sex']
