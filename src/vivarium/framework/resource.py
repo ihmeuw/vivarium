@@ -30,8 +30,9 @@ class ResourceError(VivariumError):
     pass
 
 
-RESOURCE_TYPES = {'value', 'value_source', 'value_modifier', 'column', 'stream'}
+RESOURCE_TYPES = {'value', 'value_source', 'missing_value_source', 'value_modifier', 'column', 'stream'}
 NULL_RESOURCE_TYPE = 'null'
+
 
 
 class ResourceProducer:
