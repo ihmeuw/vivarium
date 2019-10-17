@@ -144,7 +144,17 @@ def union_post_processor(values: List[NumberLike], _) -> NumberLike:
         by the original probabilities.
 
     """
-    return 1 - np.prod([1 - v for v in values], axis=0)
+    # if there is only one value, return the value
+    if len(values) == 1:
+        return values[0]
+
+    # if there are multiple values, calculate the joint value
+    product = 1
+    for v in values:
+        new_value = (1-v)
+        product = product * new_value
+    joint_value = 1 - product
+    return joint_value
 
 
 class Pipeline:
