@@ -2,8 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-from vivarium.framework.values import (set_combiner, list_combiner,
-                                       joint_value_post_processor, ValuesManager)
+from vivarium.framework.values import list_combiner, union_post_processor, ValuesManager
 
 
 @pytest.fixture
@@ -34,7 +33,7 @@ def test_joint_value(manager):
     value = manager.register_value_producer('test',
                                             source=lambda idx: [pd.Series(0, index=idx)],
                                             preferred_combiner=list_combiner,
-                                            preferred_post_processor=joint_value_post_processor)
+                                            preferred_post_processor=union_post_processor)
     assert np.all(value(index) == 0)
 
     manager.register_value_modifier('test', modifier=lambda idx: pd.Series(0.5, index=idx))
@@ -42,22 +41,6 @@ def test_joint_value(manager):
 
     manager.register_value_modifier('test', modifier=lambda idx: pd.Series(0.5, index=idx))
     assert np.all(value(index) == 0.75)
-
-
-def test_set_combiner(manager):
-    # This is the normal configuration for collecting lists of meids for calculating cause deleted tables
-    value = manager.register_value_producer('test', source=lambda: set(), preferred_combiner=set_combiner)
-
-    assert value() == set()
-
-    manager.register_value_modifier('test', modifier=lambda: 'thing one')
-    assert value() == {'thing one'}
-
-    manager.register_value_modifier('test', modifier=lambda: 'thing one')
-    assert value() == {'thing one'}  # duplicates are truly removed
-
-    manager.register_value_modifier('test', modifier=lambda: 'thing two')
-    assert value() == {'thing one', 'thing two'}  # but unique values are collected
 
 
 def test_contains(manager):

@@ -48,7 +48,7 @@ def test_SimulationContext_init_default(components):
     assert isinstance(sim._builder.lookup, LookupTableInterface)
     assert sim._builder.lookup._lookup_table_manager is sim._tables
     assert isinstance(sim._builder.value, ValuesInterface)
-    assert sim._builder.value._value_manager is sim._values
+    assert sim._builder.value._manager is sim._values
     assert isinstance(sim._builder.event, EventInterface)
     assert sim._builder.event._event_manager is sim._events
     assert isinstance(sim._builder.population, PopulationInterface)
