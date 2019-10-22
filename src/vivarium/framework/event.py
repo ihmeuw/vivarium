@@ -247,8 +247,8 @@ class EventManager:
 class EventInterface:
     """The public interface for the event system."""
 
-    def __init__(self, event_manager: EventManager):
-        self._event_manager = event_manager
+    def __init__(self, manager: EventManager):
+        self._manager = manager
 
     def get_emitter(self, name: str) -> Callable[[pd.Index, Optional[Dict]], Event]:
         """Gets an emitter for a named event.
@@ -268,7 +268,7 @@ class EventInterface:
             lifecycle.
 
         """
-        return self._event_manager.get_emitter(name)
+        return self._manager.get_emitter(name)
 
     def register_listener(self, name: str, listener: Callable[[Event], None], priority: int = 5) -> None:
         """Registers a callable as a listener to a events with the given name.
@@ -306,4 +306,4 @@ class EventInterface:
             system).
 
         """
-        self._event_manager.register_listener(name, listener, priority)
+        self._manager.register_listener(name, listener, priority)

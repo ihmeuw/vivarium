@@ -283,8 +283,8 @@ class LookupTableManager:
 
 class LookupTableInterface:
 
-    def __init__(self, manager):
-        self._lookup_table_manager = manager
+    def __init__(self, manager: LookupTableManager):
+        self._manager = manager
 
     def build_table(self, data, key_columns=None, parameter_columns=None, value_columns=None) -> LookupTable:
         """Construct a LookupTable from input data.
@@ -320,4 +320,4 @@ class LookupTableInterface:
         -------
         LookupTable
         """
-        return self._lookup_table_manager.build_table(data, key_columns, parameter_columns, value_columns)
+        return self._manager.build_table(data, key_columns, parameter_columns, value_columns)
