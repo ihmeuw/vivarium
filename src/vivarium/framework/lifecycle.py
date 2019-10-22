@@ -32,7 +32,7 @@ The tools here also allow for introspection of the simulation life cycle.
 """
 import functools
 from types import MethodType
-from typing import List, Callable, Tuple
+from typing import List, Callable, Tuple, Optional
 import textwrap
 
 from vivarium.exceptions import VivariumError
@@ -92,7 +92,7 @@ class LifeCycleState:
         else:
             self._next = next_state
 
-    def valid_next_state(self, state: 'LifeCycleState'):
+    def valid_next_state(self, state: Optional['LifeCycleState']):
         """Check if the provided state is valid for a life cycle transition.
 
         Parameters
@@ -149,7 +149,6 @@ class LifeCyclePhase:
 
     def __init__(self, name: str, states: List[str], loop: bool):
         self._name = name
-        self._next = None
         self._states = [LifeCycleState(states[0])]
         self._loop = loop
         for s in states[1:]:
@@ -170,7 +169,6 @@ class LifeCyclePhase:
 
     def add_next(self, phase: 'LifeCyclePhase'):
         """Link the provided phase as the next phase in the life cycle."""
-        self._next = phase
         self._states[-1].add_next(phase._states[0])
 
     def get_state(self, state_name: str) -> LifeCycleState:
