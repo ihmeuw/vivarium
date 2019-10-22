@@ -46,21 +46,21 @@ def test_SimulationContext_init_default(components):
     assert isinstance(sim._builder, Builder)
     assert sim._builder.configuration is sim.configuration
     assert isinstance(sim._builder.lookup, LookupTableInterface)
-    assert sim._builder.lookup._lookup_table_manager is sim._tables
+    assert sim._builder.lookup._manager is sim._tables
     assert isinstance(sim._builder.value, ValuesInterface)
     assert sim._builder.value._manager is sim._values
     assert isinstance(sim._builder.event, EventInterface)
-    assert sim._builder.event._event_manager is sim._events
+    assert sim._builder.event._manager is sim._events
     assert isinstance(sim._builder.population, PopulationInterface)
-    assert sim._builder.population._population_manager is sim._population
+    assert sim._builder.population._manager is sim._population
     assert isinstance(sim._builder.randomness, RandomnessInterface)
-    assert sim._builder.randomness._randomness_manager is sim._randomness
+    assert sim._builder.randomness._manager is sim._randomness
     assert isinstance(sim._builder.resource, ResourceInterface)
     assert sim._builder.resource._manager is sim._resource
     assert isinstance(sim._builder.time, TimeInterface)
-    assert sim._builder.time._clock is sim._clock
+    assert sim._builder.time._manager is sim._clock
     assert isinstance(sim._builder.components, ComponentInterface)
-    assert sim._builder.components._component_manager is sim._component_manager
+    assert sim._builder.components._manager is sim._component_manager
     assert isinstance(sim._builder.data, ArtifactInterface)
     assert sim._builder.data._manager is sim._data
 
