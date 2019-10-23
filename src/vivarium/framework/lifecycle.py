@@ -92,7 +92,7 @@ class LifeCycleState:
         else:
             self._next = next_state
 
-    def valid_next_state(self, state: Optional['LifeCycleState']):
+    def valid_next_state(self, state: Optional['LifeCycleState']) -> bool:
         """Check if the provided state is valid for a life cycle transition.
 
         Parameters
@@ -105,7 +105,8 @@ class LifeCycleState:
             Whether the state is valid for a transition.
 
         """
-        return state is self._next or state is self._loop_next
+        return ((state is None and state is self._next)
+                or (state is not None and (state is self._next or state is self._loop_next)))
 
     def enter(self):
         """Marks an entrance into this state."""
