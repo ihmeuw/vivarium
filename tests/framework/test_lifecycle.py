@@ -411,11 +411,3 @@ def test_lifecycle_manager_add_constraint():
     lm.set_state('a')
     alice.buzz()
     bob.buzz()
-
-
-
-
-
-
-
-
