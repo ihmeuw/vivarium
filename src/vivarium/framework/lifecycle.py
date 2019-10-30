@@ -254,7 +254,7 @@ class LifeCycle:
         phase = [p for p in self._phases if state_name in p].pop()
         return phase.get_state(state_name)
 
-    def get_states(self, phase_name: str) -> List[str]:
+    def get_state_names(self, phase_name: str) -> List[str]:
         """Retrieve the names of all states in the provided phase.
 
         Parameters
@@ -454,7 +454,7 @@ class LifeCycleManager:
         else:
             raise LifeCycleError(f'Invalid transition from {self.current_state} to {new_state.name} requested.')
 
-    def get_states(self, phase: str) -> List[str]:
+    def get_state_names(self, phase: str) -> List[str]:
         """Gets all states in the phase in their order of execution.
 
         Parameters
@@ -467,7 +467,7 @@ class LifeCycleManager:
             A list of state names in order of execution.
 
         """
-        return self.lifecycle.get_states(phase)
+        return self.lifecycle.get_state_names(phase)
 
     def add_handlers(self, state_name: str, handlers: List[Callable]):
         """Registers a set of functions to be called during a life cycle state.
