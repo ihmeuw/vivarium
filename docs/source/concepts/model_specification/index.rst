@@ -32,7 +32,7 @@ necessary to identify the components that should be included in the model. Each
 be managed by the simulation to add some functionality.
 
 In the model specification, these components should be specified in either a
-list or a hierchical format, as the following examples illustrate:
+list or a hierarchical format, as the following examples illustrate:
 
 A flat list:
 
@@ -58,7 +58,7 @@ and a hierchical format:
 
 When the model specification is loaded in, we need some way of transforming the
 string representation of the components into the actual component objects that
-the simulation can use. The exact process of that mapping betwe_model_specification_yaml_concepten the model
+the simulation can use. The exact process of that mapping between the model
 specification item and the fully instantiated object is the domain of the
 :class:`ComponentConfigurationParser
 <vivarium.framework.components.parser.ComponentConfigurationParser>`.
