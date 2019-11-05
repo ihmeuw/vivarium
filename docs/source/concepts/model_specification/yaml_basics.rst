@@ -4,13 +4,17 @@
 YAML Basics
 ===========
 
-YAML is a simple, human-readable data serialization format that is often used
-for :term:`model specification <Model Specification>` files. The extensions of a file can be **.yaml** or
-**.yml**, both of which are accepted throughout the Vivarium framework.  The
-following are general rules to keep in mind when writing and interpreting
-Vivarium YAML files. Examples use snippets from Vivarium model configurations
-but do not go in-depth about that topic. For more information about model
-configurations, please see that section of this documentation.
+YAML is a simple, human-readable data serialization format that is used for
+:mod:`vivarium` :term:`model specification <Model Specification>` files. The
+extensions of a file can be **.yaml** or **.yml**, both of which are accepted
+throughout the :mod:`vivarium` framework.  The following are general rules to
+keep in mind when writing and interpreting YAML files. Examples use snippets
+from :mod:`vivarium` model specifications but do not go in-depth about that
+topic. For more information about model specifications, please see the
+relevant :ref:`concept note <model_specification_concept>`.
+
+You can find way more information than you wanted about YAML
+`on their website <https://yaml.org/>`_.
 
 .. contents::
    :depth: 1
@@ -23,7 +27,7 @@ Structure
 
 YAML files are structured by lines and space indentations. Indentation levels
 should be either 2 or 4 spaces, and **tabs are not valid**.  For example, a
-configuration file that sets parameters for a BMI drug treatment component
+specification file that sets parameters for a BMI drug treatment component
 looks like the following:
 
 .. code-block:: yaml
@@ -63,7 +67,7 @@ Mappings
 --------
 
 A mapping, or key-value pairing, is formed using a colon `:`. This corresponds
-to an entry from the ``dictionary`` data structure from python, and there is
+to an entry from the ``dictionary`` data structure from Python, and there is
 no notion of ordering. Mappings can be specified in block format or inline,
 however we recommend block format so that is what we will show an example of
 here. In block format, mappings are separated onto new lines, and indentation
@@ -79,7 +83,7 @@ population as mappings. Each colon below begins a mapping.
             age_start: 0
             age_end: 30
 
-The interpretation of this configuration into python is shown below . You may
+The interpretation of this configuration into Python is shown below . You may
 have noticed that the above example contains nested mappings, this is valid
 YAML syntax and it relies on whitespace indentation. Also, the inner most
 block (population_size, age_start, age_end) is unordered.

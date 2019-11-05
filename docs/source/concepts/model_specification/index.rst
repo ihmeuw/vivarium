@@ -17,7 +17,7 @@ Each of these blocks is delineated by a top-level key in the yaml file:
 ``plugins``, ``components``, or ``configuration``, respectively.
 
 You can find a short intro to yaml basics
-:ref:`here <model_specification_yaml_concept`.
+:ref:`here <model_specification_yaml_concept>`.
 
 .. contents::
    :depth: 2
