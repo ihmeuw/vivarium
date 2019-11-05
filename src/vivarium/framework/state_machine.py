@@ -333,7 +333,7 @@ class TransitionSet:
         # met, the gated transition becomes the default (likely as opposed
         # to a self transition).
         default_transition_count = np.sum(probabilities == 1, axis=1)
-        if np.any(default_transition_count) > 1:
+        if np.any(default_transition_count > 1):
             raise ValueError("Multiple transitions specified with probability 1.")
         has_default = default_transition_count == 1
         total = np.sum(probabilities, axis=1)
