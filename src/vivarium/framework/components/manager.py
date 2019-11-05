@@ -278,8 +278,8 @@ class ComponentInterface:
 
     """
 
-    def __init__(self, component_manager: ComponentManager):
-        self._component_manager = component_manager
+    def __init__(self, manager: ComponentManager):
+        self._manager = manager
 
     def get_component(self, name: str) -> Any:
         """Get the component that has ``name`` if presently held by the component
@@ -294,7 +294,7 @@ class ComponentInterface:
             A component that has name ``name``.
 
         """
-        return self._component_manager.get_component(name)
+        return self._manager.get_component(name)
 
     def get_components_by_type(self, component_type: Type) -> List[Any]:
         """Get all components that are an instance of ``component_type``
@@ -310,7 +310,7 @@ class ComponentInterface:
             A list of components of type ``component_type``.
 
         """
-        return self._component_manager.get_components_by_type(component_type)
+        return self._manager.get_components_by_type(component_type)
 
     def list_components(self) -> Dict[str, Any]:
         """Get a mapping of component names to components held by the manager.
@@ -320,4 +320,4 @@ class ComponentInterface:
             A dictionary mapping component names to components.
 
         """
-        return self._component_manager.list_components()
+        return self._manager.list_components()

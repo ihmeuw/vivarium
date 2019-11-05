@@ -297,8 +297,8 @@ class PopulationManager:
 
 class PopulationInterface:
 
-    def __init__(self, population_manager: PopulationManager):
-        self._population_manager = population_manager
+    def __init__(self, manager: PopulationManager):
+        self._manager = manager
 
     def get_view(self, columns: Sequence[str], query: str = None) -> PopulationView:
         """Get a time-varying view of the population state table.
@@ -325,7 +325,7 @@ class PopulationInterface:
             table.
 
         """
-        return self._population_manager.get_view(columns, query)
+        return self._manager.get_view(columns, query)
 
     def get_simulant_creator(self) -> Callable[[int, Union[Mapping[str, Any], None]], pd.Index]:
         """Gets a function that can generate new simulants.
@@ -344,7 +344,7 @@ class PopulationInterface:
            time, and the size of the next time step.
 
         """
-        return self._population_manager.get_simulant_creator()
+        return self._manager.get_simulant_creator()
 
     def initializes_simulants(self, initializer: Callable[[SimulantData], None],
                               creates_columns: List[str] = (),
@@ -373,5 +373,5 @@ class PopulationInterface:
             simulant attributes.
 
         """
-        self._population_manager.register_simulant_initializer(initializer, creates_columns,
+        self._manager.register_simulant_initializer(initializer, creates_columns,
                                                                requires_columns, requires_values, requires_streams)

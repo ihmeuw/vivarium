@@ -697,8 +697,8 @@ class RandomnessManager:
 
 class RandomnessInterface:
 
-    def __init__(self, randomness_manager: RandomnessManager):
-        self._randomness_manager = randomness_manager
+    def __init__(self, manager: RandomnessManager):
+        self._manager = manager
 
     def get_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
@@ -726,7 +726,7 @@ class RandomnessInterface:
             An entry point into the Common Random Number generation framework. The stream provides
             vectorized access to random numbers and a few other utilities.
         """
-        return self._randomness_manager.get_randomness_stream(decision_point, for_initialization)
+        return self._manager.get_randomness_stream(decision_point, for_initialization)
 
     def register_simulants(self, simulants: pd.DataFrame):
         """Registers simulants with the Common Random Number Framework.
@@ -738,4 +738,4 @@ class RandomnessInterface:
             in ``builder.configuration.randomness.key_columns``.  This function should be called
             as soon as the key columns are generated.
         """
-        self._randomness_manager.register_simulants(simulants)
+        self._manager.register_simulants(simulants)
