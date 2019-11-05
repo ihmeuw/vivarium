@@ -64,7 +64,7 @@ def handle_exceptions(func: Callable, logger: Any, with_debugger: bool) -> Calla
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except (BdbQuit, KeyboardInterrupt):
             raise
         except Exception as e:

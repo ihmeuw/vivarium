@@ -93,10 +93,11 @@ class PopulationView:
         """
         pop = self.manager.get_population(True).loc[index]
 
-        if self._query:
-            pop = pop.query(self._query)
-        if query:
-            pop = pop.query(query)
+        if not index.empty:
+            if self._query:
+                pop = pop.query(self._query)
+            if query:
+                pop = pop.query(query)
 
         if not self._columns:
             return pop
@@ -115,10 +116,10 @@ class PopulationView:
         ----------
         pop
             The data which should be copied into the simulation's state. If
-            ``pop`` is a DataFrame only those columns included in the view's
-            columns will be used. If ``pop`` is a Series it must have a name
-            that matches one of the view's columns unless the view only has
-            one column in which case the Series will be assumed to refer to
+            ``pop`` is a DataFrame, it can contain a subset of the view's
+            columns but no extra columns. If ``pop`` is a Series it must have
+            a name that matches one of the view's columns unless the view only
+            has one column in which case the Series will be assumed to refer to
             that regardless of its name.
 
         """
@@ -132,6 +133,10 @@ class PopulationView:
                     raise PopulationError('Cannot update with a Series unless the series name equals a column '
                                           'name or there is only a single column in the view')
             else:
+                if not set(pop.columns).issubset(self._columns):
+                    raise PopulationError(f'Cannot update with a DataFrame that contains columns the view does not. '
+                                          f'Dataframe contains the following extra columns: '
+                                          f'{set(pop.columns).difference(self._columns)}.')
                 affected_columns = set(pop.columns)
 
             affected_columns = set(affected_columns).intersection(self._columns)
@@ -240,8 +245,15 @@ class PopulationManager:
     def register_simulant_initializer(self, initializer: Callable,
                                       creates_columns: List[str] = (),
                                       requires_columns: List[str] = (),
-                                      requires_values: List[str] = ()):
-        dependencies = [f'column.{name}' for name in requires_columns] + [f'value.{name}' for name in requires_values]
+                                      requires_values: List[str] = (),
+                                      requires_streams: List[str] = ()):
+        dependencies = ([f'column.{name}' for name in requires_columns]
+                        + [f'value.{name}' for name in requires_values]
+                        + [f'stream.{name}' for name in requires_streams])
+        if creates_columns != ['tracked']:
+            # The population view itself uses the tracked column, so include
+            # to be safe.
+            dependencies += ['column.tracked']
         self.initialization_resources.add_resources('column', list(creates_columns), initializer, dependencies)
 
     def get_simulant_creator(self) -> Callable:
@@ -337,7 +349,8 @@ class PopulationInterface:
     def initializes_simulants(self, initializer: Callable[[SimulantData], None],
                               creates_columns: List[str] = (),
                               requires_columns: List[str] = (),
-                              requires_values: List[str] = ()):
+                              requires_values: List[str] = (),
+                              requires_streams: List[str] = ()):
         """Marks a source of initial state information for new simulants.
 
         Parameters
@@ -355,7 +368,10 @@ class PopulationInterface:
         requires_values
             A list of the value pipelines that need to be properly sourced
             before the provided initializer is called.
+        requires_streams
+            A list of the randomness streams necessary to initialize the
+            simulant attributes.
 
         """
         self._population_manager.register_simulant_initializer(initializer, creates_columns,
-                                                               requires_columns, requires_values)
+                                                               requires_columns, requires_values, requires_streams)

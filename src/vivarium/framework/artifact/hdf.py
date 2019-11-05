@@ -102,7 +102,7 @@ def write(path: Union[str, Path], entity_key: str, data: Any):
 
     """
     path = _get_valid_hdf_path(path)
-    entity_key = _EntityKey(entity_key)
+    entity_key = EntityKey(entity_key)
 
     if isinstance(data, PandasObj):
         _write_pandas_data(path, entity_key, data)
@@ -139,7 +139,7 @@ def load(path: Union[str, Path], entity_key: str, filter_terms: Optional[List[st
 
     """
     path = _get_valid_hdf_path(path)
-    entity_key = _EntityKey(entity_key)
+    entity_key = EntityKey(entity_key)
 
     with tables.open_file(str(path)) as file:
         node = file.get_node(entity_key.path)
@@ -178,7 +178,7 @@ def remove(path: Union[str, Path], entity_key: str):
 
     """
     path = _get_valid_hdf_path(path)
-    entity_key = _EntityKey(entity_key)
+    entity_key = EntityKey(entity_key)
 
     with tables.open_file(str(path), mode='a') as file:
         file.remove_node(entity_key.path, recursive=True)
@@ -202,12 +202,7 @@ def get_keys(path: str) -> List[str]:
     return keys
 
 
-#####################
-# Private utilities #
-#####################
-
-
-class _EntityKey(str):
+class EntityKey(str):
     """A convenience wrapper that translates artifact keys.
 
     This class provides several representations of the artifact keys that
@@ -265,7 +260,7 @@ class _EntityKey(str):
         """The full HDF path associated with this key."""
         return self.group + '/' + self.measure
 
-    def with_measure(self, measure: str) -> '_EntityKey':
+    def with_measure(self, measure: str) -> 'EntityKey':
         """Replaces this key's measure with the provided one.
 
         Parameters
@@ -278,18 +273,23 @@ class _EntityKey(str):
             A new EntityKey with the updated measure.
         """
         if self.name:
-            return _EntityKey(f'{self.type}.{self.name}.{measure}')
+            return EntityKey(f'{self.type}.{self.name}.{measure}')
         else:
-            return _EntityKey(f'{self.type}.{measure}')
+            return EntityKey(f'{self.type}.{measure}')
 
-    def __eq__(self, other: '_EntityKey') -> bool:
-        return isinstance(other, _EntityKey) and str(self) == str(other)
+    def __eq__(self, other: 'EntityKey') -> bool:
+        return isinstance(other, EntityKey) and str(self) == str(other)
 
     def __hash__(self):
         return hash(str(self))
 
     def __repr__(self) -> str:
         return f'EntityKey({str(self)})'
+
+
+#####################
+# Private utilities #
+#####################
 
 
 def _get_valid_hdf_path(path: Union[str, Path]) -> Path:
@@ -302,7 +302,7 @@ def _get_valid_hdf_path(path: Union[str, Path]) -> Path:
     return path
 
 
-def _write_pandas_data(path: Path, entity_key: _EntityKey, data: Union[PandasObj]):
+def _write_pandas_data(path: Path, entity_key: EntityKey, data: Union[PandasObj]):
     """Write data in a pandas format to an HDF file.
 
     This method currently supports :class:`pandas DataFrame` objects, with or
@@ -327,7 +327,7 @@ def _write_pandas_data(path: Path, entity_key: _EntityKey, data: Union[PandasObj
         store.get_storer(entity_key.path).attrs.metadata = metadata  # NOTE: must use attrs. write this up
 
 
-def _write_json_blob(path: Path, entity_key: _EntityKey, data: Any):
+def _write_json_blob(path: Path, entity_key: EntityKey, data: Any):
     """Writes a Python object as json to the HDF file at the given path."""
     with tables.open_file(str(path), "a") as store:
 

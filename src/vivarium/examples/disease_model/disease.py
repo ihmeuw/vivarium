@@ -2,7 +2,7 @@ import pandas as pd
 
 from vivarium.framework.state_machine import State, Machine, Transition
 from vivarium.framework.utilities import rate_to_probability
-from vivarium.framework.values import list_combiner, joint_value_post_processor
+from vivarium.framework.values import list_combiner, union_post_processor
 
 
 class DiseaseTransition(Transition):
@@ -23,7 +23,7 @@ class DiseaseTransition(Transition):
             f'{self.rate_name}.population_attributable_fraction',
             source=lambda index: [pd.Series(0, index=index)],
             preferred_combiner=list_combiner,
-            preferred_post_processor=joint_value_post_processor)
+            preferred_post_processor=union_post_processor)
 
     def _probability(self, index):
         effective_rate = self.transition_rate(index)
@@ -64,7 +64,7 @@ class DiseaseState(State):
             f'{self.state_id}.excess_mortality_rate.population_attributable_fraction',
             source=lambda index: [pd.Series(0, index=index)],
             preferred_combiner=list_combiner,
-            preferred_post_processor=joint_value_post_processor
+            preferred_post_processor=union_post_processor
         )
 
         builder.value.register_value_modifier('mortality_rate', self.add_in_excess_mortality)
@@ -108,7 +108,8 @@ class DiseaseModel(Machine):
         builder.value.register_value_modifier('metrics', modifier=self.metrics)
 
         creates_columns = [self.state_column]
-        builder.population.initializes_simulants(self.on_initialize_simulants, creates_columns=creates_columns)
+        builder.population.initializes_simulants(self.on_initialize_simulants,
+                                                 creates_columns=creates_columns)
         self.population_view = builder.population.get_view(['age', 'sex', self.state_column])
 
         builder.event.register_listener('time_step', self.on_time_step)

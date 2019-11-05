@@ -24,6 +24,7 @@ if __name__ == "__main__":
         'click',
         'tables',
         'networkx',
+        'loguru',
     ]
 
     interactive_requirements = [

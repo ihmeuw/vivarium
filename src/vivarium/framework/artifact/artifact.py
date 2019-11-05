@@ -11,14 +11,11 @@ archive file for convenient access and inspection.
 
 """
 from collections import defaultdict
-import logging
 from typing import List, Dict, Any, Union
 from pathlib import Path
 import re
 
 from vivarium.framework.artifact import hdf
-
-_log = logging.getLogger(__name__)
 
 
 class ArtifactException(Exception):

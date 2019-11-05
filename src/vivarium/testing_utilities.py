@@ -33,7 +33,7 @@ class NonCRNTestPopulation:
 
     def setup(self, builder):
         self.config = builder.configuration
-        self.randomness = builder.randomness.get_stream('population_age_fuzz')
+        self.randomness = builder.randomness.get_stream('population_age_fuzz', for_initialization=True)
         columns = ['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time']
         self.population_view = builder.population.get_view(columns)
 

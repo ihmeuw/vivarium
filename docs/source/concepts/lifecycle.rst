@@ -5,8 +5,13 @@ The Simulation Lifecycle
 ========================
 
 The life cycle of a :mod:`vivarium` simulation is a representation of
-the different execution states and their transitions.  These states
-can be grouped into five important phases.
+the different execution **states** and their transitions.  An execution state
+is a clearly delineated execution period during the simulation around which
+we build and enforce concrete programmatic contracts. These states
+can be grouped into five important **phases**.  The phases are closely related
+groups of execution states.  Contracts are not enforced directly around
+phases, but they are a useful tool for thinking about the execution flow
+during a simulation.
 
 .. list-table:: **Life Cycle Phases**
    :widths: 15 65
@@ -23,7 +28,7 @@ can be grouped into five important phases.
        | initialized and all :ref:`configuration <configuration_concept>`
        | information is loaded.
    * - | :ref:`Setup <lifecycle_setup>`
-     - | Components request register themselves with simulation services and
+     - | Components register themselves with simulation services and
        | request access to resources by interacting with the simulation
        | :ref:`builder <builder_concept>`; the initial population is created.
    * - | :ref:`Main Loop <lifecycle_main_loop>`
@@ -31,7 +36,7 @@ can be grouped into five important phases.
    * - | :ref:`Simulation End <lifecycle_simulation_end>`
      - | The population state is finalized and results are tabulated.
 
-The simulation itself maintains a formal representation of it's internal
+The simulation itself maintains a formal representation of its internal
 execution state using the tools in the :mod:`~vivarium.framework.lifecycle`
 module. The tools allow the simulation to make concrete contracts about flow
 of execution in simulations and to constrain the availability of certain
@@ -54,7 +59,7 @@ simulation models.
 The Bootstrap Phase
 -------------------
 
-The bootstrap and initialization phase look like an atomic operation to an
+The bootstrap and initialization phases look like an atomic operation to an
 external user.  Bootstrap only exists as a separate phase because certain
 operations must take place before the internal representation of the simulation
 life cycle exists.
@@ -167,8 +172,9 @@ the state transitions by emitting a series of events for each
    simulation outputs.
 
 By listening for these events, individual components can perform actions,
-including manipulating the. This sequence of events is repeated until
-the simulation clock passes the simulation end time.
+including manipulating the :ref:`state table <population_concept>`. This
+sequence of events is repeated until the simulation clock passes the
+simulation end time.
 
 .. note::
 
@@ -186,9 +192,9 @@ The Simulation End Phase
 ------------------------
 
 The final phase in the simulation life cycle is fittingly enough,
-simulation end. It is split into two stages.  During the first, the
+simulation end. It is split into two states.  During the first, the
 *simulation_end* :ref:`event <event_concept>` is emitted to
 signal that the event loop has finished and the
 :ref:`state table <population_concept>` is final. At this point, final
-simulation outputs are safe to compute. The second stage is *report* in
+simulation outputs are safe to compute. The second state is *report* in
 which the simulation will accumulate all final outputs and return them.
