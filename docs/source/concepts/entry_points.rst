@@ -31,7 +31,7 @@ simulations are created by a call to the ``__init__`` of the
 some level and wrappers around the context should try to be as thin as
 possible around simulation creation.
 
-The contexts accepts four arguments:
+The context accepts four arguments:
 
 model_specification
   The :term:`model specification <Model Specification>` is a complete
@@ -77,8 +77,8 @@ plugins
   This is an advanced feature and almost never necessary.
 
 The ``configuration`` and ``plugins`` arguments are treated as overrides for
-anything provided in the ``model_specification`` to make quick modifications
-to a simulation straightforward.
+anything provided in the ``model_specification``.  This allows easy
+modification of a simulation defined in a model specification file.
 
 .. warning::
 
@@ -127,10 +127,10 @@ the many ways to initialize and run a simulation using the interactive context
 are available in the :ref:`interactive tutorial <interactive_tutorial>`.
 
 :mod:`vivarium` itself does not provide tools for running simulations in
-a distributed system, mostly because each cluster is unique. Many common
-simulation tasks will require running many variations of the same simulation
-(parameter searches, intervention analysis, uncertainty analysis, etc.),
-however.  For an example of a distributed system built on top of
+a distributed system, mostly because each cluster is unique. However, many
+common simulation tasks will require running many variations of the same
+simulation (parameter searches, intervention analysis, uncertainty analysis,
+etc.).  For an example of a distributed system built on top of
 :mod:`vivarium`, see the
 `vivarium_cluster_tools <https://github.com/ihmeuw/vivarium_cluster_tools>`_
 package and its associated
