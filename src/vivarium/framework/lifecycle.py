@@ -305,6 +305,7 @@ class ConstraintMaker:
 
     def __init__(self, lifecycle_manager):
         self.lifecycle_manager = lifecycle_manager
+        self.constraints = set()
 
     def check_valid_state(self, method: MethodType, permitted_states: List[str]):
         """Ensures a component method is being called during an allowed state.
@@ -357,6 +358,17 @@ class ConstraintMaker:
         setattr(method.__self__, method.__name__, rebound_method)
         return rebound_method
 
+    @staticmethod
+    def to_guid(method: MethodType) -> str:
+        """Convert a method on to a global id.
+
+        Because we dynamically rebind methods, the old ones will get garbage
+        collected, making :func:`id` unreliable for checking if a method
+        has been constrained before.
+
+        """
+        return f'{str(id(method.__self__))}.{method.__name__}'
+
     def __call__(self, method: MethodType, permitted_states: List[str]) -> MethodType:
         """Only permit a method to be called during the provided states.
 
@@ -386,6 +398,11 @@ class ConstraintMaker:
         if name.startswith('__') and name.endswith('__'):
             raise ValueError('Can only apply constraints to normal object methods. '
                              f' You supplied {method}.')
+
+        if self.to_guid(method) in self.constraints:
+            raise ConstraintError(f'Method {method} has already been constrained.')
+
+        self.constraints.add(self.to_guid(method))
         return self.constrain_normal_method(method, permitted_states)
 
 
@@ -396,7 +413,6 @@ class LifeCycleManager:
         self.lifecycle = LifeCycle()
         self._current_state = self.lifecycle.get_state('initialization')
         self._make_constraint = ConstraintMaker(self)
-        self._constraints = set()
 
     @property
     def name(self) -> str:
@@ -517,14 +533,10 @@ class LifeCycleManager:
         if unknown_states:
             raise LifeCycleError(f'Attempting to constrain {method} with '
                                  f'states not in the life cycle: {list(unknown_states)}.')
-        if id(method) in self._constraints:
-            raise ConstraintError(f'Method {method} has already been constrained.')
-
         if restrict_during:
             allow_during = [s for s in self.lifecycle._state_names if s not in restrict_during]
 
-        constrained_method = self._make_constraint(method, allow_during)
-        self._constraints.update({id(method), id(constrained_method)})
+        self._make_constraint(method, allow_during)
 
     def __repr__(self) -> str:
         return f'LifeCycleManager(state={self.current_state})'
@@ -561,7 +573,7 @@ class LifeCycleInterface:
         """
         self._manager.add_handlers(state, handlers)
 
-    def add_constraint(self, method, allow_during: List[str] = (), restrict_during: List[str] = ()):
+    def add_constraint(self, method: MethodType, allow_during: List[str] = (), restrict_during: List[str] = ()):
         """Constrains a function to be executable only during certain states.
 
         Parameters
