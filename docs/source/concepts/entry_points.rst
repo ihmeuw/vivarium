@@ -87,7 +87,7 @@ modification of a simulation defined in a model specification file.
    these will also be treated as overrides, though this is almost never the
    intended use case, so tread cautiously.
 
-By intention, it the context exposes a very simple interface for managing the
+By intention, the context exposes a very simple interface for managing the
 :ref:`simulation lifecycle <lifecycle_concept>`.  The combination of
 initializing and running the simulation is encapsulated in the
 :func:`run_simulation <vivarium.framework.engine.run_simulation>` command
