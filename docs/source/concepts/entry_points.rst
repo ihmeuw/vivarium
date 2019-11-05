@@ -96,7 +96,7 @@ also available in the :mod:`engine <vivarium.framework.engine>`.
 The simulation :class:`Builder <vivarium.framework.engine.Builder>` is also
 part of the engine. It is the main interface that components use to interact
 with the simulation framework. You can read more about how the builder works
-and what services is exposes :ref:`here <builder_concept>`.
+and what services it exposes :ref:`here <builder_concept>`.
 
 Public Interfaces
 -----------------
@@ -113,7 +113,7 @@ tutorial is available :ref:`here <cli_tutorial>`.
 :func:`simulate <vivarium.interface.cli.simulate>` restricts the user to work
 only with :ref:`model specification <model_specification_concept>` files and
 so is primarily useful in a workflow where the user is modifying that file
-directly to run simulations. Results are deposited in ``~/vivarium_results``
+directly to run simulations. Results are deposited in the ``~/vivarium_results``
 folder by default, though a command line flag allows the user to specify
 different output directories.
 
