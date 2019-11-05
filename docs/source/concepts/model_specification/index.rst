@@ -4,7 +4,7 @@
 The Model Specification
 =======================
 
-:term:`model specification <Model Specification>` is a complete representation
+A :term:`model specification <Model Specification>` is a complete representation
 of a :mod:`vivarium` simulation formatted as a yaml file.
 
 A model specification file contains three distinct blocks:
@@ -66,7 +66,7 @@ specification item and the fully instantiated object is the domain of the
 The :class:`ComponentConfigurationParser
 <vivarium.framework.components.parser.ComponentConfigurationParser>`
 is responsible for taking a list or hierarchical :class:`ConfigTree
-<vivarium.ConfigTree>` of compoents derived from a model specification file and
+<vivarium.ConfigTree>` of components derived from a model specification file and
 turning it into a list of instantiated component objects. The
 :meth:`get_components
 <vivarium.framework.components.parser.ComponentConfigurationParser.get_components>`
@@ -79,11 +79,11 @@ steps that comprise the transformation process:
 2. Validating the arguments and prepping each component
 3. Importing and instantiating the actual components
 
-To illustrate this process, the result of the :meth:`get_components
+To illustrate this process, the result of a :meth:`get_components
 <vivarium.framework.components.parser.ComponentConfigurationParser.get_components>`
-on either of the above yaml components block examples would be a list containing
-three instantiated objects: a population object, a mortality object, and a
-diarrhea disease model.
+call on either of the above yaml components block examples would be a list
+containing three instantiated objects: a population object, a mortality object, 
+and a diarrhea disease model.
 
 .. toctree::
    :hidden:
