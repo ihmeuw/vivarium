@@ -117,7 +117,7 @@ class SimulationContext:
 
         self.simulant_creator = self._builder.population.get_simulant_creator()
 
-        self.time_step_events = self._lifecycle.get_states('main_loop')
+        self.time_step_events = self._lifecycle.get_state_names('main_loop')
         self.time_step_emitters = {k: self._builder.event.get_emitter(k) for k in self.time_step_events}
         self.end_emitter = self._builder.event.get_emitter('simulation_end')
 
