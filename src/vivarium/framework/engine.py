@@ -37,15 +37,15 @@ from .resource import ResourceInterface
 from .randomness import RandomnessInterface
 from .values import ValuesInterface
 from .time import TimeInterface
-from .lifecycle import LifeCycleInterface, LifeCycleError
+from .lifecycle import LifeCycleInterface
 
 
 class SimulationContext:
 
     def __init__(self, model_specification: Union[str, Path, ConfigTree] = None,
-                 components: Union[List, Dict[str, str], ConfigTree] = None,
+                 components: Union[List, Dict, ConfigTree] = None,
                  configuration: Union[Dict, ConfigTree] = None,
-                 plugin_configuration: Union[Dict[str, str], ConfigTree] = None):
+                 plugin_configuration: Union[Dict, ConfigTree] = None):
         # Bootstrap phase: Parse arguments, make private managers
         component_configuration = components if isinstance(components, (dict, ConfigTree)) else None
         self._additional_components = components if isinstance(components, List) else []
@@ -117,7 +117,7 @@ class SimulationContext:
 
         self.simulant_creator = self._builder.population.get_simulant_creator()
 
-        self.time_step_events = self._lifecycle.get_states('main_loop')
+        self.time_step_events = self._lifecycle.get_state_names('main_loop')
         self.time_step_emitters = {k: self._builder.event.get_emitter(k) for k in self.time_step_events}
         self.end_emitter = self._builder.event.get_emitter('simulation_end')
 
@@ -197,9 +197,9 @@ class Builder:
 
 
 def run_simulation(model_specification: Union[str, Path, ConfigTree] = None,
-                   components: Union[List, Dict[str, str], ConfigTree] = None,
+                   components: Union[List, Dict, ConfigTree] = None,
                    configuration: Union[Dict, ConfigTree] = None,
-                   plugin_configuration: Union[Dict[str, str], ConfigTree] = None):
+                   plugin_configuration: Union[Dict, ConfigTree] = None):
     simulation = SimulationContext(model_specification, components, configuration, plugin_configuration)
     simulation.setup()
     simulation.initialize_simulants()

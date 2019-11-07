@@ -334,7 +334,7 @@ class LookupTableInterface:
 
         If data is a :class:`pandas.DataFrame`, an interpolation function of
         the order specified in the simulation
-        :term:`configuration <Configuration>`will be calculated for each
+        :term:`configuration <Configuration>` will be calculated for each
         permutation of the set of key_columns. The columns in parameter_columns
         will be used as parameters for the interpolation functions which will
         estimate all remaining columns in the table.

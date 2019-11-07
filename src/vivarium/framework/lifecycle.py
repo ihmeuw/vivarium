@@ -32,7 +32,7 @@ The tools here also allow for introspection of the simulation life cycle.
 """
 import functools
 from types import MethodType
-from typing import List, Callable, Tuple
+from typing import List, Callable, Tuple, Optional
 import textwrap
 
 from vivarium.exceptions import VivariumError
@@ -61,12 +61,17 @@ class LifeCycleState:
         self._next = None
         self._loop_next = None
         self._entrance_count = 0
-        self.handlers = []
+        self._handlers = []
 
     @property
     def name(self) -> str:
         """The name of the lifecycle state."""
         return self._name
+
+    @property
+    def entrance_count(self) -> int:
+        """The number of times this state has been entered."""
+        return self._entrance_count
 
     def add_next(self, next_state: 'LifeCycleState', loop: bool = False):
         """Link this state to the next state in the simulation life cycle.
@@ -92,7 +97,7 @@ class LifeCycleState:
         else:
             self._next = next_state
 
-    def valid_next_state(self, state: 'LifeCycleState'):
+    def valid_next_state(self, state: Optional['LifeCycleState']) -> bool:
         """Check if the provided state is valid for a life cycle transition.
 
         Parameters
@@ -105,7 +110,8 @@ class LifeCycleState:
             Whether the state is valid for a transition.
 
         """
-        return state is self._next or state is self._loop_next
+        return ((state is None and state is self._next)
+                or (state is not None and (state is self._next or state is self._loop_next)))
 
     def enter(self):
         """Marks an entrance into this state."""
@@ -127,15 +133,15 @@ class LifeCycleState:
             name = h.__name__
             if hasattr(h, '__self__'):
                 obj = h.__self__
-                self.handlers.append(f'{obj.__class__.__name__}({obj.name}).{name}')
+                self._handlers.append(f'{obj.__class__.__name__}({obj.name}).{name}')
             else:
-                self.handlers.append(f'Unbound function {name}')
+                self._handlers.append(f'Unbound function {name}')
 
     def __repr__(self) -> str:
         return f'LifeCycleState(name={self.name})'
 
     def __str__(self) -> str:
-        return '\n\t'.join([self.name] + self.handlers)
+        return '\n\t'.join([self.name] + self._handlers)
 
 
 class LifeCyclePhase:
@@ -149,7 +155,6 @@ class LifeCyclePhase:
 
     def __init__(self, name: str, states: List[str], loop: bool):
         self._name = name
-        self._next = None
         self._states = [LifeCycleState(states[0])]
         self._loop = loop
         for s in states[1:]:
@@ -170,7 +175,6 @@ class LifeCyclePhase:
 
     def add_next(self, phase: 'LifeCyclePhase'):
         """Link the provided phase as the next phase in the life cycle."""
-        self._next = phase
         self._states[-1].add_next(phase._states[0])
 
     def get_state(self, state_name: str) -> LifeCycleState:
@@ -255,7 +259,7 @@ class LifeCycle:
         phase = [p for p in self._phases if state_name in p].pop()
         return phase.get_state(state_name)
 
-    def get_states(self, phase_name: str) -> List[str]:
+    def get_state_names(self, phase_name: str) -> List[str]:
         """Retrieve the names of all states in the provided phase.
 
         Parameters
@@ -306,6 +310,7 @@ class ConstraintMaker:
 
     def __init__(self, lifecycle_manager):
         self.lifecycle_manager = lifecycle_manager
+        self.constraints = set()
 
     def check_valid_state(self, method: MethodType, permitted_states: List[str]):
         """Ensures a component method is being called during an allowed state.
@@ -362,6 +367,17 @@ class ConstraintMaker:
         setattr(method.__self__, method.__name__, rebound_method)
         return rebound_method
 
+    @staticmethod
+    def to_guid(method: MethodType) -> str:
+        """Convert a method on to a global id.
+
+        Because we dynamically rebind methods, the old ones will get garbage
+        collected, making :func:`id` unreliable for checking if a method
+        has been constrained before.
+
+        """
+        return f'{str(id(method.__self__))}.{method.__name__}'
+
     def __call__(self, method: MethodType, permitted_states: List[str]) -> MethodType:
         """Only permit a method to be called during the provided states.
 
@@ -395,6 +411,11 @@ class ConstraintMaker:
         if name.startswith('__') and name.endswith('__'):
             raise ValueError('Can only apply constraints to normal object methods. '
                              f' You supplied {method}.')
+
+        if self.to_guid(method) in self.constraints:
+            raise ConstraintError(f'Method {method} has already been constrained.')
+
+        self.constraints.add(self.to_guid(method))
         return self.constrain_normal_method(method, permitted_states)
 
 
@@ -405,7 +426,6 @@ class LifeCycleManager:
         self.lifecycle = LifeCycle()
         self._current_state = self.lifecycle.get_state('initialization')
         self._make_constraint = ConstraintMaker(self)
-        self._constraints = set()
 
     @property
     def name(self) -> str:
@@ -466,7 +486,7 @@ class LifeCycleManager:
             raise InvalidTransitionError(f'Invalid transition from {self.current_state} '
                                          f'to {new_state.name} requested.')
 
-    def get_states(self, phase: str) -> List[str]:
+    def get_state_names(self, phase: str) -> List[str]:
         """Gets all states in the phase in their order of execution.
 
         Parameters
@@ -479,7 +499,7 @@ class LifeCycleManager:
             A list of state names in order of execution.
 
         """
-        return self.lifecycle.get_states(phase)
+        return self.lifecycle.get_state_names(phase)
 
     def add_handlers(self, state_name: str, handlers: List[Callable]):
         """Registers a set of functions to be called during a life cycle state.
@@ -532,14 +552,10 @@ class LifeCycleManager:
         if unknown_states:
             raise LifeCycleError(f'Attempting to constrain {method} with '
                                  f'states not in the life cycle: {list(unknown_states)}.')
-        if method in self._constraints:
-            raise ConstraintError(f'Method {method} has already been constrained.')
-
         if restrict_during:
             allow_during = [s for s in self.lifecycle._state_names if s not in restrict_during]
 
-        constrained_method = self._make_constraint(method, allow_during)
-        self._constraints.update({method, constrained_method})
+        self._make_constraint(method, allow_during)
 
     def __repr__(self) -> str:
         return f'LifeCycleManager(state={self.current_state})'
@@ -576,7 +592,7 @@ class LifeCycleInterface:
         """
         self._manager.add_handlers(state, handlers)
 
-    def add_constraint(self, method, allow_during: List[str] = (), restrict_during: List[str] = ()):
+    def add_constraint(self, method: MethodType, allow_during: List[str] = (), restrict_during: List[str] = ()):
         """Constrains a function to be executable only during certain states.
 
         Parameters
