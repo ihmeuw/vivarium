@@ -11,3 +11,4 @@ the Vivarium framework.
    :maxdepth: 2
 
    *
+   */index

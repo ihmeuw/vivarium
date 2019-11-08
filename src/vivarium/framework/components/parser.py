@@ -20,7 +20,7 @@ There are three steps to this process.
 3. Importing and instantiating the actual components
 
 """
-from typing import Sequence, Tuple, List, Dict, Union, Any
+from typing import Tuple, List, Dict, Union, Any
 
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.utilities import import_by_path
@@ -155,6 +155,8 @@ def parse_component_config_to_list(component_config: Dict[str, Union[Dict, List]
         A flat list of strings, each string representing the full python import
         path to the component, the component name, and any arguments.
     """
+    if not component_config:
+        return []
 
     def _process_level(level, prefix):
         if not level:

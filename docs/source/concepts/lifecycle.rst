@@ -4,98 +4,136 @@
 The Simulation Lifecycle
 ========================
 
-A ``vivarium`` simulation has many important lifecycle phases.
+The life cycle of a :mod:`vivarium` simulation is a representation of
+the different execution **states** and their transitions.  An execution state
+is a clearly delineated execution period during the simulation around which
+we build and enforce concrete programmatic contracts. These states
+can be grouped into five important **phases**.  The phases are closely related
+groups of execution states.  Contracts are not enforced directly around
+phases, but they are a useful tool for thinking about the execution flow
+during a simulation.
 
-It begins with a user interacting with one of the simulation
-:ref:`entry points <entry_points_concept>`. The simulation then goes through an
-initialization cycle that creates all the :term:`components <Component>`,
-and compiles :term:`configuration information <Configuration>`.  After
-initialization, the simulation enters the setup phase, where each component
-in turn has a special ``setup`` method called with the simulation
-:ref:`builder <builder_concept>`.  During the setup, components ask for
-services from the framework and register themselves with various simulation
-subsystems.  There is then a post setup phase where the simulation framework
-does some cleanup.
+.. list-table:: **Life Cycle Phases**
+   :widths: 15 65
+   :header-rows: 1
 
-The simulation then enters its main processing section. The population
-is initialized, then the time step loop begins. Once the loop completes,
-results are calculated, gathered, and written out.
+   * - Phase
+     - Description
+   * - | :ref:`Bootstrap <lifecycle_bootstrap>`
+     - | Arguments passed from the simulation
+       | :ref:`entry point <entry_points_concept>` are parsed and core
+       | framework systems are initialized.
+   * - | :ref:`Initialization <lifecycle_initialization>`
+     - | Simulation managers and :ref:`components <components_concept>` are
+       | initialized and all :ref:`configuration <configuration_concept>`
+       | information is loaded.
+   * - | :ref:`Setup <lifecycle_setup>`
+     - | Components register themselves with simulation services and
+       | request access to resources by interacting with the simulation
+       | :ref:`builder <builder_concept>`; the initial population is created.
+   * - | :ref:`Main Loop <lifecycle_main_loop>`
+     - | The core logic (as encoded in the simulation components) is executed.
+   * - | :ref:`Simulation End <lifecycle_simulation_end>`
+     - | The population state is finalized and results are tabulated.
+
+The simulation itself maintains a formal representation of its internal
+execution state using the tools in the :mod:`~vivarium.framework.lifecycle`
+module. The tools allow the simulation to make concrete contracts about flow
+of execution in simulations and to constrain the availability of certain
+framework services to particular life cycle states.  This makes error handling
+much more robust and allows users to more easily reason about complex
+simulation models.
+
+.. todo::
+
+   Make a graph of service availability in the simulation.
 
 .. contents::
    :depth: 2
    :local:
    :backlinks: none
 
-Initialization
---------------
 
-The initialization phase of ``vivarium`` lasts from when a user first interacts
-with a simulation :ref:`entry point <entry_points_concept>` to when the
-``__init__`` method of the :class:`vivarium.framework.engine.SimulationContext`
-completes.  In it, the following things happen (roughly in this order):
+.. _lifecycle_bootstrap:
 
-1. Simulation outputs are configured. This is usually just setting up some
-   directories for the final results and the simulation logs.
-2. :term:`Model specification <Model Specification>` defaults are collected and
-   compiled along with the model specification file (if provided) into a
-   :class:`vivarium.config_tree.ConfigTree` object. Importantly,
-   default :term:`configuration <Configuration>` information from specific
-   components is not compiled into the :class:`vivarium.config_tree.ConfigTree`
-   at this point.
-3. A :class:`vivarium.framework.plugins.PluginManager` is generated around the
-   :term:`plugins <Plugin>` section of the model specification.  The plugin
-   manager is responsible for parsing the plugin section and instantiating
-   plugin controllers and interfaces for the framework.
-4. If :term:`components <Component>` are not provided directly by the user in
-   an interactive setting, the
-   :class:`vivarium.framework.components.ComponentConfigurationParser` is
-   created to parse and instantiate them from the
-   :term:`Model specification <Model Specification>`.
-5. The ``__init__`` method of the
-   :class:`vivarium.framework.engine.SimulationContext` is called with
-   the current :term:`configuration <Configuration>`, the instantiated
-   components, and the plugin manager.  This creates the
-   :ref:`builder <builder_concept>` which provides an interface to all the
-   simulation subsystems during the next phase of the simulation lifecycle.
-   It also registers all the simulation components with the
-   :class:`vivarium.framework.components.ComponentManager`.
+The Bootstrap Phase
+-------------------
 
-At this point, all input arguments have been parsed and all top-level
-components have been instantiated.  This is a useful phase in the simulation
-lifecycle because you can typically modify what components are in the system
-or how they are configured without any consequences.
+The bootstrap and initialization phases look like an atomic operation to an
+external user.  Bootstrap only exists as a separate phase because certain
+operations must take place before the internal representation of the simulation
+life cycle exists.
+
+During bootstrap, all user input arguments are parsed into
+an internal representation of the simulation :term:`plugins <Plugin>`,
+:term:`components <Component>`, and :term:`configuration <Configuration>`.
+The internal plugin representation is then parsed into the simulation managers,
+the set of private and public services used to build and run simulations.
+Finally, the formal representation of the simulation lifecycle is constructed
+and the initialization phase begins.
+
+
+.. _lifecycle_initialization:
+
+The Initialization Phase
+------------------------
+
+The initialization phase of a :mod:`vivarium` simulation starts when the
+:class:`~vivarium.framework.lifecycle.LifeCycle` is fully constructed and
+ends when the ``__init__`` method of the
+:class:`vivarium.framework.engine.SimulationContext` completes.
+
+Two important things happen here:
+
+- The internal representation of the simulation :term:`components <Component>`
+  is parsed into python import paths and **all** components are instantiated
+  and registered with the component manager.
+- The internal representation of the :term:`configuration <Configuration>` is
+  updated with all component configuration defaults.
+
+At this point, all input arguments have been parsed, all components have been
+instantiated and registered with the framework, and the configuration is
+effectively complete.  In an interactive setting, this is a useful phase in
+the simulation life cycle because you can add locally created components and
+modify the configuration.
+
+
+.. _lifecycle_setup:
+
+The Setup Phase
+---------------
+
+The setup phase is broken down into three life cycle states.
 
 Setup
------
++++++
 
-In this stage, the framework moves to setting up the
-:term:`components <Component>`. For each top-level component, the framework
-applies any :term:`configuration <Configuration>` defaults of the component.
-Next, it calls a special ``setup`` on each component, providing each component
-access to the simulation :ref:`builder <builder_concept>` which allows the
-components to request services like :ref:`randomness <crn_concept>` or views
-into the :term:`population state table <State Table>` or to register themselves
+The first state is named the same as the phase and is where the bulk of the
+phases work is done. During the setup state, the simulation managers and then
+the simulation components will have their ``setup`` method called with
+the simulation :ref:`builder <builder_concept>` as an argument.  The
+builder allows the components to request services like
+:ref:`randomness <crn_concept>` or views into the
+:term:`population state table <State Table>` or to register themselves
 with various simulation subsystems. Setting up components may also involve
 loading data, registering or getting :ref:`pipelines <values_concept>`,
 creating :ref:`lookup tables <lookup_concept>`, and registering
 :ref:`population initializers <population_concept>`, among other things.
 The specifics of this are determined by the ``setup`` method on each component
 - the framework itself simply calls that method with a
-:class:`vivarium.framework.engine.Builder` object.  Part of component setup
-may sometimes spawn sub-components, so this process continues until all
-components are setup.
+:class:`vivarium.framework.engine.Builder` object.
 
 Post-setup
-----------
+++++++++++
 
-This is a small phase that exists in the simulation mainly so that framework
+This is a short state that exists in the simulation mainly so that framework
 :term:`managers <Plugin>` can coordinate shared state and do any necessary
 cleanup.  This is the first actual :ref:`event <event_concept>` emitted by
 the simulation framework.  Normal ``vivarium`` :term:`components <Component>`
 should never listen for this event.  This may be enforced at a later date.
 
 Population Initialization
--------------------------
++++++++++++++++++++++++++
 
 It's not until this stage that the framework actually generates the base
 :ref:`population <population_concept>` for the simulation. Here, the framework
@@ -108,16 +146,21 @@ reset back the duration of one time step. Once the simulant population is
 generated, the clock is reset to the simulation start time, again by changing
 the clock time only without any time step being taken.
 
+
+.. _lifecycle_main_loop:
+
 The Main Event Loop
 -------------------
 
 At this stage, all the preparation work has been completed and the framework
 begins to move through the simulation. This occurs as an
-:ref:`event loop <event_concept>`. The framework emits a series of events for
-each :ref:`time step <time_concept>`:
+:ref:`event loop <event_concept>`.  Like the the setup phase, the main loop
+phase is broken into a series of simulation states.  The framework signals
+the state transitions by emitting a series of events for each
+:ref:`time step <time_concept>`:
 
 1. *time_step__prepare*
-   A phase in which simulation :term:`components <Component>` can do any
+   A state in which simulation :term:`components <Component>` can do any
    work necessary to prepare for the time step.
 2. *time_step*
    The phase in which the bulk of the simulation work is done.  Simulation
@@ -129,8 +172,9 @@ each :ref:`time step <time_concept>`:
    simulation outputs.
 
 By listening for these events, individual components can perform actions,
-including manipulating simulants. This sequence of events is repeated until
-the simulation clock passes the simulation end time.
+including manipulating the :ref:`state table <population_concept>`. This
+sequence of events is repeated until the simulation clock passes the
+simulation end time.
 
 .. note::
 
@@ -142,11 +186,15 @@ the simulation clock passes the simulation end time.
     made during the loop will happen.
 
 
-Finalization
-------------
+.. _lifecycle_simulation_end:
 
-The final stage in the simulation life cycle is fittingly enough, finalization.
-At this stage, the *simulation_end* :ref:`event <event_concept>` is emitted to
+The Simulation End Phase
+------------------------
+
+The final phase in the simulation life cycle is fittingly enough,
+simulation end. It is split into two states.  During the first, the
+*simulation_end* :ref:`event <event_concept>` is emitted to
 signal that the event loop has finished and the
 :ref:`state table <population_concept>` is final. At this point, final
-simulation outputs are safe to compute.
+simulation outputs are safe to compute. The second state is *report* in
+which the simulation will accumulate all final outputs and return them.

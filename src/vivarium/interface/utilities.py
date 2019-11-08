@@ -7,15 +7,14 @@ The functions defined here are used to support the interactive and command-line
 interfaces for ``vivarium``.
 
 """
+from datetime import datetime
 import functools
+from pathlib import Path
+import sys
+
+from loguru import logger
 
 from vivarium.exceptions import VivariumError
-from vivarium.framework.configuration import validate_model_specification_file
-
-
-def verify_yaml(_, __, file_path: str) -> str:
-    """Ensures the provided file exists and is a yaml file"""
-    return validate_model_specification_file(file_path)
 
 
 def run_from_ipython() -> bool:
@@ -112,3 +111,30 @@ def raise_if_not_setup(system_type):
         return wrapped_method
 
     return method_wrapper
+
+
+def get_output_root(results_directory, model_specification_file):
+    launch_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    model_name = Path(model_specification_file).stem
+    output_root = Path(results_directory + f"/{model_name}/{launch_time}")
+    return output_root
+
+
+def add_logging_sink(sink, verbose, colorize=False, serialize=False):
+    message_format = ('<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | '
+                      '<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> '
+                      '- <level>{message}</level>')
+    if verbose:
+        logger.add(sink, colorize=colorize, level="DEBUG", format=message_format, serialize=serialize)
+    else:
+        logger.add(sink, colorize=colorize, level="ERROR", format=message_format, serialize=serialize)
+
+
+def configure_logging_to_terminal(verbose):
+    logger.remove(0)  # Clear default configuration
+    add_logging_sink(sys.stdout, verbose, colorize=True)
+
+
+def configure_logging_to_file(output_directory):
+    master_log = output_directory / 'simulation.log'
+    add_logging_sink(master_log, verbose=True)

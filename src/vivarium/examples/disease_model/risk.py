@@ -26,11 +26,14 @@ class Risk:
         self.randomness = builder.randomness.get_stream(self.name)
 
         columns_created = [f'{self.name}_propensity']
-        builder.population.initializes_simulants(self.on_initialize_simulants, creates_columns=columns_created)
+        builder.population.initializes_simulants(self.on_initialize_simulants,
+                                                 creates_columns=columns_created,
+                                                 requires_streams=[self.name])
         self.population_view = builder.population.get_view(columns_created)
 
     def on_initialize_simulants(self, pop_data):
-        self.population_view.update(pd.Series(self.randomness.get_draw(pop_data.index), name=f'{self.name}_propensity'))
+        draw = self.randomness.get_draw(pop_data.index)
+        self.population_view.update(pd.Series(draw, name=f'{self.name}_propensity'))
 
     def _exposure(self, index):
         propensity = self.population_view.get(index)[f'{self.name}_propensity']

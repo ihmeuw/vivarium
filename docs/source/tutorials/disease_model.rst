@@ -486,17 +486,12 @@ Now that we've done all this hard work, let's see what it gives us.
 
 .. code-block:: python
 
-   from vivarium import setup_simulation, build_simulation_configuration
+   from vivarium import InteractiveContext
    from vivarium_examples.disease_model.population import BasePopulation
 
-   config = build_simulation_configuration()
-   config.update({
-       'randomness': {
-           'key_columns': ['entrance_time', 'age']
-       }
-   })
+   config = {'randomness': {'key_columns': ['entrance_time', 'age']}}
 
-   sim = setup_simulation([BasePopulation()], config)
+   sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
    print(sim.get_population().head())
 
@@ -517,6 +512,7 @@ Let's see what happens when our simulation takes a time step.
    sim.step()
    print(sim.get_population().head())
 
+
 ::
 
           tracked  alive     sex        age entrance_time
@@ -533,17 +529,11 @@ does not reflect how the world goes. Time to introduce the grim reaper.
 .. testcode::
    :hide:
 
-   from vivarium import setup_simulation, build_simulation_configuration
+   from vivarium import InteractiveContext
    from vivarium.examples.disease_model import BasePopulation
 
-   config = build_simulation_configuration()
-   config.update({
-       'randomness': {
-           'key_columns': ['entrance_time', 'age']
-       }
-   })
-
-   sim = setup_simulation([BasePopulation()], config)
+   config = {'randomness': {'key_columns': ['entrance_time', 'age']}}
+   sim = InteractiveContext(components=[BasePopulation()], configuration=config)
    sim.step()
 
 
@@ -659,14 +649,15 @@ steps we're taking.
 
 In lines 3-5, we determine who died this time step.  We turn our mortality rate
 into a probability of death in the given time step by assuming deaths are
-`exponentially distributed`_ and using the inverse distribution function.
+`exponentially distributed <https://en.wikipedia.org/wiki/Exponential_distribution#Occurrence_of_events>`_
+and using the inverse distribution function.
 We then draw a uniformly distributed random number for each person and
 determine who died by comparing that number to the computed probability of
 death for the individual.
 
 Finally, in line 6, we update the state table with the newly dead simulants.
 
-__ https://en.wikipedia.org/wiki/Exponential_distribution#Occurrence_of_events
+__
 
 Did it work?
 ++++++++++++
@@ -678,21 +669,20 @@ can see the impact of our mortality component without taking too many steps.
 
 .. code-block:: python
 
-   from vivarium import setup_simulation, build_simulation_configuration
+   from vivarium InteractiveContext
    from vivarium_examples.disease_model.population import BasePopulation
    from vivarium_examples.disease_model.mortality import Mortality
 
-   config = build_simulation_configuration()
-   config.update({
+   config = {
        'population': {
            'population_size': 100_000
        },
        'randomness': {
            'key_columns': ['entrance_time', 'age']
        }
-   })
+   }
 
-   sim = setup_simulation([BasePopulation(), Mortality()], config)
+   sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
    print(sim.get_population().head())
 
 ::
@@ -737,20 +727,19 @@ to 0.0097 deaths per person-year, very close to the 0.01 rate we provided.
 .. testcode::
    :hide:
 
-   from vivarium import setup_simulation, build_simulation_configuration
+   from vivarium import InteractiveContext
    from vivarium.examples.disease_model import BasePopulation, Mortality
 
-   config = build_simulation_configuration()
-   config.update({
+   config = {
        'population': {
-           'population_size': 100000,
+           'population_size': 100_000
        },
        'randomness': {
            'key_columns': ['entrance_time', 'age']
-       },
-   })
+       }
+   }
 
-   sim = setup_simulation([BasePopulation(), Mortality()], config)
+   sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
    sim.take_steps(2)
 
 

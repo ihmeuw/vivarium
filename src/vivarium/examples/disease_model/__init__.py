@@ -13,6 +13,6 @@ def get_model_specification_path():
 
 
 def get_disease_model_simulation():
-    from vivarium.interface import setup_simulation_from_model_specification
+    from vivarium import InteractiveContext
     p = get_model_specification_path()
-    return setup_simulation_from_model_specification(p)
+    return InteractiveContext(p)
