@@ -28,7 +28,7 @@ The Lookup Table
 
 A :class:`Lookup Table` for a quantity is a callable object that is built from
 a scalar value or a :class:`pandas.DataFrame` of data points that describes
-how he quantity varies with other variable(s). It is called with a
+how the quantity varies with other variable(s). It is called with a
 :class:`pandas.Index` as a function parameter which represents a simulated
 population as discussed in the :ref:`population concept <population_concept>`.
 When called, the :class:`Lookup Table <vivarium.framework.lookup.LookupTable>`
