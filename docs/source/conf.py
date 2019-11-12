@@ -59,6 +59,7 @@ extensions = [
     'sphinx_click.ext',
     'sphinx_autodoc_typehints',
     'matplotlib.sphinxext.plot_directive',
+
 ]
 
 # Add any paths that contain templates here, relative to this directory.
