@@ -4,13 +4,13 @@ The Population Management System
 ================================
 
 This module provides tools for managing the :term:`state table <State Table>`
-in a :mod:`vivarium` simulation, which is the record of all simulants in a
+in a ``vivarium`` simulation, which is the record of all simulants in a
 simulation and their state. It's main tasks are managing the creation of new
 simulants and providing the ability for components to view and update simulant
 state safely during runtime.
 
 """
-from typing import Sequence, List, Callable, Union, Dict, Any, NamedTuple, Tuple
+from typing import Sequence, List, Callable, Union, Mapping, Any, NamedTuple
 
 import pandas as pd
 
@@ -30,125 +30,61 @@ class PopulationView:
     Attempts to update non-existent columns are ignored except during
     simulant creation when new columns are allowed to be created.
 
-    Parameters
+    Attributes
     ----------
-    manager
-        The population manager for the simulation.
     columns
-        The set of columns this view should have access too.  If explicitly
-        specified as ``None``, this view will have access to the entire
-        state table.
+        The columns for which this view is configured. If columns is None then
+        the view will be configured with all columns. That case should be only
+        be used in situations where the full state table is actually needed,
+        like for some metrics collection applications.
     query
-        A :mod:`pandas`-style filter that will be applied any time this
-        view is read from.
-
-    Notes
-    -----
-    By default, this view wil filter out ``untracked`` simulants unless
-    the ``tracked`` column is specified in the initialization arguments.
+        The query which will be used to filter the state table for this
+        view. This query may reference columns not in the view's columns.
 
     """
 
-    def __init__(self,
-                 manager: 'PopulationManager',
-                 columns: Union[List[str], Tuple[str], None] = (),
-                 query: str = None):
-        self._manager = manager
+    def __init__(self, manager: 'PopulationManager', columns: Sequence[str] = (), query: str = None):
+        self.manager = manager
         self._columns = list(columns)
         self._query = query
 
     @property
     def columns(self) -> List[str]:
-        """The columns that the view can read and update.
-
-        If the view was created with ``None`` as the columns argument, then
-        the view will have access to the full table by default. That case
-        should be only be used in situations where the full state table is
-        actually needed, like for some metrics collection applications.
-
-        """
         if not self._columns:
-            return list(self._manager.get_population(True).columns)
+            return list(self.manager.get_population(True).columns)
         return list(self._columns)
+
+    def subview(self, columns: Sequence[str]) -> 'PopulationView':
+        if set(columns) > set(self.columns):
+            raise PopulationError(f"Invalid subview requested.  Requested columns must be a subset of this view's "
+                                  f"columns.  Requested columns: {columns}, Available columns: {self.columns}")
+        return PopulationView(self.manager, columns, self.query)
 
     @property
     def query(self) -> str:
-        """A :mod:`pandas` style query to filter the rows of this view.
-
-        This query will be applied any time the view is read. This query may r
-        eference columns not in the view's columns.
-
-        """
         return self._query
-
-    def subview(self, columns: Union[List[str], Tuple[str]]) -> 'PopulationView':
-        """Retrieves a new view with a subset of this view's columns.
-
-        Parameters
-        ----------
-        columns
-            The set of columns to provide access to in the subview. Must be
-            a proper subset of this view's columns.
-
-        Returns
-        -------
-        A new view with access to the requested columns.
-
-        Raises
-        ------
-        PopulationError
-            If the requested columns are not a proper subset of this view's
-            columns.
-
-        Notes
-        -----
-        Subviews are useful during population initialization. The original
-        view may contain both columns that a component needs to create and
-        update as well as columns that the component needs to read.  By
-        requesting a subview, a component can read the sections it needs
-        without running the risk of trying to access uncreated columns
-        because the component itself has not created them.
-
-        """
-        if set(columns) >= set(self.columns):
-            raise PopulationError(f"Invalid subview requested.  Requested columns must be a proper subset of this "
-                                  f"view's columns.  Requested columns: {columns}, Available columns: {self.columns}")
-        return PopulationView(self._manager, columns, self.query)
 
     def get(self, index: pd.Index, query: str = '') -> pd.DataFrame:
         """Select the rows represented by the given index from this view.
 
         For the rows in ``index`` get the columns from the simulation's
-        state table to which this view has access. The resulting rows may be
-        further filtered by the view's query and only return a subset
-        of the population represented by the index.
+        population which this view is configured. The result may be further
+        filtered by the view's query.
 
         Parameters
         ----------
         index
             Index of the population to get.
         query
-            Additional conditions used to filter the index. These conditions
-            will be unioned with the default query of this view.  The query
-            provided may use columns that this view does not have access to.
+            Conditions used to filter the index.  May use columns not in the
+            requested view.
 
         Returns
         -------
-        A table with the subset of the population requested.
-
-        Raises
-        ------
-        PopulationError
-            If this view has access to columns that have not yet been created
-            and this method is called.  If you see this error, you should
-            request a subview with the columns you need read access to.
-
-        See Also
-        --------
-        :meth:`subview <PopulationView.subview`
+            A table with the subset of the population requested.
 
         """
-        pop = self._manager.get_population(True).loc[index]
+        pop = self.manager.get_population(True).loc[index]
 
         if not index.empty:
             if self._query:
@@ -166,114 +102,80 @@ class PopulationView:
                 non_existent_columns = set(columns) - set(pop.columns)
                 raise PopulationError(f'Requested column(s) {non_existent_columns} not in population table.')
 
-    def update(self, population_update: Union[pd.DataFrame, pd.Series]):
-        """Updates the state table with the provided data.
+    def update(self, pop: Union[pd.DataFrame, pd.Series]):
+        """Update the simulation's state to match ``pop``.
 
         Parameters
         ----------
-        population_update
+        pop
             The data which should be copied into the simulation's state. If
-            the update is a :class:`pandas.DataFrame`, it can contain a subset
-            of the view's columns but no extra columns. If ``pop`` is a
-            :class:`pandas.Series` it must have a name that matches one of
-            this view's columns unless the view only has one column in which
-            case the Series will be assumed to refer to that regardless of its
-            name.
-
-        Raises
-        ------
-        PopulationError
-            If the provided data name or columns does not match columns that
-            this view manages or if the view is being updated with a data
-            type inconsistent with the original population data.
+            ``pop`` is a DataFrame, it can contain a subset of the view's
+            columns but no extra columns. If ``pop`` is a Series it must have
+            a name that matches one of the view's columns unless the view only
+            has one column in which case the Series will be assumed to refer to
+            that regardless of its name.
 
         """
-        if population_update.empty:
-            return
-
-        # TODO: Cast series to data frame and clean this up.
-        if isinstance(population_update, pd.Series):
-            if population_update.name in self._columns:
-                affected_columns = [population_update.name]
-            elif len(self._columns) == 1:
-                affected_columns = self._columns
-            else:
-                raise PopulationError('Cannot update with a pandas series unless the series name is a column '
-                                      'name in the view or there is only a single column in the view.')
-        else:
-            if not set(population_update.columns).issubset(self._columns):
-                raise PopulationError(f'Cannot update with a DataFrame that contains columns the view does not. '
-                                      f'Dataframe contains the following extra columns: '
-                                      f'{set(population_update.columns).difference(self._columns)}.')
-            affected_columns = set(population_update.columns)
-
-        affected_columns = set(affected_columns).intersection(self._columns)
-        state_table = self._manager.get_population(True)
-        if not self._manager.growing:
-            affected_columns = set(affected_columns).intersection(state_table.columns)
-
-        for affected_column in affected_columns:
-            if affected_column in state_table:
-                new_state_table_values = state_table[affected_column].values
-                if isinstance(population_update, pd.Series):
-                    update_values = population_update.values
+        if not pop.empty:
+            if isinstance(pop, pd.Series):
+                if pop.name in self._columns:
+                    affected_columns = [pop.name]
+                elif len(self._columns) == 1:
+                    affected_columns = self._columns
                 else:
-                    update_values = population_update[affected_column].values
-                new_state_table_values[population_update.index] = update_values
-
-                if new_state_table_values.dtype != update_values.dtype:
-                    # This happens when the population is being grown because extending
-                    # the index forces columns that don't have a natural null type
-                    # to become 'object'
-                    if not self._manager.growing:
-                        raise PopulationError('Component corrupting population table. '
-                                              f'Column name: {affected_column} '
-                                              f'Old column type: {new_state_table_values.dtype} '
-                                              f'New column type: {update_values.dtype}')
-                    new_state_table_values = new_state_table_values.astype(new_state_table_values.dtype)
+                    raise PopulationError('Cannot update with a Series unless the series name equals a column '
+                                          'name or there is only a single column in the view')
             else:
-                if isinstance(population_update, pd.Series):
-                    new_state_table_values = population_update.values
+                if not set(pop.columns).issubset(self._columns):
+                    raise PopulationError(f'Cannot update with a DataFrame that contains columns the view does not. '
+                                          f'Dataframe contains the following extra columns: '
+                                          f'{set(pop.columns).difference(self._columns)}.')
+                affected_columns = set(pop.columns)
+
+            affected_columns = set(affected_columns).intersection(self._columns)
+            state_table = self.manager.get_population(True)
+            if not self.manager.growing:
+                affected_columns = set(affected_columns).intersection(state_table.columns)
+
+            for c in affected_columns:
+                if c in state_table:
+                    v = state_table[c].values
+                    if isinstance(pop, pd.Series):
+                        v2 = pop.values
+                    else:
+                        v2 = pop[c].values
+                    v[pop.index] = v2
+
+                    if v.dtype != v2.dtype:
+                        # This happens when the population is being grown because extending
+                        # the index forces columns that don't have a natural null type
+                        # to become 'object'
+                        if not self.manager.growing:
+                            raise PopulationError('Component corrupting population table. '
+                                                  f'Column name: {c} '
+                                                  f'Old column type: {v.dtype} New column type: {v2.dtype}')
+                        v = v.astype(v2.dtype)
                 else:
-                    new_state_table_values = population_update[affected_column].values
-            self._manager._population[affected_column] = new_state_table_values
+                    if isinstance(pop, pd.Series):
+                        v = pop.values
+                    else:
+                        v = pop[c].values
+                self.manager._population[c] = v
 
     def __repr__(self):
         return "PopulationView(_columns= {}, _query= {})".format(self._columns, self._query)
 
 
 class SimulantData(NamedTuple):
-    """Data to help components initialize simulants.
-
-    Any time simulants are added to the simulation, each initializer is called
-    with this structure containing information relevant to their
-    initialization.
-
-    Attributes
-    ----------
-    index
-        The index representing the new simulants being added to the
-        simulation.
-    user_data
-        A dictionary of extra data passed in by the component creating
-        the population.
-    creation_time
-        The time when the simulants enter the simulation.
-    creation_window
-        The span of time over which the simulants are created.  Useful for,
-        e.g., distributing ages over the window.
-    """
     index: pd.Index
-    user_data: Dict[str, Any]
+    user_data: Mapping[str, Any]
     creation_time: pd.Timestamp
     creation_window: pd.Timedelta
 
 
 class PopulationManager:
-    """Manages the state of the simulated population."""
+    """The manager of the sim population and record-keeper of their state."""
 
-    # TODO: Move the configuration for initial population creation to
-    # user components.
     configuration_defaults = {
         'population': {'population_size': 100}
     }
@@ -284,7 +186,6 @@ class PopulationManager:
 
     @property
     def name(self):
-        """The name of this component."""
         return "population_manager"
 
     def setup(self, builder):
@@ -306,7 +207,7 @@ class PopulationManager:
 
         self._view = self.get_view(['tracked'])
 
-    def get_view(self, columns: Union[List[str], Tuple[str]], query: str = None) -> PopulationView:
+    def get_view(self, columns: Sequence[str], query: str=None) -> PopulationView:
         """Return a configured PopulationView.
 
         If 'tracked' is not specified in columns, it is added along with the
@@ -319,7 +220,7 @@ class PopulationManager:
                                                            'simulation_end', 'report'])
         return view
 
-    def _get_view(self, columns: Union[List[str], Tuple[str]], query: str = None):
+    def _get_view(self, columns: Sequence[str], query: str = None):
         if columns and 'tracked' not in columns:
             query = query + 'and tracked == True' if query else 'tracked == True'
         return PopulationView(self, columns, query)
@@ -345,7 +246,7 @@ class PopulationManager:
         status = pd.Series(True, index=pop_data.index)
         self._view.update(status)
 
-    def _create_simulants(self, count: int, population_configuration: Dict[str, Any] = None) -> pd.Index:
+    def _create_simulants(self, count: int, population_configuration: Mapping[str, Any] = None) -> pd.Index:
         population_configuration = population_configuration if population_configuration else {}
         new_index = range(len(self._population) + count)
         new_population = self._population.reindex(new_index)
@@ -383,13 +284,26 @@ class PopulationInterface:
         self._manager = manager
 
     def get_view(self, columns: Sequence[str], query: str = None) -> PopulationView:
-        """Get a time-varying view of the population state table.
+        """Get a time-varying view of the population state table. The requested
+        population view can be used to view the current state or to update the
+        state with new values.
 
-        The requested population view can be used to view the current state or
-        to update the state with new values.
-
+<<<<<<< HEAD
         If the column 'tracked' is not specified in the `columns` argument, it
         will be added along with the query string 'tracked == True'.
+
+        Parameters
+        ----------
+        columns :
+            A subset of the state table columns that will be available in the
+            returned view.
+        query :
+            A filter on the population state.  This filters out particular
+            simulants (rows in the state table) based on their current state.
+            The query should be provided in a way that is understood by the
+=======
+        The requested population view can be used to view the current state or
+        to update the state with new values.
 
         Parameters
         ----------
@@ -398,10 +312,11 @@ class PopulationInterface:
             returned view.
         query
             A filter on the population state.  This filters out particular
-            simulants (rows in the state table) based on their current state.
-            The query should be provided in a way that is understood by the
-            :meth:`pandas.DataFrame.query` method and may reference state
-            table columns not requested in the ``columns`` argument.
+            rows (simulants) based on their current state.  The query should
+            be provided in a way that is understood by the
+>>>>>>> 57326d4b797bb7d50b0a45faf53466f13a5b33e4
+            ``pandas.DataFrame.query`` method and may reference state table
+            columns not requested in the ``columns`` argument.
 
         Returns
         -------
@@ -412,7 +327,7 @@ class PopulationInterface:
         """
         return self._manager.get_view(columns, query)
 
-    def get_simulant_creator(self) -> Callable[[int, Union[Dict[str, Any], None]], pd.Index]:
+    def get_simulant_creator(self) -> Callable[[int, Union[Mapping[str, Any], None]], pd.Index]:
         """Gets a function that can generate new simulants.
 
         Returns
