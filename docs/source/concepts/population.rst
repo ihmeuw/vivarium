@@ -69,7 +69,7 @@ The Simulant Creator Function
 +++++++++++++++++++++++++++++
 
 Simulants are are introduced to the simulation using a function that takes the
-number of new simulants as it's parameter. This function, known as the simulant
+number of new simulants as its parameter. This function, known as the simulant
 creator, is provided by the population manager interface and is used by the
 simulation entrypoint to initialize the population. It can also be used by
 components that want to introduce new simulants over the course of a simulation,
