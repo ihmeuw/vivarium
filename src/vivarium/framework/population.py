@@ -75,8 +75,8 @@ class PopulationView:
     def query(self) -> str:
         """A :mod:`pandas` style query to filter the rows of this view.
 
-        This query will be applied any time the view is read. This query may r
-        eference columns not in the view's columns.
+        This query will be applied any time the view is read. This query may
+        reference columns not in the view's columns.
 
         """
         return self._query
