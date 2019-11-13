@@ -10,7 +10,7 @@ simulants and providing the ability for components to view and update simulant
 state safely during runtime.
 
 """
-from typing import Sequence, List, Callable, Union, Dict, Any, NamedTuple, Tuple
+from typing import List, Callable, Union, Dict, Any, NamedTuple, Tuple
 
 import pandas as pd
 
@@ -282,21 +282,20 @@ class PopulationManager:
         self._population = pd.DataFrame()
         self.growing = False
 
+    ############################
+    # Normal Component Methods #
+    ############################
+
     @property
     def name(self):
         """The name of this component."""
         return "population_manager"
 
     def setup(self, builder):
+        """Registers the population manager with other vivarium systems."""
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
-
-        builder.value.register_value_modifier('metrics', modifier=self.metrics)
-
         self.initialization_resources = builder.resource.get_resource_group('initialization')
-
-        self.register_simulant_initializer(self.on_create_simulants, ['tracked'])
-
         self._add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(self.get_view, allow_during=['setup', 'post_setup', 'population_creation',
@@ -304,13 +303,62 @@ class PopulationManager:
         builder.lifecycle.add_constraint(self.get_simulant_creator, allow_during=['setup'])
         builder.lifecycle.add_constraint(self.register_simulant_initializer, allow_during=['setup'])
 
+        self.register_simulant_initializer(self.on_initialize_simulants, creates_columns=['tracked'])
         self._view = self.get_view(['tracked'])
 
-    def get_view(self, columns: Union[List[str], Tuple[str]], query: str = None) -> PopulationView:
-        """Return a configured PopulationView.
+        builder.value.register_value_modifier('metrics', modifier=self.metrics)
 
-        If 'tracked' is not specified in columns, it is added along with the
-        query string 'tracked == True'.
+    def on_initialize_simulants(self, pop_data: SimulantData):
+        """Adds a ``tracked`` column to the state table for new simulants."""
+        status = pd.Series(True, index=pop_data.index)
+        self._view.update(status)
+
+    def metrics(self, index, metrics):
+        """Reports tracked and untracked population sizes at simulation end."""
+        population = self._view.get(index)
+        untracked = population[~population.tracked]
+        tracked = population[population.tracked]
+
+        metrics['total_population_untracked'] = len(untracked)
+        metrics['total_population_tracked'] = len(tracked)
+        metrics['total_population'] = len(untracked)+len(tracked)
+        return metrics
+
+    def __repr__(self):
+        return "PopulationManager()"
+
+    ###########################
+    # Builder API and helpers #
+    ###########################
+
+    def get_view(self, columns: Union[List[str], Tuple[str]], query: str = None) -> PopulationView:
+        """Get a time-varying view of the population state table.
+
+        The requested population view can be used to view the current state or
+        to update the state with new values.
+
+        If the column 'tracked' is not specified in the ``columns`` argument,
+        the query string 'tracked == True' will be added to the provided
+        query argument. This allows components to ignore untracked simulants
+        by default.
+
+        Parameters
+        ----------
+        columns
+            A subset of the state table columns that will be available in the
+            returned view.
+        query
+            A filter on the population state.  This filters out particular
+            simulants (rows in the state table) based on their current state.
+            The query should be provided in a way that is understood by the
+            :meth:`pandas.DataFrame.query` method and may reference state
+            table columns not requested in the ``columns`` argument.
+
+        Returns
+        -------
+        PopulationView
+            A filtered view of the requested columns of the population state
+            table.
 
         """
         view = self._get_view(columns, query)
@@ -329,6 +377,28 @@ class PopulationManager:
                                       requires_columns: List[str] = (),
                                       requires_values: List[str] = (),
                                       requires_streams: List[str] = ()):
+        """Marks a source of initial state information for new simulants.
+
+        Parameters
+        ----------
+        initializer
+            A callable that adds or updates initial state information about
+            new simulants.
+        creates_columns
+            A list of the state table columns that the given initializer
+            provides the initial state information for.
+        requires_columns
+            A list of the state table columns that already need to be present
+            and populated in the state table before the provided initializer
+            is called.
+        requires_values
+            A list of the value pipelines that need to be properly sourced
+            before the provided initializer is called.
+        requires_streams
+            A list of the randomness streams necessary to initialize the
+            simulant attributes.
+
+        """
         dependencies = ([f'column.{name}' for name in requires_columns]
                         + [f'value.{name}' for name in requires_values]
                         + [f'stream.{name}' for name in requires_streams])
@@ -339,11 +409,22 @@ class PopulationManager:
         self.initialization_resources.add_resources('column', list(creates_columns), initializer, dependencies)
 
     def get_simulant_creator(self) -> Callable:
-        return self._create_simulants
+        """Gets a function that can generate new simulants.
 
-    def on_create_simulants(self, pop_data):
-        status = pd.Series(True, index=pop_data.index)
-        self._view.update(status)
+        Returns
+        -------
+           The simulant creator function. The creator function takes the
+           number of simulants to be created as it's first argument and a dict
+           population configuration that will be available to simulant
+           initializers as it's second argument. It generates the new rows in
+           the population state table and then calls each initializer
+           registered with the population system with a data
+           object containing the state table index of the new simulants, the
+           configuration info passed to the creator, the current simulation
+           time, and the size of the next time step.
+
+        """
+        return self._create_simulants
 
     def _create_simulants(self, count: int, population_configuration: Dict[str, Any] = None) -> pd.Index:
         population_configuration = population_configuration if population_configuration else {}
@@ -357,39 +438,65 @@ class PopulationManager:
         self.growing = False
         return index
 
-    def metrics(self, index, metrics):
-        population = self._view.get(index)
-        untracked = population[~population.tracked]
-        tracked = population[population.tracked]
+    ###############
+    # Context API #
+    ###############
 
-        metrics['total_population_untracked'] = len(untracked)
-        metrics['total_population_tracked'] = len(tracked)
-        metrics['total_population'] = len(untracked)+len(tracked)
-        return metrics
+    def get_population(self, untracked: bool) -> pd.DataFrame:
+        """Provides a copy of the full population state table.
 
-    def get_population(self, untracked) -> pd.DataFrame:
+        Parameters
+        ----------
+        untracked
+            Whether to include untracked simulants in the returned population.
+
+        Returns
+        -------
+        A copy of the population table.
+
+        """
         pop = self._population.copy()
         if not untracked:
             pop = pop[pop.tracked]
         return pop
 
-    def __repr__(self):
-        return "PopulationManager()"
-
 
 class PopulationInterface:
+    """Provides access to the system for reading and updating the population.
+
+    The most important aspect of the simulation state is the ``population
+    table`` or ``state table``.  It is a table with a row for every
+    individual or cohort (referred to as a simulant) being simulated and a
+    column for each of the attributes of the simulant being modeled.  All
+    access to the state table is mediated by
+    :class:`population views <PopulationView>`, which may be requested from
+    this system during setup time.
+
+    The population system itself manages a single attribute of simulants
+    called ``tracked``. This attribute allows global control of which
+    simulants are available to read and update in the state table by
+    default.
+
+    For example, in a simulation of childhood illness, we might not
+    need information about individuals or cohorts once they reach five years
+    of age, and so we can have them "age out" of the simulation at five years
+    old by setting the ``tracked`` attribute to ``False``.
+
+    """
 
     def __init__(self, manager: PopulationManager):
         self._manager = manager
 
-    def get_view(self, columns: Sequence[str], query: str = None) -> PopulationView:
+    def get_view(self, columns: Union[List[str], Tuple[str]], query: str = None) -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
         to update the state with new values.
 
-        If the column 'tracked' is not specified in the `columns` argument, it
-        will be added along with the query string 'tracked == True'.
+        If the column 'tracked' is not specified in the ``columns`` argument,
+        the query string 'tracked == True' will be added to the provided
+        query argument. This allows components to ignore untracked simulants
+        by default.
 
         Parameters
         ----------
@@ -419,10 +526,10 @@ class PopulationInterface:
         -------
            The simulant creator function. The creator function takes the
            number of simulants to be created as it's first argument and a dict
-           or other mapping of population configuration that will be available
-           to simulant initializers as it's second argument. It generates the
-           new rows in the population state table and then calls each
-           initializer registered with the population system with a data
+           population configuration that will be available to simulant
+           initializers as it's second argument. It generates the new rows in
+           the population state table and then calls each initializer
+           registered with the population system with a data
            object containing the state table index of the new simulants, the
            configuration info passed to the creator, the current simulation
            time, and the size of the next time step.
