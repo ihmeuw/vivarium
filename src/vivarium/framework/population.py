@@ -44,7 +44,7 @@ class PopulationView:
 
     Notes
     -----
-    By default, this view wil filter out ``untracked`` simulants unless
+    By default, this view will filter out ``untracked`` simulants unless
     the ``tracked`` column is specified in the initialization arguments.
 
     """
