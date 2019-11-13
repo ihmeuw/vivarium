@@ -110,8 +110,8 @@ class PopulationView:
         because the component itself has not created them.
 
         """
-        if set(columns) >= set(self.columns):
-            raise PopulationError(f"Invalid subview requested.  Requested columns must be a proper subset of this "
+        if set(columns) > set(self.columns):
+            raise PopulationError(f"Invalid subview requested.  Requested columns must be a subset of this "
                                   f"view's columns.  Requested columns: {columns}, Available columns: {self.columns}")
         return PopulationView(self._manager, columns, self.query)
 
