@@ -146,7 +146,7 @@ class IndexMap:
             If the column contains data that is neither a datetime-like nor numeric.
         """
         if isinstance(column.iloc[0], datetime.datetime):
-            column = self.clip_to_seconds(column.astype(int))
+            column = self.clip_to_seconds(column.astype(np.int64))
         elif np.issubdtype(column.iloc[0], np.integer):
             if not len(column >= 0) == len(column):
                 raise RandomnessError("Values in integer columns must be greater than or equal to zero.")
