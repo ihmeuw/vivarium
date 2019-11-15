@@ -278,6 +278,27 @@ class InitializerComponentSet:
         self._columns_produced = {}
 
     def add(self, initializer: Callable, columns_produced: List[str]):
+        """Adds an initializer and columns to the set, enforcing uniqueness.
+
+        Parameters
+        ----------
+        initializer
+            The population initializer to add to the set.
+        columns_produced
+            The columns the initializer produces.
+
+        Raises
+        ------
+        TypeError
+            If the initializer is not an object method.
+        AttributeError
+            If the object bound to the method does not have a name attribute.
+        PopulationError
+            If the component bound to the method already has an initializer
+            registered or if the columns produced are duplicates of columns
+            another initializer produces.
+
+        """
         if not isinstance(initializer, MethodType):
             raise TypeError('Population initializers must be methods of named simulation components. '
                             f'You provided {initializer} which is of type {type(initializer)}.')
