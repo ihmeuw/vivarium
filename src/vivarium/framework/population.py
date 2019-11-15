@@ -275,6 +275,7 @@ class InitializerComponentSet:
 
     def __init__(self):
         self._components = {}
+        self._columns_produced = {}
 
     def add(self, initializer: Callable, columns_produced: List[str]):
         if not isinstance(initializer, MethodType):
@@ -286,8 +287,13 @@ class InitializerComponentSet:
                                  f'You provided {initializer} which is bound to {component} that has no '
                                  f'name attribute.')
         if component.name in self._components:
-            raise PopulationError('Component {component.name} has multiple population initializers. '
+            raise PopulationError(f'Component {component.name} has multiple population initializers. '
                                   'This is not allowed.')
+        for column in columns_produced:
+            if column in self._columns_produced:
+                raise PopulationError(f'Component {component.name} and component {self._columns_produced[column]} '
+                                      f'have both registered initializers for column {column}.')
+            self._columns_produced[column] = component.name
         self._components[component.name] = columns_produced
 
     def __repr__(self):
