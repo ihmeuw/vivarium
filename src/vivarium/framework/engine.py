@@ -86,7 +86,7 @@ class SimulationContext:
         for name, controller in self._plugin_manager.get_optional_controllers().items():
             setattr(self, f'_{name}', controller)
 
-        self._resource.add_group('initialization', single_producer=True)
+        self._resource.add_group('initialization')
 
         # The order the managers are added is important.  It represents the
         # order in which they will be set up.  The clock is required by
