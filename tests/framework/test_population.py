@@ -11,7 +11,7 @@ class DummyPopulationManager:
 
 def test_create_PopulationView_with_all_columns():
     manager = DummyPopulationManager()
-    view = PopulationView(manager)
+    view = PopulationView(manager, 0)
     assert set(view.columns) == {'age', 'sex'}
 
 

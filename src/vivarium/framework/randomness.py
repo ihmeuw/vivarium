@@ -428,6 +428,10 @@ class RandomnessStream:
         self._manager = manager
         self._for_initialization = for_initialization
 
+    @property
+    def name(self):
+        return f'randomness_stream_{self.key}'
+
     def _key(self, additional_key: Any = None) -> str:
         """Construct a hashable key from this object's state.
 
@@ -621,7 +625,7 @@ class RandomnessManager:
         pop_size = builder.configuration.population.population_size
         self._key_mapping.map_size = max(map_size, 10*pop_size)
 
-        self.initialization_resources = builder.resource.get_resource_group('initialization')
+        self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
         builder.lifecycle.add_constraint(self.get_randomness_stream, allow_during=['setup'])
         builder.lifecycle.add_constraint(self.register_simulants,
@@ -651,8 +655,8 @@ class RandomnessManager:
         """
         stream = self._get_randomness_stream(decision_point, for_initialization)
         if not for_initialization:  # We need the key columns to be created before this stream can be called.
-            self.initialization_resources.add_resources('stream', [decision_point], stream,
-                                                        [f'column.{name}' for name in self._key_columns])
+            self.resources.add_resources('stream', [decision_point], stream,
+                                         [f'column.{name}' for name in self._key_columns])
         self._add_constraint(stream.get_draw, restrict_during=['initialization', 'setup', 'post_setup'])
         self._add_constraint(stream.get_seed, restrict_during=['initialization'])
         self._add_constraint(stream.filter_for_probability, restrict_during=['initialization', 'setup', 'post_setup'])

@@ -55,8 +55,8 @@ def test_SimulationContext_init_default(components):
     assert sim._builder.population._manager is sim._population
     assert isinstance(sim._builder.randomness, RandomnessInterface)
     assert sim._builder.randomness._manager is sim._randomness
-    assert isinstance(sim._builder.resource, ResourceInterface)
-    assert sim._builder.resource._manager is sim._resource
+    assert isinstance(sim._builder.resources, ResourceInterface)
+    assert sim._builder.resources._manager is sim._resource
     assert isinstance(sim._builder.time, TimeInterface)
     assert sim._builder.time._manager is sim._clock
     assert isinstance(sim._builder.components, ComponentInterface)

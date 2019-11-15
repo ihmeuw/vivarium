@@ -52,11 +52,17 @@ class PopulationView:
 
     def __init__(self,
                  manager: 'PopulationManager',
+                 view_id: int,
                  columns: Union[List[str], Tuple[str], None] = (),
                  query: str = None):
         self._manager = manager
+        self._id = view_id
         self._columns = list(columns)
         self._query = query
+
+    @property
+    def name(self):
+        return f'population_view_{self._id}'
 
     @property
     def columns(self) -> List[str]:
@@ -114,7 +120,7 @@ class PopulationView:
         if set(columns) > set(self.columns):
             raise PopulationError(f"Invalid subview requested.  Requested columns must be a subset of this "
                                   f"view's columns.  Requested columns: {columns}, Available columns: {self.columns}")
-        return PopulationView(self._manager, columns, self.query)
+        return self._manager.get_view(columns, self.query)
 
     def get(self, index: pd.Index, query: str = '') -> pd.DataFrame:
         """Select the rows represented by the given index from this view.
@@ -240,7 +246,7 @@ class PopulationView:
             self._manager._population[affected_column] = new_state_table_values
 
     def __repr__(self):
-        return "PopulationView(_columns= {}, _query= {})".format(self._columns, self._query)
+        return f"PopulationView(_id={self._id}, _columns={self.columns}, _query={self._query})"
 
 
 class SimulantData(NamedTuple):
@@ -337,6 +343,7 @@ class PopulationManager:
         self._population = pd.DataFrame()
         self._initializer_components = InitializerComponentSet()
         self.growing = False
+        self._last_id = -1
 
     ############################
     # Normal Component Methods #
@@ -351,7 +358,7 @@ class PopulationManager:
         """Registers the population manager with other vivarium systems."""
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
-        self.initialization_resources = builder.resource.get_resource_group('initialization')
+        self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(self.get_view, allow_during=['setup', 'post_setup', 'population_creation',
@@ -426,7 +433,8 @@ class PopulationManager:
     def _get_view(self, columns: Union[List[str], Tuple[str]], query: str = None):
         if columns and 'tracked' not in columns:
             query = query + 'and tracked == True' if query else 'tracked == True'
-        return PopulationView(self, columns, query)
+        self._last_id += 1
+        return PopulationView(self, self._last_id, columns, query)
 
     def register_simulant_initializer(self, initializer: Callable,
                                       creates_columns: List[str] = (),
@@ -463,7 +471,7 @@ class PopulationManager:
             # The population view itself uses the tracked column, so include
             # to be safe.
             dependencies += ['column.tracked']
-        self.initialization_resources.add_resources('column', list(creates_columns), initializer, dependencies)
+        self.resources.add_resources('column', list(creates_columns), initializer, dependencies)
 
     def get_simulant_creator(self) -> Callable:
         """Gets a function that can generate new simulants.
@@ -490,7 +498,7 @@ class PopulationManager:
         index = new_population.index.difference(self._population.index)
         self._population = new_population
         self.growing = True
-        for initializer in self.initialization_resources:
+        for initializer in self.resources:
             initializer(SimulantData(index, population_configuration, self.clock(), self.step_size()))
         self.growing = False
         return index
