@@ -166,18 +166,18 @@ def test_update(mocker):
         rs = np.random.RandomState(seed=seed + salt)
         return pd.Series(rs.randint(0, len(k)*10, size=len(k)), index=k)
 
-    with mocker.patch.object(m, 'hash_', side_effect=hash_mock):
+    mocker.patch.object(m, 'hash_', side_effect=hash_mock)
+    m.update(keys)
+    assert len(m) == len(keys), "All keys not in mapping"
+    assert m._map.index.difference(keys).empty, "All keys not in mapping"
+    assert len(m._map.unique()) == len(keys), "Duplicate values in mapping"
+
+    # Can't have duplicate keys.
+    with pytest.raises(KeyError):
         m.update(keys)
-        assert len(m) == len(keys), "All keys not in mapping"
-        assert m._map.index.difference(keys).empty, "All keys not in mapping"
-        assert len(m._map.unique()) == len(keys), "Duplicate values in mapping"
 
-        # Can't have duplicate keys.
-        with pytest.raises(KeyError):
-            m.update(keys)
-
-        new_unique_keys = generate_keys(1000).difference(keys)
-        m.update(new_unique_keys)
-        assert len(m) == len(keys) + len(new_unique_keys), "All keys not in mapping"
-        assert m._map.index.difference(keys.union(new_unique_keys)).empty, "All keys not in mapping"
-        assert len(m._map.unique()) == len(keys) + len(new_unique_keys), "Duplicate values in mapping"
+    new_unique_keys = generate_keys(1000).difference(keys)
+    m.update(new_unique_keys)
+    assert len(m) == len(keys) + len(new_unique_keys), "All keys not in mapping"
+    assert m._map.index.difference(keys.union(new_unique_keys)).empty, "All keys not in mapping"
+    assert len(m._map.unique()) == len(keys) + len(new_unique_keys), "Duplicate values in mapping"

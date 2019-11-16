@@ -122,13 +122,13 @@ class DateTimeClock(SimulationClock):
 
 
 class TimeInterface:
-    def __init__(self, clock: SimulationClock):
-        self._clock = clock
+    def __init__(self, manager: SimulationClock):
+        self._manager = manager
 
     def clock(self) -> Callable[[], Union[datetime, Number]]:
         """Gets a callable that returns the current simulation time."""
-        return lambda: self._clock.time
+        return lambda: self._manager.time
 
     def step_size(self) -> Callable[[], Union[timedelta, Number]]:
         """Gets a callable that returns the current simulation step size."""
-        return lambda: self._clock.step_size
+        return lambda: self._manager.step_size

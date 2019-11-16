@@ -4,14 +4,10 @@
 The Model Specification
 =======================
 
+A :term:`model specification <Model Specification>` is a complete representation
+of a :mod:`vivarium` simulation formatted as a yaml file.
 
-.. contents::
-   :depth: 2
-   :local:
-   :backlinks: none
-
-A :term:`model specification <Model specification>` file contains three distinct
-blocks:
+A model specification file contains three distinct blocks:
 
 1. Plugins
 2. Components
@@ -20,6 +16,13 @@ blocks:
 Each of these blocks is delineated by a top-level key in the yaml file:
 ``plugins``, ``components``, or ``configuration``, respectively.
 
+You can find a short intro to yaml basics
+:ref:`here <model_specification_yaml_concept>`.
+
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: none
 
 The Components Block
 --------------------
@@ -29,7 +32,7 @@ necessary to identify the components that should be included in the model. Each
 be managed by the simulation to add some functionality.
 
 In the model specification, these components should be specified in either a
-list or a hierchical format, as the following examples illustrate:
+list or a hierarchical format, as the following examples illustrate:
 
 A flat list:
 
@@ -63,7 +66,7 @@ specification item and the fully instantiated object is the domain of the
 The :class:`ComponentConfigurationParser
 <vivarium.framework.components.parser.ComponentConfigurationParser>`
 is responsible for taking a list or hierarchical :class:`ConfigTree
-<vivarium.ConfigTree>` of compoents derived from a model specification file and
+<vivarium.ConfigTree>` of components derived from a model specification file and
 turning it into a list of instantiated component objects. The
 :meth:`get_components
 <vivarium.framework.components.parser.ComponentConfigurationParser.get_components>`
@@ -76,8 +79,13 @@ steps that comprise the transformation process:
 2. Validating the arguments and prepping each component
 3. Importing and instantiating the actual components
 
-To illustrate this process, the result of the :meth:`get_components
+To illustrate this process, the result of a :meth:`get_components
 <vivarium.framework.components.parser.ComponentConfigurationParser.get_components>`
-on either of the above yaml components block examples would be a list containing
-three instantiated objects: a population object, a mortality object, and a
-diarrhea disease model.
+call on either of the above yaml components block examples would be a list
+containing three instantiated objects: a population object, a mortality object, 
+and a diarrhea disease model.
+
+.. toctree::
+   :hidden:
+
+   yaml_basics

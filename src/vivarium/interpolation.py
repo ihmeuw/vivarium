@@ -28,9 +28,7 @@ class Interpolation:
         continuous_parameters :
             Column names to be used as continuous parameters in Interpolation. If
             bin edges, should be of the form (column name used in call, column name
-            for left bin edge, column name for right bin edge). If order is 0 and
-            any continuous parameter is given without bin edges, continuous bins
-            are created using the given parameter as midpoints.
+            for left bin edge, column name for right bin edge).
         order :
             Order of interpolation.
         """
@@ -158,7 +156,14 @@ def check_data_complete(data, parameter_columns):
     of current.
 
     If multiple parameters, make sure all combinations of parameters
-    are present in data."""
+    are present in data.
+
+    Requires that bins of each parameter be standard across all values
+    of other parameters, i.e., all bins for one parameter when de-duplicated
+    should cover a continuous range of that parameter with no overlaps or gaps
+    and the range covered should be the same for all combinations of other
+    parameter values.
+    """
 
     param_edges = [p[1:] for p in parameter_columns if isinstance(p, (Tuple, List))]  # strip out call column name
 
@@ -215,9 +220,8 @@ class Order0Interp:
         parameter_columns :
             Parameter columns. Should be of form (column name used in call,
             column name for left bin edge, column name for right bin edge)
-            or column name. If given as single column name, assumed to be
-            midpoint of bin and continuous bins created. Assumes left bin
-            edges are inclusive and right exclusive.
+            or column name. Assumes left bin edges are inclusive and
+            right exclusive.
         extrapolate :
             Whether or not to extrapolate beyond the edge of supplied bins.
 

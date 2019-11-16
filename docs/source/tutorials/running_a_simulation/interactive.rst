@@ -53,43 +53,10 @@ The combination of components, configuration, and plugins forms a
 :term:`model specification <Model Specification>`, a complete description
 of a ``vivarium`` model.
 
-The framework provides four functions to help us get started with
-this, all found as top-level imports from :mod:`vivarium`. They differ along
-two axes -- how we give the simulation information about the components,
-plugins and configuration we'd like to simulate, and whether the simulation
-context is :ref:`setup <lifecycle_concept>` or not. Each of these methods
-returns the same
-:class:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>`
-simulation object and can be interacted with in the same way.
-
-.. _simulation_creation:
-
-.. list-table:: **vivarium functions for creating simulation contexts.**
-   :header-rows: 1
-   :widths: 30, 30
-
-   *   - Function
-       - Description
-   *   - | :func:`setup_simulation_from_model_specification <vivarium.interface.interactive.setup_simulation_from_model_specification>`
-       - | Initialize a simulation from a model specification file and call its
-         | setup method.
-   *   - | :func:`setup_simulation <vivarium.interface.interactive.setup_simulation>`
-       - | Initialize a simulation from a list of components and a configuration
-         | dictionary and call its setup method.
-   *   - | :func:`initialize_simulation_from_model_specification <vivarium.interface.interactive.initialize_simulation_from_model_specification>`
-       - | Initialize a simulation from a model specification file.
-   *   - | :func:`initialize_simulation <vivarium.interface.interactive.initialize_simulation>`
-       - | Initialize a simulation from a list of components and a configuration
-         | dictionary.
-
-.. note::
-
-   The final function :func:`initialize_simulation <vivarium.interface.interactive.initialize_simulation>`
-   rarely finds use in the interactive setting. It was written to parallel the
-   `setup` functions, but won't be discussed in the following sections.
-
-Using these functions, we'll explore three ways you might go about generating
-a simulation.
+The :class:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>`
+can be generated from several different kinds of data and may be generated
+at two separate :ref:`lifecycle <lifecycle_concept>` stages.  We'll explore
+several examples of generating simulation objects here.
 
 With a Model Specification File - The Automatic Way
 +++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -109,15 +76,14 @@ In this example, we will use the model specification from our
 .. literalinclude:: ../../../../src/vivarium/examples/disease_model/disease_model.yaml
    :caption: **File**: :file:`disease_model.yaml`
 
-We can prepare and run a simulation interactively with this specification
-using the first function from our creation function
-:ref:`table <simulation_creation>`.
+Generating a simulation from a model specification is very straightforward,
+as it is the primary use case.
 
 .. code-block:: python
 
-   from vivarium import setup_simulation_from_model_specification
+   from vivarium import InteractiveContext
    p = "/path/to/disease_model.yaml"
-   sim = setup_simulation_from_model_specification(p)
+   sim = InteractiveContext(p)
 
 In order to make it easier to follow along with this tutorial, we've provided
 a convenience function to get the path to the disease model specification
@@ -125,11 +91,11 @@ distributed with ``vivarium``.
 
 .. testcode::
 
-   from vivarium import setup_simulation_from_model_specification
+   from vivarium import InteractiveContext
    from vivarium.examples.disease_model import get_model_specification_path
 
    p = get_model_specification_path()
-   sim = setup_simulation_from_model_specification(p)
+   sim = InteractiveContext(p)
 
 The ``sim`` object produced here is all set up and ready to run if you want
 to jump directly to the :ref:`running the simulation <interactive_run>`
@@ -190,9 +156,9 @@ we want to show are available to change).
           'population_size': 10_000,
       },
       'diarrhea': {
-          'incidence': 2.5,        # Approximately 2.5 cases per person per year.
-          'remission': 42,         # Approximately 6 day median recovery time
-          'excess_mortality': 12,  # Approximately 22 % of cases result in death
+          'incidence_rate': 2.5,        # Approximately 2.5 cases per person per year.
+          'remission_rate': 42,         # Approximately 6 day median recovery time
+          'excess_mortality_rate': 12,  # Approximately 22 % of cases result in death
       },
       'child_growth_failure': {
           'proportion_exposed': 0.5,
@@ -212,13 +178,12 @@ Setting up
 ~~~~~~~~~~
 
 With our components and configuration in hand, we can then set up the
-simulation using the setup function from our creation function
-:ref:`table <simulation_creation>`.
+simulation in a very similar manner as before.
 
 .. code-block:: python
 
-   from vivarium import setup_simulation
-   sim = setup_simulation(components, config)
+   from vivarium import InteractiveContext
+   sim = InteractiveContext(components=components, configuration=config)
 
 
 Typically when you're working this way, you're not trying to load in and
@@ -235,7 +200,7 @@ one last way to set up the simulation in an interactive setting.
    from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
                                                 SIS_DiseaseModel, Risk, DirectEffect,
                                                 MagicWandIntervention)
-   from vivarium.interface import setup_simulation
+   from vivarium import InteractiveContext
 
    config = {
        'randomness': {
@@ -245,9 +210,9 @@ one last way to set up the simulation in an interactive setting.
            'population_size': 10_000,
        },
        'diarrhea': {
-           'incidence': 2.5,        # Approximately 2.5 cases per person per year.
-           'remission': 42,         # Approximately 6 day median recovery time
-           'excess_mortality': 12,  # Approximately 22 % of cases result in death
+           'incidence_rate': 2.5,        # Approximately 2.5 cases per person per year.
+           'remission_rate': 42,         # Approximately 6 day median recovery time
+           'excess_mortality_rate': 12,  # Approximately 22 % of cases result in death
        },
        'child_growth_failure': {
            'proportion_exposed': 0.5,
@@ -271,7 +236,7 @@ one last way to set up the simulation in an interactive setting.
                  DirectEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate'),
                  MagicWandIntervention('breastfeeding_promotion', 'child_growth_failure.proportion_exposed'),]
 
-   sim = setup_simulation(components, config)
+   sim = InteractiveContext(components=components, configuration=config)
 
 Modifying an Existing Simulation
 ++++++++++++++++++++++++++++++++
@@ -282,16 +247,16 @@ existing simulation. Here you'll want to grab a prebuilt simulation before the
 or modify the configuration data. You then have to call setup on the simulation
 yourself.
 
-To do this we'll use the third function from our creation function
-:ref:`table <simulation_creation>`.
+To do this we'll set the ``setup`` flag in the
+:class:`~vivarium.InteractiveContext` to ``False``.
 
 .. code-block:: python
 
-   from vivarium import initialize_simulation_from_model_specification
+   from vivarium import InteractiveContext
    from vivarium.examples.disease_model import get_model_specification_path
 
    p = get_model_specification_path()
-   sim = initialize_simulation_from_model_specification(p)
+   sim = InteractiveContext(p, setup=False)
 
 
 This function returns a simulation object that has not been setup yet so we can
@@ -323,31 +288,30 @@ After this step, we are ready to  :ref:`run the simulation <interactive_run>`.
 
 .. testcode::
 
-   from vivarium import initialize_simulation_from_model_specification
+   from vivarium import InteractiveContext
    from vivarium.examples.disease_model import get_model_specification_path
 
    p = get_model_specification_path()
-   sim = initialize_simulation_from_model_specification(p)
+   sim = InteractiveContext(p, setup=False)
    sim.configuration.update({'population': {'population_size': 1_000}})
    sim.setup()
 
 Bonus: Adding Additional Components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Another use case for using
-:func:`initialize_simulation_from_model_specification <vivarium.interface.interactive.initialize_simulation_from_model_specification>`
-is to extend existing models.
+Another use case for creating the :class:`~vivarium.InteractiveContext` in
+its pre-setup state is to extend existing models.
 
 For example, say we wanted to add another risk for unsafe water sources
 into our disease model. We could do the following.
 
 .. testcode::
 
-   from vivarium import initialize_simulation_from_model_specification
+   from vivarium import InteractiveContext
    from vivarium.examples.disease_model import get_model_specification_path, Risk, DirectEffect
 
    p = get_model_specification_path()
-   sim = initialize_simulation_from_model_specification(p)
+   sim = InteractiveContext(p, setup=False)
 
    sim.add_components([Risk('unsafe_water_source'),
                        DirectEffect('unsafe_water_source', 'infected_with_diarrhea.incidence_rate')])

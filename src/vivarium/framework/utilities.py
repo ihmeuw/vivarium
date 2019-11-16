@@ -6,12 +6,12 @@ Framework Utility Functions
 Collection of utility functions shared by the ``vivarium`` framework.
 
 """
+from bdb import BdbQuit
+import functools
 from importlib import import_module
 from typing import Callable, Any
-from bdb import BdbQuit
 
 import numpy as np
-import functools
 
 
 def from_yearly(value, time_step):
@@ -57,13 +57,14 @@ def import_by_path(path: str) -> Callable:
     module_path, _, class_name = path.rpartition('.')
     return getattr(import_module(module_path), class_name)
 
+
 def handle_exceptions(func: Callable, logger: Any, with_debugger: bool) -> Callable:
     """Drops a user into an interactive debugger if func raises an error."""
 
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except (BdbQuit, KeyboardInterrupt):
             raise
         except Exception as e:
