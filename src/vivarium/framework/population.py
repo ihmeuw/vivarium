@@ -10,6 +10,7 @@ simulants and providing the ability for components to view and update simulant
 state safely during runtime.
 
 """
+from types import MethodType
 from typing import List, Callable, Union, Dict, Any, NamedTuple, Tuple
 
 import pandas as pd
@@ -269,6 +270,60 @@ class SimulantData(NamedTuple):
     creation_window: pd.Timedelta
 
 
+class InitializerComponentSet:
+    """Set of unique components with population initializers."""
+
+    def __init__(self):
+        self._components = {}
+        self._columns_produced = {}
+
+    def add(self, initializer: Callable, columns_produced: List[str]):
+        """Adds an initializer and columns to the set, enforcing uniqueness.
+
+        Parameters
+        ----------
+        initializer
+            The population initializer to add to the set.
+        columns_produced
+            The columns the initializer produces.
+
+        Raises
+        ------
+        TypeError
+            If the initializer is not an object method.
+        AttributeError
+            If the object bound to the method does not have a name attribute.
+        PopulationError
+            If the component bound to the method already has an initializer
+            registered or if the columns produced are duplicates of columns
+            another initializer produces.
+
+        """
+        if not isinstance(initializer, MethodType):
+            raise TypeError('Population initializers must be methods of named simulation components. '
+                            f'You provided {initializer} which is of type {type(initializer)}.')
+        component = initializer.__self__
+        if not hasattr(component, "name"):
+            raise AttributeError('Population initializers must be methods of named simulation components. '
+                                 f'You provided {initializer} which is bound to {component} that has no '
+                                 f'name attribute.')
+        if component.name in self._components:
+            raise PopulationError(f'Component {component.name} has multiple population initializers. '
+                                  'This is not allowed.')
+        for column in columns_produced:
+            if column in self._columns_produced:
+                raise PopulationError(f'Component {component.name} and component {self._columns_produced[column]} '
+                                      f'have both registered initializers for column {column}.')
+            self._columns_produced[column] = component.name
+        self._components[component.name] = columns_produced
+
+    def __repr__(self):
+        return repr(self._components)
+
+    def __str__(self):
+        return str(self._components)
+
+
 class PopulationManager:
     """Manages the state of the simulated population."""
 
@@ -280,6 +335,7 @@ class PopulationManager:
 
     def __init__(self):
         self._population = pd.DataFrame()
+        self._initializer_components = InitializerComponentSet()
         self.growing = False
 
     ############################
@@ -399,6 +455,7 @@ class PopulationManager:
             simulant attributes.
 
         """
+        self._initializer_components.add(initializer, creates_columns)
         dependencies = ([f'column.{name}' for name in requires_columns]
                         + [f'value.{name}' for name in requires_values]
                         + [f'stream.{name}' for name in requires_streams])

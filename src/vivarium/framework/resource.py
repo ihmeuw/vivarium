@@ -34,7 +34,6 @@ RESOURCE_TYPES = {'value', 'value_source', 'missing_value_source', 'value_modifi
 NULL_RESOURCE_TYPE = 'null'
 
 
-
 class ResourceProducer:
 
     def __init__(self, resource_type: str, resource_names: List[str], producer: MethodType, dependencies: List[str]):
@@ -63,13 +62,11 @@ class EmptySet:
 
 class ResourceGroup:
 
-    def __init__(self, phase: str, single_producer: bool = False):
+    def __init__(self, phase: str):
         self.phase = phase
-        # One initializer per component, maybe multiple value producers
-        self.producer_components = set() if single_producer else EmptySet()
         self.resources = {}
         self._graph = None
-        # null producers are those that don't produce any resources externally but still consume 
+        # null producers are those that don't produce any resources externally but still consume
         # other resources (i.e., have dependencies) - these are only pop initializers as of 9/26/2019
         self._null_producer_count = 0
 
@@ -83,10 +80,6 @@ class ResourceGroup:
                       producer: MethodType, dependencies: List[str]):
         if resource_type not in RESOURCE_TYPES:
             raise ResourceError(f'Unknown resource type {resource_type}.  Permitted types are {RESOURCE_TYPES}.')
-        if resource_type == 'column':
-            if producer.__self__.name in self.producer_components:
-                raise ResourceError  # Component has more than one producer for resource type ...
-            self.producer_components.add(producer.__self__.name)
 
         producer = self._get_producer(resource_type, resource_names, producer, dependencies)
         for resource_name in producer.resource_names:
@@ -143,10 +136,10 @@ class ResourceManager:
     def name(self) -> str:
         return "resource_manager"
 
-    def add_group(self, phase: str, single_producer: bool = False):
+    def add_group(self, phase: str):
         if phase in self._resource_groups:
             raise ResourceError  # One resource group per phase
-        self._resource_groups[phase] = ResourceGroup(phase, single_producer)
+        self._resource_groups[phase] = ResourceGroup(phase)
 
     def get_resource_group(self, phase: str) -> ResourceGroup:
         return self._resource_groups[phase]
