@@ -6,7 +6,7 @@ Vivarium Testing Utilities
 Utility functions and classes to make testing ``vivarium`` components easier.
 
 """
-import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -20,6 +20,7 @@ class NonCRNTestPopulation:
         'population': {
             'age_start': 0,
             'age_end': 100,
+            'exit_age': None,
         },
         'input_data': {
             'location': "Kenya",
@@ -32,7 +33,7 @@ class NonCRNTestPopulation:
 
     def setup(self, builder):
         self.config = builder.configuration
-        self.randomness = builder.randomness.get_stream('population_age_fuzz')
+        self.randomness = builder.randomness.get_stream('population_age_fuzz', for_initialization=True)
         columns = ['age', 'sex', 'location', 'alive', 'entrance_time', 'exit_time']
         self.population_view = builder.population.get_view(columns)
 
@@ -137,7 +138,7 @@ def build_table(value, year_start, year_end, columns=('age', 'year', 'sex', 'val
                     else:
                         r_values.append(v)
                 rows.append([age, age+1, year, year+1, sex] + r_values)
-    return pd.DataFrame(rows, columns=['age_group_start', 'age_group_end',
+    return pd.DataFrame(rows, columns=['age_start', 'age_end',
                                        'year_start', 'year_end', 'sex']
                                       + list(value_columns))
 
@@ -172,4 +173,4 @@ def reset_mocks(mocks):
 
 
 def metadata(file_path):
-    return {'layer': 'override', 'source': os.path.realpath(file_path)}
+    return {'layer': 'override', 'source': str(Path(file_path).resolve())}

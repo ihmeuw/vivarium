@@ -146,7 +146,7 @@ class IndexMap:
             If the column contains data that is neither a datetime-like nor numeric.
         """
         if isinstance(column.iloc[0], datetime.datetime):
-            column = self.clip_to_seconds(column.astype(int))
+            column = self.clip_to_seconds(column.astype(np.int64))
         elif np.issubdtype(column.iloc[0], np.integer):
             if not len(column >= 0) == len(column):
                 raise RandomnessError("Values in integer columns must be greater than or equal to zero.")
@@ -428,25 +428,9 @@ class RandomnessStream:
         self._manager = manager
         self._for_initialization = for_initialization
 
-    def copy_with_additional_key(self, key: Any) -> 'RandomnessStream':
-        """Creates a copy of this stream that combines this streams key with a new one.
-
-        Parameters
-        ----------
-        key :
-            The additional key to describe the new stream with.
-
-        Returns
-        -------
-        RandomnessStream
-            A new RandomnessStream with a combined key.
-        """
-        if self._for_initialization:
-            raise RandomnessError('Initialization streams cannot be copied.')
-        elif self._manager:
-            return self._manager.get_randomness_stream('_'.join([self.key, key]))
-        else:
-            return RandomnessStream(self.key, self.clock, self.seed, self.index_map)
+    @property
+    def name(self):
+        return f'randomness_stream_{self.key}'
 
     def _key(self, additional_key: Any = None) -> str:
         """Construct a hashable key from this object's state.
@@ -641,6 +625,13 @@ class RandomnessManager:
         pop_size = builder.configuration.population.population_size
         self._key_mapping.map_size = max(map_size, 10*pop_size)
 
+        self.resources = builder.resources
+        self._add_constraint = builder.lifecycle.add_constraint
+        builder.lifecycle.add_constraint(self.get_randomness_stream, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.register_simulants,
+                                         restrict_during=['initialization', 'setup', 'post_setup',
+                                                          'simulation_end', 'report'])
+
     def get_randomness_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -662,6 +653,19 @@ class RandomnessManager:
             If another location in the simulation has already created a randomness stream
             with the same identifier.
         """
+        stream = self._get_randomness_stream(decision_point, for_initialization)
+        if not for_initialization:  # We need the key columns to be created before this stream can be called.
+            self.resources.add_resources('stream', [decision_point], stream,
+                                         [f'column.{name}' for name in self._key_columns])
+        self._add_constraint(stream.get_draw, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(stream.get_seed, restrict_during=['initialization'])
+        self._add_constraint(stream.filter_for_probability, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(stream.filter_for_rate, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(stream.choice, restrict_during=['initialization', 'setup', 'post_setup'])
+
+        return stream
+
+    def _get_randomness_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
         if decision_point in self._decision_points:
             raise RandomnessError(f"Two separate places are attempting to create "
                                   f"the same randomness stream for {decision_point}")
@@ -697,8 +701,8 @@ class RandomnessManager:
 
 class RandomnessInterface:
 
-    def __init__(self, randomness_manager: RandomnessManager):
-        self._randomness_manager = randomness_manager
+    def __init__(self, manager: RandomnessManager):
+        self._manager = manager
 
     def get_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
@@ -726,7 +730,7 @@ class RandomnessInterface:
             An entry point into the Common Random Number generation framework. The stream provides
             vectorized access to random numbers and a few other utilities.
         """
-        return self._randomness_manager.get_randomness_stream(decision_point, for_initialization)
+        return self._manager.get_randomness_stream(decision_point, for_initialization)
 
     def register_simulants(self, simulants: pd.DataFrame):
         """Registers simulants with the Common Random Number Framework.
@@ -738,4 +742,4 @@ class RandomnessInterface:
             in ``builder.configuration.randomness.key_columns``.  This function should be called
             as soon as the key columns are generated.
         """
-        self._randomness_manager.register_simulants(simulants)
+        self._manager.register_simulants(simulants)
