@@ -256,7 +256,7 @@ class ValuesManager:
         self.step_size = builder.time.step_size()
         builder.event.register_listener('post_setup', self.on_post_setup)
 
-        self.initialization_resources = builder.resource.get_resource_group('initialization')
+        self.resources = builder.resources
         self.add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(self.register_value_producer, allow_during=['setup'])
@@ -268,7 +268,9 @@ class ValuesManager:
         """Finalizes dependency structure for the pipelines."""
         # Unsourced pipelines might occur when generic components register
         # modifiers to values that aren't required in a simulation.
-        logger.warning(f"Unsourced pipelines: {[p for p, v in self._pipelines.items() if not v.source]}")
+        unsourced_pipelines = [p for p, v in self._pipelines.items() if not v.source]
+        if unsourced_pipelines:
+            logger.warning(f"Unsourced pipelines: {unsourced_pipelines}")
 
         # register_value_producer and register_value_modifier record the
         # dependency structure for the pipeline source and pipeline modifiers,
@@ -284,8 +286,8 @@ class ValuesManager:
                 dependencies += [f'missing_value_source.{name}']
             for i, m in enumerate(pipe.mutators):
                 mutator_name = self._get_modifier_name(m)
-                dependencies.append(f'value_modifier.{name}.{i}.{mutator_name}')
-            self.initialization_resources.add_resources('value', [name], pipe._call, dependencies)
+                dependencies.append(f'value_modifier.{name}.{i+1}.{mutator_name}')
+            self.resources.add_resources('value', [name], pipe._call, dependencies)
 
     def register_value_producer(self,
                                 value_name: str,
@@ -309,7 +311,7 @@ class ValuesManager:
         # declare that resource at post-setup once all sources and modifiers
         # are registered.
         dependencies = self._convert_dependencies(source, requires_columns, requires_values, requires_streams)
-        self.initialization_resources.add_resources('value_source', [value_name], source, dependencies)
+        self.resources.add_resources('value_source', [value_name], source, dependencies)
         self.add_constraint(pipeline._call, restrict_during=['initialization', 'setup', 'post_setup'])
 
         return pipeline
@@ -365,14 +367,14 @@ class ValuesManager:
 
         """
         modifier_name = self._get_modifier_name(modifier)
-        logger.debug(f"Registering {modifier_name} as modifier to {value_name}")
 
         pipeline = self._pipelines[value_name]  # May create a pipeline
         pipeline.mutators.append(modifier)
 
         name = f'{value_name}.{len(pipeline.mutators)}.{modifier_name}'
+        logger.debug(f"Registering {name} as modifier to {value_name}")
         dependencies = self._convert_dependencies(modifier, requires_columns, requires_values, requires_streams)
-        self.initialization_resources.add_resources('value_modifier', [name], modifier, dependencies)
+        self.resources.add_resources('value_modifier', [name], modifier, dependencies)
 
     def get_value(self, name):
         """Retrieve the pipeline representing the named value.

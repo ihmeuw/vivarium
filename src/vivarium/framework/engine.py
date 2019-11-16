@@ -86,8 +86,6 @@ class SimulationContext:
         for name, controller in self._plugin_manager.get_optional_controllers().items():
             setattr(self, f'_{name}', controller)
 
-        self._resource.add_group('initialization')
-
         # The order the managers are added is important.  It represents the
         # order in which they will be set up.  The clock is required by
         # several of the other managers, including the lifecycle manager.  The
@@ -109,6 +107,10 @@ class SimulationContext:
         self._lifecycle.add_constraint(self.get_population, restrict_during=['initialization', 'setup', 'post_setup'])
 
         self.add_components(components)
+
+    @property
+    def name(self):
+        return 'simulation_context'
 
     def setup(self):
         self._lifecycle.set_state('setup')
@@ -182,7 +184,7 @@ class Builder:
         self.value = plugin_manager.get_plugin_interface('value')                   # type: ValuesInterface
         self.event = plugin_manager.get_plugin_interface('event')                   # type: EventInterface
         self.population = plugin_manager.get_plugin_interface('population')         # type: PopulationInterface
-        self.resource = plugin_manager.get_plugin_interface('resource')             # type: ResourceInterface
+        self.resources = plugin_manager.get_plugin_interface('resource')             # type: ResourceInterface
         self.randomness = plugin_manager.get_plugin_interface('randomness')         # type: RandomnessInterface
         self.time = plugin_manager.get_plugin_interface('clock')                    # type: TimeInterface
         self.components = plugin_manager.get_plugin_interface('component_manager')  # type: ComponentInterface

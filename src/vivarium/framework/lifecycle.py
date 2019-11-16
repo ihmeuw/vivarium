@@ -376,7 +376,7 @@ class ConstraintMaker:
         has been constrained before.
 
         """
-        return f'{str(id(method.__self__))}.{method.__name__}'
+        return f'{method.__self__.name}.{method.__name__}'
 
     def __call__(self, method: MethodType, permitted_states: List[str]) -> MethodType:
         """Only permit a method to be called during the provided states.

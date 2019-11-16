@@ -35,7 +35,6 @@ from .lifecycle import ConstraintError
 from .time import Time, Timedelta
 
 
-
 class Event(NamedTuple):
     """An Event object represents the context of an event.
 
@@ -90,7 +89,8 @@ class Event(NamedTuple):
 
 class _EventChannel:
     """A named subscription channel that passes events to event listeners."""
-    def __init__(self, manager):
+    def __init__(self, manager, name):
+        self.name = f'event_channel_{name}'
         self.manager = manager
         self.listeners = [[] for _ in range(10)]
 
@@ -137,12 +137,17 @@ class EventManager:
     """
 
     def __init__(self):
-        self._event_types = defaultdict(lambda: _EventChannel(self))
+        self._event_types = {}
 
     @property
     def name(self):
         """The name of this component."""
         return "event_manager"
+
+    def get_channel(self, name):
+        if name not in self._event_types:
+            self._event_types[name] = _EventChannel(self, name)
+        return self._event_types[name]
 
     def setup(self, builder):
         """Performs this component's simulation setup.
@@ -182,7 +187,7 @@ class EventManager:
             listeners
 
         """
-        channel = self._event_types[name]
+        channel = self.get_channel(name)
         try:
             self.add_constraint(channel.emit, allow_during=[name])
         except ConstraintError:
@@ -204,7 +209,7 @@ class EventManager:
             Number in range(10) used to assign the ordering in which listeners
             process the event.
         """
-        self._event_types[name].listeners[priority].append(listener)
+        self.get_channel(name).listeners[priority].append(listener)
 
     def get_listeners(self, name: str) -> Dict[int, List[Callable]]:
         """Get  all listeners registered for the named event.
@@ -219,7 +224,7 @@ class EventManager:
             A dictionary that maps each priority level of the named event's
             listeners to a list of listeners at that level.
         """
-        channel = self._event_types[name]
+        channel = self.get_channel(name)
         return {priority: listeners for priority, listeners in enumerate(channel.listeners) if listeners}
 
     def list_events(self) -> List[Event]:
