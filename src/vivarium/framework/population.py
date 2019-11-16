@@ -120,7 +120,8 @@ class PopulationView:
         if set(columns) > set(self.columns):
             raise PopulationError(f"Invalid subview requested.  Requested columns must be a subset of this "
                                   f"view's columns.  Requested columns: {columns}, Available columns: {self.columns}")
-        return self._manager.get_view(columns, self.query)
+        # Skip constraints for requesting subviews.
+        return self._manager._get_view(columns, self.query)
 
     def get(self, index: pd.Index, query: str = '') -> pd.DataFrame:
         """Select the rows represented by the given index from this view.
@@ -431,7 +432,7 @@ class PopulationManager:
         return view
 
     def _get_view(self, columns: Union[List[str], Tuple[str]], query: str = None):
-        if columns and 'tracked' not in columns:
+        if columns and 'tracked' not in columns and query is not None and 'tracked' not in query:
             query = query + 'and tracked == True' if query else 'tracked == True'
         self._last_id += 1
         return PopulationView(self, self._last_id, columns, query)
