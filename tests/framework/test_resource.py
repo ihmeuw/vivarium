@@ -96,7 +96,7 @@ def test_resource_manager_add_resources():
     for r_type in RESOURCE_TYPES:
         old_names = []
         for i in range(5):
-            c = Component(f'r_type_i')
+            c = Component(f'r_type_{i}')
             names = [f'r_type_{i}_{j}' for j in range(5)]
             rm.add_resources(r_type, names, c.producer, old_names)
             old_names = names
