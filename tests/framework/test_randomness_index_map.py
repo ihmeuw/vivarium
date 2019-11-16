@@ -83,7 +83,7 @@ def test_clip_to_seconds_scalar():
 def test_clip_to_seconds_series():
     m = IndexMap()
     stamp = 1234567890
-    k = pd.date_range(pd.to_datetime(stamp, unit='s'), periods=10000, freq='ns').to_series().astype(int)
+    k = pd.date_range(pd.to_datetime(stamp, unit='s'), periods=10000, freq='ns').to_series().astype(np.int64)
     assert len(m.clip_to_seconds(k).unique()) == 1
     assert m.clip_to_seconds(k).unique()[0] == stamp
 
