@@ -1,3 +1,7 @@
+**0.9.1 - 11/18/19**
+
+ - Be less restrictive about when get_value can be called.
+
 **0.9.0 - 11/16/19**
 
  - Clean up event emission.
