@@ -261,8 +261,6 @@ class ValuesManager:
 
         builder.lifecycle.add_constraint(self.register_value_producer, allow_during=['setup'])
         builder.lifecycle.add_constraint(self.register_value_modifier, allow_during=['setup'])
-        builder.lifecycle.add_constraint(self.get_value, allow_during=['setup', 'post_setup', 'population_creation',
-                                                                       'simulation_end', 'report'])
 
     def on_post_setup(self, _):
         """Finalizes dependency structure for the pipelines."""
