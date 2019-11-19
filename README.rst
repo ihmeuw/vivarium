@@ -5,7 +5,7 @@ Vivarium
 .. image:: https://badge.fury.io/py/vivarium.svg
     :target: https://badge.fury.io/py/vivarium
 
-.. image:: https://travis-ci.org/ihmeuw/vivarium.svg?branch=develop
+.. image:: https://travis-ci.org/ihmeuw/vivarium.svg?branch=master
     :target: https://travis-ci.org/ihmeuw/vivarium
     :alt: Latest Version
 
