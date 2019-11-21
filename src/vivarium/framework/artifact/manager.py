@@ -28,6 +28,7 @@ class ArtifactManager:
         'input_data': {
             'artifact_path': None,
             'artifact_filter_term': None,
+            'location': 'Global',
         }
     }
 
