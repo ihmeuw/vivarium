@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from vivarium.framework.population import PopulationView, InitializerComponentSet, PopulationError
+from vivarium.framework.population import PopulationView, InitializerComponentSet, PopulationError, PopulationManager
 
 
 class DummyPopulationManager:
@@ -82,3 +82,9 @@ def test_initializer_set():
         component = Component(i)
         columns = [f'test_column_{i}_{j}' for j in range(5)]
         component_set.add(component.initializer, columns)
+
+
+def test_get_view_with_no_query():
+    manager = PopulationManager()
+    view = manager._get_view(columns=['age','sex'])
+    assert view.query == 'tracked == True'
