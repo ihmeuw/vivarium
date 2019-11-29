@@ -85,7 +85,8 @@ class Interpolation:
             A table with the interpolated values for the given interpolants.
         """
 
-        validate_call_data(interpolants, self.key_columns, self.parameter_columns)
+        if self.validate:
+            validate_call_data(interpolants, self.key_columns, self.parameter_columns)
 
         if self.key_columns:
             sub_tables = interpolants.groupby(list(self.key_columns))
