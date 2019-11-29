@@ -230,7 +230,9 @@ class Order0Interp:
             Whether or not to extrapolate beyond the edge of supplied bins.
 
         """
-        check_data_complete(data, parameter_columns)
+        if validate:
+            check_data_complete(data, parameter_columns)
+            
         self.data = data.copy()
         self.value_columns = value_columns
         self.extrapolate = extrapolate
