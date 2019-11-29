@@ -129,7 +129,7 @@ def test_order_zero_2d():
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
 
     i = Interpolation(df, ('garbage',), [('a', 'a_left', 'a_right'), ('b', 'b_left', 'b_right')],
-                      order=0, extrapolate=True)
+                      order=0, extrapolate=True, validate=True)
 
     column = np.arange(0.5, 4, step=0.011)
     query = pd.DataFrame({'a': column, 'b': column, 'garbage': ['test']*(len(column))})
@@ -146,7 +146,7 @@ def test_order_zero_2d_fails_on_extrapolation():
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
 
     i = Interpolation(df, ('garbage',), [('a', 'a_left', 'a_right'), ('b', 'b_left', 'b_right')],
-                      order=0, extrapolate=False)
+                      order=0, extrapolate=False, validate=True)
 
     column = np.arange(4, step=0.011)
     query = pd.DataFrame({'a': column, 'b': column, 'garbage': ['test']*(len(column))})
@@ -162,7 +162,8 @@ def test_order_zero_2d_fails_on_extrapolation():
 def test_order_zero_1d_no_extrapolation():
     s = pd.Series({0: 0, 1: 1}).reset_index()
     s = make_bin_edges(s, 'index')
-    f = Interpolation(s, tuple(), [['index', 'index_left', 'index_right']], order=0, extrapolate=False)
+    f = Interpolation(s, tuple(), [['index', 'index_left', 'index_right']], order=0, extrapolate=False,
+                      validate=True)
 
     assert f(pd.DataFrame({'index': [0]}))[0][0] == 0, 'should be precise at index values'
     assert f(pd.DataFrame({'index': [0.999]}))[0][0] == 1
@@ -177,7 +178,8 @@ def test_order_zero_1d_no_extrapolation():
 def test_order_zero_1d_constant_extrapolation():
     s = pd.Series({0: 0, 1: 1}).reset_index()
     s = make_bin_edges(s, 'index')
-    f = Interpolation(s, tuple(), [['index', 'index_left', 'index_right']], order=0, extrapolate=True)
+    f = Interpolation(s, tuple(), [['index', 'index_left', 'index_right']], order=0, extrapolate=True,
+                      validate=True)
 
     assert f(pd.DataFrame({'index': [1]}))[0][0] == 1
     assert f(pd.DataFrame({'index': [2]}))[0][0] == 1, 'should be constant extrapolation outside of input range'
@@ -263,7 +265,7 @@ def test_order_zero_1d_with_key_column():
                          'value_1': [10, 7, 2, 12],
                          'value_2': [1200, 1350, 1476, 1046]})
 
-    i = Interpolation(data, ['sex',], [('year', 'year_start', 'year_end'),], 0, True)
+    i = Interpolation(data, ['sex',], [('year', 'year_start', 'year_end'),], 0, True, True)
 
     query = pd.DataFrame({'year': [1992, 1993,],
                           'sex': ['Male', 'Female']})
@@ -281,7 +283,8 @@ def test_order_zero_non_numeric_values():
                          'age_end': [24, 30],
                          'value_1': ['blue', 'red']})
 
-    i = Interpolation(data, tuple(), [('year', 'year_start', 'year_end'), ('age', 'age_start', 'age_end')], 0, True)
+    i = Interpolation(data, tuple(), [('year', 'year_start', 'year_end'), ('age', 'age_start', 'age_end')], 0,
+                      True, True)
 
     query = pd.DataFrame({'year': [1990, 1990],
                           'age': [15, 24,]},
@@ -306,7 +309,7 @@ def test_order_zero_3d_with_key_col():
     interp = Interpolation(data, ('sex',),
                            [('age', 'age_start', 'age_end'),
                             ('year', 'year_start', 'year_end'),
-                            ('height', 'height_start', 'height_end')], 0, True)
+                            ('height', 'height_start', 'height_end')], 0, True, True)
 
     interpolants = pd.DataFrame({'age': [12, 17, 8, 24, 12],
                                  'year': [1992, 1998, 1985, 1992, 1992],
@@ -323,7 +326,7 @@ def test_order_zero_diff_bin_sizes():
                          'year_end': [1995, 1996, 2005, 2005.5, 2010],
                          'value': [1, 5, 2.3, 6, 100]})
 
-    i = Interpolation(data, tuple(), [('year', 'year_start', 'year_end')], 0, False)
+    i = Interpolation(data, tuple(), [('year', 'year_start', 'year_end')], 0, False, True)
 
     query = pd.DataFrame({'year': [2007, 1990, 2005.4, 1994, 2004, 1995, 2002, 1995.5, 1996]})
 
@@ -338,7 +341,7 @@ def test_order_zero_given_call_column():
                          'year': [1992.5, 1995.5, 2000, 2005.25, 2007.75],
                          'value': [1, 5, 2.3, 6, 100]})
 
-    i = Interpolation(data, tuple(), [('year', 'year_start', 'year_end')], 0, False)
+    i = Interpolation(data, tuple(), [('year', 'year_start', 'year_end')], 0, False, True)
 
     query = pd.DataFrame({'year': [2007, 1990, 2005.4, 1994, 2004, 1995, 2002, 1995.5, 1996]})
 

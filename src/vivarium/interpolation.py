@@ -34,7 +34,7 @@ class Interpolation:
         """
 
     def __init__(self, data: pd.DataFrame, categorical_parameters: Union[List[str], Tuple[str]],
-                 continuous_parameters: ParameterType, order: int, extrapolate: bool):
+                 continuous_parameters: ParameterType, order: int, extrapolate: bool, validate: bool):
 
         # TODO: allow for order 1 interpolation with binned edges
         if order != 0:
@@ -51,6 +51,7 @@ class Interpolation:
 
         self.order = order
         self.extrapolate = extrapolate
+        self.validate = validate
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those

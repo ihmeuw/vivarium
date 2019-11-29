@@ -77,7 +77,8 @@ class InterpolatedTable:
         self.extrapolate = extrapolate
         self.validate = validate
         self.interpolation = Interpolation(data, self.key_columns, self.parameter_columns,
-                                           order=self.interpolation_order, extrapolate=self.extrapolate)
+                                           order=self.interpolation_order, extrapolate=self.extrapolate,
+                                           validate=self.validate)
 
     def __call__(self, index: pd.Index) -> pd.DataFrame:
         """Get the interpolated values for the rows in ``index``.
