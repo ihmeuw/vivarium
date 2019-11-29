@@ -248,7 +248,7 @@ def test_order0interp():
     interp = Order0Interp(data, [('age', 'age_start', 'age_end'),
                                  ('year', 'year_start', 'year_end'),
                                  ('height', 'height_start', 'height_end'),]
-                          , ['value'], True)
+                          , ['value'], True, True)
 
     interpolants = pd.DataFrame({'age': [12, 17, 8, 24, 12],
                                  'year': [1992, 1998, 1985, 1992, 1992],

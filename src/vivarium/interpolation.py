@@ -69,7 +69,7 @@ class Interpolation:
                 continue
             # since order 0, we can interpolate all values at once
             self.interpolations[key] = Order0Interp(base_table, self.parameter_columns,
-                                                    self.value_columns, self.extrapolate)
+                                                    self.value_columns, self.extrapolate, self.validate)
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Get the interpolated results for the parameters in interpolants.
@@ -213,7 +213,8 @@ class Order0Interp:
     parameter_columns :
         Column names to be used as parameters in Interpolation.
     """
-    def __init__(self, data, parameter_columns: ParameterType, value_columns: List[str], extrapolate: bool):
+    def __init__(self, data, parameter_columns: ParameterType, value_columns: List[str], extrapolate: bool,
+                 validate: bool):
         """
 
         Parameters
