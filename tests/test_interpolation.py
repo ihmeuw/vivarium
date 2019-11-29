@@ -364,3 +364,27 @@ def test_interpolation_init_validate_option_valid_data(validate):
     s = pd.Series({0: 0, 1: 1}).reset_index()
     s = make_bin_edges(s, 'index')
     i = Interpolation(s, tuple(), [['index', 'index_left', 'index_right']], 0, True, validate)
+
+
+@pytest.mark.parametrize('validate', [True, False])
+def test_interpolation_call_validate_option_invalid_data(validate):
+    s = pd.Series({0: 0, 1: 1}).reset_index()
+    s = make_bin_edges(s, 'index')
+    i = Interpolation(s, tuple(), [['index', 'index_left', 'index_right']], 0, True, validate)
+    if validate:
+        with pytest.raises(TypeError, match=r'Interpolations can only be called on pandas.DataFrames.*'):
+            result = i(1)
+    else:
+        with pytest.raises(AttributeError):
+            result = i(1)
+
+@pytest.mark.parametrize('validate', [True, False])
+def test_interpolation_call_validate_option_valid_data(validate):
+    data = pd.DataFrame({'year_start': [1990, 1995, 1996, 2005, 2005.5,],
+                         'year_end': [1995, 1996, 2005, 2005.5, 2010],
+                         'value': [1, 5, 2.3, 6, 100]})
+
+    i = Interpolation(data, tuple(), [('year', 'year_start', 'year_end')], 0, False, validate)
+    query = pd.DataFrame({'year': [2007, 1990, 2005.4, 1994, 2004, 1995, 2002, 1995.5, 1996]})
+    
+    result = i(query)
