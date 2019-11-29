@@ -285,6 +285,7 @@ class LookupTableManager:
         self.clock = builder.time.clock()
         self._interpolation_order = builder.configuration.interpolation.order
         self._extrapolate = builder.configuration.interpolation.extrapolate
+        self._validate = builder.configuration.interpolation.validate
         self._add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(self.build_table, allow_during=['setup'])
