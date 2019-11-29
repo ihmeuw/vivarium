@@ -388,3 +388,27 @@ def test_interpolation_call_validate_option_valid_data(validate):
     query = pd.DataFrame({'year': [2007, 1990, 2005.4, 1994, 2004, 1995, 2002, 1995.5, 1996]})
     
     result = i(query)
+
+
+@pytest.mark.parametrize('validate', [True, False])
+def test_order0interp_validate_option_invalid_data(validate):
+    data = pd.DataFrame({'year_start': [1995, 1995, 2000, 2005, 2010],
+                         'year_end': [2000, 2000, 2005, 2010, 2015]})
+   
+    if validate:
+        with pytest.raises(ValueError) as error:
+            interp = Order0Interp(data, [('year', 'year_start', 'year_end')], [], True, validate)
+            message = error.value.args[0]
+            assert "year_start" in message and "year_end" in message
+    else:
+        interp = Order0Interp(data, [('year', 'year_start', 'year_end')], [], True, validate)
+
+
+@pytest.mark.parametrize('validate', [True, False])
+def test_order0interp_validate_option_valid_data(validate):
+    data = pd.DataFrame({'year_start': [1990, 1995],
+                         'year_end': [1995, 2000],
+                         'value': [5, 3]})
+
+    interp = Order0Interp(data, [('year', 'year_start', 'year_end')], ['value'], True, validate)
+   
