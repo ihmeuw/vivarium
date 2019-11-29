@@ -176,7 +176,8 @@ class LookupTable:
                  value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int,
                  clock: Callable,
-                 extrapolate: bool):
+                 extrapolate: bool,
+                 validate: bool):
         self.table_number = table_number
         key_columns = [] if key_columns is None else key_columns
         validate_parameters(data, key_columns, parameter_columns, value_columns)
@@ -305,7 +306,8 @@ class LookupTableManager:
         # generic names is useful for introspection.
         table_number = len(self.tables)
         table = LookupTable(table_number, data, self._pop_view_builder, key_columns, parameter_columns,
-                            value_columns, self._interpolation_order, self.clock, self._extrapolate)
+                            value_columns, self._interpolation_order, self.clock, self._extrapolate, 
+                            self._validate)
         self.tables[table_number] = table
         return table
 
