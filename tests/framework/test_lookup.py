@@ -4,6 +4,7 @@ import pandas as pd
 from vivarium import InteractiveContext
 from vivarium.testing_utilities import build_table, TestPopulation
 from vivarium.framework.lookup import validate_parameters
+from vivarium.framework.lookup import LookupTable
 import pytest
 
 
@@ -195,3 +196,23 @@ def test_validate_parameters_pass_scalar_data(key_cols, param_cols, val_cols):
 def test_validate_parameters_pass_dataframe(key_cols, param_cols, val_cols):
     data = pd.DataFrame({'a': [1, 2], 'b_start': [0, 5], 'b_end': [5, 10], 'c': [100, 150]})
     validate_parameters(data, key_cols, param_cols, val_cols)
+
+
+@pytest.mark.parametrize('validate', [True, False])
+def test_validate_option_invalid_data(validate):
+    if validate:
+        with pytest.raises(ValueError, match='supply some data'):
+            lookup = LookupTable(0, [], None, [], [], [], 0, None, True, validate)
+    else:
+        lookup = LookupTable(0, [], None, [], [], [], 0, None, True, validate)
+
+
+@pytest.mark.parametrize('validate', [True, False])
+def test_validate_option_valid_data(validate):
+    data = [1, 2, 3]
+    key_cols = ['KEY']
+    param_cols = ['d']
+    val_cols = ['a', 'b', 'c']
+
+    lookup = LookupTable(0, data, None, key_cols, param_cols, val_cols, 0, None, True, validate)
+   
