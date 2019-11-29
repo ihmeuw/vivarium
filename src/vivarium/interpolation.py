@@ -40,7 +40,8 @@ class Interpolation:
         if order != 0:
             raise NotImplementedError(f'Interpolation is only supported for order 0. You specified order {order}')
 
-        validate_parameters(data, categorical_parameters, continuous_parameters)
+        if validate:
+            validate_parameters(data, categorical_parameters, continuous_parameters)
 
         self.key_columns = categorical_parameters
         self.data = data.copy()
