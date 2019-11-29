@@ -270,6 +270,7 @@ class LookupTableManager:
     configuration_defaults = {
         'interpolation': {
             'order': 0,
+            'validate': True,
             'extrapolate': True
         }
     }
