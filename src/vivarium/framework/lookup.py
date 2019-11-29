@@ -61,7 +61,8 @@ class InterpolatedTable:
                  value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int,
                  clock: Callable,
-                 extrapolate: bool):
+                 extrapolate: bool,
+                 validate: bool):
 
         self.data = data
         self.population_view = population_view
@@ -74,6 +75,7 @@ class InterpolatedTable:
         self.value_columns = value_columns
         self.clock = clock
         self.extrapolate = extrapolate
+        self.validate = validate
         self.interpolation = Interpolation(data, self.key_columns, self.parameter_columns,
                                            order=self.interpolation_order, extrapolate=self.extrapolate)
 
@@ -190,7 +192,8 @@ class LookupTable:
         else:
             view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'}) + ['tracked']
             self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
-                                            parameter_columns, value_columns, interpolation_order, clock, extrapolate)
+                                            parameter_columns, value_columns, interpolation_order, clock, extrapolate,
+                                            validate)
 
     @property
     def name(self):
