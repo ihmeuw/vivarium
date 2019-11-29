@@ -348,3 +348,19 @@ def test_order_zero_given_call_column():
     expected_result = pd.DataFrame({'value': [100, 1, 6, 1, 2.3, 5, 2.3, 5, 2.3]})
 
     assert i(query).equals(expected_result)
+
+
+@pytest.mark.parametrize('validate', [True, False])
+def test_interpolation_init_validate_option_invalid_data(validate):
+    if validate:
+        with pytest.raises(ValueError, match='You must supply non-empty data to create the interpolation.'):
+            i = Interpolation(pd.DataFrame(),[],[],0,True,validate)
+    else:
+        i = Interpolation(pd.DataFrame(),[],[],0,True,validate)
+
+
+@pytest.mark.parametrize('validate', [True, False])
+def test_interpolation_init_validate_option_valid_data(validate):
+    s = pd.Series({0: 0, 1: 1}).reset_index()
+    s = make_bin_edges(s, 'index')
+    i = Interpolation(s, tuple(), [['index', 'index_left', 'index_right']], 0, True, validate)
