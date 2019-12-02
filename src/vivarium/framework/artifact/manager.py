@@ -28,6 +28,8 @@ class ArtifactManager:
         'input_data': {
             'artifact_path': None,
             'artifact_filter_term': None,
+            'input_draw_number': None,
+            'location': None,
         }
     }
 
@@ -59,11 +61,8 @@ class ArtifactManager:
         """
         if not configuration.input_data.artifact_path:
             return None
-
         artifact_path = parse_artifact_path_config(configuration)
-        draw = configuration.input_data.input_draw_number
-        location = configuration.input_data.location
-        base_filter_terms = [f'draw == {draw}', get_location_term(location)]
+        base_filter_terms = get_base_filter_terms(configuration)
         logger.debug(f'Running simulation from artifact located at {artifact_path}.')
         logger.debug(f'Artifact base filter terms are {base_filter_terms}.')
         logger.debug(f'Artifact additional filter terms are {self.config_filter_term}.')
@@ -187,6 +186,21 @@ def _subset_columns(data: pd.DataFrame, **column_filters) -> pd.DataFrame:
     columns_to_remove = set(list(column_filters.keys()) + ['draw', 'location'])
     columns_to_remove = columns_to_remove.intersection(data.columns)
     return data.drop(columns=columns_to_remove)
+
+
+def get_base_filter_terms(configuration: ConfigTree):
+    """Parses default filter terms from the artifact configuration."""
+    base_filter_terms = []
+
+    draw = configuration.input_data.input_draw_number
+    if draw is not None:
+        base_filter_terms.append(f'draw == {draw}')
+
+    location = configuration.input_data.location
+    if location is not None:
+        base_filter_terms.append(get_location_term(location))
+
+    return base_filter_terms
 
 
 def get_location_term(location: str) -> str:
