@@ -1,3 +1,8 @@
+**0.9.2 - 12/3/19**
+
+ - Bugfix in artifact configuration management.
+ - Bugfix in population query.
+
 **0.9.1 - 11/18/19**
 
  - Be less restrictive about when get_value can be called.

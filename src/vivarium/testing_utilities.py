@@ -22,9 +22,6 @@ class NonCRNTestPopulation:
             'age_end': 100,
             'exit_age': None,
         },
-        'input_data': {
-            'location': "Kenya",
-        }
     }
 
     @property
