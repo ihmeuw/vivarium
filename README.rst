@@ -19,6 +19,8 @@ Vivarium
 Vivarium is a simulation framework written using standard scientific Python
 tools.
 
+**Vivarium requires Python 3.6 to run**
+
 You can install ``vivarium`` from PyPI with pip:
 
   ``> pip install vivarium``

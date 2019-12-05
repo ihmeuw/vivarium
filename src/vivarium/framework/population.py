@@ -432,8 +432,11 @@ class PopulationManager:
         return view
 
     def _get_view(self, columns: Union[List[str], Tuple[str]], query: str = None):
-        if columns and 'tracked' not in columns and query is not None and 'tracked' not in query:
-            query = query + 'and tracked == True' if query else 'tracked == True'
+        if columns and 'tracked' not in columns:
+            if query is None: 
+                query = 'tracked == True'
+            elif 'tracked' not in query:
+                query += 'and tracked == True'
         self._last_id += 1
         return PopulationView(self, self._last_id, columns, query)
 
