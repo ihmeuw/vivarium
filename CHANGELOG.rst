@@ -1,3 +1,7 @@
+**0.9.3 - 12/7/19**
+
+ - Bugfix in population type conversion.
+
 **0.9.2 - 12/3/19**
 
  - Bugfix in artifact configuration management.
