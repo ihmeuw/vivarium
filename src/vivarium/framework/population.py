@@ -238,7 +238,7 @@ class PopulationView:
                                               f'Column name: {affected_column} '
                                               f'Old column type: {new_state_table_values.dtype} '
                                               f'New column type: {update_values.dtype}')
-                    new_state_table_values = new_state_table_values.astype(new_state_table_values.dtype)
+                    new_state_table_values = new_state_table_values.astype(update_values.dtype)
             else:
                 if isinstance(population_update, pd.Series):
                     new_state_table_values = population_update.values
@@ -433,7 +433,7 @@ class PopulationManager:
 
     def _get_view(self, columns: Union[List[str], Tuple[str]], query: str = None):
         if columns and 'tracked' not in columns:
-            if query is None: 
+            if query is None:
                 query = 'tracked == True'
             elif 'tracked' not in query:
                 query += 'and tracked == True'
