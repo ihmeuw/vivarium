@@ -272,7 +272,8 @@ def test_EntityKey_init_failure():
     bad_keys = ['hello', 'a.b.c.d', '', '.', '.coconut', 'a.', 'a..c']
 
     for k in bad_keys:
-        with pytest.raises(ValueError):
+        error_msg = f'Invalid format for HDF key: {k}. Acceptable formats are "type.name.measure" and "type.measure"'
+        with pytest.raises(ValueError, match=error_msg):
             hdf.EntityKey(k)
 
 

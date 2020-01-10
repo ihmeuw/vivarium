@@ -182,8 +182,8 @@ def test_artifact_write(hdf_mock, keys_mock):
     assert key in a.keys
     assert key not in a._cache
     expected_call = [call(path, 'metadata.keyspace', ['metadata.keyspace']),
-                     call(path, 'metadata.keyspace', keys_mock + [key]),
-                     call(path, key, 'data')]
+                     call(path, key, 'data'),
+                     call(path, 'metadata.keyspace', keys_mock + [key])]
     assert hdf_mock.write.call_args_list == expected_call
     assert set(a.keys) == set(initial_keys + [key])
 
@@ -296,8 +296,8 @@ def test_replace(hdf_mock, keys_mock):
     new_keyspace = [k for k in keys_mock + [key]]
 
     assert hdf_mock.write.call_args_list == [call(path, keyspace_key, [str(keyspace_key)]),
-                                             call(path, keyspace_key, new_keyspace),
-                                             call(path, key, 'data')]
+                                             call(path, key, 'data'),
+                                             call(path, keyspace_key, new_keyspace)]
 
     hdf_mock.reset_mock()
 
@@ -308,7 +308,8 @@ def test_replace(hdf_mock, keys_mock):
     assert hdf_mock.remove.call_args_list == expected_calls_remove
 
     expected_calls_write = [call(path, keyspace_key, new_keyspace),
-                            call(path, keyspace_key, new_keyspace), call(path, key, 'new_data')]
+                            call(path, key, 'new_data'),
+                            call(path, keyspace_key, new_keyspace)]
     assert hdf_mock.write.call_args_list == expected_calls_write
     assert key in a.keys
 

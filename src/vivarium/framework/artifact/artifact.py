@@ -118,8 +118,8 @@ class Artifact:
         elif data is None:
             raise ArtifactException(f'Attempting to write to key {entity_key} with no data.')
         else:
-            self._keys.append(entity_key)
             hdf.write(self._path, entity_key, data)
+            self._keys.append(entity_key)
 
     def remove(self, entity_key: str):
         """Removes data associated with the provided key from the artifact.
