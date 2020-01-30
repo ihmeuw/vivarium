@@ -163,6 +163,8 @@ configuration by simply printing it.
    interpolation:
        order:
            component_configs: 0
+       validate:
+           component_configs: True
        extrapolate:
            component_configs: True
    input_data:
