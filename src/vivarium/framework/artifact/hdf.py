@@ -278,7 +278,10 @@ class EntityKey(str):
             return EntityKey(f'{self.type}.{measure}')
 
     def __eq__(self, other: 'EntityKey') -> bool:
-        return isinstance(other, EntityKey) and str(self) == str(other)
+        return isinstance(other, str) and str(self) == str(other)
+
+    def __ne__(self, other: 'EntityKey') -> bool:
+        return not self == other
 
     def __hash__(self):
         return hash(str(self))

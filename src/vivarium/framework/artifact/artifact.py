@@ -85,7 +85,7 @@ class Artifact:
             If the provided key is not in the artifact.
 
         """
-        if entity_key not in self.keys:
+        if entity_key not in self:
             raise ArtifactException(f"{entity_key} should be in {self.path}.")
 
         if entity_key not in self._cache:
@@ -113,7 +113,7 @@ class Artifact:
             If the provided key already exists in the artifact.
 
         """
-        if entity_key in self.keys:
+        if entity_key in self:
             raise ArtifactException(f'{entity_key} already in artifact.')
         elif data is None:
             raise ArtifactException(f'Attempting to write to key {entity_key} with no data.')
@@ -135,7 +135,7 @@ class Artifact:
             If the key is not present in the artifact.
 
         """
-        if entity_key not in self.keys:
+        if entity_key not in self:
             raise ArtifactException(f'Trying to remove non-existent key {entity_key} from artifact.')
 
         self._keys.remove(entity_key)
@@ -160,7 +160,7 @@ class Artifact:
             If the provided key does not already exist in the artifact.
 
         """
-        if entity_key not in self.keys:
+        if entity_key not in self:
             raise ArtifactException(f'Trying to replace non-existent key {entity_key} in artifact.')
         self.remove(entity_key)
         self.write(entity_key, data)
