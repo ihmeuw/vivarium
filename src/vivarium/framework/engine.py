@@ -117,8 +117,6 @@ class SimulationContext:
         self.configuration.freeze()
         self._component_manager.setup_components(self._builder)
 
-        self.simulant_creator = self._builder.population.get_simulant_creator()
-
         self.time_step_events = self._lifecycle.get_state_names('main_loop')
         self.time_step_emitters = {k: self._builder.event.get_emitter(k) for k in self.time_step_events}
         self.end_emitter = self._builder.event.get_emitter('simulation_end')
@@ -129,18 +127,15 @@ class SimulationContext:
 
     def initialize_simulants(self):
         self._lifecycle.set_state('population_creation')
-        pop_params = self.configuration.population
-        # Fencepost the creation of the initial population.
-        self._clock.step_backward()
-        population_size = pop_params.population_size
-        self.simulant_creator(population_size, population_configuration={'sim_state': 'setup'})
-        self._clock.step_forward()
+        self._population.create_simulants('initial_population')
 
     def step(self):
         logger.debug(self._clock.time)
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
             self.time_step_emitters[event](self._population.get_population(True).index)
+        for pop_kind in self._population.get_main_loop_pop_kinds():
+            self._population.create_simulants(pop_kind)
         self._clock.step_forward()
 
     def run(self):

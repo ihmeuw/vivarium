@@ -11,11 +11,12 @@ state safely during runtime.
 
 """
 from types import MethodType
-from typing import List, Callable, Union, Dict, Any, NamedTuple, Tuple
+from typing import List, Callable, Union, Dict, Any, Tuple
 
 import pandas as pd
 
 from vivarium.exceptions import VivariumError
+from vivarium.framework.time import Time, Timedelta
 
 
 class PopulationError(VivariumError):
@@ -250,7 +251,7 @@ class PopulationView:
         return f"PopulationView(_id={self._id}, _columns={self.columns}, _query={self._query})"
 
 
-class SimulantData(NamedTuple):
+class SimulantData:
     """Data to help components initialize simulants.
 
     Any time simulants are added to the simulation, each initializer is called
@@ -271,10 +272,62 @@ class SimulantData(NamedTuple):
         The span of time over which the simulants are created.  Useful for,
         e.g., distributing ages over the window.
     """
-    index: pd.Index
-    user_data: Dict[str, Any]
-    creation_time: pd.Timestamp
-    creation_window: pd.Timedelta
+    def __init__(self, pop_kind: str, existing_index: pd.Index, creation_time: Time, creation_window: Timedelta):
+        self._pop_kind = pop_kind
+        self._existing_index = existing_index
+        self._index = None
+        self._user_data = {}
+        self._creation_time = creation_time
+        self._creation_window = creation_window
+        self._frozen = False
+
+    @property
+    def pop_kind(self):
+        return self._pop_kind
+
+    @property
+    def existing_index(self):
+        return self.existing_index
+
+    @property
+    def index(self):
+        if self._index is None:
+            raise PopulationError('Attempting to retrieve the population index, but no index is present.')
+        return self._index
+
+    @index.setter
+    def index(self, new_index):
+        if self._index is not None:
+            raise PopulationError('Attempting to set new population index, but index is already present.')
+        self.index = new_index
+
+    @property
+    def creation_time(self):
+        return self._creation_time
+
+    @property
+    def creation_window(self):
+        return self._creation_window
+
+    def update(self, info: Dict[str, Any]):
+        if self._frozen:
+            raise PopulationError('Attempting to update population data, but data is frozen.')
+        for key, value in info.items():
+            if key in self._user_data:
+                raise PopulationError(f'Attempting to add value for {key} to population data, '
+                                      f'but {key} has already been set.')
+            self._user_data[key] = value
+
+    def get(self, key: str):
+        try:
+            return self._user_data[key]
+        except KeyError:
+            raise PopulationError(f'Attempting to retrieve value for {key}, but no value has been set.')
+
+    def freeze(self):
+        if self._frozen:
+            raise PopulationError('Attempting to freeze population data, but population data is already frozen.')
+        self._frozen = True
 
 
 class InitializerComponentSet:
@@ -334,12 +387,6 @@ class InitializerComponentSet:
 class PopulationManager:
     """Manages the state of the simulated population."""
 
-    # TODO: Move the configuration for initial population creation to
-    # user components.
-    configuration_defaults = {
-        'population': {'population_size': 100}
-    }
-
     def __init__(self):
         self._population = pd.DataFrame()
         self._initializer_components = InitializerComponentSet()
@@ -362,15 +409,24 @@ class PopulationManager:
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
 
+        self.simulant_creators = {}
+
         builder.lifecycle.add_constraint(self.get_view, allow_during=['setup', 'post_setup', 'population_creation',
                                                                       'simulation_end', 'report'])
-        builder.lifecycle.add_constraint(self.get_simulant_creator, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.register_simulant_creator, allow_during=['setup'])
         builder.lifecycle.add_constraint(self.register_simulant_initializer, allow_during=['setup'])
 
         self.register_simulant_initializer(self.on_initialize_simulants, creates_columns=['tracked'])
         self._view = self.get_view(['tracked'])
 
+        builder.event.register_listener('post_setup', self.on_post_setup)
+
         builder.value.register_value_modifier('metrics', modifier=self.metrics)
+
+    def on_post_setup(self, _):
+        if 'initial_population' not in self.simulant_creators:
+            err_msg = 'No method provided to generate the initial population.'
+            raise PopulationError(err_msg)
 
     def on_initialize_simulants(self, pop_data: SimulantData):
         """Adds a ``tracked`` column to the state table for new simulants."""
@@ -477,33 +533,32 @@ class PopulationManager:
             dependencies += ['column.tracked']
         self.resources.add_resources('column', list(creates_columns), initializer, dependencies)
 
-    def get_simulant_creator(self) -> Callable:
-        """Gets a function that can generate new simulants.
+    def register_simulant_creator(self, pop_kind: str, creator: Callable[[Callable], None]):
+        if not isinstance(creator, MethodType):
+            err_msg = (f'Simulant creators must be component methods. '
+                       f'You provided {creator} which is type {type(creator)}.')
+            raise TypeError(err_msg)
 
-        Returns
-        -------
-           The simulant creator function. The creator function takes the
-           number of simulants to be created as it's first argument and a dict
-           population configuration that will be available to simulant
-           initializers as it's second argument. It generates the new rows in
-           the population state table and then calls each initializer
-           registered with the population system with a data
-           object containing the state table index of the new simulants, the
-           configuration info passed to the creator, the current simulation
-           time, and the size of the next time step.
+        if pop_kind in self.simulant_creators:
+            new_creator_component = creator.__self__.name
+            old_creator_component = self.simulant_creators[pop_kind].__self__.name
+            err_msg = (f'Only one component may create the {pop_kind} population. '
+                       f'Attempting to register {creator.__name__} from component {new_creator_component} '
+                       f'as the initial population creator, but {self.simulant_creators[pop_kind].__name__} '
+                       f'of component {old_creator_component} is already registered.')
+            raise PopulationError(err_msg)
+        self.simulant_creators[pop_kind] = creator
 
-        """
-        return self._create_simulants
-
-    def _create_simulants(self, count: int, population_configuration: Dict[str, Any] = None) -> pd.Index:
-        population_configuration = population_configuration if population_configuration else {}
+    def _create_simulants(self, count: int, pop_data: SimulantData) -> pd.Index:
+        pop_data.freeze()
         new_index = range(len(self._population) + count)
         new_population = self._population.reindex(new_index)
         index = new_population.index.difference(self._population.index)
+        pop_data.index = index
         self._population = new_population
         self.growing = True
         for initializer in self.resources:
-            initializer(SimulantData(index, population_configuration, self.clock(), self.step_size()))
+            initializer(pop_data)
         self.growing = False
         return index
 
@@ -528,6 +583,13 @@ class PopulationManager:
         if not untracked:
             pop = pop[pop.tracked]
         return pop
+
+    def get_main_loop_pop_kinds(self):
+        return [pop_kind for pop_kind in self.simulant_creators if pop_kind != 'initial_population']
+
+    def create_simulants(self, pop_kind: str):
+        simulant_data = SimulantData(pop_kind, self._population.index, self.clock(), self.step_size())
+        self.simulant_creators[pop_kind](self._create_simulants, simulant_data)
 
 
 class PopulationInterface:
@@ -588,23 +650,8 @@ class PopulationInterface:
         """
         return self._manager.get_view(columns, query)
 
-    def get_simulant_creator(self) -> Callable[[int, Union[Dict[str, Any], None]], pd.Index]:
-        """Gets a function that can generate new simulants.
-
-        Returns
-        -------
-           The simulant creator function. The creator function takes the
-           number of simulants to be created as it's first argument and a dict
-           population configuration that will be available to simulant
-           initializers as it's second argument. It generates the new rows in
-           the population state table and then calls each initializer
-           registered with the population system with a data
-           object containing the state table index of the new simulants, the
-           configuration info passed to the creator, the current simulation
-           time, and the size of the next time step.
-
-        """
-        return self._manager.get_simulant_creator()
+    def register_simulant_creator(self, creator: Callable[[Callable], None], pop_kind: str):
+        return self._manager.register_simulant_creator(creator, pop_kind)
 
     def initializes_simulants(self, initializer: Callable[[SimulantData], None],
                               creates_columns: List[str] = (),
