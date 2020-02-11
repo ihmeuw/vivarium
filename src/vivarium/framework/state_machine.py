@@ -444,25 +444,6 @@ class Machine:
             if not affected.empty:
                 state.cleanup_effect(affected.index, event_time)
 
-    def to_dot(self):
-        """Produces a ball and stick graph of this state machine.
-
-        Returns
-        -------
-        `graphviz.Digraph`
-            A ball and stick visualization of this state machine.
-        """
-        from graphviz import Digraph
-        dot = Digraph(format='png')
-        for state in self.states:
-            if isinstance(state, TransientState):
-                dot.node(state.state_id, style='dashed')
-            else:
-                dot.node(state.state_id)
-            for transition in state.transition_set:
-                dot.edge(state.state_id, transition.output_state.state_id, transition.name)
-        return dot
-
     def _get_state_pops(self, index):
         population = self.population_view.get(index)
         return [[state, population[population[self.state_column] == state.state_id]] for state in self.states]
