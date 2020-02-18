@@ -87,9 +87,10 @@ def run(model_specification, results_directory, verbose, with_debugger):
     override_configuration = {'output_data': {'results_directory': str(results_root)}}
     finished_sim = main(model_specification, configuration=override_configuration)
 
-    idx = pd.Index([finished_sim.configuration.randomness.random_seed], name='random_seed')
-    metrics = pd.DataFrame(finished_sim.report(), index=idx)
+    metrics = pd.DataFrame(finished_sim.report(), index=[0])
     metrics['simulation_run_time'] = time() - start
+    metrics['random_seed'] = finished_sim.configuration.randomness.random_seed
+    metrics['input_draw'] = finished_sim.configuration.input_data.input_draw_number
     metrics.to_hdf(results_root / 'output.hdf', key='data')
 
 
