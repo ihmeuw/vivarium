@@ -10,7 +10,6 @@ simulants and providing the ability for components to view and update simulant
 state safely during runtime.
 
 """
-import warnings
 from types import MethodType
 from typing import List, Callable, Union, Dict, Any, NamedTuple, Tuple
 
