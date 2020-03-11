@@ -298,6 +298,7 @@ class ResultsManager:
         self._results_context.clear()
 
     def get_results(self, index, metrics):
+        # Shim for now to allow incremental transition to new results system.
         metrics.update(self.metrics)
         return metrics
 
