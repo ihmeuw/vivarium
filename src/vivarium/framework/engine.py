@@ -34,6 +34,7 @@ from .metrics import Metrics
 from .plugins import PluginManager
 from .population import PopulationInterface
 from .resource import ResourceInterface
+from .results import ResultsInterface
 from .randomness import RandomnessInterface
 from .values import ValuesInterface
 from .time import TimeInterface
@@ -79,6 +80,7 @@ class SimulationContext:
         self._events = self._plugin_manager.get_plugin('event')
         self._population = self._plugin_manager.get_plugin('population')
         self._resource = self._plugin_manager.get_plugin('resource')
+        self._results = self._plugin_manager.get_plugin('results')
         self._tables = self._plugin_manager.get_plugin('lookup')
         self._randomness = self._plugin_manager.get_plugin('randomness')
         self._data = self._plugin_manager.get_plugin('data')
@@ -94,7 +96,7 @@ class SimulationContext:
         # no ordering.
         managers = [self._clock, self._lifecycle, self._resource, self._values,
                     self._population, self._randomness, self._events, self._tables,
-                    self._data] + list(self._plugin_manager.get_optional_controllers().values())
+                    self._data, self._results] + list(self._plugin_manager.get_optional_controllers().values())
         self._component_manager.add_managers(managers)
 
         component_config_parser = self._plugin_manager.get_plugin('component_configuration_parser')
@@ -184,7 +186,8 @@ class Builder:
         self.value = plugin_manager.get_plugin_interface('value')                   # type: ValuesInterface
         self.event = plugin_manager.get_plugin_interface('event')                   # type: EventInterface
         self.population = plugin_manager.get_plugin_interface('population')         # type: PopulationInterface
-        self.resources = plugin_manager.get_plugin_interface('resource')             # type: ResourceInterface
+        self.resources = plugin_manager.get_plugin_interface('resource')            # type: ResourceInterface
+        self.results = plugin_manager.get_plugin_interface('results')               # type: ResultsInterface
         self.randomness = plugin_manager.get_plugin_interface('randomness')         # type: RandomnessInterface
         self.time = plugin_manager.get_plugin_interface('clock')                    # type: TimeInterface
         self.components = plugin_manager.get_plugin_interface('component_manager')  # type: ComponentInterface
