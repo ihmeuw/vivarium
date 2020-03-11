@@ -155,7 +155,7 @@ class ComponentManager:
             self.apply_configuration_defaults(c)
             self._components.add(c)
 
-    def get_components_by_type(self, component_type: Union[type, Tuple[type, ...]]) -> List[Any]:
+    def get_components_by_type(self, component_type: Union[type, Tuple[type]]) -> List[Any]:
         """Get all components currently held by the component manager that are an
         instance of ``component_type``.
 
@@ -296,7 +296,7 @@ class ComponentInterface:
         """
         return self._manager.get_component(name)
 
-    def get_components_by_type(self, component_type: Union[type, Tuple[type, ...]]) -> List[Any]:
+    def get_components_by_type(self, component_type: Type) -> List[Any]:
         """Get all components that are an instance of ``component_type``
         currently held by the component manager.
 
