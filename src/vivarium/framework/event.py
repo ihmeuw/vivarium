@@ -26,8 +26,7 @@ For more information, see the associated event
 :ref:`concept note <event_concept>`.
 
 """
-from collections import defaultdict
-from typing import Callable, Dict, List, NamedTuple, Mapping, Any, Optional
+from typing import Callable, Dict, List, NamedTuple, Any, Optional
 
 import pandas as pd
 
@@ -56,7 +55,7 @@ class Event(NamedTuple):
         The current step size at the time of the event.
     """
     index: pd.Index
-    user_data: Mapping[str, Any]
+    user_data: Dict[str, Any]
     time: Time
     step_size: Timedelta
 
