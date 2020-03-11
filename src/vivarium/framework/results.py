@@ -15,8 +15,6 @@ class ResultsContext:
 
     def __init__(self, ):
         self._population_view = None
-        self._clock = None
-        self._step_size = None
         self._binners = []
         self._mappers = []
         self._producers = defaultdict(lambda: defaultdict(list))
