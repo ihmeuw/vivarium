@@ -36,7 +36,11 @@ _MANAGERS = {
     },
     'resource': {
         'controller': 'vivarium.framework.resource.ResourceManager',
-        'builder_interface': 'vivarium.framework.resource.ResourceInterface'
+        'builder_interface': 'vivarium.framework.resource.ResourceInterface',
+    },
+    'results': {
+        'controller': 'vivarium.framework.results.ResultsManager',
+        'builder_interface': 'vivarium.framework.results.ResultsInterface',
     }
 }
 
