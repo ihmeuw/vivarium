@@ -1,9 +1,10 @@
 from collections import defaultdict, Counter
-import itertools
 import typing
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import pandas as pd
+from pandas.core.groupby import GroupBy
+
 
 if typing.TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -12,6 +13,9 @@ if typing.TYPE_CHECKING:
 
 
 class ResultsContext:
+
+    default_grouper = 'default'
+    default_grouper_value = True
 
     def __init__(self):
         # Binners split continuous population columns into categorical ones
@@ -161,15 +165,61 @@ class ResultsContext:
         for (pop_filter, groupers), producers in self._producers[event_name].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
-            # FIXME: Test for empty grouper, single grouper.
-            pop_groups = self.population.query(pop_filter).groupby(list(groupers))
+            pop_groups = self._filter_and_group(self.population, pop_filter, groupers)
             for measure, aggregator, additional_keys in producers:
-                aggregates = pop_groups.apply(aggregator)
+                aggregates = pop_groups.apply(aggregator)  # type: pd.Series
+                aggregates.name = 'value'
                 # Keep formatting all in one place.
                 yield self._format_results(measure, aggregates, **additional_keys)
 
     @staticmethod
-    def _format_results(measure: str, aggregates: pd.DataFrame, **additional_keys: str) -> Dict[str, float]:
+    def _filter_and_group(population: pd.DataFrame, pop_filter: str,
+                          groupers: Tuple[str, ...]) -> GroupBy:
+        """Select a subset of rows from the population and group"""
+        if pop_filter:
+            population = population.query(pop_filter)
+
+        population[ResultsContext.default_grouper] = pd.Series(ResultsContext.default_grouper_value,
+                                                               index=population.index,
+                                                               dtype='category')
+        groupby_cols = list(groupers) + [ResultsContext.default_grouper]
+        return population.groupby(groupby_cols)
+
+    @staticmethod
+    def _broadcast_results(aggregates: pd.Series) -> pd.DataFrame:
+        # First clear out the default grouper
+        aggregates = ResultsContext._clear_default_grouper(aggregates)
+
+        # Then use categorical info to broadcast results.
+        if isinstance(aggregates.index, pd.MultiIndex):  # Multiple stratification criteria
+            full_index = pd.MultiIndex.from_product(aggregates.index.levels,
+                                                    names=aggregates.index.names)
+            data = pd.Series(data=0, index=full_index, name=aggregates.name)
+            data.loc[aggregates.index] = aggregates
+            data = data.reset_index()
+        elif isinstance(aggregates.index, pd.CategoricalIndex):  # Single stratification criteria
+            full_index = pd.CategoricalIndex(aggregates.index.categories,
+                                             categories=aggregates.index.categories,
+                                             ordered=aggregates.index.ordered,
+                                             name=aggregates.index.name)
+            data = pd.Series(data=0, index=full_index, name=aggregates.name)
+            data.loc[aggregates.index] = aggregates
+            data = data.reset_index()
+        else:  # No stratification criteria
+            data = aggregates.to_frame()
+
+        return data
+
+    @staticmethod
+    def _clear_default_grouper(aggregates: pd.Series) -> pd.Series:
+        if isinstance(aggregates.index, pd.MultiIndex):
+            aggregates.index = aggregates.index.droplevel(level=ResultsContext.default_grouper)
+        else:
+            aggregates = aggregates.reset_index(drop=True)
+        return aggregates
+
+    @staticmethod
+    def _format_results(measure: str, aggregates: pd.Series, **additional_keys: str) -> Dict[str, float]:
         """Converts a :obj:`pandas.DataFrame` to a dict of results.
 
         Parameters
@@ -191,22 +241,20 @@ class ResultsContext:
         results = {}
         # First we expand the categorical index over unobserved pairs.
         # This ensures that the produced results are always the same length.
-        idx = pd.MultiIndex.from_product(aggregates.index.levels, names=aggregates.index.names)
-        data = pd.Series(data=0, index=idx)
-        data.loc[aggregates.index] = aggregates
+        data = ResultsContext._broadcast_results(aggregates)
 
         def _format(field, param):
             """Format of the measure identifier tokens into FIELD_param."""
-            return f'{str(field).upper()}_{param}'
+            return f'{str(field).upper()}_{str(param).lower()}'
 
-        for params, val in data.iteritems():
+        for _, row in data.iterrows():
             key = '_'.join(
                 [_format('measure', measure)]
-                + [_format(field, measure) for field, param in zip(data.index.names, params)]
+                + [_format(field, param) for field, param in row.to_dict().items() if field != 'value']
                 # Sorts additional_keys by the field name.
-                + [_format(field, measure) for field, param in sorted(additional_keys.items())]
+                + [_format(field, param) for field, param in sorted(additional_keys.items())]
             )
-            results[key] = val
+            results[key] = row.value
         return results
 
     @staticmethod
