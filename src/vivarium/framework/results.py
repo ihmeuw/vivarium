@@ -13,6 +13,7 @@ if typing.TYPE_CHECKING:
 
 
 class ResultsContext:
+    """Core logic for results production from population state information."""
 
     default_grouper = 'default'
     default_grouper_value = True
@@ -187,6 +188,11 @@ class ResultsContext:
 
     @staticmethod
     def _broadcast_results(aggregates: pd.Series) -> pd.DataFrame:
+        """Broadcasts results over all unobserved values.
+
+        This method requires that index levels are all categorical and
+        contain information about all possible observations.
+        """
         # First clear out the default grouper
         aggregates = ResultsContext._clear_default_grouper(aggregates)
 
@@ -212,6 +218,7 @@ class ResultsContext:
 
     @staticmethod
     def _clear_default_grouper(aggregates: pd.Series) -> pd.Series:
+        """Removes default grouper from index levels."""
         if isinstance(aggregates.index, pd.MultiIndex):
             aggregates.index = aggregates.index.droplevel(level=ResultsContext.default_grouper)
         else:
