@@ -1,6 +1,6 @@
 from collections import defaultdict, Counter
 import typing
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable, Dict, List, Tuple
 
 import pandas as pd
 from pandas.core.groupby import GroupBy
