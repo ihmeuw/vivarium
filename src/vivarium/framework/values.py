@@ -237,6 +237,12 @@ class Pipeline:
 
         return value
 
+    def __eq__(self, other):
+        return isinstance(other, Pipeline) and other.name == self.name
+
+    def __hash__(self):
+        return hash(repr(self))
+
     def __repr__(self):
         return f"_Pipeline({self.name})"
 

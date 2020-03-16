@@ -1,86 +1,116 @@
 from collections import defaultdict, Counter
-import itertools
 import typing
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import pandas as pd
+
+from vivarium.exceptions import VivariumError
 
 if typing.TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.event import Event
-    from vivarium.framework.time import Time, Timedelta
+
+
+class ResultsError(VivariumError):
+    """General error for issues with results specification or production."""
+    pass
+
+
+class ResultsConfigurationError(ResultsError, ValueError):
+    """Error raised when results production is improperly configured."""
+    pass
+
+
+class MappingStrategy:
+    """A strategy for transforming a :obj:`pandas.Series`
+
+    Mapping strategies are used to expand state and value information in
+    the framework into new sets of columns for use in results processing
+    and stratification.
+
+    Attributes
+    ----------
+    target
+        The name of the column in the expanded state table this mapping
+        strategy will be applied to.
+    mapped_column
+        The name of the column this mapping strategy will produce.
+    mapper
+        The callable that produces the mapped column from the target.
+    is_vectorized
+        Whether the mapper function takes a dataframe as an argument.
+        Takes rows if false and will be applied with
+        :func:`pandas.DataFrame.apply`.
+
+    """
+
+    def __init__(self, target: str, mapped_column: str, mapper: Callable, is_vectorized: bool):
+        self.target = target
+        self.mapped_column = mapped_column
+        self.mapper = mapper
+        self.is_vectorized = is_vectorized
+
+    def __call__(self, population: pd.DataFrame) -> pd.DataFrame:
+        """Applies the mapping strategy to the population to add new data.
+
+        Parameters
+        ----------
+        population
+            The current population data.  Must include the column stored in
+            `self.target`.
+
+        Returns
+        -------
+            The population with a new column `self.mapped_column` produced
+            by the mapper.
+
+        """
+        if self.is_vectorized:
+            result_data = self.mapper(population[self.target])
+        else:
+            result_data = population[self.target].apply(self.mapper)
+        population[self.mapped_column] = result_data.astype('category')
+        return population
+
+
+class ResultsFormatter:
+
+    def __init__(self, ):
+        pass
+
+class ResultsProducer:
+
+    def __init__(self, measure: str, aggregator: Callable[[pd.DataFrame], float],
+                 **additional_keys: Dict[str, Any]):
+        self.measure = measure
+        self.aggregator = aggregator
+        self.additional_keys = additional_keys
 
 
 class ResultsContext:
 
     def __init__(self):
-        # Binners split continuous population columns into categorical ones
-        self._binners = []
-        # Mappers apply a mapping function from a population column to a new column
-        self._mappers = []
+        self._default_grouping_columns = []  # type: List[str]
+        self._mapping_strategies = []        # type: List[MappingStrategy]
         # keys are event names
         # values are dicts with key (filter, grouper) value (measure, aggregator, additional_keys)
         self._producers = defaultdict(lambda: defaultdict(list))
 
-        self.population = None
+    def add_default_grouping_columns(self, default_grouping_columns: List[str]):
+        if self._default_grouping_columns:
+            raise ResultsConfigurationError('Multiple calls are being made to set default grouping columns '
+                                            'for results production.')
+        if not default_grouping_columns:
+            raise ResultsConfigurationError('Attempting to set an empty list as the default grouping columns '
+                                            'for results production.')
+        self._default_grouping_columns = default_grouping_columns
 
-    def add_binner(self, target_col: str, result_col: str, bins: List, labels: List[str], **cut_kwargs):
-        """Adds a specification to bin a target column into a new column.
-
-        We frequently want to group results by bins of a continuous population
-        attribute.  For example, simulants might have an age and we'd
-        want to stratify results by 5-year age bins.  You could then
-        provide a binner that will preprocess the population by binning
-        the `age` attribute in the state table into an `age_group` attribute.
-        This is not stored in the state table, but dynamically created when
-        results are observed.
-
-        Parameters
-        ----------
-        target_col
-            The continuous column we want to bin into a categorical column.
-        result_col
-            The name of the resulting categorical column.
-        bins
-            The bin edges.
-        labels
-            The labels of the resulting bins.
-        cut_kwargs
-            Additional kwargs to provide to :func:`pandas.cut`.
-
-        """
-        # TODO: Some validation
-        self._binners.append((target_col, result_col, bins, labels, cut_kwargs))
-
-    def add_mapper(self, target_col: str, result_col: str, mapping: Callable, is_vectorized: bool):
-        """Adds a specification to map a target column into a new column.
-
-        This allows a user to specify an arbitrary function to map one
-        population state column into a new column for use in stratifying
-        results.
-
-        For instance, suppose you have a column `time_of_death` that records
-        the time a simulant dies as a time stamp.  In order to stratify
-        results, you might map that column to a `year_of_death` column to
-        group deaths by the year in which they occurred.
-
-        Parameters
-        ----------
-        # FIXME: Allow mappings between groups of target columns
-            and a result column?
-        target_col
-            The column our `results_col` will be computed from.
-        result_col
-            The name of the resulting mapped column.
-        mapping
-            A function to be used as an argument to
-            :func:`pandas.Series.apply` if not vectorized. If vectorized,
-            will be applied on the entire series.
-        is_vectorized
-            Whether or not the mapping function is vectorized.
-
-        """
-        self._mappers.append((target_col, result_col, mapping, is_vectorized))
+    def add_mapping_strategy(self,
+                             target: str,
+                             mapped_column: str,
+                             mapper: Callable,
+                             is_vectorized: bool):
+        self._mapping_strategies.append(MappingStrategy(target, mapped_column, mapper, is_vectorized))
 
     def add_producer(self, measure: str, pop_filter: str, groupers: List[str],
                      aggregator: Callable[[pd.DataFrame], float], when: str, **additional_keys: str):
@@ -115,39 +145,7 @@ class ResultsContext:
         groupers = tuple(sorted(groupers))  # Makes sure measure identifiers have fields in the same relative order.
         self._producers[when][(pop_filter, groupers)].append((measure, aggregator, additional_keys))
 
-    def update(self, population: pd.DataFrame, time: 'Time', step_size: 'Timedelta', user_data: Dict[str, Any]):
-        """Preprocess the provided population state table with additional data.
-
-        This method provides a current snapshot of the underlying state table
-        with additional event information and user requested information from
-        the binners and mappers to assist in results stratification.
-
-        Parameters
-        ----------
-        population
-            A current snapshot of the population state table.
-        time
-            The current simulation time.
-        step_size
-            The size of the next time step to take.
-        user_data
-            Additional data provided by the user on event emission.
-
-        """
-        self.population = population
-        self.population['current_time'] = time
-        self.population['step_size'] = step_size
-        self.population['event_time'] = time + step_size
-        for k, v in user_data.items():
-            self.population[k] = v
-        self.population = self._add_population_bins(self.population, self._binners)
-        self.population = self._add_population_mapped_columns(self.population, self._mappers)
-
-    def clear(self):
-        """Resets the results context population view."""
-        self.population = None
-
-    def gather_results(self, event_name: str) -> Dict[str, float]:
+    def gather_results(self, population: pd.DataFrame, event_name: str) -> Dict[str, float]:
         """Calculates all results registered to be computed for the event.
 
         Parameters
@@ -158,6 +156,8 @@ class ResultsContext:
         """
         # Optimization: We store all the producers by pop_filter and groupers
         # so that we only have to apply them once each time we compute results.
+        population = self._add_population_mapped_columns(population, self.mapping_strategies)
+
         for (pop_filter, groupers), producers in self._producers[event_name].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
@@ -236,6 +236,7 @@ class ResultsManager:
         self._metrics = Counter()
         self._results_context = ResultsContext()
         self._required_columns = {'tracked'}
+        self._required_values = set()
 
     @property
     def name(self):
@@ -255,6 +256,8 @@ class ResultsManager:
         builder.event.register_listener('time_step', self.on_time_step)
         builder.event.register_listener('time_step__cleanup', self.on_time_step_cleanup)
         builder.event.register_listener('collect_metrics', self.on_collect_metrics)
+
+        self.get_value = builder.value.get_value
 
         builder.value.register_value_modifier('metrics', self.get_results)
 
@@ -280,22 +283,64 @@ class ResultsManager:
         self._required_columns |= set(requires_columns)
         self._results_context.add_producer(measure, pop_filter, groupers, aggregator, when)
 
-    def add_binner(self, target_col: str, result_col: str, bins: List, labels: List[str], **cut_kwargs):
-        if target_col not in ['event_time', 'current_time']:
-            self._required_columns.add(target_col)
-        self._results_context.add_binner(target_col, result_col, bins, labels, **cut_kwargs)
+    def add_default_grouping_columns(self, default_grouping_columns: List[str]):
 
-    def add_mapper(self, target_col: str, result_col: str, mapping: Callable, is_vectorized: bool):
-        if target_col not in ['event_time', 'current_time']:
-            self._required_columns.add(target_col)
-        self._results_context.add_mapper(target_col, result_col, mapping, is_vectorized)
+
+        self._results_context.default_grouping_columns = default_grouping_columns
+
+    def add_binning_strategy(self,
+                             target: str,
+                             binned_column: str,
+                             bins: List[Union[int, float]],
+                             labels: List[str],
+                             target_type: str,
+                             **cut_kwargs):
+        def _bin_data(data: pd.Series) -> pd.Series:
+            return pd.cut(data, bins, labels=labels, **cut_kwargs)
+        self.add_mapping_strategy(target, binned_column, _bin_data, target_type, is_vectorized=True)
+
+    def add_mapping_strategy(self,
+                             target: str,
+                             mapped_column: str,
+                             mapper: Callable,
+                             target_type: str,
+                             is_vectorized: bool):
+        self._add_resources(target, target_type)
+        self._results_context.mapping_strategies.append((target, mapped_column, mapper, is_vectorized))
+
+    def _add_resources(self, target: str, target_type: str):
+        if target_type == 'column' and target not in ['event_time', 'current_time']:
+            self._required_columns.add(target)
+        elif target_type == 'value':
+            self._required_values.add(self.get_value(target))
 
     def gather_results(self, event_name: str, event: 'Event'):
-        population = self.population_view.subview(list(self._required_columns)).get(event.index)
-        self._results_context.update(population, self.clock(), self.step_size(), event.user_data)
-        for results_group in self._results_context.gather_results(event_name):
+        population = self._prepare_population(event)
+        for results_group in self._results_context.gather_results(population, event_name):
             self._metrics.update(results_group)
-        self._results_context.clear()
+
+    def _prepare_population(self, event: 'Event'):
+        """Gather state and value data to prep for results processing.
+
+        This method provides a current snapshot of the underlying state table
+        with additional event and value information for results stratification.
+
+        Parameters
+        ----------
+        event
+            The event that triggered results processing.
+
+        """
+
+        population = self.population_view.subview(list(self._required_columns)).get(event.index)
+        population['current_time'] = self.clock()
+        population['step_size'] = event.step_size
+        population['event_time'] = self.clock() + event.step_size
+        for k, v in event.user_data.items():
+            population[k] = v
+        for pipeline in self._required_values:
+            population[pipeline.name] = pipeline(event.index)
+        return population
 
     def get_results(self, index, metrics):
         # Shim for now to allow incremental transition to new results system.
@@ -304,22 +349,159 @@ class ResultsManager:
 
 
 class ResultsInterface:
+    """Builder interface for the results management system.
+
+    The results management system allows users to delegate results production
+    to the simulation framework.  This is done by providing a results
+    production strategy to the framework with a call to
+    :func:`ResultsInterface.register_results_producer`. To keep
+    simulations well-modularized, it is highly suggested that
+    results production be managed in specialized `Observer` components
+    rather than mixing in results production with simulation logic in
+    the core model components.
+
+    Producers will operate on an expanded state table that includes
+    all required state table columns, 'current_time', 'step_size', 'event_time'
+    and other columns retrieved from the :obj:`vivarium.framework.Event`
+    the producer is responding to, as well as extra columns built from
+    custom user strategies provided as arguments to
+    :func:`ResultsInterface.add_mapping_strategy` and
+    :func:`ResultsInterface.add_binning_strategy`.
+
+    Results that are produced with the same key are summed over multiple time
+    steps.
+
+    """
 
     def __init__(self, manager: ResultsManager):
         self._manager = manager
 
-    def register_results_producer(self,
-                                  measure: str,
-                                  pop_filter: str = '',
-                                  groupers: List[str] = (),
-                                  aggregator: Callable = len,
-                                  requires_columns: List[str] = (),
-                                  when: str = 'collect_metrics'):
-        self._manager.register_results_producer(measure, pop_filter, groupers, aggregator, requires_columns, when)
+    def add_results_production_strategy(self,
+                                        measure: str,
+                                        pop_filter: str = '',
+                                        aggregator: Callable[[pd.DataFrame], float] = len,
+                                        additional_grouping_columns: List[str] = (),
+                                        excluded_grouping_columns: List[str] = (),
+                                        when: str = 'collect_metrics'):
+        """Provide the framework with a strategy for producing a 'measure'.
 
-    def add_binner(self, target_col: str, result_col: str, bins: List, labels: List[str], **cut_kwargs):
-        self._manager.add_binner(target_col, result_col, bins, labels, **cut_kwargs)
+        Parameters
+        ----------
+        measure
+            The name of the measure to be produced by the strategy.
+        pop_filter
+            A filter to apply to the population before grouping and
+            aggregation. Filters should be formatted so that they are
+            consistent with arguments to :func:`pandas.DataFrame.query`.
+        aggregator
+            A callable operating on a :obj:`pandas.DataFrame` and producing
+            a float value. Defaults to the length of the data, producing
+            a group count.
+        additional_grouping_columns
+            Columns in the expanded state table to group the population
+            by before applying any aggregation. These columns are added
+            to any default grouping columns registered with
+            :func:`ResultsInterface.add_default_grouping_columns`.
+        excluded_grouping_columns
+            Columns in the default grouping columns registered with
+            :func:`ResultsInterface.add_default_grouping_columns` that should
+            not be used in the production of this measure.
+        when
+            The name of the time step event when this measure should be
+            produced.
 
-    def add_mapper(self, target_col: str, result_col: str, mapper: Callable, is_vectorized: bool = False):
-        self._manager.add_mapper(target_col, result_col, mapper, is_vectorized)
+        """
+
+        self._manager.register_results_producer(measure, pop_filter, aggregator, list(additional_grouping_columns),
+                                                list(excluded_grouping_columns), when)
+
+    def add_default_grouping_columns(self, grouping_columns: List[str]):
+        self._manager.add_default_grouping_columns(grouping_columns)
+
+    def add_binning_strategy(self,
+                             target: str,
+                             binned_column: str,
+                             bins: List = (),
+                             labels: List[str] = (),
+                             target_type: str = 'column',
+                             **cut_kwargs):
+        """Adds a specification to bin a column or value into a new column.
+
+        This method allows the user to specify special columns to be available
+        for results production where the special columns are produced by
+        binning a continuous value pipeline output or a continuous state
+        table column into a new categorical column.
+
+        We frequently want to group results by bins of a continuous population
+        attribute.  For example, simulants might have an age and we'd
+        want to stratify results by 5-year age bins.  You could then
+        provide a binning strategy that will preprocess the population by
+        binning the `age` attribute in the state table into an `age_group`
+        attribute. This is not stored in the state table, but dynamically
+        created when results are observed.
+
+        Only one of `target_column` or `target_value` may be specified.
+
+        Parameters
+        ----------
+        target
+            The name of a true state table column or value pipeline to be
+            binned into a new column in the expanded state table for
+            results production.
+        binned_column
+            The name of the column in the expanded state table to be
+            produced by the binning strategy.
+        bins
+            The bin edges.
+        labels
+            The labels of the resulting bins.  These will be the values in
+            the `binned_column`
+        target_type
+            'column' if the binning strategy should be applied to a state
+            table column. 'value' if it should be applied to the results of
+            a value pipeline call.
+        cut_kwargs
+            Additional kwargs to provide to :func:`pandas.cut`.
+
+        """
+        self._manager.add_binning_strategy(target, binned_column, bins, labels, target_type, **cut_kwargs)
+
+    def add_mapping_strategy(self,
+                             target: str,
+                             mapped_column: str,
+                             mapper: Callable,
+                             target_type: str = 'column',
+                             is_vectorized: bool = False):
+        """Adds a specification to map a target column into a new column.
+
+        This allows a user to specify an arbitrary function to map one
+        population state column into a new column for use in stratifying
+        results.
+
+        For instance, suppose you have a column `time_of_death` that records
+        the time a simulant dies as a time stamp.  In order to stratify
+        results, you might map that column to a `year_of_death` column to
+        group deaths by the year in which they occurred.
+
+        Parameters
+        ----------
+        # FIXME: Allow mappings between groups of target columns
+            and a result column?
+        target
+            The column our `results_col` will be computed from.
+        mapped_column
+            The name of the resulting mapped column.
+        mapper
+            A function to be used as an argument to
+            :func:`pandas.Series.apply` if not vectorized. If vectorized,
+            will be applied on the entire series.
+        target_type
+            'column' if the mapping strategy should be applied to a state
+            table column. 'value' if it should be applied to the results of
+            a value pipeline call.
+        is_vectorized
+            Whether or not the mapping function is vectorized.
+
+        """
+        self._manager.add_mapping_strategy(target, mapped_column, mapper, target_type, is_vectorized)
 
