@@ -2,7 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vivarium.framework.results import MappingStrategy, BinningStrategy, MappingStrategyPool, FormattingStrategy
+from vivarium.framework.results import (MappingStrategy, BinningStrategy, MappingStrategyPool,
+                                        Result, ResultProducerStrategy,
+                                        FormattingStrategy)
 
 
 @pytest.fixture
@@ -137,6 +139,20 @@ def test_mapping_strategy_pool_multiple_strategies(data):
 
     assert strategy1(strategy2(data)).equals(pool.expand_data(data))
     assert strategy2(strategy1(data)).equals(pool.expand_data(data))
+
+
+def test_result_producer_strategy(data):
+    measure = 'elderberries'
+    strategy = ResultProducerStrategy(measure, lambda x: x.max_speed.sum(), {})
+    data = data.drop(columns='design_date')
+    r = strategy(data.groupby('color'))
+    assert isinstance(r, Result)
+    assert r.measure == measure
+    assert r.data.name == 'value'
+    assert np.allclose(r.data, data.groupby('color').max_speed.sum().sort_index())
+    assert r.additional_keys == {}
+
+
 
 
 def test_formatting_strategy_initialization():

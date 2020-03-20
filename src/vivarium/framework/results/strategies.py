@@ -2,6 +2,7 @@ import abc
 from typing import Callable, Dict, List, Union
 
 import pandas as pd
+from pandas.core.groupby import GroupBy
 
 
 class MappingStrategy:
@@ -138,6 +139,53 @@ class MappingStrategyPool:
         for strategy in self._pool.values():
             data = strategy(data)
         return data
+
+
+class Result:
+    """Simple container for a single measure result.
+
+    Attributes
+    ----------
+    measure
+        The measure this result represents.
+    data
+        The data for this result.
+    additional_keys
+        Extra key-value pairs that label this data.
+
+    """
+
+    def __init__(self, measure: str, data: pd.Series, additional_keys: Dict[str, str]):
+        self.measure = measure
+        self.data = data
+        self.additional_keys = additional_keys
+
+
+class ResultProducerStrategy:
+    """A strategy for aggregating grouped data."""
+
+    def __init__(self, measure: str, aggregator: Callable[[pd.DataFrame], float], additional_keys: Dict[str, str]):
+        """
+        Parameters
+        ----------
+        measure
+            The measure this strategy produces data for.
+        aggregator
+            The function mapping a :obj:`pandas.Series` to a float that
+            will be applied to the grouped data.
+        additional_keys
+            Extra labels associated with the produced result.
+
+        """
+        self._measure = measure
+        self._aggregator = aggregator
+        self._additional_keys = additional_keys
+
+    def __call__(self, data: GroupBy) -> Result:
+        """Aggregates the provided data groupby."""
+        result = data.apply(self._aggregator).sort_index()
+        result.name = 'value'
+        return Result(self._measure, result, self._additional_keys)
 
 
 class FormattingStrategy(abc.ABC):
