@@ -66,7 +66,7 @@ class MappingStrategy:
             else:
                 result_data = population[self._target].apply(self._mapper)
         result[self.result_column] = result_data.astype('category')
-        return result
+        return result.sort_index(axis=1)
 
 
 class BinningStrategy(MappingStrategy):
@@ -105,6 +105,39 @@ class BinningStrategy(MappingStrategy):
             return pd.cut(data, bins, labels=labels, **cut_kwargs)
 
         super().__init__(target, binned_column, _bin_data, is_vectorized=True)
+
+
+class MappingStrategyPool:
+    """A collection of mapping strategies that can be applied at one time."""
+
+    def __init__(self):
+        self._pool = {}
+
+    def add_strategy(self, strategy: MappingStrategy):
+        """Add a new strategy to the pool.
+
+        Parameters
+        ----------
+        strategy
+            The new strategy to add.
+
+        Raises
+        ------
+        ValueError
+            If a strategy to produce the desired result column already exists
+            in the pool.
+
+        """
+
+        if strategy.result_column in self._pool:
+            raise ValueError(f'Mapping strategy to produce {strategy.result_column} already exists.')
+        self._pool[strategy.result_column] = strategy
+
+    def expand_data(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Applies all strategies in the pool to expand the data."""
+        for strategy in self._pool.values():
+            data = strategy(data)
+        return data
 
 
 class FormattingStrategy(abc.ABC):
