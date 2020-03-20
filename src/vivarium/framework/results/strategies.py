@@ -4,7 +4,7 @@ import pandas as pd
 
 
 class MappingStrategy:
-    """A strategy for transforming a :obj:`pandas.Series`.
+    """A strategy for expanding results data with arbitrary functions.
 
     Mapping strategies are used to expand state and value information in
     the framework into new sets of columns for use in results processing
