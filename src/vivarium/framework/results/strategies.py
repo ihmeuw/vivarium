@@ -1,6 +1,8 @@
 import abc
 from typing import Dict
 
+import pandas as pd
+
 
 class FormattingStrategy(abc.ABC):
     """Base interface for results formatting strategies."""
