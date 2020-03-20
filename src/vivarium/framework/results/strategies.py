@@ -125,6 +125,25 @@ class FormattingStrategy(abc.ABC):
 
     @staticmethod  # NOTE: Do not override.  This method is final.
     def _broadcast_aggregates(aggregate_data: pd.Series) -> pd.DataFrame:
+        """Broadcasts aggregate data over unobserved categories.
+
+        This method expects that data provided to the formatter call
+        is a series with a categorical index or a multi-index whose
+        levels are categorical.  The purpose is to ensure that the
+        schema of the final results is consistent by assigning values
+        to all possible observations.
+
+        Parameters
+        ----------
+        aggregate_data
+            Data that has been aggregated to a series of float values.
+
+        Returns
+        -------
+            A dataframe with zero fills for all unobserved groups in the
+            provided series index.
+
+        """
         if isinstance(aggregate_data.index, pd.MultiIndex):  # Multiple stratification criteria
             full_index = pd.MultiIndex.from_product(aggregate_data.index.levels,
                                                     names=aggregate_data.index.names)
