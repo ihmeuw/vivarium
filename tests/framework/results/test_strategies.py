@@ -98,5 +98,5 @@ def test_binning_strategy_datetime(data):
 
 def test_formatting_strategy_initialization():
     with pytest.raises(TypeError, match="Can't instantiate abstract class"):
-        FormattingStrategy('measure')
+        FormattingStrategy()
 
