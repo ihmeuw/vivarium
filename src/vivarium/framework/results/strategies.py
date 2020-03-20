@@ -144,6 +144,7 @@ class FormattingStrategy(abc.ABC):
             provided series index.
 
         """
+        aggregate_data.name = 'value'
         if isinstance(aggregate_data.index, pd.MultiIndex):  # Multiple stratification criteria
             full_index = pd.MultiIndex.from_product(aggregate_data.index.levels,
                                                     names=aggregate_data.index.names)
