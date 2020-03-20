@@ -153,9 +153,6 @@ def test_result_producer_strategy(data):
     assert r.additional_keys == {}
 
 
-
-
 def test_formatting_strategy_initialization():
     with pytest.raises(TypeError, match="Can't instantiate abstract class"):
         FormattingStrategy()
-
