@@ -1,1 +1,1 @@
-from vivarium.framework.results.strategies import MappingStrategy
+from vivarium.framework.results.strategies import MappingStrategy, BinningStrategy

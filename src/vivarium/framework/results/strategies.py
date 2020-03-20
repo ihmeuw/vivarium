@@ -61,3 +61,41 @@ class MappingStrategy:
                 result_data = population[self._target].apply(self._mapper)
         result[self._mapped_column] = result_data.astype('category')
         return result
+
+
+class BinningStrategy(MappingStrategy):
+    """A strategy for expanding results data by binning continuous columns.
+
+    A binning strategy is an often-used special case of a
+    :obj:`MappingStrategy`. It maps a continuous column into a categorical
+    column by slicing up the range of the continuous column into discrete
+    bins.
+
+    """
+
+    def __init__(self, target: str, binned_column: str, bins: List[Union[int, float, pd.Timestamp]],
+                 labels: List[str], **cut_kwargs):
+        """
+        Parameters
+        ----------
+        target
+            The name of a true state table column or value pipeline to be
+            binned into a new column in the expanded state table for
+            results production.
+        binned_column
+            The name of the column in the expanded state table to be
+            produced by the binning strategy.
+        bins
+            The bin edges.
+        labels
+            The labels of the resulting bins.  These will be the values in
+            the `binned_column`
+        cut_kwargs
+            Additional kwargs to provide to :func:`pandas.cut`.
+
+        """
+        def _bin_data(data: pd.Series) -> pd.Series:
+            """Utility function to provide as a mapper."""
+            return pd.cut(data, bins, labels=labels, **cut_kwargs)
+
+        super().__init__(target, binned_column, _bin_data, is_vectorized=True)

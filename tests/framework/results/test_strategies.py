@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vivarium.framework.results import MappingStrategy
+from vivarium.framework.results import MappingStrategy, BinningStrategy
 
 
 @pytest.fixture
@@ -68,3 +68,30 @@ def test_mapping_strategy_multi_col_to_bool(data, is_vectorized):
     new_data = strategy(data)
     check_columns(data, new_data, 'is_dangerous')
     assert ((data.color == 'red') & (data.max_speed > 120)).equals(new_data.is_dangerous.astype(bool))
+
+
+def test_binning_strategy_float(data):
+    target = 'max_speed'
+    binned_column = 'how_fast'
+    bins = [0, 100, 1000]
+    labels = ['slow', 'fast']
+
+    strategy = BinningStrategy(target, binned_column, bins, labels)
+    new_data = strategy(data)
+    check_columns(data, new_data, 'how_fast')
+    assert (data.max_speed <= 100).map({True: 'slow', False: 'fast'}).equals(new_data.how_fast.astype(str))
+
+
+def test_binning_strategy_datetime(data):
+    target = 'design_date'
+    binned_column = 'when'
+    bins = [pd.Timestamp('1-1-1990'), pd.Timestamp('1-1-2000'), pd.Timestamp('12-31-2020')]
+    labels = ['ancient', 'modern']
+
+    strategy = BinningStrategy(target, binned_column, bins, labels, include_lowest=True)
+    new_data = strategy(data)
+    check_columns(data, new_data, 'when')
+    assert ((data.design_date <= pd.Timestamp('1-1-2000'))
+            .map({True: 'ancient', False: 'modern'})
+            .equals(new_data.when.astype(str)))
+
