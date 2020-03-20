@@ -1,6 +1,6 @@
 import abc
 from collections import defaultdict
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List, Union, Generator
 
 import pandas as pd
 from pandas.core.groupby import GroupBy
@@ -283,7 +283,7 @@ class ResultsProducerStrategyPool:
         producer = ResultProducerStrategy(measure, aggregator, additional_keys)
         self._pool[when][grouper].append(producer)
 
-    def produce_results(self, when: str, data: pd.DataFrame):
+    def produce_results(self, when: str, data: pd.DataFrame) -> Generator[Result]:
         """Generate results from data according to strategies in the pool.
 
         Parameters
@@ -351,28 +351,27 @@ class FormattingStrategy(abc.ABC):
         return data
 
     @abc.abstractmethod
-    def __call__(self, aggregate_data: pd.Series, measure: str, **additional_keys: Dict[str, str]):
-        return self._broadcast_aggregates(aggregate_data)
+    def __call__(self, result: Result):
+        return self._broadcast_aggregates(result.data)
 
 
 class DictFormattingStrategy(FormattingStrategy):
     """Formatting strategy to produce a dictionary results from aggregates."""
 
-    def __call__(self, aggregate_data: pd.Series, measure: str,
-                 **additional_keys: Dict[str, str]) -> Dict[str, float]:
-        data = super()(aggregate_data, measure, **additional_keys)
+    def __call__(self, result: Result) -> Dict[str, float]:
+        result.data = super()(result)
 
         def _format_token(field, param):
             """Format of the measure identifier tokens into FIELD_param."""
             return f'{str(field).upper()}_{str(param).lower()}'
 
         results = {}
-        for _, row in data.iterrows():
+        for _, row in result.data.iterrows():
             key = '_'.join(
-                [_format_token('measure', measure)]
+                [_format_token('measure', result.measure)]
                 + [_format_token(field, param) for field, param in row.to_dict().items() if field != 'value']
                 # Sorts additional_keys by the field name.
-                + [_format_token(field, param) for field, param in sorted(additional_keys)]
+                + [_format_token(field, param) for field, param in sorted(result.additional_keys)]
             )
             results[key] = row.value
         return results
