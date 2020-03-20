@@ -5,7 +5,12 @@ import pandas as pd
 
 
 class FormattingStrategy(abc.ABC):
-    """Base interface for results formatting strategies."""
+    """Base interface for results formatting strategies.
+
+    Formatting strategies turn aggregated results into a final output
+    format for results production.
+
+    """
 
     def __init__(self, measure: str, **additional_keys: Dict[str, str]):
         """
