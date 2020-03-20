@@ -123,7 +123,7 @@ class FormattingStrategy(abc.ABC):
         self._measure = measure
         self._additional_keys = additional_keys
 
-    @staticmethod
+    @staticmethod  # NOTE: Do not override.  This method is final.
     def _broadcast_aggregates(aggregate_data: pd.Series) -> pd.DataFrame:
         if isinstance(aggregate_data.index, pd.MultiIndex):  # Multiple stratification criteria
             full_index = pd.MultiIndex.from_product(aggregate_data.index.levels,

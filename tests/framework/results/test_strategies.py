@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vivarium.framework.results import MappingStrategy, BinningStrategy
+from vivarium.framework.results import MappingStrategy, BinningStrategy, FormattingStrategy
 
 
 @pytest.fixture
@@ -94,4 +94,9 @@ def test_binning_strategy_datetime(data):
     assert ((data.design_date <= pd.Timestamp('1-1-2000'))
             .map({True: 'ancient', False: 'modern'})
             .equals(new_data.when.astype(str)))
+
+
+def test_formatting_strategy_initialization():
+    with pytest.raises(TypeError, match="Can't instantiate abstract class"):
+        FormattingStrategy('measure')
 
