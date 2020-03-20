@@ -1,6 +1,6 @@
 import abc
 from collections import defaultdict
-from typing import Callable, Dict, List, Union, Generator
+from typing import Callable, Dict, Iterator, List, Union
 
 import pandas as pd
 from pandas.core.groupby import GroupBy
@@ -283,7 +283,7 @@ class ResultsProducerStrategyPool:
         producer = ResultProducerStrategy(measure, aggregator, additional_keys)
         self._pool[when][grouper].append(producer)
 
-    def produce_results(self, when: str, data: pd.DataFrame) -> Generator[Result]:
+    def produce_results(self, when: str, data: pd.DataFrame) -> Iterator[Result]:
         """Generate results from data according to strategies in the pool.
 
         Parameters

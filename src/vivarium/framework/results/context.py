@@ -1,4 +1,4 @@
-from typing import Callable, Generator, List, Union
+from typing import Callable, Iterator, List, Union
 
 import pandas as pd
 
@@ -20,7 +20,7 @@ class ResultsContext:
                              mapper: Callable, is_vectorized: bool):
         self._mapper.add_strategy(MappingStrategy(target, result_column, mapper, is_vectorized))
 
-    def get_results(self, data: pd.DataFrame, event_name: str) -> Generator:
+    def get_results(self, data: pd.DataFrame, event_name: str) -> Iterator:
         data = self._mapper.expand_data(data)
         for result in self._producer.produce_results(event_name, data):
             yield self._format(result)
