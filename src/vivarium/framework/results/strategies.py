@@ -1,5 +1,5 @@
 import abc
-from typing import Callable, Dict, List, TypeVar, Union
+from typing import Callable, Dict, List, Union
 
 import pandas as pd
 
@@ -33,9 +33,14 @@ class MappingStrategy:
 
         """
         self._target = target
-        self._mapped_column = mapped_column
+        self._result_column = mapped_column
         self._mapper = mapper
         self._is_vectorized = is_vectorized
+
+    @property
+    def result_column(self):
+        """The result column produced by this mapping strategy."""
+        return self._result_column
 
     def __call__(self, population: pd.DataFrame) -> pd.DataFrame:
         """Applies the mapping strategy to the population to add new data.
@@ -60,7 +65,7 @@ class MappingStrategy:
                 result_data = population[self._target].apply(self._mapper, axis=1)
             else:
                 result_data = population[self._target].apply(self._mapper)
-        result[self._mapped_column] = result_data.astype('category')
+        result[self.result_column] = result_data.astype('category')
         return result
 
 
