@@ -188,6 +188,72 @@ class ResultProducerStrategy:
         return Result(self._measure, result, self._additional_keys)
 
 
+class Grouper:
+    """Strategy for grouping data for aggregation and then cleaning it up."""
+
+    # These two attributes are used to give results producer
+    # strategies consistent data types to work with.
+    # E.g. if there are no groupby columns, we need a
+    # dummy column in order to get a groupby object to get the same
+    # behavior out of the `.apply` method in aggregation.
+    default_grouper = 'default_grouper'
+    default_grouper_value = True
+
+    def __init__(self, data_filter: str, groupby_cols: List[str]):
+        """
+        Parameters
+        ----------
+        data_filter
+            A filter to apply before grouping to subset the data.
+        groupby_cols
+            Columns to stratify the results by.
+
+        """
+        self._data_filter = data_filter
+        self._groupby_cols = sorted(groupby_cols)
+
+    def group(self, data: pd.DataFrame) -> GroupBy:
+        """Groups a set of data according to this strategy.
+
+        Parameters
+        ----------
+        data
+            A data set to group.
+
+        Returns
+        -------
+            A data set groupby according to this strategy.  The underlying
+            data will have an extra column that can be safely ignored.
+
+        """
+        if self._data_filter:
+            data = data.query(self._data_filter)
+        data[self.default_grouper] = pd.Series(self.default_grouper_value, index=data.index, dtype='category')
+        return data.groupby(self._groupby_cols + [self.default_grouper])
+
+    def ungroup(self, data: pd.Series) -> pd.Series:
+        """Removes dummy groupby columns."""
+        if isinstance(data.index, pd.MultiIndex):
+            data.index = data.index.droplevel(level=self.default_grouper)
+        else:
+            data = data.reset_index(drop=True)
+        return data
+
+    # Make the Grouper usable as a dict key.
+
+    def __eq__(self, other: 'Grouper'):
+        self_key = (self._data_filter, tuple(self._groupby_cols))
+        other_key = (other._data_filter, tuple(other._groupby_cols))
+        return isinstance(other, Grouper) and self_key == other_key
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __hash__(self):
+        self_key = (self._data_filter, tuple(self._groupby_cols))
+        return hash(self_key)
+
+
 class FormattingStrategy(abc.ABC):
     """Base interface for results formatting strategies.
 
