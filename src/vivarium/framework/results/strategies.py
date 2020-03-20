@@ -1,4 +1,5 @@
 import abc
+from collections import defaultdict
 from typing import Callable, Dict, List, Union
 
 import pandas as pd
@@ -252,6 +253,54 @@ class Grouper:
     def __hash__(self):
         self_key = (self._data_filter, tuple(self._groupby_cols))
         return hash(self_key)
+
+
+class ResultsProducerStrategyPool:
+    """A collection of results production strategies."""
+
+    def __init__(self):
+        self._pool = defaultdict(lambda: defaultdict(list))
+
+    def add_producer_strategy(self, measure: str, data_filter: str,
+                              groupby_columns: List[str],  aggregator: Callable[[pd.DataFrame], float],
+                              when: str, **additional_keys: str):
+        """Add a new producer strategy to the pool.
+
+        Parameters
+        ----------
+        measure
+        data_filter
+        groupby_columns
+        aggregator
+        when
+        additional_keys
+
+        Returns
+        -------
+
+        """
+        grouper = Grouper(data_filter, groupby_columns)
+        producer = ResultProducerStrategy(measure, aggregator, additional_keys)
+        self._pool[when][grouper].append(producer)
+
+    def produce_results(self, when: str, data: pd.DataFrame):
+        """Generate results from data according to strategies in the pool.
+
+        Parameters
+        ----------
+        when
+        data
+
+        Yields
+        ------
+
+        """
+        for grouper, producers in self._pool[when]:
+            grouped_data = grouper.group(data)
+            for producer in producers:
+                result = producer(grouped_data)
+                result.data = grouper.ungroup(result.data)
+                yield result
 
 
 class FormattingStrategy(abc.ABC):
