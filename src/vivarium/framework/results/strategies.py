@@ -166,3 +166,25 @@ class FormattingStrategy(abc.ABC):
     @abc.abstractmethod
     def __call__(self, aggregate_data: pd.Series):
         return self._broadcast_aggregates(aggregate_data)
+
+
+class DictFormattingStrategy(FormattingStrategy):
+    """Formatting strategy to produce a dictionary results from aggregates."""
+
+    def __call__(self, aggregate_data: pd.Series) -> Dict[str, float]:
+        data = super()(aggregate_data)
+
+        def _format_token(field, param):
+            """Format of the measure identifier tokens into FIELD_param."""
+            return f'{str(field).upper()}_{str(param).lower()}'
+
+        results = {}
+        for _, row in data.iterrows():
+            key = '_'.join(
+                [_format_token('measure', self._measure)]
+                + [_format_token(field, param) for field, param in row.to_dict().items() if field != 'value']
+                # Sorts additional_keys by the field name.
+                + [_format_token(field, param) for field, param in sorted(self._additional_keys.items())]
+            )
+            results[key] = row.value
+        return results
