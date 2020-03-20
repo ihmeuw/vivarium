@@ -1,5 +1,5 @@
 import abc
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List, TypeVar, Union
 
 import pandas as pd
 
@@ -110,19 +110,6 @@ class FormattingStrategy(abc.ABC):
 
     """
 
-    def __init__(self, measure: str, **additional_keys: Dict[str, str]):
-        """
-        Parameters
-        ----------
-        measure
-            The measure this strategy is formatted to produce.
-        additional_keys
-            Additional labels to attach to the formatted data.
-
-        """
-        self._measure = measure
-        self._additional_keys = additional_keys
-
     @staticmethod  # NOTE: Do not override.  This method is final.
     def _broadcast_aggregates(aggregate_data: pd.Series) -> pd.DataFrame:
         """Broadcasts aggregate data over unobserved categories.
@@ -144,7 +131,6 @@ class FormattingStrategy(abc.ABC):
             provided series index.
 
         """
-        aggregate_data.name = 'value'
         if isinstance(aggregate_data.index, pd.MultiIndex):  # Multiple stratification criteria
             full_index = pd.MultiIndex.from_product(aggregate_data.index.levels,
                                                     names=aggregate_data.index.names)
@@ -164,15 +150,16 @@ class FormattingStrategy(abc.ABC):
         return data
 
     @abc.abstractmethod
-    def __call__(self, aggregate_data: pd.Series):
+    def __call__(self, aggregate_data: pd.Series, measure: str, **additional_keys: Dict[str, str]):
         return self._broadcast_aggregates(aggregate_data)
 
 
 class DictFormattingStrategy(FormattingStrategy):
     """Formatting strategy to produce a dictionary results from aggregates."""
 
-    def __call__(self, aggregate_data: pd.Series) -> Dict[str, float]:
-        data = super()(aggregate_data)
+    def __call__(self, aggregate_data: pd.Series, measure: str,
+                 **additional_keys: Dict[str, str]) -> Dict[str, float]:
+        data = super()(aggregate_data, measure, **additional_keys)
 
         def _format_token(field, param):
             """Format of the measure identifier tokens into FIELD_param."""
@@ -181,10 +168,10 @@ class DictFormattingStrategy(FormattingStrategy):
         results = {}
         for _, row in data.iterrows():
             key = '_'.join(
-                [_format_token('measure', self._measure)]
+                [_format_token('measure', measure)]
                 + [_format_token(field, param) for field, param in row.to_dict().items() if field != 'value']
                 # Sorts additional_keys by the field name.
-                + [_format_token(field, param) for field, param in sorted(self._additional_keys.items())]
+                + [_format_token(field, param) for field, param in sorted(additional_keys)]
             )
             results[key] = row.value
         return results
