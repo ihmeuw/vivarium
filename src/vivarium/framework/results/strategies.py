@@ -1,4 +1,5 @@
-from typing import Callable, List, Union
+import abc
+from typing import Callable, Dict, List, Union
 
 import pandas as pd
 
@@ -99,3 +100,49 @@ class BinningStrategy(MappingStrategy):
             return pd.cut(data, bins, labels=labels, **cut_kwargs)
 
         super().__init__(target, binned_column, _bin_data, is_vectorized=True)
+
+
+class FormattingStrategy(abc.ABC):
+    """Base interface for results formatting strategies.
+
+    Formatting strategies turn aggregated results into a final output
+    format for results production.
+
+    """
+
+    def __init__(self, measure: str, **additional_keys: Dict[str, str]):
+        """
+        Parameters
+        ----------
+        measure
+            The measure this strategy is formatted to produce.
+        additional_keys
+            Additional labels to attach to the formatted data.
+
+        """
+        self._measure = measure
+        self._additional_keys = additional_keys
+
+    @staticmethod
+    def _broadcast_aggregates(aggregate_data: pd.Series) -> pd.DataFrame:
+        if isinstance(aggregate_data.index, pd.MultiIndex):  # Multiple stratification criteria
+            full_index = pd.MultiIndex.from_product(aggregate_data.index.levels,
+                                                    names=aggregate_data.index.names)
+            data = pd.Series(data=0, index=full_index, name=aggregate_data.name)
+            data.loc[aggregate_data.index] = aggregate_data
+            data = data.reset_index()
+        elif isinstance(aggregate_data.index, pd.CategoricalIndex):  # Single stratification criteria
+            full_index = pd.CategoricalIndex(aggregate_data.index.categories,
+                                             categories=aggregate_data.index.categories,
+                                             ordered=aggregate_data.index.ordered,
+                                             name=aggregate_data.index.name)
+            data = pd.Series(data=0, index=full_index, name=aggregate_data.name)
+            data.loc[aggregate_data.index] = aggregate_data
+            data = data.reset_index()
+        else:  # No stratification criteria
+            data = aggregate_data.to_frame()
+        return data
+
+    @abc.abstractmethod
+    def __call__(self, aggregate_data: pd.Series):
+        return self._broadcast_aggregates(aggregate_data)
