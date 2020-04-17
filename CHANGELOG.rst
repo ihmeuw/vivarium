@@ -1,3 +1,85 @@
+**0.9.3 - 12/7/19**
+
+ - Bugfix in population type conversion.
+
+**0.9.2 - 12/3/19**
+
+ - Bugfix in artifact configuration management.
+ - Bugfix in population query.
+
+**0.9.1 - 11/18/19**
+
+ - Be less restrictive about when get_value can be called.
+
+**0.9.0 - 11/16/19**
+
+ - Clean up event emission.
+ - Make events immutable.
+ - Stronger validation around model specification file.
+ - Move the data artifact from vivarium public health to vivarium.
+ - Update the ConfigTree str and repr to be more legible.
+ - Be consistent about preferring pathlib over os.path.
+ - Add some ConfigTree specific errors.
+ - Refactor ConfigTree and ConfigNode to remove unused functionality and
+   make the interface more consistent.
+ - Extensively update documentation for configuration system.
+ - Restructure component initialization so that **all** simulation components
+   are created at simulation initialization time. Previous behavior had
+   sub-components created at setup time.
+ - Introduce lifecycle management system to enforce events proceed in the
+   correct order and ensure framework tools are not misused.
+ - Remove results writer.
+ - Overhaul simulation creation to be significantly less complex.
+ - Update privacy levels for simulation context managers.
+ - Update context creation and usage tutorials.
+ - Ditch the 'omit_missing_columns' argument for PopulationView.get.  Subviews
+   should be used instead.
+ - Consistent naming for rates in data, pipelines, and configuration.
+ - Introduce resource management system for users to properly specify
+   component dependencies for population initialization.
+ - Switch age_group_start and age_group_end to age_start and age_end, making
+   the naming scheme for binned data consistent.
+ - Use loguru for logging.
+ - Fix a bug in transition probability computation.
+ - Raise error when component attempts to update columns they don't own instead
+   of silently ignoring them.
+ - Use consistent data bin naming to make using lookup tables less verbose.
+ - Rename value system joint_value_postprocessor to union_postprocessor.
+ - Docs and concept note for values system.
+ - Be consistent about manager naming on builder interfaces.
+ - Updated concept docs for entry points.
+ - Lookup table docs and concept note.
+ - Bugfix in randomness to handle datetime conversion on Windows.
+ - Constrain components to only have a single population initializer.
+
+**0.8.24 - 08/20/19**
+
+ - Bugfix to prevent component list from not including setup components during setup phase.
+ - Bugfix to dot diagram of state machine.
+
+**0.8.23 - 08/09/19**
+
+ - Move handle_exceptions() up to vivarium to eliminate duplication
+
+**0.8.22 - 07/16/19**
+
+ - Bugfix for lookup table input validation.
+ - Event subsytem documentation.
+
+**0.8.21 - 06/14/19**
+
+ - Add names and better reprs to some of the managers.
+ - ConfigTree documentation
+ - Yaml load bugfix.
+ - Documentation for ``simulate run`` and the interactive context.
+ - Tutorials for running a simulation interactively and from the command line.
+ - Headers for API documentation.
+ - Component management documentation.
+ - Enforce all components have a unique name.
+ - Add ``get_components_by_type`` and ``get_component(name)`` to
+   the component manager.
+ - Bugfix in the lookup table.
+
 **0.8.20 - 04/22/19**
 
  - Add simulation lifecycle info to the simulant creator.

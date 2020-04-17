@@ -151,7 +151,7 @@ class IndexMap:
             numeric.
         """
         if isinstance(column.iloc[0], datetime.datetime):
-            column = self.clip_to_seconds(column.astype(int))
+            column = self.clip_to_seconds(column.astype(np.int64))
         elif np.issubdtype(column.iloc[0], np.integer):
             if not len(column >= 0) == len(column):
                 raise RandomnessError("Values in integer columns must be greater than or equal to zero.")
@@ -455,6 +455,10 @@ class RandomnessStream:
         else:
             return RandomnessStream(copy_key, self.clock, self.seed, self.index_map)
 
+    @property
+    def name(self):
+        return f'randomness_stream_{self.key}'
+
     def _key(self, additional_key: Any = None) -> str:
         """Construct a hashable key from this object's state.
 
@@ -493,22 +497,6 @@ class RandomnessStream:
             draw = random(self._key(additional_key), index, self.index_map)
 
         return draw
-
-    def get_seed(self, additional_key: Any = None) -> int:
-        """Get a randomly generated seed for use with external randomness tools.
-
-        Parameters
-        ----------
-        additional_key :
-            Any additional information used to create the seed.
-
-        Returns
-        -------
-        int
-            A seed for a random number generation that is linked to Vivarium's
-            common random number framework.
-        """
-        return get_hash(self._key(additional_key))
 
     def filter_for_rate(self, population: Union[pd.DataFrame, pd.Series, Index],
                         rate: Array, additional_key: Any = None) -> Index:
@@ -648,6 +636,13 @@ class RandomnessManager:
         pop_size = builder.configuration.population.population_size
         self._key_mapping.map_size = max(map_size, 10*pop_size)
 
+        self.resources = builder.resources
+        self._add_constraint = builder.lifecycle.add_constraint
+        self._add_constraint(self.get_seed, restrict_during=['initialization'])
+        self._add_constraint(self.get_randomness_stream, allow_during=['setup'])
+        self._add_constraint(self.register_simulants,
+                             restrict_during=['initialization', 'setup', 'post_setup', 'simulation_end', 'report'])
+
     def get_randomness_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -669,6 +664,18 @@ class RandomnessManager:
             If another location in the simulation has already created a randomness stream
             with the same identifier.
         """
+        stream = self._get_randomness_stream(decision_point, for_initialization)
+        if not for_initialization:  # We need the key columns to be created before this stream can be called.
+            self.resources.add_resources('stream', [decision_point], stream,
+                                         [f'column.{name}' for name in self._key_columns])
+        self._add_constraint(stream.get_draw, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(stream.filter_for_probability, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(stream.filter_for_rate, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(stream.choice, restrict_during=['initialization', 'setup', 'post_setup'])
+
+        return stream
+
+    def _get_randomness_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
         if decision_point in self._decision_points:
             raise RandomnessError(f"Two separate places are attempting to create "
                                   f"the same randomness stream for {decision_point}")
@@ -676,6 +683,24 @@ class RandomnessManager:
                                   index_map=self._key_mapping, manager=self, for_initialization=for_initialization)
         self._decision_points[decision_point] = stream
         return stream
+
+    def get_seed(self, decision_point: str) -> int:
+        """Get a randomly generated seed for use with external randomness tools.
+
+        Parameters
+        ----------
+        decision_point :
+            A unique identifier for a stream of random numbers.  Typically represents
+            a decision that needs to be made each time step like 'moves_left' or
+            'gets_disease'.
+
+        Returns
+        -------
+        int
+            A seed for a random number generation that is linked to Vivarium's
+            common random number framework.
+        """
+        return get_hash('_'.join([decision_point, str(self._clock()), str(self._seed)]))
 
     def register_simulants(self, simulants: pd.DataFrame):
         """Adds new simulants to the randomness mapping.
@@ -704,8 +729,8 @@ class RandomnessManager:
 
 class RandomnessInterface:
 
-    def __init__(self, randomness_manager: RandomnessManager):
-        self._randomness_manager = randomness_manager
+    def __init__(self, manager: RandomnessManager):
+        self._manager = manager
 
     def get_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
@@ -735,7 +760,25 @@ class RandomnessInterface:
             An entry point into the Common Random Number generation framework. The stream provides
             vectorized access to random numbers and a few other utilities.
         """
-        return self._randomness_manager.get_randomness_stream(decision_point, for_initialization)
+        return self._manager.get_randomness_stream(decision_point, for_initialization)
+
+    def get_seed(self, decision_point: str) -> int:
+        """Get a randomly generated seed for use with external randomness tools.
+
+        Parameters
+        ----------
+        decision_point :
+            A unique identifier for a stream of random numbers.  Typically represents
+            a decision that needs to be made each time step like 'moves_left' or
+            'gets_disease'.
+
+        Returns
+        -------
+        int
+            A seed for a random number generation that is linked to Vivarium's
+            common random number framework.
+        """
+        return self._manager.get_seed(decision_point)
 
     def register_simulants(self, simulants: pd.DataFrame):
         """Registers simulants with the Common Random Number Framework.
@@ -747,4 +790,4 @@ class RandomnessInterface:
             in ``builder.configuration.randomness.key_columns``.  This function should be called
             as soon as the key columns are generated.
         """
-        self._randomness_manager.register_simulants(simulants)
+        self._manager.register_simulants(simulants)

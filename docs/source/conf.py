@@ -14,17 +14,17 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-import os
+from pathlib import Path
 import sys
 
 import vivarium
-base_dir = os.path.dirname(vivarium.__file__)
+base_dir = Path(vivarium.__file__).parent
 
 about = {}
-with open(os.path.join(base_dir, "__about__.py")) as f:
+with (base_dir / "__about__.py").open() as f:
     exec(f.read(), about)
 
-sys.path.insert(0, os.path.abspath('..'))
+sys.path.insert(0, Path('..').resolve())
 
 # -- Project information -----------------------------------------------------
 
@@ -59,6 +59,7 @@ extensions = [
     'sphinx_click.ext',
     'sphinx_autodoc_typehints',
     'matplotlib.sphinxext.plot_directive',
+
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -184,7 +185,8 @@ texinfo_documents = [
 ]
 
 # Example configuration for intersphinx: refer to the Python standard library.
-# intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
+                       'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None)}
 
 
 # -- Autodoc configuration ------------------------------------------------
