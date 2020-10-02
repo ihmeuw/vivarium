@@ -61,7 +61,8 @@ class InterpolatedTable:
                  value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int,
                  clock: Callable,
-                 extrapolate: bool):
+                 extrapolate: bool,
+                 validate: bool):
 
         self.data = data
         self.population_view = population_view
@@ -74,8 +75,10 @@ class InterpolatedTable:
         self.value_columns = value_columns
         self.clock = clock
         self.extrapolate = extrapolate
+        self.validate = validate
         self.interpolation = Interpolation(data, self.key_columns, self.parameter_columns,
-                                           order=self.interpolation_order, extrapolate=self.extrapolate)
+                                           order=self.interpolation_order, extrapolate=self.extrapolate,
+                                           validate=self.validate)
 
     def __call__(self, index: pd.Index) -> pd.DataFrame:
         """Get the interpolated values for the rows in ``index``.
@@ -176,10 +179,13 @@ class LookupTable:
                  value_columns: Union[List[str], Tuple[str]],
                  interpolation_order: int,
                  clock: Callable,
-                 extrapolate: bool):
+                 extrapolate: bool,
+                 validate: bool):
         self.table_number = table_number
         key_columns = [] if key_columns is None else key_columns
-        validate_parameters(data, key_columns, parameter_columns, value_columns)
+
+        if validate:
+            validate_parameters(data, key_columns, parameter_columns, value_columns)
 
         # Note datetime catches pandas timestamps
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
@@ -187,7 +193,8 @@ class LookupTable:
         else:
             view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'}) + ['tracked']
             self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
-                                            parameter_columns, value_columns, interpolation_order, clock, extrapolate)
+                                            parameter_columns, value_columns, interpolation_order, clock, extrapolate,
+                                            validate)
 
     @property
     def name(self):
@@ -270,6 +277,7 @@ class LookupTableManager:
     configuration_defaults = {
         'interpolation': {
             'order': 0,
+            'validate': True,
             'extrapolate': True
         }
     }
@@ -284,6 +292,7 @@ class LookupTableManager:
         self.clock = builder.time.clock()
         self._interpolation_order = builder.configuration.interpolation.order
         self._extrapolate = builder.configuration.interpolation.extrapolate
+        self._validate = builder.configuration.interpolation.validate
         self._add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(self.build_table, allow_during=['setup'])
@@ -303,7 +312,8 @@ class LookupTableManager:
         # generic names is useful for introspection.
         table_number = len(self.tables)
         table = LookupTable(table_number, data, self._pop_view_builder, key_columns, parameter_columns,
-                            value_columns, self._interpolation_order, self.clock, self._extrapolate)
+                            value_columns, self._interpolation_order, self.clock, self._extrapolate, 
+                            self._validate)
         self.tables[table_number] = table
         return table
 

@@ -168,11 +168,11 @@ class PopulationView:
             return pop
         else:
             columns = self._columns
-            try:
-                return pop.loc[:, columns]
-            except KeyError:
-                non_existent_columns = set(columns) - set(pop.columns)
+            non_existent_columns = set(columns) - set(pop.columns)
+            if non_existent_columns:
                 raise PopulationError(f'Requested column(s) {non_existent_columns} not in population table.')
+            else:
+                return pop.loc[:, columns]
 
     def update(self, population_update: Union[pd.DataFrame, pd.Series]):
         """Updates the state table with the provided data.

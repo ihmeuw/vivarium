@@ -151,3 +151,15 @@ def test_RandomnessManager_register_simulants():
 
     rm.register_simulants(good_df)
     assert rm._key_mapping._map.index.difference(good_df.set_index(good_df.columns.tolist()).index).empty
+
+
+def test_get_random_seed():
+    seed = '123456'
+    decision_point = 'test'
+
+    rm = RandomnessManager()
+    rm._add_constraint = lambda f, **kwargs: f
+    rm._seed = seed
+    rm._clock = mock_clock
+
+    assert rm.get_seed(decision_point) == random.get_hash(f'{decision_point}_{rm._clock()}_{seed}')

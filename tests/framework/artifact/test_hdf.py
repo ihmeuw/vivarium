@@ -272,7 +272,8 @@ def test_EntityKey_init_failure():
     bad_keys = ['hello', 'a.b.c.d', '', '.', '.coconut', 'a.', 'a..c']
 
     for k in bad_keys:
-        with pytest.raises(ValueError):
+        error_msg = f'Invalid format for HDF key: {k}. Acceptable formats are "type.name.measure" and "type.measure"'
+        with pytest.raises(ValueError, match=error_msg):
             hdf.EntityKey(k)
 
 
@@ -305,3 +306,32 @@ def test_EntityKey_with_name():
     assert key.group == f'/{type_}/{name}'
     assert key.path == f'/{type_}/{name}/{measure}'
     assert key.with_measure('prevalence') == hdf.EntityKey(f'{type_}.{name}.prevalence')
+
+
+def test_entity_key_equality():
+
+    type_ = 'cause'
+    name = 'diarrheal_diseases'
+    measure = 'incidence'
+    string = f'{type_}.{name}.{measure}'
+    key = hdf.EntityKey(string)
+
+    class NonString:
+        def __str__(self):
+            return string
+
+    nonstring = NonString()
+
+    assert key == string, 'Comparision using __eq__ between string object and equivalent EntityKey failed'
+    assert not (key != string), 'Comparision using __ne__ between string object and equivalent EntityKey failed'
+    assert key != nonstring, 'Comparision using __eq__ between non-string object and equivalent EntityKey failed'
+    assert not (key == nonstring), 'Comparision using __ne__ between non-string object and equivalent EntityKey failed'
+
+    measure = 'prevalence'
+    string = f'{type_}.{name}.{measure}'
+
+    assert key != string, 'Comparision using __eq__ between string object and different EntityKey failed'
+    assert not (key == string), 'Comparision using __ne__ between string object and different EntityKey failed'
+    assert key != nonstring, 'Comparision using __eq__ between non-string object and different EntityKey failed'
+    assert not (key == nonstring), 'Comparision using __ne__ between non-string object and different EntityKey failed'
+

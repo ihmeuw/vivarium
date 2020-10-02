@@ -34,13 +34,14 @@ class Interpolation:
         """
 
     def __init__(self, data: pd.DataFrame, categorical_parameters: Union[List[str], Tuple[str]],
-                 continuous_parameters: ParameterType, order: int, extrapolate: bool):
+                 continuous_parameters: ParameterType, order: int, extrapolate: bool, validate: bool):
 
         # TODO: allow for order 1 interpolation with binned edges
         if order != 0:
             raise NotImplementedError(f'Interpolation is only supported for order 0. You specified order {order}')
 
-        validate_parameters(data, categorical_parameters, continuous_parameters)
+        if validate:
+            validate_parameters(data, categorical_parameters, continuous_parameters)
 
         self.key_columns = categorical_parameters
         self.data = data.copy()
@@ -51,6 +52,7 @@ class Interpolation:
 
         self.order = order
         self.extrapolate = extrapolate
+        self.validate = validate
 
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
@@ -67,7 +69,7 @@ class Interpolation:
                 continue
             # since order 0, we can interpolate all values at once
             self.interpolations[key] = Order0Interp(base_table, self.parameter_columns,
-                                                    self.value_columns, self.extrapolate)
+                                                    self.value_columns, self.extrapolate, self.validate)
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Get the interpolated results for the parameters in interpolants.
@@ -83,7 +85,8 @@ class Interpolation:
             A table with the interpolated values for the given interpolants.
         """
 
-        validate_call_data(interpolants, self.key_columns, self.parameter_columns)
+        if self.validate:
+            validate_call_data(interpolants, self.key_columns, self.parameter_columns)
 
         if self.key_columns:
             sub_tables = interpolants.groupby(list(self.key_columns))
@@ -210,7 +213,8 @@ class Order0Interp:
     parameter_columns :
         Column names to be used as parameters in Interpolation.
     """
-    def __init__(self, data, parameter_columns: ParameterType, value_columns: List[str], extrapolate: bool):
+    def __init__(self, data, parameter_columns: ParameterType, value_columns: List[str], extrapolate: bool,
+                 validate: bool):
         """
 
         Parameters
@@ -226,7 +230,9 @@ class Order0Interp:
             Whether or not to extrapolate beyond the edge of supplied bins.
 
         """
-        check_data_complete(data, parameter_columns)
+        if validate:
+            check_data_complete(data, parameter_columns)
+            
         self.data = data.copy()
         self.value_columns = value_columns
         self.extrapolate = extrapolate
