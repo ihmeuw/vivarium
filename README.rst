@@ -1,6 +1,6 @@
-========
-Vivarium
-========
+=============================
+Vivarium - testing Github actions
+=============================
 
 .. image:: https://badge.fury.io/py/vivarium.svg
     :target: https://badge.fury.io/py/vivarium
