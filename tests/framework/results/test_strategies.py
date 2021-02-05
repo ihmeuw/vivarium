@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vivarium.framework.results import MappingStrategy, BinningStrategy, FormattingStrategy
+from vivarium.framework.results import MappingStrategy, BinningStrategy, MappingStrategyPool, FormattingStrategy
 
 
 @pytest.fixture
@@ -94,6 +94,49 @@ def test_binning_strategy_datetime(data):
     assert ((data.design_date <= pd.Timestamp('1-1-2000'))
             .map({True: 'ancient', False: 'modern'})
             .equals(new_data.when.astype(str)))
+
+
+def test_mapping_strategy_pool_duplicate_result_column():
+    strategy = MappingStrategy('coconut', 'unladen_swallow', lambda x: 'the spanish inquisition', True)
+    pool = MappingStrategyPool()
+    pool.add_strategy(strategy)
+    with pytest.raises(ValueError, match='already exists'):
+        pool.add_strategy(strategy)
+
+    strategy2 = MappingStrategy('a herring', 'unladen_swallow', lambda x: 'the spanish inquisition', True)
+    with pytest.raises(ValueError, match='already exists'):
+        pool.add_strategy(strategy2)
+
+
+def test_mapping_strategy_pool_single_strategy(data):
+    target = 'max_speed'
+    binned_column = 'how_fast'
+    bins = [0, 100, 1000]
+    labels = ['slow', 'fast']
+
+    strategy = BinningStrategy(target, binned_column, bins, labels)
+    pool = MappingStrategyPool()
+    pool.add_strategy(strategy)
+    assert strategy(data).equals(pool.expand_data(data))
+
+
+def test_mapping_strategy_pool_multiple_strategies(data):
+    target = 'max_speed'
+    binned_column = 'how_fast'
+    bins = [0, 100, 1000]
+    labels = ['slow', 'fast']
+
+    def is_dangerous(data_):
+        return (data_['color'] == 'red') & (data_['max_speed'] > 120)
+
+    strategy1 = BinningStrategy(target, binned_column, bins, labels)
+    strategy2 = MappingStrategy(['color', 'max_speed'], 'is_dangerous', is_dangerous, is_vectorized=is_vectorized)
+    pool = MappingStrategyPool()
+    pool.add_strategy(strategy1)
+    pool.add_strategy(strategy2)
+
+    assert strategy1(strategy2(data)).equals(pool.expand_data(data))
+    assert strategy2(strategy1(data)).equals(pool.expand_data(data))
 
 
 def test_formatting_strategy_initialization():

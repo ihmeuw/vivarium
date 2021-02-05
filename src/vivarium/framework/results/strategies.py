@@ -1,5 +1,5 @@
 import abc
-from typing import Callable, Dict, List, TypeVar, Union
+from typing import Callable, Dict, List, Union
 
 import pandas as pd
 
@@ -33,9 +33,14 @@ class MappingStrategy:
 
         """
         self._target = target
-        self._mapped_column = mapped_column
+        self._result_column = mapped_column
         self._mapper = mapper
         self._is_vectorized = is_vectorized
+
+    @property
+    def result_column(self):
+        """The result column produced by this mapping strategy."""
+        return self._result_column
 
     def __call__(self, population: pd.DataFrame) -> pd.DataFrame:
         """Applies the mapping strategy to the population to add new data.
@@ -60,8 +65,8 @@ class MappingStrategy:
                 result_data = population[self._target].apply(self._mapper, axis=1)
             else:
                 result_data = population[self._target].apply(self._mapper)
-        result[self._mapped_column] = result_data.astype('category')
-        return result
+        result[self.result_column] = result_data.astype('category')
+        return result.sort_index(axis=1)
 
 
 class BinningStrategy(MappingStrategy):
@@ -100,6 +105,39 @@ class BinningStrategy(MappingStrategy):
             return pd.cut(data, bins, labels=labels, **cut_kwargs)
 
         super().__init__(target, binned_column, _bin_data, is_vectorized=True)
+
+
+class MappingStrategyPool:
+    """A collection of mapping strategies that can be applied at one time."""
+
+    def __init__(self):
+        self._pool = {}
+
+    def add_strategy(self, strategy: MappingStrategy):
+        """Add a new strategy to the pool.
+
+        Parameters
+        ----------
+        strategy
+            The new strategy to add.
+
+        Raises
+        ------
+        ValueError
+            If a strategy to produce the desired result column already exists
+            in the pool.
+
+        """
+
+        if strategy.result_column in self._pool:
+            raise ValueError(f'Mapping strategy to produce {strategy.result_column} already exists.')
+        self._pool[strategy.result_column] = strategy
+
+    def expand_data(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Applies all strategies in the pool to expand the data."""
+        for strategy in self._pool.values():
+            data = strategy(data)
+        return data
 
 
 class FormattingStrategy(abc.ABC):
