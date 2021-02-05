@@ -1,3 +1,7 @@
+**0.10.1 - 12/24/20**
+
+ - Move from travis to github actions for CI.
+
 **0.10.0 - 10/2/20**
 
  - Fix bug in copying a `RandomnessStream` with a new key
