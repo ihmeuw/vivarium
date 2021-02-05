@@ -84,7 +84,7 @@ age_start filters we just described:
 
 .. code-block:: python
 
-    from vivarium_public_health.dataset_manager import Artifact
+    from vivarium import Artifact
 
     art = Artifact('test_artifact.hdf', filter_terms=['draw == 0', 'year_start > 2005', 'age_start <= 5'])
     print(art)
