@@ -1,3 +1,24 @@
+**0.10.1 - 12/24/20**
+
+ - Move from travis to github actions for CI.
+
+**0.10.0 - 10/2/20**
+
+ - Fix bug in copying a `RandomnessStream` with a new key
+ - Add documentation of randomess in vivarium
+ - Add validation to `LookupTable`, `InterpolatedTable`, `Interpolation`, and
+   `Order0Interp`
+ - Fix bug writing invalid artifact keys
+ - Fix `EntityKey` `eq` and `ne` functions
+ - Remove dependency on `graphviz`
+ - Move `get_seed` from `RandomnessStream` to `RandomnessInterface`
+ - Remove `random_seed` from output index and add `random_seed` and
+   `input_draw` to output columns
+ - Raise a `PopulationError` when trying to access non-existent columns in a
+   `PopulationView`
+ - Fix validation issues in Travis config
+ - Fix typing issues in `ComponentManager` and `Event`
+
 **0.9.3 - 12/7/19**
 
  - Bugfix in population type conversion.
