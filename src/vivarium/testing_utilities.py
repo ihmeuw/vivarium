@@ -78,7 +78,7 @@ class TestPopulation(NonCRNTestPopulation):
                                         'age': age.values}, index=pop_data.index)
         self.register(core_population)
 
-        location = self.config.input_data.location
+        location = self.config.input_data.location if 'location' in self.config.input_data.keys() else None
         population = _build_population(core_population, location, self.randomness)
         self.population_view.update(population)
 
