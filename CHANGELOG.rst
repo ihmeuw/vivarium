@@ -1,3 +1,9 @@
+**0.10.2 - 04/27/21**
+
+ - Remove dependency on location and artifact path in configuration files
+ - Add location and artifact path arguments to `simulate run`
+ - Fix bug that broke simulations running on Windows systems
+
 **0.10.1 - 12/24/20**
 
  - Move from travis to github actions for CI.
