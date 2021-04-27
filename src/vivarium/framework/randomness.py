@@ -181,7 +181,7 @@ class IndexMap:
         """Shifts floats so that the first 10 decimal digits are significant."""
         out = m % 1 * self.TEN_DIGIT_MODULUS // 1
         if isinstance(out, pd.Series):
-            return out.astype(int)
+            return out.astype('int64')
         return int(out)
 
     def __getitem__(self, index: Index) -> pd.Series:
