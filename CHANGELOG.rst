@@ -1,5 +1,9 @@
 **0.10.2 - 04/27/21**
 
+ - Revert location and artifact path changes
+
+**0.10.2 - 04/27/21**
+
  - Remove dependency on location and artifact path in configuration files
  - Add location and artifact path arguments to `simulate run`
  - Fix bug that broke simulations running on Windows systems
