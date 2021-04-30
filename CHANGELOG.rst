@@ -1,4 +1,8 @@
-**0.10.2 - 04/27/21**
+**0.10.4 - 04/30/21**
+
+ - Reapply location and artifact path changes
+
+**0.10.3 - 04/30/21**
 
  - Revert location and artifact path changes
 
