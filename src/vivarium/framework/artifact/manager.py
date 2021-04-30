@@ -29,6 +29,7 @@ class ArtifactManager:
             'artifact_path': None,
             'artifact_filter_term': None,
             'input_draw_number': None,
+            'location': None,
         }
     }
 
@@ -182,7 +183,7 @@ def _subset_rows(data: pd.DataFrame, **column_filters: _Filter) -> pd.DataFrame:
 
 def _subset_columns(data: pd.DataFrame, **column_filters) -> pd.DataFrame:
     """Filters out unwanted columns and default columns from the data using provided filters."""
-    columns_to_remove = set(list(column_filters.keys()) + ['draw'])
+    columns_to_remove = set(list(column_filters.keys()) + ['draw', 'location'])
     columns_to_remove = columns_to_remove.intersection(data.columns)
     return data.drop(columns=columns_to_remove)
 
@@ -195,7 +196,24 @@ def get_base_filter_terms(configuration: ConfigTree):
     if draw is not None:
         base_filter_terms.append(f'draw == {draw}')
 
+    location = configuration.input_data.location
+    if location is not None:
+        base_filter_terms.append(get_location_term(location))
+
     return base_filter_terms
+
+
+def get_location_term(location: str) -> str:
+    """Generates a location filter term from a location name."""
+    template = "location == {quote_mark}{loc}{quote_mark} | location == {quote_mark}Global{quote_mark}"
+    if "'" in location and '"' in location:  # Because who knows
+        raise NotImplementedError(f"Unhandled location string {location}")
+    elif "'" in location:
+        quote_mark = '"'
+    else:
+        quote_mark = "'"
+
+    return template.format(quote_mark=quote_mark, loc=location)
 
 
 def parse_artifact_path_config(config: ConfigTree) -> str:

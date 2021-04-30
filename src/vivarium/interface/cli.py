@@ -59,16 +59,13 @@ def simulate():
 @simulate.command()
 @click.argument('model_specification',
                 type=click.Path(exists=True, dir_okay=False, resolve_path=True))
-@click.option('--location', '-l', help='Location to run the simulation in.')
-@click.option('--artifact_path', '-i', type=click.Path(resolve_path=True), help='The path to the artifact data file.')
 @click.option('--results_directory', '-o', type=click.Path(resolve_path=True),
               default=Path('~/vivarium_results/').expanduser(),
               help='The directory to write results to. A folder will be created '
                    'in this directory with the same name as the configuration file.')
 @click.option('--verbose', '-v', is_flag=True, help='Report each time step.')
 @click.option('--pdb', 'with_debugger', is_flag=True, help='Drop into python debugger if an error occurs.')
-def run(model_specification: Path, location: str, artifact_path: Path, results_directory: Path, verbose: int,
-        with_debugger: bool):
+def run(model_specification, results_directory, verbose, with_debugger):
     """Run a simulation from the command line.
 
     The simulation itself is defined by the given MODEL_SPECIFICATION yaml file.
@@ -86,15 +83,8 @@ def run(model_specification: Path, location: str, artifact_path: Path, results_d
     configure_logging_to_file(results_root)
     shutil.copy(model_specification, results_root / 'model_specification.yaml')
 
-    output_data = {'results_directory': str(results_root)}
-    input_data = {}
-    if location:
-        input_data['location'] = location
-    if artifact_path:
-        input_data['artifact_path'] = artifact_path
-    override_configuration = {'output_data': output_data, 'input_data': input_data}
-
     main = handle_exceptions(run_simulation, logger, with_debugger)
+    override_configuration = {'output_data': {'results_directory': str(results_root)}}
     finished_sim = main(model_specification, configuration=override_configuration)
 
     metrics = pd.DataFrame(finished_sim.report(), index=[0])

@@ -4,7 +4,7 @@ import pandas as pd
 
 import pytest
 from vivarium.testing_utilities import build_table, metadata
-from vivarium.framework.artifact.manager import (_subset_rows, _subset_columns,
+from vivarium.framework.artifact.manager import (_subset_rows, _subset_columns, get_location_term,
                                                  parse_artifact_path_config, ArtifactManager,
                                                  _config_filter, validate_filter_term)
 
@@ -44,8 +44,8 @@ def test_subset_rows():
 
 
 def test_subset_columns():
-    values = [0, 'red', 100]
-    data = build_table(values, 1990, 2010, columns=('age', 'year', 'sex', 'draw', 'color', 'value'))
+    values = [0, 'Kenya', 'red', 100]
+    data = build_table(values, 1990, 2010, columns=('age', 'year', 'sex', 'draw', 'location', 'color', 'value'))
 
     filtered_data = _subset_columns(data)
     assert filtered_data.equals(data[['age_start', 'age_end', 'year_start',
@@ -54,6 +54,13 @@ def test_subset_columns():
     filtered_data = _subset_columns(data, color='red')
     assert filtered_data.equals(data[['age_start', 'age_end', 'year_start',
                                       'year_end', 'sex', 'value']])
+
+
+def test_location_term():
+    assert get_location_term("Cote d'Ivoire") == 'location == "Cote d\'Ivoire" | location == "Global"'
+    assert get_location_term("Kenya") == "location == 'Kenya' | location == 'Global'"
+    with pytest.raises(NotImplementedError):
+        get_location_term("W'eird \"location\"")
 
 
 def test_parse_artifact_path_config(base_config, test_data_dir):
