@@ -31,3 +31,6 @@ jobs:
       - name: Test
         run: |
           pytest
+      - name: Doctest
+        run: |
+          make doctest -C docs/

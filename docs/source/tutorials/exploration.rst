@@ -174,10 +174,6 @@ configuration by simply printing it.
            component_configs: None
        input_draw_number:
            component_configs: None
-       location:
-           component_configs: None
-
-
 
 
 What do we see here?  The configuration is *hierarchical*.  There are a set of
