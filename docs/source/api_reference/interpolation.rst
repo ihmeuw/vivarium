@@ -1,1 +1,2 @@
 .. automodule:: vivarium.interpolation
+   :members:
