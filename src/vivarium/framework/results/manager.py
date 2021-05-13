@@ -7,7 +7,7 @@ class ResultsManager:
 
     @property
     def name(self):
-        return 'ResultsManager'
+        return 'results_manager'
 
     def add_mapping_strategy(self, *args, **kwargs):
         ...
