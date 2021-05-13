@@ -5,6 +5,10 @@ import pandas as pd
 
 class ResultsManager:
 
+    @property
+    def name(self):
+        return 'ResultsManager'
+
     def add_mapping_strategy(self, *args, **kwargs):
         ...
 
