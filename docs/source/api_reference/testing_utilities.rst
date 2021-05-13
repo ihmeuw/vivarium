@@ -1,1 +1,2 @@
 .. automodule:: vivarium.testing_utilities
+   :members:
