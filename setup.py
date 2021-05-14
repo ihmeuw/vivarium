@@ -70,7 +70,6 @@ if __name__ == "__main__":
             "Operating System :: POSIX :: Linux",
             "Operating System :: Microsoft :: Windows",
             "Programming Language :: Python",
-            "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: Implementation :: CPython",
             "Topic :: Education",
             "Topic :: Scientific/Engineering",
