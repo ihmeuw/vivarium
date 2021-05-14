@@ -13,7 +13,6 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-
 from pathlib import Path
 import sys
 
@@ -191,10 +190,18 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
 
 # -- Autodoc configuration ------------------------------------------------
 
-# Sort order of members listed by autodoc
-# options are: 'alphabetical', 'groupwise', or 'bysource'
-autodoc_member_order = 'bysource'
+autodoc_default_options = {
+    # Automatically document members (e.g. classes in a module,
+    # methods in a class, etc.)
+    'members': True,
+    # Order of items documented is determined by the order
+    # of appearance in the source code
+    'member-order': 'bysource',
+    # Generate docs even if an item has no docstring.
+    'undoc-members': True,
+    # Don't document things with a leading underscore.
+    'private-members': False,
+}
 
-# Defaults for automodule and autoclass
-# To negate add `:no-undoc-members:` flag to a particular instance
-autodoc_default_flags = ['members', 'undoc-members']
+# Display type hints in the description instead of the signature.
+autodoc_typehints = 'description'
