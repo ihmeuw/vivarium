@@ -9,6 +9,26 @@ The Builder
    :local:
    :backlinks: none
 
+Users of the Vivarium framework build simulations with components. Components are
+Python classes that represent aspects and behaviors of simulants. Components can be
+leveraged directly from modules like Vivarium Public Health or be user-written
+and customized, perhaps subclassing objects from Vivarium Public Health. More
+information about components is available in the component
+:ref:`concept note <components_concept>`.
+
+The Builder is created during initialization of a :class:`SimulationContext`.
+Components use the Builder to access interfaces to interact with the Vivarium framework.
+Most components should have a setup method, where they register for
+services and provide information about their structure. For example,
+a component needing to leverage the simulation clock and step size
+to determine a numerical effect to apply on each time step, will get the
+simulation clock and step size though the Builder and will register
+method(s) to apply the effect (e.g., via :meth:`builder.value.register_value_modifier`).
+Another component, needing to initialize state for simulants at before the
+simulation begin, might call :meth:`builder.population.initializes_simulants` in its setup
+method to register method(s) that setup the additional state.
+
+
 Outline
 -------
 
@@ -28,7 +48,7 @@ Outline
       more comprehensive conceptual/narrative docs).
     - events
     - etc.
-- Should metion the typing pattern that lets you import the builder and get static analysis to work.
+- Should mention the typing pattern that lets you import the builder and get static analysis to work.
 - Build a very simple sim with a couple of components to illustrate how stuff hangs together.
 - Other things:
   - All builder interfaces follow a pattern.  builder.SYSTEM.METHOD(*args, **kwargs) -> either None or
