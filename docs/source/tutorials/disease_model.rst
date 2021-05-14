@@ -11,7 +11,7 @@ Disease Model
 Here we'll produce a data-free disease model focusing on core Vivarium
 concepts. You can find more complicated versions of the
 :term:`components <component>` built here in the
-`vivarium_public_health <https://github.com/ihmeuw/vivarium_public_health>`__
+`vivarium_public_health <https://github.com/ihmeuw/vivarium_public_health>`_
 library. Those components must additionally deal with
 manipulating complex data which makes understanding what's going on more
 complicated.
@@ -252,11 +252,9 @@ know that it is responsible for generating the ``'age'``, ``'sex'``,
 
    When we talk about columns in the context of Vivarium, we are typically
    talking about the simulant :term:`attributes <attribute>`. Vivarium
-   represents the population of simulants as a single `pandas DataFrame`__.
-   We think of each simulant as a row in this table and each column as an
-   attribute of the simulants.
-
-   __ https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html
+   represents the population of simulants as a single
+   :class:`pandas.DataFrame`. We think of each simulant as a row in this table
+   and each column as an attribute of the simulants.
 
 Next we get a view into the population table.
 
@@ -465,10 +463,8 @@ population state from our population view.  In addition to the ``update``
 method, population views also support a ``get`` method that takes in
 an index and an optional ``query`` used to filter down the returned
 population.  Here, we only want to increase the age of people still living.
-The ``query`` argument needs to be consistent with the `query`__ method of
-a ``pandas.DataFrame``.
-
-__ http://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.query.html
+The ``query`` argument needs to be consistent with the
+:meth:`pandas.DataFrame.query` method.
 
 What we get back is another ``pandas.DataFrame`` containing the filtered
 rows corresponding to the index we passed in.  The columns of the returned
@@ -522,7 +518,7 @@ Let's see what happens when our simulation takes a time step.
     3     True  alive  Female  91.004887    2005-07-01
     4     True  alive  Female  63.643931    2005-07-01
 
-Everyone get's older! Right now though, we could just keep taking steps
+Everyone gets older! Right now though, we could just keep taking steps
 in our simulation and people would continue getting older. This, of course,
 does not reflect how the world goes. Time to introduce the grim reaper.
 
@@ -657,8 +653,6 @@ death for the individual.
 
 Finally, in line 6, we update the state table with the newly dead simulants.
 
-__
-
 Did it work?
 ++++++++++++
 
@@ -764,5 +758,3 @@ Running from the command line
 
 Exploring some results
 ----------------------
-
-

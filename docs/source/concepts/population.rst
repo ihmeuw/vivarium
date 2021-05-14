@@ -10,11 +10,12 @@ Population Management
    :backlinks: none
 
 Since ``Vivarium`` is an agent-based simulation framework, managing a group of
-:term:`simulants` and their attributes is a critical task. Fundamentally, to run
-a simulation we need to be able to create new simulates, update their state
-attributes, and facilitate access to their state so that :term:`components` in
-the simulation can do interesting things based on it. The tooling to support
-working with our simulant population is called the population management system.
+:term:`simulants <Simulant>` and their attributes is a critical task.
+Fundamentally, to run a simulation we need to be able to create new simulates,
+update their state attributes, and facilitate access to their state so that
+:term:`components <Component>` in the simulation can do interesting things
+based on it. The tooling to support working with our simulant population is
+called the population management system.
 
 The State Table
 ---------------

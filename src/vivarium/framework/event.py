@@ -41,22 +41,16 @@ class Event(NamedTuple):
     along an :class:`_EventChannel` in order for other simulation components
     to respond to them.
 
-    Attributes
-    ----------
-    index
-        An index into the population table containing all simulants
-        affected by this event.
-    user_data
-        Any additional data provided by the user about the event.
-    time
-        The simulation time at which this event will resolve. The current
-        simulation size plus the current time step size.
-    step_size
-        The current step size at the time of the event.
     """
+    #: An index into the population table containing all simulants affected
+    #: by this event.
     index: pd.Index
+    #: Any additional data provided by the user about the event.
     user_data: Dict[str, Any]
+    #: The simulation time at which this event will resolve. The current
+    #: simulation size plus the current time step size.
     time: Time
+    #: The current step size at the time of the event.
     step_size: Timedelta
 
     def split(self, new_index: pd.Index) -> 'Event':
@@ -88,6 +82,7 @@ class Event(NamedTuple):
 
 class _EventChannel:
     """A named subscription channel that passes events to event listeners."""
+
     def __init__(self, manager, name):
         self.name = f'event_channel_{name}'
         self.manager = manager
