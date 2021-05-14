@@ -13,5 +13,6 @@ python:
       extra_requirements:
         - docs
 
+# Doc builds will fail if there are any warnings
 sphinx:
   fail_on_warning: true
