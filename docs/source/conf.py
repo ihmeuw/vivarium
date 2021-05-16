@@ -15,6 +15,11 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 from pathlib import Path
 import sys
+import shutil
+
+from docutils.nodes import Text
+from sphinx.ext.intersphinx import missing_reference
+
 
 import vivarium
 base_dir = Path(vivarium.__file__).parent
@@ -183,9 +188,11 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
-                       'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None)}
+# Other docs we can link to
+intersphinx_mapping = {'python': ('https://docs.python.org/3.8', None),
+                       'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+                       'tables': ('https://www.pytables.org/', None),
+                       'numpy': ('https://numpy.org/doc/stable/', None)}
 
 
 # -- Autodoc configuration ------------------------------------------------
@@ -205,3 +212,36 @@ autodoc_default_options = {
 
 # Display type hints in the description instead of the signature.
 autodoc_typehints = 'description'
+
+
+# -- nitpicky mode --------------------------------------------------------
+# Ensures that all references in the docs resolve.
+
+nitpicky = True
+nitpick_ignore = []
+
+for line in open('../nitpick-exceptions'):
+    if line.strip() == "" or line.startswith("#"):
+        continue
+    dtype, target = line.split(None, 1)
+    target = target.strip()
+    nitpick_ignore.append((dtype, target))
+
+
+# Fix sphinx warnings when for literal Ellipses in type hints.
+def setup(app):
+    app.connect("missing-reference", __sphinx_issue_8127)
+
+
+def __sphinx_issue_8127(app, env, node, contnode):
+    reftarget = node.get("reftarget", None)
+    if reftarget == "..":
+        node["reftype"] = "data"
+        node["reftarget"] = "Ellipsis"
+        text_node = next(iter(contnode.traverse(lambda n: n.tagname == "#text")))
+        replacement_node = Text("...", "")
+        if text_node.parent is not None:
+            text_node.parent.replace(text_node, replacement_node)
+        else:  # e.g. happens in rtype fields
+            contnode = replacement_node
+        return missing_reference(app, env, node, contnode)

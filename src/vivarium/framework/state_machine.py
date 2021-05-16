@@ -7,26 +7,34 @@ A state machine implementation for use in ``vivarium`` simulations.
 
 """
 from enum import Enum
+import typing
+from typing import List, Tuple
 
 import pandas as pd
 import numpy as np
 
+if typing.TYPE_CHECKING:
+    from vivarium.framework.population import PopulationView
 
-def _next_state(index, event_time, transition_set, population_view):
+
+def _next_state(index: pd.Index,
+                event_time: pd.Timestamp,
+                transition_set: 'TransitionSet',
+                population_view: 'PopulationView'):
     """Moves a population between different states using information from a `TransitionSet`.
 
     Parameters
     ----------
-    index : iterable of ints
+    index
         An iterable of integer labels for the simulants.
-    event_time : pandas.Timestamp
+    event_time
         When this transition is occurring.
-    transition_set : TransitionSet
+    transition_set
         A set of potential transitions available to the simulants.
-    population_view : vivarium.framework.population.PopulationView
+    population_view
         A view of the internal state of the simulation.
-    """
 
+    """
     if len(transition_set) == 0 or index.empty:
         return
 
@@ -48,23 +56,25 @@ def _next_state(index, event_time, transition_set, population_view):
                 raise ValueError('Invalid transition output: {}'.format(output))
 
 
-def _groupby_new_state(index, outputs, decisions):
+def _groupby_new_state(index: pd.Index, outputs: List , decisions: pd.Series) -> List[Tuple[str, pd.Index]]:
     """Groups the simulants in the index by their new output state.
 
     Parameters
     ----------
-    index : iterable of ints
+    index
         An iterable of integer labels for the simulants.
-    outputs : iterable
+    outputs
         A list of possible output states.
-    decisions : `pandas.Series`
-        A series containing the name of the next state for each simulant in the index.
+    decisions
+        A series containing the name of the next state for each simulant in the
+        index.
 
     Returns
     -------
-    iterable of 2-tuples
-        The first item in each tuple is the name of an output state and the second item
-        is a `pandas.Index` representing the simulants to transition into that state.
+    List[Tuple[str, pandas.Index]
+        The first item in each tuple is the name of an output state and the
+        second item is a `pandas.Index` representing the simulants to transition
+        into that state.
     """
     output_map = {o: i for i, o in enumerate(outputs)}
     groups = pd.Series(index).groupby([output_map[d] for d in decisions])
@@ -103,9 +113,14 @@ class Transition:
     output_state : State
         The end state of the entity that undergoes the transition.
     probability_func : Callable
-        A method or function that describing the probability of this transition occurring.
+        A method or function that describing the probability of this
+        transition occurring.
+
     """
-    def __init__(self, input_state, output_state, probability_func=lambda index: pd.Series(1, index=index),
+    def __init__(self,
+                 input_state,
+                 output_state,
+                 probability_func=lambda index: pd.Series(1, index=index),
                  triggered=Trigger.NOT_TRIGGERED):
         self.input_state = input_state
         self.output_state = output_state
@@ -147,7 +162,7 @@ class Transition:
 
 
 class State:
-    """An abstract representation of a particular position in a finite and discrete state space.
+    """An abstract representation of a particular position in a state space.
 
     Attributes
     ----------
@@ -155,6 +170,7 @@ class State:
         The name of this state. This should be unique
     transition_set : `TransitionSet`
         A container for potential transitions out of this state.
+
     """
     def __init__(self, state_id):
         self.state_id = state_id
@@ -173,31 +189,33 @@ class State:
     def setup(self, builder):
         pass
 
-    def next_state(self, index, event_time, population_view):
-        """Moves a population between different states using information this state's `transition_set`.
+    def next_state(self, index: pd.Index, event_time: pd.Timestamp, population_view: 'PopulationView'):
+        """Moves a population between different states.
 
         Parameters
         ----------
-        index : iterable of ints
+        index
             An iterable of integer labels for the simulants.
-        event_time : pandas.Timestamp
+        event_time
             When this transition is occurring.
-        population_view : vivarium.framework.population.PopulationView
+        population_view
             A view of the internal state of the simulation.
+
         """
         return _next_state(index, event_time, self.transition_set, population_view)
 
-    def transition_effect(self, index, event_time, population_view):
+    def transition_effect(self, index: pd.Index, event_time: pd.Timestamp, population_view: 'PopulationView'):
         """Updates the simulation state and triggers any side-effects associated with entering this state.
 
         Parameters
         ----------
-        index : iterable of ints
+        index
             An iterable of integer labels for the simulants.
-        event_time : pandas.Timestamp
+        event_time
             The time at which this transition occurs.
-        population_view : `vivarium.framework.population.PopulationView`
+        population_view
             A view of the internal state of the simulation.
+
         """
         population_view.update(pd.Series(self.state_id, index=index))
         self._transition_side_effect(index, event_time)
@@ -245,12 +263,13 @@ class TransitionSet:
 
     Parameters
     ----------
-    state_name: object
+    state_name
         The unique name of the state that instantiated this TransitionSet. Typically
         a string but any object implementing __str__ will do.
-    iterable : iterable
+    iterable
         Any iterable whose elements are `Transition` objects.
-    allow_null_transition : bool, optional
+    allow_null_transition
+
     """
     def __init__(self, state_name, *transitions, allow_null_transition=False):
         self._state_name = state_name
@@ -273,31 +292,29 @@ class TransitionSet:
 
         Parameters
         ----------
-        builder : `engine.Builder`
+        builder
             Interface to several simulation tools including access to common random
             number generation, in particular.
 
-        Returns
-        -------
-        iterable
-            This component's sub-components.
         """
         self.random = builder.randomness.get_stream(self.name)
 
-    def choose_new_state(self, index):
+    def choose_new_state(self, index: pd.Index) -> Tuple[List, pd.Series]:
         """Chooses a new state for each simulant in the index.
 
         Parameters
         ----------
-        index : iterable of ints
+        index
             An iterable of integer labels for the simulants.
 
         Returns
         -------
-        outputs : list
+        List
             The possible end states of this set of transitions.
-        decisions: `pandas.Series`
-            A series containing the name of the next state for each simulant in the index.
+        pandas.Series
+            A series containing the name of the next state for each simulant
+            in the index.
+
         """
         outputs, probabilities = zip(*[(transition.output_state, np.array(transition.probability(index)))
                                        for transition in self.transitions])
@@ -306,24 +323,26 @@ class TransitionSet:
         return outputs, self.random.choice(index, outputs, probabilities)
 
     def _normalize_probabilities(self, outputs, probabilities):
-        """Normalize probabilities to sum to 1 and add a null transition if desired.
+        """Normalize probabilities to sum to 1 and add a null transition.
 
         Parameters
         ----------
-        outputs : iterable
-            List of possible end states corresponding to this containers transitions.
-        probabilities : iterable of iterables
-            A set of probability weights whose columns correspond to the end states in `outputs`
-            and whose rows correspond to each simulant undergoing the transition.
+        outputs
+            List of possible end states corresponding to this containers
+            transitions.
+        probabilities
+            A set of probability weights whose columns correspond to the end
+            states in `outputs` and whose rows correspond to each simulant
+            undergoing the transition.
 
         Returns
         -------
-        outputs: list
-            The original output list expanded to include a null transition (a transition back
-            to the starting state) if requested.
-        probabilities : ndarray
-            The original probabilities rescaled to sum to 1 and potentially expanded to
-            include a null transition weight.
+        List
+            The original output list expanded to include a null transition (a
+            transition back to the starting state) if requested.
+        numpy.ndarray
+            The original probabilities rescaled to sum to 1 and potentially
+            expanded to include a null transition weight.
         """
         outputs = list(outputs)
 
@@ -383,12 +402,13 @@ class Machine:
 
     Attributes
     ----------
-    states : iterable of `State` objects
+    states
         The collection of states represented by this state machine.
-    state_column : str
+    state_column
         A label for the piece of simulation state governed by this state machine.
-    population_view : `pandas.DataFrame`
+    population_view
         A view of the internal state of the simulation.
+
     """
     def __init__(self, state_column, states=None):
         self.states = []
@@ -405,19 +425,6 @@ class Machine:
         return self.states
 
     def setup(self, builder):
-        """Performs this component's simulation setup and return sub-components.
-
-        Parameters
-        ----------
-        builder : `engine.Builder`
-            Interface to several simulation tools including access to common random
-            number generation, in particular.
-
-        Returns
-        -------
-        iterable
-            This component's sub-components.
-        """
         self.population_view = builder.population.get_view([self.state_column])
 
     def add_states(self, states):
@@ -425,15 +432,16 @@ class Machine:
             self.states.append(state)
             state._model = self.state_column
 
-    def transition(self, index, event_time):
+    def transition(self, index: pd.Index, event_time: pd.Timestamp):
         """Finds the population in each state and moves them to the next state.
 
         Parameters
         ----------
-        index : iterable of ints
+        index
             An iterable of integer labels for the simulants.
-        event_time : pandas.Timestamp
+        event_time
             The time at which this transition occurs.
+
         """
         for state, affected in self._get_state_pops(index):
             if not affected.empty:

@@ -12,14 +12,14 @@ that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 """
 from numbers import Number
 from datetime import datetime, timedelta
-from typing import Union, List, Tuple, Callable, TypeVar
+from typing import Union, List, Tuple, Callable
 
 import pandas as pd
 
 from vivarium.interpolation import Interpolation
 from vivarium.framework.population import PopulationView
 
-ScalarValue = TypeVar('ScalarValue', Number, timedelta, datetime)
+ScalarValue = Union[Number, timedelta, datetime]
 
 
 class InterpolatedTable:
@@ -312,7 +312,7 @@ class LookupTableManager:
         # generic names is useful for introspection.
         table_number = len(self.tables)
         table = LookupTable(table_number, data, self._pop_view_builder, key_columns, parameter_columns,
-                            value_columns, self._interpolation_order, self.clock, self._extrapolate, 
+                            value_columns, self._interpolation_order, self.clock, self._extrapolate,
                             self._validate)
         self.tables[table_number] = table
         return table

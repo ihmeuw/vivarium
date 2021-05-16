@@ -146,4 +146,3 @@ def profile(model_specification, results_directory, process):
             p = pstats.Stats(str(out_stats_file), stream=f)
             p.sort_stats('cumulative')
             p.print_stats()
-

@@ -56,7 +56,7 @@ class ResourceGroup:
     def type(self) -> str:
         """The type of resource produced by this resource group's producer.
 
-        Must be one of :data:`RESOURCE_TYPES`.
+        Must be one of `RESOURCE_TYPES`.
 
         """
         return self._resource_type
@@ -144,7 +144,7 @@ class ResourceManager:
         ----------
         resource_type
             The type of the resources being added. Must be one of
-            :data:`RESOURCE_TYPES`.
+            `RESOURCE_TYPES`.
         resource_names
             A list of names of the resources being added.
         producer
@@ -273,7 +273,7 @@ class ResourceInterface:
         ----------
         resource_type
             The type of the resources being added. Must be one of
-            :data:`RESOURCE_TYPES`.
+            `RESOURCE_TYPES`.
         resource_names
             A list of names of the resources being added.
         producer
@@ -301,4 +301,3 @@ class ResourceInterface:
 
         """
         return iter(self._manager)
-

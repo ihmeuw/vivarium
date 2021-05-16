@@ -8,7 +8,7 @@ for handling complex data bound up in a data artifact.
 
 """
 from pathlib import Path
-from typing import Union, Sequence, Optional
+from typing import Any, Sequence, Union
 import re
 
 from loguru import logger
@@ -18,7 +18,7 @@ from vivarium.config_tree import ConfigTree
 from vivarium.framework.artifact.artifact import Artifact
 
 
-_Filter = (str, int, Sequence[int], Sequence[str])
+_Filter = Union[str, int, Sequence[int], Sequence[str]]
 
 
 class ArtifactManager:
@@ -43,7 +43,7 @@ class ArtifactManager:
         self.artifact = self._load_artifact(builder.configuration)
         builder.lifecycle.add_constraint(self.load, allow_during=['setup'])
 
-    def _load_artifact(self, configuration: ConfigTree) -> Optional[Artifact]:
+    def _load_artifact(self, configuration: ConfigTree) -> Union[Artifact, None]:
         """Looks up the path to the artifact hdf file, builds a default filter,
         and generates the data artifact. Stores any configuration specified filter
         terms separately to be applied on loading, because not all columns are
@@ -67,22 +67,23 @@ class ArtifactManager:
         logger.debug(f'Artifact additional filter terms are {self.config_filter_term}.')
         return Artifact(artifact_path, base_filter_terms)
 
-    def load(self, entity_key: str, **column_filters: _Filter):
+    def load(self, entity_key: str, **column_filters: _Filter) -> Any:
         """Loads data associated with the given entity key.
 
         Parameters
         ----------
-        entity_key :
+        entity_key
             The key associated with the expected data.
-        column_filters :
-            Filters that subset the data by a categorical column and then remove the
-            column from the raw data. They are supplied as keyword arguments to the
-            load method in the form "column=value".
+        column_filters
+            Filters that subset the data by a categorical column and then remove
+            the column from the raw data. They are supplied as keyword arguments
+            to the load method in the form "column=value".
 
         Returns
         -------
-            The data associated with the given key, filtered down to the requested subset
-            if the data is a dataframe.
+        Any
+            The data associated with the given key, filtered down to the
+            requested subset if the data is a dataframe.
         """
         data = self.artifact.load(entity_key)
         if isinstance(data, pd.DataFrame):  # could be metadata dict
@@ -120,15 +121,16 @@ class ArtifactInterface:
 
         Parameters
         ----------
-        entity_key :
+        entity_key
             The key associated with the expected data.
-        column_filters :
+        column_filters
             Filters that subset the data by a categorical column and then
             remove the column from the raw data. They are supplied as keyword
             arguments to the load method in the form "column=value".
 
         Returns
         -------
+        pandas.DataFrame
             The data associated with the given key filtered down to the requested subset.
         """
         return self._manager.load(entity_key, **column_filters)
@@ -206,11 +208,12 @@ def parse_artifact_path_config(config: ConfigTree) -> str:
 
     Parameters
     ----------
-    config :
+    config
         The configuration block of the simulation model specification containing the artifact path.
 
     Returns
     -------
+    str
         The path to the data artifact.
     """
     path = Path(config.input_data.artifact_path)

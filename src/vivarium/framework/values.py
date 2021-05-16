@@ -52,6 +52,7 @@ def replace_combiner(value: T, mutator: Callable[..., T], *args: Any, **kwargs: 
 
     Returns
     -------
+    T
         A modified version of the input value.
 
     """
@@ -105,6 +106,7 @@ def rescale_post_processor(value: NumberLike, time_step: pd.Timedelta):
 
     Returns
     -------
+    Union[numpy.ndarray, pandas.Series, pandas.DataFrame, numbers.Number]
         The annual rates rescaled to the size of the current time step size.
 
     """
@@ -140,6 +142,7 @@ def union_post_processor(values: List[NumberLike], _) -> NumberLike:
 
     Returns
     -------
+    Union[numpy.ndarray, pandas.Series, pandas.DataFrame, numbers.Number]
         The probability over the union of the sample spaces represented
         by the original probabilities.
 
@@ -294,7 +297,7 @@ class ValuesManager:
                                 requires_values: List[str] = (),
                                 requires_streams: List[str] = (),
                                 preferred_combiner: Callable = replace_combiner,
-                                preferred_post_processor: Callable = None) -> Callable:
+                                preferred_post_processor: Callable = None) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named value.
 
         See Also
@@ -465,7 +468,7 @@ class ValuesInterface:
                                 requires_values: List[str] = (),
                                 requires_streams: List[str] = (),
                                 preferred_combiner: Callable = replace_combiner,
-                                preferred_post_processor: Callable = None) -> Callable:
+                                preferred_post_processor: Callable = None) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named value.
 
         Parameters
@@ -499,6 +502,7 @@ class ValuesInterface:
 
         Returns
         -------
+        Pipeline
             A callable reference to the named dynamic value pipeline.
 
         """
@@ -511,7 +515,7 @@ class ValuesInterface:
                                source: Callable[..., pd.DataFrame],
                                requires_columns: List[str] = (),
                                requires_values: List[str] = (),
-                               requires_streams: List[str] = ()) -> Callable:
+                               requires_streams: List[str] = ()) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named rate.
 
         This is a convenience wrapper around ``register_value_producer`` that
@@ -540,6 +544,7 @@ class ValuesInterface:
 
         Returns
         -------
+        Pipeline
             A callable reference to the named dynamic rate pipeline.
 
         """

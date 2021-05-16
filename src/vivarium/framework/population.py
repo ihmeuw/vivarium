@@ -99,7 +99,8 @@ class PopulationView:
 
         Returns
         -------
-        A new view with access to the requested columns.
+        PopulationView
+            A new view with access to the requested columns.
 
         Raises
         ------
@@ -142,7 +143,8 @@ class PopulationView:
 
         Returns
         -------
-        A table with the subset of the population requested.
+        pandas.DataFrame
+            A table with the subset of the population requested.
 
         Raises
         ------
@@ -153,7 +155,7 @@ class PopulationView:
 
         See Also
         --------
-        :meth:`subview <PopulationView.subview`
+        :meth:`subview <PopulationView.subview>`
 
         """
         pop = self._manager.get_population(True).loc[index]
@@ -514,7 +516,8 @@ class PopulationManager:
 
         Returns
         -------
-        A copy of the population table.
+        pandas.DataFrame
+            A copy of the population table.
 
         """
         pop = self._population.copy()
