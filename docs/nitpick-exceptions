@@ -6,6 +6,3 @@ py:class pandas._libs.tslibs.timedeltas.Timedelta
 py:class pandas.core.frame.DataFrame
 py:class pandas.core.series.Series
 py:class pandas.core.generic.PandasObject
-
-# Generic typevar
-py:class T

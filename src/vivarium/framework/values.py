@@ -14,7 +14,7 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 """
 from collections import defaultdict
 from numbers import Number
-from typing import Callable, List, Any, TypeVar, Union, Iterable, Tuple
+from typing import Callable, List, Any, Union, Iterable, Tuple
 
 from loguru import logger
 import numpy as np
@@ -23,7 +23,6 @@ import pandas as pd
 from vivarium.exceptions import VivariumError
 from vivarium.framework.utilities import from_yearly
 
-T = TypeVar('T')
 # Supports standard algebraic operations with scalar values.
 NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
 
@@ -33,7 +32,7 @@ class DynamicValueError(VivariumError):
     pass
 
 
-def replace_combiner(value: T, mutator: Callable[..., T], *args: Any, **kwargs: Any) -> T:
+def replace_combiner(value: Any, mutator: Callable, *args: Any, **kwargs: Any) -> Any:
     """Replace the previous pipeline output with the output of the mutator.
 
     This is the default combiner.
@@ -52,7 +51,7 @@ def replace_combiner(value: T, mutator: Callable[..., T], *args: Any, **kwargs: 
 
     Returns
     -------
-    T
+    Any
         A modified version of the input value.
 
     """
@@ -60,7 +59,7 @@ def replace_combiner(value: T, mutator: Callable[..., T], *args: Any, **kwargs: 
     return mutator(*args, **kwargs)
 
 
-def list_combiner(value: List[T], mutator: Callable[..., T], *args: Any, **kwargs: Any) -> List[T]:
+def list_combiner(value: List, mutator: Callable, *args: Any, **kwargs: Any) -> List:
     """Aggregates source and mutator output into a list.
 
     This combiner is meant to be used with a post-processor that does some

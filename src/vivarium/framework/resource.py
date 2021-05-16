@@ -17,7 +17,7 @@ dependencies or raise exceptions if this is not possible.
 
 """
 from types import MethodType
-from typing import List, Any, Iterable
+from typing import Any, Callable, List, Iterable
 
 from loguru import logger
 import networkx as nx
@@ -46,7 +46,7 @@ class ResourceGroup:
 
     """
 
-    def __init__(self, resource_type: str, resource_names: List[str], producer: MethodType, dependencies: List[str]):
+    def __init__(self, resource_type: str, resource_names: List[str], producer: Callable, dependencies: List[str]):
         self._resource_type = resource_type
         self._resource_names = resource_names
         self._producer = producer
