@@ -99,7 +99,8 @@ class PopulationView:
 
         Returns
         -------
-        A new view with access to the requested columns.
+        PopulationView
+            A new view with access to the requested columns.
 
         Raises
         ------
@@ -142,7 +143,8 @@ class PopulationView:
 
         Returns
         -------
-        A table with the subset of the population requested.
+        pandas.DataFrame
+            A table with the subset of the population requested.
 
         Raises
         ------
@@ -153,7 +155,7 @@ class PopulationView:
 
         See Also
         --------
-        :meth:`subview <PopulationView.subview`
+        :meth:`subview <PopulationView.subview>`
 
         """
         pop = self._manager.get_population(True).loc[index]
@@ -257,23 +259,16 @@ class SimulantData(NamedTuple):
     with this structure containing information relevant to their
     initialization.
 
-    Attributes
-    ----------
-    index
-        The index representing the new simulants being added to the
-        simulation.
-    user_data
-        A dictionary of extra data passed in by the component creating
-        the population.
-    creation_time
-        The time when the simulants enter the simulation.
-    creation_window
-        The span of time over which the simulants are created.  Useful for,
-        e.g., distributing ages over the window.
     """
+    #: The index representing the new simulants being added to the simulation.
     index: pd.Index
+    #: A dictionary of extra data passed in by the component creating the
+    #: population.
     user_data: Dict[str, Any]
+    #: The time when the simulants enter the simulation.
     creation_time: pd.Timestamp
+    #: The span of time over which the simulants are created.  Useful for,
+    #: e.g., distributing ages over the window.
     creation_window: pd.Timedelta
 
 
@@ -521,7 +516,8 @@ class PopulationManager:
 
         Returns
         -------
-        A copy of the population table.
+        pandas.DataFrame
+            A copy of the population table.
 
         """
         pop = self._population.copy()

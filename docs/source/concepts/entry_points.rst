@@ -56,7 +56,7 @@ components
   representation of their import paths. The latter two representations are
   treated as prefix trees when they are parsed into objects. This behavior
   is controlled by the
-  :class:`ComponentConfigurationParser <vivarium.framework.components.ComponentConfigurationParser>`.
+  :class:`ComponentConfigurationParser <vivarium.framework.components.parser.ComponentConfigurationParser>`.
   More information about components is available in the component
   :ref:`concept note <components_concept>`.
 configuration
@@ -107,10 +107,9 @@ usability.  In the :mod:`vivarium.interface` subpackage we have two public
 interfaces for interacting with the simulation.
 
 The :mod:`vivarium.interface.cli` module provides the
-:func:`simulate <vivarium.interface.cli.simulate>` command and sub-commands
-for running and profiling simulations from the command line. A complete
-tutorial is available :ref:`here <cli_tutorial>`.
-:func:`simulate <vivarium.interface.cli.simulate>` restricts the user to work
+``simulate`` command and sub-commands for running and profiling simulations
+from the command line. A complete tutorial is available
+:ref:`here <cli_tutorial>`. ``simulate`` restricts the user to work
 only with :ref:`model specification <model_specification_concept>` files and
 so is primarily useful in a workflow where the user is modifying that file
 directly to run simulations. Results are deposited in the ``~/vivarium_results``
@@ -121,7 +120,7 @@ During model development and debugging, it is frequently more useful to
 work in an interactive setting like a
 `jupyter notebook <https://jupyter.org>`_ or a Python REPL. For this sort of
 work, the :mod:`vivarium.interface.interactive` module provides the
-:class:`InteractiveContext <vivarium.interface.interactive.InteractiveContext`
+:class:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>`
 (also available as a top-level import from :mod:`vivarium`). Details about
 the many ways to initialize and run a simulation using the interactive context
 are available in the :ref:`interactive tutorial <interactive_tutorial>`.

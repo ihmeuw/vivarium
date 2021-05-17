@@ -3,8 +3,8 @@
 HDF Interface
 =============
 
-A convenience wrapper around the :mod:`tables` and :mod:`pandas` HDF
-interfaces.
+A convenience wrapper around the `tables <https://www.pytables.org>`_ and
+:mod:`pandas` HDF interfaces.
 
 Public Interface
 ----------------
@@ -90,10 +90,11 @@ def write(path: Union[str, Path], entity_key: str, data: Any):
         or ``"type.measure"``.
     data
         The data to write. If it is a :mod:`pandas` object, it will be
-        written using a :class:`pandas.HDFStore` or :func:`pandas.to_hdf`.
-        If it is some other kind of python object, it will first be encoded
-        as json with :func:`json.dumps` and then written to the provided
-        key.
+        written using a
+        `pandas.HDFStore <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#hdf5-pytables>`_
+        or :meth:`pandas.DataFrame.to_hdf`. If it is some other kind of python
+        object, it will first be encoded as json with :func:`json.dumps` and
+        then written to the provided key.
 
     Raises
     ------
@@ -123,7 +124,7 @@ def load(path: Union[str, Path], entity_key: str, filter_terms: Optional[List[st
     filter_terms
         An optional list of terms used to filter the rows in the data.
         The terms must be formatted in a way that is suitable for use with
-        the ``where`` argument of :func:`pd.read_hdf`. Only
+        the ``where`` argument of :func:`pandas.read_hdf`. Only
         filters applying to existing columns in the data are used.
     column_filters
         An optional list of columns to load from the data.
@@ -135,6 +136,7 @@ def load(path: Union[str, Path], entity_key: str, filter_terms: Optional[List[st
 
     Returns
     -------
+    Any
         The data stored at the the given key in the HDF file.
 
     """
@@ -194,6 +196,7 @@ def get_keys(path: str) -> List[str]:
 
     Returns
     -------
+    List[str]
         A list of key representations of the internal paths in the HDF.
     """
     path = _get_valid_hdf_path(path)
@@ -206,8 +209,8 @@ class EntityKey(str):
     """A convenience wrapper that translates artifact keys.
 
     This class provides several representations of the artifact keys that
-    are useful when working with the :mod:`pandas` and :mod:`tables`
-    HDF interfaces.
+    are useful when working with the :mod:`pandas` and
+    `tables <https://www.pytables.org>`_ HDF interfaces.
 
     """
 
@@ -218,6 +221,7 @@ class EntityKey(str):
         key
             The string representation of the entity key.  Must be formatted
             as ``"type.name.measure"`` or ``"type.measure"``.
+
         """
         elements = [e for e in key.split('.') if e]
         if len(elements) not in [2, 3] or len(key.split('.')) != len(elements):
@@ -270,7 +274,9 @@ class EntityKey(str):
 
         Returns
         -------
+        EntityKey
             A new EntityKey with the updated measure.
+
         """
         if self.name:
             return EntityKey(f'{self.type}.{self.name}.{measure}')

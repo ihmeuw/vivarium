@@ -17,6 +17,7 @@ visualizations.
 
 Setup
 -----
+
 I'm assuming you've read through the material in
 :doc:`getting started <getting_started>` and are working in your
 :file:`vivarium_examples` package. If not, you should go there first.
@@ -70,6 +71,7 @@ you should be able to follow along with most bits even if you're unfamiliar.
 
 Configuration defaults
 ++++++++++++++++++++++
+
 In most simulations, we want to have an easily tunable set up knobs to adjust
 various parameters. vivarium accomplishes this by pulling those knobs out as
 configuration information. Components typically expose the values they use in
@@ -102,11 +104,11 @@ Our setup method is doing three things.
 First, it's accessing the subsection of the configuration that it cares about
 (line ). The full simulation configuration is available from the builder as
 ``builder.configuration``. You can treat the configuration object just like
-a nested python `dictionary`__ that's been extended to support dot-style
-attribute access. Our access here mirrors what's in the
-``configuration_defaults`` at the top of the class definition.
-
-__ https://docs.python.org/3/tutorial/datastructures.html#dictionaries
+a nested python
+`dictionary <https://docs.python.org/3/tutorial/datastructures.html#dictionaries>`_
+that's been extended to support dot-style attribute access. Our access here
+mirrors what's in the ``configuration_defaults`` at the top of the class
+definition.
 
 Next, we interact with the vivarium's
 :doc:`population management system </api_reference/framework/population>`.
@@ -162,10 +164,8 @@ handful of information useful when initializing simulants.
 The only two bits of information we need for now are the
 ``pop_data.index``, which supplies the index of the simulants to be
 initialized, and the ``pop_data.creation_time`` which gives us a
-representation (typically an ``int`` or `pandas Timestamp`__) of the simulation
-time when the simulant was generated.
-
-__ https://pandas.pydata.org/pandas-docs/stable/generated/pandas.Timestamp.html
+representation (typically an ``int`` or :class:`pandas.Timestamp`) of the
+simulation time when the simulant was generated.
 
 .. note::
 
@@ -279,8 +279,8 @@ use this to generate animations of our birds flying around. We'll use
 
 Making good visualizations is hard, and beyond the scope of this tutorial, but
 the ``matplotlib`` documentation has a large number of
-`examples <https://matplotlib.org/gallery/index.html>`__ and
-`tutorials <https://matplotlib.org/tutorials/index.html`__ that should be
+`examples <https://matplotlib.org/gallery/index.html>`_ and
+`tutorials <https://matplotlib.org/tutorials/index.html>`_ that should be
 useful.
 
 For our purposes, we really just want to be able to plot the positions of our

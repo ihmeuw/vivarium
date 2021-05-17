@@ -70,7 +70,9 @@ class InteractiveContext(SimulationContext):
 
         Returns
         -------
+        int
             The number of steps the simulation took.
+
         """
         return self.run_until(self._clock.stop_time, with_logging=with_logging)
 
@@ -89,7 +91,9 @@ class InteractiveContext(SimulationContext):
 
         Returns
         -------
+        int
             The number of steps the simulation took.
+
         """
         return self.run_until(self._clock.time + duration, with_logging=with_logging)
 
@@ -107,7 +111,9 @@ class InteractiveContext(SimulationContext):
 
         Returns
         -------
+        int
             The number of steps the simulation took.
+
         """
         if not isinstance(end_time, type(self._clock.time)):
             raise ValueError(f"Provided time must be an instance of {type(self._clock.time)}")
@@ -130,6 +136,7 @@ class InteractiveContext(SimulationContext):
         with_logging
             Whether or not to log the simulation steps. Only works in an ipython
             environment.
+
         """
         if not isinstance(number_of_steps, int):
             raise ValueError('Number of steps must be an integer.')
@@ -149,6 +156,7 @@ class InteractiveContext(SimulationContext):
         untracked
             Whether or not to return simulants who are no longer being tracked
             by the simulation.
+
         """
         return self._population.get_population(untracked)
 
@@ -201,6 +209,7 @@ class InteractiveContext(SimulationContext):
 
         Returns
         -------
+        Dict[str, Any]
             A dictionary mapping component names to components.
 
         """

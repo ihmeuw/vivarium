@@ -14,7 +14,7 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 """
 from collections import defaultdict
 from numbers import Number
-from typing import Callable, List, Any, TypeVar, Union, Iterable, Tuple
+from typing import Callable, List, Any, Union, Iterable, Tuple
 
 from loguru import logger
 import numpy as np
@@ -23,7 +23,6 @@ import pandas as pd
 from vivarium.exceptions import VivariumError
 from vivarium.framework.utilities import from_yearly
 
-T = TypeVar('T')
 # Supports standard algebraic operations with scalar values.
 NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
 
@@ -33,7 +32,7 @@ class DynamicValueError(VivariumError):
     pass
 
 
-def replace_combiner(value: T, mutator: Callable[..., T], *args: Any, **kwargs: Any) -> T:
+def replace_combiner(value: Any, mutator: Callable, *args: Any, **kwargs: Any) -> Any:
     """Replace the previous pipeline output with the output of the mutator.
 
     This is the default combiner.
@@ -52,6 +51,7 @@ def replace_combiner(value: T, mutator: Callable[..., T], *args: Any, **kwargs: 
 
     Returns
     -------
+    Any
         A modified version of the input value.
 
     """
@@ -59,7 +59,7 @@ def replace_combiner(value: T, mutator: Callable[..., T], *args: Any, **kwargs: 
     return mutator(*args, **kwargs)
 
 
-def list_combiner(value: List[T], mutator: Callable[..., T], *args: Any, **kwargs: Any) -> List[T]:
+def list_combiner(value: List, mutator: Callable, *args: Any, **kwargs: Any) -> List:
     """Aggregates source and mutator output into a list.
 
     This combiner is meant to be used with a post-processor that does some
@@ -105,6 +105,7 @@ def rescale_post_processor(value: NumberLike, time_step: pd.Timedelta):
 
     Returns
     -------
+    Union[numpy.ndarray, pandas.Series, pandas.DataFrame, numbers.Number]
         The annual rates rescaled to the size of the current time step size.
 
     """
@@ -140,6 +141,7 @@ def union_post_processor(values: List[NumberLike], _) -> NumberLike:
 
     Returns
     -------
+    Union[numpy.ndarray, pandas.Series, pandas.DataFrame, numbers.Number]
         The probability over the union of the sample spaces represented
         by the original probabilities.
 
@@ -294,7 +296,7 @@ class ValuesManager:
                                 requires_values: List[str] = (),
                                 requires_streams: List[str] = (),
                                 preferred_combiner: Callable = replace_combiner,
-                                preferred_post_processor: Callable = None) -> Callable:
+                                preferred_post_processor: Callable = None) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named value.
 
         See Also
@@ -465,7 +467,7 @@ class ValuesInterface:
                                 requires_values: List[str] = (),
                                 requires_streams: List[str] = (),
                                 preferred_combiner: Callable = replace_combiner,
-                                preferred_post_processor: Callable = None) -> Callable:
+                                preferred_post_processor: Callable = None) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named value.
 
         Parameters
@@ -499,6 +501,7 @@ class ValuesInterface:
 
         Returns
         -------
+        Pipeline
             A callable reference to the named dynamic value pipeline.
 
         """
@@ -511,7 +514,7 @@ class ValuesInterface:
                                source: Callable[..., pd.DataFrame],
                                requires_columns: List[str] = (),
                                requires_values: List[str] = (),
-                               requires_streams: List[str] = ()) -> Callable:
+                               requires_streams: List[str] = ()) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named rate.
 
         This is a convenience wrapper around ``register_value_producer`` that
@@ -540,6 +543,7 @@ class ValuesInterface:
 
         Returns
         -------
+        Pipeline
             A callable reference to the named dynamic rate pipeline.
 
         """

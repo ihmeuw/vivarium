@@ -8,11 +8,11 @@ formatting. This file is then used by the :mod:`vivarium` simulations to fill
 in all the relevant parameter data.
 
 It is frequently useful to be able to view or modify this data outside the
-simulation.  The :class:`vivarium.Artifact` provides a high level interface to
-do just that. In this tutorial we'll go through how to view, delete, and write
-data to an artifact using the tools provided by the
-:class:`~vivarium.Artifact`. You'll access data in the artifact through keys,
-mirroring the underlying hdf storage of artifacts.
+simulation.  The :class:`vivarium.framework.artifact.artifact.Artifact` provides
+a high level interface to do just that. In this tutorial we'll go through how to
+view, delete, and write data to an artifact using the tools provided by the
+:class:`~vivarium.framework.artifact.artifact.Artifact`. You'll access data in
+the artifact through keys, mirroring the underlying hdf storage of artifacts.
 
 .. contents::
    :depth: 1
@@ -23,7 +23,8 @@ mirroring the underlying hdf storage of artifacts.
 Creating an artifact
 ---------------------
 
-To view an existing hdf file via the :class:`~vivarium.Artifact` tools, we'll
+To view an existing hdf file via the
+:class:`~vivarium.framework.artifact.artifact.Artifact` tools, we'll
 create a new artifact. We can print the resulting artifact to view the tree
 structure of the keys in our artifact. We'll use our test artifact to
 illustrate:
@@ -47,8 +48,9 @@ illustrate:
             structure
             theoretical_minimum_risk_life_expectancy
 
-Now we have an :class:`~vivarium.Artifact` object, which we can use to interact
-with the data stored in the hdf file with which we created it.
+Now we have an :class:`~vivarium.framework.artifact.artifact.Artifact` object,
+which we can use to interact with the data stored in the hdf file with which we
+created it.
 
 
 Filter Terms
@@ -57,14 +59,15 @@ Filter Terms
 The data stored in artifacts may be large, potentially on the order of millions
 of rows for a single dataset, and loading a full dataset requires time and
 memory, both of which may be limited. If you are only interested in certain
-subsets of the data you may want to read only the portion you need. This is 
-the idea behind filter terms. 
+subsets of the data you may want to read only the portion you need. This is
+the idea behind filter terms.
 
-Filter terms are built into an :class:`~vivarium.Artifact` on its creation 
-and apply to all data loaded from that Artifact. You can think of filter 
-terms as somewhat similar to the :func:`pandas.DataFrame.query` method, 
-although the key difference is that filter terms apply to what data is 
-actually read off disk. This means that they can reduce the time and memory 
+Filter terms are built into an
+:class:`~vivarium.framework.artifact.artifact.Artifact` on its creation and
+apply to all data loaded from that Artifact. You can think
+of filter terms as somewhat similar to the :meth:`pandas.DataFrame.query`
+method, although the key difference is that filter terms apply to what data is
+actually read off disk. This means that they can reduce the time and memory
 required to load a single dataset from an Artifact.
 
 Filter terms should be specified as a list of strings, with each item in the
@@ -127,9 +130,11 @@ artifact, use the ``keys`` attribute of the artifact:
 Reading data
 -------------
 
-Now that we've seen how to create an :class:`~vivarium.Artifact` object and
+Now that we've seen how to create an
+:class:`~vivarium.framework.artifact.artifact.Artifact` object and
 view the underlying storage structure, let's cover how to actually retrieve
-data from that artifact. We'll use the :func:`~vivarium.Artifact.load` method.
+data from that artifact. We'll use the
+:meth:`~vivarium.framework.artifact.artifact.Artifact.load` method.
 
 We saw the key names in our artifact in the previous step, and we'll use those
 names to load data. For example, if we want to load the population structure
@@ -190,7 +195,8 @@ to load a key not present in our Artifact, we will get an error:
 Writing data
 ------------
 
-To write new data to an artifact, use the :func:`~vivarium.Artifact.write`
+To write new data to an artifact, use the
+:meth:`~vivarium.framework.artifact.artifact.Artifact.write`
 method, passing the full key (in the string representation we saw above of
 ``type.name.measure`` or ``type.measure``) and the data you wish to store.
 
@@ -225,9 +231,10 @@ wrote to. We get an error:
     vivarium.framework.artifact.ArtifactException: locations.names already in artifact.
 
 If the key you want to write to is already in the artifact, you'll want to
-use the :func:`~vivarium.Artifact.replace` method instead of
-:func:`~vivarium.artifact.Artifact.write`. This allows you to replace the data
-in the artifact at the given key with the passed data.
+use the :meth:`~vivarium.framework.artifact.artifact.Artifact.replace` method
+instead of :meth:`~vivarium.framework.artifact.artifact.Artifact.write`. This
+allows you to replace the data in the artifact at the given key with the passed
+data.
 
 .. code-block:: python
 
@@ -243,10 +250,11 @@ in the artifact at the given key with the passed data.
 Removing data
 -------------
 
-Like :func:`~vivarium.Artifact.load` and :func:`~vivarium.Artifact.write`,
-:func:`~vivarium.Artifact.remove` is based on keys. Pass the name of the key
-you wish to remove, and it will be deleted from the artifact and the
-underlying hdf file.
+Like :meth:`~vivarium.framework.artifact.artifact.Artifact.load` and
+:meth:`~vivarium.framework.artifact.artifact.Artifact.write`,
+:meth:`~vivarium.framework.artifact.artifact.Artifact.remove` is based on keys.
+Pass the name of the key you wish to remove, and it will be deleted from the
+artifact and the underlying hdf file.
 
 .. code-block:: python
 
@@ -258,4 +266,3 @@ underlying hdf file.
 ::
 
     Successfully Deleted!
-

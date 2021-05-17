@@ -10,17 +10,18 @@ Population Management
    :backlinks: none
 
 Since ``Vivarium`` is an agent-based simulation framework, managing a group of
-:term:`simulants` and their attributes is a critical task. Fundamentally, to run
-a simulation we need to be able to create new simulates, update their state
-attributes, and facilitate access to their state so that :term:`components` in
-the simulation can do interesting things based on it. The tooling to support
-working with our simulant population is called the population management system.
+:term:`simulants <Simulant>` and their attributes is a critical task.
+Fundamentally, to run a simulation we need to be able to create new simulates,
+update their state attributes, and facilitate access to their state so that
+:term:`components <Component>` in the simulation can do interesting things
+based on it. The tooling to support working with our simulant population is
+called the population management system.
 
 The State Table
 ---------------
 
 The core representation of simulants and their state information in ``Vivarium``
-is a :class:`pandas.DataFrame <Data Frame>` known as the state table. Under this
+is a :class:`pandas.DataFrame` known as the state table. Under this
 representation rows represent simulants while columns correspond to state
 attributes like age, sex or systolic blood pressure. These columns represent one
 of several important resources within ``Vivarium`` that other components can

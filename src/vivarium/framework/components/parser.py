@@ -4,8 +4,8 @@ The Component Configuration Parser
 ==================================
 
 The :class:`ComponentConfigurationParser` is responsible for taking a list or
-hierarchical :class:`ConfigTree <vivarium.ConfigTree>`of components derived
-from a model specification yaml file and turning it into a list of
+hierarchical :class:`ConfigTree <vivarium.config_tree.ConfigTree>` of components
+derived from a model specification yaml file and turning it into a list of
 instantiated component objects. When a model specification yaml file is loaded,
 the components come in as strings. In order for the simulation to be able to
 use these components, they have to be converted into the actual objects they
@@ -63,9 +63,9 @@ class ComponentConfigurationParser:
         validating/prepping, and importing/instantiating.
 
         The first step of parsing is only done for component configurations that
-        come in as a :class:`ConfigTree <vivarium.ConfigTree>`. Configurations
-        that are provided in the form of a list are already assumed to be in
-        the correct form.
+        come in as a :class:`ConfigTree <vivarium.config_tree.ConfigTree>`.
+        Configurations that are provided in the form of a list are already
+        assumed to be in the correct form.
 
         Parameters
         ----------
@@ -77,7 +77,9 @@ class ComponentConfigurationParser:
 
         Returns
         -------
+        List
             A list of initialized components.
+
         """
         if isinstance(component_config, ConfigTree):
             component_list = self.parse_component_config(component_config.to_dict())
@@ -174,7 +176,7 @@ def parse_component_config_to_list(component_config: Dict[str, Union[Dict, List]
     return _process_level(component_config, [])
 
 
-def prep_components(component_list: Union[List[str], Tuple[str]]) -> List[Tuple[str, Tuple[str]]]:
+def prep_components(component_list: Union[List[str], Tuple[str]]) -> List[Tuple[str, Tuple]]:
     """Transform component description strings into tuples of component paths
     and required arguments.
 
@@ -185,6 +187,7 @@ def prep_components(component_list: Union[List[str], Tuple[str]]) -> List[Tuple[
 
     Returns
     -------
+    List[Tuple[str, Tuple]]
         List of component/argument tuples.
     """
     components = []
@@ -195,7 +198,7 @@ def prep_components(component_list: Union[List[str], Tuple[str]]) -> List[Tuple[
     return components
 
 
-def clean_args(args: List, path: str):
+def clean_args(args: List, path: str) -> Tuple:
     """Transform component arguments into a tuple, validating that each argument
     is a string.
 
@@ -208,6 +211,7 @@ def clean_args(args: List, path: str):
 
     Returns
     -------
+    Tuple
         A tuple of arguments, each of which is guaranteed to be a string.
     """
     out = []
@@ -224,7 +228,7 @@ def clean_args(args: List, path: str):
     return tuple(out)
 
 
-def import_and_instantiate_components(component_list: List[Tuple[str, Tuple[str]]]) -> List[Any]:
+def import_and_instantiate_components(component_list: List[Tuple[str, Tuple[str]]]) -> List:
     """Transform the list of tuples representing components into the actual
     instantiated component objects.
 
@@ -238,6 +242,7 @@ def import_and_instantiate_components(component_list: List[Tuple[str, Tuple[str]
 
     Returns
     -------
+    List
         A list of instantiated component objects.
 
     """

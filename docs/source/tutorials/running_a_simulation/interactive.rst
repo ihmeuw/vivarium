@@ -248,7 +248,7 @@ or modify the configuration data. You then have to call setup on the simulation
 yourself.
 
 To do this we'll set the ``setup`` flag in the
-:class:`~vivarium.InteractiveContext` to ``False``.
+:class:`~vivarium.interface.interactive.InteractiveContext` to ``False``.
 
 .. code-block:: python
 
@@ -267,8 +267,9 @@ population size to be smaller so the simulation takes less time to run.
 
    sim.configuration.update({'population': {'population_size': 1_000}})
 
-We then need to call the :meth:`setup` method on the simulation context to
-prepare it to run.
+We then need to call the
+:meth:`vivarium.framework.engine.SimulationContext.setup` method on the
+simulation context to prepare it to run.
 
 .. code-block:: python
 
@@ -299,7 +300,8 @@ After this step, we are ready to  :ref:`run the simulation <interactive_run>`.
 Bonus: Adding Additional Components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Another use case for creating the :class:`~vivarium.InteractiveContext` in
+Another use case for creating the
+:class:`~vivarium.interface.interactive.InteractiveContext` in
 its pre-setup state is to extend existing models.
 
 For example, say we wanted to add another risk for unsafe water sources
@@ -344,7 +346,7 @@ the simulation :term:`configuration <Configuration>`.  If you need finer
 control, there are a set of methods on the context that allow you to run
 the simulation for specified spans of time or numbers of simulation steps.
 Below is a table of the functions that can be called on an
-:class:`InteractiveContext <vivarium.interface.interactive.InteractiveContext`
+:class:`InteractiveContext <vivarium.interface.interactive.InteractiveContext>`
 to advance a simulation in different ways.
 
 .. list-table:: **InteractiveContext methods for advancing simulations**
