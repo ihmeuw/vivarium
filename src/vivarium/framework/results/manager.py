@@ -33,7 +33,7 @@ class ResultsInterface:
     results production separated from the modeling code into specialized
     `Observer` components. This often highlights the need for transformations
     of the simulation state into representations that aren't needed for
-    modelling, but are required for the stratification of produced results.
+    modeling, but are required for the stratification of produced results.
 
     To support these complexities, we first allow the user to supplement the
     simulation state with transformations of the underlying state table and
