@@ -30,7 +30,7 @@ class ResultsInterface:
     as well as dynamically generated information available from the
     :class:`value pipelines <vivarium.framework.values.Pipeline>`.
     Additionally, good encapsulation of simulation logic typically has
-    results production separated from the modelling code into specialized
+    results production separated from the modeling code into specialized
     `Observer` components. This often highlights the need for transformations
     of the simulation state into representations that aren't needed for
     modelling, but are required for the stratification of produced results.
