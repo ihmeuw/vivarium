@@ -17,8 +17,8 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 
-Time = Union[datetime, Number]
-Timedelta = Union[timedelta, Number]
+Time = Union[pd.Timestamp, datetime, Number]
+Timedelta = Union[pd.Timedelta, timedelta, Number]
 
 
 class SimulationClock:
@@ -125,10 +125,10 @@ class TimeInterface:
     def __init__(self, manager: SimulationClock):
         self._manager = manager
 
-    def clock(self) -> Callable[[], Union[datetime, Number]]:
+    def clock(self) -> Callable[[], Time]:
         """Gets a callable that returns the current simulation time."""
         return lambda: self._manager.time
 
-    def step_size(self) -> Callable[[], Union[timedelta, Number]]:
+    def step_size(self) -> Callable[[], Timedelta]:
         """Gets a callable that returns the current simulation step size."""
         return lambda: self._manager.step_size

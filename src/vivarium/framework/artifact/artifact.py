@@ -76,12 +76,13 @@ class Artifact:
 
         Returns
         -------
+        Any
             The expected data. Will either be a standard Python object or a
             :class:`pandas.DataFrame` or :class:`pandas.Series`.
 
         Raises
         ------
-        ArtifactException :
+        ArtifactException
             If the provided key is not in the artifact.
 
         """
@@ -105,11 +106,11 @@ class Artifact:
             The key associated with the provided data.
         data
             The data to write. Accepted formats are :class:`pandas.Series`,
-            :class:`pandas.Dataframe` or standard python types and containers.
+            :class:`pandas.DataFrame` or standard python types and containers.
 
         Raises
         ------
-        ArtifactException :
+        ArtifactException
             If the provided key already exists in the artifact.
 
         """
@@ -131,7 +132,7 @@ class Artifact:
 
         Raises
         ------
-        ArtifactException :
+        ArtifactException
             If the key is not present in the artifact.
 
         """
@@ -152,11 +153,11 @@ class Artifact:
             The key for which the data should be overwritten.
         data
             The data to write. Accepted formats are :class:`pandas.Series`,
-            :class:`pandas.Dataframe` or standard python types and containers.
+            :class:`pandas.DataFrame` or standard python types and containers.
 
         Raises
         ------
-        ArtifactException :
+        ArtifactException
             If the provided key does not already exist in the artifact.
 
         """
@@ -168,7 +169,9 @@ class Artifact:
     def clear_cache(self):
         """Clears the artifact's cache.
 
-        The artifact will cache data in memory to improve performance for repeat access.
+        The artifact will cache data in memory to improve performance for
+        repeat access.
+
         """
         self._cache = {}
 
@@ -205,7 +208,7 @@ def _to_tree(keys: List[str]) -> Dict[str, Dict[str, List[str]]]:
 
 
 class Keys:
-    """A convenient wrapper around the keyspace which makes it easier for 
+    """A convenient wrapper around the keyspace which makes it easier for
      Artifact to maintain its keyspace when an entity key is added or removed.
      With the artifact_path, Keys object is initialized when the Artifact is
      initialized """

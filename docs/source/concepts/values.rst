@@ -49,13 +49,13 @@ three options for combiners, detailed in the following table.
    * - Combiner
      - Description
      - Modifier Signature
-   * - | :func:`Replace <replace_combiner>`
+   * - | :func:`Replace <vivarium.framework.values.replace_combiner>`
      - | Replaces the output of the source or modifier with the output of the
        | next modifier. This is the default combiner if none is specified on
        | pipeline registration.
      - | Arguments for the modifiers should be the same as the source with an
        | additional last argument of the results of the previous modifier.
-   * - | :func:`List <list_combiner>`
+   * - | :func:`List <vivarium.framework.values.list_combiner>`
      - | The output of the source should be a list to which the results of the
        | modifiers are appended.
      - | Modifiers should have the same signature as the source.
@@ -70,11 +70,11 @@ combiner to do some postprocessing.
 
    * - Post-processor
      - Description
-   * - | :func:`Rescale <rescale_post_processor>`
+   * - | :func:`Rescale <vivarium.framework.values.rescale_post_processor>`
      - | Used for pipelines that produce rates.  Rescales the rates to the
        | size of the time step. Rates provided by source and modifiers are
        | presumed to be annual.
-   * - | :func:`Union <union_post_processor>`
+   * - | :func:`Union <vivarium.framework.values.union_post_processor>`
      - | Used for pipelines that produce independent proportions or
        | probabilities. Combines values in a way that is consistent with a
        | union of the underlying sample space
@@ -104,7 +104,8 @@ The values system provides four interface methods, available off the
        | pipeline and a source. Optionally provide a combiner (defaults to
        | the replace combiner) and a postprocessor. Provide dependencies (see note).
    * - | :meth:`register_rate_producer <vivarium.framework.values.ValuesInterface.register_rate_producer>`
-     - | A special case of :meth:`register_value_producer` for rates specifically.
+     - | A special case of :meth:`register_value_producer <vivarium.framework.values.ValuesInterface.register_value_producer>`
+       | for rates specifically.
        | Provide a name for the pipeline and a source and the values system will
        | automatically use the rescale postprocessor. Provide dependencies (see note).
    * - | :meth:`register_value_modifier <vivarium.framework.values.ValuesInterface.register_value_modifier>`

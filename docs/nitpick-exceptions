@@ -1,0 +1,8 @@
+# pandas
+py:class pandas.core.indexes.base.Index
+py:class pandas.core.indexes.multi.MultiIndex
+py:class pandas._libs.tslibs.timestamps.Timestamp
+py:class pandas._libs.tslibs.timedeltas.Timedelta
+py:class pandas.core.frame.DataFrame
+py:class pandas.core.series.Series
+py:class pandas.core.generic.PandasObject

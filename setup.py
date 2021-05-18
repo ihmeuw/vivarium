@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 from pathlib import Path
 
 from setuptools import setup, find_packages
@@ -39,8 +38,7 @@ if __name__ == "__main__":
     ]
 
     doc_requirements = [
-        'sphinx<2.1',
-        'sphinx-autodoc-typehints<=1.7',
+        'sphinx>=4.0',
         'sphinx-rtd-theme',
         'sphinx-click',
         'IPython',
@@ -71,7 +69,6 @@ if __name__ == "__main__":
             "Operating System :: POSIX :: Linux",
             "Operating System :: Microsoft :: Windows",
             "Programming Language :: Python",
-            "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: Implementation :: CPython",
             "Topic :: Education",
             "Topic :: Scientific/Engineering",

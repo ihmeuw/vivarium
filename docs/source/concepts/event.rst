@@ -93,7 +93,7 @@ The :class:`EventInterface <vivarium.framework.event.EventInterface>` is
 available off the :ref:`Builder <builder_concept>` and provides two options for
 interacting with the event system:
 
-1. :func:`register_listener <EventInterface.register_listener()>` to add a
+1. :func:`register_listener <vivarium.framework.event.EventInterface.register_listener()>` to add a
 listener to a given event to be called on emission
 
 2. :func:`get_emitter <vivarium.framework.event.EventInterface.get_emitter()>`
@@ -109,7 +109,7 @@ Registering Listeners
 
 In order to register a listener to an event to respond when that event is
 emitted, we can use the
-:func:`register_listener <EventInterface.register_listener()>`. The listener
+:func:`register_listener <vivarium.framework.event.EventInterface.register_listener()>`. The listener
 itself should be a callable function that takes as its only argument
 the :class:`Event <vivarium.framework.event.Event>` that is emitted.
 

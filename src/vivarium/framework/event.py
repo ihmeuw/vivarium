@@ -12,7 +12,7 @@ themselves as emitters or listeners to particular events.
 The :class:`EventManager` maintains a mapping between event types and channels.
 Each event type (and event types must be unique so event type is equivalent to
 event name, e.g., ``time_step_prepare``) corresponds to an
-:class:`_EventChannel`, which tracks listeners to that event in prioritized
+:class:`EventChannel`, which tracks listeners to that event in prioritized
 levels and passes on the event to those listeners when emitted.
 
 The :class:`EventInterface` is exposed off the :ref:`builder <builder_concept>`
@@ -38,32 +38,26 @@ class Event(NamedTuple):
     """An Event object represents the context of an event.
 
     Events themselves are just a bundle of data.  They must be emitted
-    along an :class:`_EventChannel` in order for other simulation components
+    along an :class:`EventChannel` in order for other simulation components
     to respond to them.
 
-    Attributes
-    ----------
-    index
-        An index into the population table containing all simulants
-        affected by this event.
-    user_data
-        Any additional data provided by the user about the event.
-    time
-        The simulation time at which this event will resolve. The current
-        simulation size plus the current time step size.
-    step_size
-        The current step size at the time of the event.
     """
+    #: An index into the population table containing all simulants affected
+    #: by this event.
     index: pd.Index
+    #: Any additional data provided by the user about the event.
     user_data: Dict[str, Any]
+    #: The simulation time at which this event will resolve. The current
+    #: simulation size plus the current time step size.
     time: Time
+    #: The current step size at the time of the event.
     step_size: Timedelta
 
     def split(self, new_index: pd.Index) -> 'Event':
         """Create a copy of this event with a new index.
 
         This function should be used to emit an event in a new
-        :class:`_EventChannel` in response to an event emitted from a
+        :class:`EventChannel` in response to an event emitted from a
         different channel.
 
         Parameters
@@ -74,6 +68,7 @@ class Event(NamedTuple):
 
         Returns
         -------
+        Event
             The new event.
 
         """
@@ -86,8 +81,9 @@ class Event(NamedTuple):
         return self.__dict__ == other.__dict__
 
 
-class _EventChannel:
+class EventChannel:
     """A named subscription channel that passes events to event listeners."""
+
     def __init__(self, manager, name):
         self.name = f'event_channel_{name}'
         self.manager = manager
@@ -121,7 +117,7 @@ class _EventChannel:
         return e
 
     def __repr__(self):
-        return f"_EventChannel(listeners: {[listener for bucket in self.listeners for listener in bucket]})"
+        return f"EventChannel(listeners: {[listener for bucket in self.listeners for listener in bucket]})"
 
 
 class EventManager:
@@ -145,7 +141,7 @@ class EventManager:
 
     def get_channel(self, name):
         if name not in self._event_types:
-            self._event_types[name] = _EventChannel(self, name)
+            self._event_types[name] = EventChannel(self, name)
         return self._event_types[name]
 
     def setup(self, builder):
@@ -231,6 +227,7 @@ class EventManager:
 
         Returns
         -------
+        List[Event]
             A list of all known event names.
 
         Notes
@@ -297,9 +294,10 @@ class EventInterface:
         name
             The name of the event to listen for.
         listener
-            The callable to be invoked any time an ``Event`` with the given
+            The callable to be invoked any time an :class:`Event` with the given
             name is emitted.
-        priority : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+        priority
+            One of {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}.
             An indication of the order in which event listeners should be
             called. Listeners with smaller priority values will be called
             earlier. Listeners with the same priority have no guaranteed

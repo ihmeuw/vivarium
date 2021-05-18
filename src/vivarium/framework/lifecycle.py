@@ -31,7 +31,6 @@ The tools here also allow for introspection of the simulation life cycle.
 
 """
 import functools
-from types import MethodType
 from typing import List, Callable, Tuple, Optional
 import textwrap
 
@@ -107,6 +106,7 @@ class LifeCycleState:
 
         Returns
         -------
+        bool
             Whether the state is valid for a transition.
 
         """
@@ -246,6 +246,7 @@ class LifeCycle:
 
         Returns
         -------
+        LifeCycleState
             The requested state.
 
         Raises
@@ -269,6 +270,7 @@ class LifeCycle:
 
         Return
         ------
+        List[str]
             The state names in the provided phase.
 
         Raises
@@ -312,7 +314,7 @@ class ConstraintMaker:
         self.lifecycle_manager = lifecycle_manager
         self.constraints = set()
 
-    def check_valid_state(self, method: MethodType, permitted_states: List[str]):
+    def check_valid_state(self, method: Callable, permitted_states: List[str]):
         """Ensures a component method is being called during an allowed state.
 
         Parameters
@@ -333,7 +335,7 @@ class ConstraintMaker:
             raise ConstraintError(f'Trying to call {method} during {current_state},'
                                   f' but it may only be called during {permitted_states}.')
 
-    def constrain_normal_method(self, method: MethodType, permitted_states: List[str]) -> MethodType:
+    def constrain_normal_method(self, method: Callable, permitted_states: List[str]) -> Callable:
         """Only permit a method to be called during the provided states.
 
         Constraints are applied by dynamically wrapping and binding a method
@@ -348,6 +350,7 @@ class ConstraintMaker:
 
         Returns
         -------
+        Callable
             The constrained method.
 
         """
@@ -368,7 +371,7 @@ class ConstraintMaker:
         return rebound_method
 
     @staticmethod
-    def to_guid(method: MethodType) -> str:
+    def to_guid(method: Callable) -> str:
         """Convert a method on to a global id.
 
         Because we dynamically rebind methods, the old ones will get garbage
@@ -378,7 +381,7 @@ class ConstraintMaker:
         """
         return f'{method.__self__.name}.{method.__name__}'
 
-    def __call__(self, method: MethodType, permitted_states: List[str]) -> MethodType:
+    def __call__(self, method: Callable, permitted_states: List[str]) -> Callable:
         """Only permit a method to be called during the provided states.
 
         Constraints are applied by dynamically wrapping and binding a method
@@ -496,6 +499,7 @@ class LifeCycleManager:
 
         Returns
         -------
+        List[str]
             A list of state names in order of execution.
 
         """
@@ -518,7 +522,7 @@ class LifeCycleManager:
         s = self.lifecycle.get_state(state_name)
         s.add_handlers(handlers)
 
-    def add_constraint(self, method: MethodType,
+    def add_constraint(self, method: Callable,
                        allow_during: List[str] = (),
                        restrict_during: List[str] = ()):
         """Constrains a function to be executable only during certain states.
@@ -592,7 +596,7 @@ class LifeCycleInterface:
         """
         self._manager.add_handlers(state, handlers)
 
-    def add_constraint(self, method: MethodType, allow_during: List[str] = (), restrict_during: List[str] = ()):
+    def add_constraint(self, method: Callable, allow_during: List[str] = (), restrict_during: List[str] = ()):
         """Constrains a function to be executable only during certain states.
 
         Parameters

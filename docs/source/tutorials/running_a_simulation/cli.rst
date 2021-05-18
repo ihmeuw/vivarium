@@ -5,7 +5,7 @@ Running from the Command Line
 =============================
 
 To run from the command line, we'll use the
-:func:`vivarium.interface.cli.simulate` command. This command is actually a
+:mod:`simulate <vivarium.interface.cli>` command. This command is actually a
 group containing three sub-commands: ``run``, ``test``, and ``profile``. We will
 focus on ``run`` here.
 

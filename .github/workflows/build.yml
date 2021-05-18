@@ -31,3 +31,9 @@ jobs:
       - name: Test
         run: |
           pytest
+      - name: Doc build
+        run: |
+          make html -C docs/ SPHINXOPTS="-W --keep-going -n"
+      - name: Doctest
+        run: |
+          make doctest -C docs/

@@ -26,7 +26,8 @@ extended to compositions of of several data-based values by :mod:`vivarium`'s
 The Lookup Table
 ----------------
 
-A :class:`Lookup Table` for a quantity is a callable object that is built from
+A :class:`Lookup Table <vivarium.framework.lookup.LookupTable>`
+for a quantity is a callable object that is built from
 a scalar value or a :class:`pandas.DataFrame` of data points that describes
 how the quantity varies with other variable(s). It is called with a
 :class:`pandas.Index` as a function parameter which represents a simulated
