@@ -50,7 +50,7 @@ class InterpolatedTable:
     Notes
     -----
     These should not be created directly. Use the `lookup` interface on the
-    class:`Builder` during setup.
+    :class:`builder <vivarium.framework.engine.Builder>` during setup.
 
     """
     def __init__(self,

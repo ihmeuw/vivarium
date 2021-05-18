@@ -177,7 +177,47 @@ class SimulationContext:
 
 
 class Builder:
-    """Toolbox for constructing and configuring simulation components."""
+    """Toolbox for constructing and configuring simulation components.
+
+    This is the access point for components through which they are able to
+    utilize a variety of interfaces to interact with the simulation framework.
+
+    Attributes
+    ----------
+    lookup: LookupTableInterface
+        Provides access to simulant-specific data via the
+        :ref:`lookup table<lookup_concept>` abstraction.
+    value: ValuesInterface
+        Provides access to computed simulant attribute values via the
+        :ref:`value pipeline<values_concept>` system.
+    event: EventInterface
+        Provides access to event listeners utilized in the
+        :ref:`event<event_concept>` system.
+    population: PopulationInterface
+        Provides access to simulant state table via the
+        :ref:`population<population_concept>` system.
+    resource: ResourceInterface
+        Provides access to the :ref:`resource<resource_concept>` system,
+        which manages dependencies between components.
+    time: TimeInterface
+        Provides access to the simulation's :ref:`clock<time_concept>`.
+    components: ComponentInterface
+        Provides access to the :ref:`component management<components_concept>`
+        system, which maintains a reference to all managers and components in
+        the simulation.
+    lifecycle: LifeCycleInterface
+        Provides access to the :ref:`life-cycle<lifecycle_concept>` system,
+        which manages the simulation's execution life-cycle.
+    data: ArtifactInterface
+        Provides access to the simulation's input data housed in the
+        :ref:`data artifact<data_concept>`.
+
+    Notes
+    -----
+    A `Builder` should never be created directly. It will automatically be
+    created during the initialization of a :class:`SimulationContext`
+
+    """
 
     def __init__(self, configuration, plugin_manager):
         self.configuration = configuration
