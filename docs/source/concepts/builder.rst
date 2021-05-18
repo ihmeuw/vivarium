@@ -9,19 +9,16 @@ The Builder
    :local:
    :backlinks: none
 
-#TODO: add link to VPH documentation (full external link)
-#TODO: check that links for methods work (or link them elsewhere)
-#TODO: merge after Rajan and put link to Builder API doc
 
 Users of the Vivarium framework build simulations with components. Components are
 Python classes that represent aspects and behaviors of simulants. Components can be
 leveraged directly from external modules like
-`vivarium_public_health<https://vivarium.readthedocs.io/projects/vivarium-public-health/en/stable/#>`_
+`vivarium_public_health <https://vivarium.readthedocs.io/projects/vivarium-public-health/en/stable/>`_
 or be user-written and customized. More information about components is available in the
 :ref:`component concept note <components_concept>`.
 
 The Builder (:class:`vivarium.framework.engine.Builder`) is created during initialization
-of a :class:`SimulationContext`. Components use the Builder to access interfaces to
+of a :class:`vivarium.framework.engine.SimulationContext`. Components use the Builder to access interfaces to
 interact with the Vivarium framework. Most components should have a setup method, where
 they register for services and provide information about their structure. For example,
 a component needing to leverage the simulation clock and step size
