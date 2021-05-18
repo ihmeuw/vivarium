@@ -156,34 +156,41 @@ class ComponentManager:
             self._components.add(c)
 
     def get_components_by_type(self, component_type: Union[type, Tuple[type, ...]]) -> List[Any]:
-        """Get all components currently held by the component manager that are an
-        instance of ``component_type``.
+        """Get all components that are an instance of ``component_type``.
 
         Parameters
         ----------
         component_type
             A component type.
+
         Returns
         -------
+        List[Any]
             A list of components of type ``component_type``.
+
         """
         return [c for c in self._components if isinstance(c, component_type)]
 
     def get_component(self, name: str) -> Any:
-        """Get the component that has ``name`` if presently held by the component
-        manager. Names are guaranteed to be unique.
+        """Get the component with name ``name``.
+
+        Names are guaranteed to be unique.
 
         Parameters
         ----------
         name
             A component name.
+
         Returns
         -------
+        Any
             A component that has name ``name``.
+
         Raises
         ------
         ValueError
             No component exists in the component manager with ``name``.
+
         """
         for c in self._components:
             if c.name == name:
@@ -195,11 +202,13 @@ class ComponentManager:
 
         Returns
         -------
+        Dict[str, Any]
             A mapping of component names to components.
+
         """
         return {c.name: c for c in self._components}
 
-    def setup_components(self, builder):
+    def setup_components(self, builder: 'Builder'):
         """Separately configure and set up the managers and components held by
         the component manager, in that order.
 
@@ -210,7 +219,7 @@ class ComponentManager:
 
         Parameters
         ----------
-        builder:
+        builder
             Interface to several simulation tools.
 
         """
@@ -297,16 +306,17 @@ class ComponentInterface:
         return self._manager.get_component(name)
 
     def get_components_by_type(self, component_type: Union[type, Tuple[type, ...]]) -> List[Any]:
-        """Get all components that are an instance of ``component_type``
-        currently held by the component manager.
+        """Get all components that are an instance of ``component_type``.
 
         Parameters
         ----------
         component_type
             A component type to retrieve, compared against internal components
             using isinstance().
+
         Returns
         -------
+        List[Any]
             A list of components of type ``component_type``.
 
         """
@@ -317,6 +327,7 @@ class ComponentInterface:
 
         Returns
         -------
+        Dict[str, Any]
             A dictionary mapping component names to components.
 
         """

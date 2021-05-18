@@ -9,9 +9,9 @@ simulations.
 """
 import pandas as pd
 import numpy as np
-from typing import Union, List, Tuple, TypeVar
+from typing import Union, List, Tuple
 
-ParameterType = TypeVar('ParameterType', List[List[str]], List[Tuple[str, str, str]])
+ParameterType = Union[List[List[str]], List[Tuple[str, str, str]]]
 
 
 class Interpolation:
@@ -232,7 +232,7 @@ class Order0Interp:
         """
         if validate:
             check_data_complete(data, parameter_columns)
-            
+
         self.data = data.copy()
         self.value_columns = value_columns
         self.extrapolate = extrapolate
@@ -285,8 +285,3 @@ class Order0Interp:
 
         interp_vals = interpolant_bins.merge(self.data, how='left', on=merge_cols).set_index(index)
         return interp_vals[self.value_columns]
-
-
-
-
-

@@ -13,9 +13,12 @@
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-
 from pathlib import Path
 import sys
+
+from docutils.nodes import Text
+from sphinx.ext.intersphinx import missing_reference
+
 
 import vivarium
 base_dir = Path(vivarium.__file__).parent
@@ -42,7 +45,7 @@ release = about["__version__"]
 
 # If your documentation needs a minimal Sphinx version, state it here.
 
-needs_sphinx = '1.5'
+needs_sphinx = '4.0'
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -57,9 +60,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx_click.ext',
-#    'sphinx_autodoc_typehints',
     'matplotlib.sphinxext.plot_directive',
-
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -184,17 +185,60 @@ texinfo_documents = [
      'Miscellaneous'),
 ]
 
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
-                       'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None)}
+# Other docs we can link to
+intersphinx_mapping = {'python': ('https://docs.python.org/3.8', None),
+                       'pandas': ('https://pandas.pydata.org/pandas-docs/stable/', None),
+                       'tables': ('https://www.pytables.org/', None),
+                       'numpy': ('https://numpy.org/doc/stable/', None)}
 
 
 # -- Autodoc configuration ------------------------------------------------
 
-# Sort order of members listed by autodoc
-# options are: 'alphabetical', 'groupwise', or 'bysource'
-autodoc_member_order = 'bysource'
+autodoc_default_options = {
+    # Automatically document members (e.g. classes in a module,
+    # methods in a class, etc.)
+    'members': True,
+    # Order of items documented is determined by the order
+    # of appearance in the source code
+    'member-order': 'bysource',
+    # Generate docs even if an item has no docstring.
+    'undoc-members': True,
+    # Don't document things with a leading underscore.
+    'private-members': False,
+}
 
-# Defaults for automodule and autoclass
-# To negate add `:no-undoc-members:` flag to a particular instance
-autodoc_default_flags = ['members', 'undoc-members']
+# Display type hints in the description instead of the signature.
+autodoc_typehints = 'description'
+
+
+# -- nitpicky mode --------------------------------------------------------
+# Ensures that all references in the docs resolve.
+
+nitpicky = True
+nitpick_ignore = []
+
+for line in open('../nitpick-exceptions'):
+    if line.strip() == "" or line.startswith("#"):
+        continue
+    dtype, target = line.split(None, 1)
+    target = target.strip()
+    nitpick_ignore.append((dtype, target))
+
+
+# Fix sphinx warnings when for literal Ellipses in type hints.
+def setup(app):
+    app.connect("missing-reference", __sphinx_issue_8127)
+
+
+def __sphinx_issue_8127(app, env, node, contnode):
+    reftarget = node.get("reftarget", None)
+    if reftarget == "..":
+        node["reftype"] = "data"
+        node["reftarget"] = "Ellipsis"
+        text_node = next(iter(contnode.traverse(lambda n: n.tagname == "#text")))
+        replacement_node = Text("...", "")
+        if text_node.parent is not None:
+            text_node.parent.replace(text_node, replacement_node)
+        else:  # e.g. happens in rtype fields
+            contnode = replacement_node
+        return missing_reference(app, env, node, contnode)

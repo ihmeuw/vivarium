@@ -38,6 +38,7 @@ from .randomness import RandomnessInterface
 from .values import ValuesInterface
 from .time import TimeInterface
 from .lifecycle import LifeCycleInterface
+from .results import ResultsInterface
 
 
 class SimulationContext:
@@ -79,6 +80,7 @@ class SimulationContext:
         self._events = self._plugin_manager.get_plugin('event')
         self._population = self._plugin_manager.get_plugin('population')
         self._resource = self._plugin_manager.get_plugin('resource')
+        self._results = self._plugin_manager.get_plugin('results')
         self._tables = self._plugin_manager.get_plugin('lookup')
         self._randomness = self._plugin_manager.get_plugin('randomness')
         self._data = self._plugin_manager.get_plugin('data')
@@ -94,7 +96,7 @@ class SimulationContext:
         # no ordering.
         managers = [self._clock, self._lifecycle, self._resource, self._values,
                     self._population, self._randomness, self._events, self._tables,
-                    self._data] + list(self._plugin_manager.get_optional_controllers().values())
+                    self._data, self._results] + list(self._plugin_manager.get_optional_controllers().values())
         self._component_manager.add_managers(managers)
 
         component_config_parser = self._plugin_manager.get_plugin('component_configuration_parser')
@@ -175,7 +177,47 @@ class SimulationContext:
 
 
 class Builder:
-    """Toolbox for constructing and configuring simulation components."""
+    """Toolbox for constructing and configuring simulation components.
+
+    This is the access point for components through which they are able to
+    utilize a variety of interfaces to interact with the simulation framework.
+
+    Attributes
+    ----------
+    lookup: LookupTableInterface
+        Provides access to simulant-specific data via the
+        :ref:`lookup table<lookup_concept>` abstraction.
+    value: ValuesInterface
+        Provides access to computed simulant attribute values via the
+        :ref:`value pipeline<values_concept>` system.
+    event: EventInterface
+        Provides access to event listeners utilized in the
+        :ref:`event<event_concept>` system.
+    population: PopulationInterface
+        Provides access to simulant state table via the
+        :ref:`population<population_concept>` system.
+    resource: ResourceInterface
+        Provides access to the :ref:`resource<resource_concept>` system,
+        which manages dependencies between components.
+    time: TimeInterface
+        Provides access to the simulation's :ref:`clock<time_concept>`.
+    components: ComponentInterface
+        Provides access to the :ref:`component management<components_concept>`
+        system, which maintains a reference to all managers and components in
+        the simulation.
+    lifecycle: LifeCycleInterface
+        Provides access to the :ref:`life-cycle<lifecycle_concept>` system,
+        which manages the simulation's execution life-cycle.
+    data: ArtifactInterface
+        Provides access to the simulation's input data housed in the
+        :ref:`data artifact<data_concept>`.
+
+    Notes
+    -----
+    A `Builder` should never be created directly. It will automatically be
+    created during the initialization of a :class:`SimulationContext`
+
+    """
 
     def __init__(self, configuration, plugin_manager):
         self.configuration = configuration
@@ -184,12 +226,14 @@ class Builder:
         self.value = plugin_manager.get_plugin_interface('value')                   # type: ValuesInterface
         self.event = plugin_manager.get_plugin_interface('event')                   # type: EventInterface
         self.population = plugin_manager.get_plugin_interface('population')         # type: PopulationInterface
-        self.resources = plugin_manager.get_plugin_interface('resource')             # type: ResourceInterface
+        self.resources = plugin_manager.get_plugin_interface('resource')            # type: ResourceInterface
+        self.results = plugin_manager.get_plugin_interface('results')               # type: ResultsInterface
         self.randomness = plugin_manager.get_plugin_interface('randomness')         # type: RandomnessInterface
         self.time = plugin_manager.get_plugin_interface('clock')                    # type: TimeInterface
         self.components = plugin_manager.get_plugin_interface('component_manager')  # type: ComponentInterface
         self.lifecycle = plugin_manager.get_plugin_interface('lifecycle')           # type: LifeCycleInterface
         self.data = plugin_manager.get_plugin_interface('data')                     # type: ArtifactInterface
+
 
         for name, interface in plugin_manager.get_optional_interfaces().items():
             setattr(self, name, interface)

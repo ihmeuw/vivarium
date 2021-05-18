@@ -54,7 +54,7 @@ Index = Union[pd.Index, pd.MultiIndex]
 
 
 class RandomnessError(VivariumError):
-    """Exception raised for inconsistencies in random number and choice generation."""
+    """Raised for inconsistencies in random number and choice generation."""
     pass
 
 
@@ -62,7 +62,8 @@ RESIDUAL_CHOICE = object()
 
 
 class IndexMap:
-    """A key-index mapping with a simple vectorized hash and vectorized lookups."""
+    """A key-index mapping with a vectorized hash and vectorized lookups."""
+
     TEN_DIGIT_MODULUS = 10_000_000_000
 
     def __init__(self, map_size=1_000_000):
@@ -76,6 +77,7 @@ class IndexMap:
         ----------
         new_keys
             The new index to hash.
+
         """
         if not self._map.index.intersection(new_keys).empty:
             raise KeyError("Non-unique keys in index.")
@@ -95,22 +97,23 @@ class IndexMap:
             salt += 1
 
     def hash_(self, keys: Index, salt: int = 0) -> pd.Series:
-        """Hashes the given index into an integer index in the range [0, self.stride]
+        """Hashes the index into an integer index in the range [0, self.stride]
 
         Parameters
         ----------
         keys
             The new index to hash.
         salt
-            An integer used to perturb the hash in a deterministic way.  Useful
+            An integer used to perturb the hash in a deterministic way. Useful
             in dealing with collisions.
 
         Returns
         -------
-        pd.Series
-            A pandas series indexed by the given keys and whose values take on integers in
-            the range [0, self.stride].  Duplicates may appear and should be dealt with
-            by the calling code.
+        pandas.Series
+            A pandas series indexed by the given keys and whose values take on
+            integers in the range [0, self.stride].  Duplicates may appear and
+            should be dealt with by the calling code.
+
         """
         key_frame = keys.to_frame()
         new_map = pd.Series(0, index=keys)
@@ -122,9 +125,10 @@ class IndexMap:
             primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 27]
             out = pd.Series(1, index=column.index)
             for idx, p in enumerate(primes):
-                # numpy will almost always overflow here, but it is equivalent to modding
-                # out by 2**64.  Since it's much much larger than our map size
-                # the amount of additional periodicity this introduces is pretty trivial.
+                # numpy will almost always overflow here, but it is equivalent
+                # to modding out by 2**64.  Since it's much much larger than
+                # our map size the amount of additional periodicity this
+                # introduces is pretty trivial.
                 out *= np.power(p, self.digit(column, idx))
             new_map += out + salt
 
@@ -141,7 +145,7 @@ class IndexMap:
 
         Returns
         -------
-        pd.Series
+        pandas.Series
             A series of ten digit integers based on the input data.
 
         Raises
@@ -149,6 +153,7 @@ class IndexMap:
         RandomnessError
             If the column contains data that is neither a datetime-like nor
             numeric.
+
         """
         if isinstance(column.iloc[0], datetime.datetime):
             column = self.clip_to_seconds(column.astype(np.int64))
@@ -198,7 +203,7 @@ class IndexMap:
 
 
 def random(key: str, index: Index, index_map: IndexMap = None) -> pd.Series:
-    """Produces an indexed `pandas.Series` of uniformly distributed random numbers.
+    """Produces an indexed set of uniformly distributed random numbers.
 
     The index passed in typically corresponds to a subset of rows in a
     `pandas.DataFrame` for which a probabilistic draw needs to be made.
@@ -216,8 +221,9 @@ def random(key: str, index: Index, index_map: IndexMap = None) -> pd.Series:
 
     Returns
     -------
-    pd.Series
+    pandas.Series
         A series of random numbers indexed by the provided index.
+
     """
     if len(index) > 0:
         random_state = np.random.RandomState(seed=get_hash(key))
@@ -253,6 +259,7 @@ def get_hash(key: str) -> int:
     -------
     int
         A hash of the provided key.
+
     """
     # 4294967295 == 2**32 - 1 which is the maximum allowable seed for a `numpy.random.RandomState`.
     return int(hashlib.sha1(key.encode('utf8')).hexdigest(), 16) % 4294967295
@@ -267,28 +274,28 @@ def choice(key: str, index: Index, choices: Array, p: Array = None, index_map: I
 
     Parameters
     ----------
-    key :
+    key
         A string used to create a seed for the random number generation.
-    index : `pandas.Index`
+    index
         An index whose length is the number of random draws made
         and which indexes the returned `pandas.Series`.
-    choices :
+    choices
         A set of options to choose from.
-    p :
+    p
         The relative weights of the choices.  Can be either a 1-d array of
         the same length as `choices` or a 2-d array with `len(index)` rows
         and `len(choices)` columns.  In the 1-d case, the same set of weights
         are used to decide among the choices for every item in the `index`.
         In the 2-d case, each row in `p` contains a separate set of weights
         for every item in the `index`.
-    index_map :
+    index_map
         A mapping between the provided index (which may contain ints, floats,
         datetimes or any arbitrary combination of them) and an integer index
         into the random number array.
 
     Returns
     -------
-    pd.Series
+    pandas.Series
         An indexed set of decisions from among the available `choices`.
 
     Raises
@@ -297,6 +304,7 @@ def choice(key: str, index: Index, choices: Array, p: Array = None, index_map: I
         If any row in `p` contains `RESIDUAL_CHOICE` and the remaining
         weights in the row are not normalized or any row of `p` contains
         more than one reference to `RESIDUAL_CHOICE`.
+
     """
     # Convert p to normalized probabilities broadcasted over index.
     p = _set_residual_probability(_normalize_shape(p, index)) if p is not None else np.ones((len(index), len(choices)))
@@ -325,14 +333,15 @@ def _set_residual_probability(p: np.ndarray) -> np.ndarray:
 
     Parameters
     ----------
-    p :
+    p
         Array where each row is a set of probability weights and potentially
         a `RESIDUAL_CHOICE` placeholder.
 
     Returns
     -------
-    np.ndarray
+    numpy.ndarray
         Array where each row is a set of normalized probability weights.
+
     """
     residual_mask = p == RESIDUAL_CHOICE
     if residual_mask.any():  # I.E. if we have any placeholders.
@@ -378,9 +387,10 @@ def filter_for_probability(key: str, population: Union[pd.DataFrame, pd.Series, 
 
     Returns
     -------
-    pd.core.generic.PandasObject
+    pandas.core.generic.PandasObject
         The sub-population of the simulants for whom the event occurred.
         The return type will be the same as type(population)
+
     """
     if population.empty:
         return population
@@ -401,11 +411,11 @@ class RandomnessStream:
 
     Attributes
     ----------
-    key :
+    key
         The name of the randomness stream.
-    clock :
+    clock
         A way to get the current simulation time.
-    seed :
+    seed
         An extra number used to seed the random number generation.
 
     Notes
@@ -416,13 +426,10 @@ class RandomnessStream:
     them from the builder provided to them during the setup phase.
     I.E.::
 
-        class CeamComponent:
+        class VivariumComponent:
             def setup(self, builder):
                 self.randomness_stream = builder.randomness.get_stream('stream_name')
 
-    See Also
-    --------
-    `engine.Builder`
     """
     def __init__(self, key: str, clock: Callable, seed: Any,
                  index_map: IndexMap = None, manager: 'RandomnessManager' = None,
@@ -435,17 +442,18 @@ class RandomnessStream:
         self._for_initialization = for_initialization
 
     def copy_with_additional_key(self, key: Any) -> 'RandomnessStream':
-        """Creates a copy of this stream that combines this streams key with a new one.
+        """Creates a copy of this stream with a permutation of it's random seed.
 
         Parameters
         ----------
-        key :
+        key
             The additional key to describe the new stream with.
 
         Returns
         -------
         RandomnessStream
             A new RandomnessStream with a combined key.
+
         """
         copy_key = '_'.join([self.key, key])
         if self._for_initialization:
@@ -464,30 +472,31 @@ class RandomnessStream:
 
         Parameters
         ----------
-        additional_key :
+        additional_key
             Any additional information used to seed random number generation.
 
         Returns
         -------
         str
             A key to seed random number generation.
+
         """
         return '_'.join([self.key, str(self.clock()), str(additional_key), str(self.seed)])
 
     def get_draw(self, index: Index, additional_key: Any = None) -> pd.Series:
-        """Get an indexed sequence of floats pulled from a uniform distribution over [0.0, 1.0)
+        """Get an indexed set of numbers uniformly drawn from the unit interval.
 
         Parameters
         ----------
-        index :
+        index
             An index whose length is the number of random draws made
             and which indexes the returned `pandas.Series`.
-        additional_key :
+        additional_key
             Any additional information used to seed random number generation.
 
         Returns
         -------
-        pd.Series
+        pandas.Series
             A series of random numbers indexed by the provided `pandas.Index`.
         """
         if self._for_initialization:
@@ -499,8 +508,8 @@ class RandomnessStream:
         return draw
 
     def filter_for_rate(self, population: Union[pd.DataFrame, pd.Series, Index],
-                        rate: Array, additional_key: Any = None) -> Index:
-        """Decide an event outcome for each individual in a population from rates.
+                        rate: Array, additional_key: Any = None) -> Union[pd.DataFrame, pd.Series, Index]:
+        """Decide an event outcome for each individual from rates.
 
         Given a population or its index and an array of associated rates for
         some event to happen, we create and return the sub-population for whom
@@ -508,55 +517,54 @@ class RandomnessStream:
 
         Parameters
         ----------
-        population :
+        population
             A view on the simulants for which we are determining the
             outcome of an event.
-        rate :
+        rate
             A 1d list of rates of the event under consideration occurring which
             corresponds (i.e. `len(population) == len(probability))` to the
-            population view passed in. The rates must be scaled to the simulation
-            time-step size either manually or as a post-processing step in a
-            rate pipeline.
-        additional_key :
+            population view passed in. The rates must be scaled to the
+            simulation time-step size either manually or as a post-processing
+            step in a rate pipeline.
+        additional_key
             Any additional information used to create the seed.
 
         Returns
         -------
-        Index
-            The index of the simulants for whom the event occurred.
+        pandas.core.generic.PandasObject
+            The sub-population of the simulants for whom the event occurred.
+            The return type will be the same as type(population)
 
-        See Also
-        --------
-        framework.values:
-            Value/rate pipeline management module.
         """
         return self.filter_for_probability(population, rate_to_probability(rate), additional_key)
 
     def filter_for_probability(self, population: Union[pd.DataFrame, pd.Series, Index],
-                               probability: Array, additional_key: Any = None) -> Index:
-        """Decide an event outcome for each individual in a population from probabilities.
+                               probability: Array, additional_key: Any = None) -> Union[pd.DataFrame, pd.Series, Index]:
+        """Decide an outcome for each individual from probabilities.
 
         Given a population or its index and an array of associated probabilities
-        for some event to happen, we create and return the sub-population for whom
-        the event occurred.
+        for some event to happen, we create and return the sub-population for
+        whom the event occurred.
 
         Parameters
         ----------
-        population :
+        population
             A view on the simulants for which we are determining the
             outcome of an event.
-        probability :
+        probability
             A 1d list of probabilities of the event under consideration
-            occurring which corresponds (i.e. `len(population) == len(probability)`
-            to the population view passed in.
-        additional_key :
+            occurring which corresponds (i.e.
+            `len(population) == len(probability)` to the population view
+            passed in.
+        additional_key
             Any additional information used to create the seed.
 
         Returns
         -------
-        Index
+        pandas.core.generic.PandasObject
             The sub-population of the simulants for whom the event occurred.
             The return type will be the same as type(population)
+
         """
         return filter_for_probability(self._key(additional_key), population, probability, self.index_map)
 
@@ -569,24 +577,24 @@ class RandomnessStream:
 
         Parameters
         ----------
-        index :
+        index
             An index whose length is the number of random draws made
             and which indexes the returned `pandas.Series`.
-        choices :
+        choices
             A set of options to choose from.
-        p :
+        p
             The relative weights of the choices.  Can be either a 1-d array of
             the same length as `choices` or a 2-d array with `len(index)` rows
-            and `len(choices)` columns.  In the 1-d case, the same set of weights
-            are used to decide among the choices for every item in the `index`.
-            In the 2-d case, each row in `p` contains a separate set of weights
-            for every item in the `index`.
-        additional_key :
+            and `len(choices)` columns.  In the 1-d case, the same set of
+            weights are used to decide among the choices for every item in
+            the `index`. In the 2-d case, each row in `p` contains a separate
+            set of weights for every item in the `index`.
+        additional_key
             Any additional information used to seed random number generation.
 
         Returns
         -------
-        pd.Series
+        pandas.Series
             An indexed set of decisions from among the available `choices`.
 
         Raises
@@ -595,6 +603,7 @@ class RandomnessStream:
             If any row in `p` contains `RESIDUAL_CHOICE` and the remaining
             weights in the row are not normalized or any row of `p contains
             more than one reference to `RESIDUAL_CHOICE`.
+
         """
         return choice(self._key(additional_key), index, choices, p, self.index_map)
 
@@ -648,21 +657,23 @@ class RandomnessManager:
 
         Parameters
         ----------
-        decision_point :
-            A unique identifier for a stream of random numbers.  Typically represents
-            a decision that needs to be made each time step like 'moves_left' or
-            'gets_disease'.
-        for_initialization :
-            A flag indicating whether this stream is used to generate key initialization information
-            that will be used to identify simulants in the Common Random Number framework. These streams
-            cannot be copied and should only be used to generate the state table columns specified
-            in ``builder.configuration.randomness.key_columns``.
+        decision_point
+            A unique identifier for a stream of random numbers.  Typically
+            represents a decision that needs to be made each time step like
+            'moves_left' or 'gets_disease'.
+        for_initialization
+            A flag indicating whether this stream is used to generate key
+            initialization information that will be used to identify simulants
+            in the Common Random Number framework. These streams cannot be
+            copied and should only be used to generate the state table columns
+            specified in ``builder.configuration.randomness.key_columns``.
 
         Raises
         ------
-        RandomnessError :
+        RandomnessError
             If another location in the simulation has already created a randomness stream
             with the same identifier.
+
         """
         stream = self._get_randomness_stream(decision_point, for_initialization)
         if not for_initialization:  # We need the key columns to be created before this stream can be called.
@@ -689,16 +700,17 @@ class RandomnessManager:
 
         Parameters
         ----------
-        decision_point :
-            A unique identifier for a stream of random numbers.  Typically represents
-            a decision that needs to be made each time step like 'moves_left' or
-            'gets_disease'.
+        decision_point
+            A unique identifier for a stream of random numbers.  Typically
+            represents a decision that needs to be made each time step like
+            'moves_left' or 'gets_disease'.
 
         Returns
         -------
         int
             A seed for a random number generation that is linked to Vivarium's
             common random number framework.
+
         """
         return get_hash('_'.join([decision_point, str(self._clock()), str(self._seed)]))
 
@@ -708,13 +720,15 @@ class RandomnessManager:
         Parameters
         ----------
         simulants
-            A table with state data representing the new simulants.  Each simulant should
-            pass through this function exactly once.
+            A table with state data representing the new simulants.  Each
+            simulant should pass through this function exactly once.
 
         Raises
         ------
-        RandomnessError :
-            If the provided table does not contain all key columns specified in the configuration.
+        RandomnessError
+            If the provided table does not contain all key columns specified
+            in the configuration.
+
         """
         if not all(k in simulants.columns for k in self._key_columns):
             raise RandomnessError("The simulants dataframe does not have all specified key_columns.")
@@ -757,8 +771,10 @@ class RandomnessInterface:
         Returns
         -------
         RandomnessStream
-            An entry point into the Common Random Number generation framework. The stream provides
-            vectorized access to random numbers and a few other utilities.
+            An entry point into the Common Random Number generation framework.
+            The stream provides vectorized access to random numbers and a few
+            other utilities.
+
         """
         return self._manager.get_randomness_stream(decision_point, for_initialization)
 
@@ -768,15 +784,16 @@ class RandomnessInterface:
         Parameters
         ----------
         decision_point :
-            A unique identifier for a stream of random numbers.  Typically represents
-            a decision that needs to be made each time step like 'moves_left' or
-            'gets_disease'.
+            A unique identifier for a stream of random numbers.  Typically
+            represents a decision that needs to be made each time step like
+            'moves_left' or 'gets_disease'.
 
         Returns
         -------
         int
             A seed for a random number generation that is linked to Vivarium's
             common random number framework.
+
         """
         return self._manager.get_seed(decision_point)
 
@@ -786,8 +803,10 @@ class RandomnessInterface:
         Parameters
         ----------
         simulants
-            A section of the state table with new simulants and at least the columns specified
-            in ``builder.configuration.randomness.key_columns``.  This function should be called
-            as soon as the key columns are generated.
+            A section of the state table with new simulants and at least the
+            columns specified in
+            ``builder.configuration.randomness.key_columns``.  This function
+            should be called as soon as the key columns are generated.
+
         """
         self._manager.register_simulants(simulants)
