@@ -11,6 +11,8 @@ on:
       - '*'
     tags-ignore:
       - v*
+  # Run this workflow manually from the Actions tab.
+  workflow_dispatch:
 
 jobs:
   build:
@@ -24,13 +26,18 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
+      - name: Print environment values
+        run: |
+          cat $GITHUB_ENV
+      - name: Update pip
         run: |
           python -m pip install --upgrade pip
+      - name: Install dependencies
+        run: |
           pip install .[dev]
       - name: Test
         run: |
-          pytest
+          pytest ./tests
       - name: Doc build
         run: |
           make html -C docs/ SPHINXOPTS="-W --keep-going -n"
