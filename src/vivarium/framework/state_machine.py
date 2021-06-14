@@ -110,11 +110,11 @@ class Transition:
 
     Parameters
     ----------
-    input_state: State
+    input_state
         The start state of the entity that undergoes the transition.
-    output_state : State
+    output_state
         The end state of the entity that undergoes the transition.
-    probability_func : Callable
+    probability_func
         A method or function that describing the probability of this
         transition occurring.
 
@@ -170,13 +170,13 @@ class State:
 
     Attributes
     ----------
-    state_id : str
+    state_id
         The name of this state. This should be unique
-    transition_set : `TransitionSet`
+    transition_set
         A container for potential transitions out of this state.
 
     """
-    def __init__(self, state_id):
+    def __init__(self, state_id: str):
         self.state_id = state_id
         self.transition_set = TransitionSet(self.name)
         self._model = None
