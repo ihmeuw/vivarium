@@ -1,3 +1,7 @@
+**0.10.7 - 08/10/21**
+
+ - Hotfix to re-trigger CI
+
 **0.10.6 - 08/10/21**
 
  - Fix bug in deploy script
