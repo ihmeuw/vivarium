@@ -1,3 +1,7 @@
+**0.10.6 - 08/10/21**
+
+ - Fix bug in deploy script
+
 **0.10.5 - 08/10/21**
 
  - Update builder documentation
