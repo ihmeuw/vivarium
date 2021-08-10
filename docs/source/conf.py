@@ -27,12 +27,12 @@ about = {}
 with (base_dir / "__about__.py").open() as f:
     exec(f.read(), about)
 
-sys.path.insert(0, Path('..').resolve())
+sys.path.insert(0, str(Path('..').resolve()))
 
 # -- Project information -----------------------------------------------------
 
 project = about['__title__']
-copyright = f'2018, {about["__author__"]}'
+copyright = f'2021, {about["__author__"]}'
 author = about["__author__"]
 
 # The short X.Y version.
@@ -206,7 +206,6 @@ autodoc_default_options = {
     # Don't document things with a leading underscore.
     'private-members': False,
 }
-
 # Display type hints in the description instead of the signature.
 autodoc_typehints = 'description'
 
@@ -215,8 +214,8 @@ autodoc_typehints = 'description'
 # Ensures that all references in the docs resolve.
 
 nitpicky = True
-nitpick_ignore = []
 
+nitpick_ignore = []
 for line in open('../nitpick-exceptions'):
     if line.strip() == "" or line.startswith("#"):
         continue

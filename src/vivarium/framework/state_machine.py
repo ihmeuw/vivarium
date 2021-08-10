@@ -7,20 +7,21 @@ A state machine implementation for use in ``vivarium`` simulations.
 
 """
 from enum import Enum
-import typing
-from typing import List, Tuple
+from typing import Callable, List, Iterable, Tuple, TYPE_CHECKING
 
 import pandas as pd
 import numpy as np
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
     from vivarium.framework.population import PopulationView
+    from vivarium.framework.time import Time
 
 
 def _next_state(index: pd.Index,
-                event_time: pd.Timestamp,
+                event_time: 'Time',
                 transition_set: 'TransitionSet',
-                population_view: 'PopulationView'):
+                population_view: 'PopulationView') -> None:
     """Moves a population between different states using information from a `TransitionSet`.
 
     Parameters
@@ -56,7 +57,7 @@ def _next_state(index: pd.Index,
                 raise ValueError('Invalid transition output: {}'.format(output))
 
 
-def _groupby_new_state(index: pd.Index, outputs: List , decisions: pd.Series) -> List[Tuple[str, pd.Index]]:
+def _groupby_new_state(index: pd.Index, outputs: List, decisions: pd.Series) -> List[Tuple[str, pd.Index]]:
     """Groups the simulants in the index by their new output state.
 
     Parameters
@@ -75,6 +76,7 @@ def _groupby_new_state(index: pd.Index, outputs: List , decisions: pd.Series) ->
         The first item in each tuple is the name of an output state and the
         second item is a `pandas.Index` representing the simulants to transition
         into that state.
+
     """
     output_map = {o: i for i, o in enumerate(outputs)}
     groups = pd.Series(index).groupby([output_map[d] for d in decisions])
@@ -108,19 +110,19 @@ class Transition:
 
     Parameters
     ----------
-    input_state: State
+    input_state
         The start state of the entity that undergoes the transition.
-    output_state : State
+    output_state
         The end state of the entity that undergoes the transition.
-    probability_func : Callable
+    probability_func
         A method or function that describing the probability of this
         transition occurring.
 
     """
     def __init__(self,
-                 input_state,
-                 output_state,
-                 probability_func=lambda index: pd.Series(1, index=index),
+                 input_state: 'State',
+                 output_state: 'State',
+                 probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(1, index=index),
                  triggered=Trigger.NOT_TRIGGERED):
         self.input_state = input_state
         self.output_state = output_state
@@ -128,25 +130,26 @@ class Transition:
         self._active_index, self.start_active = _process_trigger(triggered)
 
     @property
-    def name(self):
-        return f"transition.{self.input_state.name}.{self.output_state.name}"
+    def name(self) -> str:
+        transition_type = self.__class__.__name__.lower()
+        return f"{transition_type}.{self.input_state.name}.{self.output_state.name}"
 
-    def setup(self, builder):
+    def setup(self, builder: 'Builder') -> None:
         pass
 
-    def set_active(self, index):
+    def set_active(self, index: pd.Index) -> None:
         if self._active_index is None:
             raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
         else:
             self._active_index = self._active_index.union(pd.Index(index))
 
-    def set_inactive(self, index):
+    def set_inactive(self, index: pd.Index) -> None:
         if self._active_index is None:
             raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
         else:
             self._active_index = self._active_index.difference(pd.Index(index))
 
-    def probability(self, index):
+    def probability(self, index: pd.Index) -> pd.Series:
         if self._active_index is None:
             return self._probability(index)
 
@@ -158,7 +161,8 @@ class Transition:
         return activated.append(null)
 
     def __repr__(self):
-        return f'Transition({self.input_state}, {self.output_state})'
+        c = self.__class__.__name__
+        return f'{c}({self.input_state}, {self.output_state})'
 
 
 class State:
@@ -166,30 +170,31 @@ class State:
 
     Attributes
     ----------
-    state_id : str
+    state_id
         The name of this state. This should be unique
-    transition_set : `TransitionSet`
+    transition_set
         A container for potential transitions out of this state.
 
     """
-    def __init__(self, state_id):
+    def __init__(self, state_id: str):
         self.state_id = state_id
         self.transition_set = TransitionSet(self.name)
         self._model = None
         self._sub_components = [self.transition_set]
 
     @property
-    def name(self):
-        return f"state.{self.state_id}"
+    def name(self) -> str:
+        state_type = self.__class__.__name__.lower()
+        return f"{state_type}.{self.state_id}"
 
     @property
-    def sub_components(self):
+    def sub_components(self) -> List:
         return self._sub_components
 
-    def setup(self, builder):
+    def setup(self, builder: 'Builder') -> None:
         pass
 
-    def next_state(self, index: pd.Index, event_time: pd.Timestamp, population_view: 'PopulationView'):
+    def next_state(self, index: pd.Index, event_time: 'Time', population_view: 'PopulationView') -> None:
         """Moves a population between different states.
 
         Parameters
@@ -204,7 +209,7 @@ class State:
         """
         return _next_state(index, event_time, self.transition_set, population_view)
 
-    def transition_effect(self, index: pd.Index, event_time: pd.Timestamp, population_view: 'PopulationView'):
+    def transition_effect(self, index: pd.Index, event_time: 'Time', population_view: 'PopulationView') -> None:
         """Updates the simulation state and triggers any side-effects associated with entering this state.
 
         Parameters
@@ -220,32 +225,41 @@ class State:
         population_view.update(pd.Series(self.state_id, index=index))
         self._transition_side_effect(index, event_time)
 
-    def cleanup_effect(self, index, event_time):
+    def cleanup_effect(self, index: pd.Index, event_time: 'Time') -> None:
         self._cleanup_effect(index, event_time)
 
-    def add_transition(self, output,
-                       probability_func=lambda index: np.ones(len(index), dtype=float),
-                       triggered=Trigger.NOT_TRIGGERED):
+    def add_transition(self, output: 'State',
+                       probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(1.0, index=index),
+                       triggered=Trigger.NOT_TRIGGERED) -> Transition:
         """Builds a transition from this state to the given state.
 
-        output : State
+        Parameters
+        ----------
+        output
             The end state after the transition.
+
+        Returns
+        -------
+        Transition
+            The created transition object.
+
         """
         t = Transition(self, output, probability_func=probability_func, triggered=triggered)
         self.transition_set.append(t)
         return t
 
-    def allow_self_transitions(self):
+    def allow_self_transitions(self) -> None:
         self.transition_set.allow_null_transition = True
 
-    def _transition_side_effect(self, index, event_time):
+    def _transition_side_effect(self, index: pd.Index, event_time: 'Time') -> None:
         pass
 
-    def _cleanup_effect(self, index, event_time):
+    def _cleanup_effect(self, index: pd.Index, event_time: 'Time') -> None:
         pass
 
     def __repr__(self):
-        return f'State({self.state_id})'
+        c = self.__class__.__name__
+        return f'{c}({self.state_id})'
 
 
 class Transient:
@@ -271,7 +285,7 @@ class TransitionSet:
     allow_null_transition
 
     """
-    def __init__(self, state_name, *transitions, allow_null_transition=False):
+    def __init__(self, state_name: str, *transitions: Transition, allow_null_transition: bool = False):
         self._state_name = state_name
         self.allow_null_transition = allow_null_transition
         self.transitions = []
@@ -280,14 +294,14 @@ class TransitionSet:
         self.extend(transitions)
 
     @property
-    def name(self):
+    def name(self) -> str:
         return f'transition_set.{self._state_name}'
 
     @property
-    def sub_components(self):
+    def sub_components(self) -> List:
         return self._sub_components
 
-    def setup(self, builder):
+    def setup(self, builder: 'Builder') -> None:
         """Performs this component's simulation setup and return sub-components.
 
         Parameters
@@ -374,13 +388,13 @@ class TransitionSet:
 
         return outputs, probabilities
 
-    def append(self, transition):
+    def append(self, transition: Transition) -> None:
         if not isinstance(transition, Transition):
             raise TypeError(
                 'TransitionSet must contain only Transition objects. Check constructor arguments: {}'.format(self))
         self.transitions.append(transition)
 
-    def extend(self, transitions):
+    def extend(self, transitions: Iterable[Transition]) -> None:
         for transition in transitions:
             self.append(transition)
 
@@ -410,29 +424,30 @@ class Machine:
         A view of the internal state of the simulation.
 
     """
-    def __init__(self, state_column, states=None):
+    def __init__(self, state_column: str, states: Iterable[State] = ()):
         self.states = []
         self.state_column = state_column
         if states:
             self.add_states(states)
 
     @property
-    def name(self):
-        return f"machine.{self.state_column}"
+    def name(self) -> str:
+        machine_type = self.__class__.__name__.lower()
+        return f"{machine_type}.{self.state_column}"
 
     @property
     def sub_components(self):
         return self.states
 
-    def setup(self, builder):
+    def setup(self, builder: 'Builder') -> None:
         self.population_view = builder.population.get_view([self.state_column])
 
-    def add_states(self, states):
+    def add_states(self, states: Iterable[State]) -> None:
         for state in states:
             self.states.append(state)
             state._model = self.state_column
 
-    def transition(self, index: pd.Index, event_time: pd.Timestamp):
+    def transition(self, index: pd.Index, event_time: 'Time') -> None:
         """Finds the population in each state and moves them to the next state.
 
         Parameters
@@ -447,14 +462,14 @@ class Machine:
             if not affected.empty:
                 state.next_state(affected.index, event_time, self.population_view.subview([self.state_column]))
 
-    def cleanup(self, index, event_time):
+    def cleanup(self, index: pd.Index, event_time: 'Time') -> None:
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
                 state.cleanup_effect(affected.index, event_time)
 
-    def _get_state_pops(self, index):
+    def _get_state_pops(self, index: pd.Index) -> List[Tuple[State, pd.DataFrame]]:
         population = self.population_view.get(index)
-        return [[state, population[population[self.state_column] == state.state_id]] for state in self.states]
+        return [(state, population[population[self.state_column] == state.state_id]) for state in self.states]
 
     def __repr__(self):
         return f"Machine(state_column= {self.state_column})"

@@ -1,3 +1,14 @@
+import sys
+if sys.version_info < (3, 6) or sys.version_info >= (3, 9):
+    # Python 3.5 does not support f-strings
+    py_version = '.'.join([str(v) for v in sys.version_info[:3]])
+    error = ('\n----------------------------------------\n'
+            'Error: Vivarium runs under python 3.6-3.8.\n'
+            'You are running python {py_version}'.format(py_version = py_version))
+    print(error, file=sys.stderr)
+    sys.exit(1)
+
+
 from pathlib import Path
 
 from setuptools import setup, find_packages

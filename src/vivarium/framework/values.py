@@ -511,7 +511,7 @@ class ValuesInterface:
 
     def register_rate_producer(self,
                                rate_name: str,
-                               source: Callable[..., pd.DataFrame],
+                               source: Callable,
                                requires_columns: List[str] = (),
                                requires_values: List[str] = (),
                                requires_streams: List[str] = ()) -> Pipeline:

@@ -50,7 +50,7 @@ class InterpolatedTable:
     Notes
     -----
     These should not be created directly. Use the `lookup` interface on the
-    class:`Builder` during setup.
+    :class:`builder <vivarium.framework.engine.Builder>` during setup.
 
     """
     def __init__(self,
@@ -197,11 +197,11 @@ class LookupTable:
                                             validate)
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Tables are generically named after the order they were created."""
         return f'lookup_table_{self.table_number}'
 
-    def __call__(self, index: pd.Index) -> pd.DataFrame:
+    def __call__(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
         """Get the interpolated or scalar table values for the given index.
 
         Parameters
@@ -217,7 +217,7 @@ class LookupTable:
         """
         return self._call(index)
 
-    def _call(self, index: pd.Index) -> pd.DataFrame:
+    def _call(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
         """Private method to allow LookupManager to add constraints."""
         table_view = self._table(index)
         if len(table_view.columns) == 1:
