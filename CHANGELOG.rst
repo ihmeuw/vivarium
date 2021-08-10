@@ -1,3 +1,9 @@
+**0.10.5 - 08/10/21**
+
+ - Update builder documentation
+ - Update build process
+ - Add check for compatible python version
+
 **0.10.4 - 04/30/21**
 
  - Reapply location and artifact path changes
