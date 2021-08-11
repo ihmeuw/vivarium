@@ -1,3 +1,7 @@
+**0.10.8 - 08/10/21**
+
+ - Set Python version in CI deployment to 3.8
+
 **0.10.7 - 08/10/21**
 
  - Hotfix to re-trigger CI
