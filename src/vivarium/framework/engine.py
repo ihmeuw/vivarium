@@ -156,10 +156,11 @@ class SimulationContext:
         if unused_config_keys:
             logger.debug(f"Some configuration keys not used during run: {unused_config_keys}.")
 
-    def report(self):
+    def report(self, print_results=True):
         self._lifecycle.set_state('report')
         metrics = self._values.get_value('metrics')(self._population.get_population(True).index)
-        logger.debug(pformat(metrics))
+        if print_results:
+            logger.debug(pformat(metrics))
         return metrics
 
     def add_components(self, component_list):
