@@ -1,3 +1,7 @@
+**0.10.9 - 08/16/21**
+
+ - Add flag to SimulationContext.report to turn off results printing at sim end.
+
 **0.10.8 - 08/10/21**
 
  - Set Python version in CI deployment to 3.8
