@@ -10,7 +10,7 @@ def plot_birds(simulation, plot_velocity=False):
     plt.scatter(pop.x, pop.y, color=pop.color)
     if plot_velocity:
         plt.quiver(pop.x, pop.y, pop.vx, pop.vy, color=pop.color, width=0.002)
-    plt.xlabel('x')
-    plt.ylabel('y')
+    plt.xlabel("x")
+    plt.ylabel("y")
     plt.axis([0, width, 0, height])
     plt.show()
