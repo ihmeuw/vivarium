@@ -228,8 +228,7 @@ we need to track the position and velocity of our birds, so let's start there.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/location.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
-   :lines: 5-31
-
+   :lines: 1-23,28-37
 
 You'll notice that this looks very similar to our initial population model.
 Indeed, we can split up the responsibilities of initializing simulants over
@@ -288,6 +287,7 @@ birds and maybe some arrows to indicated their velocity.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/visualization.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/visualization.py`
+   :lines: 1-18
 
 We can then visualize our flock with
 
@@ -326,8 +326,93 @@ __ https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.ht
 .. literalinclude:: ../../../src/vivarium/examples/boids/neighbors.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/neighbors.py`
 
-.. todo::
+This component creates a :term:`values pipeline <Pipeline>` that other components
+can use to access the neighbors of each bird. (We will use this in the Location
+component to implement swarming behaviors.)
 
-   - Describe rationale for neighbors component
-   - Start building behavior components
-   - Build animation component
+Note that the only thing it does in ``on_time_step`` is ``self.neighbors_calculated = False``.
+That's because we only want to calculate the neighbors once per time step. When the pipeline
+is called, we can tell with ``self.neighbors_calculated`` whether we need to calculate them,
+or use our cached value in ``self._neighbors``.
+
+Swarming Behavior
+-----------------
+
+Now we know which birds are each others' neighbors, but we're not doing anything
+with that information. We need to teach the birds to swarm!
+
+There are lots of potential swarming behaviors to play around with, all of which
+change the way that birds clump up and follow each other. But since that isn't
+the focus of this tutorial, we'll implement a few very simple rules that are
+just enough to see some swarming behavior:
+
+* Birds go toward their neighbors, unless they get too close.
+* Birds try to match their velocity to their neighbors.
+* Birds speed up if they are going below a minimum speed.
+
+In addition to these, we'll need to add another rule to keep birds from flying
+out of bounds.
+
+To access the values pipeline we created in the Neighbors component, we use
+``builder.value.get_value`` in the setup method. Then to get the values inside
+on_time_step, we simply call that pipeline as a function, using ``event.index``,
+which is the set of simulants affected by the event (in this case, all of them).
+We modify the DataFrame of simulants, and then use ``self.population_view.update``
+to update the population state table.
+
+.. literalinclude:: ../../../src/vivarium/examples/boids/location.py
+   :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
+   :emphasize-lines: 25-26,39-80
+
+For a quick test of our swarming behavior, let's check in on our birds after
+100 steps:
+
+.. code-block:: python
+
+   from vivarium import InteractiveContext
+   from vivarium_examples.boids.population import Population
+   from vivarium_examples.boids.location import Location
+   from vivarium_examples.boids.neighbors import Neighbors
+   from vivarium_examples.boids.visualization import plot_birds
+
+   sim = InteractiveContext(components=[Population(), Location(), Neighbors()])
+
+   sim.take_steps(100)
+
+   plot_birds(sim, plot_velocity=True)
+
+.. plot::
+
+   from vivarium import InteractiveContext
+   from vivarium.examples.boids import Population, Location, Neighbors, plot_birds
+
+   sim = InteractiveContext(components=[Population(), Location(), Neighbors()])
+   sim.take_steps(100)
+   plot_birds(sim, plot_velocity=True)
+
+Viewing our Simulation as an Animation
+--------------------------------------
+
+Great, our simulation is working! But it would be nice to see our birds moving
+around instead of having static snapshots. We'll use the animation features in
+matplotlib to do this.
+
+Add this method to ``visualization.py``:
+
+.. literalinclude:: ../../../src/vivarium/examples/boids/visualization.py
+   :caption: **File**: :file:`~/code/vivarium_examples/boids/visualization.py`
+   :lines: 20-40
+
+Then, try it out like so:
+
+.. code-block:: python
+
+  from vivarium import InteractiveContext
+  from vivarium_examples.boids.population import Population
+  from vivarium_examples.boids.location import Location
+  from vivarium_examples.boids.neighbors import Neighbors
+  from vivarium_examples.boids.visualization import plot_birds_animated
+
+  sim = InteractiveContext(components=[Population(), Location(), Neighbors()])
+
+  plot_birds_animated(sim)

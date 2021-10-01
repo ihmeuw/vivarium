@@ -6,7 +6,7 @@ class Neighbors:
 
     configuration_defaults = {
         'neighbors': {
-            'radius': 10
+            'radius': 50
         }
     }
 
@@ -14,6 +14,7 @@ class Neighbors:
         self.name = 'Neighbors'
 
     def setup(self, builder):
+        self.colors = builder.configuration.population.colors
         self.radius = builder.configuration.neighbors.radius
 
         self.neighbors_calculated = False
@@ -21,7 +22,7 @@ class Neighbors:
         self.neighbors = builder.value.register_value_producer('neighbors', source=self.get_neighbors)
 
         builder.population.initializes_simulants(self.on_create_simulants)
-        self.population_view = builder.population.get_view(['x', 'y'])
+        self.population_view = builder.population.get_view(['x', 'y', 'color'])
 
         builder.event.register_listener('time_step', self.on_time_step)
 
@@ -39,12 +40,15 @@ class Neighbors:
     def calculate_neighbors(self):
         # Reset our list of neighbors
         pop = self.population_view.get(self._neighbors.index)
-        self._neighbors = pd.Series([[]] * len(pop), index=pop.index)
+        self._neighbors = pd.Series([[] for _ in range(len(pop))], index=pop.index)
 
-        tree = spatial.KDTree(pop)
+        for color in self.colors:
+            color_pop = pop[pop.color == color][['x', 'y']]
+            tree = spatial.KDTree(color_pop)
 
-        # Iterate over each pair of simulates that are close together.
-        for boid_1, boid_2 in tree.query_pairs(self.radius):
-            # .iloc is used because query_pairs uses 0,1,... indexing instead of pandas.index
-            self._neighbors.iloc[boid_1].append(self._neighbors.index[boid_2])
-            self._neighbors.iloc[boid_2].append(self._neighbors.index[boid_1])
+            # Iterate over each pair of simulants that are close together.
+            for boid_1, boid_2 in tree.query_pairs(self.radius):
+                boid_1_rowname = color_pop.iloc[boid_1].name
+                boid_2_rowname = color_pop.iloc[boid_2].name
+                self._neighbors.loc[boid_1_rowname].append(boid_2_rowname)
+                self._neighbors.loc[boid_2_rowname].append(boid_1_rowname)
