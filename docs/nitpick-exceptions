@@ -7,6 +7,9 @@ py:class pandas.core.frame.DataFrame
 py:class pandas.core.series.Series
 py:class pandas.core.generic.PandasObject
 
+# networkx
+py:class networkx.classes.digraph.DiGraph
+
 # vivarium
 # Type aliases don't play nicely with sphinx when you import them
 # elsewhere.  Works fine for static type checker though.  I think this
