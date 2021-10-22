@@ -7,43 +7,40 @@ components:
         observer:
             - Observer()
         disease:
-            - SIS_DiseaseModel('diarrhea')
+            - SISDiseaseModel('lower_respiratory_infections')
         risk:
-            - Risk('child_growth_failure')
-            - DirectEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate')
-            - DirectEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate')
+            - Risk('child_wasting')
+            - DirectEffect('child_wasting', 'infected_with_lower_respiratory_infections.incidence_rate')
         intervention:
-            - MagicWandIntervention('breastfeeding_promotion', 'child_growth_failure.proportion_exposed')
+            - MagicWandIntervention('sqlns', 'child_wasting.proportion_exposed')
 
 configuration:
     randomness:
         key_columns: ['entrance_time', 'age']
     time:
         start:
-            year: 2005
-            month: 7
+            year: 2022
+            month: 1
             day: 1
         end:
-            year: 2006
-            month: 7
-            day: 1
-        step_size: 3  # Days
+            year: 2026
+            month: 12
+            day: 31
+        step_size: 0.5  # Days
     population:
         population_size: 10_000
         age_start: 0
-        age_end: 30
+        age_end: 5
     mortality:
-        mortality_rate: 0.05
-        life_expectancy: 80
-    diarrhea:
-        incidence_rate: 2.5  # Approximately 2.5 cases per person per year.
-        remission_rate: 42  # Approximately 6 day median recovery time
-        excess_mortality_rate: 12  # Approximately 22 % of cases result in death
-    child_growth_failure:
-        proportion_exposed: 0.5
-    effect_of_child_growth_failure_on_infected_with_diarrhea.incidence_rate:
-        relative_risk: 5
-    effect_of_child_growth_failure_on_infected_with_diarrhea.excess_mortality_rate:
-        relative_risk: 5
-    breastfeeding_promotion:
-        effect_size: 0.5
+        mortality_rate: 0.0114
+        life_expectancy: 88.9
+    lower_respiratory_infections:
+        incidence_rate: 0.871
+        remission_rate: 45.1
+        excess_mortality_rate: 0.634
+    child_wasting:
+        proportion_exposed: 0.0914
+    effect_of_child_wasting_on_infected_with_lower_respiratory_infections.incidence_rate:
+        relative_risk: 4.63
+    sqlns:
+        effect_size: 0.18

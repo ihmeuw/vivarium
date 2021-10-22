@@ -1,5 +1,8 @@
 import pandas as pd
 
+from vivarium.framework.engine import Builder
+
+
 class MagicWandIntervention:
 
     configuration_defaults = {
@@ -8,12 +11,13 @@ class MagicWandIntervention:
         }
     }
 
-    def __init__(self, name, affected_value):
+    def __init__(self, name: str, affected_value: str):
         self.name = name
         self.affected_value = affected_value
         self.configuration_defaults = {name: MagicWandIntervention.configuration_defaults['intervention']}
 
-    def setup(self, builder):
+    # noinspection PyAttributeOutsideInit
+    def setup(self, builder: Builder):
         effect_size = builder.configuration[self.name].effect_size
         builder.value.register_value_modifier(self.affected_value, modifier=self.intervention_effect)
         self.effect_size = builder.value.register_value_producer(

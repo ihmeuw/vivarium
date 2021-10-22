@@ -1,3 +1,9 @@
+from typing import Dict
+
+import pandas as pd
+
+from vivarium.framework.engine import Builder
+
 
 class Observer:
 
@@ -10,13 +16,14 @@ class Observer:
     def __init__(self):
         self.name = 'observer'
 
-    def setup(self, builder):
+    # noinspection PyAttributeOutsideInit
+    def setup(self, builder: Builder):
         self.life_expectancy = builder.configuration.mortality.life_expectancy
         self.population_view = builder.population.get_view(['age', 'alive'])
 
         builder.value.register_value_modifier('metrics', self.metrics)
 
-    def metrics(self, index, metrics):
+    def metrics(self, index: pd.Index, metrics: Dict):
 
         pop = self.population_view.get(index)
         metrics['total_population_alive'] = len(pop[pop.alive == 'alive'])

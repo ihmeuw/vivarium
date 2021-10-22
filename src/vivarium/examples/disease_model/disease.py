@@ -13,6 +13,7 @@ class DiseaseTransition(Transition):
         self.measure = measure
         self.rate_name = rate_name
 
+    # noinspection PyAttributeOutsideInit
     def setup(self, builder):
         rate = builder.configuration[self.cause_key][self.measure]
 
@@ -40,6 +41,7 @@ class DiseaseState(State):
         self.cause_key = cause_key
         self.with_excess_mortality = with_excess_mortality
 
+    # noinspection PyAttributeOutsideInit
     def setup(self, builder):
         """Performs this component's simulation setup.
 
@@ -88,11 +90,11 @@ class DiseaseState(State):
 
 class DiseaseModel(Machine):
 
-    def __init__(self, disease, initial_state, cause_specific_mortality_rate=0., **kwargs):
+    def __init__(self, disease, initial_state, **kwargs):
         super().__init__(disease, **kwargs)
         self.initial_state = initial_state.state_id
-        self._cause_specific_mortality_rate = cause_specific_mortality_rate
 
+    # noinspection PyAttributeOutsideInit
     def setup(self, builder):
         super().setup(builder)
         config = builder.configuration[self.state_column]
@@ -102,7 +104,7 @@ class DiseaseModel(Machine):
 
         self.cause_specific_mortality_rate = builder.value.register_rate_producer(
             f'{self.state_column}.cause_specific_mortality_rate',
-            source=lambda index: pd.Series(self._cause_specific_mortality_rate, index=index)
+            source=lambda index: pd.Series(cause_specific_mortality_rate, index=index)
         )
         builder.value.register_value_modifier('mortality_rate', modifier=self.delete_cause_specific_mortality)
         builder.value.register_value_modifier('metrics', modifier=self.metrics)
@@ -130,7 +132,7 @@ class DiseaseModel(Machine):
         return metrics
 
 
-class SIS_DiseaseModel:
+class SISDiseaseModel:
 
     configuration_defaults = {
         'disease': {
@@ -142,7 +144,7 @@ class SIS_DiseaseModel:
 
     def __init__(self, disease_name):
         self._name = disease_name
-        self.configuration_defaults = {disease_name: SIS_DiseaseModel.configuration_defaults['disease']}
+        self.configuration_defaults = {disease_name: SISDiseaseModel.configuration_defaults['disease']}
 
         susceptible_state = DiseaseState(f'susceptible_to_{self._name}', self._name)
         infected_state = DiseaseState(f'infected_with_{self._name}', self._name, with_excess_mortality=True)

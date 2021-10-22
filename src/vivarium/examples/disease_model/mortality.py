@@ -25,6 +25,7 @@ class Mortality:
     def __init__(self):
         self.name = 'mortality'
 
+    # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder):
         """Performs this component's simulation setup.
 
