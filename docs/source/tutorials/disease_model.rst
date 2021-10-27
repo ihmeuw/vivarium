@@ -108,7 +108,7 @@ Instead of the ``__init__`` method, most of the component initialization
 takes place in the ``setup`` method.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 31, 43-62
+   :lines: 32, 44-63
    :dedent: 4
    :linenos:
 
@@ -154,7 +154,7 @@ Line 2 simply grabs a copy of the simulation
 a dictionary that supports ``.``-access notation.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 43
+   :lines: 44
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -210,7 +210,7 @@ The next thing we do is grab actual
 from the framework.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 52-54
+   :lines: 53-55
    :dedent: 4
    :linenos:
    :lineno-start: 11
@@ -241,7 +241,7 @@ know that it is responsible for generating the ``'age'``, ``'sex'``,
 ``'alive'``, and ``'entrance_time'`` columns in the population state table.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 56-58
+   :lines: 57-59
    :dedent: 4
    :linenos:
    :lineno-start: 15
@@ -259,7 +259,7 @@ know that it is responsible for generating the ``'age'``, ``'sex'``,
 Next we get a view into the population table.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 60
+   :lines: 61
    :dedent: 4
    :linenos:
    :lineno-start: 19
@@ -278,7 +278,7 @@ simulation. Any time the ``'time_step'`` event is called, the ``age_simulants``
 method will be called as well.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 62
+   :lines: 63
    :dedent: 4
    :linenos:
    :lineno-start: 21
@@ -302,7 +302,7 @@ describe where in the simulation life-cycle they occur. This helps me think
 more clearly about what's going on and helps debugging.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 64, 90-114
+   :lines: 65, 91-115
    :dedent: 4
    :linenos:
 

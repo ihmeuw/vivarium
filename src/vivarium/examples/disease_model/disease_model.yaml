@@ -4,15 +4,15 @@ components:
             - BasePopulation()
         mortality:
             - Mortality()
-        observer:
-            - Observer()
         disease:
             - SISDiseaseModel('lower_respiratory_infections')
         risk:
             - Risk('child_wasting')
             - DirectEffect('child_wasting', 'infected_with_lower_respiratory_infections.incidence_rate')
         intervention:
-            - MagicWandIntervention('sqlns', 'child_wasting.proportion_exposed')
+            - TreatmentIntervention('sqlns', 'child_wasting.proportion_exposed')
+        observer:
+            - Observer()
 
 configuration:
     randomness:
@@ -28,7 +28,7 @@ configuration:
             day: 31
         step_size: 0.5  # Days
     population:
-        population_size: 10_000
+        population_size: 100_000
         age_start: 0
         age_end: 5
     mortality:

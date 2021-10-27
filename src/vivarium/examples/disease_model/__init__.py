@@ -3,7 +3,7 @@ from .mortality import Mortality
 from .observer import Observer
 from .disease import DiseaseModel, DiseaseState, DiseaseTransition, SISDiseaseModel
 from .risk import Risk, DirectEffect
-from .intervention import MagicWandIntervention
+from .intervention import TreatmentIntervention
 
 
 def get_model_specification_path():
