@@ -67,7 +67,7 @@ class IndexMap:
     TEN_DIGIT_MODULUS = 10_000_000_000
 
     def __init__(self, map_size=1_000_000):
-        self._map = pd.Series()
+        self._map = pd.Series(dtype=float)
         self.map_size = map_size
 
     def update(self, new_keys: Index):
@@ -156,7 +156,7 @@ class IndexMap:
 
         """
         if isinstance(column.iloc[0], datetime.datetime):
-            column = self.clip_to_seconds(column.astype(np.int64))
+            column = self.clip_to_seconds(column.view(np.int64))
         elif np.issubdtype(column.iloc[0], np.integer):
             if not len(column >= 0) == len(column):
                 raise RandomnessError("Values in integer columns must be greater than or equal to zero.")

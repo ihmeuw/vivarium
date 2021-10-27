@@ -103,77 +103,75 @@ configuration by simply printing it.
 
 .. testoutput::
 
-   randomness:
-       key_columns:
-           model_override: ['entrance_time', 'age']
-       map_size:
-           component_configs: 1000000
-       random_seed:
-           component_configs: 0
-       additional_seed:
-           component_configs: None
-   time:
-       start:
-           year:
-               model_override: 2005
-           month:
-               model_override: 7
-           day:
-               model_override: 1
-       end:
-           year:
-               model_override: 2006
-           month:
-               model_override: 7
-           day:
-               model_override: 1
-       step_size:
-           model_override: 3
-   population:
-       population_size:
-           model_override: 10000
-       age_start:
-           model_override: 0
-       age_end:
-           model_override: 30
-   mortality:
-       mortality_rate:
-           model_override: 0.05
-       life_expectancy:
-           model_override: 80
-   diarrhea:
-       incidence_rate:
-           model_override: 2.5
-       remission_rate:
-           model_override: 42
-       excess_mortality_rate:
-           model_override: 12
-   child_growth_failure:
-       proportion_exposed:
-           model_override: 0.5
-   effect_of_child_growth_failure_on_infected_with_diarrhea.incidence_rate:
-       relative_risk:
-           model_override: 5
-   effect_of_child_growth_failure_on_infected_with_diarrhea.excess_mortality_rate:
-       relative_risk:
-           model_override: 5
-   breastfeeding_promotion:
-       effect_size:
-           model_override: 0.5
-   interpolation:
-       order:
-           component_configs: 0
-       validate:
-           component_configs: True
-       extrapolate:
-           component_configs: True
-   input_data:
-       artifact_path:
-           component_configs: None
-       artifact_filter_term:
-           component_configs: None
-       input_draw_number:
-           component_configs: None
+    randomness:
+        key_columns:
+            model_override: ['entrance_time', 'age']
+        map_size:
+            component_configs: 1000000
+        random_seed:
+            component_configs: 0
+        additional_seed:
+            component_configs: None
+    time:
+        start:
+            year:
+                model_override: 2022
+            month:
+                model_override: 1
+            day:
+                model_override: 1
+        end:
+            year:
+                model_override: 2026
+            month:
+                model_override: 12
+            day:
+                model_override: 31
+        step_size:
+            model_override: 0.5
+    population:
+        population_size:
+            model_override: 10000
+        age_start:
+            model_override: 0
+        age_end:
+            model_override: 5
+    mortality:
+        mortality_rate:
+            model_override: 0.0114
+        life_expectancy:
+            model_override: 88.9
+    lower_respiratory_infections:
+        incidence_rate:
+            model_override: 0.871
+        remission_rate:
+            model_override: 45.1
+        excess_mortality_rate:
+            model_override: 0.634
+    child_wasting:
+        proportion_exposed:
+            model_override: 0.0914
+    effect_of_child_wasting_on_infected_with_lower_respiratory_infections.incidence_rate:
+        relative_risk:
+            model_override: 4.63
+    sqlns:
+        effect_size:
+            model_override: 0.18
+    interpolation:
+        order:
+            component_configs: 0
+        validate:
+            component_configs: True
+        extrapolate:
+            component_configs: True
+    input_data:
+        artifact_path:
+            component_configs: None
+        artifact_filter_term:
+            component_configs: None
+        input_draw_number:
+            component_configs: None
+
 
 
 What do we see here?  The configuration is *hierarchical*.  There are a set of
@@ -290,8 +288,8 @@ the population as a whole.
    pop = pop.reindex(sorted(pop.columns), axis=1)
    print(pop.age.describe())
    print(pop.alive.value_counts())
-   print(pop.child_growth_failure_propensity.describe())
-   print(pop.diarrhea.value_counts())
+   print(pop.child_wasting_propensity.describe())
+   print(pop.lower_respiratory_infections.value_counts())
    print(pop.entrance_time.value_counts())
    print(pop.sex.value_counts())
    print(pop.tracked.value_counts())
@@ -299,35 +297,36 @@ the population as a whole.
 
 .. testoutput::
 
-   count    10000.000000
-   mean        15.076739
-   std          8.707947
-   min          0.000118
-   25%          7.526312
-   50%         15.004701
-   75%         22.687441
-   max         29.998082
-   Name: age, dtype: float64
-   alive    10000
-   Name: alive, dtype: int64
-   count    10000.000000
-   mean         0.503233
-   std          0.288712
-   min          0.000002
-   25%          0.255108
-   50%          0.504047
-   75%          0.752366
-   max          0.999943
-   Name: child_growth_failure_propensity, dtype: float64
-   susceptible_to_diarrhea    10000
-   Name: diarrhea, dtype: int64
-   2005-06-28    10000
-   Name: entrance_time, dtype: int64
-   Female    5015
-   Male      4985
-   Name: sex, dtype: int64
-   True    10000
-   Name: tracked, dtype: int64
+    count    10000.000000
+    mean         2.492575
+    std          1.438785
+    min          0.001753
+    25%          1.242003
+    50%          2.499081
+    75%          3.726703
+    max          4.999189
+    Name: age, dtype: float64
+    alive    10000
+    Name: alive, dtype: int64
+    count    10000.000000
+    mean         0.495885
+    std          0.288052
+    min          0.000057
+    25%          0.244909
+    50%          0.490722
+    75%          0.743350
+    max          0.999943
+    Name: child_wasting_propensity, dtype: float64
+    susceptible_to_lower_respiratory_infections    10000
+    Name: lower_respiratory_infections, dtype: int64
+    2021-12-31 12:00:00    10000
+    Name: entrance_time, dtype: int64
+    Male      5089
+    Female    4911
+    Name: sex, dtype: int64
+    True    10000
+    Name: tracked, dtype: int64
+
 
 
 Understanding the Simulation Data

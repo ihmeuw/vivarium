@@ -28,6 +28,7 @@ class BasePopulation:
     def __init__(self):
         self.name = 'base_population'
 
+    # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder):
         """Performs this component's simulation setup.
 

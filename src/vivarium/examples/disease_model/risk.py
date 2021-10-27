@@ -13,6 +13,7 @@ class Risk:
         self.name = name
         self.configuration_defaults = {name: Risk.configuration_defaults['risk']}
 
+    # noinspection PyAttributeOutsideInit
     def setup(self, builder):
         proportion_exposed = builder.configuration[self.name].proportion_exposed
         self.base_exposure_threshold = builder.value.register_value_producer(
@@ -57,6 +58,7 @@ class DirectEffect:
         self.name = f'effect_of_{risk}_on_{disease_rate}'
         self.configuration_defaults = {self.name: DirectEffect.configuration_defaults['direct_effect']}
 
+    # noinspection PyAttributeOutsideInit
     def setup(self, builder):
         relative_risk = builder.configuration[self.name].relative_risk
         self.relative_risk = builder.value.register_value_producer(

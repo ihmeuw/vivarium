@@ -198,7 +198,7 @@ one last way to set up the simulation in an interactive setting.
    :hide:
 
    from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
-                                                SIS_DiseaseModel, Risk, DirectEffect,
+                                                SISDiseaseModel, Risk, DirectEffect,
                                                 MagicWandIntervention)
    from vivarium import InteractiveContext
 
@@ -230,7 +230,7 @@ one last way to set up the simulation in an interactive setting.
 
    components = [BasePopulation(),
                  Mortality(),
-                 SIS_DiseaseModel('diarrhea'),
+                 SISDiseaseModel('diarrhea'),
                  Risk('child_growth_failure'),
                  DirectEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate'),
                  DirectEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate'),
@@ -316,13 +316,13 @@ into our disease model. We could do the following.
    sim = InteractiveContext(p, setup=False)
 
    sim.add_components([Risk('unsafe_water_source'),
-                       DirectEffect('unsafe_water_source', 'infected_with_diarrhea.incidence_rate')])
+                       DirectEffect('unsafe_water_source', 'infected_with_lower_respiratory_infections.incidence_rate')])
 
    sim.configuration.update({
        'unsafe_water_source': {
            'proportion_exposed': 0.3
        },
-       'effect_of_unsafe_water_source_on_infected_with_diarrhea.incidence_rate': {
+       'effect_of_unsafe_water_source_on_infected_with_lower_respiratory_infections.incidence_rate': {
            'relative_risk': 8,
        },
    })
