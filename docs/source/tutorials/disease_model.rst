@@ -346,7 +346,7 @@ we specified an ``'age_start'`` and ``'age_end'``.  Here we use these
 to generate the age distribution of our initial population.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 90-98
+   :lines: 91-99
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -386,7 +386,7 @@ These ``key_columns`` are what the randomness system uses to uniquely
 identify simulants across simulations.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 100-105
+   :lines: 101-106
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -406,7 +406,7 @@ If we're not using CRN, we can just generate the full set of simulant
 attributes straightaway.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 106-112
+   :lines: 107-113
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -432,7 +432,7 @@ The last piece of our population component is the ``'time_step'`` listener
 method ``age_simulants``.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 116, 126-128
+   :lines: 117, 127-129
    :dedent: 4
    :linenos:
 
@@ -571,7 +571,7 @@ Many of the tools we explored in the ``BasePopulation`` component are
 used again here. There are two new things to look at.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 28, 40-46
+   :lines: 29, 41-47
    :dedent: 4
    :linenos:
 
@@ -615,7 +615,7 @@ a ``pandas.Series`` that assigns each individual the mortality rate
 specified in the configuration.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 48, 61
+   :lines: 49, 62
    :dedent: 4
    :linenos:
 
@@ -632,7 +632,7 @@ Like our aging method in the population component, our ``determine_deaths``
 method responds to ``'time_step'`` events.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 63, 73-77
+   :lines: 64, 74-78
    :dedent: 4
    :linenos:
 
