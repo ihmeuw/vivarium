@@ -37,7 +37,7 @@ configuration:
     lower_respiratory_infections:
         incidence_rate: 0.871
         remission_rate: 45.1
-        excess_mortality_rate: 0.634
+        excess_mortality_rate: 6.34
     child_wasting:
         proportion_exposed: 0.0914
     effect_of_child_wasting_on_infected_with_lower_respiratory_infections.incidence_rate:
