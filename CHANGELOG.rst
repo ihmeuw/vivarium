@@ -1,3 +1,10 @@
+**0.10.10 - 10/29/21**
+
+ - Update license to BSD 3-clause
+ - Replace authors metadata with zenodo.json
+ - Updated examples
+ - Doctest bugfixes
+
 **0.10.9 - 08/16/21**
 
  - Add flag to SimulationContext.report to turn off results printing at sim end.
