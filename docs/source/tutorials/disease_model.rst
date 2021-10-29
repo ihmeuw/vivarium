@@ -108,7 +108,7 @@ Instead of the ``__init__`` method, most of the component initialization
 takes place in the ``setup`` method.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 31, 43-62
+   :lines: 32, 44-63
    :dedent: 4
    :linenos:
 
@@ -154,7 +154,7 @@ Line 2 simply grabs a copy of the simulation
 a dictionary that supports ``.``-access notation.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 43
+   :lines: 44
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -210,7 +210,7 @@ The next thing we do is grab actual
 from the framework.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 52-54
+   :lines: 53-55
    :dedent: 4
    :linenos:
    :lineno-start: 11
@@ -241,7 +241,7 @@ know that it is responsible for generating the ``'age'``, ``'sex'``,
 ``'alive'``, and ``'entrance_time'`` columns in the population state table.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 56-58
+   :lines: 57-59
    :dedent: 4
    :linenos:
    :lineno-start: 15
@@ -259,7 +259,7 @@ know that it is responsible for generating the ``'age'``, ``'sex'``,
 Next we get a view into the population table.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 60
+   :lines: 61
    :dedent: 4
    :linenos:
    :lineno-start: 19
@@ -278,7 +278,7 @@ simulation. Any time the ``'time_step'`` event is called, the ``age_simulants``
 method will be called as well.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 62
+   :lines: 63
    :dedent: 4
    :linenos:
    :lineno-start: 21
@@ -302,7 +302,7 @@ describe where in the simulation life-cycle they occur. This helps me think
 more clearly about what's going on and helps debugging.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 64, 90-114
+   :lines: 65, 91-115
    :dedent: 4
    :linenos:
 
@@ -346,7 +346,7 @@ we specified an ``'age_start'`` and ``'age_end'``.  Here we use these
 to generate the age distribution of our initial population.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 90-98
+   :lines: 91-99
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -386,7 +386,7 @@ These ``key_columns`` are what the randomness system uses to uniquely
 identify simulants across simulations.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 100-105
+   :lines: 101-106
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -406,7 +406,7 @@ If we're not using CRN, we can just generate the full set of simulant
 attributes straightaway.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 106-112
+   :lines: 107-113
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -432,7 +432,7 @@ The last piece of our population component is the ``'time_step'`` listener
 method ``age_simulants``.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 116, 126-128
+   :lines: 117, 127-129
    :dedent: 4
    :linenos:
 
@@ -571,7 +571,7 @@ Many of the tools we explored in the ``BasePopulation`` component are
 used again here. There are two new things to look at.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 28, 40-46
+   :lines: 29, 41-47
    :dedent: 4
    :linenos:
 
@@ -615,7 +615,7 @@ a ``pandas.Series`` that assigns each individual the mortality rate
 specified in the configuration.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 48, 61
+   :lines: 49, 62
    :dedent: 4
    :linenos:
 
@@ -632,7 +632,7 @@ Like our aging method in the population component, our ``determine_deaths``
 method responds to ``'time_step'`` events.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 63, 73-77
+   :lines: 64, 74-78
    :dedent: 4
    :linenos:
 

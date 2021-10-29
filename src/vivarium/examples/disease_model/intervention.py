@@ -3,7 +3,7 @@ import pandas as pd
 from vivarium.framework.engine import Builder
 
 
-class MagicWandIntervention:
+class TreatmentIntervention:
 
     configuration_defaults = {
         'intervention': {
@@ -14,7 +14,7 @@ class MagicWandIntervention:
     def __init__(self, name: str, affected_value: str):
         self.name = name
         self.affected_value = affected_value
-        self.configuration_defaults = {name: MagicWandIntervention.configuration_defaults['intervention']}
+        self.configuration_defaults = {name: TreatmentIntervention.configuration_defaults['intervention']}
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder):

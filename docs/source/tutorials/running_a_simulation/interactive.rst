@@ -126,7 +126,7 @@ example and we will place them in a normal Python list.
 
    from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
                                                 SIS_DiseaseModel, Risk, DirectEffect,
-                                                MagicWandIntervention)
+                                                TreatmentIntervention)
 
    components = [BasePopulation(),
                  Mortality(),
@@ -134,7 +134,7 @@ example and we will place them in a normal Python list.
                  Risk('child_growth_failure'),
                  DirectEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate'),
                  DirectEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate'),
-                 MagicWandIntervention('breastfeeding_promotion', 'child_growth_failure.proportion_exposed'), ]
+                 TreatmentIntervention('breastfeeding_promotion', 'child_growth_failure.proportion_exposed'), ]
 
 
 Configurations
@@ -199,7 +199,7 @@ one last way to set up the simulation in an interactive setting.
 
    from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
                                                 SISDiseaseModel, Risk, DirectEffect,
-                                                MagicWandIntervention)
+                                                TreatmentIntervention)
    from vivarium import InteractiveContext
 
    config = {
@@ -234,7 +234,7 @@ one last way to set up the simulation in an interactive setting.
                  Risk('child_growth_failure'),
                  DirectEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate'),
                  DirectEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate'),
-                 MagicWandIntervention('breastfeeding_promotion', 'child_growth_failure.proportion_exposed'),]
+                 TreatmentIntervention('breastfeeding_promotion', 'child_growth_failure.proportion_exposed'),]
 
    sim = InteractiveContext(components=components, configuration=config)
 

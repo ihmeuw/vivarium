@@ -131,7 +131,7 @@ configuration by simply printing it.
             model_override: 0.5
     population:
         population_size:
-            model_override: 10000
+            model_override: 100000
         age_start:
             model_override: 0
         age_end:
@@ -297,34 +297,34 @@ the population as a whole.
 
 .. testoutput::
 
-    count    10000.000000
-    mean         2.492575
-    std          1.438785
-    min          0.001753
-    25%          1.242003
-    50%          2.499081
-    75%          3.726703
-    max          4.999189
+    count    100000.000000
+    mean          2.503326
+    std           1.439935
+    min           0.000040
+    25%           1.259632
+    50%           2.506636
+    75%           3.744090
+    max           4.999967
     Name: age, dtype: float64
-    alive    10000
+    alive    100000
     Name: alive, dtype: int64
-    count    10000.000000
-    mean         0.495885
-    std          0.288052
-    min          0.000057
-    25%          0.244909
-    50%          0.490722
-    75%          0.743350
-    max          0.999943
+    count    100000.000000
+    mean          0.500602
+    std           0.288434
+    min           0.000022
+    25%           0.251288
+    50%           0.499957
+    75%           0.749816
+    max           0.999978
     Name: child_wasting_propensity, dtype: float64
-    susceptible_to_lower_respiratory_infections    10000
+    susceptible_to_lower_respiratory_infections    100000
     Name: lower_respiratory_infections, dtype: int64
-    2021-12-31 12:00:00    10000
+    2021-12-31 12:00:00    100000
     Name: entrance_time, dtype: int64
-    Male      5089
-    Female    4911
+    Male      50162
+    Female    49838
     Name: sex, dtype: int64
-    True    10000
+    True    100000
     Name: tracked, dtype: int64
 
 
