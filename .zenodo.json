@@ -1,0 +1,67 @@
+{
+  "license": "BSD-3-Clause",
+  "title": "ihmeuw/vivarium: Archival release",
+  "upload_type": "software",
+  "creators": [
+    {
+      "orcid": "0000-0001-7633-7804",
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "James Collins"
+    },
+    {
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "Alec Deason"
+    },
+    {
+      "orcid": "0000-0002-6538-2615",
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "Kate Wilson"
+    },
+    {
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "Everett Mumford"
+    },
+    {
+      "orcid": "0000-0001-6033-4713",
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "Abraham Flaxman"
+    },
+    {
+      "orcid": "0000-0001-8649-7561",
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "Rajan Mudambi"
+    },
+    {
+      "orcid": "0000-0003-0778-295X",
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "Kjell Swedin"
+    },
+    {
+      "affiliation": "University of Melbourne",
+      "name": "Patrick Andersen"
+    },
+    {
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "Cody Horst"
+    },
+    {
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "Jonathan Joseph"
+    },
+    {
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "Michelle Park"
+    },
+    {
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "Reed Sorensen"
+    },
+    {
+      "orcid": "0000-0003-2430-5661",
+      "affiliation": "Institute for Health Metrics and Evaluation",
+      "name": "Matthew Kappel"
+    }
+  ],
+  "access_right": "open",
+  "description": "Vivarium is a simulation framework written using standard scientific Python tools."
+}
