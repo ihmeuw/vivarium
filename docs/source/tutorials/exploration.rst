@@ -306,7 +306,7 @@ the population as a whole.
     75%           3.744090
     max           4.999967
     Name: age, dtype: float64
-    alive    10000
+    alive    100000
     Name: alive, dtype: int64
     count    100000.000000
     mean          0.500602
@@ -317,7 +317,7 @@ the population as a whole.
     75%           0.749816
     max           0.999978
     Name: child_wasting_propensity, dtype: float64
-    susceptible_to_lower_respiratory_infections    10000
+    susceptible_to_lower_respiratory_infections    100000
     Name: lower_respiratory_infections, dtype: int64
     2021-12-31 12:00:00    100000
     Name: entrance_time, dtype: int64
