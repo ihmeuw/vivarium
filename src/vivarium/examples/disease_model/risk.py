@@ -44,7 +44,7 @@ class Risk:
         return f"Risk(name={self.name})"
 
 
-class DirectEffect:
+class RiskEffect:
 
     configuration_defaults = {
         'direct_effect': {
@@ -56,7 +56,7 @@ class DirectEffect:
         self.risk = risk
         self.disease_rate = disease_rate
         self.name = f'effect_of_{risk}_on_{disease_rate}'
-        self.configuration_defaults = {self.name: DirectEffect.configuration_defaults['direct_effect']}
+        self.configuration_defaults = {self.name: RiskEffect.configuration_defaults['direct_effect']}
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder):
