@@ -8,7 +8,7 @@ components:
             - SISDiseaseModel('lower_respiratory_infections')
         risk:
             - Risk('child_wasting')
-            - DirectEffect('child_wasting', 'infected_with_lower_respiratory_infections.incidence_rate')
+            - RiskEffect('child_wasting', 'infected_with_lower_respiratory_infections.incidence_rate')
         intervention:
             - TreatmentIntervention('sqlns', 'child_wasting.proportion_exposed')
         observer:
