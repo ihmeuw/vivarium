@@ -33,12 +33,21 @@ class Interpolation:
             Order of interpolation.
         """
 
-    def __init__(self, data: pd.DataFrame, categorical_parameters: Union[List[str], Tuple[str]],
-                 continuous_parameters: ParameterType, order: int, extrapolate: bool, validate: bool):
+    def __init__(
+        self,
+        data: pd.DataFrame,
+        categorical_parameters: Union[List[str], Tuple[str]],
+        continuous_parameters: ParameterType,
+        order: int,
+        extrapolate: bool,
+        validate: bool,
+    ):
 
         # TODO: allow for order 1 interpolation with binned edges
         if order != 0:
-            raise NotImplementedError(f'Interpolation is only supported for order 0. You specified order {order}')
+            raise NotImplementedError(
+                f"Interpolation is only supported for order 0. You specified order {order}"
+            )
 
         if validate:
             validate_parameters(data, categorical_parameters, continuous_parameters)
@@ -47,8 +56,10 @@ class Interpolation:
         self.data = data.copy()
         self.parameter_columns = continuous_parameters
 
-        self.value_columns = self.data.columns.difference(set(self.key_columns)
-                                                          | set([col for p in self.parameter_columns for col in p]))
+        self.value_columns = self.data.columns.difference(
+            set(self.key_columns)
+            | set([col for p in self.parameter_columns for col in p])
+        )
 
         self.order = order
         self.extrapolate = extrapolate
@@ -65,11 +76,18 @@ class Interpolation:
         self.interpolations = {}
 
         for key, base_table in sub_tables:
-            if base_table.empty:    # if one of the key columns is a category and not all values are present in data
+            if (
+                base_table.empty
+            ):  # if one of the key columns is a category and not all values are present in data
                 continue
             # since order 0, we can interpolate all values at once
-            self.interpolations[key] = Order0Interp(base_table, self.parameter_columns,
-                                                    self.value_columns, self.extrapolate, self.validate)
+            self.interpolations[key] = Order0Interp(
+                base_table,
+                self.parameter_columns,
+                self.value_columns,
+                self.extrapolate,
+                self.validate,
+            )
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Get the interpolated results for the parameters in interpolants.
@@ -94,12 +112,16 @@ class Interpolation:
             sub_tables = [(None, interpolants)]
         # specify some numeric type for columns so they won't be objects but will updated with whatever
         # column type actually is
-        result = pd.DataFrame(index=interpolants.index, columns=self.value_columns, dtype=np.float64)
+        result = pd.DataFrame(
+            index=interpolants.index, columns=self.value_columns, dtype=np.float64
+        )
         for key, sub_table in sub_tables:
             if sub_table.empty:
                 continue
             df = self.interpolations[key](sub_table)
-            result.loc[sub_table.index, self.value_columns] = df.loc[sub_table.index, self.value_columns]
+            result.loc[sub_table.index, self.value_columns] = df.loc[
+                sub_table.index, self.value_columns
+            ]
 
         return result
 
@@ -112,43 +134,57 @@ def validate_parameters(data, categorical_parameters, continuous_parameters):
         raise ValueError("You must supply non-empty data to create the interpolation.")
 
     if len(continuous_parameters) < 1:
-        raise ValueError("You must supply at least one continuous parameter over which to interpolate.")
+        raise ValueError(
+            "You must supply at least one continuous parameter over which to interpolate."
+        )
 
     for p in continuous_parameters:
         if not isinstance(p, (List, Tuple)) or len(p) != 3:
-            raise ValueError(f'Interpolation is only supported for binned data. You must specify a list or tuple '
-                             f'containing, in order, the column name used when interpolation is called, '
-                             f'the column name for the left edge (inclusive), and the column name for '
-                             f'the right edge (exclusive). You provided {p}.')
+            raise ValueError(
+                f"Interpolation is only supported for binned data. You must specify a list or tuple "
+                f"containing, in order, the column name used when interpolation is called, "
+                f"the column name for the left edge (inclusive), and the column name for "
+                f"the right edge (exclusive). You provided {p}."
+            )
 
     # break out the individual columns from binned column name lists
     param_cols = [col for p in continuous_parameters for col in p]
 
     # These are the columns which the interpolation function will approximate
-    value_columns = sorted(data.columns.difference(set(categorical_parameters) | set(param_cols)))
+    value_columns = sorted(
+        data.columns.difference(set(categorical_parameters) | set(param_cols))
+    )
     if not value_columns:
-        raise ValueError(f"No non-parameter data. Available columns: {data.columns}, "
-                         f"Parameter columns: {set(categorical_parameters)|set(continuous_parameters)}")
+        raise ValueError(
+            f"No non-parameter data. Available columns: {data.columns}, "
+            f"Parameter columns: {set(categorical_parameters)|set(continuous_parameters)}"
+        )
     return value_columns
 
 
 def validate_call_data(data, key_columns, parameter_columns):
     if not isinstance(data, pd.DataFrame):
-        raise TypeError(f'Interpolations can only be called on pandas.DataFrames. You'
-                        f'passed {type(data)}.')
+        raise TypeError(
+            f"Interpolations can only be called on pandas.DataFrames. You"
+            f"passed {type(data)}."
+        )
     callable_param_cols = [p[0] for p in parameter_columns]
 
     if not set(callable_param_cols) <= set(data.columns.values.tolist()):
-        raise ValueError(f'The continuous parameter columns with which you built the Interpolation must all '
-                         f'be present in the data you call it on. The Interpolation has key '
-                         f'columns: {callable_param_cols} and your data has columns: '
-                         f'{data.columns.values.tolist()}')
+        raise ValueError(
+            f"The continuous parameter columns with which you built the Interpolation must all "
+            f"be present in the data you call it on. The Interpolation has key "
+            f"columns: {callable_param_cols} and your data has columns: "
+            f"{data.columns.values.tolist()}"
+        )
 
     if key_columns and not set(key_columns) <= set(data.columns.values.tolist()):
-        raise ValueError(f'The key (categorical) columns with which you built the Interpolation must all'
-                         f'be present in the data you call it on. The Interpolation has key'
-                         f'columns: {key_columns} and your data has columns: '
-                         f'{data.columns.values.tolist()}')
+        raise ValueError(
+            f"The key (categorical) columns with which you built the Interpolation must all"
+            f"be present in the data you call it on. The Interpolation has key"
+            f"columns: {key_columns} and your data has columns: "
+            f"{data.columns.values.tolist()}"
+        )
 
 
 def check_data_complete(data, parameter_columns):
@@ -168,7 +204,9 @@ def check_data_complete(data, parameter_columns):
     parameter values.
     """
 
-    param_edges = [p[1:] for p in parameter_columns if isinstance(p, (Tuple, List))]  # strip out call column name
+    param_edges = [
+        p[1:] for p in parameter_columns if isinstance(p, (Tuple, List))
+    ]  # strip out call column name
 
     # check no overlaps/gaps
     for p in param_edges:
@@ -183,23 +221,32 @@ def check_data_complete(data, parameter_columns):
         for _, table in sub_tables:
 
             param_data = table[[p[0], p[1]]].copy().sort_values(by=p[0])
-            start, end = param_data[p[0]].reset_index(drop=True), param_data[p[1]].reset_index(drop=True)
+            start, end = (
+                param_data[p[0]].reset_index(drop=True),
+                param_data[p[1]].reset_index(drop=True),
+            )
 
             if len(set(start)) < n_p_total:
-                raise ValueError(f'You must provide a value for every combination of {parameter_columns}.')
+                raise ValueError(
+                    f"You must provide a value for every combination of {parameter_columns}."
+                )
 
             if len(start) <= 1:
                 continue
             for i in range(1, len(start)):
-                e = end[i-1]
+                e = end[i - 1]
                 s = start[i]
-                if e > s or s == start[i-1]:
-                    raise ValueError(f'Parameter data must not contain overlaps. Parameter {p} '
-                                     f'contains overlapping data.')
+                if e > s or s == start[i - 1]:
+                    raise ValueError(
+                        f"Parameter data must not contain overlaps. Parameter {p} "
+                        f"contains overlapping data."
+                    )
                 if e < s:
-                    raise NotImplementedError(f'Interpolation only supported for parameter columns '
-                                              f'with continuous bins. Parameter {p} contains '
-                                              f'non-continuous bins.')
+                    raise NotImplementedError(
+                        f"Interpolation only supported for parameter columns "
+                        f"with continuous bins. Parameter {p} contains "
+                        f"non-continuous bins."
+                    )
 
 
 class Order0Interp:
@@ -213,8 +260,15 @@ class Order0Interp:
     parameter_columns :
         Column names to be used as parameters in Interpolation.
     """
-    def __init__(self, data, parameter_columns: ParameterType, value_columns: List[str], extrapolate: bool,
-                 validate: bool):
+
+    def __init__(
+        self,
+        data,
+        parameter_columns: ParameterType,
+        value_columns: List[str],
+        extrapolate: bool,
+        validate: bool,
+    ):
         """
 
         Parameters
@@ -245,7 +299,10 @@ class Order0Interp:
             left_edge = self.data[p[1]].drop_duplicates().sort_values()
             max_right = self.data[p[2]].drop_duplicates().max()
 
-            self.parameter_bins[tuple(p)] = {'bins': left_edge.reset_index(drop=True), 'max': max_right}
+            self.parameter_bins[tuple(p)] = {
+                "bins": left_edge.reset_index(drop=True),
+                "max": max_right,
+            }
 
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Find the bins for each parameter for each interpolant in interpolants
@@ -267,15 +324,19 @@ class Order0Interp:
 
         merge_cols = []
         for cols, d in self.parameter_bins.items():
-            bins = d['bins']
-            max_right = d['max']
+            bins = d["bins"]
+            max_right = d["max"]
             merge_cols.append(cols[1])
             interpolant_col = interpolants[cols[0]]
-            if not self.extrapolate and (interpolant_col.min() < bins[0] or interpolant_col.max() >= max_right):
-                raise ValueError(f'Extrapolation outside of bins used to set up interpolation is only allowed '
-                                 f'when explicitly set in creation of Interpolation. Extrapolation is currently '
-                                 f'off for this interpolation, and parameter {cols[0]} includes data outside of '
-                                 f'original bins.')
+            if not self.extrapolate and (
+                interpolant_col.min() < bins[0] or interpolant_col.max() >= max_right
+            ):
+                raise ValueError(
+                    f"Extrapolation outside of bins used to set up interpolation is only allowed "
+                    f"when explicitly set in creation of Interpolation. Extrapolation is currently "
+                    f"off for this interpolation, and parameter {cols[0]} includes data outside of "
+                    f"original bins."
+                )
             bin_indices = np.digitize(interpolant_col, bins.tolist())
             # digitize uses 0 to indicate < min and len(bins) for > max so adjust to actual indices into bin_indices
             bin_indices[bin_indices > 0] -= 1
@@ -283,5 +344,7 @@ class Order0Interp:
 
         index = interpolant_bins.index
 
-        interp_vals = interpolant_bins.merge(self.data, how='left', on=merge_cols).set_index(index)
+        interp_vals = interpolant_bins.merge(
+            self.data, how="left", on=merge_cols
+        ).set_index(index)
         return interp_vals[self.value_columns]
