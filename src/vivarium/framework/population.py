@@ -20,6 +20,7 @@ from vivarium.exceptions import VivariumError
 
 class PopulationError(VivariumError):
     """Error raised when the population is invalidly queried or updated."""
+
     pass
 
 
@@ -50,11 +51,13 @@ class PopulationView:
 
     """
 
-    def __init__(self,
-                 manager: 'PopulationManager',
-                 view_id: int,
-                 columns: Union[List[str], Tuple[str], None] = (),
-                 query: str = None):
+    def __init__(
+        self,
+        manager: "PopulationManager",
+        view_id: int,
+        columns: Union[List[str], Tuple[str], None] = (),
+        query: str = None,
+    ):
         self._manager = manager
         self._id = view_id
         self._columns = list(columns)
@@ -62,7 +65,7 @@ class PopulationView:
 
     @property
     def name(self):
-        return f'population_view_{self._id}'
+        return f"population_view_{self._id}"
 
     @property
     def columns(self) -> List[str]:
@@ -88,7 +91,7 @@ class PopulationView:
         """
         return self._query
 
-    def subview(self, columns: Union[List[str], Tuple[str]]) -> 'PopulationView':
+    def subview(self, columns: Union[List[str], Tuple[str]]) -> "PopulationView":
         """Retrieves a new view with a subset of this view's columns.
 
         Parameters
@@ -119,12 +122,14 @@ class PopulationView:
 
         """
         if set(columns) > set(self.columns):
-            raise PopulationError(f"Invalid subview requested.  Requested columns must be a subset of this "
-                                  f"view's columns.  Requested columns: {columns}, Available columns: {self.columns}")
+            raise PopulationError(
+                f"Invalid subview requested.  Requested columns must be a subset of this "
+                f"view's columns.  Requested columns: {columns}, Available columns: {self.columns}"
+            )
         # Skip constraints for requesting subviews.
         return self._manager._get_view(columns, self.query)
 
-    def get(self, index: pd.Index, query: str = '') -> pd.DataFrame:
+    def get(self, index: pd.Index, query: str = "") -> pd.DataFrame:
         """Select the rows represented by the given index from this view.
 
         For the rows in ``index`` get the columns from the simulation's
@@ -172,7 +177,9 @@ class PopulationView:
             columns = self._columns
             non_existent_columns = set(columns) - set(pop.columns)
             if non_existent_columns:
-                raise PopulationError(f'Requested column(s) {non_existent_columns} not in population table.')
+                raise PopulationError(
+                    f"Requested column(s) {non_existent_columns} not in population table."
+                )
             else:
                 return pop.loc[:, columns]
 
@@ -208,13 +215,17 @@ class PopulationView:
             elif len(self._columns) == 1:
                 affected_columns = self._columns
             else:
-                raise PopulationError('Cannot update with a pandas series unless the series name is a column '
-                                      'name in the view or there is only a single column in the view.')
+                raise PopulationError(
+                    "Cannot update with a pandas series unless the series name is a column "
+                    "name in the view or there is only a single column in the view."
+                )
         else:
             if not set(population_update.columns).issubset(self._columns):
-                raise PopulationError(f'Cannot update with a DataFrame that contains columns the view does not. '
-                                      f'Dataframe contains the following extra columns: '
-                                      f'{set(population_update.columns).difference(self._columns)}.')
+                raise PopulationError(
+                    f"Cannot update with a DataFrame that contains columns the view does not. "
+                    f"Dataframe contains the following extra columns: "
+                    f"{set(population_update.columns).difference(self._columns)}."
+                )
             affected_columns = set(population_update.columns)
 
         affected_columns = set(affected_columns).intersection(self._columns)
@@ -236,11 +247,15 @@ class PopulationView:
                     # the index forces columns that don't have a natural null type
                     # to become 'object'
                     if not self._manager.growing:
-                        raise PopulationError('Component corrupting population table. '
-                                              f'Column name: {affected_column} '
-                                              f'Old column type: {new_state_table_values.dtype} '
-                                              f'New column type: {update_values.dtype}')
-                    new_state_table_values = new_state_table_values.astype(update_values.dtype)
+                        raise PopulationError(
+                            "Component corrupting population table. "
+                            f"Column name: {affected_column} "
+                            f"Old column type: {new_state_table_values.dtype} "
+                            f"New column type: {update_values.dtype}"
+                        )
+                    new_state_table_values = new_state_table_values.astype(
+                        update_values.dtype
+                    )
             else:
                 if isinstance(population_update, pd.Series):
                     new_state_table_values = population_update.values
@@ -260,6 +275,7 @@ class SimulantData(NamedTuple):
     initialization.
 
     """
+
     #: The index representing the new simulants being added to the simulation.
     index: pd.Index
     #: A dictionary of extra data passed in by the component creating the
@@ -302,20 +318,28 @@ class InitializerComponentSet:
 
         """
         if not isinstance(initializer, MethodType):
-            raise TypeError('Population initializers must be methods of named simulation components. '
-                            f'You provided {initializer} which is of type {type(initializer)}.')
+            raise TypeError(
+                "Population initializers must be methods of named simulation components. "
+                f"You provided {initializer} which is of type {type(initializer)}."
+            )
         component = initializer.__self__
         if not hasattr(component, "name"):
-            raise AttributeError('Population initializers must be methods of named simulation components. '
-                                 f'You provided {initializer} which is bound to {component} that has no '
-                                 f'name attribute.')
+            raise AttributeError(
+                "Population initializers must be methods of named simulation components. "
+                f"You provided {initializer} which is bound to {component} that has no "
+                f"name attribute."
+            )
         if component.name in self._components:
-            raise PopulationError(f'Component {component.name} has multiple population initializers. '
-                                  'This is not allowed.')
+            raise PopulationError(
+                f"Component {component.name} has multiple population initializers. "
+                "This is not allowed."
+            )
         for column in columns_produced:
             if column in self._columns_produced:
-                raise PopulationError(f'Component {component.name} and component {self._columns_produced[column]} '
-                                      f'have both registered initializers for column {column}.')
+                raise PopulationError(
+                    f"Component {component.name} and component {self._columns_produced[column]} "
+                    f"have both registered initializers for column {column}."
+                )
             self._columns_produced[column] = component.name
         self._components[component.name] = columns_produced
 
@@ -331,9 +355,7 @@ class PopulationManager:
 
     # TODO: Move the configuration for initial population creation to
     # user components.
-    configuration_defaults = {
-        'population': {'population_size': 100}
-    }
+    configuration_defaults = {"population": {"population_size": 100}}
 
     def __init__(self):
         self._population = pd.DataFrame()
@@ -357,15 +379,29 @@ class PopulationManager:
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
 
-        builder.lifecycle.add_constraint(self.get_view, allow_during=['setup', 'post_setup', 'population_creation',
-                                                                      'simulation_end', 'report'])
-        builder.lifecycle.add_constraint(self.get_simulant_creator, allow_during=['setup'])
-        builder.lifecycle.add_constraint(self.register_simulant_initializer, allow_during=['setup'])
+        builder.lifecycle.add_constraint(
+            self.get_view,
+            allow_during=[
+                "setup",
+                "post_setup",
+                "population_creation",
+                "simulation_end",
+                "report",
+            ],
+        )
+        builder.lifecycle.add_constraint(
+            self.get_simulant_creator, allow_during=["setup"]
+        )
+        builder.lifecycle.add_constraint(
+            self.register_simulant_initializer, allow_during=["setup"]
+        )
 
-        self.register_simulant_initializer(self.on_initialize_simulants, creates_columns=['tracked'])
-        self._view = self.get_view(['tracked'])
+        self.register_simulant_initializer(
+            self.on_initialize_simulants, creates_columns=["tracked"]
+        )
+        self._view = self.get_view(["tracked"])
 
-        builder.value.register_value_modifier('metrics', modifier=self.metrics)
+        builder.value.register_value_modifier("metrics", modifier=self.metrics)
 
     def on_initialize_simulants(self, pop_data: SimulantData):
         """Adds a ``tracked`` column to the state table for new simulants."""
@@ -378,9 +414,9 @@ class PopulationManager:
         untracked = population[~population.tracked]
         tracked = population[population.tracked]
 
-        metrics['total_population_untracked'] = len(untracked)
-        metrics['total_population_tracked'] = len(tracked)
-        metrics['total_population'] = len(untracked)+len(tracked)
+        metrics["total_population_untracked"] = len(untracked)
+        metrics["total_population_tracked"] = len(tracked)
+        metrics["total_population"] = len(untracked) + len(tracked)
         return metrics
 
     def __repr__(self):
@@ -390,7 +426,9 @@ class PopulationManager:
     # Builder API and helpers #
     ###########################
 
-    def get_view(self, columns: Union[List[str], Tuple[str]], query: str = None) -> PopulationView:
+    def get_view(
+        self, columns: Union[List[str], Tuple[str]], query: str = None
+    ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -421,25 +459,38 @@ class PopulationManager:
 
         """
         view = self._get_view(columns, query)
-        self._add_constraint(view.get, restrict_during=['initialization', 'setup', 'post_setup'])
-        self._add_constraint(view.update, restrict_during=['initialization', 'setup', 'post_setup',
-                                                           'simulation_end', 'report'])
+        self._add_constraint(
+            view.get, restrict_during=["initialization", "setup", "post_setup"]
+        )
+        self._add_constraint(
+            view.update,
+            restrict_during=[
+                "initialization",
+                "setup",
+                "post_setup",
+                "simulation_end",
+                "report",
+            ],
+        )
         return view
 
     def _get_view(self, columns: Union[List[str], Tuple[str]], query: str = None):
-        if columns and 'tracked' not in columns:
+        if columns and "tracked" not in columns:
             if query is None:
-                query = 'tracked == True'
-            elif 'tracked' not in query:
-                query += 'and tracked == True'
+                query = "tracked == True"
+            elif "tracked" not in query:
+                query += "and tracked == True"
         self._last_id += 1
         return PopulationView(self, self._last_id, columns, query)
 
-    def register_simulant_initializer(self, initializer: Callable,
-                                      creates_columns: List[str] = (),
-                                      requires_columns: List[str] = (),
-                                      requires_values: List[str] = (),
-                                      requires_streams: List[str] = ()):
+    def register_simulant_initializer(
+        self,
+        initializer: Callable,
+        creates_columns: List[str] = (),
+        requires_columns: List[str] = (),
+        requires_values: List[str] = (),
+        requires_streams: List[str] = (),
+    ):
         """Marks a source of initial state information for new simulants.
 
         Parameters
@@ -463,14 +514,18 @@ class PopulationManager:
 
         """
         self._initializer_components.add(initializer, creates_columns)
-        dependencies = ([f'column.{name}' for name in requires_columns]
-                        + [f'value.{name}' for name in requires_values]
-                        + [f'stream.{name}' for name in requires_streams])
-        if creates_columns != ['tracked']:
+        dependencies = (
+            [f"column.{name}" for name in requires_columns]
+            + [f"value.{name}" for name in requires_values]
+            + [f"stream.{name}" for name in requires_streams]
+        )
+        if creates_columns != ["tracked"]:
             # The population view itself uses the tracked column, so include
             # to be safe.
-            dependencies += ['column.tracked']
-        self.resources.add_resources('column', list(creates_columns), initializer, dependencies)
+            dependencies += ["column.tracked"]
+        self.resources.add_resources(
+            "column", list(creates_columns), initializer, dependencies
+        )
 
     def get_simulant_creator(self) -> Callable:
         """Gets a function that can generate new simulants.
@@ -490,15 +545,23 @@ class PopulationManager:
         """
         return self._create_simulants
 
-    def _create_simulants(self, count: int, population_configuration: Dict[str, Any] = None) -> pd.Index:
-        population_configuration = population_configuration if population_configuration else {}
+    def _create_simulants(
+        self, count: int, population_configuration: Dict[str, Any] = None
+    ) -> pd.Index:
+        population_configuration = (
+            population_configuration if population_configuration else {}
+        )
         new_index = range(len(self._population) + count)
         new_population = self._population.reindex(new_index)
         index = new_population.index.difference(self._population.index)
         self._population = new_population
         self.growing = True
         for initializer in self.resources:
-            initializer(SimulantData(index, population_configuration, self.clock(), self.step_size()))
+            initializer(
+                SimulantData(
+                    index, population_configuration, self.clock(), self.step_size()
+                )
+            )
         self.growing = False
         return index
 
@@ -552,7 +615,9 @@ class PopulationInterface:
     def __init__(self, manager: PopulationManager):
         self._manager = manager
 
-    def get_view(self, columns: Union[List[str], Tuple[str]], query: str = None) -> PopulationView:
+    def get_view(
+        self, columns: Union[List[str], Tuple[str]], query: str = None
+    ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -584,7 +649,9 @@ class PopulationInterface:
         """
         return self._manager.get_view(columns, query)
 
-    def get_simulant_creator(self) -> Callable[[int, Union[Dict[str, Any], None]], pd.Index]:
+    def get_simulant_creator(
+        self,
+    ) -> Callable[[int, Union[Dict[str, Any], None]], pd.Index]:
         """Gets a function that can generate new simulants.
 
         Returns
@@ -602,11 +669,14 @@ class PopulationInterface:
         """
         return self._manager.get_simulant_creator()
 
-    def initializes_simulants(self, initializer: Callable[[SimulantData], None],
-                              creates_columns: List[str] = (),
-                              requires_columns: List[str] = (),
-                              requires_values: List[str] = (),
-                              requires_streams: List[str] = ()):
+    def initializes_simulants(
+        self,
+        initializer: Callable[[SimulantData], None],
+        creates_columns: List[str] = (),
+        requires_columns: List[str] = (),
+        requires_values: List[str] = (),
+        requires_streams: List[str] = (),
+    ):
         """Marks a source of initial state information for new simulants.
 
         Parameters
@@ -629,5 +699,10 @@ class PopulationInterface:
             simulant attributes.
 
         """
-        self._manager.register_simulant_initializer(initializer, creates_columns,
-                                                    requires_columns, requires_values, requires_streams)
+        self._manager.register_simulant_initializer(
+            initializer,
+            creates_columns,
+            requires_columns,
+            requires_values,
+            requires_streams,
+        )

@@ -4,10 +4,9 @@ import pandas as pd
 
 
 class ResultsManager:
-
     @property
     def name(self):
-        return 'results_manager'
+        return "results_manager"
 
     def add_mapping_strategy(self, *args, **kwargs):
         ...
@@ -90,9 +89,9 @@ class ResultsInterface:
     def __init__(self, manager: ResultsManager) -> None:
         self._manager = manager
 
-    def add_mapping_strategy(self,
-                             new_column: str,
-                             mapper: Callable[[pd.Index], pd.Series]) -> None:
+    def add_mapping_strategy(
+        self, new_column: str, mapper: Callable[[pd.Index], pd.Series]
+    ) -> None:
         """Adds a specification to map simulation state into a new column.
 
         This allows a user to specify an arbitrary function to generate
@@ -115,8 +114,7 @@ class ResultsInterface:
         """
         self._manager.add_mapping_strategy(new_column, mapper)
 
-    def add_default_grouping_columns(self,
-                                     grouping_columns: List[str]) -> None:
+    def add_default_grouping_columns(self, grouping_columns: List[str]) -> None:
         """Add a list of expanded state table columns to group by for all measures.
 
         Generally, we want to be able to globally define the stratification for all
@@ -134,13 +132,15 @@ class ResultsInterface:
         """
         self._manager.add_default_grouping_columns(grouping_columns)
 
-    def add_results_production_strategy(self,
-                                        measure: str,
-                                        pop_filter: str = '',
-                                        aggregator: Callable[[pd.DataFrame], float] = len,
-                                        additional_grouping_columns: List[str] = (),
-                                        excluded_grouping_columns: List[str] = (),
-                                        when: str = 'collect_metrics') -> None:
+    def add_results_production_strategy(
+        self,
+        measure: str,
+        pop_filter: str = "",
+        aggregator: Callable[[pd.DataFrame], float] = len,
+        additional_grouping_columns: List[str] = (),
+        excluded_grouping_columns: List[str] = (),
+        when: str = "collect_metrics",
+    ) -> None:
         """Provide the framework with a strategy for producing a results 'measure'.
 
         Results production strategies operate like functions used in the
@@ -178,5 +178,5 @@ class ResultsInterface:
             aggregator,
             list(additional_grouping_columns),
             list(excluded_grouping_columns),
-            when
+            when,
         )

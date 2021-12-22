@@ -19,7 +19,9 @@ class Metrics:
         return "metrics"
 
     def setup(self, builder):
-        self.metrics = builder.value.register_value_producer('metrics', source=lambda index: {})
+        self.metrics = builder.value.register_value_producer(
+            "metrics", source=lambda index: {}
+        )
 
     def __repr__(self):
         return "Metrics()"

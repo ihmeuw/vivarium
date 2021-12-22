@@ -2,47 +2,43 @@ from pathlib import Path
 import pytest
 import tables
 
-from vivarium.framework.configuration import build_simulation_configuration, build_model_specification
+from vivarium.framework.configuration import (
+    build_simulation_configuration,
+    build_model_specification,
+)
 from vivarium.testing_utilities import metadata
 
 
 @pytest.fixture
 def base_config():
     config = build_simulation_configuration()
-    config.update({
-        'time': {
-            'start': {
-                'year': 1990,
-            },
-            'end': {
-                'year': 2010
-            },
-            'step_size': 30.5
-        }
-    }, **metadata(__file__))
+    config.update(
+        {"time": {"start": {"year": 1990,}, "end": {"year": 2010}, "step_size": 30.5}},
+        **metadata(__file__),
+    )
     return config
 
 
 @pytest.fixture
 def test_data_dir():
-    data_dir = Path(__file__).resolve().parent / 'test_data'
-    assert data_dir.exists(), 'Test directory structure is broken'
+    data_dir = Path(__file__).resolve().parent / "test_data"
+    assert data_dir.exists(), "Test directory structure is broken"
     return data_dir
 
 
-@pytest.fixture(params=['.yaml', '.yml'])
+@pytest.fixture(params=[".yaml", ".yml"])
 def test_spec(request, test_data_dir):
-    return test_data_dir / f'mock_model_specification{request.param}'
+    return test_data_dir / f"mock_model_specification{request.param}"
 
 
-@pytest.fixture(params=['.yaml', '.yml'])
+@pytest.fixture(params=[".yaml", ".yml"])
 def test_user_config(request, test_data_dir):
-    return test_data_dir / f'mock_user_config{request.param}'
+    return test_data_dir / f"mock_user_config{request.param}"
 
 
 @pytest.fixture
 def model_specification(mocker, test_spec, test_user_config):
-    expand_user_mock = mocker.patch('vivarium.framework.configuration.Path.expanduser')
+    expand_user_mock = mocker.patch("vivarium.framework.configuration.Path.expanduser")
     expand_user_mock.return_value = test_user_config
     return build_model_specification(test_spec)
 
@@ -68,8 +64,8 @@ def hdf_file_path(tmpdir, test_data_dir):
         /cause/all_causes/restrictions (EArray(166,)) ''
     """
     # Make temporary copy of file for test.
-    p = tmpdir.join('artifact.hdf')
-    with tables.open_file(str(test_data_dir / 'artifact.hdf')) as file:
+    p = tmpdir.join("artifact.hdf")
+    with tables.open_file(str(test_data_dir / "artifact.hdf")) as file:
         file.copy_file(str(p), overwrite=True)
     return p
 
