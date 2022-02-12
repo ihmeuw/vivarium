@@ -39,14 +39,15 @@ For mor information, see the Common Random Numbers
 :ref:`concept note <crn_concept>`.
 
 """
-from typing import Union, List, Tuple, Callable, Any
-import hashlib
 import datetime
+import hashlib
+from typing import Any, Callable, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 from vivarium.exceptions import VivariumError
+
 from .utilities import rate_to_probability
 
 Array = Union[List, Tuple, np.ndarray, pd.Series]
@@ -55,6 +56,7 @@ Index = Union[pd.Index, pd.MultiIndex]
 
 class RandomnessError(VivariumError):
     """Raised for inconsistencies in random number and choice generation."""
+
     pass
 
 
@@ -159,24 +161,28 @@ class IndexMap:
             column = self.clip_to_seconds(column.view(np.int64))
         elif np.issubdtype(column.iloc[0], np.integer):
             if not len(column >= 0) == len(column):
-                raise RandomnessError("Values in integer columns must be greater than or equal to zero.")
+                raise RandomnessError(
+                    "Values in integer columns must be greater than or equal to zero."
+                )
             column = self.spread(column)
         elif np.issubdtype(column.iloc[0], np.floating):
             column = self.shift(column)
         else:
-            raise RandomnessError(f"Unhashable column type {type(column.iloc[0])}. "
-                                  "IndexMap accepts datetime like columns and numeric columns.")
+            raise RandomnessError(
+                f"Unhashable column type {type(column.iloc[0])}. "
+                "IndexMap accepts datetime like columns and numeric columns."
+            )
         return column
 
     @staticmethod
     def digit(m: Union[int, pd.Series], n: int) -> Union[int, pd.Series]:
         """Returns the nth digit of each number in m."""
-        return (m // (10 ** n)) % 10
+        return (m // (10**n)) % 10
 
     @staticmethod
     def clip_to_seconds(m: Union[int, pd.Series]) -> Union[int, pd.Series]:
         """Clips UTC datetime in nanoseconds to seconds."""
-        return m // pd.Timedelta(1, unit='s').value
+        return m // pd.Timedelta(1, unit="s").value
 
     def spread(self, m: Union[int, pd.Series]) -> Union[int, pd.Series]:
         """Spreads out integer values to give smaller values more weight."""
@@ -186,7 +192,7 @@ class IndexMap:
         """Shifts floats so that the first 10 decimal digits are significant."""
         out = m % 1 * self.TEN_DIGIT_MODULUS // 1
         if isinstance(out, pd.Series):
-            return out.astype('int64')
+            return out.astype("int64")
         return int(out)
 
     def __getitem__(self, index: Index) -> pd.Series:
@@ -199,7 +205,7 @@ class IndexMap:
         return len(self._map)
 
     def __repr__(self) -> str:
-        return 'IndexMap({})'.format("\n         ".join(repr(self._map).split("\n")))
+        return "IndexMap({})".format("\n         ".join(repr(self._map).split("\n")))
 
 
 def random(key: str, index: Index, index_map: IndexMap = None) -> pd.Series:
@@ -262,10 +268,12 @@ def get_hash(key: str) -> int:
 
     """
     # 4294967295 == 2**32 - 1 which is the maximum allowable seed for a `numpy.random.RandomState`.
-    return int(hashlib.sha1(key.encode('utf8')).hexdigest(), 16) % 4294967295
+    return int(hashlib.sha1(key.encode("utf8")).hexdigest(), 16) % 4294967295
 
 
-def choice(key: str, index: Index, choices: Array, p: Array = None, index_map: IndexMap = None) -> pd.Series:
+def choice(
+    key: str, index: Index, choices: Array, p: Array = None, index_map: IndexMap = None
+) -> pd.Series:
     """Decides between a weighted or unweighted set of choices.
 
     Given a a set of choices with or without corresponding weights,
@@ -307,8 +315,12 @@ def choice(key: str, index: Index, choices: Array, p: Array = None, index_map: I
 
     """
     # Convert p to normalized probabilities broadcasted over index.
-    p = _set_residual_probability(_normalize_shape(p, index)) if p is not None else np.ones((len(index), len(choices)))
-    p = p/p.sum(axis=1, keepdims=True)
+    p = (
+        _set_residual_probability(_normalize_shape(p, index))
+        if p is not None
+        else np.ones((len(index), len(choices)))
+    )
+    p = p / p.sum(axis=1, keepdims=True)
 
     draw = random(key, index, index_map)
 
@@ -347,21 +359,31 @@ def _set_residual_probability(p: np.ndarray) -> np.ndarray:
     if residual_mask.any():  # I.E. if we have any placeholders.
         if np.any(np.sum(residual_mask, axis=1) - 1):
             raise RandomnessError(
-                'More than one residual choice supplied for a single set of weights. Weights: {}.'.format(p))
+                "More than one residual choice supplied for a single set of weights. Weights: {}.".format(
+                    p
+                )
+            )
 
         p[residual_mask] = 0
         residual_p = 1 - np.sum(p, axis=1)  # Probabilities sum to 1.
 
         if np.any(residual_p < 0):  # We got un-normalized probability weights.
             raise RandomnessError(
-                'Residual choice supplied with weights that summed to more than 1. Weights: {}.'.format(p))
+                "Residual choice supplied with weights that summed to more than 1. Weights: {}.".format(
+                    p
+                )
+            )
 
         p[residual_mask] = residual_p
     return p
 
 
-def filter_for_probability(key: str, population: Union[pd.DataFrame, pd.Series, Index],
-                           probability: Array, index_map: IndexMap = None) -> Union[pd.DataFrame, pd.Series, Index]:
+def filter_for_probability(
+    key: str,
+    population: Union[pd.DataFrame, pd.Series, Index],
+    probability: Array,
+    index_map: IndexMap = None,
+) -> Union[pd.DataFrame, pd.Series, Index]:
     """Decide an event outcome for each individual in a population from
     probabilities.
 
@@ -431,9 +453,16 @@ class RandomnessStream:
                 self.randomness_stream = builder.randomness.get_stream('stream_name')
 
     """
-    def __init__(self, key: str, clock: Callable, seed: Any,
-                 index_map: IndexMap = None, manager: 'RandomnessManager' = None,
-                 for_initialization: bool = False):
+
+    def __init__(
+        self,
+        key: str,
+        clock: Callable,
+        seed: Any,
+        index_map: IndexMap = None,
+        manager: "RandomnessManager" = None,
+        for_initialization: bool = False,
+    ):
         self.key = key
         self.clock = clock
         self.seed = seed
@@ -441,7 +470,7 @@ class RandomnessStream:
         self._manager = manager
         self._for_initialization = for_initialization
 
-    def copy_with_additional_key(self, key: Any) -> 'RandomnessStream':
+    def copy_with_additional_key(self, key: Any) -> "RandomnessStream":
         """Creates a copy of this stream with a permutation of it's random seed.
 
         Parameters
@@ -455,9 +484,9 @@ class RandomnessStream:
             A new RandomnessStream with a combined key.
 
         """
-        copy_key = '_'.join([self.key, key])
+        copy_key = "_".join([self.key, key])
         if self._for_initialization:
-            raise RandomnessError('Initialization streams cannot be copied.')
+            raise RandomnessError("Initialization streams cannot be copied.")
         elif self._manager:
             return self._manager.get_randomness_stream(copy_key)
         else:
@@ -465,7 +494,7 @@ class RandomnessStream:
 
     @property
     def name(self):
-        return f'randomness_stream_{self.key}'
+        return f"randomness_stream_{self.key}"
 
     def _key(self, additional_key: Any = None) -> str:
         """Construct a hashable key from this object's state.
@@ -481,7 +510,7 @@ class RandomnessStream:
             A key to seed random number generation.
 
         """
-        return '_'.join([self.key, str(self.clock()), str(additional_key), str(self.seed)])
+        return "_".join([self.key, str(self.clock()), str(additional_key), str(self.seed)])
 
     def get_draw(self, index: Index, additional_key: Any = None) -> pd.Series:
         """Get an indexed set of numbers uniformly drawn from the unit interval.
@@ -500,15 +529,21 @@ class RandomnessStream:
             A series of random numbers indexed by the provided `pandas.Index`.
         """
         if self._for_initialization:
-            draw = random(self._key(additional_key), pd.Index(range(len(index))), self.index_map)
+            draw = random(
+                self._key(additional_key), pd.Index(range(len(index))), self.index_map
+            )
             draw.index = index
         else:
             draw = random(self._key(additional_key), index, self.index_map)
 
         return draw
 
-    def filter_for_rate(self, population: Union[pd.DataFrame, pd.Series, Index],
-                        rate: Array, additional_key: Any = None) -> Union[pd.DataFrame, pd.Series, Index]:
+    def filter_for_rate(
+        self,
+        population: Union[pd.DataFrame, pd.Series, Index],
+        rate: Array,
+        additional_key: Any = None,
+    ) -> Union[pd.DataFrame, pd.Series, Index]:
         """Decide an event outcome for each individual from rates.
 
         Given a population or its index and an array of associated rates for
@@ -536,10 +571,16 @@ class RandomnessStream:
             The return type will be the same as type(population)
 
         """
-        return self.filter_for_probability(population, rate_to_probability(rate), additional_key)
+        return self.filter_for_probability(
+            population, rate_to_probability(rate), additional_key
+        )
 
-    def filter_for_probability(self, population: Union[pd.DataFrame, pd.Series, Index],
-                               probability: Array, additional_key: Any = None) -> Union[pd.DataFrame, pd.Series, Index]:
+    def filter_for_probability(
+        self,
+        population: Union[pd.DataFrame, pd.Series, Index],
+        probability: Array,
+        additional_key: Any = None,
+    ) -> Union[pd.DataFrame, pd.Series, Index]:
         """Decide an outcome for each individual from probabilities.
 
         Given a population or its index and an array of associated probabilities
@@ -566,9 +607,13 @@ class RandomnessStream:
             The return type will be the same as type(population)
 
         """
-        return filter_for_probability(self._key(additional_key), population, probability, self.index_map)
+        return filter_for_probability(
+            self._key(additional_key), population, probability, self.index_map
+        )
 
-    def choice(self, index: Index, choices: Array, p: Array = None, additional_key: Any = None) -> pd.Series:
+    def choice(
+        self, index: Index, choices: Array, p: Array = None, additional_key: Any = None
+    ) -> pd.Series:
         """Decides between a weighted or unweighted set of choices.
 
         Given a a set of choices with or without corresponding weights,
@@ -608,20 +653,21 @@ class RandomnessStream:
         return choice(self._key(additional_key), index, choices, p, self.index_map)
 
     def __repr__(self) -> str:
-        return "RandomnessStream(key={!r}, clock={!r}, seed={!r})".format(self.key, self.clock(), self.seed)
+        return "RandomnessStream(key={!r}, clock={!r}, seed={!r})".format(
+            self.key, self.clock(), self.seed
+        )
 
 
 class RandomnessManager:
     """Access point for common random number generation."""
 
     configuration_defaults = {
-        'randomness':
-            {
-                'map_size': 1_000_000,
-                'key_columns': ['entrance_time'],
-                'random_seed': 0,
-                'additional_seed': None,
-            }
+        "randomness": {
+            "map_size": 1_000_000,
+            "key_columns": ["entrance_time"],
+            "random_seed": 0,
+            "additional_seed": None,
+        }
     }
 
     def __init__(self):
@@ -643,16 +689,26 @@ class RandomnessManager:
         self._key_columns = builder.configuration.randomness.key_columns
         map_size = builder.configuration.randomness.map_size
         pop_size = builder.configuration.population.population_size
-        self._key_mapping.map_size = max(map_size, 10*pop_size)
+        self._key_mapping.map_size = max(map_size, 10 * pop_size)
 
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
-        self._add_constraint(self.get_seed, restrict_during=['initialization'])
-        self._add_constraint(self.get_randomness_stream, allow_during=['setup'])
-        self._add_constraint(self.register_simulants,
-                             restrict_during=['initialization', 'setup', 'post_setup', 'simulation_end', 'report'])
+        self._add_constraint(self.get_seed, restrict_during=["initialization"])
+        self._add_constraint(self.get_randomness_stream, allow_during=["setup"])
+        self._add_constraint(
+            self.register_simulants,
+            restrict_during=[
+                "initialization",
+                "setup",
+                "post_setup",
+                "simulation_end",
+                "report",
+            ],
+        )
 
-    def get_randomness_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
+    def get_randomness_stream(
+        self, decision_point: str, for_initialization: bool = False
+    ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
         Parameters
@@ -676,22 +732,47 @@ class RandomnessManager:
 
         """
         stream = self._get_randomness_stream(decision_point, for_initialization)
-        if not for_initialization:  # We need the key columns to be created before this stream can be called.
-            self.resources.add_resources('stream', [decision_point], stream,
-                                         [f'column.{name}' for name in self._key_columns])
-        self._add_constraint(stream.get_draw, restrict_during=['initialization', 'setup', 'post_setup'])
-        self._add_constraint(stream.filter_for_probability, restrict_during=['initialization', 'setup', 'post_setup'])
-        self._add_constraint(stream.filter_for_rate, restrict_during=['initialization', 'setup', 'post_setup'])
-        self._add_constraint(stream.choice, restrict_during=['initialization', 'setup', 'post_setup'])
+        if (
+            not for_initialization
+        ):  # We need the key columns to be created before this stream can be called.
+            self.resources.add_resources(
+                "stream",
+                [decision_point],
+                stream,
+                [f"column.{name}" for name in self._key_columns],
+            )
+        self._add_constraint(
+            stream.get_draw, restrict_during=["initialization", "setup", "post_setup"]
+        )
+        self._add_constraint(
+            stream.filter_for_probability,
+            restrict_during=["initialization", "setup", "post_setup"],
+        )
+        self._add_constraint(
+            stream.filter_for_rate, restrict_during=["initialization", "setup", "post_setup"]
+        )
+        self._add_constraint(
+            stream.choice, restrict_during=["initialization", "setup", "post_setup"]
+        )
 
         return stream
 
-    def _get_randomness_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
+    def _get_randomness_stream(
+        self, decision_point: str, for_initialization: bool = False
+    ) -> RandomnessStream:
         if decision_point in self._decision_points:
-            raise RandomnessError(f"Two separate places are attempting to create "
-                                  f"the same randomness stream for {decision_point}")
-        stream = RandomnessStream(key=decision_point, clock=self._clock, seed=self._seed,
-                                  index_map=self._key_mapping, manager=self, for_initialization=for_initialization)
+            raise RandomnessError(
+                f"Two separate places are attempting to create "
+                f"the same randomness stream for {decision_point}"
+            )
+        stream = RandomnessStream(
+            key=decision_point,
+            clock=self._clock,
+            seed=self._seed,
+            index_map=self._key_mapping,
+            manager=self,
+            for_initialization=for_initialization,
+        )
         self._decision_points[decision_point] = stream
         return stream
 
@@ -712,7 +793,7 @@ class RandomnessManager:
             common random number framework.
 
         """
-        return get_hash('_'.join([decision_point, str(self._clock()), str(self._seed)]))
+        return get_hash("_".join([decision_point, str(self._clock()), str(self._seed)]))
 
     def register_simulants(self, simulants: pd.DataFrame):
         """Adds new simulants to the randomness mapping.
@@ -731,7 +812,9 @@ class RandomnessManager:
 
         """
         if not all(k in simulants.columns for k in self._key_columns):
-            raise RandomnessError("The simulants dataframe does not have all specified key_columns.")
+            raise RandomnessError(
+                "The simulants dataframe does not have all specified key_columns."
+            )
         self._key_mapping.update(simulants.set_index(self._key_columns).index)
 
     def __str__(self):
@@ -742,11 +825,12 @@ class RandomnessManager:
 
 
 class RandomnessInterface:
-
     def __init__(self, manager: RandomnessManager):
         self._manager = manager
 
-    def get_stream(self, decision_point: str, for_initialization: bool = False) -> RandomnessStream:
+    def get_stream(
+        self, decision_point: str, for_initialization: bool = False
+    ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
         ``vivarium`` provides a framework for Common Random Numbers which

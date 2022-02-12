@@ -39,9 +39,9 @@ Contracts
 
 """
 import json
+import re
 from pathlib import Path
 from typing import Any, List, Optional, Union
-import re
 
 import pandas as pd
 import tables
@@ -73,7 +73,7 @@ def touch(path: Union[str, Path]):
     """
     path = _get_valid_hdf_path(path)
 
-    with tables.open_file(str(path), mode='w'):
+    with tables.open_file(str(path), mode="w"):
         pass
 
 
@@ -111,8 +111,12 @@ def write(path: Union[str, Path], entity_key: str, data: Any):
         _write_json_blob(path, entity_key, data)
 
 
-def load(path: Union[str, Path], entity_key: str, filter_terms: Optional[List[str]],
-         column_filters: Optional[List[str]]) -> Any:
+def load(
+    path: Union[str, Path],
+    entity_key: str,
+    filter_terms: Optional[List[str]],
+    column_filters: Optional[List[str]],
+) -> Any:
     """Loads data from an HDF file.
 
     Parameters
@@ -151,14 +155,20 @@ def load(path: Union[str, Path], entity_key: str, filter_terms: Optional[List[st
                 data = json.load(file_node)
         else:
             filter_terms = _get_valid_filter_terms(filter_terms, node.table.colnames)
-            with pd.HDFStore(str(path), complevel=9, mode='r') as store:
-                metadata = store.get_storer(entity_key.path).attrs.metadata  # NOTE: must use attrs. write this up
+            with pd.HDFStore(str(path), complevel=9, mode="r") as store:
+                metadata = store.get_storer(
+                    entity_key.path
+                ).attrs.metadata  # NOTE: must use attrs. write this up
 
-            if metadata.get('is_empty', False):
+            if metadata.get("is_empty", False):
                 data = pd.read_hdf(path, entity_key.path, where=filter_terms)
-                data = data.set_index(list(data.columns))  # undoing transform performed on write
+                data = data.set_index(
+                    list(data.columns)
+                )  # undoing transform performed on write
             else:
-                data = pd.read_hdf(path, entity_key.path, where=filter_terms, columns=column_filters)
+                data = pd.read_hdf(
+                    path, entity_key.path, where=filter_terms, columns=column_filters
+                )
 
     return data
 
@@ -182,7 +192,7 @@ def remove(path: Union[str, Path], entity_key: str):
     path = _get_valid_hdf_path(path)
     entity_key = EntityKey(entity_key)
 
-    with tables.open_file(str(path), mode='a') as file:
+    with tables.open_file(str(path), mode="a") as file:
         file.remove_node(entity_key.path, recursive=True)
 
 
@@ -223,31 +233,33 @@ class EntityKey(str):
             as ``"type.name.measure"`` or ``"type.measure"``.
 
         """
-        elements = [e for e in key.split('.') if e]
-        if len(elements) not in [2, 3] or len(key.split('.')) != len(elements):
-            raise ValueError(f'Invalid format for HDF key: {key}. '
-                             'Acceptable formats are "type.name.measure" and "type.measure"')
+        elements = [e for e in key.split(".") if e]
+        if len(elements) not in [2, 3] or len(key.split(".")) != len(elements):
+            raise ValueError(
+                f"Invalid format for HDF key: {key}. "
+                'Acceptable formats are "type.name.measure" and "type.measure"'
+            )
         super().__init__()
 
     @property
     def type(self) -> str:
         """The type of the entity represented by the key."""
-        return self.split('.')[0]
+        return self.split(".")[0]
 
     @property
     def name(self) -> str:
         """The name of the entity represented by the key"""
-        return self.split('.')[1] if len(self.split('.')) == 3 else ''
+        return self.split(".")[1] if len(self.split(".")) == 3 else ""
 
     @property
     def measure(self) -> str:
         """The measure associated with the data represented by the key."""
-        return self.split('.')[-1]
+        return self.split(".")[-1]
 
     @property
     def group_prefix(self) -> str:
         """The HDF group prefix for the key."""
-        return '/'+self.type if self.name else '/'
+        return "/" + self.type if self.name else "/"
 
     @property
     def group_name(self) -> str:
@@ -257,14 +269,18 @@ class EntityKey(str):
     @property
     def group(self) -> str:
         """The full path to the group for this key."""
-        return self.group_prefix + '/' + self.group_name if self.name else self.group_prefix + self.group_name
+        return (
+            self.group_prefix + "/" + self.group_name
+            if self.name
+            else self.group_prefix + self.group_name
+        )
 
     @property
     def path(self) -> str:
         """The full HDF path associated with this key."""
-        return self.group + '/' + self.measure
+        return self.group + "/" + self.measure
 
-    def with_measure(self, measure: str) -> 'EntityKey':
+    def with_measure(self, measure: str) -> "EntityKey":
         """Replaces this key's measure with the provided one.
 
         Parameters
@@ -279,21 +295,21 @@ class EntityKey(str):
 
         """
         if self.name:
-            return EntityKey(f'{self.type}.{self.name}.{measure}')
+            return EntityKey(f"{self.type}.{self.name}.{measure}")
         else:
-            return EntityKey(f'{self.type}.{measure}')
+            return EntityKey(f"{self.type}.{measure}")
 
-    def __eq__(self, other: 'EntityKey') -> bool:
+    def __eq__(self, other: "EntityKey") -> bool:
         return isinstance(other, str) and str(self) == str(other)
 
-    def __ne__(self, other: 'EntityKey') -> bool:
+    def __ne__(self, other: "EntityKey") -> bool:
         return not self == other
 
     def __hash__(self):
         return hash(str(self))
 
     def __repr__(self) -> str:
-        return f'EntityKey({str(self)})'
+        return f"EntityKey({str(self)})"
 
 
 #####################
@@ -302,12 +318,14 @@ class EntityKey(str):
 
 
 def _get_valid_hdf_path(path: Union[str, Path]) -> Path:
-    valid_suffixes = ['.hdf', '.h5']
+    valid_suffixes = [".hdf", ".h5"]
 
     path = Path(path)
     if path.suffix not in valid_suffixes:
-        raise ValueError(f'{str(path)} has an invalid HDF suffix {path.suffix}.'
-                         f' HDF files must have one of {valid_suffixes} as a path suffix.')
+        raise ValueError(
+            f"{str(path)} has an invalid HDF suffix {path.suffix}."
+            f" HDF files must have one of {valid_suffixes} as a path suffix."
+        )
     return path
 
 
@@ -325,15 +343,17 @@ def _write_pandas_data(path: Path, entity_key: EntityKey, data: Union[PandasObj]
         data = data.reset_index()
         if data.empty:
             raise ValueError("Cannot write an empty dataframe that does not have an index.")
-        metadata = {'is_empty': True}
+        metadata = {"is_empty": True}
         data_columns = True
     else:
-        metadata = {'is_empty': False}
+        metadata = {"is_empty": False}
         data_columns = None
 
     with pd.HDFStore(str(path), complevel=9) as store:
         store.put(entity_key.path, data, format="table", data_columns=data_columns)
-        store.get_storer(entity_key.path).attrs.metadata = metadata  # NOTE: must use attrs. write this up
+        store.get_storer(
+            entity_key.path
+        ).attrs.metadata = metadata  # NOTE: must use attrs. write this up
 
 
 def _write_json_blob(path: Path, entity_key: EntityKey, data: Any):
@@ -341,30 +361,32 @@ def _write_json_blob(path: Path, entity_key: EntityKey, data: Any):
     with tables.open_file(str(path), "a") as store:
 
         if entity_key.group_prefix not in store:
-            store.create_group('/', entity_key.type)
+            store.create_group("/", entity_key.type)
 
         if entity_key.group not in store:
             store.create_group(entity_key.group_prefix, entity_key.group_name)
 
-        with filenode.new_node(store, where=entity_key.group, name=entity_key.measure) as fnode:
+        with filenode.new_node(
+            store, where=entity_key.group, name=entity_key.measure
+        ) as fnode:
             fnode.write(bytes(json.dumps(data), "utf-8"))
 
 
-def _get_keys(root: tables.node.Node, prefix: str = '') -> List[str]:
+def _get_keys(root: tables.node.Node, prefix: str = "") -> List[str]:
     """Recursively formats the paths in an HDF file into a key format."""
     keys = []
     for child in root:
         child_name = _get_node_name(child)
         if isinstance(child, tables.earray.EArray):  # This is the last node
-            keys.append(f'{prefix}.{child_name}')
+            keys.append(f"{prefix}.{child_name}")
         elif isinstance(child, tables.table.Table):  # Parent was the last node
             keys.append(prefix)
         else:
-            new_prefix = f'{prefix}.{child_name}' if prefix else child_name
+            new_prefix = f"{prefix}.{child_name}" if prefix else child_name
             keys.extend(_get_keys(child, new_prefix))
 
     # Clean up some weird meta groups that get written with dataframes.
-    keys = [k for k in keys if '.meta.' not in k]
+    keys = [k for k in keys if ".meta." not in k]
     return keys
 
 
@@ -372,7 +394,7 @@ def _get_node_name(node: tables.node.Node) -> str:
     """Gets the name of a node from its string representation."""
     node_string = str(node)
     node_path = node_string.split()[0]
-    node_name = node_path.split('/')[-1]
+    node_name = node_path.split("/")[-1]
     return node_name
 
 
@@ -400,11 +422,11 @@ def _get_valid_filter_terms(filter_terms, colnames):
     for term in filter_terms:
         # first strip out all the parentheses - the where in read_hdf
         # requires all references to be valid
-        t = re.sub('[()]', '', term)
+        t = re.sub("[()]", "", term)
         # then split each condition out
-        t = re.split('[&|]', t)
+        t = re.split("[&|]", t)
         # get the unique columns referenced by this term
-        term_columns = set([re.split('[<=>\s]', i.strip())[0] for i in t])
+        term_columns = set([re.split("[<=>\s]", i.strip())[0] for i in t])
         if not term_columns.issubset(colnames):
             valid_terms.remove(term)
     return valid_terms if valid_terms else None

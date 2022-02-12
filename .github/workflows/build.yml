@@ -36,3 +36,8 @@ jobs:
       - name: Doctest
         run: |
           make doctest -C docs/
+      - name: Lint
+        run: |
+          pip install black==22.1.0 isort
+          black . --check
+          isort . --check
