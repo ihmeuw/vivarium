@@ -1,18 +1,10 @@
+# -----------------------------------------------------------------------------
+#   - invoked on push, pull_request, or manual trigger
+#   - test under 3 versions of python
+#   - look for an upstream (vivarium) branch and use it if it exists
+# -----------------------------------------------------------------------------
 name: build
-
-on:
-  push:
-    branches:
-      - '*'
-    tags-ignore:
-      - v*
-  pull_request:
-    branches:
-      - '*'
-    tags-ignore:
-      - v*
-  # Run this workflow manually from the Actions tab.
-  workflow_dispatch:
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
