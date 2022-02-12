@@ -1,7 +1,6 @@
 # -----------------------------------------------------------------------------
 #   - invoked on push, pull_request, or manual trigger
 #   - test under 3 versions of python
-#   - look for an upstream (vivarium) branch and use it if it exists
 # -----------------------------------------------------------------------------
 name: build
 on: [push, pull_request, workflow_dispatch]
