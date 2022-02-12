@@ -1,3 +1,8 @@
+**0.10.11 - 02/12/22**
+
+ - Update CI to make a cleaner release workflow
+ - Add PR template
+
 **0.10.10 - 10/29/21**
 
  - Update license to BSD 3-clause
