@@ -38,5 +38,5 @@ jobs:
       - name: Lint
         run: |
           pip install black==22.1.0 isort
-          black . --check -v
-          isort . --check -v
+          black . --check --diff
+          isort . --check --verbose --only-modified --diff
