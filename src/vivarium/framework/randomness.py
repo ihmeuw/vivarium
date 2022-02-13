@@ -88,13 +88,13 @@ class IndexMap:
         if self._map.empty:
             self._map = mapping_update.drop_duplicates()
         else:
-            self._map = self._map.append(mapping_update).drop_duplicates()
+            self._map = pd.concat([self._map, mapping_update]).drop_duplicates()
 
         collisions = mapping_update.index.difference(self._map.index)
         salt = 1
         while not collisions.empty:
             mapping_update = self.hash_(collisions, salt)
-            self._map = self._map.append(mapping_update).drop_duplicates()
+            self._map = pd.concat([self._map, mapping_update]).drop_duplicates()
             collisions = mapping_update.index.difference(self._map.index)
             salt += 1
 
