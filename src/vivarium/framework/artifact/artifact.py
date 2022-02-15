@@ -11,6 +11,7 @@ archive file for convenient access and inspection.
 
 """
 import re
+import warnings
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Union
@@ -64,6 +65,7 @@ class Artifact:
     def create_hdf_with_keyspace(self):
         """Creates the artifact HDF file and adds a node to track keys."""
         if not self._path.is_file():
+            warnings.warn(f"No artifact found at {self._path}. Building new artifact.")
             hdf.touch(self._path)
             hdf.write(self._path, "metadata.keyspace", ["metadata.keyspace"])
 
