@@ -1,6 +1,5 @@
-
 class MockComponentA:
-    def __init__(self, *args, name='mock_component_a'):
+    def __init__(self, *args, name="mock_component_a"):
         self.name = name
         self.args = args
         self.builder_used_for_setup = None
@@ -10,7 +9,7 @@ class MockComponentA:
 
 
 class MockComponentB:
-    def __init__(self, *args, name='mock_component_b'):
+    def __init__(self, *args, name="mock_component_b"):
         self._name = name
         self.args = args
         self.builder_used_for_setup = None
@@ -29,13 +28,13 @@ class MockComponentB:
 
     def setup(self, builder):
         self.builder_used_for_setup = builder
-        builder.value.register_value_modifier('metrics', self.metrics)
+        builder.value.register_value_modifier("metrics", self.metrics)
 
     def metrics(self, _, metrics):
-        if 'test' in metrics:
-            metrics['test'] += 1
+        if "test" in metrics:
+            metrics["test"] += 1
         else:
-            metrics['test'] = 1
+            metrics["test"] = 1
         return metrics
 
     def __eq__(self, other):
@@ -45,19 +44,21 @@ class MockComponentB:
 class MockGenericComponent:
 
     configuration_defaults = {
-        'component': {
-            'key1': 'val',
-            'key2': {
-                'subkey1': 'val',
-                'subkey2': 'val',
+        "component": {
+            "key1": "val",
+            "key2": {
+                "subkey1": "val",
+                "subkey2": "val",
             },
-            'key3': ['val', 'val', 'val']
+            "key3": ["val", "val", "val"],
         }
     }
 
     def __init__(self, name):
         self.name = name
-        self.configuration_defaults = {self.name: MockGenericComponent.configuration_defaults['component']}
+        self.configuration_defaults = {
+            self.name: MockGenericComponent.configuration_defaults["component"]
+        }
         self.builder_used_for_setup = None
 
     def setup(self, builder):
@@ -74,7 +75,7 @@ class NamelessComponent:
 
 
 class Listener(MockComponentB):
-    def __init__(self, *args, name='test_listener'):
+    def __init__(self, *args, name="test_listener"):
         super().__init__(*args, name=name)
         self.post_setup_called = False
         self.time_step__prepare_called = False
@@ -85,12 +86,12 @@ class Listener(MockComponentB):
 
     def setup(self, builder):
         super().setup(builder)
-        builder.event.register_listener('post_setup', self.on_post_setup)
-        builder.event.register_listener('time_step__prepare', self.on_time_step__prepare)
-        builder.event.register_listener('time_step', self.on_time_step)
-        builder.event.register_listener('time_step__cleanup', self.on_time_step__cleanup)
-        builder.event.register_listener('collect_metrics', self.on_collect_metrics)
-        builder.event.register_listener('simulation_end', self.on_simulation_end)
+        builder.event.register_listener("post_setup", self.on_post_setup)
+        builder.event.register_listener("time_step__prepare", self.on_time_step__prepare)
+        builder.event.register_listener("time_step", self.on_time_step)
+        builder.event.register_listener("time_step__cleanup", self.on_time_step__cleanup)
+        builder.event.register_listener("collect_metrics", self.on_collect_metrics)
+        builder.event.register_listener("simulation_end", self.on_simulation_end)
 
     def on_post_setup(self, _):
         self.post_setup_called = True
