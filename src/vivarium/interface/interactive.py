@@ -38,6 +38,11 @@ class InteractiveContext(SimulationContext):
         if setup:
             self.setup()
 
+    @property
+    def current_time(self) -> Time:
+        """Returns the current simulation time."""
+        return self._clock.time
+
     def setup(self):
         super().setup()
         self.initialize_simulants()
