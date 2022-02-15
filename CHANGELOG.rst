@@ -1,3 +1,11 @@
+**0.10.12 - 02/15/22**
+
+ - Reformat code with black and isort.
+ - Add formatting checks to CI.
+ - Add `current_time` to interactive context.
+ - Squash pandas FutureWarning for Series.append usage.
+ - Add a UserWarning when making a new artifact.
+
 **0.10.11 - 02/12/22**
 
  - Update CI to make a cleaner release workflow
