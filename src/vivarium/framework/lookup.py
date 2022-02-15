@@ -10,14 +10,14 @@ population index and returns data specific to the individuals represented by
 that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 
 """
-from numbers import Number
 from datetime import datetime, timedelta
-from typing import Union, List, Tuple, Callable
+from numbers import Number
+from typing import Callable, List, Tuple, Union
 
 import pandas as pd
 
-from vivarium.interpolation import Interpolation
 from vivarium.framework.population import PopulationView
+from vivarium.interpolation import Interpolation
 
 ScalarValue = Union[Number, timedelta, datetime]
 
@@ -53,32 +53,40 @@ class InterpolatedTable:
     :class:`builder <vivarium.framework.engine.Builder>` during setup.
 
     """
-    def __init__(self,
-                 data: pd.DataFrame,
-                 population_view: PopulationView,
-                 key_columns: Union[List[str], Tuple[str]],
-                 parameter_columns: Union[List[str], Tuple],
-                 value_columns: Union[List[str], Tuple[str]],
-                 interpolation_order: int,
-                 clock: Callable,
-                 extrapolate: bool,
-                 validate: bool):
+
+    def __init__(
+        self,
+        data: pd.DataFrame,
+        population_view: PopulationView,
+        key_columns: Union[List[str], Tuple[str]],
+        parameter_columns: Union[List[str], Tuple],
+        value_columns: Union[List[str], Tuple[str]],
+        interpolation_order: int,
+        clock: Callable,
+        extrapolate: bool,
+        validate: bool,
+    ):
 
         self.data = data
         self.population_view = population_view
         self.key_columns = key_columns
         param_cols_with_edges = []
         for p in parameter_columns:
-            param_cols_with_edges += [(p, f'{p}_start', f'{p}_end')]
+            param_cols_with_edges += [(p, f"{p}_start", f"{p}_end")]
         self.parameter_columns = param_cols_with_edges
         self.interpolation_order = interpolation_order
         self.value_columns = value_columns
         self.clock = clock
         self.extrapolate = extrapolate
         self.validate = validate
-        self.interpolation = Interpolation(data, self.key_columns, self.parameter_columns,
-                                           order=self.interpolation_order, extrapolate=self.extrapolate,
-                                           validate=self.validate)
+        self.interpolation = Interpolation(
+            data,
+            self.key_columns,
+            self.parameter_columns,
+            order=self.interpolation_order,
+            extrapolate=self.extrapolate,
+            validate=self.validate,
+        )
 
     def __call__(self, index: pd.Index) -> pd.DataFrame:
         """Get the interpolated values for the rows in ``index``.
@@ -94,12 +102,12 @@ class InterpolatedTable:
 
         """
         pop = self.population_view.get(index)
-        del pop['tracked']
-        if 'year' in [col for p in self.parameter_columns for col in p]:
+        del pop["tracked"]
+        if "year" in [col for p in self.parameter_columns for col in p]:
             current_time = self.clock()
             fractional_year = current_time.year
             fractional_year += current_time.timetuple().tm_yday / 365.25
-            pop['year'] = fractional_year
+            pop["year"] = fractional_year
 
         return self.interpolation(pop)
 
@@ -124,9 +132,12 @@ class ScalarTable:
     builder during setup.
 
     """
-    def __init__(self,
-                 values: Union[List[ScalarValue], Tuple[ScalarValue]],
-                 value_columns: Union[List[str], Tuple[str]]):
+
+    def __init__(
+        self,
+        values: Union[List[ScalarValue], Tuple[ScalarValue]],
+        value_columns: Union[List[str], Tuple[str]],
+    ):
 
         self.values = values
         self.value_columns = value_columns
@@ -146,9 +157,15 @@ class ScalarTable:
 
         """
         if not isinstance(self.values, (list, tuple)):
-            values = pd.Series(self.values, index=index, name=self.value_columns[0] if self.value_columns else None)
+            values = pd.Series(
+                self.values,
+                index=index,
+                name=self.value_columns[0] if self.value_columns else None,
+            )
         else:
-            values = dict(zip(self.value_columns, [pd.Series(v, index=index) for v in self.values]))
+            values = dict(
+                zip(self.value_columns, [pd.Series(v, index=index) for v in self.values])
+            )
         return pd.DataFrame(values)
 
     def __repr__(self):
@@ -170,17 +187,20 @@ class LookupTable:
     during setup.
 
     """
-    def __init__(self,
-                 table_number: int,
-                 data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
-                 population_view: Callable,
-                 key_columns: Union[List[str], Tuple[str]],
-                 parameter_columns: Union[List[str], Tuple],
-                 value_columns: Union[List[str], Tuple[str]],
-                 interpolation_order: int,
-                 clock: Callable,
-                 extrapolate: bool,
-                 validate: bool):
+
+    def __init__(
+        self,
+        table_number: int,
+        data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
+        population_view: Callable,
+        key_columns: Union[List[str], Tuple[str]],
+        parameter_columns: Union[List[str], Tuple],
+        value_columns: Union[List[str], Tuple[str]],
+        interpolation_order: int,
+        clock: Callable,
+        extrapolate: bool,
+        validate: bool,
+    ):
         self.table_number = table_number
         key_columns = [] if key_columns is None else key_columns
 
@@ -191,15 +211,25 @@ class LookupTable:
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
             self._table = ScalarTable(data, value_columns)
         else:
-            view_columns = sorted((set(key_columns) | set(parameter_columns)) - {'year'}) + ['tracked']
-            self._table = InterpolatedTable(data, population_view(view_columns), key_columns,
-                                            parameter_columns, value_columns, interpolation_order, clock, extrapolate,
-                                            validate)
+            view_columns = sorted((set(key_columns) | set(parameter_columns)) - {"year"}) + [
+                "tracked"
+            ]
+            self._table = InterpolatedTable(
+                data,
+                population_view(view_columns),
+                key_columns,
+                parameter_columns,
+                value_columns,
+                interpolation_order,
+                clock,
+                extrapolate,
+                validate,
+            )
 
     @property
     def name(self) -> str:
         """Tables are generically named after the order they were created."""
-        return f'lookup_table_{self.table_number}'
+        return f"lookup_table_{self.table_number}"
 
     def __call__(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
         """Get the interpolated or scalar table values for the given index.
@@ -228,40 +258,56 @@ class LookupTable:
         return "LookupTable()"
 
 
-def validate_parameters(data: pd.DataFrame,
-                        key_columns: Union[List[str], Tuple[str]],
-                        parameter_columns: Union[List[str], Tuple],
-                        value_columns: Union[List[str], Tuple[str]]):
+def validate_parameters(
+    data: pd.DataFrame,
+    key_columns: Union[List[str], Tuple[str]],
+    parameter_columns: Union[List[str], Tuple],
+    value_columns: Union[List[str], Tuple[str]],
+):
     """Makes sure the data format agrees with the provided column layout."""
-    if (data is None
-            or (isinstance(data, pd.DataFrame) and data.empty)
-            or (isinstance(data, (list, tuple)) and not data)):
+    if (
+        data is None
+        or (isinstance(data, pd.DataFrame) and data.empty)
+        or (isinstance(data, (list, tuple)) and not data)
+    ):
         raise ValueError("Must supply some data")
 
     if not isinstance(data, (Number, datetime, timedelta, list, tuple, pd.DataFrame)):
-        raise TypeError(f'The only allowable types for data are number, datetime, timedelta, '
-                        f'list, tuple, or pandas.DataFrame. You passed {type(data)}.')
+        raise TypeError(
+            f"The only allowable types for data are number, datetime, timedelta, "
+            f"list, tuple, or pandas.DataFrame. You passed {type(data)}."
+        )
 
     if isinstance(data, (list, tuple)):
         if not value_columns:
-            raise ValueError(f'To invoke scalar view with multiple values, you must supply value_columns')
+            raise ValueError(
+                f"To invoke scalar view with multiple values, you must supply value_columns"
+            )
         if len(value_columns) != len(data):
-            raise ValueError(f'The number of value columns must match the number of values.'
-                             f'You supplied values: {data} and value_columns: {value_columns}')
+            raise ValueError(
+                f"The number of value columns must match the number of values."
+                f"You supplied values: {data} and value_columns: {value_columns}"
+            )
 
     if isinstance(data, pd.DataFrame):
         all_parameter_columns = []
         for p in parameter_columns:
-            all_parameter_columns += [p, f'{p}_start', f'{p}_end']
+            all_parameter_columns += [p, f"{p}_start", f"{p}_end"]
         if set(key_columns).intersection(set(all_parameter_columns)):
-            raise ValueError(f'There should be no overlap between key columns: {key_columns} '
-                             f'and parameter columns: {parameter_columns}.')
+            raise ValueError(
+                f"There should be no overlap between key columns: {key_columns} "
+                f"and parameter columns: {parameter_columns}."
+            )
 
         if value_columns:
-            data_value_columns = data.columns.difference(set(key_columns) | set(all_parameter_columns))
+            data_value_columns = data.columns.difference(
+                set(key_columns) | set(all_parameter_columns)
+            )
             if set(value_columns) != set(data_value_columns):
-                raise ValueError(f'The value columns you supplied: {value_columns} do not match '
-                                 f'the non-parameter columns in the passed data: {data_value_columns}')
+                raise ValueError(
+                    f"The value columns you supplied: {value_columns} do not match "
+                    f"the non-parameter columns in the passed data: {data_value_columns}"
+                )
 
 
 class LookupTableManager:
@@ -275,11 +321,7 @@ class LookupTableManager:
     """
 
     configuration_defaults = {
-        'interpolation': {
-            'order': 0,
-            'validate': True,
-            'extrapolate': True
-        }
+        "interpolation": {"order": 0, "validate": True, "extrapolate": True}
     }
 
     @property
@@ -295,25 +337,38 @@ class LookupTableManager:
         self._validate = builder.configuration.interpolation.validate
         self._add_constraint = builder.lifecycle.add_constraint
 
-        builder.lifecycle.add_constraint(self.build_table, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.build_table, allow_during=["setup"])
 
-    def build_table(self,
-                    data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
-                    key_columns: Union[List[str], Tuple[str]],
-                    parameter_columns: Union[List[str], Tuple[str]],
-                    value_columns: Union[List[str], Tuple[str]]) -> LookupTable:
+    def build_table(
+        self,
+        data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
+        key_columns: Union[List[str], Tuple[str]],
+        parameter_columns: Union[List[str], Tuple[str]],
+        value_columns: Union[List[str], Tuple[str]],
+    ) -> LookupTable:
         """Construct a lookup table from input data."""
         table = self._build_table(data, key_columns, parameter_columns, value_columns)
-        self._add_constraint(table._call, restrict_during=['initialization', 'setup', 'post_setup'])
+        self._add_constraint(
+            table._call, restrict_during=["initialization", "setup", "post_setup"]
+        )
         return table
 
     def _build_table(self, data, key_columns, parameter_columns, value_columns):
         # We don't want to require explicit names for tables, but giving them
         # generic names is useful for introspection.
         table_number = len(self.tables)
-        table = LookupTable(table_number, data, self._pop_view_builder, key_columns, parameter_columns,
-                            value_columns, self._interpolation_order, self.clock, self._extrapolate,
-                            self._validate)
+        table = LookupTable(
+            table_number,
+            data,
+            self._pop_view_builder,
+            key_columns,
+            parameter_columns,
+            value_columns,
+            self._interpolation_order,
+            self.clock,
+            self._extrapolate,
+            self._validate,
+        )
         self.tables[table_number] = table
         return table
 
@@ -335,11 +390,13 @@ class LookupTableInterface:
     def __init__(self, manager: LookupTableManager):
         self._manager = manager
 
-    def build_table(self,
-                    data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
-                    key_columns: Union[List[str], Tuple[str]] = None,
-                    parameter_columns: Union[List[str], Tuple[str]] = None,
-                    value_columns: Union[List[str], Tuple[str]] = None) -> LookupTable:
+    def build_table(
+        self,
+        data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
+        key_columns: Union[List[str], Tuple[str]] = None,
+        parameter_columns: Union[List[str], Tuple[str]] = None,
+        value_columns: Union[List[str], Tuple[str]] = None,
+    ) -> LookupTable:
         """Construct a LookupTable from input data.
 
         If data is a :class:`pandas.DataFrame`, an interpolation function of

@@ -1,4 +1,1 @@
-from vivarium.framework.results.manager import (
-    ResultsManager,
-    ResultsInterface,
-)
+from vivarium.framework.results.manager import ResultsInterface, ResultsManager

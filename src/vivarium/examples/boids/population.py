@@ -5,24 +5,29 @@ import pandas as pd
 class Population:
 
     configuration_defaults = {
-        'population': {
-            'colors': ['red', 'blue'],
+        "population": {
+            "colors": ["red", "blue"],
         }
     }
 
     def __init__(self):
-        self.name = 'population'
+        self.name = "population"
 
     def setup(self, builder):
         self.colors = builder.configuration.population.colors
 
-        columns_created = ['color', 'entrance_time']
-        builder.population.initializes_simulants(self.on_initialize_simulants, columns_created)
+        columns_created = ["color", "entrance_time"]
+        builder.population.initializes_simulants(
+            self.on_initialize_simulants, columns_created
+        )
         self.population_view = builder.population.get_view(columns_created)
 
     def on_initialize_simulants(self, pop_data):
-        new_population = pd.DataFrame({
-            'color': np.random.choice(self.colors, len(pop_data.index)),
-            'entrance_time': pop_data.creation_time,
-        }, index=pop_data.index)
+        new_population = pd.DataFrame(
+            {
+                "color": np.random.choice(self.colors, len(pop_data.index)),
+                "entrance_time": pop_data.creation_time,
+            },
+            index=pop_data.index,
+        )
         self.population_view.update(new_population)
