@@ -178,7 +178,12 @@ class PopulationView:
             non_existent_columns = set(columns) - set(pop.columns)
             if non_existent_columns:
                 raise PopulationError(
-                    f"Requested column(s) {non_existent_columns} not in population table."
+                    f"Requested column(s) {non_existent_columns} not in population table. This is"
+                    f" likely due to a failure to require some columns, randomness streams, or "
+                    f" pipelines when registering a simulant initializer, a value producer, or a"
+                    f" value modifier. NOTE: it is possible for this not to fail even if"
+                    f" requirements were not specified and then randomly fail later if the"
+                    f" initialization order changes."
                 )
             else:
                 return pop.loc[:, columns]
