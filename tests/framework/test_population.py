@@ -103,7 +103,7 @@ def test_population_view_subview(population_manager):
 
 def test_population_view_get(population_manager):
     pv = population_manager.get_view(COL_NAMES)
-    full_idx = pd.RangeIndex(range(len(RECORDS)))
+    full_idx = pd.RangeIndex(0, len(RECORDS))
 
     pop = pv.get(full_idx)
     assert set(pop.columns) == set(COL_NAMES)
@@ -153,7 +153,7 @@ def test_population_view_get_fail(population_manager):
         population_manager.get_view(["color", "count", "age"]),
     ]
 
-    full_idx = pd.RangeIndex(range(len(RECORDS)))
+    full_idx = pd.RangeIndex(0, len(RECORDS))
 
     for pv in bad_pvs:
         with pytest.raises(PopulationError):
