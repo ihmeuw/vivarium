@@ -1,6 +1,5 @@
 import itertools
 import math
-from typing import List, Tuple, Union
 
 import pandas as pd
 import pytest
@@ -9,7 +8,6 @@ from vivarium.framework.population import (
     InitializerComponentSet,
     PopulationError,
     PopulationManager,
-    PopulationView,
 )
 
 COL_NAMES = ["color", "count", "pie", "pi", "tracked"]
