@@ -1,6 +1,6 @@
 import itertools
 import math
-from typing import List, Union, Tuple
+from typing import List, Tuple, Union
 
 import pandas as pd
 import pytest
@@ -12,24 +12,28 @@ from vivarium.framework.population import (
     PopulationView,
 )
 
-
-COL_NAMES = ['color', 'count', 'pie', 'pi', 'tracked']
-COLORS = ['red', 'green', 'yellow']
+COL_NAMES = ["color", "count", "pie", "pi", "tracked"]
+COLORS = ["red", "green", "yellow"]
 COUNTS = [10, 20, 30]
-PIES = ['apple', 'chocolate', 'pecan']
-PIS = [math.pi ** i for i in range(1, 4)]
+PIES = ["apple", "chocolate", "pecan"]
+PIS = [math.pi**i for i in range(1, 4)]
 TRACKED_STATUSES = [True, False]
-RECORDS = [(color, count, pie, pi, ts) for color, count, pie, pi, ts
-           in itertools.product(COLORS, COUNTS, PIES, PIS, TRACKED_STATUSES)]
+RECORDS = [
+    (color, count, pie, pi, ts)
+    for color, count, pie, pi, ts in itertools.product(
+        COLORS, COUNTS, PIES, PIS, TRACKED_STATUSES
+    )
+]
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def population_manager():
     class _PopulationManager(PopulationManager):
         def __init__(self):
             super().__init__()
             self._population = pd.DataFrame(
-                data=RECORDS, columns=COL_NAMES,
+                data=RECORDS,
+                columns=COL_NAMES,
             )
 
         def _add_constraint(self, *args, **kwargs):
@@ -41,32 +45,32 @@ def population_manager():
 def test_make_population_view(population_manager):
     pv = population_manager.get_view(COL_NAMES)
     assert pv._id == 0
-    assert pv.name == 'population_view_0'
+    assert pv.name == "population_view_0"
     assert set(pv.columns) == set(COL_NAMES)
     assert pv.query is None
 
     # Failure here is lazy.  The manager should give you back views for
     # columns that don't exist since views are built during setup when
     # we don't necessarily know all the columns yet.
-    cols = ['age', 'sex', 'tracked']
+    cols = ["age", "sex", "tracked"]
     pv = population_manager.get_view(cols)
     assert pv._id == 1
-    assert pv.name == 'population_view_1'
+    assert pv.name == "population_view_1"
     assert set(pv.columns) == set(cols)
     assert pv.query is None
 
-    col_subset = ['color', 'count']
+    col_subset = ["color", "count"]
     pv = population_manager.get_view(col_subset)
     assert pv._id == 2
-    assert pv.name == 'population_view_2'
+    assert pv.name == "population_view_2"
     assert set(pv.columns) == set(col_subset)
     # View will filter to tracked by default if it's not requested as a column
-    assert pv.query == 'tracked == True'
+    assert pv.query == "tracked == True"
 
     q_string = "color == 'red'"
     pv = population_manager.get_view(COL_NAMES, query=q_string)
     assert pv._id == 3
-    assert pv.name == 'population_view_3'
+    assert pv.name == "population_view_3"
     assert set(pv.columns) == set(COL_NAMES)
     assert pv.query == q_string
 
@@ -74,25 +78,25 @@ def test_make_population_view(population_manager):
 def test_population_view_subview(population_manager):
     pv = population_manager.get_view(COL_NAMES)
 
-    col_subset = ['color', 'count']
+    col_subset = ["color", "count"]
     sub_pv = pv.subview(col_subset)
     assert set(sub_pv.columns) == set(col_subset)
     assert sub_pv.query == "tracked == True"
 
-    col_subset = ['color', 'count', 'tracked']
+    col_subset = ["color", "count", "tracked"]
     sub_pv = pv.subview(col_subset)
     assert set(sub_pv.columns) == set(col_subset)
     assert sub_pv.query == pv.query
 
-    col_subset = ['age', 'sex']
+    col_subset = ["age", "sex"]
     with pytest.raises(PopulationError):
         pv.subview(col_subset)
 
-    col_subset = COL_NAMES + ['age']
+    col_subset = COL_NAMES + ["age"]
     with pytest.raises(PopulationError):
         pv.subview(col_subset)
 
-    col_subset = ['color', 'count', 'age', 'sex']
+    col_subset = ["color", "count", "age", "sex"]
     with pytest.raises(PopulationError):
         pv.subview(col_subset)
 
@@ -142,11 +146,11 @@ def test_population_view_get_empty_idx(population_manager):
 
 def test_population_view_get_fail(population_manager):
     bad_pvs = [
-        population_manager.get_view(['age', 'sex']),
-        population_manager.get_view(COL_NAMES + ['age', 'sex']),
-        population_manager.get_view(['age', 'sex', 'tracked']),
-        population_manager.get_view(['age', 'sex']),
-        population_manager.get_view(['color', 'count', 'age']),
+        population_manager.get_view(["age", "sex"]),
+        population_manager.get_view(COL_NAMES + ["age", "sex"]),
+        population_manager.get_view(["age", "sex", "tracked"]),
+        population_manager.get_view(["age", "sex"]),
+        population_manager.get_view(["color", "count", "age"]),
     ]
 
     full_idx = pd.RangeIndex(range(len(RECORDS)))
@@ -154,6 +158,7 @@ def test_population_view_get_fail(population_manager):
     for pv in bad_pvs:
         with pytest.raises(PopulationError):
             pv.get(full_idx)
+
 
 def test_initializer_set_fail_type():
     component_set = InitializerComponentSet()
