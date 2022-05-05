@@ -732,9 +732,8 @@ class RandomnessManager:
 
         """
         stream = self._get_randomness_stream(decision_point, for_initialization)
-        if (
-            not for_initialization
-        ):  # We need the key columns to be created before this stream can be called.
+        if not for_initialization:
+            # We need the key columns to be created before this stream can be called.
             self.resources.add_resources(
                 "stream",
                 [decision_point],
