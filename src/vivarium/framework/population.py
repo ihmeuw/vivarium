@@ -55,7 +55,7 @@ class PopulationView:
         self,
         manager: "PopulationManager",
         view_id: int,
-        columns: Union[List[str], Tuple[str], None] = (),
+        columns: Union[List[str], Tuple[str]] = (),
         query: str = None,
     ):
         self._manager = manager
@@ -82,7 +82,7 @@ class PopulationView:
         return list(self._columns)
 
     @property
-    def query(self) -> str:
+    def query(self) -> Union[str, None]:
         """A :mod:`pandas` style query to filter the rows of this view.
 
         This query will be applied any time the view is read. This query may
@@ -121,7 +121,7 @@ class PopulationView:
         because the component itself has not created them.
 
         """
-        if set(columns) > set(self.columns):
+        if set(columns) - set(self.columns):
             raise PopulationError(
                 f"Invalid subview requested.  Requested columns must be a subset of this "
                 f"view's columns.  Requested columns: {columns}, Available columns: {self.columns}"
@@ -363,7 +363,11 @@ class PopulationManager:
 
     # TODO: Move the configuration for initial population creation to
     # user components.
-    configuration_defaults = {"population": {"population_size": 100}}
+    configuration_defaults = {
+        "population": {
+            "population_size": 100,
+        },
+    }
 
     def __init__(self):
         self._population = pd.DataFrame()
