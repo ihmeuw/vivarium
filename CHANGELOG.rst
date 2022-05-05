@@ -1,3 +1,8 @@
+**0.10.13 - 05/05/22**
+
+ - Improved error message when component dependencies are not specified.
+ - Fix faulty set logic in `PopulationView.subview`
+
 **0.10.12 - 02/15/22**
 
  - Reformat code with black and isort.
