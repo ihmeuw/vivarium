@@ -250,7 +250,7 @@ def random(key: str, index: Index, index_map: IndexMap = None) -> pd.Series:
         raw_draws = random_state.random_sample(sample_size)
         return pd.Series(raw_draws[draw_index], index=index)
 
-    return pd.Series(index=index)  # Structured null value
+    return pd.Series(index=index, dtype=float)  # Structured null value
 
 
 def get_hash(key: str) -> int:
