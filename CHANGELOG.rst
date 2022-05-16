@@ -1,3 +1,7 @@
+**0.10.14 - 05/16/22**
+
+ - Fixed pandas FutureWarning in `randomness.get_draw`
+
 **0.10.13 - 05/05/22**
 
  - Improved error message when component dependencies are not specified.
