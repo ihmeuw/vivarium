@@ -53,7 +53,6 @@ class SimulationContext:
         configuration: Union[Dict, ConfigTree] = None,
         plugin_configuration: Union[Dict, ConfigTree] = None,
     ):
-        bootstrap_time_start = time.time()
         # Bootstrap phase: Parse arguments, make private managers
         component_configuration = (
             components if isinstance(components, (dict, ConfigTree)) else None
