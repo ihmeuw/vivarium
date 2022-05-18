@@ -20,8 +20,11 @@ tools to easily setup and run a simulation.
 """
 from pathlib import Path
 from pprint import pformat
-from typing import Dict, List, Union
+import time
+from typing import Dict, List, Tuple, Union
 
+import numpy as np
+import pandas as pd
 from loguru import logger
 
 from vivarium.config_tree import ConfigTree
@@ -50,6 +53,7 @@ class SimulationContext:
         configuration: Union[Dict, ConfigTree] = None,
         plugin_configuration: Union[Dict, ConfigTree] = None,
     ):
+        bootstrap_time_start = time.time()
         # Bootstrap phase: Parse arguments, make private managers
         component_configuration = (
             components if isinstance(components, (dict, ConfigTree)) else None
@@ -191,8 +195,29 @@ class SimulationContext:
             self._population.get_population(True).index
         )
         if print_results:
-            logger.debug(pformat(metrics))
+            logger.debug("\n" + pformat(metrics))
+            performance_metrics = self.get_performance_metrics()
+            performance_metrics = performance_metrics.to_string(
+                index=False,
+                float_format=lambda x: f"{x:.2f}",
+            )
+            logger.debug("\n" + performance_metrics)
+
         return metrics
+
+    def get_performance_metrics(self) -> pd.DataFrame:
+        timing_dict = self._lifecycle.timings
+
+        total_time = np.sum([np.sum(v) for v in timing_dict.values()])
+        records = [
+            [label, len(ts), np.mean(ts), np.std(ts), sum(ts), 100 * sum(ts) / total_time]
+            for label, ts in timing_dict.items()
+        ]
+        records.append(['total', 1, total_time, 0., total_time, 100.])
+        performance_metrics = pd.DataFrame(records, columns=[
+            'Event', 'Count', 'Mean time (s)', 'Std. dev. time (s)', 'Total time (s)', '%'
+        ])
+        return performance_metrics
 
     def add_components(self, component_list):
         """Adds new components to the simulation."""

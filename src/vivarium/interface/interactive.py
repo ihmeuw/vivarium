@@ -25,12 +25,7 @@ from .utilities import log_progress, run_from_ipython
 
 
 class InteractiveContext(SimulationContext):
-    """A simulation context with helper methods for running simulations
-    interactively.
-
-    This class should not be instantiated directly. It should be created with a
-    call to one of the helper methods provided in this module.
-    """
+    """A simulation context with helper methods for running simulations interactively."""
 
     def __init__(self, *args, setup=True, **kwargs):
         super().__init__(*args, **kwargs)
