@@ -18,9 +18,9 @@ Finally, there are a handful of wrapper methods that allow a user or user
 tools to easily setup and run a simulation.
 
 """
+import time
 from pathlib import Path
 from pprint import pformat
-import time
 from typing import Dict, List, Tuple, Union
 
 import numpy as np
@@ -213,10 +213,18 @@ class SimulationContext:
             [label, len(ts), np.mean(ts), np.std(ts), sum(ts), 100 * sum(ts) / total_time]
             for label, ts in timing_dict.items()
         ]
-        records.append(['total', 1, total_time, 0., total_time, 100.])
-        performance_metrics = pd.DataFrame(records, columns=[
-            'Event', 'Count', 'Mean time (s)', 'Std. dev. time (s)', 'Total time (s)', '%'
-        ])
+        records.append(["total", 1, total_time, 0.0, total_time, 100.0])
+        performance_metrics = pd.DataFrame(
+            records,
+            columns=[
+                "Event",
+                "Count",
+                "Mean time (s)",
+                "Std. dev. time (s)",
+                "Total time (s)",
+                "%",
+            ],
+        )
         return performance_metrics
 
     def add_components(self, component_list):

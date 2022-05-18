@@ -30,10 +30,10 @@ There are two flavors of contracts that this system enforces:
 The tools here also allow for introspection of the simulation life cycle.
 
 """
-from collections import defaultdict
 import functools
 import textwrap
 import time
+from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Tuple
 
 import numpy as np
