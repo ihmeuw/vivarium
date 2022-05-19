@@ -189,7 +189,7 @@ class PopulationView:
             else:
                 return pop.loc[:, columns]
 
-    def update(self, population_update: Union[pd.DataFrame, pd.Series]):
+    def update(self, population_update: Union[pd.DataFrame, pd.Series]) -> None:
         """Updates the state table with the provided data.
 
         Parameters
@@ -211,15 +211,12 @@ class PopulationView:
             type inconsistent with the original population data.
 
         """
-        if population_update.empty:
-            return
-
         # TODO: Cast series to data frame and clean this up.
         if isinstance(population_update, pd.Series):
             if population_update.name in self._columns:
-                affected_columns = [population_update.name]
+                affected_columns = {population_update.name}
             elif len(self._columns) == 1:
-                affected_columns = self._columns
+                affected_columns = set(self._columns)
             else:
                 raise PopulationError(
                     "Cannot update with a pandas series unless the series name is a column "
@@ -234,13 +231,18 @@ class PopulationView:
                 )
             affected_columns = set(population_update.columns)
 
-        affected_columns = set(affected_columns).intersection(self._columns)
+        if population_update.empty and not affected_columns.difference(self._manager.columns):
+            return
+
         state_table = self._manager.get_population(True)
         if not self._manager.growing:
-            affected_columns = set(affected_columns).intersection(state_table.columns)
+            affected_columns = affected_columns.intersection(state_table.columns)
 
         for affected_column in affected_columns:
             if affected_column in state_table:
+                if population_update.empty:
+                    continue
+
                 new_state_table_values = state_table[affected_column].values
                 if isinstance(population_update, pd.Series):
                     update_values = population_update.values
@@ -428,6 +430,13 @@ class PopulationManager:
         metrics["total_population_tracked"] = len(tracked)
         metrics["total_population"] = len(untracked) + len(tracked)
         return metrics
+
+    @property
+    def columns(self) -> List[str]:
+        """The columns that currently exist in the population manager's
+        representation of state.
+        """
+        return list(self._population.columns)
 
     def __repr__(self):
         return "PopulationManager()"
