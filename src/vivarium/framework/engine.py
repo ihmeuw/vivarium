@@ -206,24 +206,17 @@ class SimulationContext:
 
     def get_performance_metrics(self) -> pd.DataFrame:
         timing_dict = self._lifecycle.timings
-
         total_time = np.sum([np.sum(v) for v in timing_dict.values()])
-        records = [
-            [label, len(ts), np.mean(ts), np.std(ts), sum(ts), 100 * sum(ts) / total_time]
-            for label, ts in timing_dict.items()
-        ]
-        records.append(["total", 1, total_time, 0.0, total_time, 100.0])
-        performance_metrics = pd.DataFrame(
-            records,
-            columns=[
-                "Event",
-                "Count",
-                "Mean time (s)",
-                "Std. dev. time (s)",
-                "Total time (s)",
-                "%",
-            ],
-        )
+        timing_dict['total'] = [total_time]
+        records = [{
+            "Event": label,
+            "Count": len(ts),
+            "Mean time (s)": np.mean(ts),
+            "Std. dev. time (s)": np.std(ts),
+            "Total time (s)": sum(ts),
+            "% Total time": 100 * sum(ts) / total_time
+        } for label, ts in timing_dict.items()]
+        performance_metrics = pd.DataFrame(records)
         return performance_metrics
 
     def add_components(self, component_list):
