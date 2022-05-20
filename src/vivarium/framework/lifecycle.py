@@ -32,7 +32,11 @@ The tools here also allow for introspection of the simulation life cycle.
 """
 import functools
 import textwrap
-from typing import Callable, List, Optional, Tuple
+import time
+from collections import defaultdict
+from typing import Callable, Dict, List, Optional, Tuple
+
+import numpy as np
 
 from vivarium.exceptions import VivariumError
 
@@ -449,6 +453,8 @@ class LifeCycleManager:
     def __init__(self):
         self.lifecycle = LifeCycle()
         self._current_state = self.lifecycle.get_state("initialization")
+        self._current_state_start_time = time.time()
+        self._timings = defaultdict(list)
         self._make_constraint = ConstraintMaker(self)
 
     @property
@@ -460,6 +466,10 @@ class LifeCycleManager:
     def current_state(self) -> str:
         """The name of the current life cycle state."""
         return self._current_state.name
+
+    @property
+    def timings(self) -> Dict[str, List[float]]:
+        return self._timings
 
     def add_phase(self, phase_name: str, states: List[str], loop: bool = False):
         """Add a new phase to the lifecycle.
@@ -504,8 +514,12 @@ class LifeCycleManager:
         """
         new_state = self.lifecycle.get_state(state)
         if self._current_state.valid_next_state(new_state):
+            self._timings[self._current_state.name].append(
+                time.time() - self._current_state_start_time
+            )
             new_state.enter()
             self._current_state = new_state
+            self._current_state_start_time = time.time()
         else:
             raise InvalidTransitionError(
                 f"Invalid transition from {self.current_state} "
