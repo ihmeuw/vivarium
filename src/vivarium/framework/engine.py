@@ -207,15 +207,18 @@ class SimulationContext:
     def get_performance_metrics(self) -> pd.DataFrame:
         timing_dict = self._lifecycle.timings
         total_time = np.sum([np.sum(v) for v in timing_dict.values()])
-        timing_dict['total'] = [total_time]
-        records = [{
-            "Event": label,
-            "Count": len(ts),
-            "Mean time (s)": np.mean(ts),
-            "Std. dev. time (s)": np.std(ts),
-            "Total time (s)": sum(ts),
-            "% Total time": 100 * sum(ts) / total_time
-        } for label, ts in timing_dict.items()]
+        timing_dict["total"] = [total_time]
+        records = [
+            {
+                "Event": label,
+                "Count": len(ts),
+                "Mean time (s)": np.mean(ts),
+                "Std. dev. time (s)": np.std(ts),
+                "Total time (s)": sum(ts),
+                "% Total time": 100 * sum(ts) / total_time,
+            }
+            for label, ts in timing_dict.items()
+        ]
         performance_metrics = pd.DataFrame(records)
         return performance_metrics
 
