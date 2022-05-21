@@ -1,5 +1,6 @@
 import itertools
 import math
+from typing import Union
 
 import pandas as pd
 import pytest
@@ -8,6 +9,7 @@ from vivarium.framework.population import (
     InitializerComponentSet,
     PopulationError,
     PopulationManager,
+    PopulationView,
 )
 
 COL_NAMES = ["color", "count", "pie", "pi", "tracked"]
@@ -156,6 +158,149 @@ def test_population_view_get_fail(population_manager):
     for pv in bad_pvs:
         with pytest.raises(PopulationError):
             pv.get(full_idx)
+
+
+@pytest.mark.parametrize(
+    "update_with",
+    [
+        pd.DataFrame(
+            {
+                "color": ["fuschia", "chartreuse", "salmon"],
+                "count": [6, 2, 3],
+                "pie": ["strawberry rhubarb", "key lime", "cherry"],
+                "pi": [math.pi ** i for i in range(4, 7)],
+                "tracked": [True, True, False],
+            }
+        ),
+        pd.DataFrame(
+            {
+                "color": ["fuschia", "chartreuse", "salmon"],
+                "pi": [math.pi ** i for i in range(4, 7)],
+                "tracked": [True, True, False],
+            }
+        ),
+        pd.DataFrame({"color": ["fuschia", "chartreuse", "salmon"]}),
+        pd.Series(["fuschia", "chartreuse", "salmon"], name="color"),
+        pd.DataFrame(
+            {
+                "cube": [i ** 3 for i in range(len(RECORDS))],
+                "cube_string": [str(i ** 3) for i in range(len(RECORDS))],
+            }
+        ),
+        pd.DataFrame(
+            {
+                "cube": [i ** 3 for i in range(len(RECORDS))],
+                "cube_string": [str(i ** 3) for i in range(len(RECORDS))],
+                "pie": ["strawberry rhubarb", "key lime", "cherry"] * (len(RECORDS) // 3),
+                "pi": [math.pi * i for i in range(len(RECORDS))],
+            }
+        ),
+        pd.DataFrame({"cube": [i ** 3 for i in range(len(RECORDS))]}),
+        pd.Series([i ** 3 for i in range(len(RECORDS))], name="cube"),
+    ],
+    ids=[
+        "some_rows_all_columns",
+        "some_rows_some_columns",
+        "some_rows_single_column",
+        "some_rows_series",
+        "only_new_columns",
+        "some_new_some_old_columns",
+        "single_new_column",
+        "new_column_series",
+    ],
+)
+def test_population_view_update(
+    population_manager, update_with: Union[pd.DataFrame, pd.Series]
+):
+    update_columns = (
+        update_with.columns if isinstance(update_with, pd.DataFrame) else [update_with.name]
+    )
+    all_columns = list(set(COL_NAMES) | set(update_columns))
+    population_view = PopulationView(population_manager, 1, all_columns)
+    original_population: pd.DataFrame = population_manager._population.copy()
+
+    is_growing = len(all_columns) > len(COL_NAMES)
+    population_manager.growing = is_growing
+    population_view.update(update_with)
+    population_manager.growing = False
+
+    population = population_manager._population
+
+    # Assert expected columns and rows are correctly updated
+    update_columns = (
+        update_columns[0] if isinstance(update_with, pd.Series) else update_columns
+    )
+    assert (population.loc[update_with.index, update_columns] == update_with).all(axis=None)
+
+    # Assert all other columns are unchanged
+    column_index = (
+        update_columns if isinstance(update_columns, pd.Index) else pd.Index([update_columns])
+    )
+    unchanged_columns = population.columns.difference(column_index, sort=False)
+    assert (
+        population.loc[:, unchanged_columns] == original_population.loc[:, unchanged_columns]
+    ).all(axis=None)
+
+    # Assert all other rows are unchanged
+    unchanged_row_indices = population.index.difference(update_with.index, sort=False)
+    if not unchanged_row_indices.empty:
+        assert (
+            population.loc[unchanged_row_indices]
+            == original_population.loc[unchanged_row_indices]
+        ).all(axis=None)
+
+
+@pytest.fixture(scope="function")
+def empty_population_manager():
+    class _PopulationManager(PopulationManager):
+        def __init__(self):
+            super().__init__()
+            self._population = pd.DataFrame({col_name: [] for col_name in COL_NAMES})
+
+        def _add_constraint(self, *args, **kwargs):
+            pass
+
+    return _PopulationManager()
+
+
+@pytest.mark.parametrize(
+    "update_with",
+    [
+        pd.DataFrame({"color": [], "pi": [], "tracked": []}),
+        pd.DataFrame({"color": []}),
+        pd.Series([], name="color"),
+        pd.DataFrame({"cube": [], "cube_string": []}),
+        pd.DataFrame({"cube": [], "cube_string": [], "pie": [], "pi": []}),
+        pd.DataFrame({"cube": []}),
+        pd.Series([], name="cube"),
+    ],
+    ids=[
+        "no_new_columns",
+        "single_existing_column",
+        "existing_column_series",
+        "several_new_columns",
+        "new_columns_and_existing_oolumns",
+        "single_new_column",
+        "new_column_series",
+    ],
+)
+def test_population_view_update_empty_population(
+    empty_population_manager, update_with: Union[pd.DataFrame, pd.Series]
+):
+    update_columns = (
+        update_with.columns if isinstance(update_with, pd.DataFrame) else [update_with.name]
+    )
+    all_columns = set(COL_NAMES) | set(update_columns)
+    population_view = PopulationView(empty_population_manager, 1, list(all_columns))
+
+    assert set(empty_population_manager._population.columns) == set(COL_NAMES)
+
+    empty_population_manager.growing = True
+    population_view.update(update_with)
+    empty_population_manager.growing = False
+
+    # Assert expected columns and rows are correctly updated
+    assert set(empty_population_manager._population.columns) == all_columns
 
 
 def test_initializer_set_fail_type():
