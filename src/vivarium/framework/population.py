@@ -37,9 +37,8 @@ class PopulationView:
     manager
         The population manager for the simulation.
     columns
-        The set of columns this view should have access too.  If explicitly
-        specified as ``None``, this view will have access to the entire
-        state table.
+        The set of columns this view should have access too.  If empty, this
+        view will have access to the entire state table.
     query
         A :mod:`pandas`-style filter that will be applied any time this
         view is read from.
@@ -456,13 +455,15 @@ class PopulationManager:
         If the column 'tracked' is not specified in the ``columns`` argument,
         the query string 'tracked == True' will be added to the provided
         query argument. This allows components to ignore untracked simulants
-        by default.
+        by default. If the columns argument is empty, the population view will
+        have access to the entire state table.
 
         Parameters
         ----------
         columns
             A subset of the state table columns that will be available in the
-            returned view.
+            returned view. If empty, this view will have access to the entire
+            state table.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
@@ -643,13 +644,15 @@ class PopulationInterface:
         If the column 'tracked' is not specified in the ``columns`` argument,
         the query string 'tracked == True' will be added to the provided
         query argument. This allows components to ignore untracked simulants
-        by default.
+        by default. If the columns argument is empty, the population view will
+        have access to the entire state table.
 
         Parameters
         ----------
         columns
             A subset of the state table columns that will be available in the
-            returned view.
+            returned view. If empty, this view will have access to the entire
+            state table.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
