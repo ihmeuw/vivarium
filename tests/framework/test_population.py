@@ -168,14 +168,14 @@ def test_population_view_get_fail(population_manager):
                 "color": ["fuschia", "chartreuse", "salmon"],
                 "count": [6, 2, 3],
                 "pie": ["strawberry rhubarb", "key lime", "cherry"],
-                "pi": [math.pi ** i for i in range(4, 7)],
+                "pi": [math.pi**i for i in range(4, 7)],
                 "tracked": [True, True, False],
             }
         ),
         pd.DataFrame(
             {
                 "color": ["fuschia", "chartreuse", "salmon"],
-                "pi": [math.pi ** i for i in range(4, 7)],
+                "pi": [math.pi**i for i in range(4, 7)],
                 "tracked": [True, True, False],
             }
         ),
@@ -183,20 +183,20 @@ def test_population_view_get_fail(population_manager):
         pd.Series(["fuschia", "chartreuse", "salmon"], name="color"),
         pd.DataFrame(
             {
-                "cube": [i ** 3 for i in range(len(RECORDS))],
-                "cube_string": [str(i ** 3) for i in range(len(RECORDS))],
+                "cube": [i**3 for i in range(len(RECORDS))],
+                "cube_string": [str(i**3) for i in range(len(RECORDS))],
             }
         ),
         pd.DataFrame(
             {
-                "cube": [i ** 3 for i in range(len(RECORDS))],
-                "cube_string": [str(i ** 3) for i in range(len(RECORDS))],
+                "cube": [i**3 for i in range(len(RECORDS))],
+                "cube_string": [str(i**3) for i in range(len(RECORDS))],
                 "pie": ["strawberry rhubarb", "key lime", "cherry"] * (len(RECORDS) // 3),
                 "pi": [math.pi * i for i in range(len(RECORDS))],
             }
         ),
-        pd.DataFrame({"cube": [i ** 3 for i in range(len(RECORDS))]}),
-        pd.Series([i ** 3 for i in range(len(RECORDS))], name="cube"),
+        pd.DataFrame({"cube": [i**3 for i in range(len(RECORDS))]}),
+        pd.Series([i**3 for i in range(len(RECORDS))], name="cube"),
     ],
     ids=[
         "some_rows_all_columns",
