@@ -167,7 +167,6 @@ def test_population_view_get_fail(population_manager):
             {
                 "color": ["fuschia", "chartreuse", "salmon"],
                 "count": [6, 2, 3],
-                "pie": ["strawberry rhubarb", "key lime", "cherry"],
                 "pi": [math.pi**i for i in range(4, 7)],
                 "tracked": [True, True, False],
             }
@@ -181,32 +180,12 @@ def test_population_view_get_fail(population_manager):
         ),
         pd.DataFrame({"color": ["fuschia", "chartreuse", "salmon"]}),
         pd.Series(["fuschia", "chartreuse", "salmon"], name="color"),
-        pd.DataFrame(
-            {
-                "cube": [i**3 for i in range(len(RECORDS))],
-                "cube_string": [str(i**3) for i in range(len(RECORDS))],
-            }
-        ),
-        pd.DataFrame(
-            {
-                "cube": [i**3 for i in range(len(RECORDS))],
-                "cube_string": [str(i**3) for i in range(len(RECORDS))],
-                "pie": ["strawberry rhubarb", "key lime", "cherry"] * (len(RECORDS) // 3),
-                "pi": [math.pi * i for i in range(len(RECORDS))],
-            }
-        ),
-        pd.DataFrame({"cube": [i**3 for i in range(len(RECORDS))]}),
-        pd.Series([i**3 for i in range(len(RECORDS))], name="cube"),
     ],
     ids=[
-        "some_rows_all_columns",
+        "some_rows_all_columns_in_view",
         "some_rows_some_columns",
         "some_rows_single_column",
         "some_rows_series",
-        "only_new_columns",
-        "some_new_some_old_columns",
-        "single_new_column",
-        "new_column_series",
     ],
 )
 def test_population_view_update(
@@ -215,11 +194,11 @@ def test_population_view_update(
     update_columns = (
         update_with.columns if isinstance(update_with, pd.DataFrame) else [update_with.name]
     )
-    all_columns = list(set(COL_NAMES) | set(update_columns))
-    population_view = PopulationView(population_manager, 1, all_columns)
+    all_columns = {"color", "count", "pi", "tracked"} | set(update_columns)
+    population_view = PopulationView(population_manager, 1, list(all_columns))
     original_population: pd.DataFrame = population_manager._population.copy()
 
-    is_growing = len(all_columns) > len(COL_NAMES)
+    is_growing = bool(all_columns.difference(COL_NAMES))
     population_manager.growing = is_growing
     population_view.update(update_with)
     population_manager.growing = False
@@ -248,6 +227,104 @@ def test_population_view_update(
             population.loc[unchanged_row_indices]
             == original_population.loc[unchanged_row_indices]
         ).all(axis=None)
+
+
+@pytest.mark.parametrize(
+    "update_with",
+    [
+        pd.DataFrame(
+            {
+                "cube": [i**3 for i in range(len(RECORDS))],
+                "cube_string": [str(i**3) for i in range(len(RECORDS))],
+            }
+        ),
+        pd.DataFrame(
+            {
+                "cube": [i**3 for i in range(len(RECORDS))],
+                "cube_string": [str(i**3) for i in range(len(RECORDS))],
+                "pie": ["strawberry rhubarb", "key lime", "cherry"] * (len(RECORDS) // 3),
+                "pi": [math.pi * i for i in range(len(RECORDS))],
+            }
+        ),
+        pd.DataFrame({"cube": [i**3 for i in range(len(RECORDS))]}),
+        pd.Series([i**3 for i in range(len(RECORDS))], name="cube"),
+    ],
+    ids=[
+        "only_new_columns",
+        "some_new_some_old_columns",
+        "single_new_column",
+        "new_column_series",
+    ],
+)
+def test_population_view_update_add_columns(
+    population_manager, update_with: Union[pd.DataFrame, pd.Series]
+):
+    update_columns = (
+        update_with.columns if isinstance(update_with, pd.DataFrame) else [update_with.name]
+    )
+    all_columns = {"color", "count", "pi", "tracked"} | set(update_columns)
+    population_view = PopulationView(population_manager, 1, list(all_columns))
+    original_population: pd.DataFrame = population_manager._population.copy()
+
+    population_manager.growing = True
+    population_view.update(update_with)
+    population_manager.growing = False
+
+    population = population_manager._population
+
+    # Assert expected columns and rows are correctly updated
+    update_columns = (
+        update_columns[0] if isinstance(update_with, pd.Series) else update_columns
+    )
+    assert (population.loc[update_with.index, update_columns] == update_with).all(axis=None)
+
+    # Assert all other columns are unchanged
+    column_index = (
+        update_columns if isinstance(update_columns, pd.Index) else pd.Index([update_columns])
+    )
+    unchanged_columns = population.columns.difference(column_index, sort=False)
+    assert (
+        population.loc[:, unchanged_columns] == original_population.loc[:, unchanged_columns]
+    ).all(axis=None)
+
+    # Assert all other rows are unchanged
+    unchanged_row_indices = population.index.difference(update_with.index, sort=False)
+    if not unchanged_row_indices.empty:
+        assert (
+            population.loc[unchanged_row_indices]
+            == original_population.loc[unchanged_row_indices]
+        ).all(axis=None)
+
+
+@pytest.mark.parametrize(
+    "update_with",
+    [
+        pd.DataFrame(
+            {
+                "cube": [i**3 for i in range(len(RECORDS))],
+                "cube_string": [str(i**3) for i in range(len(RECORDS))],
+            }
+        ),
+        pd.DataFrame({"cube": [i**3 for i in range(len(RECORDS))]}),
+        pd.Series([i**3 for i in range(len(RECORDS))], name="cube"),
+    ],
+    ids=[
+        "multiple_columns",
+        "single_column",
+        "series",
+    ],
+)
+def test_population_view_update_add_columns_not_growing(
+    population_manager, update_with: Union[pd.DataFrame, pd.Series]
+):
+    population_view = PopulationView(population_manager, 1, COL_NAMES)
+
+    with pytest.raises(PopulationError) as exception_info:
+        population_view.update(update_with)
+    assert (
+        "Cannot update with a DataFrame or Series that contains columns the view does not"
+        in str(exception_info.value)
+    )
 
 
 @pytest.fixture(scope="function")

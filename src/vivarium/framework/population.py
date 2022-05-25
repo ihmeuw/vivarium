@@ -210,25 +210,26 @@ class PopulationView:
             type inconsistent with the original population data.
 
         """
-        # TODO: Cast series to data frame and clean this up.
         if isinstance(population_update, pd.Series):
-            if population_update.name in self._columns:
-                affected_columns = {population_update.name}
-            elif len(self._columns) == 1:
-                affected_columns = set(self._columns)
-            else:
-                raise PopulationError(
-                    "Cannot update with a pandas series unless the series name is a column "
-                    "name in the view or there is only a single column in the view."
-                )
-        else:
-            if not set(population_update.columns).issubset(self._columns):
-                raise PopulationError(
-                    f"Cannot update with a DataFrame that contains columns the view does not. "
-                    f"Dataframe contains the following extra columns: "
-                    f"{set(population_update.columns).difference(self._columns)}."
-                )
-            affected_columns = set(population_update.columns)
+            if population_update.name is None:
+                if len(self.columns) == 1:
+                    population_update.name = self.columns[0]
+                else:
+                    raise PopulationError(
+                        "Cannot update with an unnamed pandas series unless there is only a single "
+                        "column in the view."
+                    )
+
+            population_update = pd.DataFrame(population_update)
+
+        affected_columns = set(population_update.columns)
+
+        if not affected_columns.issubset(self.columns):
+            raise PopulationError(
+                f"Cannot update with a DataFrame or Series that contains columns the view does "
+                f"not. Dataframe contains the following extra columns: "
+                f"{set(population_update.columns).difference(self.columns)}."
+            )
 
         if population_update.empty and not affected_columns.difference(self._manager.columns):
             return
@@ -243,10 +244,7 @@ class PopulationView:
                     continue
 
                 new_state_table_values = state_table[affected_column].values
-                if isinstance(population_update, pd.Series):
-                    update_values = population_update.values
-                else:
-                    update_values = population_update[affected_column].values
+                update_values = population_update[affected_column].values
                 new_state_table_values[population_update.index] = update_values
 
                 if new_state_table_values.dtype != update_values.dtype:
@@ -264,10 +262,7 @@ class PopulationView:
                         update_values.dtype
                     )
             else:
-                if isinstance(population_update, pd.Series):
-                    new_state_table_values = population_update.values
-                else:
-                    new_state_table_values = population_update[affected_column].values
+                new_state_table_values = population_update[affected_column].values
             self._manager._population[affected_column] = new_state_table_values
 
     def __repr__(self):

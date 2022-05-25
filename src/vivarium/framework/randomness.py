@@ -84,20 +84,24 @@ class IndexMap:
         if not self._map.index.intersection(new_keys).empty:
             raise KeyError("Non-unique keys in index.")
 
-        if not new_keys.empty:
-            mapping_update = self.hash_(new_keys)
-            if self._map.empty:
-                self._map = mapping_update.drop_duplicates()
-            else:
-                self._map = pd.concat([self._map, mapping_update]).drop_duplicates()
+        if new_keys.empty:
+            return  # Nothing to do
+        elif not self._map.index.intersection(new_keys).empty:
+            raise KeyError("Non-unique keys in index")
 
+        mapping_update = self.hash_(new_keys)
+        if self._map.empty:
+            self._map = mapping_update.drop_duplicates()
+        else:
+            self._map = pd.concat([self._map, mapping_update]).drop_duplicates()
+
+        collisions = mapping_update.index.difference(self._map.index)
+        salt = 1
+        while not collisions.empty:
+            mapping_update = self.hash_(collisions, salt)
+            self._map = pd.concat([self._map, mapping_update]).drop_duplicates()
             collisions = mapping_update.index.difference(self._map.index)
-            salt = 1
-            while not collisions.empty:
-                mapping_update = self.hash_(collisions, salt)
-                self._map = pd.concat([self._map, mapping_update]).drop_duplicates()
-                collisions = mapping_update.index.difference(self._map.index)
-                salt += 1
+            salt += 1
 
     def hash_(self, keys: Index, salt: int = 0) -> pd.Series:
         """Hashes the index into an integer index in the range [0, self.stride]
@@ -159,7 +163,7 @@ class IndexMap:
 
         """
         if len(column) == 0:
-            pass
+            pass    # Nothing to do
         elif isinstance(column.iloc[0], datetime.datetime):
             column = self.clip_to_seconds(column.view(np.int64))
         elif np.issubdtype(column.iloc[0], np.integer):
