@@ -162,9 +162,7 @@ class IndexMap:
             numeric.
 
         """
-        if len(column) == 0:
-            pass  # Nothing to do
-        elif isinstance(column.iloc[0], datetime.datetime):
+        if isinstance(column.iloc[0], datetime.datetime):
             column = self.clip_to_seconds(column.view(np.int64))
         elif np.issubdtype(column.iloc[0], np.integer):
             if not len(column >= 0) == len(column):
