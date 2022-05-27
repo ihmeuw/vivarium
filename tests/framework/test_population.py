@@ -161,9 +161,8 @@ def test_population_view_get_fail(population_manager):
 
 
 @pytest.mark.parametrize(
-    'test_df',
-    (pd.DataFrame(data=RECORDS, columns=COL_NAMES),
-     pd.DataFrame(columns=COL_NAMES))
+    "test_df",
+    (pd.DataFrame(data=RECORDS, columns=COL_NAMES), pd.DataFrame(columns=COL_NAMES)),
 )
 def test_multicolumn_population_view__coerce_to_dataframe(population_manager, test_df):
     pv = population_manager.get_view(COL_NAMES)
@@ -189,11 +188,11 @@ def test_multicolumn_population_view__coerce_to_dataframe(population_manager, te
 
     # All bad columns
     with pytest.raises(PopulationError):
-        pv._coerce_to_dataframe(test_df.rename(columns=lambda x: f'bad_{x}'))
+        pv._coerce_to_dataframe(test_df.rename(columns=lambda x: f"bad_{x}"))
 
     # One bad column
     with pytest.raises(PopulationError):
-        pv._coerce_to_dataframe(test_df.rename(columns={COL_NAMES[0]: f'bad_{COL_NAMES[0]}'}))
+        pv._coerce_to_dataframe(test_df.rename(columns={COL_NAMES[0]: f"bad_{COL_NAMES[0]}"}))
 
     # Unnamed series in view with multiple cols
     cols = COL_NAMES[0]
@@ -202,9 +201,8 @@ def test_multicolumn_population_view__coerce_to_dataframe(population_manager, te
 
 
 @pytest.mark.parametrize(
-    'test_df',
-    (pd.DataFrame(data=RECORDS, columns=COL_NAMES),
-     pd.DataFrame(columns=COL_NAMES))
+    "test_df",
+    (pd.DataFrame(data=RECORDS, columns=COL_NAMES), pd.DataFrame(columns=COL_NAMES)),
 )
 def test_single_column_population_view__coerce_to_dataframe(population_manager, test_df):
     # Content doesn't matter, only format.
@@ -229,11 +227,11 @@ def test_single_column_population_view__coerce_to_dataframe(population_manager, 
 
     # Badly named df
     with pytest.raises(PopulationError):
-        pv._coerce_to_dataframe(test_df[column].rename(f'bad_{column}').to_frame())
+        pv._coerce_to_dataframe(test_df[column].rename(f"bad_{column}").to_frame())
 
     # Badly named series
     with pytest.raises(PopulationError):
-        pv._coerce_to_dataframe(test_df[column].rename(f'bad_{column}'))
+        pv._coerce_to_dataframe(test_df[column].rename(f"bad_{column}"))
 
 
 @pytest.mark.parametrize(
