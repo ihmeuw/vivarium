@@ -37,9 +37,8 @@ class PopulationView:
     manager
         The population manager for the simulation.
     columns
-        The set of columns this view should have access too.  If explicitly
-        specified as ``None``, this view will have access to the entire
-        state table.
+        The set of columns this view should have access too.  If empty, this
+        view will have access to the entire state table.
     query
         A :mod:`pandas`-style filter that will be applied any time this
         view is read from.
@@ -189,7 +188,7 @@ class PopulationView:
             else:
                 return pop.loc[:, columns]
 
-    def update(self, population_update: Union[pd.DataFrame, pd.Series]):
+    def update(self, population_update: Union[pd.DataFrame, pd.Series]) -> None:
         """Updates the state table with the provided data.
 
         Parameters
@@ -206,46 +205,28 @@ class PopulationView:
         Raises
         ------
         PopulationError
-            If the provided data name or columns does not match columns that
+            If the provided data name or columns do not match columns that
             this view manages or if the view is being updated with a data
             type inconsistent with the original population data.
 
         """
-        if population_update.empty:
+        population_update = self._coerce_to_dataframe(population_update)
+        affected_columns = set(population_update.columns)
+
+        if population_update.empty and not affected_columns.difference(self._manager.columns):
             return
 
-        # TODO: Cast series to data frame and clean this up.
-        if isinstance(population_update, pd.Series):
-            if population_update.name in self._columns:
-                affected_columns = [population_update.name]
-            elif len(self._columns) == 1:
-                affected_columns = self._columns
-            else:
-                raise PopulationError(
-                    "Cannot update with a pandas series unless the series name is a column "
-                    "name in the view or there is only a single column in the view."
-                )
-        else:
-            if not set(population_update.columns).issubset(self._columns):
-                raise PopulationError(
-                    f"Cannot update with a DataFrame that contains columns the view does not. "
-                    f"Dataframe contains the following extra columns: "
-                    f"{set(population_update.columns).difference(self._columns)}."
-                )
-            affected_columns = set(population_update.columns)
-
-        affected_columns = set(affected_columns).intersection(self._columns)
         state_table = self._manager.get_population(True)
         if not self._manager.growing:
-            affected_columns = set(affected_columns).intersection(state_table.columns)
+            affected_columns = affected_columns.intersection(state_table.columns)
 
         for affected_column in affected_columns:
             if affected_column in state_table:
+                if population_update.empty:
+                    continue
+
                 new_state_table_values = state_table[affected_column].values
-                if isinstance(population_update, pd.Series):
-                    update_values = population_update.values
-                else:
-                    update_values = population_update[affected_column].values
+                update_values = population_update[affected_column].values
                 new_state_table_values[population_update.index] = update_values
 
                 if new_state_table_values.dtype != update_values.dtype:
@@ -263,11 +244,53 @@ class PopulationView:
                         update_values.dtype
                     )
             else:
-                if isinstance(population_update, pd.Series):
-                    new_state_table_values = population_update.values
-                else:
-                    new_state_table_values = population_update[affected_column].values
+                new_state_table_values = population_update[affected_column].values
             self._manager._population[affected_column] = new_state_table_values
+
+    def _coerce_to_dataframe(
+        self,
+        population_update: Union[pd.Series, pd.DataFrame],
+    ) -> pd.DataFrame:
+        """Coerce all population updates to a :class:`pandas.DataFrame` format.
+
+        Parameters
+        ----------
+        population_update
+            The update to the simulation state table.
+
+        Returns
+        -------
+        pandas.DataFrame
+            The input data formatted as a DataFrame.
+
+        Raises
+        ------
+        PopulationError
+            If the input data is a :class:`pandas.Series` and this :class:`PopulationView`
+            manages multiple columns or if the population update contains columns not
+            managed by this view.
+
+        """
+        if isinstance(population_update, pd.Series):
+            if population_update.name is None:
+                if len(self.columns) == 1:
+                    population_update.name = self.columns[0]
+                else:
+                    raise PopulationError(
+                        "Cannot update with an unnamed pandas series unless there "
+                        "is only a single column in the view."
+                    )
+
+            population_update = pd.DataFrame(population_update)
+
+        if not set(population_update.columns).issubset(self.columns):
+            raise PopulationError(
+                f"Cannot update with a DataFrame or Series that contains columns "
+                f"the view does not. Dataframe contains the following extra columns: "
+                f"{set(population_update.columns).difference(self.columns)}."
+            )
+
+        return population_update
 
     def __repr__(self):
         return (
@@ -429,6 +452,13 @@ class PopulationManager:
         metrics["total_population"] = len(untracked) + len(tracked)
         return metrics
 
+    @property
+    def columns(self) -> List[str]:
+        """The columns that currently exist in the population manager's
+        representation of state.
+        """
+        return list(self._population.columns)
+
     def __repr__(self):
         return "PopulationManager()"
 
@@ -447,13 +477,15 @@ class PopulationManager:
         If the column 'tracked' is not specified in the ``columns`` argument,
         the query string 'tracked == True' will be added to the provided
         query argument. This allows components to ignore untracked simulants
-        by default.
+        by default. If the columns argument is empty, the population view will
+        have access to the entire state table.
 
         Parameters
         ----------
         columns
             A subset of the state table columns that will be available in the
-            returned view.
+            returned view. If empty, this view will have access to the entire
+            state table.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
@@ -634,13 +666,15 @@ class PopulationInterface:
         If the column 'tracked' is not specified in the ``columns`` argument,
         the query string 'tracked == True' will be added to the provided
         query argument. This allows components to ignore untracked simulants
-        by default.
+        by default. If the columns argument is empty, the population view will
+        have access to the entire state table.
 
         Parameters
         ----------
         columns
             A subset of the state table columns that will be available in the
-            returned view.
+            returned view. If empty, this view will have access to the entire
+            state table.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.

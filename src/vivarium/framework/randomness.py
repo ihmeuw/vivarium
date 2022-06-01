@@ -72,7 +72,7 @@ class IndexMap:
         self._map = pd.Series(dtype=float)
         self.map_size = map_size
 
-    def update(self, new_keys: Index):
+    def update(self, new_keys: Index) -> None:
         """Adds the new keys to the mapping.
 
         Parameters
@@ -83,6 +83,11 @@ class IndexMap:
         """
         if not self._map.index.intersection(new_keys).empty:
             raise KeyError("Non-unique keys in index.")
+
+        if new_keys.empty:
+            return  # Nothing to do
+        elif not self._map.index.intersection(new_keys).empty:
+            raise KeyError("Non-unique keys in index")
 
         mapping_update = self.hash_(new_keys)
         if self._map.empty:
