@@ -78,19 +78,25 @@ class InitializerComponentSet:
                 f"You provided {initializer} which is bound to {component} that has no "
                 f"name attribute."
             )
-        if component.name in self._components:
+
+        # We want to keep the static typing annoyance because it's a good reminder that
+        # we need a generic component type that tells us about attributes like a name,
+        # but we also want it to be a little less noisy.
+        component_name = component.name
+        if component_name in self._components:
             raise PopulationError(
-                f"Component {component.name} has multiple population initializers. "
+                f"Component {component_name} has multiple population initializers. "
                 "This is not allowed."
             )
         for column in columns_produced:
             if column in self._columns_produced:
                 raise PopulationError(
-                    f"Component {component.name} and component {self._columns_produced[column]} "
-                    f"have both registered initializers for column {column}."
+                    f"Component {component_name} and component "
+                    f"{self._columns_produced[column]} have both registered initializers "
+                    f"for column {column}."
                 )
-            self._columns_produced[column] = component.name
-        self._components[component.name] = columns_produced
+            self._columns_produced[column] = component_name
+        self._components[component_name] = columns_produced
 
     def __repr__(self):
         return repr(self._components)
