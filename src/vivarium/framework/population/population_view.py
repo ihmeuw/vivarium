@@ -4,12 +4,7 @@ from typing import Any, Callable, Dict, List, NamedTuple, Tuple, Union
 
 import pandas as pd
 
-from vivarium.exceptions import VivariumError
 
-
-class PopulationError(VivariumError):
-    """Error raised when the population is invalidly queried or updated."""
-    pass
 
 
 class PopulationView:
