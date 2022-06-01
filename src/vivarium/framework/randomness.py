@@ -81,9 +81,6 @@ class IndexMap:
             The new index to hash.
 
         """
-        if not self._map.index.intersection(new_keys).empty:
-            raise KeyError("Non-unique keys in index.")
-
         if new_keys.empty:
             return  # Nothing to do
         elif not self._map.index.intersection(new_keys).empty:
