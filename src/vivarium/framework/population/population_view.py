@@ -1,15 +1,4 @@
-"""
-================================
-The Population Management System
-================================
 
-This module provides tools for managing the :term:`state table <State Table>`
-in a :mod:`vivarium` simulation, which is the record of all simulants in a
-simulation and their state. It's main tasks are managing the creation of new
-simulants and providing the ability for components to view and update simulant
-state safely during runtime.
-
-"""
 from types import MethodType
 from typing import Any, Callable, Dict, List, NamedTuple, Tuple, Union
 
@@ -20,7 +9,6 @@ from vivarium.exceptions import VivariumError
 
 class PopulationError(VivariumError):
     """Error raised when the population is invalidly queried or updated."""
-
     pass
 
 
