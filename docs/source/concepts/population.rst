@@ -80,7 +80,7 @@ initialization state during the setup phase, and the main event loop.
 
 The simulant creator function first adds rows to the state table. It then loops
 through a set of functions that have been registered to it as population
-intitializers via `initializes_simulants`, passing in the index of the newly
+initializers via `initializes_simulants`, passing in the index of the newly
 created simulants. These functions generally proceed by using population views
 to dictate the state of the newly created simulants they are responsible for.
 It is the only time creating columns in the state table is acceptable.
