@@ -179,9 +179,7 @@ class PopulationManager:
 
     @property
     def columns(self) -> List[str]:
-        """The columns that currently exist in the population manager's
-        representation of state.
-        """
+        """The columns that currently exist in the state table."""
         return list(self._population.columns)
 
     def __repr__(self):
@@ -195,13 +193,16 @@ class PopulationManager:
         self, columns: Union[List[str], Tuple[str]], query: str = None
     ) -> PopulationView:
         """Get a time-varying view of the population state table.
+
         The requested population view can be used to view the current state or
         to update the state with new values.
+
         If the column 'tracked' is not specified in the ``columns`` argument,
         the query string 'tracked == True' will be added to the provided
         query argument. This allows components to ignore untracked simulants
         by default. If the columns argument is empty, the population view will
         have access to the entire state table.
+
         Parameters
         ----------
         columns
@@ -214,11 +215,13 @@ class PopulationManager:
             The query should be provided in a way that is understood by the
             :meth:`pandas.DataFrame.query` method and may reference state
             table columns not requested in the ``columns`` argument.
+
         Returns
         -------
         PopulationView
             A filtered view of the requested columns of the population state
             table.
+
         """
         view = self._get_view(columns, query)
         self._add_constraint(
@@ -254,6 +257,7 @@ class PopulationManager:
         requires_streams: List[str] = (),
     ):
         """Marks a source of initial state information for new simulants.
+
         Parameters
         ----------
         initializer
@@ -272,6 +276,7 @@ class PopulationManager:
         requires_streams
             A list of the randomness streams necessary to initialize the
             simulant attributes.
+
         """
         self._initializer_components.add(initializer, creates_columns)
         dependencies = (
@@ -289,8 +294,10 @@ class PopulationManager:
 
     def get_simulant_creator(self) -> Callable:
         """Gets a function that can generate new simulants.
+
         Returns
         -------
+        Callable
            The simulant creator function. The creator function takes the
            number of simulants to be created as it's first argument and a dict
            population configuration that will be available to simulant
@@ -300,6 +307,7 @@ class PopulationManager:
            object containing the state table index of the new simulants, the
            configuration info passed to the creator, the current simulation
            time, and the size of the next time step.
+
         """
         return self._create_simulants
 
@@ -334,14 +342,17 @@ class PopulationManager:
 
     def get_population(self, untracked: bool) -> pd.DataFrame:
         """Provides a copy of the full population state table.
+
         Parameters
         ----------
         untracked
             Whether to include untracked simulants in the returned population.
+
         Returns
         -------
         pandas.DataFrame
             A copy of the population table.
+
         """
         pop = self._population.copy() if self._population is not None else pd.DataFrame()
         if not untracked:

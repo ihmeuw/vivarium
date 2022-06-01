@@ -28,6 +28,7 @@ class PopulationView:
     PopulationView can only read and write columns for which it is configured.
     Attempts to update non-existent columns are ignored except during
     simulant creation when new columns are allowed to be created.
+
     Parameters
     ----------
     manager
@@ -38,10 +39,12 @@ class PopulationView:
     query
         A :mod:`pandas`-style filter that will be applied any time this
         view is read from.
+
     Notes
     -----
     By default, this view will filter out ``untracked`` simulants unless
     the ``tracked`` column is specified in the initialization arguments.
+
     """
 
     def __init__(
@@ -63,10 +66,12 @@ class PopulationView:
     @property
     def columns(self) -> List[str]:
         """The columns that the view can read and update.
+
         If the view was created with ``None`` as the columns argument, then
         the view will have access to the full table by default. That case
         should be only be used in situations where the full state table is
         actually needed, like for some metrics collection applications.
+
         """
         if not self._columns:
             return list(self._manager.get_population(True).columns)
@@ -75,27 +80,33 @@ class PopulationView:
     @property
     def query(self) -> Union[str, None]:
         """A :mod:`pandas` style query to filter the rows of this view.
+
         This query will be applied any time the view is read. This query may
         reference columns not in the view's columns.
+
         """
         return self._query
 
     def subview(self, columns: Union[List[str], Tuple[str]]) -> "PopulationView":
         """Retrieves a new view with a subset of this view's columns.
+
         Parameters
         ----------
         columns
             The set of columns to provide access to in the subview. Must be
             a proper subset of this view's columns.
+
         Returns
         -------
         PopulationView
             A new view with access to the requested columns.
+
         Raises
         ------
         PopulationError
             If the requested columns are not a proper subset of this view's
             columns or no columns are requested.
+
         Notes
         -----
         Subviews are useful during population initialization. The original
@@ -104,6 +115,7 @@ class PopulationView:
         requesting a subview, a component can read the sections it needs
         without running the risk of trying to access uncreated columns
         because the component itself has not created them.
+
         """
 
         if not columns or set(columns) - set(self.columns):
@@ -117,10 +129,12 @@ class PopulationView:
 
     def get(self, index: pd.Index, query: str = "") -> pd.DataFrame:
         """Select the rows represented by the given index from this view.
+
         For the rows in ``index`` get the columns from the simulation's
         state table to which this view has access. The resulting rows may be
         further filtered by the view's query and only return a subset
         of the population represented by the index.
+
         Parameters
         ----------
         index
@@ -129,19 +143,23 @@ class PopulationView:
             Additional conditions used to filter the index. These conditions
             will be unioned with the default query of this view.  The query
             provided may use columns that this view does not have access to.
+
         Returns
         -------
         pandas.DataFrame
             A table with the subset of the population requested.
+
         Raises
         ------
         PopulationError
             If this view has access to columns that have not yet been created
             and this method is called.  If you see this error, you should
             request a subview with the columns you need read access to.
+
         See Also
         --------
         :meth:`subview <PopulationView.subview>`
+
         """
         pop = self._manager.get_population(True).loc[index]
 
@@ -172,6 +190,7 @@ class PopulationView:
 
     def update(self, population_update: Union[pd.DataFrame, pd.Series]) -> None:
         """Updates the state table with the provided data.
+
         Parameters
         ----------
         population_update
@@ -182,12 +201,14 @@ class PopulationView:
             this view's columns unless the view only has one column in which
             case the Series will be assumed to refer to that regardless of its
             name.
+
         Raises
         ------
         PopulationError
             If the provided data name or columns do not match columns that
             this view manages or if the view is being updated with a data
             type inconsistent with the original population data.
+
         """
         state_table = self._manager.get_population(True)
         population_update = self._ensure_preconditions_and_format(population_update)
@@ -209,6 +230,7 @@ class PopulationView:
         population_update: Union[pd.Series, pd.DataFrame]
     ) -> pd.DataFrame:
         """Standardizes the population update format and checks preconditions.
+
         Managing how values get written to the underlying population state table is critical
         to rule out several categories of error in client simulation code. The state table
         is modified at three different times. In the first, the initial population table
@@ -218,27 +240,33 @@ class PopulationView:
         dictated by client code, and population updates are being provided to fill in
         initial values for those new rows. In the final case, state table values for
         existing simulants are being overridden as part of a time step.
+
         All of these modification scenarios require that certain preconditions are met.
         For all scenarios, we require
+
             1. The update is a DataFrame or a Series.
             2. If it is a series, it is nameless and this view manages a single column
                or it is named and it's name matches a column in this PopulationView.
             3. The update matches at least one column in this PopulationView.
             4. The update columns are a subset of the columns managed by this
                PopulationView.
+
         For initial population creation additional preconditions are documented in
         :meth:`PopulationView._ensure_coherent_initialization`. Outside population
         initialization, we require that all columns in the update to be present in
         the existing state table. When new simulants are added in the middle of the
         simulation, we require that only one component provide updates to a column.
+
         Parameters
         ----------
         population_update
             The update to the simulation state table.
+
         Returns
         -------
         pandas.DataFrame
             The input data formatted as a DataFrame.
+
         Raises
         ------
         TypeError
@@ -248,6 +276,7 @@ class PopulationView:
             If the update violates any preconditions relevant to the context in which
             the update is provided (initial population creation, population creation on
             time steps, or population state changes on time steps).
+
         """
         population_update = self._coerce_to_dataframe(population_update)
         state_table = self._manager.get_population(True)
@@ -275,14 +304,17 @@ class PopulationView:
         population_update: Union[pd.Series, pd.DataFrame],
     ) -> pd.DataFrame:
         """Coerce all population updates to a :class:`pandas.DataFrame` format.
+
         Parameters
         ----------
         population_update
             The update to the simulation state table.
+
         Returns
         -------
         pandas.DataFrame
             The input data formatted as a DataFrame.
+
         Raises
         ------
         TypeError
@@ -292,6 +324,7 @@ class PopulationView:
             If the input data is a :class:`pandas.Series` and this :class:`PopulationView`
             manages multiple columns or if the population update contains columns not
             managed by this view.
+
         """
         if not isinstance(population_update, (pd.Series, pd.DataFrame)):
             raise TypeError(
@@ -333,11 +366,13 @@ class PopulationView:
         state_table: pd.DataFrame
     ) -> None:
         """Ensure that overlapping population updates have the same information.
+
         During population initialization, each state table column should be updated by
         exactly one component and each component with an initializer should create at
         least one column. Sometimes components are a little sloppy and provide
         duplicate column information, which we should continue to allow. We want to ensure
         that a column is only getting one set of unique values though.
+
         Parameters
         ----------
         population_update
@@ -346,11 +381,13 @@ class PopulationView:
             The existing simulation state table. When this method is called, the table
             should be in a partially complete state. That is the provided population
             update should carry some new attributes we need to assign.
+
         Raises
         -----
         PopulationError
             If the population update contains no new information or if it contains
             information in conflict with the existing state table.
+
         """
         extra_pops = len(population_update.index.difference(state_table.index))
         missing_pops = len(state_table.index.difference(population_update.index))
