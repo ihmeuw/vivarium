@@ -11,6 +11,7 @@ state safely during runtime.
 
 """
 from vivarium.framework.population.exceptions import PopulationError
+from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.population.manager import (
     PopulationInterface,
     PopulationManager,
