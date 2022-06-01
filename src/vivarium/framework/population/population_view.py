@@ -1,8 +1,25 @@
+"""
+===================
+The Population View
+===================
 
-from types import MethodType
-from typing import Any, Callable, Dict, List, NamedTuple, Tuple, Union
+The :class:`PopulationView` is a user-facing abstraction that manages read and write access
+to the underlying simulation :term:`State Table`. It has two primary responsibilities:
+    1. To provide user access to subsets of the simulation state table
+       when it is safe to do so.
+    2. To allow the user to update the simulation state in a controlled way.
+
+"""
+from typing import List, Tuple, Union, TYPE_CHECKING
 
 import pandas as pd
+
+from vivarium.framework.population.exceptions import PopulationError
+
+if TYPE_CHECKING:
+    # Cyclic import
+    from vivarium.framework.population.manager import PopulationManager
+
 
 class PopulationView:
     """A read/write manager for the simulation state table.
@@ -276,6 +293,3 @@ class PopulationView:
         return (
             f"PopulationView(_id={self._id}, _columns={self.columns}, _query={self._query})"
         )
-
-
-
