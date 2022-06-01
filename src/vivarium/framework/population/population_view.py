@@ -5,6 +5,7 @@ The Population View
 
 The :class:`PopulationView` is a user-facing abstraction that manages read and write access
 to the underlying simulation :term:`State Table`. It has two primary responsibilities:
+
     1. To provide user access to subsets of the simulation state table
        when it is safe to do so.
     2. To allow the user to update the simulation state in a controlled way.

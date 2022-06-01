@@ -362,8 +362,8 @@ class PopulationInterface:
     individual or cohort (referred to as a simulant) being simulated and a
     column for each of the attributes of the simulant being modeled.  All
     access to the state table is mediated by
-    :class:`population views <PopulationView>`, which may be requested from
-    this system during setup time.
+    :class:`population views <vivarium.framework.population.population_view.PopulationView>`,
+    which may be requested from this system during setup time.
 
     The population system itself manages a single attribute of simulants
     called ``tracked``. This attribute allows global control of which

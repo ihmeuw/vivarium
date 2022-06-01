@@ -6,6 +6,7 @@ from vivarium.framework.population.manager import (
     PopulationManager,
 )
 
+
 def test_initializer_set_fail_type():
     component_set = InitializerComponentSet()
 

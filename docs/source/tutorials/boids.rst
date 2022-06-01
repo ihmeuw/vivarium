@@ -111,7 +111,7 @@ mirrors what's in the ``configuration_defaults`` at the top of the class
 definition.
 
 Next, we interact with the vivarium's
-:doc:`population management system </api_reference/framework/population>`.
+:doc:`population management system </api_reference/framework/population/index>`.
 
 .. note::
 
@@ -135,7 +135,7 @@ We'll see a third argument for this function soon and discuss the population
 management system in more detail.
 
 Next in line 6 we get a view into the population table.
-:class:`Population views <vivarium.framework.population.PopulationView>` are
+:class:`Population views <vivarium.framework.population.population_view.PopulationView>` are
 used both to query the current state of simulants and to update that state
 information. When you request a population view from the builder, you must
 tell it which columns in the population table you want to see, and so here we
@@ -158,7 +158,7 @@ debugging.
 
 We see that like the ``setup`` method, ``on_initialize_simulants`` takes in a
 special argument that we don't provide. This argument, ``pop_data`` is an
-instance of :class:`~vivarium.framework.population.SimulantData` containing a
+instance of :class:`~vivarium.framework.population.manager.SimulantData` containing a
 handful of information useful when initializing simulants.
 
 The only two bits of information we need for now are the

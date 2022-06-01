@@ -236,7 +236,7 @@ with the randomness system.
 
 Next we register the ``on_initialize_simulants`` method of our
 ``BasePopulation`` object as a population initializer and let the
-:class:`population management system <vivarium.framework.population.PopulationInterface>`
+:class:`population management system <vivarium.framework.population.manager.PopulationInterface>`
 know that it is responsible for generating the ``'age'``, ``'sex'``,
 ``'alive'``, and ``'entrance_time'`` columns in the population state table.
 
@@ -264,7 +264,7 @@ Next we get a view into the population table.
    :linenos:
    :lineno-start: 19
 
-:class:`Population views <vivarium.framework.population.PopulationView>` are
+:class:`Population views <vivarium.framework.population.population_view.PopulationView>` are
 used both to query the current state of simulants and to update that state
 information. When you request a population view from the builder, you must
 tell it which columns in the population table you want to see, and so here we
@@ -320,7 +320,7 @@ practice later.
 
 We see that like the ``setup`` method, ``on_initialize_simulants`` takes in a
 special argument that we don't provide. This argument, ``pop_data`` is an
-instance of :class:`~vivarium.framework.population.SimulantData` containing a
+instance of :class:`~vivarium.framework.population.manager.SimulantData` containing a
 handful of information useful when initializing simulants.
 
 .. note::
@@ -415,7 +415,7 @@ In either case, we are hanging on to a table representing some attributes of
 our new simulants. However, this table does not matter yet because the
 simulation's population system doesn't know anything about it. We must first
 inform the simulation by passing in the ``DataFrame`` to our
-:class:`population view's <vivarium.framework.population.PopulationView>`
+:class:`population view's <vivarium.framework.population.population_view.PopulationView>`
 ``update`` method.  This method is the only way to modify the underlying
 population table.
 
