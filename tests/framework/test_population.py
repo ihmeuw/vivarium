@@ -161,6 +161,80 @@ def test_population_view_get_fail(population_manager):
 
 
 @pytest.mark.parametrize(
+    "test_df",
+    (pd.DataFrame(data=RECORDS, columns=COL_NAMES), pd.DataFrame(columns=COL_NAMES)),
+)
+def test_multicolumn_population_view__coerce_to_dataframe(population_manager, test_df):
+    pv = population_manager.get_view(COL_NAMES)
+
+    # No-op
+    coerced_df = pv._coerce_to_dataframe(test_df)
+    assert test_df.equals(coerced_df)
+
+    # Subset
+    cols = COL_NAMES[:2]
+    coerced_df = pv._coerce_to_dataframe(test_df[cols])
+    assert test_df[cols].equals(coerced_df)
+
+    # Single col df
+    cols = [COL_NAMES[0]]
+    coerced_df = pv._coerce_to_dataframe(test_df[cols])
+    assert test_df[cols].equals(coerced_df)
+
+    # Series
+    cols = COL_NAMES[0]
+    coerced_df = pv._coerce_to_dataframe(test_df[cols])
+    assert test_df[[cols]].equals(coerced_df)
+
+    # All bad columns
+    with pytest.raises(PopulationError):
+        pv._coerce_to_dataframe(test_df.rename(columns=lambda x: f"bad_{x}"))
+
+    # One bad column
+    with pytest.raises(PopulationError):
+        pv._coerce_to_dataframe(test_df.rename(columns={COL_NAMES[0]: f"bad_{COL_NAMES[0]}"}))
+
+    # Unnamed series in view with multiple cols
+    cols = COL_NAMES[0]
+    with pytest.raises(PopulationError):
+        pv._coerce_to_dataframe(test_df[cols].rename(None))
+
+
+@pytest.mark.parametrize(
+    "test_df",
+    (pd.DataFrame(data=RECORDS, columns=COL_NAMES), pd.DataFrame(columns=COL_NAMES)),
+)
+def test_single_column_population_view__coerce_to_dataframe(population_manager, test_df):
+    # Content doesn't matter, only format.
+    column = COL_NAMES[0]
+    pv = population_manager.get_view([column])
+
+    # Good single col df
+    coerced_df = pv._coerce_to_dataframe(test_df[[column]])
+    assert test_df[[column]].equals(coerced_df)
+
+    # Good named series
+    coerced_df = pv._coerce_to_dataframe(test_df[column])
+    assert test_df[[column]].equals(coerced_df)
+
+    # Nameless series
+    coerced_df = pv._coerce_to_dataframe(test_df[column].rename(None))
+    assert test_df[[column]].equals(coerced_df)
+
+    # Too many columns
+    with pytest.raises(PopulationError):
+        pv._coerce_to_dataframe(test_df)
+
+    # Badly named df
+    with pytest.raises(PopulationError):
+        pv._coerce_to_dataframe(test_df[column].rename(f"bad_{column}").to_frame())
+
+    # Badly named series
+    with pytest.raises(PopulationError):
+        pv._coerce_to_dataframe(test_df[column].rename(f"bad_{column}"))
+
+
+@pytest.mark.parametrize(
     "update_with",
     [
         pd.DataFrame(

@@ -205,31 +205,13 @@ class PopulationView:
         Raises
         ------
         PopulationError
-            If the provided data name or columns does not match columns that
+            If the provided data name or columns do not match columns that
             this view manages or if the view is being updated with a data
             type inconsistent with the original population data.
 
         """
-        if isinstance(population_update, pd.Series):
-            if population_update.name is None:
-                if len(self.columns) == 1:
-                    population_update.name = self.columns[0]
-                else:
-                    raise PopulationError(
-                        "Cannot update with an unnamed pandas series unless there is only a single "
-                        "column in the view."
-                    )
-
-            population_update = pd.DataFrame(population_update)
-
+        population_update = self._coerce_to_dataframe(population_update)
         affected_columns = set(population_update.columns)
-
-        if not affected_columns.issubset(self.columns):
-            raise PopulationError(
-                f"Cannot update with a DataFrame or Series that contains columns the view does "
-                f"not. Dataframe contains the following extra columns: "
-                f"{set(population_update.columns).difference(self.columns)}."
-            )
 
         if population_update.empty and not affected_columns.difference(self._manager.columns):
             return
@@ -264,6 +246,51 @@ class PopulationView:
             else:
                 new_state_table_values = population_update[affected_column].values
             self._manager._population[affected_column] = new_state_table_values
+
+    def _coerce_to_dataframe(
+        self,
+        population_update: Union[pd.Series, pd.DataFrame],
+    ) -> pd.DataFrame:
+        """Coerce all population updates to a :class:`pandas.DataFrame` format.
+
+        Parameters
+        ----------
+        population_update
+            The update to the simulation state table.
+
+        Returns
+        -------
+        pandas.DataFrame
+            The input data formatted as a DataFrame.
+
+        Raises
+        ------
+        PopulationError
+            If the input data is a :class:`pandas.Series` and this :class:`PopulationView`
+            manages multiple columns or if the population update contains columns not
+            managed by this view.
+
+        """
+        if isinstance(population_update, pd.Series):
+            if population_update.name is None:
+                if len(self.columns) == 1:
+                    population_update.name = self.columns[0]
+                else:
+                    raise PopulationError(
+                        "Cannot update with an unnamed pandas series unless there "
+                        "is only a single column in the view."
+                    )
+
+            population_update = pd.DataFrame(population_update)
+
+        if not set(population_update.columns).issubset(self.columns):
+            raise PopulationError(
+                f"Cannot update with a DataFrame or Series that contains columns "
+                f"the view does not. Dataframe contains the following extra columns: "
+                f"{set(population_update.columns).difference(self.columns)}."
+            )
+
+        return population_update
 
     def __repr__(self):
         return (
