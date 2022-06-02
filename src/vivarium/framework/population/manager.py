@@ -325,7 +325,6 @@ class PopulationManager:
         new_population = self._population.reindex(new_index)
         index = new_population.index.difference(self._population.index)
         self._population = new_population
-
         self.adding_simulants = True
         for initializer in self.resources:
             initializer(

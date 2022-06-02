@@ -169,24 +169,19 @@ class PopulationView:
             if query:
                 pop = pop.query(query)
 
-        if not self._columns:
-            return pop
-        else:
-            columns = self._columns
-            non_existent_columns = set(columns) - set(pop.columns)
-            if non_existent_columns:
-                raise PopulationError(
-                    f"Requested column(s) {non_existent_columns} not in population table. "
-                    "This is likely due to a failure to require some columns, randomness "
-                    "streams, or pipelines when registering a simulant initializer, a value "
-                    "producer, or a value modifier. NOTE: It is possible for a run to "
-                    "succeed even if resource requirements were not properly specified in "
-                    "the simulant initializers or pipeline creation/modification calls. This "
-                    "success depends on component initialization order which may change in "
-                    "different run settings."
-                )
-            else:
-                return pop.loc[:, columns]
+        non_existent_columns = set(self.columns) - set(pop.columns)
+        if non_existent_columns:
+            raise PopulationError(
+                f"Requested column(s) {non_existent_columns} not in population table. "
+                "This is likely due to a failure to require some columns, randomness "
+                "streams, or pipelines when registering a simulant initializer, a value "
+                "producer, or a value modifier. NOTE: It is possible for a run to "
+                "succeed even if resource requirements were not properly specified in "
+                "the simulant initializers or pipeline creation/modification calls. This "
+                "success depends on component initialization order which may change in "
+                "different run settings."
+            )
+        return pop.loc[:, self.columns]
 
     def update(self, population_update: Union[pd.DataFrame, pd.Series]) -> None:
         """Updates the state table with the provided data.
@@ -211,23 +206,42 @@ class PopulationView:
 
         """
         state_table = self._manager.get_population(True)
-        population_update = self._ensure_preconditions_and_format(population_update)
-
+        population_update = self._format_update_and_check_preconditions(
+            population_update,
+            state_table,
+            self.columns,
+            self._manager.creating_initial_population,
+            self._manager.adding_simulants,
+        )
         if self._manager.creating_initial_population:
-            new_columns = list(set(population_update).intersection(state_table))
+            new_columns = list(set(population_update).difference(state_table))
             self._manager._population.loc[:, new_columns] = population_update[new_columns]
         elif not population_update.empty:
             update_columns = list(set(population_update).intersection(state_table))
             for column in update_columns:
-                column_update = self._ensure_update_dtype(
+                column_update = self._update_column_and_ensure_dtype(
                     population_update[column],
                     state_table[column],
+                    self._manager.adding_simulants,
                 )
                 self._manager._population.loc[:, column] = column_update
 
-    def _ensure_preconditions_and_format(
-        self,
-        population_update: Union[pd.Series, pd.DataFrame]
+    def __repr__(self):
+        return (
+            f"PopulationView(_id={self._id}, _columns={self.columns}, _query={self._query})"
+        )
+
+    ##################
+    # Helper methods #
+    ##################
+
+    @staticmethod
+    def _format_update_and_check_preconditions(
+        population_update: Union[pd.Series, pd.DataFrame],
+        state_table: pd.DataFrame,
+        view_columns: List[str],
+        creating_initial_population: bool,
+        adding_simulants: bool,
     ) -> pd.DataFrame:
         """Standardizes the population update format and checks preconditions.
 
@@ -250,6 +264,8 @@ class PopulationView:
             3. The update matches at least one column in this PopulationView.
             4. The update columns are a subset of the columns managed by this
                PopulationView.
+            5. The update index is a subset of the existing state table index.
+               PopulationViews don't make rows, they just fill them in.
 
         For initial population creation additional preconditions are documented in
         :meth:`PopulationView._ensure_coherent_initialization`. Outside population
@@ -261,6 +277,14 @@ class PopulationView:
         ----------
         population_update
             The update to the simulation state table.
+        state_table
+            The existing simulation state table.
+        view_columns
+            The columns managed by this PopulationView.
+        creating_initial_population
+            Whether the initial population is being created.
+        adding_simulants
+            Whether new simulants are currently being initialized.
 
         Returns
         -------
@@ -278,11 +302,22 @@ class PopulationView:
             time steps, or population state changes on time steps).
 
         """
-        population_update = self._coerce_to_dataframe(population_update)
-        state_table = self._manager.get_population(True)
+        assert not (creating_initial_population and not adding_simulants)
 
-        if self._manager.creating_initial_population:
-            self._ensure_coherent_initialization(population_update, state_table)
+        population_update = PopulationView._coerce_to_dataframe(
+            population_update, view_columns,
+        )
+
+        unknown_simulants = population_update.index.difference(state_table.index)
+        if not unknown_simulants.empty:
+            raise PopulationError(
+                "Population updates must have an index that is a subset of the current "
+                f"population state table. {len(unknown_simulants)} simulants were provided "
+                f"in an update with no matching index in the existing table."
+            )
+
+        if creating_initial_population:
+            PopulationView._ensure_coherent_initialization(population_update, state_table)
         else:
             new_columns = list(set(population_update).difference(state_table))
             if new_columns:
@@ -291,7 +326,7 @@ class PopulationView:
                     f'outside the initial population creation phase.'
                 )
 
-            if self._manager.adding_simulants:
+            if adding_simulants:
                 for column in population_update:
                     if state_table.loc[population_update.index, column].notnull().any():
                         raise PopulationError(
@@ -299,9 +334,12 @@ class PopulationView:
                             f"for the {column} state table column."
                         )
 
+        return population_update
+
+    @staticmethod
     def _coerce_to_dataframe(
-        self,
         population_update: Union[pd.Series, pd.DataFrame],
+        view_columns: List[str],
     ) -> pd.DataFrame:
         """Coerce all population updates to a :class:`pandas.DataFrame` format.
 
@@ -334,8 +372,8 @@ class PopulationView:
 
         if isinstance(population_update, pd.Series):
             if population_update.name is None:
-                if len(self.columns) == 1:
-                    population_update.name = self.columns[0]
+                if len(view_columns) == 1:
+                    population_update.name = view_columns[0]
                 else:
                     raise PopulationError(
                         "Cannot update with an unnamed pandas series unless there "
@@ -344,11 +382,11 @@ class PopulationView:
 
             population_update = pd.DataFrame(population_update)
 
-        if not set(population_update.columns).issubset(self.columns):
+        if not set(population_update.columns).issubset(view_columns):
             raise PopulationError(
                 f"Cannot update with a DataFrame or Series that contains columns "
                 f"the view does not. Dataframe contains the following extra columns: "
-                f"{set(population_update.columns).difference(self.columns)}."
+                f"{set(population_update.columns).difference(view_columns)}."
             )
 
         update_columns = list(population_update)
@@ -389,13 +427,11 @@ class PopulationView:
             information in conflict with the existing state table.
 
         """
-        extra_pops = len(population_update.index.difference(state_table.index))
         missing_pops = len(state_table.index.difference(population_update.index))
-        if extra_pops or missing_pops:
+        if missing_pops:
             raise PopulationError(
                 f"Components should initialize the same population at the simulation start. "
-                f"A component is providing updates for {extra_pops} extra simulants and is "
-                f"missing updates for {missing_pops} simulants."
+                f"A component is missing updates for {missing_pops} simulants."
             )
         new_columns = set(population_update).difference(state_table)
         overlapping_columns = set(population_update).intersection(state_table)
@@ -411,11 +447,29 @@ class PopulationView:
                     f"{column} state table column."
                 )
 
-    def _ensure_update_dtype(
-        self,
+    @staticmethod
+    def _update_column_and_ensure_dtype(
         update: pd.Series,
         existing: pd.Series,
+        adding_simulants: bool,
     ) -> pd.Series:
+        """Build the updated state table column with an appropriate dtype.
+
+        Parameters
+        ----------
+        update
+            The new column values for a subset of the existing index.
+        existing
+            The existing column values for all simulants in the state table.
+        adding_simulants
+            Whether new simulants are currently being initialized.
+
+        Returns
+        -------
+        pd.Series
+            The column with the provided update applied
+
+        """
         update_values = update.values
         new_state_table_values = existing.values
 
@@ -423,7 +477,7 @@ class PopulationView:
         new_state_table_values[update.index] = update_values
 
         unmatched_dtypes = new_state_table_values.dtype != update_values.dtype
-        if not self._manager.adding_simulants and unmatched_dtypes:
+        if unmatched_dtypes and not adding_simulants:
             # This happens when the population is being grown because extending
             # the index forces columns that don't have a natural null type
             # to become 'object'
@@ -434,8 +488,3 @@ class PopulationView:
 
         new_state_table_values = new_state_table_values.astype(update_values.dtype)
         return pd.Series(new_state_table_values, index=existing.index, name=existing.name)
-
-    def __repr__(self):
-        return (
-            f"PopulationView(_id={self._id}, _columns={self.columns}, _query={self._query})"
-        )
