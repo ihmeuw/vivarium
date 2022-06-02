@@ -215,7 +215,8 @@ class PopulationView:
         )
         if self._manager.creating_initial_population:
             new_columns = list(set(population_update).difference(state_table))
-            self._manager._population.loc[:, new_columns] = population_update[new_columns]
+            for col in new_columns:
+                self._manager._population.loc[:, new_columns] = population_update[new_columns]
         elif not population_update.empty:
             update_columns = list(set(population_update).intersection(state_table))
             for column in update_columns:
@@ -305,7 +306,8 @@ class PopulationView:
         assert not (creating_initial_population and not adding_simulants)
 
         population_update = PopulationView._coerce_to_dataframe(
-            population_update, view_columns,
+            population_update,
+            view_columns,
         )
 
         unknown_simulants = population_update.index.difference(state_table.index)
@@ -322,8 +324,8 @@ class PopulationView:
             new_columns = list(set(population_update).difference(state_table))
             if new_columns:
                 raise PopulationError(
-                    f'Attempting to add new columns {new_columns} to the state table '
-                    f'outside the initial population creation phase.'
+                    f"Attempting to add new columns {new_columns} to the state table "
+                    f"outside the initial population creation phase."
                 )
 
             if adding_simulants:
@@ -366,8 +368,8 @@ class PopulationView:
         """
         if not isinstance(population_update, (pd.Series, pd.DataFrame)):
             raise TypeError(
-                'The population update must be a pandas Series or DataFrame. '
-                f'A {type(population_update)} was provided.'
+                "The population update must be a pandas Series or DataFrame. "
+                f"A {type(population_update)} was provided."
             )
 
         if isinstance(population_update, pd.Series):
@@ -400,8 +402,7 @@ class PopulationView:
 
     @staticmethod
     def _ensure_coherent_initialization(
-        population_update: pd.DataFrame,
-        state_table: pd.DataFrame
+        population_update: pd.DataFrame, state_table: pd.DataFrame
     ) -> None:
         """Ensure that overlapping population updates have the same information.
 
@@ -470,11 +471,24 @@ class PopulationView:
             The column with the provided update applied
 
         """
-        update_values = update.values
-        new_state_table_values = existing.values
+        # FIXME: This code does not work as described. I'm leaving it here because writing
+        #  real dtype checking code is a pain and we never seem to hit the actual edge cases.
+        #  I've also seen this error, though I don't have a reproducible and useful example.
+        #  I'm reasonably sure what's really being accounted for here is non-nullable columns
+        #  that temporarily have null values introduced in the space between rows being
+        #  added to the state table and initializers filling them with their first values.
+        #  That means the space of dtype casting issues is actually quite small. What should
+        #  actually happen in the long term is to separate the population creation entirely
+        #  from the mutation of existing state. I.e. there's not an actual reason we need
+        #  to do all these sequential operations on a single underlying dataframe during
+        #  the creation of new simulants besides the fact that it's the existing
+        #  implementation.
+        update_values = update.values.copy()
+        new_state_table_values = existing.values.copy()
+        update_index_positional = existing.index.get_indexer(update.index)
 
         # Assumes the update index labels can be interpreted as an array position.
-        new_state_table_values[update.index] = update_values
+        new_state_table_values[update_index_positional] = update_values
 
         unmatched_dtypes = new_state_table_values.dtype != update_values.dtype
         if unmatched_dtypes and not adding_simulants:
@@ -485,6 +499,5 @@ class PopulationView:
                 "A component is corrupting the population table by modifying the dtype of "
                 f"the {update.name} column from {existing.dtype} to {update.dtype}."
             )
-
         new_state_table_values = new_state_table_values.astype(update_values.dtype)
         return pd.Series(new_state_table_values, index=existing.index, name=existing.name)
