@@ -330,7 +330,8 @@ class PopulationView:
 
             if adding_simulants:
                 conflicting_columns = [
-                    column for column in population_update
+                    column
+                    for column in population_update
                     if state_table.loc[population_update.index, column].notnull().any()
                     and not population_update[column].equals(state_table[column])
                 ]
