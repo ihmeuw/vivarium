@@ -354,7 +354,7 @@ class PopulationManager:
 
         """
         pop = self._population.copy() if self._population is not None else pd.DataFrame()
-        if not untracked:
+        if not untracked and 'tracked' in pop.columns:
             pop = pop[pop.tracked]
         return pop
 
