@@ -303,18 +303,18 @@ class PopulationView:
             time steps, or population state changes on time steps).
 
         """
-        assert not (creating_initial_population and not adding_simulants)
+        assert not creating_initial_population or adding_simulants
 
         population_update = PopulationView._coerce_to_dataframe(
             population_update,
             view_columns,
         )
 
-        unknown_simulants = population_update.index.difference(state_table.index)
-        if not unknown_simulants.empty:
+        unknown_simulants = len(population_update.index.difference(state_table.index))
+        if unknown_simulants:
             raise PopulationError(
                 "Population updates must have an index that is a subset of the current "
-                f"population state table. {len(unknown_simulants)} simulants were provided "
+                f"population state table. {unknown_simulants} simulants were provided "
                 f"in an update with no matching index in the existing table."
             )
 
@@ -329,12 +329,16 @@ class PopulationView:
                 )
 
             if adding_simulants:
-                for column in population_update:
-                    if state_table.loc[population_update.index, column].notnull().any():
-                        raise PopulationError(
-                            "Two components are providing conflicting initialization data "
-                            f"for the {column} state table column."
-                        )
+                conflicting_columns = [
+                    column for column in population_update
+                    if state_table.loc[population_update.index, column].notnull().any()
+                    and not population_update[column].equals(state_table[column])
+                ]
+                if conflicting_columns:
+                    raise PopulationError(
+                        "Two components are providing conflicting initialization data "
+                        f"for the state table columns: {conflicting_columns}."
+                    )
 
         return population_update
 
