@@ -117,9 +117,10 @@ class PopulationManager:
     }
 
     def __init__(self):
-        self._population = pd.DataFrame()
+        self._population = None
         self._initializer_components = InitializerComponentSet()
-        self.growing = False
+        self.creating_initial_population = False
+        self.adding_simulants = False
         self._last_id = -1
 
     ############################
@@ -131,7 +132,6 @@ class PopulationManager:
         """The name of this component."""
         return "population_manager"
 
-    # noinspection PyAttributeOutsideInit
     def setup(self, builder):
         """Registers the population manager with other vivarium systems."""
         self.clock = builder.time.clock()
@@ -179,9 +179,7 @@ class PopulationManager:
 
     @property
     def columns(self) -> List[str]:
-        """The columns that currently exist in the population manager's
-        representation of state.
-        """
+        """The columns that currently exist in the state table."""
         return list(self._population.columns)
 
     def __repr__(self):
@@ -299,6 +297,7 @@ class PopulationManager:
 
         Returns
         -------
+        Callable
            The simulant creator function. The creator function takes the
            number of simulants to be created as it's first argument and a dict
            population configuration that will be available to simulant
@@ -318,16 +317,22 @@ class PopulationManager:
         population_configuration = (
             population_configuration if population_configuration else {}
         )
+        if self._population is None:
+            self.creating_initial_population = True
+            self._population = pd.DataFrame()
+
         new_index = range(len(self._population) + count)
         new_population = self._population.reindex(new_index)
         index = new_population.index.difference(self._population.index)
         self._population = new_population
-        self.growing = True
+        self.adding_simulants = True
         for initializer in self.resources:
             initializer(
                 SimulantData(index, population_configuration, self.clock(), self.step_size())
             )
-        self.growing = False
+        self.creating_initial_population = False
+        self.adding_simulants = False
+
         return index
 
     ###############
@@ -348,8 +353,8 @@ class PopulationManager:
             A copy of the population table.
 
         """
-        pop = self._population.copy()
-        if not untracked:
+        pop = self._population.copy() if self._population is not None else pd.DataFrame()
+        if not untracked and "tracked" in pop.columns:
             pop = pop[pop.tracked]
         return pop
 
