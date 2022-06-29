@@ -1,6 +1,7 @@
 **0.10.15 - 06/29/22**
 
  - Added performance reporting
+ - Added support for empty initial populations
  - Refactor population system
 
 **0.10.14 - 05/16/22**
