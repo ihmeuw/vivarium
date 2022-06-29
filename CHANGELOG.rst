@@ -1,3 +1,8 @@
+**0.10.15 - 06/29/22**
+
+ - Added performance reporting
+ - Refactor population system
+
 **0.10.14 - 05/16/22**
 
  - Fixed pandas FutureWarning in `randomness.get_draw`
