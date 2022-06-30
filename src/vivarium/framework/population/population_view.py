@@ -329,11 +329,12 @@ class PopulationView:
                 )
 
             if adding_simulants:
+                state_table_new_simulants = state_table.loc[population_update.index, :]
                 conflicting_columns = [
                     column
                     for column in population_update
-                    if state_table.loc[population_update.index, column].notnull().any()
-                    and not population_update[column].equals(state_table[column])
+                    if state_table_new_simulants[column].notnull().any()
+                    and not population_update[column].equals(state_table_new_simulants[column])
                 ]
                 if conflicting_columns:
                     raise PopulationError(
