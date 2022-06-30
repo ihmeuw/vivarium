@@ -4,7 +4,6 @@ import random
 from typing import Union
 
 import pandas as pd
-import pandas.testing as pdt
 import pytest
 
 from vivarium.framework.population import (
@@ -583,6 +582,27 @@ def test__format_update_and_check_preconditions_time_step_pass(
         COL_NAMES + NEW_COL_NAMES,
         False,
         False,
+    )
+    update = PopulationView._coerce_to_dataframe(
+        population_update,
+        COL_NAMES + NEW_COL_NAMES,
+    )
+
+    assert set(result.columns) == set(update)
+    for col in update:
+        assert result[col].equals(update[col])
+
+
+def test__format_update_and_check_preconditions_adding_simulants_replace_identical_data(
+    population_update,
+    update_index,
+):
+    result = PopulationView._format_update_and_check_preconditions(
+        population_update,
+        BASE_POPULATION,
+        COL_NAMES + NEW_COL_NAMES,
+        False,
+        True,
     )
     update = PopulationView._coerce_to_dataframe(
         population_update,
