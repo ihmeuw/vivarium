@@ -334,7 +334,9 @@ class PopulationView:
                     column
                     for column in population_update
                     if state_table_new_simulants[column].notnull().any()
-                    and not population_update[column].equals(state_table_new_simulants[column])
+                    and not population_update[column].equals(
+                        state_table_new_simulants[column]
+                    )
                 ]
                 if conflicting_columns:
                     raise PopulationError(
