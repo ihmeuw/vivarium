@@ -1,6 +1,7 @@
 **0.10.16 - 06/30/22**
 
  - Fix a bug in adding new simulants to a population
+ - Add CODEOWNERS file
 
 **0.10.15 - 06/29/22**
 
