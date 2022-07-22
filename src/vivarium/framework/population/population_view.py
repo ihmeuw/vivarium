@@ -215,8 +215,7 @@ class PopulationView:
         )
         if self._manager.creating_initial_population:
             new_columns = list(set(population_update).difference(state_table))
-            for col in new_columns:
-                self._manager._population.loc[:, col] = population_update[col]
+            self._manager._population[new_columns] = population_update[new_columns]
         elif not population_update.empty:
             update_columns = list(set(population_update).intersection(state_table))
             for column in update_columns:
