@@ -1,3 +1,7 @@
+**0.10.17 - 07/25/22**
+
+ - Fix bug when initializing tracked column
+
 **0.10.16 - 06/30/22**
 
  - Fix a bug in adding new simulants to a population
