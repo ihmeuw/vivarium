@@ -106,7 +106,7 @@ def run(
     configure_logging_to_terminal(verbose)
 
     start = time()
-    results_root = get_output_root(results_directory, model_specification)
+    results_root = get_output_root(results_directory, model_specification, artifact_path)
     results_root.mkdir(parents=True, exist_ok=False)
 
     configure_logging_to_file(results_root)
