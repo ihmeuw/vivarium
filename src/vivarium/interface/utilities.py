@@ -132,7 +132,7 @@ def get_output_location_like_string(
         try:
             location = Path(model_spec["configuration"]["input_data"]["artifact_path"]).stem
         except KeyError:
-            location = model_spec_path.stem
+            location = Path(model_spec_path).stem
     return location
 
 
