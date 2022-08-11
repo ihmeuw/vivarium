@@ -107,11 +107,11 @@ def raise_if_not_setup(system_type):
     return method_wrapper
 
 
-def get_output_location_like_string(
+def get_output_model_name_string(
     artifact_path: Union[str, Path],
     model_spec_path: Union[str, Path],
 ) -> str:
-    """Find a good string to use as model_name or location in output path creation.
+    """Find a good string to use as model name in output path creation.
 
     Parameters
     ----------
@@ -123,18 +123,18 @@ def get_output_location_like_string(
     Returns
     -------
     str
-        A location-like string for use in output labeling.
+        A model name string for use in output labeling.
     """
     if artifact_path:
-        location = Path(artifact_path).stem
+        model_name = Path(artifact_path).stem
     else:
         with open(model_spec_path) as model_spec_file:
             model_spec = yaml.safe_load(model_spec_file)
         try:
-            location = Path(model_spec["configuration"]["input_data"]["artifact_path"]).stem
+            model_name = Path(model_spec["configuration"]["input_data"]["artifact_path"]).stem
         except KeyError:
-            location = Path(model_spec_path).stem
-    return location
+            model_name = Path(model_spec_path).stem
+    return model_name
 
 
 def get_output_root(
@@ -143,7 +143,7 @@ def get_output_root(
     artifact_path: Union[str, Path],
 ):
     launch_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
-    model_name = get_output_location_like_string(artifact_path, model_specification_file)
+    model_name = get_output_model_name_string(artifact_path, model_specification_file)
     output_root = Path(results_directory + f"/{model_name}/{launch_time}")
     return output_root
 
