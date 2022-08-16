@@ -7,7 +7,9 @@ _ARTIFACT_STEM = "artifact_name"
 _ARTIFACT_FROM_MODEL_SPEC_STEM = f"{_ARTIFACT_STEM}_from_model_spec"
 
 _ARTIFACT_PATH = Path(f"/totally/fake/path/for/artifact/{_ARTIFACT_STEM}.hdf")
-_MODEL_SPEC_ARTIFACT_PATH = Path(f"/totally/fake/path/for/artifact/{_ARTIFACT_FROM_MODEL_SPEC_STEM}.hdf")
+_MODEL_SPEC_ARTIFACT_PATH = Path(
+    f"/totally/fake/path/for/artifact/{_ARTIFACT_FROM_MODEL_SPEC_STEM}.hdf"
+)
 
 _MODEL_SPEC_CONTENTS_WITHOUT = """
 configuration:
@@ -15,9 +17,12 @@ configuration:
         input_draw_number: 0
 """
 
-_MODEL_SPEC_CONTENTS_WITH = (_MODEL_SPEC_CONTENTS_WITHOUT + f"""
+_MODEL_SPEC_CONTENTS_WITH = (
+    _MODEL_SPEC_CONTENTS_WITHOUT
+    + f"""
         artifact_path: '{_MODEL_SPEC_ARTIFACT_PATH}'
-""")
+"""
+)
 
 
 def _write_file(path: Path, contents: str):
