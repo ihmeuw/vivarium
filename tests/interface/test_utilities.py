@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from vivarium.interface.utilities import get_output_model_name_string
 
 _MODEL_SPEC_STEM = "model_spec_name"
@@ -30,29 +32,42 @@ def _write_file(path: Path, contents: str):
         file.write(contents)
 
 
-def test_get_output_model_name_string(tmp_path):
-    # Three cases to test:
-    # 1. Given an input artifact path, use that
-    # 2. Without an input artifact path, but given model spec with artifact, use that
-    # 3. Without the things in 1 and 2, choose the stem of the model spec
+@pytest.mark.parametrize(
+    "artifact_path, model_spec_filename, contents, expected_output",
+    [
+        (
+            # Given an input artifact path, use that
+            _ARTIFACT_PATH,
+            f"{_MODEL_SPEC_STEM}_with.yaml",
+            _MODEL_SPEC_CONTENTS_WITH,
+            _ARTIFACT_STEM,
+        ),
+        (
+            # Without an input artifact path, but given model spec with artifact, use that
+            None,
+            f"{_MODEL_SPEC_STEM}_with.yaml",
+            _MODEL_SPEC_CONTENTS_WITH,
+            _ARTIFACT_FROM_MODEL_SPEC_STEM,
+        ),
+        (
+            # Without the things in previous parameters, choose the stem of the model spec
+            None,
+            f"{_MODEL_SPEC_STEM}.yaml",
+            _MODEL_SPEC_CONTENTS_WITHOUT,
+            _MODEL_SPEC_STEM,
+        ),
+    ],
+)
+def test_get_output_model_name_string(
+    artifact_path,
+    model_spec_filename,
+    contents,
+    expected_output,
+    tmp_path,
+):
+    model_spec_path = Path(f"{tmp_path}/{model_spec_filename}")
+    _write_file(model_spec_path, contents)
 
-    # Write contents to tmp_path/model spec
-    model_spec_path_with_artifact = Path(f"{tmp_path}/{_MODEL_SPEC_STEM}_with.yaml")
-    model_spec_path_without_artifact = Path(f"{tmp_path}/{_MODEL_SPEC_STEM}.yaml")
-    _write_file(model_spec_path_without_artifact, _MODEL_SPEC_CONTENTS_WITHOUT)
-    _write_file(model_spec_path_with_artifact, _MODEL_SPEC_CONTENTS_WITH)
+    output = get_output_model_name_string(artifact_path, model_spec_path)
 
-    inputs = [
-        (_ARTIFACT_PATH, model_spec_path_with_artifact),
-        (None, model_spec_path_with_artifact),
-        (None, model_spec_path_without_artifact),
-    ]
-
-    outputs = [get_output_model_name_string(*i) for i in inputs]
-
-    expected_outputs = [
-        _ARTIFACT_STEM,
-        _ARTIFACT_FROM_MODEL_SPEC_STEM,
-        _MODEL_SPEC_STEM,
-    ]
-    assert outputs == expected_outputs
+    assert output == expected_output
