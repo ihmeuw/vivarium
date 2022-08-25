@@ -7,6 +7,11 @@ from vivarium.framework.results.exceptions import ResultsConfigurationError
 
 
 class ResultsContext:
+    """
+    Object contained within the ResultsManager organizing observations and the stratifications they require.
+
+    TODO: add more details when implementing
+    """
 
     def __init__(self):
         self._default_stratifications = []  # type: List[str]
@@ -32,6 +37,7 @@ class ResultsContext:
         mapper: Callable,
         is_vectorized: bool
     ):
+        # TODO: implement this with stratifications
         # self._stratifications.append(
         #     Stratification(name, sources, categories, mapper, is_vectorized)
         # )

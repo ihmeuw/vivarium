@@ -9,6 +9,19 @@ from vivarium.framework.results.context import ResultsContext
 
 
 class ResultsManager:
+    """Backend manager object for the results management system.
+
+    The :class:`ResultManager` actually performs the actions needed to
+    stratify and observe results. It contains the public methods used by the
+    :class:`ResultsInterface` to register stratifications and observations,
+    which provide it with lists of methods to apply in their respective areas.
+    This Manager takes the place of the ResultsStratifier and all the
+    previous Observer components, leaving only the need to register
+    stratifications and observations. It is able to record observations at
+    any of the time-step sub-steps (`time_step__prepare`, `time_step`,
+    `time_step__cleanup`, and `collect_metrics`).
+
+    """
 
     def __init__(self):
         self._metrics = Counter()
@@ -136,7 +149,34 @@ class ResultsManager:
 class ResultsInterface:
     """Builder interface for the results management system.
 
-    TODO: add details
+    The results management system allows users to delegate results production
+    to the simulation framework. This process attempts to roughly mimic the
+    groupby-apply logic commonly done when manipulating :mod:`pandas`
+    DataFrames. The representation of state in the simulation is complex,
+    however, as it includes information both in the population state table
+    and dynamically generated information available from the
+    :class:`value pipelines <vivarium.framework.values.Pipeline>`.
+    Additionally, good encapsulation of simulation logic typically has
+    results production separated from the modeling code into specialized
+    `Observer` components. This often highlights the need for transformations
+    of the simulation state into representations that aren't needed for
+    modeling, but are required for the stratification of produced results.
+
+
+    The purpose of this interface is to provide controlled access to a results
+    backend by means of the builder object. It exposes methods
+    to register stratifications, set default stratifications, and register
+    results producers. There is a special case for stratifications generated
+    by binning continuous data into categories.
+
+    The expected use pattern would be for a single component to register all
+    stratifications required by the model using :func:`register_default_stratifications`,
+    :func:`register_stratification`, and :func:`register_binned_stratification`
+    as necessary. A “binned stratification” is a stratification special case for
+    the very common situation when a continuous value needs to be binned into
+    categorical bins. The is_vectorized argument should be True if the mapper
+    function expects a DataFrame, and False if it expects a row of the DataFrame
+    and should be used by calling df.apply.
     """
 
     def __init__(self, manager: ResultsManager) -> None:
@@ -145,6 +185,8 @@ class ResultsInterface:
     def set_default_stratifications(self, default_stratifications: List[str]):
         self._manager.set_default_stratifications(default_stratifications)
 
+    # TODO: It is not reflected in the sample code here, but the “when” parameter should be added
+    #  to the stratification registration calls, probably as a List.
     def register_stratification(
         self,
         name: str,
@@ -154,8 +196,30 @@ class ResultsInterface:
         requires_columns: List[str] = (),
         requires_values: List[str] = (),
     ) -> None:
+        # TODO: Fill in the XXX below!
+        """Register quantities to observe.
 
-        self._manager.register_stratification(...)
+        Parameters
+        ----------
+        name
+            XXX
+        categories
+            XXX
+        mapper
+            XXX
+        is_vectorized
+            XXX
+        requires_columns
+            XXX
+        requires_values
+            XXX
+
+        Returns
+        ------
+        None
+        """
+        ...
+        # self._manager.register_stratification(...)
 
     def register_binned_stratification(
         self,
