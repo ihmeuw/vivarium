@@ -1,9 +1,9 @@
 """
-================================
-Population Management Exceptions
-================================
+==========================
+Results System Exceptions
+==========================
 
-Errors related to the results manager
+Errors related to the results system
 """
 
 from vivarium.exceptions import VivariumError
