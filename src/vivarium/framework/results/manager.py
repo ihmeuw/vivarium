@@ -37,6 +37,7 @@ class ResultsManager:
     def metrics(self):
         return self._metrics.copy()
 
+    # noinspection PyAttributeOutsideInit
     def setup(self, builder):
         self.population_view = builder.population.get_view([])
         self.clock = builder.time.clock()
@@ -182,7 +183,7 @@ class ResultsInterface:
     :func:`register_stratification`, and :func:`register_binned_stratification`
     as necessary. A “binned stratification” is a stratification special case for
     the very common situation when a continuous value needs to be binned into
-    categorical bins. The is_vectorized argument should be True if the mapper
+    categorical bins. The `is_vectorized` argument should be True if the mapper
     function expects a DataFrame, and False if it expects a row of the DataFrame
     and should be used by calling df.apply.
     """
@@ -210,23 +211,27 @@ class ResultsInterface:
         requires_columns: List[str] = (),
         requires_values: List[str] = (),
     ) -> None:
-        # TODO: Fill in the XXX below!
         """Register quantities to observe.
 
         Parameters
         ----------
         name
-            XXX
+            Name of the of the column created by the stratification.
         categories
-            XXX
+            List of string values that the mapper is allowed to output.
         mapper
-            XXX
+            A callable that emits values in `categories` given inputs from columns
+            and values in the `requires_columns` and `requires_values`, respectively.
         is_vectorized
-            XXX
+            `True` if the mapper function expects a `DataFrame`, and `False` if it
+            expects a row of the `DataFrame` and should be used by calling :func:`df.apply`.
         requires_columns
-            XXX
+            A list of the state table columns that already need to be present
+            and populated in the state table before the pipeline modifier
+            is called.
         requires_values
-            XXX
+            A list of the value pipelines that need to be properly sourced
+            before the pipeline modifier is called.
 
         Returns
         ------

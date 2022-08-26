@@ -6,6 +6,7 @@ import pandas as pd
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 
 
+# TODO: ResultsContext needs tests added to test_engine or elsewhere...
 class ResultsContext:
     """
     Object contained within the ResultsManager organizing observations and the stratifications they require.
