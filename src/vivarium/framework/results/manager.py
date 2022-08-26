@@ -16,11 +16,9 @@ class ResultsManager:
     stratify and observe results. It contains the public methods used by the
     :class:`ResultsInterface` to register stratifications and observations,
     which provide it with lists of methods to apply in their respective areas.
-    This Manager takes the place of the ResultsStratifier and all the
-    previous Observer components, leaving only the need to register
-    stratifications and observations. It is able to record observations at
-    any of the time-step sub-steps (`time_step__prepare`, `time_step`,
-    `time_step__cleanup`, and `collect_metrics`).
+    It is able to record observations at any of the time-step sub-steps
+    (`time_step__prepare`, `time_step`, `time_step__cleanup`, and
+    `collect_metrics`).
     """
 
     def __init__(self):
