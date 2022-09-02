@@ -16,7 +16,9 @@ STUDENT_TABLE = pd.DataFrame(
 )
 STUDENT_HOUSES = pd.Series(["gryffindor", "slytherin", "ravenclaw"])
 
-
+##################
+# Helper methods #
+##################
 def sorting_hat_vector(state_table: pd.DataFrame) -> pd.Series:
     sorted_series = state_table.apply(sorting_hat_serial, axis=1)
     return sorted_series
@@ -38,7 +40,9 @@ def sorting_hat_bad_mapping(simulant_row: pd.Series) -> str:
     # Return something not in CATEGORIES
     return "pancakes"
 
-
+#########
+# Tests #
+#########
 @pytest.mark.parametrize(
     "name, sources, categories, mapper, is_vectorized, expected_output",
     [
