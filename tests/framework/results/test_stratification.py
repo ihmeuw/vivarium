@@ -40,6 +40,7 @@ def sorting_hat_bad_mapping(simulant_row: pd.Series) -> str:
     # Return something not in CATEGORIES
     return "pancakes"
 
+
 #########
 # Tests #
 #########
