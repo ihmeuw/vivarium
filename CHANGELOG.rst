@@ -1,3 +1,9 @@
+**0.10.18 - 09/20/22**
+
+ - Standardize results directories
+ - Adds ability to run without artifact
+ - Specify correct permissions when creating directories and files
+
 **0.10.17 - 07/25/22**
 
  - Fix bug when initializing tracked column
