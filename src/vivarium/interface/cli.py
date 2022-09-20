@@ -30,6 +30,7 @@ simulations from the command line.
 
 """
 import cProfile
+import os
 import pstats
 import shutil
 from pathlib import Path
@@ -107,6 +108,8 @@ def run(
 
     start = time()
     results_root = get_output_root(results_directory, model_specification)
+    # Update permissions mask (assign to variable to avoid printing previous value)
+    old_mask = os.umask(0o002)
     results_root.mkdir(parents=True, exist_ok=False)
 
     configure_logging_to_file(results_root)
