@@ -9,10 +9,11 @@ from .mocks import (
     CATEGORIES,
     NAME,
     SOURCES,
-    sorting_hat_vector,
-    sorting_hat_serial,
     sorting_hat_bad_mapping,
+    sorting_hat_serial,
+    sorting_hat_vector,
 )
+
 
 @pytest.mark.parametrize(
     "name, sources, categories, mapper, is_vectorized",

@@ -9,9 +9,11 @@ from vivarium.framework.results.stratification import Stratification
 
 class ResultsContext:
     """
-    Object contained within the ResultsManager organizing observations and the stratifications they require.
+    Manager context for organizing observations and the stratifications they require.
 
-    TODO: add more details when implementing
+    This context object is wholly contained by the manager :class:`vivarium.framework.results.manager.ResultsManger`.
+    Stratifications can be added to the context through the manager via the
+    :meth:`vivarium.framework.results.context.ResultsContext.add_observation` method.
     """
 
     def __init__(self):
@@ -43,10 +45,31 @@ class ResultsContext:
         mapper: Callable,
         is_vectorized: bool,
     ):
+        """Add a stratification to the context.
+
+        Parameters
+        ----------
+        name
+            Name of the of the column created by the stratification.
+        sources
+            A list of the columns and values needed for the mapper to determinate
+            categorization.
+        categories
+            List of string values that the mapper is allowed to output.
+        mapper
+            A callable that emits values in `categories` given inputs from columns
+            and values in the `requires_columns` and `requires_values`, respectively.
+        is_vectorized
+            `True` if the mapper function expects a `DataFrame`, and `False` if it
+            expects a row of the `DataFrame` and should be used by calling :func:`df.apply`.
+
+
+        Returns
+        ------
+        None
+        """
         stratification = Stratification(name, sources, categories, mapper, is_vectorized)
-        self._stratifications.append(
-            stratification
-        )
+        self._stratifications.append(stratification)
 
     def add_observation(
         self,
@@ -58,7 +81,7 @@ class ResultsContext:
         when: str = "collect_metrics",
         **additional_keys: str,
     ):
-        # XXX WTF IS THIS
+        # TODO: _producers doesn't exist, stub code needs bugfix at observation implementation time
         groupers = self._get_groupers(additional_stratifications, excluded_stratifications)
         (
             self._producers[when][(pop_filter, groupers)].append(

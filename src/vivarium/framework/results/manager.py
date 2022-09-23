@@ -85,6 +85,32 @@ class ResultsManager:
         requires_columns: List[str] = (),
         requires_values: List[str] = (),
     ) -> None:
+        """Manager-level stratification registration, including resources and the stratification itself.
+
+        Parameters
+        ----------
+        name
+            Name of the of the column created by the stratification.
+        categories
+            List of string values that the mapper is allowed to output.
+        mapper
+            A callable that emits values in `categories` given inputs from columns
+            and values in the `requires_columns` and `requires_values`, respectively.
+        is_vectorized
+            `True` if the mapper function expects a `DataFrame`, and `False` if it
+            expects a row of the `DataFrame` and should be used by calling :func:`df.apply`.
+        requires_columns
+            A list of the state table columns that already need to be present
+            and populated in the state table before the pipeline modifier
+            is called.
+        requires_values
+            A list of the value pipelines that need to be properly sourced
+            before the pipeline modifier is called.
+
+        Returns
+        ------
+        None
+        """
         self._add_resources(requires_columns, "column")
         self._add_resources(requires_values, "value")
         target_columns = list(requires_columns) + list(requires_values)

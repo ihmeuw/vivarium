@@ -10,9 +10,9 @@ from .mocks import (
     SOURCES,
     STUDENT_HOUSES,
     STUDENT_TABLE,
-    sorting_hat_vector,
-    sorting_hat_serial,
     sorting_hat_bad_mapping,
+    sorting_hat_serial,
+    sorting_hat_vector,
 )
 
 
