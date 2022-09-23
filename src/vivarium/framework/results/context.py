@@ -4,9 +4,9 @@ from typing import Callable, Dict, List, Tuple
 import pandas as pd
 
 from vivarium.framework.results.exceptions import ResultsConfigurationError
+from vivarium.framework.results.stratification import Stratification
 
 
-# TODO: ResultsContext needs tests added to test_engine or elsewhere...
 class ResultsContext:
     """
     Object contained within the ResultsManager organizing observations and the stratifications they require.
@@ -21,6 +21,7 @@ class ResultsContext:
         # values are dicts with key (filter, grouper) value (measure, aggregator, additional_keys)
         self._observations = defaultdict(lambda: defaultdict(list))
 
+    # noinspection PyAttributeOutsideInit
     def set_default_stratifications(self, default_grouping_columns: List[str]):
         if self._default_stratifications:
             raise ResultsConfigurationError(
@@ -42,11 +43,10 @@ class ResultsContext:
         mapper: Callable,
         is_vectorized: bool,
     ):
-        # TODO: implement this with stratifications
-        # self._stratifications.append(
-        #     Stratification(name, sources, categories, mapper, is_vectorized)
-        # )
-        ...
+        stratification = Stratification(name, sources, categories, mapper, is_vectorized)
+        self._stratifications.append(
+            stratification
+        )
 
     def add_observation(
         self,
@@ -58,6 +58,7 @@ class ResultsContext:
         when: str = "collect_metrics",
         **additional_keys: str,
     ):
+        # XXX WTF IS THIS
         groupers = self._get_groupers(additional_stratifications, excluded_stratifications)
         (
             self._producers[when][(pop_filter, groupers)].append(
