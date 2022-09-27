@@ -93,11 +93,11 @@ def test_register_stratification_with_pipelines(
     verify_stratification_added(mgr, name, categories, sources, mapper, is_vectorized)
 
 
-# def test_duplicate_register_stratification(mocker):
-#     mgr = ResultsManager()
-#     builder = mocker.Mock()
-#     mgr.setup(builder)
-#     mgr.register_stratification(NAME, CATEGORIES, sorting_hat_serial, False, SOURCES, [])
-#     mgr.register_stratification(NAME, CATEGORIES, sorting_hat_serial, False, SOURCES, [])
-# TODO: Decide what should happen on duplicate stratifications:
-#   a) context throws a ValueError, b) overwrite the existing named Stratification, c) keep dupes?
+def test_duplicate_name_register_stratification(mocker):
+    mgr = ResultsManager()
+    builder = mocker.Mock()
+    mgr.setup(builder)
+    mgr.register_stratification(NAME, CATEGORIES, sorting_hat_serial, False, SOURCES, [])
+    with pytest.raises(ValueError):
+        mgr.register_stratification(NAME, CATEGORIES, sorting_hat_vector, True, SOURCES, [])
+

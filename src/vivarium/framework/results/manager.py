@@ -111,12 +111,12 @@ class ResultsManager:
         ------
         None
         """
-        self._add_resources(requires_columns, "column")
-        self._add_resources(requires_values, "value")
         target_columns = list(requires_columns) + list(requires_values)
         self._results_context.add_stratification(
             name, target_columns, categories, mapper, is_vectorized
         )
+        self._add_resources(requires_columns, "column")
+        self._add_resources(requires_values, "value")
 
     def register_binned_stratification(
         self,

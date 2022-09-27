@@ -68,6 +68,8 @@ class ResultsContext:
         ------
         None
         """
+        if len([s.name for s in self._stratifications if s.name == name]):
+            raise ValueError(f"Name `{name}` is already used")
         stratification = Stratification(name, sources, categories, mapper, is_vectorized)
         self._stratifications.append(stratification)
 
