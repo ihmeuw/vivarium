@@ -100,4 +100,3 @@ def test_duplicate_name_register_stratification(mocker):
     mgr.register_stratification(NAME, CATEGORIES, sorting_hat_serial, False, SOURCES, [])
     with pytest.raises(ValueError):
         mgr.register_stratification(NAME, CATEGORIES, sorting_hat_vector, True, SOURCES, [])
-
