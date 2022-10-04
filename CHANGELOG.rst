@@ -1,3 +1,7 @@
+**0.10.19 - 10/04/22**
+
+ - Fix bug on `simulate run` CLI introduced in 0.10.18
+
 **0.10.18 - 09/20/22**
 
  - Standardize results directories
