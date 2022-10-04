@@ -108,7 +108,7 @@ def run(
 
     start = time()
 
-    results_root = get_output_root(results_directory, model_specification)
+    results_root = get_output_root(results_directory, model_specification, artifact_path)
     # Update permissions mask (assign to variable to avoid printing previous value)
     _ = os.umask(0o002)
     results_root.mkdir(parents=True, exist_ok=False)
