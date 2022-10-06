@@ -4,41 +4,16 @@ import pytest
 
 from vivarium.framework.results.stratification import Stratification
 
-##########################
-# Mock data and fixtures #
-##########################
-NAME = "hogwarts_house"
-SOURCES = ["first_name", "last_name"]
-CATEGORIES = ["hufflepuff", "ravenclaw", "slytherin", "gryffindor"]
-STUDENT_TABLE = pd.DataFrame(
-    np.array([["harry", "potter"], ["severus", "snape"], ["luna", "lovegood"]]),
-    columns=SOURCES,
+from .mocks import (
+    CATEGORIES,
+    NAME,
+    SOURCES,
+    STUDENT_HOUSES,
+    STUDENT_TABLE,
+    sorting_hat_bad_mapping,
+    sorting_hat_serial,
+    sorting_hat_vector,
 )
-STUDENT_HOUSES = pd.Series(["gryffindor", "slytherin", "ravenclaw"])
-
-##################
-# Helper methods #
-##################
-def sorting_hat_vector(state_table: pd.DataFrame) -> pd.Series:
-    sorted_series = state_table.apply(sorting_hat_serial, axis=1)
-    return sorted_series
-
-
-def sorting_hat_serial(simulant_row: pd.Series) -> str:
-    first_name = simulant_row[0]
-    last_name = simulant_row[1]
-    if first_name == "harry":
-        return "gryffindor"
-    if first_name == "luna":
-        return "ravenclaw"
-    if last_name == "snape":
-        return "slytherin"
-    return "hufflepuff"
-
-
-def sorting_hat_bad_mapping(simulant_row: pd.Series) -> str:
-    # Return something not in CATEGORIES
-    return "pancakes"
 
 
 #########
@@ -64,6 +39,7 @@ def sorting_hat_bad_mapping(simulant_row: pd.Series) -> str:
             STUDENT_HOUSES,
         ),
     ],
+    ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
 def test_stratification(name, sources, categories, mapper, is_vectorized, expected_output):
     my_stratification = Stratification(name, sources, categories, mapper, is_vectorized)
@@ -118,7 +94,7 @@ def test_stratification_init_raises(
 @pytest.mark.parametrize(
     "name, sources, categories, mapper, is_vectorized, expected_exception",
     [
-        (  # map to a category that isn't in CATEGORIES
+        (
             NAME,
             SOURCES,
             CATEGORIES,
@@ -126,7 +102,7 @@ def test_stratification_init_raises(
             False,
             ValueError,
         ),
-        (  # sources not in population columns
+        (
             NAME,
             ["middle_initial"],
             CATEGORIES,
@@ -134,7 +110,7 @@ def test_stratification_init_raises(
             True,
             KeyError,
         ),
-        (  # is_vectorized=True with non-vectorized mapper
+        (
             NAME,
             SOURCES,
             CATEGORIES,
@@ -142,7 +118,7 @@ def test_stratification_init_raises(
             True,
             Exception,
         ),
-        (  # is_vectorized=False with vectorized mapper
+        (
             NAME,
             SOURCES,
             CATEGORIES,
@@ -150,6 +126,12 @@ def test_stratification_init_raises(
             False,
             Exception,
         ),
+    ],
+    ids=[
+        "category_not_in_categories",
+        "source_not_in_population_columns",
+        "vectorized_with_serial_mapper",
+        "not_vectorized_with_serial_mapper",
     ],
 )
 def test_stratification_call_raises(
