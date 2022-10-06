@@ -136,11 +136,12 @@ def test_register_stratification_with_column_and_pipelines(
     assert mocked_column_name in mgr._required_columns
     for item in sources:
         assert item in mgr._required_values
-    sources.append(mocked_column_name)
+    all_sources = sources.copy()
+    all_sources.append(mocked_column_name)
     assert verify_stratification_added(
         mgr._results_context._stratifications,
         name,
-        sources,
+        all_sources,
         categories,
         mapper,
         is_vectorized,
