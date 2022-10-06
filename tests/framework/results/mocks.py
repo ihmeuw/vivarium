@@ -37,3 +37,22 @@ def sorting_hat_serial(simulant_row: pd.Series) -> str:
 def sorting_hat_bad_mapping(simulant_row: pd.Series) -> str:
     # Return something not in CATEGORIES
     return "pancakes"
+
+
+def verify_stratification_added(
+    stratification_list, name, sources, categories, mapper, is_vectorized
+):
+    """Verify that a :class: `vivarium.framework.results.stratification.Stratification` is in `stratification_list`"""
+    matching_stratification_found = False
+    for stratification in stratification_list:  # noqa
+        # big equality check
+        if (
+            stratification.name == name
+            and sorted(stratification.categories) == sorted(categories)
+            and stratification.mapper == mapper
+            and stratification.is_vectorized == is_vectorized
+            and sorted(stratification.sources) == sorted(sources)
+        ):
+            matching_stratification_found = True
+            break
+    return matching_stratification_found

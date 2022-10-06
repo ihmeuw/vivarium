@@ -39,6 +39,7 @@ from .mocks import (
             STUDENT_HOUSES,
         ),
     ],
+    ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
 def test_stratification(name, sources, categories, mapper, is_vectorized, expected_output):
     my_stratification = Stratification(name, sources, categories, mapper, is_vectorized)
@@ -93,7 +94,7 @@ def test_stratification_init_raises(
 @pytest.mark.parametrize(
     "name, sources, categories, mapper, is_vectorized, expected_exception",
     [
-        (  # map to a category that isn't in CATEGORIES
+        (
             NAME,
             SOURCES,
             CATEGORIES,
@@ -101,7 +102,7 @@ def test_stratification_init_raises(
             False,
             ValueError,
         ),
-        (  # sources not in population columns
+        (
             NAME,
             ["middle_initial"],
             CATEGORIES,
@@ -109,7 +110,7 @@ def test_stratification_init_raises(
             True,
             KeyError,
         ),
-        (  # is_vectorized=True with non-vectorized mapper
+        (
             NAME,
             SOURCES,
             CATEGORIES,
@@ -117,7 +118,7 @@ def test_stratification_init_raises(
             True,
             Exception,
         ),
-        (  # is_vectorized=False with vectorized mapper
+        (
             NAME,
             SOURCES,
             CATEGORIES,
@@ -125,6 +126,12 @@ def test_stratification_init_raises(
             False,
             Exception,
         ),
+    ],
+    ids=[
+        "category_not_in_categories",
+        "source_not_in_population_columns",
+        "vectorized_with_serial_mapper",
+        "not_vectorized_with_serial_mapper",
     ],
 )
 def test_stratification_call_raises(

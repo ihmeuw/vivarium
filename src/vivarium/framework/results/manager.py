@@ -1,4 +1,5 @@
 from collections import Counter
+from enum import Enum
 from typing import TYPE_CHECKING, Callable, List, Union
 
 import pandas as pd
@@ -9,6 +10,11 @@ from vivarium.framework.results.context import ResultsContext
 if TYPE_CHECKING:
     # Cyclic import
     from vivarium.framework.engine import Builder
+
+
+class SourceType(Enum):
+    COLUMN = 0
+    VALUE = 1
 
 
 class ResultsManager:
@@ -115,8 +121,8 @@ class ResultsManager:
         self._results_context.add_stratification(
             name, target_columns, categories, mapper, is_vectorized
         )
-        self._add_resources(requires_columns, "column")
-        self._add_resources(requires_values, "value")
+        self._add_resources(requires_columns, SourceType.COLUMN)
+        self._add_resources(requires_values, SourceType.VALUE)
 
     def register_binned_stratification(
         self,
@@ -147,8 +153,8 @@ class ResultsManager:
         excluded_stratifications: List[str] = (),
         when: str = "collect_metrics",
     ) -> None:
-        self._add_resources(requires_columns, "column")
-        self._add_resources(requires_values, "value")
+        self._add_resources(requires_columns, SourceType.COLUMN)
+        self._add_resources(requires_values, SourceType.VALUE)
         self._results_context.add_observation(
             name,
             pop_filter,
@@ -158,13 +164,13 @@ class ResultsManager:
             when,
         )
 
-    def _add_resources(self, target: List[str], target_type: str):
+    def _add_resources(self, target: List[str], target_type: SourceType):
         if not len(target):
             return  # do nothing on empty lists
         target = set(target) - {"event_time", "current_time", "step_size"}
-        if target_type == "column":
+        if target_type == SourceType.COLUMN:
             self._required_columns.update(target)
-        elif target_type == "value":
+        elif target_type == SourceType.VALUE:
             self._required_values.update(self.get_value(target))
 
     def _prepare_population(self, event: Event):

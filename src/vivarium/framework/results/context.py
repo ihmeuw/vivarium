@@ -17,8 +17,8 @@ class ResultsContext:
     """
 
     def __init__(self):
-        self._default_stratifications = []  # type: List[str]
-        self._stratifications = []  # type: List[Stratification]
+        self._default_stratifications: List[str] = []
+        self._stratifications: List[Stratification] = []
         # keys are event names
         # values are dicts with key (filter, grouper) value (measure, aggregator, additional_keys)
         self._observations = defaultdict(lambda: defaultdict(list))

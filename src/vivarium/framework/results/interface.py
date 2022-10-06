@@ -33,10 +33,10 @@ class ResultsInterface:
     stratifications required by the model using :func:`register_default_stratifications`,
     :func:`register_stratification`, and :func:`register_binned_stratification`
     as necessary. A “binned stratification” is a stratification special case for
-    the very common situation when a continuous value needs to be binned into
+    the very common situation when a single continuous value needs to be binned into
     categorical bins. The `is_vectorized` argument should be True if the mapper
-    function expects a DataFrame, and False if it expects a row of the DataFrame
-    and should be used by calling df.apply.
+    function expects a DataFrame corresponding to the whole population, and False
+    if it expects a row of the DataFrame corresponding to a single simulant.
     """
 
     def __init__(self, manager: "ResultsManager") -> None:
