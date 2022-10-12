@@ -68,7 +68,11 @@ class Interpolation:
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
             # columns to get the sub-tables to fit
-            sub_tables = self.data.groupby(list(self.key_columns))
+            if len(self.key_columns) == 1:
+                # Pass element instead of list of length 1 to avoid FutureWarning
+                sub_tables = self.data.groupby(self.key_columns[0])
+            else:
+                sub_tables = self.data.groupby(list(self.key_columns))
         else:
             # There are no key columns so we will fit the whole table
             sub_tables = {None: self.data}.items()
@@ -107,7 +111,11 @@ class Interpolation:
             validate_call_data(interpolants, self.key_columns, self.parameter_columns)
 
         if self.key_columns:
-            sub_tables = interpolants.groupby(list(self.key_columns))
+            if len(self.key_columns) == 1:
+                # Pass element instead of list of length 1 to avoid FutureWarning
+                sub_tables = interpolants.groupby(self.key_columns[0])
+            else:
+                sub_tables = interpolants.groupby(list(self.key_columns))
         else:
             sub_tables = [(None, interpolants)]
         # specify some numeric type for columns so they won't be objects but will updated with whatever
@@ -212,7 +220,11 @@ def check_data_complete(data, parameter_columns):
     for p in param_edges:
         other_params = [p_ed[0] for p_ed in param_edges if p_ed != p]
         if other_params:
-            sub_tables = data.groupby(list(other_params))
+            if len(other_params) == 1:
+                # Pass element instead of list of length 1 to avoid FutureWarning
+                sub_tables = data.groupby(other_params[0])
+            else:
+                sub_tables = data.groupby(list(other_params))
         else:
             sub_tables = {None: data}.items()
 

@@ -83,7 +83,8 @@ def _groupby_new_state(
 
     """
     output_map = {o: i for i, o in enumerate(outputs)}
-    groups = pd.Series(index).groupby([output_map[d] for d in decisions])
+    # Pass grouper as Series to avoid FutureWarning about passing list of length 1
+    groups = pd.Series(index).groupby(pd.Series([output_map[d] for d in decisions]))
     results = [(outputs[i], pd.Index(sub_group.values)) for i, sub_group in groups]
     selected_outputs = [o for o, _ in results]
     for output in outputs:
