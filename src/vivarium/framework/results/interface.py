@@ -128,8 +128,9 @@ class ResultsInterface:
         ------
         None
         """
-        self._manager.register_binned_stratification(target, target_type, binned_column, bins, labels, **cut_kwargs)
-
+        self._manager.register_binned_stratification(
+            target, target_type, binned_column, bins, labels, **cut_kwargs
+        )
 
     def register_observation(
         self,

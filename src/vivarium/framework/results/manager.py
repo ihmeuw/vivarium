@@ -155,11 +155,14 @@ class ResultsManager:
         ------
         None
         """
+
         def _bin_data(data: pd.Series) -> pd.Series:
             return pd.cut(data, bins, labels=labels, **cut_kwargs)
 
         if len(bins) != len(labels):
-            raise ValueError(f"Bin length ({len(bins)}) does not match labels length ({len(labels)})")
+            raise ValueError(
+                f"Bin length ({len(bins)}) does not match labels length ({len(labels)})"
+            )
         target_arg = "required_columns" if target_type == "column" else "required_values"
         target_kwargs = {target_arg: [target]}
         self.register_stratification(
