@@ -13,6 +13,11 @@ STUDENT_TABLE = pd.DataFrame(
 )
 STUDENT_HOUSES = pd.Series(["gryffindor", "slytherin", "ravenclaw"])
 
+BIN_BINNED_COLUMN = "silly_bin"
+BIN_SOURCE = "silly_level"
+BIN_LABELS = ["not", "meh", "somewhat", "very", "extra"]
+BIN_SILLY_BINS = [0, 20, 40, 60, 90]
+
 
 ##################
 # Helper methods #

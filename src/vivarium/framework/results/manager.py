@@ -133,9 +133,33 @@ class ResultsManager:
         labels: List[str],
         **cut_kwargs,
     ) -> None:
+        """Manager-level registration of a continuous `target` quantity to observe into bins in a `binned_column`.
+
+        Parameters
+        ----------
+        target
+            String name of the state table column or value pipeline used to stratify.
+        target_type
+            "column" or "value"
+        binned_column
+            String name of the column for the binned quantities.
+        bins
+            List of scalars defining the bin edges, passed to :meth: pandas.cut. Lists
+            `bins` and `labels` must be of equal length.
+        labels
+            List of string labels for bins. Lists `bins` and `labels` must be of equal length.
+        **cut_kwargs
+            Keyword arguments for :meth: pandas.cut.
+
+        Returns
+        ------
+        None
+        """
         def _bin_data(data: pd.Series) -> pd.Series:
             return pd.cut(data, bins, labels=labels, **cut_kwargs)
 
+        if len(bins) != len(labels):
+            raise ValueError(f"Bin length ({len(bins)}) does not match labels length ({len(labels)})")
         target_arg = "required_columns" if target_type == "column" else "required_values"
         target_kwargs = {target_arg: [target]}
         self.register_stratification(
