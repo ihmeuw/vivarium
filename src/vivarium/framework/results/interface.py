@@ -106,7 +106,31 @@ class ResultsInterface:
         target_type: str = "column",
         **cut_kwargs,
     ) -> None:
-        self._manager.register_binned_stratification(...)
+        """Register a continuous `target` quantity to observe into bins in a `binned_column`.
+
+        Parameters
+        ----------
+        target
+            String name of the state table column or value pipeline used to stratify.
+        binned_column
+            String name of the column for the binned quantities.
+        bins
+            List of scalars defining the bin edges, passed to :meth: pandas.cut. Lists
+            `bins` and `labels` must be of equal length.
+        labels
+            List of string labels for bins. Lists `bins` and `labels` must be of equal length.
+        target_type
+            "column" or "value"
+        **cut_kwargs
+            Keyword arguments for :meth: pandas.cut.
+
+        Returns
+        ------
+        None
+        """
+        self._manager.register_binned_stratification(
+            target, target_type, binned_column, bins, labels, **cut_kwargs
+        )
 
     def register_observation(
         self,
