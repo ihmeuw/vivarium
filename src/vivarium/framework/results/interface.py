@@ -166,7 +166,7 @@ class ResultsInterface:
             names to remove from the observation.
         when
             String name of the phase of a time-step the observation should happen. Valid values are:
-            ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"]
+            `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
 
         Returns
         ------

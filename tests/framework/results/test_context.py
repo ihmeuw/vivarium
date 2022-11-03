@@ -1,15 +1,12 @@
-import numpy as np
 import pandas as pd
 import pytest
 
 from vivarium.framework.results.context import ResultsContext
-from vivarium.framework.results.stratification import Stratification
 
 from .mocks import (
     CATEGORIES,
     NAME,
     SOURCES,
-    sorting_hat_bad_mapping,
     sorting_hat_serial,
     sorting_hat_vector,
     verify_stratification_added,
