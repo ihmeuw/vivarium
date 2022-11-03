@@ -19,7 +19,7 @@ class ResultsContext:
     def __init__(self):
         self._default_stratifications: List[str] = []
         self._stratifications: List[Stratification] = []
-        # keys are event names
+        # keys are event names: ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"]
         # values are dicts with key (filter, grouper) value (measure, aggregator, additional_keys)
         self._observations = defaultdict(lambda: defaultdict(list))
 
@@ -83,13 +83,9 @@ class ResultsContext:
         when: str = "collect_metrics",
         **additional_keys: str,
     ):
-        # TODO: _producers doesn't exist, stub code needs bugfix at observation implementation time
+        # TODO: Add check on when being valid, check stratifications existence?
         groupers = self._get_groupers(additional_stratifications, excluded_stratifications)
-        (
-            self._producers[when][(pop_filter, groupers)].append(
-                (name, aggregator, additional_keys)
-            )
-        )
+        self._observations[when][(pop_filter, groupers)].append((name, aggregator, additional_keys))
 
     def gather_results(self, population: pd.DataFrame, event_name: str) -> Dict[str, float]:
         # Optimization: We store all the producers by pop_filter and groupers

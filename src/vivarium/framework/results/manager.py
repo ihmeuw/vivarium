@@ -80,6 +80,7 @@ class ResultsManager:
         #     self._metrics.update(results_group)
 
     def set_default_stratifications(self, default_stratifications: List[str]):
+        # TODO: ought there be default default_stratifications? There is no interface for them in interface.py
         self._results_context.set_default_stratifications(default_stratifications)
 
     def register_stratification(
@@ -180,8 +181,6 @@ class ResultsManager:
         excluded_stratifications: List[str] = (),
         when: str = "collect_metrics",
     ) -> None:
-        self._add_resources(requires_columns, SourceType.COLUMN)
-        self._add_resources(requires_values, SourceType.VALUE)
         self._results_context.add_observation(
             name,
             pop_filter,
@@ -190,6 +189,8 @@ class ResultsManager:
             excluded_stratifications,
             when,
         )
+        self._add_resources(requires_columns, SourceType.COLUMN)
+        self._add_resources(requires_values, SourceType.VALUE)
 
     def _add_resources(self, target: List[str], target_type: SourceType):
         if not len(target):
