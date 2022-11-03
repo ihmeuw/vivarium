@@ -172,5 +172,13 @@ class ResultsInterface:
         ------
         None
         """
-        self._manager.register_observation(name, pop_filter, aggregator, requires_columns, requires_values,
-                                           additional_stratifications, excluded_stratifications, when)
+        self._manager.register_observation(
+            name,
+            pop_filter,
+            aggregator,
+            requires_columns,
+            requires_values,
+            additional_stratifications,
+            excluded_stratifications,
+            when,
+        )

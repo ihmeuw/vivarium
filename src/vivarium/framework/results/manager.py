@@ -80,7 +80,6 @@ class ResultsManager:
         #     self._metrics.update(results_group)
 
     def set_default_stratifications(self, default_stratifications: List[str]):
-        # TODO: ought there be default default_stratifications? There is no interface for them in interface.py
         self._results_context.set_default_stratifications(default_stratifications)
 
     def register_stratification(

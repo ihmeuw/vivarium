@@ -85,7 +85,9 @@ class ResultsContext:
     ):
         # TODO: Add check on when being valid, check stratifications existence?
         groupers = self._get_groupers(additional_stratifications, excluded_stratifications)
-        self._observations[when][(pop_filter, groupers)].append((name, aggregator, additional_keys))
+        self._observations[when][(pop_filter, groupers)].append(
+            (name, aggregator, additional_keys)
+        )
 
     def gather_results(self, population: pd.DataFrame, event_name: str) -> Dict[str, float]:
         # Optimization: We store all the producers by pop_filter and groupers
