@@ -155,6 +155,33 @@ def test_double_add_observation(
 
 
 @pytest.mark.parametrize(
+    "default, additional, excluded, match",
+    [
+        (["age", "sex"], ["age"], [], "age"),
+        (["age", "sex"], [], ["eye_color"], "eye_color"),
+        (["age", "sex"], ["age"], ["eye_color"], "age|eye_color"),
+    ],
+    ids=[
+        "additional_no_operation",
+        "exclude_no_operation",
+        "additional_and_exclude_no_operation",
+    ],
+)
+def test_add_observation_nop_stratifications(default, additional, excluded, match):
+    ctx = ResultsContext()
+    ctx._default_stratifications = default
+    with pytest.warns(UserWarning, match=match):
+        ctx.add_observation(
+            "name",
+            'alive == "alive"',
+            _aggregate_state_person_time,
+            additional,
+            excluded,
+            "collect_metrics",
+        )
+
+
+@pytest.mark.parametrize(
     "default_stratifications, additional_stratifications, excluded_stratifications, expected_groupers",
     [
         ([], [], [], ()),
