@@ -59,3 +59,32 @@ def test_register_observation(
         excluded_stratifications,
     )
     assert len(interface._manager._results_context._observations) == 1
+
+
+def test_register_observations():
+    mgr = ResultsManager()
+    interface = ResultsInterface(mgr)
+    # interface.set_default_stratifications(["age", "sex"])
+    assert len(interface._manager._results_context._observations) == 0
+    interface.register_observation(
+        "living_person_time",
+        'alive == "alive" and undead == False',
+        _silly_aggregator,
+        [],
+        [],
+        [],
+        [],
+        "collect_metrics",
+    )
+    assert len(interface._manager._results_context._observations) == 1
+    interface.register_observation(
+        "undead_person_time",
+        "undead == True",
+        _silly_aggregator,
+        [],
+        [],
+        [],
+        [],
+        "time_step__prepare",
+    )
+    assert len(interface._manager._results_context._observations) == 2
