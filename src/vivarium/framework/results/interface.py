@@ -143,4 +143,42 @@ class ResultsInterface:
         excluded_stratifications: List[str] = (),
         when: str = "collect_metrics",
     ) -> None:
-        self._manager.register_observation(...)
+        """Provide the results system all the information it needs to perform the observation.
+
+        Parameters
+        ----------
+        name
+            String name for the observation.
+        pop_filter
+            A Pandas query filter string to filter the population down to the simulants who should
+            be considered for the observation.
+        aggregator
+            A function that computes the quantity for the observation.
+        requires_columns
+            A list of the state table columns that are required by either the pop_filter or the aggregator.
+        requires_values
+            A list of the value pipelines that are required by either the pop_filter or the aggregator.
+        additional_stratifications
+            A list of additional :class:`stratification <vivarium.framework.results.stratification.Stratification>`
+            names by which to stratify.
+        excluded_stratifications
+            A list of default :class:`stratification <vivarium.framework.results.stratification.Stratification>`
+            names to remove from the observation.
+        when
+            String name of the phase of a time-step the observation should happen. Valid values are:
+            `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
+
+        Returns
+        ------
+        None
+        """
+        self._manager.register_observation(
+            name,
+            pop_filter,
+            aggregator,
+            requires_columns,
+            requires_values,
+            additional_stratifications,
+            excluded_stratifications,
+            when,
+        )
