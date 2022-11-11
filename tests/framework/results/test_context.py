@@ -1,15 +1,12 @@
-import numpy as np
 import pandas as pd
 import pytest
 
 from vivarium.framework.results.context import ResultsContext
-from vivarium.framework.results.stratification import Stratification
 
 from .mocks import (
     CATEGORIES,
     NAME,
     SOURCES,
-    sorting_hat_bad_mapping,
     sorting_hat_serial,
     sorting_hat_vector,
     verify_stratification_added,
@@ -70,3 +67,143 @@ def test_add_stratification_raises(
     ctx = ResultsContext()
     with pytest.raises(expected_exception):
         raise ctx.add_stratification(name, sources, categories, mapper, is_vectorized)
+
+
+def _aggregate_state_person_time(self, x: pd.DataFrame) -> float:
+    """Helper aggregator function for observation testing"""
+    return len(x) * (28 / 365.35)
+
+
+@pytest.mark.parametrize(
+    "name, pop_filter, aggregator, additional_stratifications, excluded_stratifications, when",
+    [
+        (
+            "living_person_time",
+            'alive == "alive" and undead == False',
+            _aggregate_state_person_time,
+            [],
+            [],
+            "collect_metrics",
+        ),
+        (
+            "undead_person_time",
+            "undead == True",
+            _aggregate_state_person_time,
+            [],
+            [],
+            "time_step__prepare",
+        ),
+    ],
+    ids=["valid_on_collect_metrics", "valid_on_time_step__prepare"],
+)
+def test_add_observation(
+    name, pop_filter, aggregator, additional_stratifications, excluded_stratifications, when
+):
+    ctx = ResultsContext()
+    ctx._default_stratifications = ["age", "sex"]
+    assert len(ctx._observations) == 0
+    ctx.add_observation(
+        name,
+        pop_filter,
+        aggregator,
+        additional_stratifications,
+        excluded_stratifications,
+        when,
+    )
+    assert len(ctx._observations) == 1
+
+
+@pytest.mark.parametrize(
+    "name, pop_filter, aggregator, additional_stratifications, excluded_stratifications, when",
+    [
+        (
+            "living_person_time",
+            'alive == "alive" and undead == False',
+            _aggregate_state_person_time,
+            [],
+            [],
+            "collect_metrics",
+        ),
+    ],
+    ids=["valid_on_collect_metrics"],
+)
+def test_double_add_observation(
+    name, pop_filter, aggregator, additional_stratifications, excluded_stratifications, when
+):
+    """Tests a double add of the same stratification, this should result in one additional observation being added to
+    the context."""
+    ctx = ResultsContext()
+    ctx._default_stratifications = ["age", "sex"]
+    assert len(ctx._observations) == 0
+    ctx.add_observation(
+        name,
+        pop_filter,
+        aggregator,
+        additional_stratifications,
+        excluded_stratifications,
+        when,
+    )
+    ctx.add_observation(
+        name,
+        pop_filter,
+        aggregator,
+        additional_stratifications,
+        excluded_stratifications,
+        when,
+    )
+    assert len(ctx._observations) == 1
+
+
+@pytest.mark.parametrize(
+    "default, additional, excluded, match",
+    [
+        (["age", "sex"], ["age"], [], "age"),
+        (["age", "sex"], [], ["eye_color"], "eye_color"),
+        (["age", "sex"], ["age"], ["eye_color"], "age|eye_color"),
+    ],
+    ids=[
+        "additional_no_operation",
+        "exclude_no_operation",
+        "additional_and_exclude_no_operation",
+    ],
+)
+def test_add_observation_nop_stratifications(default, additional, excluded, match):
+    ctx = ResultsContext()
+    ctx._default_stratifications = default
+    with pytest.warns(UserWarning, match=match):
+        ctx.add_observation(
+            "name",
+            'alive == "alive"',
+            _aggregate_state_person_time,
+            additional,
+            excluded,
+            "collect_metrics",
+        )
+
+
+@pytest.mark.parametrize(
+    "default_stratifications, additional_stratifications, excluded_stratifications, expected_groupers",
+    [
+        ([], [], [], ()),
+        (["age", "sex"], ["handedness"], ["age"], ("sex", "handedness")),
+        (["age", "sex"], [], ["age", "sex"], ()),
+        (["age"], [], ["bogus_exclude_column"], ("age",)),
+    ],
+    ids=[
+        "empty_add_empty_exclude",
+        "one_add_one_exclude",
+        "all_defaults_excluded",
+        "bogus_exclude",
+    ],
+)
+def test__get_groupers(
+    default_stratifications,
+    additional_stratifications,
+    excluded_stratifications,
+    expected_groupers,
+):
+    ctx = ResultsContext()
+    # default_stratifications would normally be set via ResultsInterface.set_default_stratifications()
+    ctx._default_stratifications = default_stratifications
+    groupers = ctx._get_groupers(additional_stratifications, excluded_stratifications)
+    assert sorted(groupers) == sorted(expected_groupers)

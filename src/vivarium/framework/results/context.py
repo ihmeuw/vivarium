@@ -1,7 +1,9 @@
+import warnings
 from collections import defaultdict
 from typing import Callable, Dict, List, Tuple
 
 import pandas as pd
+from loguru import logger
 
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.stratification import Stratification
@@ -19,7 +21,7 @@ class ResultsContext:
     def __init__(self):
         self._default_stratifications: List[str] = []
         self._stratifications: List[Stratification] = []
-        # keys are event names
+        # keys are event names: ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"]
         # values are dicts with key (filter, grouper) value (measure, aggregator, additional_keys)
         self._observations = defaultdict(lambda: defaultdict(list))
 
@@ -83,12 +85,10 @@ class ResultsContext:
         when: str = "collect_metrics",
         **additional_keys: str,
     ):
-        # TODO: _producers doesn't exist, stub code needs bugfix at observation implementation time
+        self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
         groupers = self._get_groupers(additional_stratifications, excluded_stratifications)
-        (
-            self._producers[when][(pop_filter, groupers)].append(
-                (name, aggregator, additional_keys)
-            )
+        self._observations[when][(pop_filter, groupers)].append(
+            (name, aggregator, additional_keys)
         )
 
     def gather_results(self, population: pd.DataFrame, event_name: str) -> Dict[str, float]:
@@ -149,3 +149,27 @@ class ResultsContext:
             )
             results[key] = val
         return results
+
+    def _warn_check_stratifications(
+        self, additional_stratifications, excluded_stratifications
+    ):
+        """Check additional and excluded stratifications if they'd not affect
+        stratifications (i.e., would be NOP), and emit warning."""
+        nop_additional = [
+            s for s in additional_stratifications if s in self._default_stratifications
+        ]
+        if len(nop_additional):
+            warnings.warn(
+                f"Specified additional stratifications are already included by default: {nop_additional}",
+                UserWarning,
+            )
+        nop_exclude = [
+            s for s in excluded_stratifications if s not in self._default_stratifications
+        ]
+        if len(nop_exclude):
+            warnings.warn(
+                f"Specified excluded stratifications are already not included by default: {nop_exclude}",
+                UserWarning,
+            )
+        if len(nop_additional) or len(nop_exclude):
+            logger.debug(f"Default stratifications are: {self._default_stratifications}")

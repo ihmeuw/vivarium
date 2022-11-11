@@ -180,8 +180,6 @@ class ResultsManager:
         excluded_stratifications: List[str] = (),
         when: str = "collect_metrics",
     ) -> None:
-        self._add_resources(requires_columns, SourceType.COLUMN)
-        self._add_resources(requires_values, SourceType.VALUE)
         self._results_context.add_observation(
             name,
             pop_filter,
@@ -190,6 +188,8 @@ class ResultsManager:
             excluded_stratifications,
             when,
         )
+        self._add_resources(requires_columns, SourceType.COLUMN)
+        self._add_resources(requires_values, SourceType.VALUE)
 
     def _add_resources(self, target: List[str], target_type: SourceType):
         if not len(target):
