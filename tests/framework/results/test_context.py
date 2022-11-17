@@ -4,6 +4,7 @@ import pytest
 from vivarium.framework.results.context import ResultsContext
 
 from .mocks import (
+    BASE_POPULATION,
     CATEGORIES,
     NAME,
     SOURCES,
@@ -207,3 +208,29 @@ def test__get_groupers(
     ctx._default_stratifications = default_stratifications
     groupers = ctx._get_groupers(additional_stratifications, excluded_stratifications)
     assert sorted(groupers) == sorted(expected_groupers)
+
+
+def test_gather_results():
+    # TODO: do real tests
+    ctx = ResultsContext()
+    # Generate population DataFrame
+    population = BASE_POPULATION
+    event_name = "collect_metrics"
+
+    # Set up stratifications
+    ctx.add_stratification("by_house", ["house"], CATEGORIES, None, True)
+    ctx.add_observation("power_level_by_house", 'tracked=="True"', sum, ["by_house"], [])
+
+    i = 0
+    for r in ctx.gather_results(population, "collect_metrics"):
+        print(r)
+        i += 1
+    assert i == 1
+
+
+def test__format_results():
+    # TODO: do real tests
+    ctx = ResultsContext()
+    rv = ctx._format_results()
+
+    assert True

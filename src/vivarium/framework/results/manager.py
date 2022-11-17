@@ -73,11 +73,10 @@ class ResultsManager:
         self.gather_results("collect_metrics", event)
 
     def gather_results(self, event_name: str, event: Event):
-        # TODO: Add implementation rather than ...
-        ...
-        # population = self._prepare_population(event)
-        # for results_group in self._results_context.gather_results(population, event_name):
-        #     self._metrics.update(results_group)
+        # TODO: XXX
+        population = self._prepare_population(event)
+        for results_group in self._results_context.gather_results(population, event_name):
+            self._metrics.update(results_group)
 
     def set_default_stratifications(self, default_stratifications: List[str]):
         self._results_context.set_default_stratifications(default_stratifications)
@@ -201,7 +200,7 @@ class ResultsManager:
             self._required_values.update(self.get_value(target))
 
     def _prepare_population(self, event: Event):
-
+        # TODO: XXX
         population = self.population_view.subview(list(self._required_columns)).get(
             event.index
         )
