@@ -127,11 +127,13 @@ class ResultsContext:
         results = {}
         # First we expand the categorical index over unobserved pairs.
         # This ensures that the produced results are always the same length.
+        # TODO: handle case where aggregates is not a MultiIndex
         idx = pd.MultiIndex.from_product(
-            #           aggregates.index.levels, names=aggregates.index.names
-            aggregates.index.categories,
-            names=aggregates.index.names,
+                      aggregates.index.levels, names=aggregates.index.names
+            # [aggregates.index.categories],
+            # names=aggregates.index.names,
         )
+        # XXX TODO: problem -- how do we know what the value is?
         data = pd.Series(data=0, index=idx)
         data.loc[aggregates.index] = aggregates
 

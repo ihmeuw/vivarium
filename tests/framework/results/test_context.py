@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 import pandas as pd
 import pytest
 
@@ -6,6 +8,7 @@ from vivarium.framework.results.context import ResultsContext
 from .mocks import (
     BASE_POPULATION,
     CATEGORIES,
+    FAMILIARS,
     NAME,
     SOURCES,
     sorting_hat_serial,
@@ -211,15 +214,22 @@ def test__get_groupers(
 
 
 def test_gather_results():
-    # TODO: do real tests
     ctx = ResultsContext()
+
     # Generate population DataFrame
     population = BASE_POPULATION
+    population.drop(["tracked"], axis=1)
+    # Mock out some extra columns that would be produced by the manager's _prepare_population() method
+    population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
+    population["step_size"] = timedelta(days=28)
+    population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(days=28)
     event_name = "collect_metrics"
 
     # Set up stratifications
-    ctx.add_stratification("by_house", ["house"], CATEGORIES, None, True)
-    ctx.add_observation("power_level_by_house", 'tracked=="True"', sum, ["by_house"], [])
+    # XXX mek: should stratification names be unique against the sources? Are they simply cosmetic??
+    ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
+    ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
+    ctx.add_observation("power_level", "tracked==True", len, ["house", "familiar"], [], "collect_metrics")
 
     i = 0
     for r in ctx.gather_results(population, "collect_metrics"):
