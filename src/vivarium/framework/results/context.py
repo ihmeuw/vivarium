@@ -86,38 +86,38 @@ class ResultsContext:
         **additional_keys: str,
     ):
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
-        groupers = self._get_groupers(additional_stratifications, excluded_stratifications)
-        self._observations[when][(pop_filter, groupers)].append(
+        stratifications = self._get_stratifications(additional_stratifications, excluded_stratifications)
+        self._observations[when][(pop_filter, stratifications)].append(
             (name, aggregator, additional_keys)
         )
 
     def gather_results(self, population: pd.DataFrame, event_name: str) -> Dict[str, float]:
-        # Optimization: We store all the producers by pop_filter and groupers
+        # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         # TODO: XXX
         for stratification in self._stratifications:
             population = stratification(population)
 
-        for (pop_filter, groupers), observations in self._observations[event_name].items():
+        for (pop_filter, stratifications), observations in self._observations[event_name].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
-            pop_groups = population.query(pop_filter).groupby(list(groupers))
+            pop_groups = population.query(pop_filter).groupby(list(stratifications))
             for measure, aggregator, additional_keys in observations:
                 aggregates = pop_groups.apply(aggregator)
                 # Keep formatting all in one place.
                 yield self._format_results(measure, aggregates, **additional_keys)
 
-    def _get_groupers(
+    def _get_stratifications(
         self,
         additional_stratifications: List[str] = (),
         excluded_stratifications: List[str] = (),
     ) -> Tuple[str, ...]:
-        groupers = list(
+        stratifications = list(
             set(self._default_stratifications) - set(excluded_stratifications)
             | set(additional_stratifications)
         )
         # Makes sure measure identifiers have fields in the same relative order.
-        return tuple(sorted(groupers))
+        return tuple(sorted(stratifications))
 
     @staticmethod
     def _format_results(
@@ -129,7 +129,8 @@ class ResultsContext:
         # This ensures that the produced results are always the same length.
         # TODO: handle case where aggregates is not a MultiIndex
         idx = pd.MultiIndex.from_product(
-                      aggregates.index.levels, names=aggregates.index.names
+            aggregates.index.levels,
+            names=aggregates.index.names
             # [aggregates.index.categories],
             # names=aggregates.index.names,
         )

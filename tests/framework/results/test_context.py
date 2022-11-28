@@ -186,7 +186,7 @@ def test_add_observation_nop_stratifications(default, additional, excluded, matc
 
 
 @pytest.mark.parametrize(
-    "default_stratifications, additional_stratifications, excluded_stratifications, expected_groupers",
+    "default_stratifications, additional_stratifications, excluded_stratifications, expected_stratifications",
     [
         ([], [], [], ()),
         (["age", "sex"], ["handedness"], ["age"], ("sex", "handedness")),
@@ -200,17 +200,17 @@ def test_add_observation_nop_stratifications(default, additional, excluded, matc
         "bogus_exclude",
     ],
 )
-def test__get_groupers(
+def test__get_stratifications(
     default_stratifications,
     additional_stratifications,
     excluded_stratifications,
-    expected_groupers,
+    expected_stratifications,
 ):
     ctx = ResultsContext()
     # default_stratifications would normally be set via ResultsInterface.set_default_stratifications()
     ctx._default_stratifications = default_stratifications
-    groupers = ctx._get_groupers(additional_stratifications, excluded_stratifications)
-    assert sorted(groupers) == sorted(expected_groupers)
+    stratifications = ctx._get_stratifications(additional_stratifications, excluded_stratifications)
+    assert sorted(stratifications) == sorted(expected_stratifications)
 
 
 def test_gather_results():
@@ -222,14 +222,18 @@ def test_gather_results():
     # Mock out some extra columns that would be produced by the manager's _prepare_population() method
     population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
     population["step_size"] = timedelta(days=28)
-    population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(days=28)
+    population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
+        days=28
+    )
     event_name = "collect_metrics"
 
     # Set up stratifications
     # XXX mek: should stratification names be unique against the sources? Are they simply cosmetic??
     ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
-    ctx.add_observation("power_level", "tracked==True", len, ["house", "familiar"], [], "collect_metrics")
+    ctx.add_observation(
+        "power_level", "tracked==True", len, ["house", "familiar"], [], "collect_metrics"
+    )
 
     i = 0
     for r in ctx.gather_results(population, "collect_metrics"):
