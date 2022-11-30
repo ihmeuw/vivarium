@@ -78,7 +78,7 @@ def _aggregate_state_person_time(self, x: pd.DataFrame) -> float:
     return len(x) * (28 / 365.35)
 
 
-def _aggregate_state_person_time_function( x: pd.DataFrame) -> float:
+def _aggregate_state_person_time_function(x: pd.DataFrame) -> float:
     """Helper aggregator function for observation testing"""
     return len(x) * (28 / 365.35)
 
@@ -214,7 +214,9 @@ def test__get_stratifications(
     ctx = ResultsContext()
     # default_stratifications would normally be set via ResultsInterface.set_default_stratifications()
     ctx._default_stratifications = default_stratifications
-    stratifications = ctx._get_stratifications(additional_stratifications, excluded_stratifications)
+    stratifications = ctx._get_stratifications(
+        additional_stratifications, excluded_stratifications
+    )
     assert sorted(stratifications) == sorted(expected_stratifications)
 
 
@@ -249,7 +251,13 @@ def test_gather_results(name, pop_filter, aggregator_sources, aggregator):
     ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
     ctx.add_observation(
-        name, pop_filter, aggregator_sources, aggregator, ["house", "familiar"], [], "collect_metrics"
+        name,
+        pop_filter,
+        aggregator_sources,
+        aggregator,
+        ["house", "familiar"],
+        [],
+        "collect_metrics",
     )
 
     i = 0
