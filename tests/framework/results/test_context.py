@@ -238,7 +238,6 @@ def test_gather_results(name, pop_filter, aggregator_sources, aggregator):
 
     # Generate population DataFrame
     population = BASE_POPULATION
-    population.drop(["tracked"], axis=1)
     # Mock out some extra columns that would be produced by the manager's _prepare_population() method
     population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
     population["step_size"] = timedelta(days=28)
@@ -267,8 +266,15 @@ def test_gather_results(name, pop_filter, aggregator_sources, aggregator):
 
 
 def test__format_results():
-    # TODO: do real tests
     ctx = ResultsContext()
-    rv = ctx._format_results()
+    aggregates = BASE_POPULATION.groupby(["house", "familiar"]).apply(len)
+    measure = "wizard_count"
+    rv = ctx._format_results(measure, None, aggregates)
 
-    assert True
+    # Check that the number of expected data column names are there
+    expected_keys_len = len(CATEGORIES) * len(FAMILIARS)
+    assert len(rv.keys()) == expected_keys_len
+
+    # Check that an example data column name is there
+    expected_key = "MEASURE_wizard_count_HOUSE_slytherin_FAMILIAR_cat"
+    assert expected_key in rv.keys()

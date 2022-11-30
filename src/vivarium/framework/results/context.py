@@ -157,12 +157,9 @@ class ResultsContext:
         for params, val in data.iteritems():
             key = "_".join(
                 [_format("measure", measure)]
-                + [_format(field, measure) for field, param in zip(data.index.names, params)]
+                + [_format(field, param) for field, param in zip(data.index.names, params)]
                 # Sorts additional_keys by the field name.
-                + [
-                    _format(field, measure)
-                    for field, param in sorted(additional_keys.items())
-                ]
+                + [_format(field, param) for field, param in sorted(additional_keys.items())]
             )
             results[key] = val
         return results
