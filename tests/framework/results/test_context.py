@@ -78,6 +78,11 @@ def _aggregate_state_person_time(self, x: pd.DataFrame) -> float:
     return len(x) * (28 / 365.35)
 
 
+def _aggregate_state_person_time_function( x: pd.DataFrame) -> float:
+    """Helper aggregator function for observation testing"""
+    return len(x) * (28 / 365.35)
+
+
 @pytest.mark.parametrize(
     "name, pop_filter, aggregator, additional_stratifications, excluded_stratifications, when",
     [
@@ -213,7 +218,20 @@ def test__get_stratifications(
     assert sorted(stratifications) == sorted(expected_stratifications)
 
 
-def test_gather_results():
+@pytest.mark.parametrize(
+    "name, pop_filter, aggregator_sources, aggregator",
+    [
+        ("wizard_count", "tracked==True", None, len),
+        ("power_level_total", "tracked==True", ["power_level"], sum),
+        ("wizard_time", "tracked==True", [], _aggregate_state_person_time_function),
+    ],
+    ids=[
+        "len_aggregator",
+        "sum_aggregator",
+        "custom_aggregator",
+    ],
+)
+def test_gather_results(name, pop_filter, aggregator_sources, aggregator):
     ctx = ResultsContext()
 
     # Generate population DataFrame
@@ -228,16 +246,14 @@ def test_gather_results():
     event_name = "collect_metrics"
 
     # Set up stratifications
-    # XXX mek: should stratification names be unique against the sources? Are they simply cosmetic??
     ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
     ctx.add_observation(
-        "power_level", "tracked==True", len, ["house", "familiar"], [], "collect_metrics"
+        name, pop_filter, aggregator_sources, aggregator, ["house", "familiar"], [], "collect_metrics"
     )
 
     i = 0
-    for r in ctx.gather_results(population, "collect_metrics"):
-        print(r)
+    for _ in ctx.gather_results(population, "collect_metrics"):
         i += 1
     assert i == 1
 

@@ -136,6 +136,7 @@ class ResultsInterface:
         self,
         name: str,
         pop_filter: str = "",
+        aggregator_sources: List[str] = None,
         aggregator: Callable[[pd.DataFrame], float] = len,
         requires_columns: List[str] = None,
         requires_values: List[str] = None,
@@ -152,6 +153,8 @@ class ResultsInterface:
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
+        aggregator_sources
+            A list of population view columns to be used in the aggregator.
         aggregator
             A function that computes the quantity for the observation.
         requires_columns

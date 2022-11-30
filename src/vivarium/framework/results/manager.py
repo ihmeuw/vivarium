@@ -172,6 +172,7 @@ class ResultsManager:
         self,
         name: str,
         pop_filter: str,
+        aggregator_sources: List[str],
         aggregator: Callable,
         requires_columns: List[str] = None,
         requires_values: List[str] = None,
@@ -182,6 +183,7 @@ class ResultsManager:
         self._results_context.add_observation(
             name,
             pop_filter,
+            aggregator_sources,
             aggregator,
             additional_stratifications,
             excluded_stratifications,

@@ -79,6 +79,7 @@ class ResultsContext:
         self,
         name: str,
         pop_filter: str,
+        aggregator_sources: List[str],
         aggregator: Callable[[pd.DataFrame], float],
         additional_stratifications: List[str] = (),
         excluded_stratifications: List[str] = (),
@@ -88,7 +89,7 @@ class ResultsContext:
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
         stratifications = self._get_stratifications(additional_stratifications, excluded_stratifications)
         self._observations[when][(pop_filter, stratifications)].append(
-            (name, aggregator, additional_keys)
+            (name, aggregator_sources, aggregator, additional_keys)
         )
 
     def gather_results(self, population: pd.DataFrame, event_name: str) -> Dict[str, float]:
@@ -102,10 +103,10 @@ class ResultsContext:
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
             pop_groups = population.query(pop_filter).groupby(list(stratifications))
-            for measure, aggregator, additional_keys in observations:
+            for measure, aggregator_sources, aggregator, additional_keys in observations:
                 aggregates = pop_groups.apply(aggregator)
                 # Keep formatting all in one place.
-                yield self._format_results(measure, aggregates, **additional_keys)
+                yield self._format_results(measure, aggregator_sources, aggregates, **additional_keys)
 
     def _get_stratifications(
         self,
@@ -121,7 +122,7 @@ class ResultsContext:
 
     @staticmethod
     def _format_results(
-        measure: str, aggregates: pd.DataFrame, **additional_keys: str
+        measure: str, aggregator_sources: List[str], aggregates: pd.DataFrame, **additional_keys: str
     ) -> Dict[str, float]:
         # TODO: XXX
         results = {}
@@ -136,6 +137,8 @@ class ResultsContext:
         )
         # XXX TODO: problem -- how do we know what the value is?
         data = pd.Series(data=0, index=idx)
+        if aggregator_sources is not None and len(aggregator_sources) == 1:
+            aggregates = aggregates[aggregator_sources].squeeze()
         data.loc[aggregates.index] = aggregates
 
         def _format(field, param):
