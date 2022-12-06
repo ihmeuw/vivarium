@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vivarium.framework.values import ValuesManager, list_combiner, union_post_processor
+from vivarium.framework.values import ValuesManager, list_combiner, union_post_processor, Pipeline
 
 
 @pytest.fixture
@@ -12,6 +12,80 @@ def manager(mocker):
     builder.step_size = lambda: lambda: pd.Timedelta(days=1)
     manager.setup(builder)
     return manager
+
+
+# @pytest.fixture
+# def pipeline(mocker, manager):
+#     source = pd.DataFrame({'sex': ['Male', 'Female'], 'val': [0, 1]})
+#     builder = mocker.MagicMock()
+#     builder.step_size = lambda: lambda: pd.Timedelta(days=1)
+#     source_lookup = builder.lookup.build_table(source)
+#     pipeline = manager.register_value_producer(
+#         value_name="myPipeline",
+#         source=source_lookup,
+#     )
+#     return pipeline
+
+
+def test_call_history_becomes_nonempty(manager):
+    pipeline = manager.register_value_producer(
+        "test",
+        source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
+    )
+
+    my_call = pd.Index(np.arange(5))
+
+    assert manager.call_history == {}
+
+    pipeline(my_call)
+    assert pipeline.name in manager.call_history
+
+
+def test_resorted_index_leaves_cache_unchanged(manager):
+    fwd_index = pd.Index(np.arange(10))
+    bwd_index = pd.Index(np.arange(9, -1, -1))
+
+    pipeline = manager.register_value_producer(
+        "test",
+        source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
+    )
+
+    pipeline(bwd_index)
+    assert manager.call_history["test"].index.equals(bwd_index)
+
+    pipeline(fwd_index)
+    assert manager.call_history["test"].index.equals(bwd_index)
+
+
+
+
+
+
+# - passing in a re-sorted index (all indices that have been called, but in a different order)
+#     - this _should_ pull from the cache
+#     - should not update the cache
+# - passing in a subset of an index that has been previously called before
+#     - should pull from the cache
+#     - should not update the cache
+# - passing in an empty index
+#     - should not check cache? should also not break anything,
+#     - should not update the cache
+# - passing in an index that is partially already cached partially not
+#     - should check cache, only pull newly requested data
+#     - cache should only be updated with newly requested indices
+# - passing in entirely new index
+#     - should not try to pull anything from cache
+#     - should update cache
+# - passing in an index with duplicate indices (lower priority)
+#     - should pull from cache following above logic
+#     - should only update cache with non-duplicate values
+# - passing in a arg that is not an index, but no index
+# - passing in a arg that is an index, and another arg that is anything else
+# - passing in kwargs
+# - test that cache is empty at beginning of timestep (or very end of timestep)
+# - check that values manager is registered with on-timestep-cleanup with the right priority
+#     ^ check that there exist tests for other components registering methods on time-step event
+#     (see population manager)
 
 
 def test_replace_combiner(manager):
