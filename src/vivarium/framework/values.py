@@ -293,6 +293,7 @@ class ValuesManager:
 
         builder.lifecycle.add_constraint(self.register_value_producer, allow_during=["setup"])
         builder.lifecycle.add_constraint(self.register_value_modifier, allow_during=["setup"])
+        builder.event.register_listener("time_step__cleanup", self.on_timestep_cleanup, priority=9)
 
     def on_post_setup(self, _):
         """Finalizes dependency structure for the pipelines."""
@@ -318,6 +319,9 @@ class ValuesManager:
                 mutator_name = self._get_modifier_name(m)
                 dependencies.append(f"value_modifier.{name}.{i+1}.{mutator_name}")
             self.resources.add_resources("value", [name], pipe._call, dependencies)
+
+    def on_timestep_cleanup(self):
+        self.call_history = {}
 
     def register_value_producer(
         self,
