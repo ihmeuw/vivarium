@@ -227,16 +227,42 @@ class Pipeline:
         """
         return self._call(*args, skip_post_processor=skip_post_processor, **kwargs)
 
-    def _call(self, *args, skip_post_processor=False, **kwargs):
+    def _call(self, *args, skip_post_processor=False, use_cache=True, **kwargs):
         if not self.source:
             raise DynamicValueError(
                 f"The dynamic value pipeline for {self.name} has no source. This likely means "
                 f"you are attempting to modify a value that hasn't been created."
             )
 
-        value = self.source(*args, **kwargs)
-        for mutator in self.mutators:
-            value = self.combiner(value, mutator, *args, **kwargs)
+        # if only one kwarg was passed in and it's an index, treat it as the arg
+        if (args is None) and (len(kwargs) == 1) and (isinstance(kwargs["index"], pd.Index)):
+            args = [kwargs["index"]]
+            kwargs = None
+
+        # if we only have one arg and it's an index
+        if (len(args) == 1) and (isinstance(args[0], pd.Index)) and (kwargs == {}) and use_cache:
+            if self.name in self.manager.call_history:
+                requested_idx = args[0]
+                previously_called_idx = self.manager.call_history[self.name].index
+
+                newly_requested = requested_idx.difference(previously_called_idx)
+            else:
+                self.manager.call_history[self.name] = pd.DataFrame()
+                newly_requested = args[0]
+            if newly_requested.any():
+                value = self.source(newly_requested)
+                for mutator in self.mutators:
+                    value = self.combiner(value, mutator, newly_requested)
+
+                self.manager.call_history[self.name] = self.manager.call_history[self.name].append(value)
+
+            value = self.manager.call_history[self.name].loc[newly_requested]
+
+        else:
+            value = self.source(*args, **kwargs)
+            for mutator in self.mutators:
+                value = self.combiner(value, mutator, *args, **kwargs)
+
         if self.post_processor and not skip_post_processor:
             return self.post_processor(value, self.manager.step_size())
 
@@ -252,6 +278,7 @@ class ValuesManager:
     def __init__(self):
         # Pipelines are lazily initialized by _register_value_producer
         self._pipelines = defaultdict(Pipeline)
+        self.call_history = {}
 
     @property
     def name(self):
