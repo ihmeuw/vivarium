@@ -57,8 +57,71 @@ def test_resorted_index_leaves_cache_unchanged(manager):
     assert manager.call_history["test"].index.equals(bwd_index)
 
 
+def test_empty_index(manager):
+    pipeline = manager.register_value_producer(
+        "test",
+        source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
+    )
+
+    pipeline(pd.Index(np.arange(5)))
+
+    stored_idx = manager.call_history["test"].index.copy(deep=True)
+    out = pipeline(pd.Index([]))
+
+    assert(len(out) == 0) #todo: check // what is the expected functionality for this?
+    updated_idx = manager.call_history["test"].index.copy(deep=True)
+    assert (stored_idx.equals(updated_idx))
 
 
+def test_overlapping_idx(manager):
+    A = pd.Index(np.arange(10))
+    B = pd.Index(np.arange(5))
+    C = pd.Index(np.arange(5, 15))
+
+    pipeline = manager.register_value_producer(
+        "test",
+        source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
+    )
+
+    pipeline(A)
+    # pipeline.source.assert_called_once()
+    idx_A = manager.call_history["test"].index.copy(deep=True)
+
+    pipeline(B)
+    #todo: assert cache called / source not re-called
+    idx_B = manager.call_history["test"].index.copy(deep=True)
+    assert idx_A.equals(idx_B)
+
+
+    pipeline(C)
+    #todo: assert source called only for subset
+    idx_C = manager.call_history["test"].index.copy(deep=True)
+    assert idx_C.equals(pd.Index(np.arange(15)))
+
+
+def test_things_that_shouldnt_cache(manager):
+    pipeline = manager.register_value_producer(
+        "test",
+        source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
+    )
+
+    pipeline('hello')
+    assert len(manager.call_history.items()) == 0
+
+    pipeline(count=4)
+    assert len(manager.call_history.items()) == 0
+
+    pipeline(pd.Index(np.arange(5)), my_kwarg="hiya")
+    assert len(manager.call_history.items()) == 0
+
+    pipeline("how's it going", index=pd.Index(np.arange(3)))
+    assert len(manager.call_history.items()) == 0
+
+    pipeline("pretty goood", answer=10)
+    assert len(manager.call_history.items()) == 0
+
+    pipeline(pd.Index(np.arange(3)), index=pd.Index(np.arange(7)))
+    assert len(manager.call_history.items()) == 0
 
 
 # - passing in a re-sorted index (all indices that have been called, but in a different order)
