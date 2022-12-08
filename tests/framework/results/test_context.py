@@ -221,23 +221,29 @@ def test__get_stratifications(
 
 
 @pytest.mark.parametrize(
-    "name, pop_filter, aggregator_sources, aggregator",
+    "name, pop_filter, aggregator_sources, aggregator, stratifications",
     [
-        ("wizard_count", "tracked==True", None, len),
-        ("power_level_total", "tracked==True", ["power_level"], sum),
-        ("wizard_time", "tracked==True", [], _aggregate_state_person_time_function),
+        ("wizard_count", "tracked==True", None, len, ["house", "familiar"]),
+        ("power_level_total", "tracked==True", ["power_level"], sum, ["house", "familiar"]),
+        ("wizard_time", "tracked==True", [], _aggregate_state_person_time_function, ["house", "familiar"]),
+        ("wizard_count", "tracked==True", None, len, ["house"]),
+        ("power_level_total", "tracked==True", ["power_level"], sum, ["house"]),
+        ("wizard_time", "tracked==True", [], _aggregate_state_person_time_function, ["house"]),
     ],
     ids=[
-        "len_aggregator",
-        "sum_aggregator",
-        "custom_aggregator",
+        "len_aggregator_two_stratifications",
+        "sum_aggregator_two_stratifications",
+        "custom_aggregator_two_stratifications",
+        "len_aggregator_one_stratification",
+        "sum_aggregator_one_stratification",
+        "custom_aggregator_one_stratification",
     ],
 )
-def test_gather_results(name, pop_filter, aggregator_sources, aggregator):
+def test_gather_results(name, pop_filter, aggregator_sources, aggregator, stratifications):
     ctx = ResultsContext()
 
     # Generate population DataFrame
-    population = BASE_POPULATION
+    population = BASE_POPULATION.copy()
     # Mock out some extra columns that would be produced by the manager's _prepare_population() method
     population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
     population["step_size"] = timedelta(days=28)
@@ -247,22 +253,79 @@ def test_gather_results(name, pop_filter, aggregator_sources, aggregator):
     event_name = "collect_metrics"
 
     # Set up stratifications
-    ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
-    ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
+    if "house" in stratifications:
+        ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
+    if "familiar" in stratifications:
+        ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
     ctx.add_observation(
         name,
         pop_filter,
         aggregator_sources,
         aggregator,
-        ["house", "familiar"],
+        stratifications,
         [],
-        "collect_metrics",
+        event_name,
     )
 
     i = 0
-    for _ in ctx.gather_results(population, "collect_metrics"):
+    for _ in ctx.gather_results(population, event_name):
         i += 1
     assert i == 1
+
+
+@pytest.mark.parametrize(
+    "name, pop_filter, aggregator_sources, aggregator, stratifications",
+    [
+        ("wizard_count", "tracked==True", None, len, ["house", "familiar"]),
+        ("power_level_total", "tracked==True", ["power_level"], sum, ["house", "familiar"]),
+        ("wizard_time", "tracked==True", [], _aggregate_state_person_time_function, ["house", "familiar"]),
+        ("wizard_count", "tracked==True", None, len, ["familiar"]),
+        ("power_level_total", "tracked==True", ["power_level"], sum, ["familiar"]),
+        ("wizard_time", "tracked==True", [], _aggregate_state_person_time_function, ["familiar"]),
+    ],
+    ids=[
+        "len_aggregator_two_stratifications",
+        "sum_aggregator_two_stratifications",
+        "custom_aggregator_two_stratifications",
+        "len_aggregator_one_stratification",
+        "sum_aggregator_one_stratification",
+        "custom_aggregator_one_stratification",
+    ],
+)
+def test_gather_results_partial_stratifications_in_results(name, pop_filter, aggregator_sources, aggregator, stratifications):
+    ctx = ResultsContext()
+
+    # Generate population DataFrame
+    population = BASE_POPULATION.copy()
+
+    # Mock out some extra columns that would be produced by the manager's _prepare_population() method
+    population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
+    population["step_size"] = timedelta(days=28)
+    population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
+        days=28
+    )
+    # Remove an entire category from a stratification
+    population = population[population["familiar"] != "unladen_swallow"].reset_index()
+
+    event_name = "collect_metrics"
+
+    # Set up stratifications
+    if "house" in stratifications:
+        ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
+    if "familiar" in stratifications:
+        ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
+    ctx.add_observation(
+        name,
+        pop_filter,
+        aggregator_sources,
+        aggregator,
+        stratifications,
+        [],
+        event_name,
+    )
+
+    for r in ctx.gather_results(population, event_name):
+        assert len([unladen_key for unladen_key in r.keys() if "unladen_swallow" in unladen_key]) > 0
 
 
 def test__format_results():

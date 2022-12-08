@@ -22,7 +22,7 @@ class ResultsContext:
         self._default_stratifications: List[str] = []
         self._stratifications: List[Stratification] = []
         # keys are event names: ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"]
-        # values are dicts with key (filter, grouper) value (measure, aggregator, additional_keys)
+        # values are dicts with key (filter, grouper) value (measure, aggregator_sources, aggregator, additional_keys)
         self._observations = defaultdict(lambda: defaultdict(list))
 
     # noinspection PyAttributeOutsideInit
@@ -97,7 +97,6 @@ class ResultsContext:
     def gather_results(self, population: pd.DataFrame, event_name: str) -> Dict[str, float]:
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
-        # TODO: XXX
         for stratification in self._stratifications:
             population = stratification(population)
 
@@ -108,10 +107,16 @@ class ResultsContext:
             # filter -> groupby -> aggregate in all situations we've seen.
             pop_groups = population.query(pop_filter).groupby(list(stratifications))
             for measure, aggregator_sources, aggregator, additional_keys in observations:
-                aggregates = pop_groups.apply(aggregator)
+                if aggregator_sources:
+                    aggregates = pop_groups[aggregator_sources].apply(aggregator).fillna(0.)
+                    if isinstance(aggregates, pd.DataFrame):
+                        aggregates = aggregates.squeeze(axis=1)
+                else:
+                    aggregates = pop_groups.apply(aggregator)
+                # TODO: XXX Perhaps check that aggregates has one column
                 # Keep formatting all in one place.
                 yield self._format_results(
-                    measure, aggregator_sources, aggregates, **additional_keys
+                    measure, aggregates, **additional_keys
                 )
 
     def _get_stratifications(
@@ -129,25 +134,20 @@ class ResultsContext:
     @staticmethod
     def _format_results(
         measure: str,
-        aggregator_sources: List[str],
         aggregates: pd.DataFrame,
         **additional_keys: str,
     ) -> Dict[str, float]:
-        # TODO: XXX
         results = {}
         # First we expand the categorical index over unobserved pairs.
         # This ensures that the produced results are always the same length.
-        # TODO: handle case where aggregates is not a MultiIndex
-        idx = pd.MultiIndex.from_product(
-            aggregates.index.levels,
-            names=aggregates.index.names
-            # [aggregates.index.categories],
-            # names=aggregates.index.names,
-        )
-        # XXX TODO: problem -- how do we know what the value is?
+        if isinstance(aggregates.index, pd.MultiIndex):
+            idx = pd.MultiIndex.from_product(
+                aggregates.index.levels,
+                names=aggregates.index.names
+            )
+        else:
+            idx = aggregates.index
         data = pd.Series(data=0, index=idx)
-        if aggregator_sources is not None and len(aggregator_sources) == 1:
-            aggregates = aggregates[aggregator_sources].squeeze()
         data.loc[aggregates.index] = aggregates
 
         def _format(field, param):
@@ -155,6 +155,8 @@ class ResultsContext:
             return f"{str(field).upper()}_{param}"
 
         for params, val in data.iteritems():
+            if not isinstance(params, list):  # handle single stratification case
+                params = [params]
             key = "_".join(
                 [_format("measure", measure)]
                 + [_format(field, param) for field, param in zip(data.index.names, params)]
