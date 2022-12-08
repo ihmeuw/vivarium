@@ -287,13 +287,13 @@ class ValuesManager:
     def setup(self, builder):
         self.step_size = builder.time.step_size()
         builder.event.register_listener("post_setup", self.on_post_setup)
+        builder.event.register_listener("time_step__cleanup", self.on_timestep_cleanup, priority=9)
 
         self.resources = builder.resources
         self.add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(self.register_value_producer, allow_during=["setup"])
         builder.lifecycle.add_constraint(self.register_value_modifier, allow_during=["setup"])
-        builder.event.register_listener("time_step__cleanup", self.on_timestep_cleanup, priority=9)
 
     def on_post_setup(self, _):
         """Finalizes dependency structure for the pipelines."""
@@ -305,6 +305,7 @@ class ValuesManager:
 
         # register_value_producer and register_value_modifier record the
         # dependency structure for the pipeline source and pipeline modifiers,
+        # respectively.  We don't have enough information to record the
         # respectively.  We don't have enough information to record the
         # dependency structure for the pipeline itself until now, where
         # we say the pipeline value depends on its source and all its
