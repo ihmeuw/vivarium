@@ -225,10 +225,22 @@ def test__get_stratifications(
     [
         ("wizard_count", "tracked==True", None, len, ["house", "familiar"]),
         ("power_level_total", "tracked==True", ["power_level"], sum, ["house", "familiar"]),
-        ("wizard_time", "tracked==True", [], _aggregate_state_person_time_function, ["house", "familiar"]),
+        (
+            "wizard_time",
+            "tracked==True",
+            [],
+            _aggregate_state_person_time_function,
+            ["house", "familiar"],
+        ),
         ("wizard_count", "tracked==True", None, len, ["house"]),
         ("power_level_total", "tracked==True", ["power_level"], sum, ["house"]),
-        ("wizard_time", "tracked==True", [], _aggregate_state_person_time_function, ["house"]),
+        (
+            "wizard_time",
+            "tracked==True",
+            [],
+            _aggregate_state_person_time_function,
+            ["house"],
+        ),
     ],
     ids=[
         "len_aggregator_two_stratifications",
@@ -278,10 +290,22 @@ def test_gather_results(name, pop_filter, aggregator_sources, aggregator, strati
     [
         ("wizard_count", "tracked==True", None, len, ["house", "familiar"]),
         ("power_level_total", "tracked==True", ["power_level"], sum, ["house", "familiar"]),
-        ("wizard_time", "tracked==True", [], _aggregate_state_person_time_function, ["house", "familiar"]),
+        (
+            "wizard_time",
+            "tracked==True",
+            [],
+            _aggregate_state_person_time_function,
+            ["house", "familiar"],
+        ),
         ("wizard_count", "tracked==True", None, len, ["familiar"]),
         ("power_level_total", "tracked==True", ["power_level"], sum, ["familiar"]),
-        ("wizard_time", "tracked==True", [], _aggregate_state_person_time_function, ["familiar"]),
+        (
+            "wizard_time",
+            "tracked==True",
+            [],
+            _aggregate_state_person_time_function,
+            ["familiar"],
+        ),
     ],
     ids=[
         "len_aggregator_two_stratifications",
@@ -292,7 +316,9 @@ def test_gather_results(name, pop_filter, aggregator_sources, aggregator, strati
         "custom_aggregator_one_stratification",
     ],
 )
-def test_gather_results_partial_stratifications_in_results(name, pop_filter, aggregator_sources, aggregator, stratifications):
+def test_gather_results_partial_stratifications_in_results(
+    name, pop_filter, aggregator_sources, aggregator, stratifications
+):
     ctx = ResultsContext()
 
     # Generate population DataFrame
@@ -325,7 +351,10 @@ def test_gather_results_partial_stratifications_in_results(name, pop_filter, agg
     )
 
     for r in ctx.gather_results(population, event_name):
-        assert len([unladen_key for unladen_key in r.keys() if "unladen_swallow" in unladen_key]) > 0
+        assert (
+            len([unladen_key for unladen_key in r.keys() if "unladen_swallow" in unladen_key])
+            > 0
+        )
 
 
 def test__format_results():

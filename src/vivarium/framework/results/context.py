@@ -108,16 +108,14 @@ class ResultsContext:
             pop_groups = population.query(pop_filter).groupby(list(stratifications))
             for measure, aggregator_sources, aggregator, additional_keys in observations:
                 if aggregator_sources:
-                    aggregates = pop_groups[aggregator_sources].apply(aggregator).fillna(0.)
+                    aggregates = pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
                     if isinstance(aggregates, pd.DataFrame):
                         aggregates = aggregates.squeeze(axis=1)
                 else:
                     aggregates = pop_groups.apply(aggregator)
                 # TODO: XXX Perhaps check that aggregates has one column
                 # Keep formatting all in one place.
-                yield self._format_results(
-                    measure, aggregates, **additional_keys
-                )
+                yield self._format_results(measure, aggregates, **additional_keys)
 
     def _get_stratifications(
         self,
@@ -142,8 +140,7 @@ class ResultsContext:
         # This ensures that the produced results are always the same length.
         if isinstance(aggregates.index, pd.MultiIndex):
             idx = pd.MultiIndex.from_product(
-                aggregates.index.levels,
-                names=aggregates.index.names
+                aggregates.index.levels, names=aggregates.index.names
             )
         else:
             idx = aggregates.index

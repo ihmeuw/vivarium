@@ -5,11 +5,9 @@ import pytest
 
 from vivarium.framework.results import ResultsInterface, ResultsManager
 
-from .mocks import (
-    BASE_POPULATION,
-    CATEGORIES as HOUSES,
-    FAMILIARS,
-)
+from .mocks import BASE_POPULATION
+from .mocks import CATEGORIES as HOUSES
+from .mocks import FAMILIARS
 
 
 def _silly_aggregator(_: pd.DataFrame) -> float:
@@ -114,7 +112,9 @@ def test_integration_full_observation(mocker):
     results_interface.register_stratification("familiar", FAMILIARS, None, True, ["familiar"])
 
     # register observation
-    results_interface.register_observation("wizard_count", "tracked==True", None, len, [], [], "collect_metrics")
+    results_interface.register_observation(
+        "wizard_count", "tracked==True", None, len, [], [], "collect_metrics"
+    )
 
     # Mock in mgr._prepare_population to return population table, event
     mocker.patch.object(mgr, "_prepare_population")
@@ -122,6 +122,5 @@ def test_integration_full_observation(mocker):
 
     # run mgr.gather_results('collect_metrics', event)
     # TODO: Check that observations on this "when" are run but other "when" are not (i.e., add another observation)
-
 
     assert True
