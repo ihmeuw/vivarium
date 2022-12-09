@@ -119,6 +119,7 @@ def test_source_not_called_for_cached_idx(manager):
     # source should not be called, even though now passed in as a kwarg (vs arg)
     pipeline(index=A)
     assert pipeline.source.CallCount == 1
+    # cache should not have been updated
     stored_idx = manager.call_history["myPipeline"].index.copy(deep=True)
     assert stored_idx.equals(A)
 
@@ -126,12 +127,14 @@ def test_source_not_called_for_cached_idx(manager):
     # source should not be called, even though index request has been resorted
     pipeline(A_bwd)
     assert pipeline.source.CallCount == 1
+    # cache should not have been updated
     stored_idx = manager.call_history["myPipeline"].index.copy(deep=True)
     assert stored_idx.equals(A)
 
     # source should not be called, even though new call being made (subset of old call)
     pipeline(B)
     assert pipeline.source.CallCount == 1
+    # cache should not have been updated
     stored_idx = manager.call_history["myPipeline"].index.copy(deep=True)
     assert stored_idx.equals(A)
 
@@ -140,7 +143,7 @@ def test_things_that_should_not_cache(manager):
 
     pipeline = manager.register_value_producer(
         "test",
-        source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
+        source=lambda *args, **kwargs: "hi there",
     )
 
     pipeline('hello')
@@ -161,12 +164,30 @@ def test_things_that_should_not_cache(manager):
     pipeline(pd.Index(np.arange(3)), index=pd.Index(np.arange(7)))
     assert len(manager.call_history.items()) == 0
 
-# - passing in an index with duplicate indices (lower priority)
-#     - should pull from cache following above logic
-#     - should only update cache with non-duplicate values
+
 # - check that values manager is registered with on-timestep-cleanup with the right priority
 #     ^ check that there exist tests for other components registering methods on time-step event
 #     (see population manager)
+
+
+def test_passing_in_duplicate_indices(manager):
+    my_source = CountedSource()
+
+    pipeline = manager.register_value_producer(
+        "myPipeline",
+        source=my_source,
+    )
+
+    dup_idx = pd.Index([0, 0, 1, 2, 3])
+    dedup_idx = pd.Index(np.arange(4))
+    more_dups_idx = pd.Index([1, 1, 2, 2, 3])
+
+    pipeline(dup_idx)
+    assert manager.call_history["myPipeline"].index.equals(dedup_idx)
+
+    pipeline(more_dups_idx)
+    assert manager.call_history["myPipeline"].index.equals(dedup_idx)
+    assert pipeline.source.CallCount == 1
 
 
 def test_timestep_cleanup(manager):
