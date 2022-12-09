@@ -13,23 +13,37 @@ def manager(mocker):
     manager.setup(builder)
     return manager
 
-# @pytest.fixture
-# def test_source(mocker):
-#     test_source = mocker.MagicMock()
-#     test_source.__call  # define function that returns something corresponding to idx
-#     test_
 
-# @pytest.fixture
-# def pipeline(mocker, manager):
-#     source = pd.DataFrame({'sex': ['Male', 'Female'], 'val': [0, 1]})
-#     builder = mocker.MagicMock()
-#     builder.step_size = lambda: lambda: pd.Timedelta(days=1)
-#     source_lookup = builder.lookup.build_table(source)
-#     pipeline = manager.register_value_producer(
-#         value_name="myPipeline",
-#         source=source_lookup,
-#     )
-#     return pipeline
+class LoggedSource:
+    """
+    callable object that tracks calls that takes in a pd.Index
+    and tracks calls that have been made to it
+    """
+    def __init__(self):
+        self.all_calls = []
+
+    def __call__(self, index: pd.Index) -> pd.DataFrame:
+        self.all_calls.append(index)
+        return pd.DataFrame(index=index, data=['a']*len(index))
+
+
+class CountedSource:
+    """
+    callable object that takes in either one arg or one kwarg (key "index")
+    and counts how many times it has been called
+    """
+    def __init__(self):
+        self.CallCount = 0
+
+    def __call__(self, *args, **kwargs):
+        self.CallCount += 1
+        if len(args) == 1 and len(kwargs) == 0:
+            return pd.DataFrame(index=args[0], data=['a']*len(args[0]))
+        elif len(args) == 0 and len(kwargs) == 1 and "index" in kwargs:
+            idx = kwargs["index"]
+            return pd.DataFrame(index=idx, data=['a']*len(idx))
+        else:
+            raise Exception("should only test passing in exactly one arg or exactly one kwarg with key 'index'.")
 
 
 def test_call_history_becomes_nonempty(manager):
@@ -46,20 +60,20 @@ def test_call_history_becomes_nonempty(manager):
     assert pipeline.name in manager.call_history
 
 
-def test_resorted_index_leaves_cache_unchanged(manager):
-    fwd_index = pd.Index(np.arange(10))
-    bwd_index = pd.Index(np.arange(9, -1, -1))
-
-    pipeline = manager.register_value_producer(
-        "test",
-        source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
-    )
-
-    pipeline(bwd_index)
-    assert manager.call_history["test"].index.equals(bwd_index)
-
-    pipeline(fwd_index)
-    assert manager.call_history["test"].index.equals(bwd_index)
+# def test_resorted_index_leaves_cache_unchanged(manager):
+#     fwd_index = pd.Index(np.arange(10))
+#     bwd_index = pd.Index(np.arange(9, -1, -1))
+#
+#     pipeline = manager.register_value_producer(
+#         "test",
+#         source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
+#     )
+#
+#     pipeline(bwd_index)
+#     assert manager.call_history["test"].index.equals(bwd_index)
+#
+#     pipeline(fwd_index)
+#     assert manager.call_history["test"].index.equals(bwd_index)
 
 
 def test_empty_index(manager):
@@ -78,31 +92,38 @@ def test_empty_index(manager):
     assert (stored_idx.equals(updated_idx))
 
 
-def test_source_not_called_for_cached_idx(manager):
+def test_source_called_only_for_newly_requested_indices(manager):
     A = pd.Index(np.arange(10))
-    A_bwd = pd.Index(np.arange(9,-1,-1))
-    B = pd.Index(np.arange(5))
-    C = pd.Index(np.arange(5, 15))
+    B = pd.Index(np.arange(5, 15))
 
-    class LoggedSource:
-        def __init__(self):
-            self.CallCount = 0
-
-        def __call__(self, *args, **kwargs):
-            self.CallCount += 1
-            if len(args) > 0 and len(kwargs) == 0:
-                return pd.DataFrame(index=args[0], data=['a']*len(args[0]))
-            elif len(args) == 0 and len(kwargs) > 0 and "index" in kwargs:
-                idx = kwargs["index"]
-                return pd.DataFrame(index=idx, data=['a']*len(idx))
-            else:
-                raise Exception("should only test passing in exactly one arg or exactly one kwarg with key 'index'.")
-
-    mySource = LoggedSource()
+    my_source = LoggedSource()
 
     pipeline = manager.register_value_producer(
         "myPipeline",
-        source=mySource,
+        source=my_source,
+    )
+
+    pipeline(A)
+    pipeline(B)
+
+    expected_calls = [A, B.difference(A)]
+    for i in range(len(expected_calls)):
+        assert pipeline.source.all_calls[i].equals(expected_calls[i])
+
+    stored_idx = manager.call_history["myPipeline"].index
+    assert stored_idx.equals(pd.Index(np.arange(15)))
+
+
+def test_source_not_called_for_cached_idx(manager):
+    A = pd.Index(np.arange(10))
+    A_bwd = pd.Index(np.arange(9, -1, -1))
+    B = pd.Index(np.arange(5))
+
+    my_source = CountedSource()
+
+    pipeline = manager.register_value_producer(
+        "myPipeline",
+        source=my_source,
     )
 
     assert pipeline.source.CallCount == 0
@@ -110,25 +131,22 @@ def test_source_not_called_for_cached_idx(manager):
     idx_A = manager.call_history["myPipeline"].index.copy(deep=True)
     assert pipeline.source.CallCount == 1
 
+    # source should not be called, even though now passed in as a kwarg (vs arg)
     pipeline(index=A)
     assert pipeline.source.CallCount == 1
 
+    # source should not be called, even though index request has been resorted
     pipeline(A_bwd)
     assert pipeline.source.CallCount == 1
 
+    # source should not be called, even though new call being made (subset of old call)
     pipeline(B)
     assert pipeline.source.CallCount == 1
     idx_B = manager.call_history["myPipeline"].index.copy(deep=True)
     assert idx_A.equals(idx_B)
 
 
-    pipeline(C)
-    assert pipeline.source.CallCount == 2
-    idx_C = manager.call_history["myPipeline"].index.copy(deep=True)
-    assert idx_C.equals(pd.Index(np.arange(15)))
-
-
-def test_things_that_shouldnt_cache(manager):
+def test_things_that_should_not_cache(manager):
     pipeline = manager.register_value_producer(
         "test",
         source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
@@ -153,12 +171,6 @@ def test_things_that_shouldnt_cache(manager):
     assert len(manager.call_history.items()) == 0
 
 
-# - passing in a re-sorted index (all indices that have been called, but in a different order)
-#     - this _should_ pull from the cache
-#     - should not update the cache
-# - passing in a subset of an index that has been previously called before
-#     - should pull from the cache
-#     - should not update the cache
 # - passing in an empty index
 #     - should not check cache? should also not break anything,
 #     - should not update the cache
@@ -171,13 +183,22 @@ def test_things_that_shouldnt_cache(manager):
 # - passing in an index with duplicate indices (lower priority)
 #     - should pull from cache following above logic
 #     - should only update cache with non-duplicate values
-# - passing in a arg that is not an index, but no index
-# - passing in a arg that is an index, and another arg that is anything else
-# - passing in kwargs
-# - test that cache is empty at beginning of timestep (or very end of timestep)
 # - check that values manager is registered with on-timestep-cleanup with the right priority
 #     ^ check that there exist tests for other components registering methods on time-step event
 #     (see population manager)
+
+
+def test_timestep_cleanup(manager):
+    pipeline = manager.register_value_producer(
+        "test",
+        source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
+    )
+
+    my_call = pd.Index(np.arange(5))
+    pipeline(my_call)
+    assert pipeline.name in manager.call_history
+    manager.on_timestep_cleanup()
+    assert manager.call_history == {}
 
 
 def test_replace_combiner(manager):
