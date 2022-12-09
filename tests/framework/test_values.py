@@ -60,22 +60,6 @@ def test_call_history_becomes_nonempty(manager):
     assert pipeline.name in manager.call_history
 
 
-# def test_resorted_index_leaves_cache_unchanged(manager):
-#     fwd_index = pd.Index(np.arange(10))
-#     bwd_index = pd.Index(np.arange(9, -1, -1))
-#
-#     pipeline = manager.register_value_producer(
-#         "test",
-#         source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
-#     )
-#
-#     pipeline(bwd_index)
-#     assert manager.call_history["test"].index.equals(bwd_index)
-#
-#     pipeline(fwd_index)
-#     assert manager.call_history["test"].index.equals(bwd_index)
-
-
 def test_empty_index(manager):
     pipeline = manager.register_value_producer(
         "test",
@@ -128,25 +112,32 @@ def test_source_not_called_for_cached_idx(manager):
 
     assert pipeline.source.CallCount == 0
     pipeline(A)
-    idx_A = manager.call_history["myPipeline"].index.copy(deep=True)
     assert pipeline.source.CallCount == 1
+    stored_idx = manager.call_history["myPipeline"].index.copy(deep=True)
+    assert stored_idx.equals(A)
 
     # source should not be called, even though now passed in as a kwarg (vs arg)
     pipeline(index=A)
     assert pipeline.source.CallCount == 1
+    stored_idx = manager.call_history["myPipeline"].index.copy(deep=True)
+    assert stored_idx.equals(A)
+
 
     # source should not be called, even though index request has been resorted
     pipeline(A_bwd)
     assert pipeline.source.CallCount == 1
+    stored_idx = manager.call_history["myPipeline"].index.copy(deep=True)
+    assert stored_idx.equals(A)
 
     # source should not be called, even though new call being made (subset of old call)
     pipeline(B)
     assert pipeline.source.CallCount == 1
-    idx_B = manager.call_history["myPipeline"].index.copy(deep=True)
-    assert idx_A.equals(idx_B)
+    stored_idx = manager.call_history["myPipeline"].index.copy(deep=True)
+    assert stored_idx.equals(A)
 
 
 def test_things_that_should_not_cache(manager):
+
     pipeline = manager.register_value_producer(
         "test",
         source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
@@ -164,22 +155,12 @@ def test_things_that_should_not_cache(manager):
     pipeline("how's it going", index=pd.Index(np.arange(3)))
     assert len(manager.call_history.items()) == 0
 
-    pipeline("pretty goood", answer=10)
+    pipeline("pretty good", answer=10)
     assert len(manager.call_history.items()) == 0
 
     pipeline(pd.Index(np.arange(3)), index=pd.Index(np.arange(7)))
     assert len(manager.call_history.items()) == 0
 
-
-# - passing in an empty index
-#     - should not check cache? should also not break anything,
-#     - should not update the cache
-# - passing in an index that is partially already cached partially not
-#     - should check cache, only pull newly requested data
-#     - cache should only be updated with newly requested indices
-# - passing in entirely new index
-#     - should not try to pull anything from cache
-#     - should update cache
 # - passing in an index with duplicate indices (lower priority)
 #     - should pull from cache following above logic
 #     - should only update cache with non-duplicate values
