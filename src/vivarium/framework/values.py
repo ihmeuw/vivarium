@@ -237,7 +237,7 @@ class Pipeline:
         # if only one kwarg was passed in and it's an index, treat it as the arg
         if (len(args) == 0) and (len(kwargs) == 1) and (isinstance(kwargs["index"], pd.Index)):
             args = [kwargs["index"]]
-            kwargs = None
+            kwargs = {}
 
         # if we only have one arg and it's an index
         if (len(args) == 1) and (isinstance(args[0], pd.Index)) and (kwargs == {}) and use_cache:

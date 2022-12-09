@@ -88,9 +88,15 @@ def test_source_not_called_for_cached_idx(manager):
         def __init__(self):
             self.CallCount = 0
 
-        def __call__(self, index):
+        def __call__(self, *args, **kwargs):
             self.CallCount += 1
-            return pd.DataFrame(index=index, data=['a']*len(index))
+            if len(args) > 0 and len(kwargs) == 0:
+                return pd.DataFrame(index=args[0], data=['a']*len(args[0]))
+            elif len(args) == 0 and len(kwargs) > 0 and "index" in kwargs:
+                idx = kwargs["index"]
+                return pd.DataFrame(index=idx, data=['a']*len(idx))
+            else:
+                raise Exception("should only test passing in exactly one arg or exactly one kwarg with key 'index'.")
 
     mySource = LoggedSource()
 
