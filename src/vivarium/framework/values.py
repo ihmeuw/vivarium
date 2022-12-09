@@ -250,6 +250,7 @@ class Pipeline:
                 self.manager.call_history[self.name] = pd.DataFrame()
                 newly_requested = args[0]
             if newly_requested.any():
+                newly_requested = newly_requested.unique()
                 value = self.source(newly_requested)
                 for mutator in self.mutators:
                     value = self.combiner(value, mutator, newly_requested)
