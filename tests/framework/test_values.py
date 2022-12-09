@@ -13,6 +13,11 @@ def manager(mocker):
     manager.setup(builder)
     return manager
 
+# @pytest.fixture
+# def test_source(mocker):
+#     test_source = mocker.MagicMock()
+#     test_source.__call  # define function that returns something corresponding to idx
+#     test_
 
 # @pytest.fixture
 # def pipeline(mocker, manager):
@@ -73,29 +78,47 @@ def test_empty_index(manager):
     assert (stored_idx.equals(updated_idx))
 
 
-def test_overlapping_idx(manager):
+def test_source_not_called_for_cached_idx(manager):
     A = pd.Index(np.arange(10))
+    A_bwd = pd.Index(np.arange(9,-1,-1))
     B = pd.Index(np.arange(5))
     C = pd.Index(np.arange(5, 15))
 
+    class LoggedSource:
+        def __init__(self):
+            self.CallCount = 0
+
+        def __call__(self, index):
+            self.CallCount += 1
+            return pd.DataFrame(index=index, data=['a']*len(index))
+
+    mySource = LoggedSource()
+
     pipeline = manager.register_value_producer(
-        "test",
-        source=lambda idx: pd.DataFrame(index=idx, data=['a']*len(idx)),
+        "myPipeline",
+        source=mySource,
     )
 
+    assert pipeline.source.CallCount == 0
     pipeline(A)
-    # pipeline.source.assert_called_once()
-    idx_A = manager.call_history["test"].index.copy(deep=True)
+    idx_A = manager.call_history["myPipeline"].index.copy(deep=True)
+    assert pipeline.source.CallCount == 1
+
+    pipeline(index=A)
+    assert pipeline.source.CallCount == 1
+
+    pipeline(A_bwd)
+    assert pipeline.source.CallCount == 1
 
     pipeline(B)
-    #todo: assert cache called / source not re-called
-    idx_B = manager.call_history["test"].index.copy(deep=True)
+    assert pipeline.source.CallCount == 1
+    idx_B = manager.call_history["myPipeline"].index.copy(deep=True)
     assert idx_A.equals(idx_B)
 
 
     pipeline(C)
-    #todo: assert source called only for subset
-    idx_C = manager.call_history["test"].index.copy(deep=True)
+    assert pipeline.source.CallCount == 2
+    idx_C = manager.call_history["myPipeline"].index.copy(deep=True)
     assert idx_C.equals(pd.Index(np.arange(15)))
 
 
