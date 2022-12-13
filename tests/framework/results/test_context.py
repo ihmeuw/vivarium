@@ -252,6 +252,7 @@ def test__get_stratifications(
     ],
 )
 def test_gather_results(name, pop_filter, aggregator_sources, aggregator, stratifications):
+    """Test cases where every stratification is in gather_results"""
     ctx = ResultsContext()
 
     # Generate population DataFrame
@@ -319,6 +320,7 @@ def test_gather_results(name, pop_filter, aggregator_sources, aggregator, strati
 def test_gather_results_partial_stratifications_in_results(
     name, pop_filter, aggregator_sources, aggregator, stratifications
 ):
+    """Test cases where not all stratifications are observed for gather_results"""
     ctx = ResultsContext()
 
     # Generate population DataFrame
@@ -358,6 +360,7 @@ def test_gather_results_partial_stratifications_in_results(
 
 
 def test__format_results():
+    """Test that format results produces the expected number of keys and a specific expected key"""
     ctx = ResultsContext()
     aggregates = BASE_POPULATION.groupby(["house", "familiar"]).apply(len)
     measure = "wizard_count"
@@ -370,3 +373,56 @@ def test__format_results():
     # Check that an example data column name is there
     expected_key = "MEASURE_wizard_count_HOUSE_slytherin_FAMILIAR_cat"
     assert expected_key in rv.keys()
+
+
+def test__bad_aggregator_return():
+    """Test that an exception is raised, as expected, when an aggregator produces something other than a pd.DataFrame
+    with a single column or a pd.Series"""
+    ctx = ResultsContext()
+
+    # Generate population DataFrame
+    population = BASE_POPULATION.copy()
+    event_name = "collect_metrics"
+
+    # Set up stratifications
+    ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
+    ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
+    ctx.add_observation(
+        "this_shouldnt_work",
+        "",
+        ["tracked", "power_level"],
+        sum,
+        ["house", "familiar"],
+        [],
+        event_name,
+    )
+
+    with pytest.raises(TypeError):
+        for r in ctx.gather_results(population, event_name):
+            print(r)
+
+
+def test__bad_aggregator_stratification():
+    """Test if an exception gets raised when a stratification that doesn't exist is attempted to be used, as expected."""
+    ctx = ResultsContext()
+
+    # Generate population DataFrame
+    population = BASE_POPULATION.copy()
+    event_name = "collect_metrics"
+
+    # Set up stratifications
+    ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
+    ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
+    ctx.add_observation(
+        "this_shouldnt_work",
+        "",
+        [],
+        sum,
+        ["house", "height"],  # `height` is not a stratification
+        [],
+        event_name,
+    )
+
+    with pytest.raises(KeyError, match="height"):
+        for r in ctx.gather_results(population, event_name):
+            print(r)

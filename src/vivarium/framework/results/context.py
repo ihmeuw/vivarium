@@ -105,7 +105,9 @@ class ResultsContext:
         ].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
-            pop_groups = population.query(pop_filter).groupby(list(stratifications))
+            if pop_filter:
+                population = population.query(pop_filter)
+            pop_groups = population.groupby(list(stratifications))
             for measure, aggregator_sources, aggregator, additional_keys in observations:
                 if aggregator_sources:
                     aggregates = pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
@@ -113,7 +115,12 @@ class ResultsContext:
                         aggregates = aggregates.squeeze(axis=1)
                 else:
                     aggregates = pop_groups.apply(aggregator)
-                # TODO: XXX Perhaps check that aggregates has one column
+                if not isinstance(aggregates, pd.Series):
+                    raise TypeError(
+                        f"aggregator return value is a {type(aggregates)} and could not be "
+                        "made into a pandas.Series. This is probably not correct."
+                    )
+
                 # Keep formatting all in one place.
                 yield self._format_results(measure, aggregates, **additional_keys)
 
@@ -132,7 +139,7 @@ class ResultsContext:
     @staticmethod
     def _format_results(
         measure: str,
-        aggregates: pd.DataFrame,
+        aggregates: pd.Series,
         **additional_keys: str,
     ) -> Dict[str, float]:
         results = {}
@@ -152,7 +159,7 @@ class ResultsContext:
             return f"{str(field).upper()}_{param}"
 
         for params, val in data.iteritems():
-            if not isinstance(params, list):  # handle single stratification case
+            if isinstance(params, str):  # handle single stratification case
                 params = [params]
             key = "_".join(
                 [_format("measure", measure)]

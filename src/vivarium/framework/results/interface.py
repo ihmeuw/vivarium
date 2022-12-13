@@ -178,6 +178,7 @@ class ResultsInterface:
         self._manager.register_observation(
             name,
             pop_filter,
+            aggregator_sources,
             aggregator,
             requires_columns,
             requires_values,

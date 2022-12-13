@@ -1,3 +1,4 @@
+from datetime import timedelta
 from types import MethodType
 
 import pandas as pd
@@ -96,31 +97,69 @@ def test_register_observations():
     assert len(interface._manager._results_context._observations) == 2
 
 
-def mock__prepare_population(self):
-    # TODO: return a mock population
-    # XXXX
-    ...
+def mock__prepare_population(self, event):
+    """Return a mock population in the vein of ResultsManager._prepare_population"""
+    # Generate population DataFrame
+    population = BASE_POPULATION.copy()
+
+    # Mock out some extra columns that would be produced by the manager's _prepare_population() method
+    population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
+    population["step_size"] = timedelta(days=28)
+    population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
+        days=28
+    )
+    return population
 
 
 def test_integration_full_observation(mocker):
+    """Test the full interface lifecycle of adding an observation and simulate a `collect_metrics` event."""
     # Create interface
     mgr = ResultsManager()
     results_interface = ResultsInterface(mgr)
 
     # register stratifications
-    results_interface.register_stratification("house", HOUSES, None, True, ["house"])
-    results_interface.register_stratification("familiar", FAMILIARS, None, True, ["familiar"])
+    results_interface.register_stratification("house", HOUSES, None, True, ["house"], [])
+    results_interface.register_stratification(
+        "familiar", FAMILIARS, None, True, ["familiar"], []
+    )
 
+    mock_aggregator = mocker.Mock()
+    another_mock_aggregator = mocker.Mock()
+
+    results_interface.register_observation(
+        "a_measure",
+        "tracked==True",
+        None,
+        mock_aggregator,
+        ["house", "familiar"],
+        [],
+        ["house", "familiar"],
+        [],
+        "collect_metrics",
+    )
     # register observation
     results_interface.register_observation(
-        "wizard_count", "tracked==True", None, len, [], [], "collect_metrics"
+        "another_measure",
+        "tracked==True",
+        None,
+        another_mock_aggregator,
+        ["house", "familiar"],
+        [],
+        ["house", "familiar"],
+        [],
+        "time_step__prepare",
     )
 
     # Mock in mgr._prepare_population to return population table, event
     mocker.patch.object(mgr, "_prepare_population")
     mgr._prepare_population = MethodType(mock__prepare_population, mgr)
 
-    # run mgr.gather_results('collect_metrics', event)
-    # TODO: Check that observations on this "when" are run but other "when" are not (i.e., add another observation)
+    mock_aggregator.assert_not_called()
+    another_mock_aggregator.assert_not_called()
 
-    assert True
+    # Fake a timestep
+    mock_event = mocker.Mock()
+    mgr.gather_results("collect_metrics", mock_event)
+
+    mock_aggregator.assert_called()  # Observation aggregator that should have been called
+    another_mock_aggregator.assert_not_called()  # Observation aggregator that should not
