@@ -17,13 +17,14 @@ def _silly_aggregator(_: pd.DataFrame) -> float:
 
 @pytest.mark.parametrize(
     (
-        "name, pop_filter, aggregator, requires_columns, requires_values,"
+        "name, pop_filter, aggregator_columns, aggregator, requires_columns, requires_values,"
         " additional_stratifications, excluded_stratifications, when"
     ),
     [
         (
             "living_person_time",
             'alive == "alive" and undead == False',
+            [],
             _silly_aggregator,
             None,
             None,
@@ -34,6 +35,7 @@ def _silly_aggregator(_: pd.DataFrame) -> float:
         (
             "undead_person_time",
             "undead == True",
+            [],
             _silly_aggregator,
             None,
             None,
@@ -47,6 +49,7 @@ def _silly_aggregator(_: pd.DataFrame) -> float:
 def test_register_observation(
     name,
     pop_filter,
+    aggregator_columns,
     aggregator,
     requires_columns,
     requires_values,
@@ -61,6 +64,7 @@ def test_register_observation(
     interface.register_observation(
         name,
         pop_filter,
+        aggregator_columns,
         aggregator,
         additional_stratifications,
         excluded_stratifications,
@@ -76,6 +80,7 @@ def test_register_observations():
     interface.register_observation(
         "living_person_time",
         'alive == "alive" and undead == False',
+        [],
         _silly_aggregator,
         [],
         [],
@@ -87,6 +92,7 @@ def test_register_observations():
     interface.register_observation(
         "undead_person_time",
         "undead == True",
+        [],
         _silly_aggregator,
         [],
         [],
