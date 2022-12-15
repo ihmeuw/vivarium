@@ -111,13 +111,15 @@ class ResultsContext:
             for measure, aggregator_sources, aggregator, additional_keys in observations:
                 if aggregator_sources:
                     aggregates = pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
-                    if isinstance(aggregates, pd.DataFrame):
-                        aggregates = aggregates.squeeze(axis=1)
                 else:
                     aggregates = pop_groups.apply(aggregator)
+
+                # Ensure we are dealing with a single column of formattable results
+                if isinstance(aggregates, pd.DataFrame):
+                    aggregates = aggregates.squeeze(axis=1)
                 if not isinstance(aggregates, pd.Series):
                     raise TypeError(
-                        f"aggregator return value is a {type(aggregates)} and could not be "
+                        f"The aggregator return value is a {type(aggregates)} and could not be "
                         "made into a pandas.Series. This is probably not correct."
                     )
 
@@ -163,7 +165,10 @@ class ResultsContext:
                 params = [params]
             key = "_".join(
                 [_format("measure", measure)]
-                + [_format(field, param) for field, param in zip(data.index.names, params)]
+                + [
+                    _format(field, category)
+                    for field, category in zip(data.index.names, params)
+                ]
                 # Sorts additional_keys by the field name.
                 + [_format(field, param) for field, param in sorted(additional_keys.items())]
             )
