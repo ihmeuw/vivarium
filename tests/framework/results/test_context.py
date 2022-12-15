@@ -1,3 +1,4 @@
+import math
 from datetime import timedelta
 
 import pandas as pd
@@ -217,25 +218,34 @@ def test__get_stratifications(
 
 
 @pytest.mark.parametrize(
-    "name, pop_filter, aggregator_sources, aggregator, stratifications",
+    "name, pop_filter, aggregator_sources, aggregator, stratifications, expected_result",
     [
-        ("wizard_count", "tracked==True", None, len, ["house", "familiar"]),
-        ("power_level_total", "tracked==True", ["power_level"], sum, ["house", "familiar"]),
+        ("wizard_count", "tracked==True", None, len, ["house", "familiar"], 4),
+        (
+            "power_level_total",
+            "tracked==True",
+            ["power_level"],
+            sum,
+            ["house", "familiar"],
+            260,
+        ),
         (
             "wizard_time",
             "tracked==True",
             [],
             _aggregate_state_person_time,
             ["house", "familiar"],
+            0.306555,
         ),
-        ("wizard_count", "tracked==True", None, len, ["house"]),
-        ("power_level_total", "tracked==True", ["power_level"], sum, ["house"]),
+        ("wizard_count", "tracked==True", None, len, ["house"], 20),
+        ("power_level_total", "tracked==True", ["power_level"], sum, ["house"], 1300),
         (
             "wizard_time",
             "tracked==True",
             [],
             _aggregate_state_person_time,
             ["house"],
+            1.53277,
         ),
     ],
     ids=[
@@ -247,8 +257,11 @@ def test__get_stratifications(
         "custom_aggregator_one_stratification",
     ],
 )
-def test_gather_results(name, pop_filter, aggregator_sources, aggregator, stratifications):
-    """Test cases where every stratification is in gather_results"""
+def test_gather_results(
+    name, pop_filter, aggregator_sources, aggregator, stratifications, expected_result
+):
+    """Test cases where every stratification is in gather_results. Checks for existence and correctness
+    of results"""
     ctx = ResultsContext()
 
     # Generate population DataFrame
@@ -277,7 +290,10 @@ def test_gather_results(name, pop_filter, aggregator_sources, aggregator, strati
     )
 
     i = 0
-    for _ in ctx.gather_results(population, event_name):
+    for r in ctx.gather_results(population, event_name):
+        assert all(
+            math.isclose(result, expected_result, rel_tol=0.0001) for result in r.values()
+        )
         i += 1
     assert i == 1
 
@@ -316,7 +332,8 @@ def test_gather_results(name, pop_filter, aggregator_sources, aggregator, strati
 def test_gather_results_partial_stratifications_in_results(
     name, pop_filter, aggregator_sources, aggregator, stratifications
 ):
-    """Test cases where not all stratifications are observed for gather_results"""
+    """Test cases where not all stratifications are observed for gather_results. This looks for existence of
+    unobserved stratifications and ensures their values are 0"""
     ctx = ResultsContext()
 
     # Generate population DataFrame
@@ -349,10 +366,9 @@ def test_gather_results_partial_stratifications_in_results(
     )
 
     for r in ctx.gather_results(population, event_name):
-        assert (
-            len([unladen_key for unladen_key in r.keys() if "unladen_swallow" in unladen_key])
-            > 0
-        )
+        unladen_results = {k: v for (k, v) in r.items() if "unladen_swallow" in k}
+        assert len(unladen_results.items()) > 0
+        assert all(v == 0 for v in unladen_results.values())
 
 
 def test__format_results():
@@ -372,8 +388,8 @@ def test__format_results():
 
 
 def test__bad_aggregator_return():
-    """Test that an exception is raised, as expected, when an aggregator produces something other than a pd.DataFrame
-    with a single column or a pd.Series"""
+    """Test that an exception is raised, as expected, when an aggregator
+    produces something other than a pd.DataFrame with a single column or a pd.Series"""
     ctx = ResultsContext()
 
     # Generate population DataFrame
@@ -399,7 +415,8 @@ def test__bad_aggregator_return():
 
 
 def test__bad_aggregator_stratification():
-    """Test if an exception gets raised when a stratification that doesn't exist is attempted to be used, as expected."""
+    """Test if an exception gets raised when a stratification that doesn't
+    exist is attempted to be used, as expected."""
     ctx = ResultsContext()
 
     # Generate population DataFrame
