@@ -73,12 +73,7 @@ def test_add_stratification_raises(
         raise ctx.add_stratification(name, sources, categories, mapper, is_vectorized)
 
 
-def _aggregate_state_person_time(self, x: pd.DataFrame) -> float:
-    """Helper aggregator function for observation testing"""
-    return len(x) * (28 / 365.35)
-
-
-def _aggregate_state_person_time_function(x: pd.DataFrame) -> float:
+def _aggregate_state_person_time(x: pd.DataFrame) -> float:
     """Helper aggregator function for observation testing"""
     return len(x) * (28 / 365.35)
 
@@ -230,7 +225,7 @@ def test__get_stratifications(
             "wizard_time",
             "tracked==True",
             [],
-            _aggregate_state_person_time_function,
+            _aggregate_state_person_time,
             ["house", "familiar"],
         ),
         ("wizard_count", "tracked==True", None, len, ["house"]),
@@ -239,7 +234,7 @@ def test__get_stratifications(
             "wizard_time",
             "tracked==True",
             [],
-            _aggregate_state_person_time_function,
+            _aggregate_state_person_time,
             ["house"],
         ),
     ],
@@ -296,7 +291,7 @@ def test_gather_results(name, pop_filter, aggregator_sources, aggregator, strati
             "wizard_time",
             "tracked==True",
             [],
-            _aggregate_state_person_time_function,
+            _aggregate_state_person_time,
             ["house", "familiar"],
         ),
         ("wizard_count", "tracked==True", None, len, ["familiar"]),
@@ -305,7 +300,7 @@ def test_gather_results(name, pop_filter, aggregator_sources, aggregator, strati
             "wizard_time",
             "tracked==True",
             [],
-            _aggregate_state_person_time_function,
+            _aggregate_state_person_time,
             ["familiar"],
         ),
     ],
