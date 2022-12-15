@@ -160,17 +160,20 @@ class ResultsContext:
             """Format of the measure identifier tokens into FIELD_param."""
             return f"{str(field).upper()}_{param}"
 
-        for params, val in data.iteritems():
-            if isinstance(params, str):  # handle single stratification case
-                params = [params]
+        for categories, val in data.iteritems():
+            if isinstance(categories, str):  # handle single stratification case
+                categories = [categories]
             key = "_".join(
                 [_format("measure", measure)]
                 + [
                     _format(field, category)
-                    for field, category in zip(data.index.names, params)
+                    for field, category in zip(data.index.names, categories)
                 ]
                 # Sorts additional_keys by the field name.
-                + [_format(field, param) for field, param in sorted(additional_keys.items())]
+                + [
+                    _format(field, category)
+                    for field, category in sorted(additional_keys.items())
+                ]
             )
             results[key] = val
         return results
