@@ -22,7 +22,7 @@ class ResultsContext:
         self._default_stratifications: List[str] = []
         self._stratifications: List[Stratification] = []
         # keys are event names: ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"]
-        # values are dicts with key (filter, grouper) value (measure, aggregator, additional_keys)
+        # values are dicts with key (filter, grouper) value (measure, aggregator_sources, aggregator, additional_keys)
         self._observations = defaultdict(lambda: defaultdict(list))
 
     # noinspection PyAttributeOutsideInit
@@ -79,6 +79,7 @@ class ResultsContext:
         self,
         name: str,
         pop_filter: str,
+        aggregator_sources: List[str],
         aggregator: Callable[[pd.DataFrame], float],
         additional_stratifications: List[str] = (),
         excluded_stratifications: List[str] = (),
@@ -86,50 +87,72 @@ class ResultsContext:
         **additional_keys: str,
     ):
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
-        groupers = self._get_groupers(additional_stratifications, excluded_stratifications)
-        self._observations[when][(pop_filter, groupers)].append(
-            (name, aggregator, additional_keys)
+        stratifications = self._get_stratifications(
+            additional_stratifications, excluded_stratifications
+        )
+        self._observations[when][(pop_filter, stratifications)].append(
+            (name, aggregator_sources, aggregator, additional_keys)
         )
 
     def gather_results(self, population: pd.DataFrame, event_name: str) -> Dict[str, float]:
-        # Optimization: We store all the producers by pop_filter and groupers
+        # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
-        # TODO: uncomment and debug...
-        # for stratification in self._stratifications:
-        #     population = stratification(population)
-        #
-        # for (pop_filter, groupers), observations in self._observations[event_name].items():
-        #     # Results production can be simplified to
-        #     # filter -> groupby -> aggregate in all situations we've seen.
-        #     pop_groups = self.population.query(pop_filter).groupby(list(groupers))
-        #     for measure, aggregator, additional_keys in observers:
-        #         aggregates = pop_groups.apply(aggregator)
-        #         # Keep formatting all in one place.
-        #         yield self._format_results(measure, aggregates, **additional_keys)
-        ...
+        for stratification in self._stratifications:
+            population = stratification(population)
 
-    def _get_groupers(
+        for (pop_filter, stratifications), observations in self._observations[
+            event_name
+        ].items():
+            # Results production can be simplified to
+            # filter -> groupby -> aggregate in all situations we've seen.
+            if pop_filter:
+                population = population.query(pop_filter)
+            pop_groups = population.groupby(list(stratifications))
+            for measure, aggregator_sources, aggregator, additional_keys in observations:
+                if aggregator_sources:
+                    aggregates = pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
+                else:
+                    aggregates = pop_groups.apply(aggregator)
+
+                # Ensure we are dealing with a single column of formattable results
+                if isinstance(aggregates, pd.DataFrame):
+                    aggregates = aggregates.squeeze(axis=1)
+                if not isinstance(aggregates, pd.Series):
+                    raise TypeError(
+                        f"The aggregator return value is a {type(aggregates)} and could not be "
+                        "made into a pandas.Series. This is probably not correct."
+                    )
+
+                # Keep formatting all in one place.
+                yield self._format_results(measure, aggregates, **additional_keys)
+
+    def _get_stratifications(
         self,
         additional_stratifications: List[str] = (),
         excluded_stratifications: List[str] = (),
     ) -> Tuple[str, ...]:
-        groupers = list(
+        stratifications = list(
             set(self._default_stratifications) - set(excluded_stratifications)
             | set(additional_stratifications)
         )
         # Makes sure measure identifiers have fields in the same relative order.
-        return tuple(sorted(groupers))
+        return tuple(sorted(stratifications))
 
     @staticmethod
     def _format_results(
-        measure: str, aggregates: pd.DataFrame, **additional_keys: str
+        measure: str,
+        aggregates: pd.Series,
+        **additional_keys: str,
     ) -> Dict[str, float]:
         results = {}
         # First we expand the categorical index over unobserved pairs.
         # This ensures that the produced results are always the same length.
-        idx = pd.MultiIndex.from_product(
-            aggregates.index.levels, names=aggregates.index.names
-        )
+        if isinstance(aggregates.index, pd.MultiIndex):
+            idx = pd.MultiIndex.from_product(
+                aggregates.index.levels, names=aggregates.index.names
+            )
+        else:
+            idx = aggregates.index
         data = pd.Series(data=0, index=idx)
         data.loc[aggregates.index] = aggregates
 
@@ -137,14 +160,19 @@ class ResultsContext:
             """Format of the measure identifier tokens into FIELD_param."""
             return f"{str(field).upper()}_{param}"
 
-        for params, val in data.iteritems():
+        for categories, val in data.iteritems():
+            if isinstance(categories, str):  # handle single stratification case
+                categories = [categories]
             key = "_".join(
                 [_format("measure", measure)]
-                + [_format(field, measure) for field, param in zip(data.index.names, params)]
+                + [
+                    _format(field, category)
+                    for field, category in zip(data.index.names, categories)
+                ]
                 # Sorts additional_keys by the field name.
                 + [
-                    _format(field, measure)
-                    for field, param in sorted(additional_keys.items())
+                    _format(field, category)
+                    for field, category in sorted(additional_keys.items())
                 ]
             )
             results[key] = val
