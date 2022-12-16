@@ -1,3 +1,6 @@
+import itertools
+import math
+
 import numpy as np
 import pandas as pd
 
@@ -17,6 +20,18 @@ BIN_BINNED_COLUMN = "silly_bin"
 BIN_SOURCE = "silly_level"
 BIN_LABELS = ["not", "meh", "somewhat", "very", "extra"]
 BIN_SILLY_BINS = [0, 20, 40, 60, 90]
+
+COL_NAMES = ["house", "familiar", "power_level", "tracked"]
+FAMILIARS = ["owl", "cat", "gecko", "banana_slug", "unladen_swallow"]
+POWER_LEVELS = [i * 10 for i in range(5, 9)]
+TRACKED_STATUSES = [True, False]
+RECORDS = [
+    (house, familiar, power_level, ts)
+    for house, familiar, power_level, ts in itertools.product(
+        CATEGORIES, FAMILIARS, POWER_LEVELS, TRACKED_STATUSES
+    )
+]
+BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
 
 
 ##################
