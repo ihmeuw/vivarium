@@ -225,6 +225,7 @@ def test_joint_value(manager):
         preferred_combiner=list_combiner,
         preferred_post_processor=union_post_processor,
     )
+    value(index)
     assert np.all(value(index) == 0)
 
     manager.register_value_modifier("test", modifier=lambda idx: pd.Series(0.5, index=idx))
