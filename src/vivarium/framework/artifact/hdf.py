@@ -196,7 +196,7 @@ def remove(path: Union[str, Path], entity_key: str):
         file.remove_node(entity_key.path, recursive=True)
 
 
-def get_keys(path: str) -> List[str]:
+def get_keys(path: Union[str, Path]) -> List[str]:
     """Gets key representation of all paths in an HDF file.
 
     Parameters
