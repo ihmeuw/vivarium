@@ -3,7 +3,7 @@ import sys
 min_version, max_version = ((3, 6), "3.6"), ((3, 11), "3.11")
 
 
-if not (min_version[0] <= sys.version_info <= max_version[0]):
+if not (min_version[0] <= sys.version_info[:2] <= max_version[0]):
     # Python 3.5 does not support f-strings
     py_version = ".".join([str(v) for v in sys.version_info[:3]])
     error = (
