@@ -1,3 +1,7 @@
+**1.0.0 - 12/20/22**
+
+ - Added Results Manager feature.
+
 **0.10.21 - 12/20/22**
 
  - Cleaned up warnings in artifact test code.
