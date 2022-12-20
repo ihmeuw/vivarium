@@ -110,6 +110,7 @@ def test_add_observation(
     ctx.add_observation(
         name,
         pop_filter,
+        [],
         aggregator,
         additional_stratifications,
         excluded_stratifications,
@@ -143,6 +144,7 @@ def test_double_add_observation(
     ctx.add_observation(
         name,
         pop_filter,
+        [],
         aggregator,
         additional_stratifications,
         excluded_stratifications,
@@ -151,6 +153,7 @@ def test_double_add_observation(
     ctx.add_observation(
         name,
         pop_filter,
+        [],
         aggregator,
         additional_stratifications,
         excluded_stratifications,
