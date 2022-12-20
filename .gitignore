@@ -106,3 +106,6 @@ venv.bak/
 
 # Pycharm project settings
 .idea/
+
+# Local user jupyter notebooks directory
+notebooks/
