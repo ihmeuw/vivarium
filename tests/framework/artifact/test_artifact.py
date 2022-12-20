@@ -9,7 +9,7 @@ from vivarium.framework.artifact.artifact import (
     _parse_draw_filters,
     _to_tree,
 )
-from vivarium.framework.artifact.hdf import EntityKey, touch
+from vivarium.framework.artifact.hdf import EntityKey
 
 
 @pytest.fixture()
