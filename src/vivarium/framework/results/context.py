@@ -160,7 +160,7 @@ class ResultsContext:
             """Format of the measure identifier tokens into FIELD_param."""
             return f"{str(field).upper()}_{param}"
 
-        for categories, val in data.iteritems():
+        for categories, val in data.items():
             if isinstance(categories, str):  # handle single stratification case
                 categories = [categories]
             key = "_".join(
