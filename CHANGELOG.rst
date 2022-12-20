@@ -1,3 +1,7 @@
+**0.10.20 - 12/20/22**
+
+ - Update CI versions to build on python versions 3.7-3.10
+
 **0.10.19 - 10/04/22**
 
  - Fix bug on `simulate run` CLI introduced in 0.10.18
