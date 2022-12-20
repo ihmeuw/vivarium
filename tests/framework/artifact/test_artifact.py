@@ -9,10 +9,7 @@ from vivarium.framework.artifact.artifact import (
     _parse_draw_filters,
     _to_tree,
 )
-from vivarium.framework.artifact.hdf import (
-    EntityKey,
-    touch,
-)
+from vivarium.framework.artifact.hdf import EntityKey, touch
 
 
 @pytest.fixture()
@@ -75,9 +72,9 @@ def hdf_mock(mocker, keys_mock):
     return mock
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def artifact_path(tmp_path):
-    ap = tmp_path / 'artifact.hdf'
+    ap = tmp_path / "artifact.hdf"
     ap.touch()
     return ap
 
@@ -266,7 +263,9 @@ def test_artifact_write_and_load_with_different_key_types(hdf_mock, keys_mock, a
         keys_mock.remove(write_key)
 
 
-def test_artifact_write_and_reopen_then_load_with_entity_key(hdf_mock, keys_mock, artifact_path):
+def test_artifact_write_and_reopen_then_load_with_entity_key(
+    hdf_mock, keys_mock, artifact_path
+):
     filter_terms = ["location == Global", "draw == 10"]
     key = EntityKey("new.key")
 
@@ -326,7 +325,10 @@ def test_remove_no_cache(hdf_mock, keys_mock, artifact_path):
     assert key not in a
     assert key not in a._cache
     assert set(initial_keys).difference(a.keys) == {key}
-    expected_calls_remove = [call(artifact_path, "metadata.keyspace"), call(artifact_path, key)]
+    expected_calls_remove = [
+        call(artifact_path, "metadata.keyspace"),
+        call(artifact_path, key),
+    ]
     assert hdf_mock.remove.call_args_list == expected_calls_remove
     expected_calls_write = [
         call(artifact_path, "metadata.keyspace", [k for k in keys_mock if k != key]),
@@ -457,7 +459,7 @@ def test_create_hdf(tmpdir):
     path = Path(tmpdir) / "test.hdf"
     assert not path.is_file()
 
-    with pytest.warns(UserWarning, match='No artifact found'):
+    with pytest.warns(UserWarning, match="No artifact found"):
         test_artifact = Artifact(path)
     assert path.is_file()
     assert "metadata.keyspace" in test_artifact
@@ -474,7 +476,7 @@ def test_create_hdf(tmpdir):
 def test_keys_initialization(tmpdir):
     path = Path(tmpdir) / "test.hdf"
 
-    with pytest.warns(UserWarning, match='No artifact found'):
+    with pytest.warns(UserWarning, match="No artifact found"):
         test_artifact = Artifact(path)
     test_key = test_artifact._keys
 
@@ -488,7 +490,7 @@ def test_keys_initialization(tmpdir):
 
 def test_keys_append(tmpdir):
     path = Path(tmpdir) / "test.hdf"
-    with pytest.warns(UserWarning, match='No artifact found'):
+    with pytest.warns(UserWarning, match="No artifact found"):
         test_artifact = Artifact(path)
     test_keys = test_artifact._keys
 
@@ -504,7 +506,7 @@ def test_keys_append(tmpdir):
 
 def test_keys_remove(tmpdir):
     path = Path(tmpdir) / "test.hdf"
-    with pytest.warns(UserWarning, match='No artifact found'):
+    with pytest.warns(UserWarning, match="No artifact found"):
         test_artifact = Artifact(path)
     test_keys = test_artifact._keys
 
