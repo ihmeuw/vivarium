@@ -137,7 +137,7 @@ def test_load_with_df_data(artifact_mock):
 
 def test_config_filter():
     df = pd.DataFrame({"year": range(1990, 2000, 1), "color": ["red", "yellow"] * 5})
-    filtered = +_config_filter(df, "year in [1992, 1995]")
+    filtered = _config_filter(df, "year in [1992, 1995]")
 
     assert set(filtered.year) == {1992, 1995}
 
