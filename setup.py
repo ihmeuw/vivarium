@@ -1,6 +1,6 @@
 import sys
 
-if sys.version_info < (3, 6) or sys.version_info >= (3, 9):
+if sys.version_info < (3, 6) or sys.version_info >= (3, 11):
     # Python 3.5 does not support f-strings
     py_version = ".".join([str(v) for v in sys.version_info[:3]])
     error = (
