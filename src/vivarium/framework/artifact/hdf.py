@@ -426,7 +426,7 @@ def _get_valid_filter_terms(filter_terms, colnames):
         # then split each condition out
         t = re.split("[&|]", t)
         # get the unique columns referenced by this term
-        term_columns = set([re.split("[<=>\s]", i.strip())[0] for i in t])
+        term_columns = set([re.split(r"[<=>\s]", i.strip())[0] for i in t])
         if not term_columns.issubset(colnames):
             valid_terms.remove(term)
     return valid_terms if valid_terms else None
