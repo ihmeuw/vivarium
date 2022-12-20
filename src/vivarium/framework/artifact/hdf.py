@@ -196,7 +196,7 @@ def remove(path: Union[str, Path], entity_key: str):
         file.remove_node(entity_key.path, recursive=True)
 
 
-def get_keys(path: str) -> List[str]:
+def get_keys(path: Union[str, Path]) -> List[str]:
     """Gets key representation of all paths in an HDF file.
 
     Parameters
@@ -426,7 +426,7 @@ def _get_valid_filter_terms(filter_terms, colnames):
         # then split each condition out
         t = re.split("[&|]", t)
         # get the unique columns referenced by this term
-        term_columns = set([re.split("[<=>\s]", i.strip())[0] for i in t])
+        term_columns = set([re.split(r"[<=>\s]", i.strip())[0] for i in t])
         if not term_columns.issubset(colnames):
             valid_terms.remove(term)
     return valid_terms if valid_terms else None
