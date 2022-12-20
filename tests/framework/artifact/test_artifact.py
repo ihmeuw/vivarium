@@ -9,7 +9,7 @@ from vivarium.framework.artifact.artifact import (
     _parse_draw_filters,
     _to_tree,
 )
-from vivarium.framework.artifact.hdf import EntityKey
+from vivarium.framework.artifact.hdf import EntityKey, touch
 
 
 @pytest.fixture()
@@ -72,6 +72,13 @@ def hdf_mock(mocker, keys_mock):
     return mock
 
 
+@pytest.fixture(scope="function")
+def artifact_path(tmp_path):
+    ap = tmp_path / "artifact.hdf"
+    ap.touch()
+    return ap
+
+
 # keys in test artifact
 _KEYS = [
     "population.age_bins",
@@ -81,48 +88,45 @@ _KEYS = [
 ]
 
 
-def test_artifact_creation(hdf_mock, keys_mock):
-    path = Path("path/to/artifact.hdf")
+def test_artifact_creation(hdf_mock, keys_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
 
-    a = Artifact(path)
+    a = Artifact(artifact_path)
 
     assert a.filter_terms is None
     assert a._cache == {}
     assert a.keys == keys_mock
     hdf_mock.load.called_once_with("metadata.keyspace")
 
-    a = Artifact(path, filter_terms)
+    a = Artifact(artifact_path, filter_terms)
 
-    assert a.path == str(path)
+    assert a.path == str(artifact_path)
     assert a.filter_terms == filter_terms
     assert a._cache == {}
     assert a.keys == keys_mock
     hdf_mock.load.called_once_with("metadata.keyspace")
 
 
-def test_artifact_load_missing_key(hdf_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_artifact_load_missing_key(hdf_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     key = "not.a_real.key"
 
-    a = Artifact(path, filter_terms)
+    a = Artifact(artifact_path, filter_terms)
     hdf_mock.load.called_once_with("metadata.keyspace")
     hdf_mock.load.reset_mock()
     with pytest.raises(ArtifactException) as err_info:
         a.load(key)
 
-    assert f"{key} should be in {path}." == str(err_info.value)
+    assert f"{key} should be in {artifact_path}." == str(err_info.value)
     hdf_mock.load.assert_not_called()
     assert a._cache == {}
 
 
-def test_artifact_load_key_has_no_data(hdf_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_artifact_load_key_has_no_data(hdf_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     key = "no_data.key"
 
-    a = Artifact(path, filter_terms)
+    a = Artifact(artifact_path, filter_terms)
 
     with pytest.raises(AssertionError) as err_info:
         a.load(key)
@@ -130,15 +134,14 @@ def test_artifact_load_key_has_no_data(hdf_mock):
     assert f"Data for {key} is not available. Check your model specification." == str(
         err_info.value
     )
-    assert hdf_mock.load.called_once_with(path, key, filter_terms)
+    assert hdf_mock.load.called_once_with(artifact_path, key, filter_terms)
     assert a._cache == {}
 
 
-def test_artifact_load(hdf_mock, keys_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_artifact_load(hdf_mock, keys_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
 
-    a = Artifact(path, filter_terms)
+    a = Artifact(artifact_path, filter_terms)
     keys_without_metadata = set(keys_mock) - {
         "metadata.locations",
         "metadata.keyspace",
@@ -152,7 +155,7 @@ def test_artifact_load(hdf_mock, keys_mock):
 
         result = a.load(key)
 
-        assert hdf_mock.load.called_once_with(path, key, filter_terms)
+        assert hdf_mock.load.called_once_with(artifact_path, key, filter_terms)
         assert key in a._cache
         assert a._cache[key] == "data"
         assert result == "data"
@@ -160,12 +163,11 @@ def test_artifact_load(hdf_mock, keys_mock):
         hdf_mock.load.reset_mock()
 
 
-def test_artifact_contains(hdf_mock, keys_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_artifact_contains(hdf_mock, keys_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     not_a_key = "not.a.key"
 
-    art = Artifact(path, filter_terms)
+    art = Artifact(artifact_path, filter_terms)
 
     for key in art.keys:
         assert key in art
@@ -177,12 +179,11 @@ def test_artifact_contains(hdf_mock, keys_mock):
     assert not_a_key not in art.keys
 
 
-def test_artifact_write_duplicate_key(hdf_mock, keys_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_artifact_write_duplicate_key(hdf_mock, keys_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     key = "population.structure"
 
-    art = Artifact(path, filter_terms)
+    art = Artifact(artifact_path, filter_terms)
     initial_keys = art.keys
     assert initial_keys == keys_mock
 
@@ -192,17 +193,16 @@ def test_artifact_write_duplicate_key(hdf_mock, keys_mock):
     assert f"{key} already in artifact." == str(err_info.value)
     assert key in art
     assert key not in art._cache
-    hdf_mock.write.called_once_with(path, "metadata.keyspace", ["metadata.keyspace"])
+    hdf_mock.write.called_once_with(artifact_path, "metadata.keyspace", ["metadata.keyspace"])
     hdf_mock.remove.assert_not_called()
     assert art.keys == initial_keys
 
 
-def test_artifact_write_no_data(hdf_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_artifact_write_no_data(hdf_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     key = "new.key"
 
-    a = Artifact(path, filter_terms)
+    a = Artifact(artifact_path, filter_terms)
     initial_keys = a.keys
 
     assert key not in a
@@ -212,17 +212,16 @@ def test_artifact_write_no_data(hdf_mock):
 
     assert key not in a
     assert key not in a._cache
-    hdf_mock.write.called_once_with(path, "metadata.keyspace", ["metadata.keyspace"])
+    hdf_mock.write.called_once_with(artifact_path, "metadata.keyspace", ["metadata.keyspace"])
     hdf_mock.remove.assert_not_called()
     assert a.keys == initial_keys
 
 
-def test_artifact_write(hdf_mock, keys_mock):
-    path = Path(Path("/place/with/artifact.hdf"))
+def test_artifact_write(hdf_mock, keys_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     key = "new.key"
 
-    a = Artifact(path, filter_terms)
+    a = Artifact(artifact_path, filter_terms)
     initial_keys = a.keys
 
     assert key not in a
@@ -232,16 +231,14 @@ def test_artifact_write(hdf_mock, keys_mock):
     assert key in a
     assert key not in a._cache
     expected_call = [
-        call(path, "metadata.keyspace", ["metadata.keyspace"]),
-        call(path, key, "data"),
-        call(path, "metadata.keyspace", keys_mock + [key]),
+        call(artifact_path, key, "data"),
+        call(artifact_path, "metadata.keyspace", keys_mock + [key]),
     ]
     assert hdf_mock.write.call_args_list == expected_call
     assert set(a.keys) == set(initial_keys + [key])
 
 
-def test_artifact_write_and_load_with_different_key_types(hdf_mock, keys_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_artifact_write_and_load_with_different_key_types(hdf_mock, keys_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     string_key = "new.key"
     entity_key = EntityKey(string_key)
@@ -249,7 +246,7 @@ def test_artifact_write_and_load_with_different_key_types(hdf_mock, keys_mock):
     key_pairs = {string_key: entity_key, entity_key: string_key}
 
     for write_key, load_key in key_pairs.items():
-        a = Artifact(path, filter_terms)
+        a = Artifact(artifact_path, filter_terms)
 
         assert write_key not in a
         a.write(write_key, "data")
@@ -259,43 +256,43 @@ def test_artifact_write_and_load_with_different_key_types(hdf_mock, keys_mock):
 
         a.load(load_key)
 
-        assert hdf_mock.load.called_once_with(path, load_key, filter_terms)
+        assert hdf_mock.load.called_once_with(artifact_path, load_key, filter_terms)
         assert load_key in a._cache
 
         hdf_mock.load.reset_mock()
         keys_mock.remove(write_key)
 
 
-def test_artifact_write_and_reopen_then_load_with_entity_key(hdf_mock, keys_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_artifact_write_and_reopen_then_load_with_entity_key(
+    hdf_mock, keys_mock, artifact_path
+):
     filter_terms = ["location == Global", "draw == 10"]
     key = EntityKey("new.key")
 
-    a = Artifact(path, filter_terms)
+    a = Artifact(artifact_path, filter_terms)
 
     assert key not in a
     a.write(key, "data")
 
     keys_mock.append(key)
 
-    a_again = Artifact(path, filter_terms)
+    a_again = Artifact(artifact_path, filter_terms)
 
     assert key not in a_again._cache
 
     a_again.load(key)
 
-    assert hdf_mock.load.called_once_with(path, key, filter_terms)
+    assert hdf_mock.load.called_once_with(artifact_path, key, filter_terms)
     assert key in a_again._cache
 
     hdf_mock.load.reset_mock()
     keys_mock.remove(key)
 
 
-def test_remove_bad_key(hdf_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_remove_bad_key(hdf_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     key = "non_existent.key"
-    a = Artifact(path, filter_terms)
+    a = Artifact(artifact_path, filter_terms)
     initial_keys = a.keys
 
     assert key not in a
@@ -308,16 +305,15 @@ def test_remove_bad_key(hdf_mock):
     assert key not in a
     assert key not in a._cache
     hdf_mock.remove.assert_not_called()
-    hdf_mock.write.called_once_with(path, "metadata.keyspace", ["metadata.keyspace"])
+    hdf_mock.write.called_once_with(artifact_path, "metadata.keyspace", ["metadata.keyspace"])
     assert a.keys == initial_keys
 
 
-def test_remove_no_cache(hdf_mock, keys_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_remove_no_cache(hdf_mock, keys_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     key = "population.structure"
 
-    a = Artifact(path, filter_terms)
+    a = Artifact(artifact_path, filter_terms)
 
     initial_keys = a.keys[:]
 
@@ -329,21 +325,22 @@ def test_remove_no_cache(hdf_mock, keys_mock):
     assert key not in a
     assert key not in a._cache
     assert set(initial_keys).difference(a.keys) == {key}
-    expected_calls_remove = [call(path, "metadata.keyspace"), call(path, key)]
+    expected_calls_remove = [
+        call(artifact_path, "metadata.keyspace"),
+        call(artifact_path, key),
+    ]
     assert hdf_mock.remove.call_args_list == expected_calls_remove
     expected_calls_write = [
-        call(path, "metadata.keyspace", ["metadata.keyspace"]),
-        call(path, "metadata.keyspace", [k for k in keys_mock if k != key]),
+        call(artifact_path, "metadata.keyspace", [k for k in keys_mock if k != key]),
     ]
     assert hdf_mock.write.call_args_list == expected_calls_write
 
 
-def test_remove(hdf_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_remove(hdf_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     key = "population.structure"
 
-    a = Artifact(path, filter_terms)
+    a = Artifact(artifact_path, filter_terms)
     a._cache[key] = "data"
 
     assert key in a
@@ -354,16 +351,15 @@ def test_remove(hdf_mock):
     assert key not in a
     assert key not in a._cache
 
-    expected_calls = [call(path, "metadata.keyspace"), call(path, key)]
+    expected_calls = [call(artifact_path, "metadata.keyspace"), call(artifact_path, key)]
     assert hdf_mock.remove.call_args_list == expected_calls
 
 
-def test_clear_cache(hdf_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_clear_cache(hdf_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     key = "population.structure"
 
-    a = Artifact(path, filter_terms)
+    a = Artifact(artifact_path, filter_terms)
     a.clear_cache()
 
     assert a._cache == {}
@@ -374,25 +370,23 @@ def test_clear_cache(hdf_mock):
     assert a._cache == {}
 
 
-def test_loading_key_leaves_filters_unchanged(hdf_mock):
+def test_loading_key_leaves_filters_unchanged(hdf_mock, artifact_path):
     # loading each key will drop the fake_filter from filter_terms for that key
     # make sure that artifact's filter terms stay the same though
-    path = str(Path(__file__).parent / "artifact.hdf")
     filter_terms = ["location == Global", "draw == 10", "fake_filter"]
 
-    a = Artifact(path, filter_terms=filter_terms)
+    a = Artifact(artifact_path, filter_terms=filter_terms)
 
     for key in _KEYS:
         a.load(key)
         assert a.filter_terms == filter_terms
 
 
-def test_replace(hdf_mock, keys_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_replace(hdf_mock, keys_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     key = "new.key"
 
-    a = Artifact(path, filter_terms=filter_terms)
+    a = Artifact(artifact_path, filter_terms=filter_terms)
 
     assert key not in a
 
@@ -401,9 +395,8 @@ def test_replace(hdf_mock, keys_mock):
     new_keyspace = [k for k in keys_mock + [key]]
 
     assert hdf_mock.write.call_args_list == [
-        call(path, keyspace_key, [str(keyspace_key)]),
-        call(path, key, "data"),
-        call(path, keyspace_key, new_keyspace),
+        call(artifact_path, key, "data"),
+        call(artifact_path, keyspace_key, new_keyspace),
     ]
 
     hdf_mock.reset_mock()
@@ -412,27 +405,26 @@ def test_replace(hdf_mock, keys_mock):
 
     # keyspace will be remove first in self.remove from a.replace then self.write from a.replace
     expected_calls_remove = [
-        call(path, keyspace_key),
-        call(path, key),
-        call(path, keyspace_key),
+        call(artifact_path, keyspace_key),
+        call(artifact_path, key),
+        call(artifact_path, keyspace_key),
     ]
     assert hdf_mock.remove.call_args_list == expected_calls_remove
 
     expected_calls_write = [
-        call(path, keyspace_key, new_keyspace),
-        call(path, key, "new_data"),
-        call(path, keyspace_key, new_keyspace),
+        call(artifact_path, keyspace_key, new_keyspace),
+        call(artifact_path, key, "new_data"),
+        call(artifact_path, keyspace_key, new_keyspace),
     ]
     assert hdf_mock.write.call_args_list == expected_calls_write
     assert key in a
 
 
-def test_replace_nonexistent_key(hdf_mock):
-    path = Path("/place/with/artifact.hdf")
+def test_replace_nonexistent_key(hdf_mock, artifact_path):
     filter_terms = ["location == Global", "draw == 10"]
     key = "new.key"
 
-    a = Artifact(path, filter_terms=filter_terms)
+    a = Artifact(artifact_path, filter_terms=filter_terms)
     hdf_mock.called_once_with(key)
     assert key not in a
 
@@ -467,7 +459,8 @@ def test_create_hdf(tmpdir):
     path = Path(tmpdir) / "test.hdf"
     assert not path.is_file()
 
-    test_artifact = Artifact(path)
+    with pytest.warns(UserWarning, match="No artifact found"):
+        test_artifact = Artifact(path)
     assert path.is_file()
     assert "metadata.keyspace" in test_artifact
 
@@ -482,7 +475,9 @@ def test_create_hdf(tmpdir):
 
 def test_keys_initialization(tmpdir):
     path = Path(tmpdir) / "test.hdf"
-    test_artifact = Artifact(path)
+
+    with pytest.warns(UserWarning, match="No artifact found"):
+        test_artifact = Artifact(path)
     test_key = test_artifact._keys
 
     assert test_artifact._path == test_key._path
@@ -495,7 +490,8 @@ def test_keys_initialization(tmpdir):
 
 def test_keys_append(tmpdir):
     path = Path(tmpdir) / "test.hdf"
-    test_artifact = Artifact(path)
+    with pytest.warns(UserWarning, match="No artifact found"):
+        test_artifact = Artifact(path)
     test_keys = test_artifact._keys
 
     test_artifact.write("test.keys", "data")
@@ -510,7 +506,8 @@ def test_keys_append(tmpdir):
 
 def test_keys_remove(tmpdir):
     path = Path(tmpdir) / "test.hdf"
-    test_artifact = Artifact(path)
+    with pytest.warns(UserWarning, match="No artifact found"):
+        test_artifact = Artifact(path)
     test_keys = test_artifact._keys
 
     test_artifact.write("test.keys1", "data")
