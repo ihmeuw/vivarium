@@ -2,10 +2,13 @@
 =================
 The Data Artifact
 =================
+
 This module provides tools for interacting with data artifacts.
+
 A data artifact is an archive on disk intended to package up all data
 relevant to a particular simulation. This module provides a class to wrap that
 archive file for convenient access and inspection.
+
 """
 import re
 import warnings
@@ -34,6 +37,7 @@ class Artifact:
         filter_terms
             A set of terms suitable for usage with the ``where`` kwarg
             for :func:`pd.read_hdf`.
+
         """
         self._path = Path(path)
         self._filter_terms = filter_terms
@@ -79,19 +83,23 @@ class Artifact:
 
     def load(self, entity_key: str) -> Any:
         """Loads the data associated with provided entity_key.
+
         Parameters
         ----------
         entity_key
             The key associated with the expected data.
+
         Returns
         -------
         Any
             The expected data. Will either be a standard Python object or a
             :class:`pandas.DataFrame` or :class:`pandas.Series`.
+
         Raises
         ------
         ArtifactException
             If the provided key is not in the artifact.
+
         """
         if entity_key not in self:
             raise ArtifactException(f"{entity_key} should be in {self.path}.")
@@ -110,6 +118,7 @@ class Artifact:
 
     def write(self, entity_key: str, data: Any):
         """Writes data into the artifact and binds it to the provided key.
+
         Parameters
         ----------
         entity_key
@@ -117,10 +126,12 @@ class Artifact:
         data
             The data to write. Accepted formats are :class:`pandas.Series`,
             :class:`pandas.DataFrame` or standard python types and containers.
+
         Raises
         ------
         ArtifactException
             If the provided key already exists in the artifact.
+
         """
         if entity_key in self:
             raise ArtifactException(f"{entity_key} already in artifact.")
@@ -132,14 +143,17 @@ class Artifact:
 
     def remove(self, entity_key: str):
         """Removes data associated with the provided key from the artifact.
+
         Parameters
         ----------
         entity_key
             The key associated with the data to remove.
+
         Raises
         ------
         ArtifactException
             If the key is not present in the artifact.
+
         """
         if entity_key not in self:
             raise ArtifactException(
@@ -153,6 +167,7 @@ class Artifact:
 
     def replace(self, entity_key: str, data: Any):
         """Replaces the artifact data at the provided key with the new data.
+
         Parameters
         ----------
         entity_key
@@ -160,10 +175,12 @@ class Artifact:
         data
             The data to write. Accepted formats are :class:`pandas.Series`,
             :class:`pandas.DataFrame` or standard python types and containers.
+
         Raises
         ------
         ArtifactException
             If the provided key does not already exist in the artifact.
+
         """
         if entity_key not in self:
             raise ArtifactException(
@@ -174,8 +191,10 @@ class Artifact:
 
     def clear_cache(self):
         """Clears the artifact's cache.
+
         The artifact will cache data in memory to improve performance for
         repeat access.
+
         """
         self._cache = {}
 
