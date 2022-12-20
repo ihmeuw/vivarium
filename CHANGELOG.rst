@@ -1,3 +1,8 @@
+**0.10.21 - 12/20/22**
+
+ - Cleaned up warnings in artifact test code.
+ - Updated codeowners and pull request template.
+
 **0.10.20 - 12/20/22**
 
  - Update CI versions to build on python versions 3.7-3.10
