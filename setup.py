@@ -1,6 +1,6 @@
 import sys
 
-min_version, max_version = ((3, 6), "3.6"), ((3, 11), "3.11")
+min_version, max_version = ((3, 6), "3.6"), ((3, 10), "3.10")
 
 
 if not (min_version[0] <= sys.version_info[:2] <= max_version[0]):
