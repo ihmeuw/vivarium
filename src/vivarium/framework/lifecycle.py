@@ -670,14 +670,3 @@ class LifeCycleInterface:
 
         """
         self._manager.add_constraint(method, allow_during, restrict_during)
-
-    def current_state(self) -> Callable[[], str]:
-        """Returns a callable that gets the current simulation lifecycle state.
-
-        Returns
-        -------
-        Callable[[], str]
-            A callable that returns the current simulation lifecycle state.
-
-        """
-        return lambda: self._manager.current_state
