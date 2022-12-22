@@ -159,23 +159,10 @@ class PopulationManager:
         )
         self._view = self.get_view(["tracked"])
 
-        builder.value.register_value_modifier("metrics", modifier=self.metrics)
-
     def on_initialize_simulants(self, pop_data: SimulantData):
         """Adds a ``tracked`` column to the state table for new simulants."""
         status = pd.Series(True, index=pop_data.index)
         self._view.update(status)
-
-    def metrics(self, index, metrics):
-        """Reports tracked and untracked population sizes at simulation end."""
-        population = self._view.get(index)
-        untracked = population[~population.tracked]
-        tracked = population[population.tracked]
-
-        metrics["total_population_untracked"] = len(untracked)
-        metrics["total_population_tracked"] = len(tracked)
-        metrics["total_population"] = len(untracked) + len(tracked)
-        return metrics
 
     @property
     def columns(self) -> List[str]:
