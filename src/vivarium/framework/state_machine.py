@@ -6,6 +6,7 @@ State Machine
 A state machine implementation for use in ``vivarium`` simulations.
 
 """
+import warnings
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, Iterable, List, Tuple
 
@@ -83,7 +84,10 @@ def _groupby_new_state(
 
     """
     output_map = {o: i for i, o in enumerate(outputs)}
-    groups = pd.Series(index).groupby([output_map[d] for d in decisions])
+    # TODO: fix rather than suppress this FutureWarning
+    with warnings.catch_warnings():
+        warnings.simplefilter(action="ignore", category=FutureWarning)
+        groups = pd.Series(index).groupby([output_map[d] for d in decisions])
     results = [(outputs[i], pd.Index(sub_group.values)) for i, sub_group in groups]
     selected_outputs = [o for o, _ in results]
     for output in outputs:
