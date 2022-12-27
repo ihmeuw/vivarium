@@ -1,3 +1,7 @@
+**1.0.2 - 12/27/22**
+
+ - Fix a typo that prevented deployment of v1.0.1
+
 **1.0.1 - 12/27/22**
 
  - Remove metrics from the population management system
