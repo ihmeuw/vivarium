@@ -94,8 +94,9 @@ class BasePopulation:
 
         """
 
-        age_start = self.config.population.age_start
-        age_end = self.config.population.age_end
+        age_start = pop_data.user_data.get("age_start", self.config.population.age_start)
+        age_end = pop_data.user_data.get("age_end", self.config.population.age_end)
+
         if age_start == age_end:
             age_window = pop_data.creation_window / pd.Timedelta(days=365)
         else:
