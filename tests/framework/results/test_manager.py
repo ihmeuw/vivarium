@@ -12,16 +12,11 @@ from .mocks import (
     CATEGORIES,
     NAME,
     SOURCES,
+    mock_get_value,
     sorting_hat_serial,
     sorting_hat_vector,
     verify_stratification_added,
 )
-
-
-# Mock for get_value call for Pipelines, returns a str instead of a Pipeline
-def mock_get_value(self, name: str):
-    return name
-
 
 #######################################
 # Tests for `register_stratification` #

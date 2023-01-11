@@ -8,7 +8,7 @@ from vivarium.framework.results import ResultsInterface, ResultsManager
 
 from .mocks import BASE_POPULATION
 from .mocks import CATEGORIES as HOUSES
-from .mocks import FAMILIARS
+from .mocks import FAMILIARS, mock_get_value
 
 
 def _silly_aggregator(_: pd.DataFrame) -> float:
@@ -26,8 +26,8 @@ def _silly_aggregator(_: pd.DataFrame) -> float:
             'alive == "alive" and undead == False',
             [],
             _silly_aggregator,
-            None,
-            None,
+            [],
+            [],
             [],
             [],
             "collect_metrics",
@@ -37,16 +37,28 @@ def _silly_aggregator(_: pd.DataFrame) -> float:
             "undead == True",
             [],
             _silly_aggregator,
-            None,
-            None,
+            [],
+            [],
+            [],
+            [],
+            "time_step__prepare",
+        ),
+        (
+            "undead_person_time",
+            "undead == True",
+            [],
+            _silly_aggregator,
+            [],
+            ["fake_pipeline", "another_fake_pipeline"],
             [],
             [],
             "time_step__prepare",
         ),
     ],
-    ids=["valid_on_collect_metrics", "valid_on_time_step__prepare"],
+    ids=["valid_on_collect_metrics", "valid_on_time_step__prepare", "valid_pipelines"],
 )
 def test_register_observation(
+    mocker,
     name,
     pop_filter,
     aggregator_columns,
@@ -59,13 +71,19 @@ def test_register_observation(
 ):
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    # interface.set_default_stratifications(["age", "sex"])
+    builder = mocker.Mock()
+    # Set up mock builder with mocked get_value call for Pipelines
+    mocker.patch.object(builder, "value.get_value")
+    builder.value.get_value = MethodType(mock_get_value, builder)
+    mgr.setup(builder)
     assert len(interface._manager._results_context._observations) == 0
     interface.register_observation(
         name,
         pop_filter,
         aggregator_columns,
         aggregator,
+        requires_columns,
+        requires_values,
         additional_stratifications,
         excluded_stratifications,
     )
@@ -75,7 +93,6 @@ def test_register_observation(
 def test_register_observations():
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    # interface.set_default_stratifications(["age", "sex"])
     assert len(interface._manager._results_context._observations) == 0
     interface.register_observation(
         "living_person_time",
@@ -101,6 +118,24 @@ def test_register_observations():
         "time_step__prepare",
     )
     assert len(interface._manager._results_context._observations) == 2
+
+
+def test_unhashable_pipeline():
+    mgr = ResultsManager()
+    interface = ResultsInterface(mgr)
+    assert len(interface._manager._results_context._observations) == 0
+    with pytest.raises(TypeError, match="unhashable"):
+        interface.register_observation(
+            "living_person_time",
+            'alive == "alive" and undead == False',
+            [],
+            _silly_aggregator,
+            [],
+            [["bad", "unhashable", "thing"]],  # unhashable first element
+            [],
+            [],
+            "collect_metrics",
+        )
 
 
 def mock__prepare_population(self, event):
