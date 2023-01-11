@@ -173,8 +173,8 @@ class ResultsManager:
         pop_filter: str,
         aggregator_sources: List[str],
         aggregator: Callable,
-        requires_columns: List[str] = None,
-        requires_values: List[str] = None,
+        requires_columns: List[str] = (),
+        requires_values: List[str] = (),
         additional_stratifications: List[str] = (),
         excluded_stratifications: List[str] = (),
         when: str = "collect_metrics",
@@ -198,7 +198,7 @@ class ResultsManager:
         if target_type == SourceType.COLUMN:
             self._required_columns.update(target)
         elif target_type == SourceType.VALUE:
-            self._required_values.update(self.get_value(target))
+            self._required_values.update([self.get_value(t) for t in target])
 
     def _prepare_population(self, event: Event):
         population = self.population_view.subview(list(self._required_columns)).get(
