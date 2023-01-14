@@ -41,6 +41,7 @@ For mor information, see the Common Random Numbers
 """
 import datetime
 import hashlib
+import warnings
 from typing import Any, Callable, List, Tuple, Union
 
 import numpy as np
@@ -274,11 +275,11 @@ def get_hash(key: str) -> int:
 
 
 def choice(
-    key: str, index: Index, choices: Array, p: Array = None, index_map: IndexMap = None
+    key: str, index: Index, choices: Array, p: Array = None, index_map: IndexMap = None, large_N: int = 1_000_000
 ) -> pd.Series:
     """Decides between a weighted or unweighted set of choices.
 
-    Given a a set of choices with or without corresponding weights,
+    Given a set of choices with or without corresponding weights,
     returns an indexed set of decisions from those choices. This is
     simply a vectorized way to make decisions with some book-keeping.
 
@@ -298,6 +299,15 @@ def choice(
         are used to decide among the choices for every item in the `index`.
         In the 2-d case, each row in `p` contains a separate set of weights
         for every item in the `index`.
+
+        If p is 1-d, it is expected to be a list, tuple, ndarray, or Series.
+        If p is 2-d, it is expected to be a ndarray.
+
+        If p is not defined, probabilities are assumed to be uniform across
+        choices. If p is defined and len(index)*len(choices) is large, you will
+        use lots of memory and experience performance issues. In particular, if
+        your probabilities are uniform, passing in these probabilities
+        explicitly might lead to high memory usage and/or performance slowdown.
     index_map
         A mapping between the provided index (which may contain ints, floats,
         datetimes or any arbitrary combination of them) and an integer index
@@ -314,21 +324,46 @@ def choice(
         If any row in `p` contains `RESIDUAL_CHOICE` and the remaining
         weights in the row are not normalized or any row of `p` contains
         more than one reference to `RESIDUAL_CHOICE`.
-
     """
-    # Convert p to normalized probabilities broadcasted over index.
-    p = (
-        _set_residual_probability(_normalize_shape(p, index))
-        if p is not None
-        else np.ones((len(index), len(choices)))
-    )
-    p = p / p.sum(axis=1, keepdims=True)
 
-    draw = random(key, index, index_map)
+    if (len(index) * len(choices) > large_N) & (p is not None):
+        warnings.warn(
+            "You are passing a large amount of data to the choice function with explicit probabilities."
+            "This will likely use a lot of memory and impact performance."
+        )
 
-    p_bins = np.cumsum(p, axis=1)
-    # Use the random draw to make a choice for every row in index.
-    choice_index = (draw.values[np.newaxis].T > p_bins).sum(axis=1)
+    draws = random(key, index, index_map)
+
+    if p is not None:
+        # Check that p is the right shape
+        if (type(p) == np.ndarray) and (p.ndim == 2):
+            if p.shape[0] != len(index):
+                raise ValueError(
+                    f"You've provided {p.shape[0]} sets of probabilities but need to make f{len(index)} choices"
+                )
+            elif p.shape[1] != len(choices):
+                raise ValueError(
+                    f"You've provided {p.shape[1]} probabilities in each set which is inconsistent "
+                    f"with choosing from {len(choices)} options."
+                )
+        else:  # if p is 1-d
+            if len(p) != len(choices):
+                raise ValueError(
+                    f"You've provided {len(p)} probabilities which is inconsistent"
+                    f"with choosing from {len(choices)} options."
+                )
+
+        # Convert p to normalized probabilities broadcast over index.
+        p = _set_residual_probability(_normalize_shape(p, index))
+        p = p / p.sum(axis=1, keepdims=True)
+
+        cdfs = np.cumsum(p, axis=1)
+        # Use the random draw to make a choice for every row in index.
+        choice_index = [
+            np.searchsorted(cdf, draw, side="right") for cdf, draw in zip(cdfs, draws)
+        ]
+    else:
+        choice_index = np.trunc((draws * len(choices))).astype(int)
 
     return pd.Series(np.array(choices)[choice_index], index=index)
 
@@ -473,7 +508,7 @@ class RandomnessStream:
         self._for_initialization = for_initialization
 
     def copy_with_additional_key(self, key: Any) -> "RandomnessStream":
-        """Creates a copy of this stream with a permutation of it's random seed.
+        """Creates a copy of this stream with a permutation of its random seed.
 
         Parameters
         ----------
@@ -614,11 +649,11 @@ class RandomnessStream:
         )
 
     def choice(
-        self, index: Index, choices: Array, p: Array = None, additional_key: Any = None
+        self, index: Index, choices: Array, p: Array = None, additional_key: Any = None, large_N: int = 1_000_000
     ) -> pd.Series:
         """Decides between a weighted or unweighted set of choices.
 
-        Given a a set of choices with or without corresponding weights,
+        Given a set of choices with or without corresponding weights,
         returns an indexed set of decisions from those choices. This is
         simply a vectorized way to make decisions with some book-keeping.
 
@@ -632,10 +667,19 @@ class RandomnessStream:
         p
             The relative weights of the choices.  Can be either a 1-d array of
             the same length as `choices` or a 2-d array with `len(index)` rows
-            and `len(choices)` columns.  In the 1-d case, the same set of
-            weights are used to decide among the choices for every item in
-            the `index`. In the 2-d case, each row in `p` contains a separate
-            set of weights for every item in the `index`.
+            and `len(choices)` columns.  In the 1-d case, the same set of weights
+            are used to decide among the choices for every item in the `index`.
+            In the 2-d case, each row in `p` contains a separate set of weights
+            for every item in the `index`.
+
+            If p is 1-d, it is expected to be a list, tuple, ndarray, or Series.
+            If p is 2-d, it is expected to be a ndarray.
+
+            If p is not defined, probabilities are assumed to be uniform across
+            choices. If p is defined and len(index)*len(choices) is large, you will
+            use lots of memory and experience performance issues. In particular, if
+            your probabilities are uniform, passing in these probabilities
+            explicitly might lead to high memory usage and/or performance slowdown.
         additional_key
             Any additional information used to seed random number generation.
 
@@ -652,7 +696,7 @@ class RandomnessStream:
             more than one reference to `RESIDUAL_CHOICE`.
 
         """
-        return choice(self._key(additional_key), index, choices, p, self.index_map)
+        return choice(self._key(additional_key), index, choices, p, self.index_map, large_N)
 
     def __repr__(self) -> str:
         return "RandomnessStream(key={!r}, clock={!r}, seed={!r})".format(

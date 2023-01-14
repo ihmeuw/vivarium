@@ -124,6 +124,15 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
             assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
 
 
+def test_implicit_and_explicit_probabilities_in_choice(index, choices):
+    randomness = RandomnessStream("test", mock_clock, 1)
+
+    implicit_choices = randomness.choice(index, choices)
+    explicit_choices = randomness.choice(index, choices, p=[1]*len(choices))
+
+    assert implicit_choices.equals(explicit_choices)
+
+
 def mock_clock():
     return pd.Timestamp("1/1/2005")
 
