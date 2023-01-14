@@ -275,7 +275,12 @@ def get_hash(key: str) -> int:
 
 
 def choice(
-    key: str, index: Index, choices: Array, p: Array = None, index_map: IndexMap = None, large_N: int = 1_000_000
+    key: str,
+    index: Index,
+    choices: Array,
+    p: Array = None,
+    index_map: IndexMap = None,
+    large_N: int = 1_000_000,
 ) -> pd.Series:
     """Decides between a weighted or unweighted set of choices.
 
@@ -649,7 +654,12 @@ class RandomnessStream:
         )
 
     def choice(
-        self, index: Index, choices: Array, p: Array = None, additional_key: Any = None, large_N: int = 1_000_000
+        self,
+        index: Index,
+        choices: Array,
+        p: Array = None,
+        additional_key: Any = None,
+        large_N: int = 1_000_000,
     ) -> pd.Series:
         """Decides between a weighted or unweighted set of choices.
 

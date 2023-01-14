@@ -128,7 +128,7 @@ def test_implicit_and_explicit_probabilities_in_choice(index, choices):
     randomness = RandomnessStream("test", mock_clock, 1)
 
     implicit_choices = randomness.choice(index, choices)
-    explicit_choices = randomness.choice(index, choices, p=[1]*len(choices))
+    explicit_choices = randomness.choice(index, choices, p=[1] * len(choices))
 
     assert implicit_choices.equals(explicit_choices)
 
