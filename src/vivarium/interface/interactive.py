@@ -13,30 +13,30 @@ See the associated tutorials for :ref:`running <interactive_tutorial>` and
 
 """
 from math import ceil
-from typing import List, Callable, Dict, Any
+from typing import Any, Callable, Dict, List
 
 import pandas as pd
 
 from vivarium.framework.engine import SimulationContext
-from vivarium.framework.time import Timedelta, Time
+from vivarium.framework.time import Time, Timedelta
 from vivarium.framework.values import Pipeline
 
-from .utilities import run_from_ipython, log_progress
+from .utilities import log_progress, run_from_ipython
 
 
 class InteractiveContext(SimulationContext):
-    """A simulation context with helper methods for running simulations
-    interactively.
-
-    This class should not be instantiated directly. It should be created with a
-    call to one of the helper methods provided in this module.
-    """
+    """A simulation context with helper methods for running simulations interactively."""
 
     def __init__(self, *args, setup=True, **kwargs):
         super().__init__(*args, **kwargs)
 
         if setup:
             self.setup()
+
+    @property
+    def current_time(self) -> Time:
+        """Returns the current simulation time."""
+        return self._clock.time
 
     def setup(self):
         super().setup()
@@ -54,7 +54,9 @@ class InteractiveContext(SimulationContext):
         old_step_size = self._clock.step_size
         if step_size is not None:
             if not isinstance(step_size, type(self._clock.step_size)):
-                raise ValueError(f"Provided time must be an instance of {type(self._clock.step_size)}")
+                raise ValueError(
+                    f"Provided time must be an instance of {type(self._clock.step_size)}"
+                )
             self._clock._step_size = step_size
         super().step()
         self._clock._step_size = old_step_size
@@ -118,12 +120,14 @@ class InteractiveContext(SimulationContext):
         if not isinstance(end_time, type(self._clock.time)):
             raise ValueError(f"Provided time must be an instance of {type(self._clock.time)}")
 
-        iterations = int(ceil((end_time - self._clock.time)/self._clock.step_size))
+        iterations = int(ceil((end_time - self._clock.time) / self._clock.step_size))
         self.take_steps(number_of_steps=iterations, with_logging=with_logging)
         assert self._clock.time - self._clock.step_size < end_time <= self._clock.time
         return iterations
 
-    def take_steps(self, number_of_steps: int = 1, step_size: Timedelta = None, with_logging: bool = True):
+    def take_steps(
+        self, number_of_steps: int = 1, step_size: Timedelta = None, with_logging: bool = True
+    ):
         """Run the simulation for the given number of steps.
 
         Parameters
@@ -139,10 +143,10 @@ class InteractiveContext(SimulationContext):
 
         """
         if not isinstance(number_of_steps, int):
-            raise ValueError('Number of steps must be an integer.')
+            raise ValueError("Number of steps must be an integer.")
 
         if run_from_ipython() and with_logging:
-            for _ in log_progress(range(number_of_steps), name='Step'):
+            for _ in log_progress(range(number_of_steps), name="Step"):
                 self.step(step_size)
         else:
             for _ in range(number_of_steps):
@@ -185,7 +189,7 @@ class InteractiveContext(SimulationContext):
 
         """
         if event_type not in self._events:
-            raise ValueError(f'No event {event_type} in system.')
+            raise ValueError(f"No event {event_type} in system.")
         return self._events.get_listeners(event_type)
 
     def get_emitter(self, event_type: str) -> Callable:
@@ -201,7 +205,7 @@ class InteractiveContext(SimulationContext):
 
         """
         if event_type not in self._events:
-            raise ValueError(f'No event {event_type} in system.')
+            raise ValueError(f"No event {event_type} in system.")
         return self._events.get_emitter(event_type)
 
     def list_components(self) -> Dict[str, Any]:
@@ -231,4 +235,4 @@ class InteractiveContext(SimulationContext):
         return self._component_manager.get_component(name)
 
     def __repr__(self):
-        return 'InteractiveContext()'
+        return "InteractiveContext()"

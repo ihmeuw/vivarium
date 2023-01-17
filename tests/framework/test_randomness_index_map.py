@@ -1,8 +1,8 @@
 from itertools import chain, combinations, product
 
-import pytest
 import numpy as np
 import pandas as pd
+import pytest
 from scipy.stats import chisquare
 
 from vivarium.framework.randomness import IndexMap, RandomnessError
@@ -11,32 +11,32 @@ from vivarium.framework.randomness import IndexMap, RandomnessError
 def almost_powerset(iterable):
     """almost_powerset([1,2,3]) --> (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)"""
     s = list(iterable)
-    return list(chain.from_iterable(combinations(s, r) for r in range(1, len(s)+1)))
+    return list(chain.from_iterable(combinations(s, r) for r in range(1, len(s) + 1)))
 
 
-def generate_keys(number, types=('int', 'float', 'datetime'), seed=123456):
+def generate_keys(number, types=("int", "float", "datetime"), seed=123456):
     rs = np.random.RandomState(seed=seed)
 
     index = []
-    if 'datetime' in types:
+    if "datetime" in types:
         year = rs.choice(np.arange(1980, 2018))
-        day = rs.choice(pd.date_range(f'01/01/{year}', periods=365))
-        start_time = rs.choice(pd.date_range(day, periods=86400, freq='s'))
-        freq = rs.choice(['ms', 's', 'min', 'h'])
+        day = rs.choice(pd.date_range(f"01/01/{year}", periods=365))
+        start_time = rs.choice(pd.date_range(day, periods=86400, freq="s"))
+        freq = rs.choice(["ms", "s", "min", "h"])
         index.append(pd.date_range(start_time, periods=number, freq=freq))
 
-    if 'int' in types:
-        kind = rs.choice(['random', 'sequential'])
-        if kind == 'random':
+    if "int" in types:
+        kind = rs.choice(["random", "sequential"])
+        if kind == "random":
             ints = np.unique(rs.randint(0, 1000 * number, size=100 * number))
             assert len(ints) > number
             rs.shuffle(ints)
             index.append(ints[:number])
         else:
-            start = rs.randint(0, 100*number)
+            start = rs.randint(0, 100 * number)
             index.append(np.arange(start, start + number, dtype=int))
 
-    if 'float' in types:
+    if "float" in types:
         index.append(rs.random_sample(size=number))
 
     return pd.Series(0, index=index).index
@@ -44,7 +44,7 @@ def generate_keys(number, types=('int', 'float', 'datetime'), seed=123456):
 
 rs = np.random.RandomState(seed=456789)
 index_sizes = list(rs.randint(10_000, 250_000, size=1))
-types = list(almost_powerset(['int', 'float', 'datetime']))
+types = list(almost_powerset(["int", "float", "datetime"]))
 seeds = list(rs.randint(10000000, size=1))
 
 
@@ -52,7 +52,7 @@ def id_fun(param):
     return f"Size:{param[0]}, Types:{param[1]}, Seed:{param[2]}"
 
 
-@pytest.fixture(scope='module', params=list(product(index_sizes, types, seeds)), ids=id_fun)
+@pytest.fixture(scope="module", params=list(product(index_sizes, types, seeds)), ids=id_fun)
 def map_size_and_hashed_values(request):
     keys = generate_keys(*request.param)
     m = IndexMap()
@@ -83,7 +83,11 @@ def test_clip_to_seconds_scalar():
 def test_clip_to_seconds_series():
     m = IndexMap()
     stamp = 1234567890
-    k = pd.date_range(pd.to_datetime(stamp, unit='s'), periods=10000, freq='ns').to_series().astype(np.int64)
+    k = (
+        pd.date_range(pd.to_datetime(stamp, unit="s"), periods=10000, freq="ns")
+        .to_series()
+        .view(np.int64)
+    )
     assert len(m.clip_to_seconds(k).unique()) == 1
     assert m.clip_to_seconds(k).unique()[0] == stamp
 
@@ -115,10 +119,12 @@ def test_shift_series():
 def test_convert_to_ten_digit_int():
     m = IndexMap()
     v = 1234567890
-    datetime_col = pd.date_range(pd.to_datetime(v, unit='s'), periods=10000, freq='ns').to_series()
+    datetime_col = pd.date_range(
+        pd.to_datetime(v, unit="s"), periods=10000, freq="ns"
+    ).to_series()
     int_col = pd.Series(v, index=range(10000))
     float_col = pd.Series(1.1234567890, index=range(10000))
-    bad_col = pd.Series('a', index=range(10000))
+    bad_col = pd.Series("a", index=range(10000))
 
     assert m.convert_to_ten_digit_int(datetime_col).unique()[0] == v
     assert m.convert_to_ten_digit_int(int_col).unique()[0] == 4072825790
@@ -132,14 +138,14 @@ def test_hash_collisions(map_size_and_hashed_values):
     n, h = map_size_and_hashed_values
     k = len(h)
 
-    expected_empty_bins = n*(1 - 1/n)**k  # Potential source of roundoff issues.
+    expected_empty_bins = n * (1 - 1 / n) ** k  # Potential source of roundoff issues.
     expected_full_bins = n - expected_empty_bins
     expected_collisions = k - expected_full_bins
 
     uniques = h.drop_duplicates()
     actual_collisions = len(h) - len(uniques)
 
-    assert actual_collisions/expected_collisions < 1.5, "Too many collisions"
+    assert actual_collisions / expected_collisions < 1.5, "Too many collisions"
 
 
 @pytest.mark.skip("This fails because the hash needs work")
@@ -147,7 +153,7 @@ def test_hash_uniformity(map_size_and_hashed_values):
     n, h = map_size_and_hashed_values
 
     k = len(h)
-    num_bins = k//5  # Want about 5 items per bin for chi-squared
+    num_bins = k // 5  # Want about 5 items per bin for chi-squared
     bins = np.linspace(0, n + 1, num_bins)
 
     binned_data = pd.cut(h, bins)
@@ -164,9 +170,9 @@ def test_update(mocker):
     def hash_mock(k, salt=0):
         seed = 123456
         rs = np.random.RandomState(seed=seed + salt)
-        return pd.Series(rs.randint(0, len(k)*10, size=len(k)), index=k)
+        return pd.Series(rs.randint(0, len(k) * 10, size=len(k)), index=k)
 
-    mocker.patch.object(m, 'hash_', side_effect=hash_mock)
+    mocker.patch.object(m, "hash_", side_effect=hash_mock)
     m.update(keys)
     assert len(m) == len(keys), "All keys not in mapping"
     assert m._map.index.difference(keys).empty, "All keys not in mapping"
@@ -179,5 +185,9 @@ def test_update(mocker):
     new_unique_keys = generate_keys(1000).difference(keys)
     m.update(new_unique_keys)
     assert len(m) == len(keys) + len(new_unique_keys), "All keys not in mapping"
-    assert m._map.index.difference(keys.union(new_unique_keys)).empty, "All keys not in mapping"
-    assert len(m._map.unique()) == len(keys) + len(new_unique_keys), "Duplicate values in mapping"
+    assert m._map.index.difference(
+        keys.union(new_unique_keys)
+    ).empty, "All keys not in mapping"
+    assert len(m._map.unique()) == len(keys) + len(
+        new_unique_keys
+    ), "Duplicate values in mapping"

@@ -1,33 +1,25 @@
+# -----------------------------------------------------------------------------
+#   - invoked on push, pull_request, or manual trigger
+#   - test under at least 3 versions of python
+# -----------------------------------------------------------------------------
 name: build
-
-on:
-  push:
-    branches:
-      - '*'
-    tags-ignore:
-      - v*
-  pull_request:
-    branches:
-      - '*'
-    tags-ignore:
-      - v*
-  # Run this workflow manually from the Actions tab.
-  workflow_dispatch:
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.6, 3.7, 3.8]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       - name: Print environment values
         run: |
+          python --version
           cat $GITHUB_ENV
       - name: Update pip
         run: |
@@ -44,3 +36,8 @@ jobs:
       - name: Doctest
         run: |
           make doctest -C docs/
+      - name: Lint
+        run: |
+          pip install black==22.3.0 isort
+          black . --check --diff
+          isort . --check --verbose --only-modified --diff

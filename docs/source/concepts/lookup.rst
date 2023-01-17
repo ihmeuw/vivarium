@@ -107,7 +107,7 @@ value
 
 Along with data about these variables, A lookup table is instantiated with the
 corresponding column names which are used to query an internal
-:class:`population view <vivarium.framework.population.PopulationView>`
+:class:`population view <vivarium.framework.population.population_view.PopulationView>`
 when the table itself is called. This means the lookup table only needs to be
 called with a population index -- it gathers the population information it
 needs itself. It also means the data must be available in the

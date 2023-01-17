@@ -6,11 +6,12 @@ State Machine
 A state machine implementation for use in ``vivarium`` simulations.
 
 """
+import warnings
 from enum import Enum
-from typing import Callable, List, Iterable, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Iterable, List, Tuple
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -18,10 +19,12 @@ if TYPE_CHECKING:
     from vivarium.framework.time import Time
 
 
-def _next_state(index: pd.Index,
-                event_time: 'Time',
-                transition_set: 'TransitionSet',
-                population_view: 'PopulationView') -> None:
+def _next_state(
+    index: pd.Index,
+    event_time: "Time",
+    transition_set: "TransitionSet",
+    population_view: "PopulationView",
+) -> None:
     """Moves a population between different states using information from a `TransitionSet`.
 
     Parameters
@@ -44,20 +47,22 @@ def _next_state(index: pd.Index,
 
     if groups:
         for output, affected_index in sorted(groups, key=lambda x: str(x[0])):
-            if output == 'null_transition':
+            if output == "null_transition":
                 pass
             elif isinstance(output, Transient):
                 if not isinstance(output, State):
-                    raise ValueError('Invalid transition output: {}'.format(output))
+                    raise ValueError("Invalid transition output: {}".format(output))
                 output.transition_effect(affected_index, event_time, population_view)
                 output.next_state(affected_index, event_time, population_view)
             elif isinstance(output, State):
                 output.transition_effect(affected_index, event_time, population_view)
             else:
-                raise ValueError('Invalid transition output: {}'.format(output))
+                raise ValueError("Invalid transition output: {}".format(output))
 
 
-def _groupby_new_state(index: pd.Index, outputs: List, decisions: pd.Series) -> List[Tuple[str, pd.Index]]:
+def _groupby_new_state(
+    index: pd.Index, outputs: List, decisions: pd.Series
+) -> List[Tuple[str, pd.Index]]:
     """Groups the simulants in the index by their new output state.
 
     Parameters
@@ -79,7 +84,10 @@ def _groupby_new_state(index: pd.Index, outputs: List, decisions: pd.Series) -> 
 
     """
     output_map = {o: i for i, o in enumerate(outputs)}
-    groups = pd.Series(index).groupby([output_map[d] for d in decisions])
+    # TODO: fix rather than suppress this FutureWarning
+    with warnings.catch_warnings():
+        warnings.simplefilter(action="ignore", category=FutureWarning)
+        groups = pd.Series(index).groupby([output_map[d] for d in decisions])
     results = [(outputs[i], pd.Index(sub_group.values)) for i, sub_group in groups]
     selected_outputs = [o for o, _ in results]
     for output in outputs:
@@ -119,11 +127,16 @@ class Transition:
         transition occurring.
 
     """
-    def __init__(self,
-                 input_state: 'State',
-                 output_state: 'State',
-                 probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(1, index=index),
-                 triggered=Trigger.NOT_TRIGGERED):
+
+    def __init__(
+        self,
+        input_state: "State",
+        output_state: "State",
+        probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(
+            1, index=index
+        ),
+        triggered=Trigger.NOT_TRIGGERED,
+    ):
         self.input_state = input_state
         self.output_state = output_state
         self._probability = probability_func
@@ -134,18 +147,22 @@ class Transition:
         transition_type = self.__class__.__name__.lower()
         return f"{transition_type}.{self.input_state.name}.{self.output_state.name}"
 
-    def setup(self, builder: 'Builder') -> None:
+    def setup(self, builder: "Builder") -> None:
         pass
 
     def set_active(self, index: pd.Index) -> None:
         if self._active_index is None:
-            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
+            raise ValueError(
+                "This transition is not triggered.  An active index cannot be set or modified."
+            )
         else:
             self._active_index = self._active_index.union(pd.Index(index))
 
     def set_inactive(self, index: pd.Index) -> None:
         if self._active_index is None:
-            raise ValueError("This transition is not triggered.  An active index cannot be set or modified.")
+            raise ValueError(
+                "This transition is not triggered.  An active index cannot be set or modified."
+            )
         else:
             self._active_index = self._active_index.difference(pd.Index(index))
 
@@ -162,7 +179,7 @@ class Transition:
 
     def __repr__(self):
         c = self.__class__.__name__
-        return f'{c}({self.input_state}, {self.output_state})'
+        return f"{c}({self.input_state}, {self.output_state})"
 
 
 class State:
@@ -176,6 +193,7 @@ class State:
         A container for potential transitions out of this state.
 
     """
+
     def __init__(self, state_id: str):
         self.state_id = state_id
         self.transition_set = TransitionSet(self.name)
@@ -191,10 +209,12 @@ class State:
     def sub_components(self) -> List:
         return self._sub_components
 
-    def setup(self, builder: 'Builder') -> None:
+    def setup(self, builder: "Builder") -> None:
         pass
 
-    def next_state(self, index: pd.Index, event_time: 'Time', population_view: 'PopulationView') -> None:
+    def next_state(
+        self, index: pd.Index, event_time: "Time", population_view: "PopulationView"
+    ) -> None:
         """Moves a population between different states.
 
         Parameters
@@ -209,7 +229,9 @@ class State:
         """
         return _next_state(index, event_time, self.transition_set, population_view)
 
-    def transition_effect(self, index: pd.Index, event_time: 'Time', population_view: 'PopulationView') -> None:
+    def transition_effect(
+        self, index: pd.Index, event_time: "Time", population_view: "PopulationView"
+    ) -> None:
         """Updates the simulation state and triggers any side-effects associated with entering this state.
 
         Parameters
@@ -225,12 +247,17 @@ class State:
         population_view.update(pd.Series(self.state_id, index=index))
         self._transition_side_effect(index, event_time)
 
-    def cleanup_effect(self, index: pd.Index, event_time: 'Time') -> None:
+    def cleanup_effect(self, index: pd.Index, event_time: "Time") -> None:
         self._cleanup_effect(index, event_time)
 
-    def add_transition(self, output: 'State',
-                       probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(1.0, index=index),
-                       triggered=Trigger.NOT_TRIGGERED) -> Transition:
+    def add_transition(
+        self,
+        output: "State",
+        probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(
+            1.0, index=index
+        ),
+        triggered=Trigger.NOT_TRIGGERED,
+    ) -> Transition:
         """Builds a transition from this state to the given state.
 
         Parameters
@@ -251,25 +278,26 @@ class State:
     def allow_self_transitions(self) -> None:
         self.transition_set.allow_null_transition = True
 
-    def _transition_side_effect(self, index: pd.Index, event_time: 'Time') -> None:
+    def _transition_side_effect(self, index: pd.Index, event_time: "Time") -> None:
         pass
 
-    def _cleanup_effect(self, index: pd.Index, event_time: 'Time') -> None:
+    def _cleanup_effect(self, index: pd.Index, event_time: "Time") -> None:
         pass
 
     def __repr__(self):
         c = self.__class__.__name__
-        return f'{c}({self.state_id})'
+        return f"{c}({self.state_id})"
 
 
 class Transient:
     """Used to tell _next_state to transition a second time."""
+
     pass
 
 
 class TransientState(State, Transient):
     def __repr__(self):
-        return f'TransientState({self.state_id})'
+        return f"TransientState({self.state_id})"
 
 
 class TransitionSet:
@@ -285,7 +313,10 @@ class TransitionSet:
     allow_null_transition
 
     """
-    def __init__(self, state_name: str, *transitions: Transition, allow_null_transition: bool = False):
+
+    def __init__(
+        self, state_name: str, *transitions: Transition, allow_null_transition: bool = False
+    ):
         self._state_name = state_name
         self.allow_null_transition = allow_null_transition
         self.transitions = []
@@ -295,13 +326,13 @@ class TransitionSet:
 
     @property
     def name(self) -> str:
-        return f'transition_set.{self._state_name}'
+        return f"transition_set.{self._state_name}"
 
     @property
     def sub_components(self) -> List:
         return self._sub_components
 
-    def setup(self, builder: 'Builder') -> None:
+    def setup(self, builder: "Builder") -> None:
         """Performs this component's simulation setup and return sub-components.
 
         Parameters
@@ -330,8 +361,12 @@ class TransitionSet:
             in the index.
 
         """
-        outputs, probabilities = zip(*[(transition.output_state, np.array(transition.probability(index)))
-                                       for transition in self.transitions])
+        outputs, probabilities = zip(
+            *[
+                (transition.output_state, np.array(transition.probability(index)))
+                for transition in self.transitions
+            ]
+        )
         probabilities = np.transpose(probabilities)
         outputs, probabilities = self._normalize_probabilities(outputs, probabilities)
         return outputs, self.random.choice(index, outputs, probabilities)
@@ -374,12 +409,16 @@ class TransitionSet:
 
         total = np.sum(probabilities, axis=1)  # All totals should be ~<= 1 at this point.
         if self.allow_null_transition:
-            if np.any(total > 1+1e-08):  # Accommodate rounding errors
-                raise ValueError(f"Null transition requested with un-normalized "
-                                 f"probability weights: {probabilities}")
+            if np.any(total > 1 + 1e-08):  # Accommodate rounding errors
+                raise ValueError(
+                    f"Null transition requested with un-normalized "
+                    f"probability weights: {probabilities}"
+                )
             total[total > 1] = 1  # Correct allowed rounding errors.
-            probabilities = np.concatenate([probabilities, (1-total)[:, np.newaxis]], axis=1)
-            outputs.append('null_transition')
+            probabilities = np.concatenate(
+                [probabilities, (1 - total)[:, np.newaxis]], axis=1
+            )
+            outputs.append("null_transition")
         else:
             if np.any(total == 0):
                 raise ValueError("No valid transitions for some simulants.")
@@ -391,7 +430,10 @@ class TransitionSet:
     def append(self, transition: Transition) -> None:
         if not isinstance(transition, Transition):
             raise TypeError(
-                'TransitionSet must contain only Transition objects. Check constructor arguments: {}'.format(self))
+                "TransitionSet must contain only Transition objects. Check constructor arguments: {}".format(
+                    self
+                )
+            )
         self.transitions.append(transition)
 
     def extend(self, transitions: Iterable[Transition]) -> None:
@@ -424,6 +466,7 @@ class Machine:
         A view of the internal state of the simulation.
 
     """
+
     def __init__(self, state_column: str, states: Iterable[State] = ()):
         self.states = []
         self.state_column = state_column
@@ -439,7 +482,7 @@ class Machine:
     def sub_components(self):
         return self.states
 
-    def setup(self, builder: 'Builder') -> None:
+    def setup(self, builder: "Builder") -> None:
         self.population_view = builder.population.get_view([self.state_column])
 
     def add_states(self, states: Iterable[State]) -> None:
@@ -447,7 +490,7 @@ class Machine:
             self.states.append(state)
             state._model = self.state_column
 
-    def transition(self, index: pd.Index, event_time: 'Time') -> None:
+    def transition(self, index: pd.Index, event_time: "Time") -> None:
         """Finds the population in each state and moves them to the next state.
 
         Parameters
@@ -460,16 +503,23 @@ class Machine:
         """
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
-                state.next_state(affected.index, event_time, self.population_view.subview([self.state_column]))
+                state.next_state(
+                    affected.index,
+                    event_time,
+                    self.population_view.subview([self.state_column]),
+                )
 
-    def cleanup(self, index: pd.Index, event_time: 'Time') -> None:
+    def cleanup(self, index: pd.Index, event_time: "Time") -> None:
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
                 state.cleanup_effect(affected.index, event_time)
 
     def _get_state_pops(self, index: pd.Index) -> List[Tuple[State, pd.DataFrame]]:
         population = self.population_view.get(index)
-        return [(state, population[population[self.state_column] == state.state_id]) for state in self.states]
+        return [
+            (state, population[population[self.state_column] == state.state_id])
+            for state in self.states
+        ]
 
     def __repr__(self):
         return f"Machine(state_column= {self.state_column})"

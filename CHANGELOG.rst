@@ -1,3 +1,82 @@
+**1.0.2 - 12/27/22**
+
+ - Fix a typo that prevented deployment of v1.0.1
+
+**1.0.1 - 12/27/22**
+
+ - Remove metrics from the population management system
+ - Add a new lifecycle builder interface method for simulation state access
+ - Suppress future warnings (temporarily)
+ - Update github actions to support python 3.7-3.10
+ - Update codeowners
+
+**1.0.0 - 12/20/22**
+
+ - Added Results Manager feature.
+
+**0.10.21 - 12/20/22**
+
+ - Cleaned up warnings in artifact test code.
+ - Updated codeowners and pull request template.
+
+**0.10.20 - 12/20/22**
+
+ - Update CI versions to build on python versions 3.7-3.10
+
+**0.10.19 - 10/04/22**
+
+ - Fix bug on `simulate run` CLI introduced in 0.10.18
+
+**0.10.18 - 09/20/22**
+
+ - Standardize results directories
+ - Adds ability to run without artifact
+ - Specify correct permissions when creating directories and files
+
+**0.10.17 - 07/25/22**
+
+ - Fix bug when initializing tracked column
+
+**0.10.16 - 06/30/22**
+
+ - Fix a bug in adding new simulants to a population
+ - Add CODEOWNERS file
+
+**0.10.15 - 06/29/22**
+
+ - Added performance reporting
+ - Added support for empty initial populations
+ - Refactor population system
+
+**0.10.14 - 05/16/22**
+
+ - Fixed pandas FutureWarning in `randomness.get_draw`
+
+**0.10.13 - 05/05/22**
+
+ - Improved error message when component dependencies are not specified.
+ - Fix faulty set logic in `PopulationView.subview`
+
+**0.10.12 - 02/15/22**
+
+ - Reformat code with black and isort.
+ - Add formatting checks to CI.
+ - Add `current_time` to interactive context.
+ - Squash pandas FutureWarning for Series.append usage.
+ - Add a UserWarning when making a new artifact.
+
+**0.10.11 - 02/12/22**
+
+ - Update CI to make a cleaner release workflow
+ - Add PR template
+
+**0.10.10 - 10/29/21**
+
+ - Update license to BSD 3-clause
+ - Replace authors metadata with zenodo.json
+ - Updated examples
+ - Doctest bugfixes
+
 **0.10.9 - 08/16/21**
 
  - Add flag to SimulationContext.report to turn off results printing at sim end.

@@ -125,16 +125,16 @@ example and we will place them in a normal Python list.
 .. code-block:: python
 
    from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
-                                                SIS_DiseaseModel, Risk, DirectEffect,
-                                                MagicWandIntervention)
+                                                SIS_DiseaseModel, Risk, RiskEffect,
+                                                TreatmentIntervention)
 
    components = [BasePopulation(),
                  Mortality(),
                  SIS_DiseaseModel('diarrhea'),
                  Risk('child_growth_failure'),
-                 DirectEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate'),
-                 DirectEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate'),
-                 MagicWandIntervention('breastfeeding_promotion', 'child_growth_failure.proportion_exposed'), ]
+                 RiskEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate'),
+                 RiskEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate'),
+                 TreatmentIntervention('breastfeeding_promotion', 'child_growth_failure.proportion_exposed'), ]
 
 
 Configurations
@@ -198,8 +198,8 @@ one last way to set up the simulation in an interactive setting.
    :hide:
 
    from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
-                                                SIS_DiseaseModel, Risk, DirectEffect,
-                                                MagicWandIntervention)
+                                                SISDiseaseModel, Risk, RiskEffect,
+                                                TreatmentIntervention)
    from vivarium import InteractiveContext
 
    config = {
@@ -230,11 +230,11 @@ one last way to set up the simulation in an interactive setting.
 
    components = [BasePopulation(),
                  Mortality(),
-                 SIS_DiseaseModel('diarrhea'),
+                 SISDiseaseModel('diarrhea'),
                  Risk('child_growth_failure'),
-                 DirectEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate'),
-                 DirectEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate'),
-                 MagicWandIntervention('breastfeeding_promotion', 'child_growth_failure.proportion_exposed'),]
+                 RiskEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate'),
+                 RiskEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate'),
+                 TreatmentIntervention('breastfeeding_promotion', 'child_growth_failure.proportion_exposed'),]
 
    sim = InteractiveContext(components=components, configuration=config)
 
@@ -310,19 +310,19 @@ into our disease model. We could do the following.
 .. testcode::
 
    from vivarium import InteractiveContext
-   from vivarium.examples.disease_model import get_model_specification_path, Risk, DirectEffect
+   from vivarium.examples.disease_model import get_model_specification_path, Risk, RiskEffect
 
    p = get_model_specification_path()
    sim = InteractiveContext(p, setup=False)
 
    sim.add_components([Risk('unsafe_water_source'),
-                       DirectEffect('unsafe_water_source', 'infected_with_diarrhea.incidence_rate')])
+                       RiskEffect('unsafe_water_source', 'infected_with_lower_respiratory_infections.incidence_rate')])
 
    sim.configuration.update({
        'unsafe_water_source': {
            'proportion_exposed': 0.3
        },
-       'effect_of_unsafe_water_source_on_infected_with_diarrhea.incidence_rate': {
+       'effect_of_unsafe_water_source_on_infected_with_lower_respiratory_infections.incidence_rate': {
            'relative_risk': 8,
        },
    })

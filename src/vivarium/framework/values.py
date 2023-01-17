@@ -14,11 +14,11 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 """
 from collections import defaultdict
 from numbers import Number
-from typing import Callable, List, Any, Union, Iterable, Tuple
+from typing import Any, Callable, Iterable, List, Tuple, Union
 
-from loguru import logger
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 from vivarium.exceptions import VivariumError
 from vivarium.framework.utilities import from_yearly
@@ -29,6 +29,7 @@ NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
 
 class DynamicValueError(VivariumError):
     """Indicates an improperly configured value was invoked."""
+
     pass
 
 
@@ -153,7 +154,7 @@ def union_post_processor(values: List[NumberLike], _) -> NumberLike:
     # if there are multiple values, calculate the joint value
     product = 1
     for v in values:
-        new_value = (1-v)
+        new_value = 1 - v
         product = product * new_value
     joint_value = 1 - product
     return joint_value
@@ -228,8 +229,10 @@ class Pipeline:
 
     def _call(self, *args, skip_post_processor=False, **kwargs):
         if not self.source:
-            raise DynamicValueError(f"The dynamic value pipeline for {self.name} has no source. This likely means"
-                                    f"you are attempting to modify a value that hasn't been created.")
+            raise DynamicValueError(
+                f"The dynamic value pipeline for {self.name} has no source. This likely means "
+                f"you are attempting to modify a value that hasn't been created."
+            )
 
         value = self.source(*args, **kwargs)
         for mutator in self.mutators:
@@ -256,13 +259,13 @@ class ValuesManager:
 
     def setup(self, builder):
         self.step_size = builder.time.step_size()
-        builder.event.register_listener('post_setup', self.on_post_setup)
+        builder.event.register_listener("post_setup", self.on_post_setup)
 
         self.resources = builder.resources
         self.add_constraint = builder.lifecycle.add_constraint
 
-        builder.lifecycle.add_constraint(self.register_value_producer, allow_during=['setup'])
-        builder.lifecycle.add_constraint(self.register_value_modifier, allow_during=['setup'])
+        builder.lifecycle.add_constraint(self.register_value_producer, allow_during=["setup"])
+        builder.lifecycle.add_constraint(self.register_value_modifier, allow_during=["setup"])
 
     def on_post_setup(self, _):
         """Finalizes dependency structure for the pipelines."""
@@ -281,22 +284,24 @@ class ValuesManager:
         for name, pipe in self._pipelines.items():
             dependencies = []
             if pipe.source:
-                dependencies += [f'value_source.{name}']
+                dependencies += [f"value_source.{name}"]
             else:
-                dependencies += [f'missing_value_source.{name}']
+                dependencies += [f"missing_value_source.{name}"]
             for i, m in enumerate(pipe.mutators):
                 mutator_name = self._get_modifier_name(m)
-                dependencies.append(f'value_modifier.{name}.{i+1}.{mutator_name}')
-            self.resources.add_resources('value', [name], pipe._call, dependencies)
+                dependencies.append(f"value_modifier.{name}.{i+1}.{mutator_name}")
+            self.resources.add_resources("value", [name], pipe._call, dependencies)
 
-    def register_value_producer(self,
-                                value_name: str,
-                                source: Callable,
-                                requires_columns: List[str] = (),
-                                requires_values: List[str] = (),
-                                requires_streams: List[str] = (),
-                                preferred_combiner: Callable = replace_combiner,
-                                preferred_post_processor: Callable = None) -> Pipeline:
+    def register_value_producer(
+        self,
+        value_name: str,
+        source: Callable,
+        requires_columns: List[str] = (),
+        requires_values: List[str] = (),
+        requires_streams: List[str] = (),
+        preferred_combiner: Callable = replace_combiner,
+        preferred_post_processor: Callable = None,
+    ) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named value.
 
         See Also
@@ -304,29 +309,39 @@ class ValuesManager:
             :meth:`ValuesInterface.register_value_producer`
 
         """
-        pipeline = self._register_value_producer(value_name, source, preferred_combiner, preferred_post_processor)
+        pipeline = self._register_value_producer(
+            value_name, source, preferred_combiner, preferred_post_processor
+        )
 
         # The resource we add here is just the pipeline source.
         # The value will depend on the source and its modifiers, and we'll
         # declare that resource at post-setup once all sources and modifiers
         # are registered.
-        dependencies = self._convert_dependencies(source, requires_columns, requires_values, requires_streams)
-        self.resources.add_resources('value_source', [value_name], source, dependencies)
-        self.add_constraint(pipeline._call, restrict_during=['initialization', 'setup', 'post_setup'])
+        dependencies = self._convert_dependencies(
+            source, requires_columns, requires_values, requires_streams
+        )
+        self.resources.add_resources("value_source", [value_name], source, dependencies)
+        self.add_constraint(
+            pipeline._call, restrict_during=["initialization", "setup", "post_setup"]
+        )
 
         return pipeline
 
-    def _register_value_producer(self,
-                                 value_name: str,
-                                 source: Callable,
-                                 preferred_combiner: Callable,
-                                 preferred_post_processor: Callable):
+    def _register_value_producer(
+        self,
+        value_name: str,
+        source: Callable,
+        preferred_combiner: Callable,
+        preferred_post_processor: Callable,
+    ):
         """Configure the named value pipeline with a source, combiner, and post-processor."""
         logger.debug(f"Registering value pipeline {value_name}")
         pipeline = self._pipelines[value_name]
         if pipeline.source:
-            raise DynamicValueError(f'A second component is attempting to set the source for pipeline {value_name} '
-                                    f'with {source}, but it already has a source: {pipeline.source}.')
+            raise DynamicValueError(
+                f"A second component is attempting to set the source for pipeline {value_name} "
+                f"with {source}, but it already has a source: {pipeline.source}."
+            )
         pipeline.name = value_name
         pipeline.source = source
         pipeline.combiner = preferred_combiner
@@ -334,12 +349,14 @@ class ValuesManager:
         pipeline.manager = self
         return pipeline
 
-    def register_value_modifier(self,
-                                value_name: str,
-                                modifier: Callable,
-                                requires_columns: List[str] = (),
-                                requires_values: List[str] = (),
-                                requires_streams: List[str] = ()):
+    def register_value_modifier(
+        self,
+        value_name: str,
+        modifier: Callable,
+        requires_columns: List[str] = (),
+        requires_values: List[str] = (),
+        requires_streams: List[str] = (),
+    ):
         """Marks a ``Callable`` as the modifier of a named value.
 
         Parameters
@@ -371,10 +388,12 @@ class ValuesManager:
         pipeline = self._pipelines[value_name]  # May create a pipeline
         pipeline.mutators.append(modifier)
 
-        name = f'{value_name}.{len(pipeline.mutators)}.{modifier_name}'
+        name = f"{value_name}.{len(pipeline.mutators)}.{modifier_name}"
         logger.debug(f"Registering {name} as modifier to {value_name}")
-        dependencies = self._convert_dependencies(modifier, requires_columns, requires_values, requires_streams)
-        self.resources.add_resources('value_modifier', [name], modifier, dependencies)
+        dependencies = self._convert_dependencies(
+            modifier, requires_columns, requires_values, requires_streams
+        )
+        self.resources.add_resources("value_modifier", [name], modifier, dependencies)
 
     def get_value(self, name):
         """Retrieve the pipeline representing the named value.
@@ -402,28 +421,32 @@ class ValuesManager:
         # provide the pipeline function to source/modifier as well as
         # explicitly stating the pipeline name in 'requires_values'.
         if isinstance(func, Pipeline):
-            dependencies = [f'value.{func.name}']
+            dependencies = [f"value.{func.name}"]
         else:
-            dependencies = ([f'column.{name}' for name in requires_columns]
-                            + [f'value.{name}' for name in requires_values]
-                            + [f'stream.{name}' for name in requires_streams])
+            dependencies = (
+                [f"column.{name}" for name in requires_columns]
+                + [f"value.{name}" for name in requires_values]
+                + [f"stream.{name}" for name in requires_streams]
+            )
         return dependencies
 
     @staticmethod
     def _get_modifier_name(modifier):
         """Get reproducible modifier names based on the modifier type."""
-        if hasattr(modifier, 'name'):  # This is Pipeline or lookup table or something similar
+        if hasattr(modifier, "name"):  # This is Pipeline or lookup table or something similar
             modifier_name = modifier.name
-        elif hasattr(modifier, '__self__'):  # This is a bound method of a component or other object
+        elif hasattr(
+            modifier, "__self__"
+        ):  # This is a bound method of a component or other object
             owner = modifier.__self__
-            owner_name = owner.name if hasattr(owner, 'name') else owner.__class__.__name__
-            modifier_name = f'{owner_name}.{modifier.__name__}'
-        elif hasattr(modifier, '__name__'):  # Some unbound function
+            owner_name = owner.name if hasattr(owner, "name") else owner.__class__.__name__
+            modifier_name = f"{owner_name}.{modifier.__name__}"
+        elif hasattr(modifier, "__name__"):  # Some unbound function
             modifier_name = modifier.__name__
-        elif hasattr(modifier, '__call__'):  # Some anonymous callable
-            modifier_name = f'{modifier.__class__.name__}.__call__'
+        elif hasattr(modifier, "__call__"):  # Some anonymous callable
+            modifier_name = f"{modifier.__class__.name__}.__call__"
         else:  # I don't know what this is.
-            raise ValueError(f'Unknown modifier type: {type(modifier)}')
+            raise ValueError(f"Unknown modifier type: {type(modifier)}")
         return modifier_name
 
     def keys(self) -> Iterable[str]:
@@ -460,14 +483,16 @@ class ValuesInterface:
     def __init__(self, manager: ValuesManager):
         self._manager = manager
 
-    def register_value_producer(self,
-                                value_name: str,
-                                source: Callable,
-                                requires_columns: List[str] = (),
-                                requires_values: List[str] = (),
-                                requires_streams: List[str] = (),
-                                preferred_combiner: Callable = replace_combiner,
-                                preferred_post_processor: Callable = None) -> Pipeline:
+    def register_value_producer(
+        self,
+        value_name: str,
+        source: Callable,
+        requires_columns: List[str] = (),
+        requires_values: List[str] = (),
+        requires_streams: List[str] = (),
+        preferred_combiner: Callable = replace_combiner,
+        preferred_post_processor: Callable = None,
+    ) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named value.
 
         Parameters
@@ -505,16 +530,24 @@ class ValuesInterface:
             A callable reference to the named dynamic value pipeline.
 
         """
-        return self._manager.register_value_producer(value_name, source,
-                                                     requires_columns, requires_values, requires_streams,
-                                                     preferred_combiner, preferred_post_processor)
+        return self._manager.register_value_producer(
+            value_name,
+            source,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            preferred_combiner,
+            preferred_post_processor,
+        )
 
-    def register_rate_producer(self,
-                               rate_name: str,
-                               source: Callable,
-                               requires_columns: List[str] = (),
-                               requires_values: List[str] = (),
-                               requires_streams: List[str] = ()) -> Pipeline:
+    def register_rate_producer(
+        self,
+        rate_name: str,
+        source: Callable,
+        requires_columns: List[str] = (),
+        requires_values: List[str] = (),
+        requires_streams: List[str] = (),
+    ) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named rate.
 
         This is a convenience wrapper around ``register_value_producer`` that
@@ -547,16 +580,23 @@ class ValuesInterface:
             A callable reference to the named dynamic rate pipeline.
 
         """
-        return self.register_value_producer(rate_name, source,
-                                            requires_columns, requires_values, requires_streams,
-                                            preferred_post_processor=rescale_post_processor)
+        return self.register_value_producer(
+            rate_name,
+            source,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            preferred_post_processor=rescale_post_processor,
+        )
 
-    def register_value_modifier(self,
-                                value_name: str,
-                                modifier: Callable,
-                                requires_columns: List[str] = (),
-                                requires_values: List[str] = (),
-                                requires_streams: List[str] = (),):
+    def register_value_modifier(
+        self,
+        value_name: str,
+        modifier: Callable,
+        requires_columns: List[str] = (),
+        requires_values: List[str] = (),
+        requires_streams: List[str] = (),
+    ):
         """Marks a ``Callable`` as the modifier of a named value.
 
         Parameters
@@ -583,8 +623,9 @@ class ValuesInterface:
             before the pipeline modifier is called.
 
         """
-        self._manager.register_value_modifier(value_name, modifier,
-                                              requires_columns, requires_values, requires_streams)
+        self._manager.register_value_modifier(
+            value_name, modifier, requires_columns, requires_values, requires_streams
+        )
 
     def get_value(self, name: str) -> Pipeline:
         """Retrieve the pipeline representing the named value.

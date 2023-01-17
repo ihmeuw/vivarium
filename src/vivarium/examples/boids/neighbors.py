@@ -4,14 +4,10 @@ from scipy import spatial
 
 class Neighbors:
 
-    configuration_defaults = {
-        'neighbors': {
-            'radius': 50
-        }
-    }
+    configuration_defaults = {"neighbors": {"radius": 50}}
 
     def __init__(self):
-        self.name = 'Neighbors'
+        self.name = "Neighbors"
 
     def setup(self, builder):
         self.colors = builder.configuration.population.colors
@@ -19,12 +15,14 @@ class Neighbors:
 
         self.neighbors_calculated = False
         self._neighbors = pd.Series()
-        self.neighbors = builder.value.register_value_producer('neighbors', source=self.get_neighbors)
+        self.neighbors = builder.value.register_value_producer(
+            "neighbors", source=self.get_neighbors
+        )
 
         builder.population.initializes_simulants(self.on_create_simulants)
-        self.population_view = builder.population.get_view(['x', 'y', 'color'])
+        self.population_view = builder.population.get_view(["x", "y", "color"])
 
-        builder.event.register_listener('time_step', self.on_time_step)
+        builder.event.register_listener("time_step", self.on_time_step)
 
     def on_create_simulants(self, pop_data):
         self._neighbors = pd.Series([[]] * len(pop_data.index), index=pop_data.index)
