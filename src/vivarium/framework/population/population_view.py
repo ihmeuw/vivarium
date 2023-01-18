@@ -224,7 +224,7 @@ class PopulationView:
                     state_table[column],
                     self._manager.adding_simulants,
                 )
-                self._manager._population.loc[:, column] = column_update
+                self._manager._population[column] = column_update
 
     def __repr__(self):
         return (

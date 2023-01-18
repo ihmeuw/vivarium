@@ -76,3 +76,10 @@ def verify_stratification_added(
             matching_stratification_found = True
             break
     return matching_stratification_found
+
+
+# Mock for get_value call for Pipelines, returns a str instead of a Pipeline
+def mock_get_value(self, name: str):
+    if not isinstance(name, str):
+        raise TypeError("Passed a non-string type to mock get_value(), check your pipelines.")
+    return name

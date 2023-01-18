@@ -1,3 +1,15 @@
+**1.0.2 - 12/27/22**
+
+ - Fix a typo that prevented deployment of v1.0.1
+
+**1.0.1 - 12/27/22**
+
+ - Remove metrics from the population management system
+ - Add a new lifecycle builder interface method for simulation state access
+ - Suppress future warnings (temporarily)
+ - Update github actions to support python 3.7-3.10
+ - Update codeowners
+
 **1.0.0 - 12/20/22**
 
  - Added Results Manager feature.
