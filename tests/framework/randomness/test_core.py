@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
+from vivarium.framework.randomness import RESIDUAL_CHOICE, RandomnessError
 from vivarium.framework.randomness import core as random
-from vivarium.framework.randomness import RandomnessError, RESIDUAL_CHOICE
 
 
 def test_normalize_shape(weights_with_residuals, index):

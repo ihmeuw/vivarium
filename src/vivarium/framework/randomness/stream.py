@@ -4,19 +4,15 @@ Randomness Streams
 ==================
 
 """
-from typing import Any, Callable, List, Tuple, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
-from vivarium.framework.utilities import rate_to_probability
-from vivarium.framework.randomness.core import (
-    random,
-    choice,
-    filter_for_probability,
-)
+from vivarium.framework.randomness.core import choice, filter_for_probability, random
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
+from vivarium.framework.utilities import rate_to_probability
 
 if TYPE_CHECKING:
     from vivarium.framework.randomness.manager import RandomnessManager
@@ -215,7 +211,7 @@ class RandomnessStream:
         index: pd.Index,
         choices: Union[List, Tuple, np.ndarray, pd.Series],
         p: Union[List, Tuple, np.ndarray, pd.Series] = None,
-        additional_key: Any = None
+        additional_key: Any = None,
     ) -> pd.Series:
         """Decides between a weighted or unweighted set of choices.
 

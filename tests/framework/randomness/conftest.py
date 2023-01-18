@@ -1,9 +1,7 @@
 import pandas as pd
 import pytest
 
-from vivarium.framework.randomness import (
-    RESIDUAL_CHOICE,
-)
+from vivarium.framework.randomness import RESIDUAL_CHOICE
 
 
 @pytest.fixture(params=[10**4, 10**5])

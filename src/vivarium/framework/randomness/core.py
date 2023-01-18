@@ -30,7 +30,6 @@ import pandas as pd
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
 
-
 RESIDUAL_CHOICE = object()
 
 
@@ -105,7 +104,8 @@ def choice(
     key: str,
     index: Union[pd.Index, pd.MultiIndex],
     choices: Union[List, Tuple, np.ndarray, pd.Series],
-    p: Union[List, Tuple, np.ndarray, pd.Series] = None, index_map: IndexMap = None
+    p: Union[List, Tuple, np.ndarray, pd.Series] = None,
+    index_map: IndexMap = None,
 ) -> pd.Series:
     """Decides between a weighted or unweighted set of choices.
 
