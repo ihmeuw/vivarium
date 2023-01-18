@@ -229,23 +229,23 @@ def filter_for_probability(
 
     Parameters
     ----------
-    key :
+    key
         A string used to create a seed for the random number generation.
-    population :
+    population
         A view on the simulants for which we are determining the
         outcome of an event.
-    probability :
+    probability
         A 1d list of probabilities of the event under consideration
         occurring which corresponds (i.e. `len(population) == len(probability)`)
         to the population array passed in.
-    index_map :
+    index_map
         A mapping between the provided index (which may contain ints, floats,
         datetimes or any arbitrary combination of them) and an integer index
         into the random number array.
 
     Returns
     -------
-    Union[pd.DataFrame, pd.Series, pd.Index]
+    Union[pandas.DataFrame, pandas.Series, pandas.Index]
         The sub-population of the simulants for whom the event occurred.
         The return type will be the same as type(population)
 
