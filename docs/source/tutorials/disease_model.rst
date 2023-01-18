@@ -160,7 +160,7 @@ a dictionary that supports ``.``-access notation.
    :lineno-start: 2
 
 Lines 4-13 interact with Vivarium's
-:class:`randomness system <vivarium.framework.randomness.RandomnessInterface>`.
+:class:`randomness system <vivarium.framework.randomness.manager.RandomnessInterface>`.
 Several things are happening here.
 
 Lines 4-9 deal with the topic of :doc:`Common Random Numbers </concepts/crn>`,
@@ -206,7 +206,7 @@ We'll explore this much later when we're looking at running simulations with
 interventions.
 
 The next thing we do is grab actual
-:class:`randomness streams <vivarium.framework.randomness.RandomnessStream>`
+:class:`randomness streams <vivarium.framework.randomness.stream.RandomnessStream>`
 from the framework.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
@@ -362,7 +362,7 @@ data here to generate arbitrarily complex starting populations.
 The only thing really of note here is the call to
 ``self.age_randomness.get_draw``.  If we recall from the ``setup`` method,
 ``self.age_randomness`` is an instance of a
-:class:`~vivarium.framework.randomness.RandomnessStream` which supports several
+:class:`~vivarium.framework.randomness.stream.RandomnessStream` which supports several
 convenience methods for interacting with random numbers.  ``get_draw`` takes
 in an ``index`` representing particular simulants and returns a
 ``pandas.Series`` with a uniformly drawn random number for each simulant
