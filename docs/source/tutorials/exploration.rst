@@ -88,20 +88,19 @@ One of the things we might want to look at is the simulation
 information, but leaves many things set to defaults. We can see what's in the
 configuration by simply printing it.
 
-.. testsetup::
+.. testsetup:: configuration
 
    from vivarium.examples.disease_model import get_disease_model_simulation
 
    sim = get_disease_model_simulation()
 
-   if 'input_data' in sim.configuration:
-       del sim.configuration['input_data']
+   del sim.configuration['input_data']
 
-.. testcode::
+.. testcode:: configuration
 
    print(sim.configuration)
 
-.. testoutput::
+.. testoutput:: configuration
 
     randomness:
         key_columns:
