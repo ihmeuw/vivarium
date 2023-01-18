@@ -10,12 +10,8 @@ import numpy as np
 import pandas as pd
 
 from vivarium.framework.randomness.core import choice, filter_for_probability, random
-from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.utilities import rate_to_probability
-
-if TYPE_CHECKING:
-    from vivarium.framework.randomness.manager import RandomnessManager
 
 
 class RandomnessStream:
@@ -55,37 +51,13 @@ class RandomnessStream:
         clock: Callable,
         seed: Any,
         index_map: IndexMap = None,
-        manager: "RandomnessManager" = None,
         for_initialization: bool = False,
     ):
         self.key = key
         self.clock = clock
         self.seed = seed
         self.index_map = index_map
-        self._manager = manager
         self._for_initialization = for_initialization
-
-    def copy_with_additional_key(self, key: Any) -> "RandomnessStream":
-        """Creates a copy of this stream with a permutation of it's random seed.
-
-        Parameters
-        ----------
-        key
-            The additional key to describe the new stream with.
-
-        Returns
-        -------
-        RandomnessStream
-            A new RandomnessStream with a combined key.
-
-        """
-        copy_key = "_".join([self.key, key])
-        if self._for_initialization:
-            raise RandomnessError("Initialization streams cannot be copied.")
-        elif self._manager:
-            return self._manager.get_randomness_stream(copy_key)
-        else:
-            return RandomnessStream(copy_key, self.clock, self.seed, self.index_map)
 
     @property
     def name(self):

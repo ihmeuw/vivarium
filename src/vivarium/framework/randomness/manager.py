@@ -122,7 +122,6 @@ class RandomnessManager:
             clock=self._clock,
             seed=self._seed,
             index_map=self._key_mapping,
-            manager=self,
             for_initialization=for_initialization,
         )
         self._decision_points[decision_point] = stream
