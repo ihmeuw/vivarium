@@ -5,7 +5,8 @@ import pandas as pd
 import pytest
 from scipy.stats import chisquare
 
-from vivarium.framework.randomness import IndexMap, RandomnessError
+from vivarium.framework.randomness import RandomnessError
+from vivarium.framework.randomness.index_map import IndexMap
 
 
 def almost_powerset(iterable):

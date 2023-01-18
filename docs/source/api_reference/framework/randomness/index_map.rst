@@ -1,0 +1,1 @@
+.. automodule:: vivarium.framework.randomness.index_map

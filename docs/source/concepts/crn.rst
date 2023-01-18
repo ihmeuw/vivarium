@@ -52,14 +52,14 @@ fit into our cube.
     decisions need to be made: does a machine lose power? does a person contract
     a disease? does a robot make a widget? etc. Each of these questions we
     consider a decision point and each should have a dedicated set (or
-    :class:`RandomnessStream <vivarium.framework.randomness.RandomnessStream>`
+    :class:`RandomnessStream <vivarium.framework.randomness.stream.RandomnessStream>`
     as we will discuss shortly) of random numbers to make the decision.
 
 Cutting our cube along the y-axis yields a slice we can think of as
 representing a simulant within the randomness system: all the decision points
 over all simulation time for a single value in the randomness index.
 
-A :class:`RandomnessStream <vivarium.framework.randomness.RandomnessStream>`,
+A :class:`RandomnessStream <vivarium.framework.randomness.stream.RandomnessStream>`,
 which from a practical standpoint we will interact with most often in a
 simulation, is a single decision point over all simulation time for all
 simulants in the randomness index.
@@ -146,7 +146,7 @@ simulations.
 Using randomness in ``vivarium``
 ---------------------------------
 We've talked about two key ways in which client code may interact with the
-randomness system: in getting and using :class:`RandomnessStreams <vivarium.framework.randomness.RandomnessStream>`
+randomness system: in getting and using :class:`RandomnessStreams <vivarium.framework.randomness.stream.RandomnessStream>`
 and in registering simulants with the system using a set of carefully-chosen
 characteristics to identify them uniquely across scenarios.
 
@@ -154,7 +154,7 @@ Registering simulants
 ++++++++++++++++++++++
 
 Let's start with registering simulants. The randomness system provides the
-aptly named :func:`register_simulants <vivarium.framework.randomness.RandomnessInterface.register_simulants>`,
+aptly named :func:`register_simulants <vivarium.framework.randomness.manager.RandomnessInterface.register_simulants>`,
 which handles the mapping process we looked at above where simulants'
 chosen characteristics are used to map them to a specific location in the
 **randomness index**. This should be used in initializing simulants.
@@ -178,10 +178,10 @@ RandomnessStreams
 
 More commonly, you may want to get and use RandomnessStreams for specific
 **decision points**. The randomness system provides the
-:func:`get_stream <vivarium.framework.randomness.RandomnessInterface.get_stream>` to do this. Let's
+:func:`get_stream <vivarium.framework.randomness.manager.RandomnessInterface.get_stream>` to do this. Let's
 look at a quick example of how we'd use this. Say we want a component that will
 move simulants one position left every time step with probability 0.5. We should
-use a :class:`RandomnessStreams <vivarium.framework.randomness.RandomnessStream>`
+use a :class:`RandomnessStreams <vivarium.framework.randomness.stream.RandomnessStream>`
 for this decision point of whether to move left or not. Here's how we'd do it:
 
 .. code-block:: python
