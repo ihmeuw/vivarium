@@ -1,3 +1,10 @@
+**1.0.3 - 01/19/23**
+
+ - Enhancement to use pop_data.user_data.get pattern in BasePopulation example
+ - Mend get_value unhashable argument for Results Manger add_observation()
+ - Split randomness into subpackage
+ - Remove copy_with_additional_key method from RandomnessStream
+
 **1.0.2 - 12/27/22**
 
  - Fix a typo that prevented deployment of v1.0.1
@@ -120,7 +127,7 @@
 **0.10.0 - 10/2/20**
 
  - Fix bug in copying a `RandomnessStream` with a new key
- - Add documentation of randomess in vivarium
+ - Add documentation of randomness in vivarium
  - Add validation to `LookupTable`, `InterpolatedTable`, `Interpolation`, and
    `Order0Interp`
  - Fix bug writing invalid artifact keys
@@ -200,7 +207,7 @@
 **0.8.22 - 07/16/19**
 
  - Bugfix for lookup table input validation.
- - Event subsytem documentation.
+ - Event subsystem documentation.
 
 **0.8.21 - 06/14/19**
 
