@@ -5,10 +5,9 @@ Randomness System Manager
 """
 import pandas as pd
 
-from vivarium.framework.randomness.core import get_hash
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
-from vivarium.framework.randomness.stream import RandomnessStream
+from vivarium.framework.randomness.stream import RandomnessStream, get_hash
 
 
 class RandomnessManager:
@@ -27,7 +26,7 @@ class RandomnessManager:
         self._seed = None
         self._clock = None
         self._key_columns = None
-        self._key_mapping = IndexMap()
+        self._key_mapping = None
         self._decision_points = dict()
 
     @property
@@ -40,9 +39,12 @@ class RandomnessManager:
             self._seed += str(builder.configuration.randomness.additional_seed)
         self._clock = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
+
+        use_crn = bool(self._key_columns)
         map_size = builder.configuration.randomness.map_size
         pop_size = builder.configuration.population.population_size
-        self._key_mapping.map_size = max(map_size, 10 * pop_size)
+        map_size = max(map_size, 10 * pop_size)
+        self._key_mapping = IndexMap(use_crn, map_size)
 
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
@@ -122,7 +124,7 @@ class RandomnessManager:
             clock=self._clock,
             seed=self._seed,
             index_map=self._key_mapping,
-            for_initialization=for_initialization,
+            initializes_crn_attributes=for_initialization,
         )
         self._decision_points[decision_point] = stream
         return stream

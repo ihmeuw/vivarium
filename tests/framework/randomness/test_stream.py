@@ -2,17 +2,19 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vivarium.framework.randomness import (
+from vivarium.framework.randomness.stream import (
     RESIDUAL_CHOICE,
+    IndexMap,
     RandomnessError,
     RandomnessStream,
+    _normalize_shape,
+    _set_residual_probability,
 )
-from vivarium.framework.randomness import core as random
 
 
 def test_filter_for_probability(index):
     dates = [pd.Timestamp(1991, 1, 1), pd.Timestamp(1990, 1, 1)]
-    randomness = RandomnessStream("test", dates.pop, 1)
+    randomness = RandomnessStream("test", dates.pop, 1, IndexMap())
 
     sub_index = randomness.filter_for_probability(index, 0.5)
     assert round(len(sub_index) / len(index), 1) == 0.5
@@ -23,7 +25,7 @@ def test_filter_for_probability(index):
 
 def test_choice(index, choices, weights):
     dates = [pd.Timestamp(1990, 1, 1)]
-    randomness = RandomnessStream("test", dates.pop, 1)
+    randomness = RandomnessStream("test", dates.pop, 1, IndexMap())
 
     chosen = randomness.choice(index, choices, p=weights)
     count = chosen.value_counts()
@@ -40,9 +42,9 @@ def test_choice(index, choices, weights):
 def test_choice_with_residuals(index, choices, weights_with_residuals):
     print(RESIDUAL_CHOICE in weights_with_residuals)
     dates = [pd.Timestamp(1990, 1, 1)]
-    randomness = RandomnessStream("test", dates.pop, 1)
+    randomness = RandomnessStream("test", dates.pop, 1, IndexMap())
 
-    p = random._normalize_shape(weights_with_residuals, index)
+    p = _normalize_shape(weights_with_residuals, index)
 
     residual = np.where(p == RESIDUAL_CHOICE, 1, 0)
     non_residual = np.where(p != RESIDUAL_CHOICE, p, 0)
@@ -67,3 +69,30 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
 
         for k, c in count.items():
             assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
+
+
+def test_normalize_shape(weights_with_residuals, index):
+    p = _normalize_shape(weights_with_residuals, index)
+    assert p.shape == (len(index), len(weights_with_residuals))
+
+
+def test__set_residual_probability(weights_with_residuals, index):
+    # Coerce the weights to a 2-d numpy array.
+    p = _normalize_shape(weights_with_residuals, index)
+
+    residual = np.where(p == RESIDUAL_CHOICE, 1, 0)
+    non_residual = np.where(p != RESIDUAL_CHOICE, p, 0)
+
+    if np.any(non_residual.sum(axis=1) > 1):
+        with pytest.raises(RandomnessError):
+            # We received un-normalized probability weights.
+            _set_residual_probability(p)
+
+    elif np.any(residual.sum(axis=1) > 1):
+        with pytest.raises(RandomnessError):
+            # We received multiple instances of `RESIDUAL_CHOICE`
+            _set_residual_probability(p)
+
+    else:  # Things should work
+        p_total = np.sum(_set_residual_probability(p))
+        assert np.isclose(p_total, len(index), atol=0.0001)
