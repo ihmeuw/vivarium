@@ -7,35 +7,38 @@ from typing import Iterator
 
 import numpy as np
 import pandas as pd
-from pandas.testing import assert_frame_equal
 import pytest
+from pandas.testing import assert_frame_equal
 
 from vivarium.framework.engine import Builder
-from vivarium.interface import InteractiveContext
-from vivarium.framework.population import SimulantData
 from vivarium.framework.event import Event
+from vivarium.framework.population import SimulantData
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import RandomnessStream
+from vivarium.interface import InteractiveContext
 
 
-@pytest.mark.parametrize('for_initialization', [True, False])
+@pytest.mark.parametrize("for_initialization", [True, False])
 def test_basic_repeatability(for_initialization):
     test_idx = pd.Index(range(100))
     index_map = IndexMap()
 
     stream_args = {
-        'key': 'test',
-        'clock': lambda: pd.Timestamp('2020-01-01'),
-        'seed': 'abc',
-        'index_map': index_map,
-        'for_initialization': for_initialization
+        "key": "test",
+        "clock": lambda: pd.Timestamp("2020-01-01"),
+        "seed": "abc",
+        "index_map": index_map,
+        "for_initialization": for_initialization,
     }
 
     stream_base = RandomnessStream(**stream_args)
     draw_base = stream_base.get_draw(test_idx)
 
     for arg_permutation in [
-        {}, {'key': 'test2'}, {'clock': lambda: pd.Timestamp('2020-01-02')}, {'seed': '123'}
+        {},
+        {"key": "test2"},
+        {"clock": lambda: pd.Timestamp("2020-01-02")},
+        {"seed": "123"},
     ]:
         new_stream_args = {**stream_args, **arg_permutation}
         stream_permutation = RandomnessStream(**new_stream_args)
@@ -55,11 +58,8 @@ class BasePopulation:
     time steps.
 
     """
-    def __init__(
-        self,
-        with_crn: bool,
-        sims_to_add: Iterator = cycle([0])
-    ):
+
+    def __init__(self, with_crn: bool, sims_to_add: Iterator = cycle([0])):
         """
         Parameters
         ----------
@@ -75,17 +75,17 @@ class BasePopulation:
 
     @property
     def name(self):
-        return 'population'
+        return "population"
 
     def setup(self, builder: Builder):
         self.register = builder.randomness.register_simulants
         self.randomness_init = builder.randomness.get_stream(
-            'crn_init',
+            "crn_init",
             for_initialization=self.with_crn,
         )
-        self.randomness_other = builder.randomness.get_stream('other')
+        self.randomness_other = builder.randomness.get_stream("other")
 
-        columns_created = ['crn_attr1', 'crn_attr2', 'other_attr1']
+        columns_created = ["crn_attr1", "crn_attr2", "other_attr1"]
         builder.population.initializes_simulants(
             self.on_initialize_simulants,
             creates_columns=columns_created,
@@ -103,25 +103,29 @@ class BasePopulation:
             self.simulant_creator(
                 count=sims_to_add,
                 population_configuration={
-                    'sim_state': 'time_step',
-                }
+                    "sim_state": "time_step",
+                },
             )
 
 
 class EntranceTimePopulation(BasePopulation):
     """Population that bases identity on entrance time and a random number"""
+
     def on_initialize_simulants(self, pop_data: SimulantData):
-        crn_attr = (1_000_000 * self.randomness_init.get_draw(index=pop_data.index)).astype(int)
+        crn_attr = (1_000_000 * self.randomness_init.get_draw(index=pop_data.index)).astype(
+            int
+        )
         population = pd.DataFrame(
-            {'crn_attr1': pop_data.creation_time, 'crn_attr2': crn_attr},
+            {"crn_attr1": pop_data.creation_time, "crn_attr2": crn_attr},
             index=pop_data.index,
         )
 
         if self.with_crn:
             self.register(population)
 
-        population['other_attr1'] = self.randomness_other.get_draw(
-            pop_data.index, additional_key='attr1',
+        population["other_attr1"] = self.randomness_other.get_draw(
+            pop_data.index,
+            additional_key="attr1",
         )
         self.population_view.update(population)
 
@@ -132,6 +136,7 @@ class SequentialPopulation(BasePopulation):
     NOTE: This population is not fully supported by the CRN system and is here to explicitly
     test and assert the expected failure cases.
     """
+
     def setup(self, builder: Builder):
         super().setup(builder)
         self.count = 0
@@ -139,23 +144,27 @@ class SequentialPopulation(BasePopulation):
     def on_initialize_simulants(self, pop_data: SimulantData):
         new_people = len(pop_data.index)
 
-        population = pd.DataFrame({
-            'crn_attr1': pd.Timestamp('2020-01-01'),
-            'crn_attr2': range(self.count, self.count + new_people)
-        }, index=pop_data.index)
+        population = pd.DataFrame(
+            {
+                "crn_attr1": pd.Timestamp("2020-01-01"),
+                "crn_attr2": range(self.count, self.count + new_people),
+            },
+            index=pop_data.index,
+        )
 
         if self.with_crn:
             self.register(population)
 
-        population['other_attr1'] = self.randomness_other.get_draw(
-            pop_data.index, additional_key='attr1',
+        population["other_attr1"] = self.randomness_other.get_draw(
+            pop_data.index,
+            additional_key="attr1",
         )
         self.population_view.update(population)
         self.count += new_people
 
 
 @pytest.mark.parametrize(
-    'pop_class, with_crn, sims_to_add',
+    "pop_class, with_crn, sims_to_add",
     [
         pytest.param(EntranceTimePopulation, True, cycle([0])),
         pytest.param(EntranceTimePopulation, True, cycle([2])),
@@ -165,7 +174,6 @@ class SequentialPopulation(BasePopulation):
         pytest.param(SequentialPopulation, True, cycle([2])),
         pytest.param(SequentialPopulation, False, cycle([0])),
         pytest.param(SequentialPopulation, False, cycle([2])),
-
     ],
 )
 def test_multi_sim_basic_reproducibility_with_same_pop_growth(
@@ -174,7 +182,7 @@ def test_multi_sim_basic_reproducibility_with_same_pop_growth(
     sims_to_add,
 ):
     if with_crn:
-        configuration = {'randomness': {'key_columns': ['crn_attr1', 'crn_attr2']}}
+        configuration = {"randomness": {"key_columns": ["crn_attr1", "crn_attr2"]}}
     else:
         configuration = {}
 
@@ -187,21 +195,21 @@ def test_multi_sim_basic_reproducibility_with_same_pop_growth(
         configuration=configuration,
     )
 
-    pop1 = sim1.get_population().set_index(['crn_attr1', 'crn_attr2'])
-    pop2 = sim2.get_population().set_index(['crn_attr1', 'crn_attr2'])
+    pop1 = sim1.get_population().set_index(["crn_attr1", "crn_attr2"])
+    pop2 = sim2.get_population().set_index(["crn_attr1", "crn_attr2"])
     assert_frame_equal(pop1, pop2)
 
     for i in range(2):
         sim1.step()
         sim2.step()
 
-    pop1 = sim1.get_population().set_index(['crn_attr1', 'crn_attr2'])
-    pop2 = sim2.get_population().set_index(['crn_attr1', 'crn_attr2'])
+    pop1 = sim1.get_population().set_index(["crn_attr1", "crn_attr2"])
+    pop2 = sim2.get_population().set_index(["crn_attr1", "crn_attr2"])
     assert_frame_equal(pop1, pop2)
 
 
 @pytest.mark.parametrize(
-    'pop_class, with_crn',
+    "pop_class, with_crn",
     [
         pytest.param(EntranceTimePopulation, True),
         pytest.param(EntranceTimePopulation, False),
@@ -211,7 +219,7 @@ def test_multi_sim_basic_reproducibility_with_same_pop_growth(
 )
 def test_multi_sim_reproducibility_with_different_pop_growth(with_crn, pop_class):
     if with_crn:
-        configuration = {'randomness': {'key_columns': ['crn_attr1', 'crn_attr2']}}
+        configuration = {"randomness": {"key_columns": ["crn_attr1", "crn_attr2"]}}
     else:
         configuration = {}
 
@@ -225,8 +233,8 @@ def test_multi_sim_reproducibility_with_different_pop_growth(with_crn, pop_class
         configuration=configuration,
     )
 
-    pop1 = sim1.get_population().set_index(['crn_attr1', 'crn_attr2'])
-    pop2 = sim2.get_population().set_index(['crn_attr1', 'crn_attr2'])
+    pop1 = sim1.get_population().set_index(["crn_attr1", "crn_attr2"])
+    pop2 = sim2.get_population().set_index(["crn_attr1", "crn_attr2"])
     initial_pop_size = len(pop1)
     assert_frame_equal(pop1, pop2)
 
@@ -235,8 +243,8 @@ def test_multi_sim_reproducibility_with_different_pop_growth(with_crn, pop_class
         sim1.step()
         sim2.step()
 
-    pop1 = sim1.get_population().set_index(['crn_attr1', 'crn_attr2']).drop(columns='tracked')
-    pop2 = sim2.get_population().set_index(['crn_attr1', 'crn_attr2']).drop(columns='tracked')
+    pop1 = sim1.get_population().set_index(["crn_attr1", "crn_attr2"]).drop(columns="tracked")
+    pop2 = sim2.get_population().set_index(["crn_attr1", "crn_attr2"]).drop(columns="tracked")
 
     if with_crn:
         overlap = pop1.index.intersection(pop2.index)
@@ -249,24 +257,28 @@ def test_multi_sim_reproducibility_with_different_pop_growth(with_crn, pop_class
 
 class BrokenPopulation(BasePopulation):
     """CRN system falls over if the first CRN attribute is an int or float."""
+
     def on_initialize_simulants(self, pop_data: SimulantData):
-        crn_attr = (1_000_000 * self.randomness_init.get_draw(index=pop_data.index)).astype(int)
+        crn_attr = (1_000_000 * self.randomness_init.get_draw(index=pop_data.index)).astype(
+            int
+        )
         population = pd.DataFrame(
-            {'crn_attr1': crn_attr, 'crn_attr2': pop_data.creation_time},
+            {"crn_attr1": crn_attr, "crn_attr2": pop_data.creation_time},
             index=pop_data.index,
         )
 
         if self.with_crn:
             self.register(population)
 
-        population['other_attr1'] = self.randomness_other.get_draw(
-            pop_data.index, additional_key='attr1',
+        population["other_attr1"] = self.randomness_other.get_draw(
+            pop_data.index,
+            additional_key="attr1",
         )
         self.population_view.update(population)
 
 
 @pytest.mark.parametrize(
-    'with_crn, sims_to_add',
+    "with_crn, sims_to_add",
     [
         pytest.param(True, cycle([0]), marks=pytest.mark.xfail),
         pytest.param(True, cycle([1]), marks=pytest.mark.xfail),
@@ -276,7 +288,7 @@ class BrokenPopulation(BasePopulation):
 )
 def test_failure_path_when_first_crn_attribute_not_datelike(with_crn, sims_to_add):
     if with_crn:
-        configuration = {'randomness': {'key_columns': ['crn_attr1', 'crn_attr2']}}
+        configuration = {"randomness": {"key_columns": ["crn_attr1", "crn_attr2"]}}
     else:
         configuration = {}
 
