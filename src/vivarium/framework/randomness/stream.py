@@ -4,7 +4,7 @@ Randomness Streams
 ==================
 
 """
-from typing import TYPE_CHECKING, Any, Callable, List, Tuple, Union
+from typing import Any, Callable, List, Tuple, Union
 
 import numpy as np
 import pandas as pd

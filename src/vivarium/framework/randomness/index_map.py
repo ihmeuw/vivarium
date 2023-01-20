@@ -37,6 +37,7 @@ class IndexMap:
             The new index to hash.
 
         """
+
         if new_keys.empty:
             return  # Nothing to do
         elif not self._map.index.intersection(new_keys).empty:
