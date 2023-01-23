@@ -66,5 +66,5 @@ class Stratification:
         return population
 
     @staticmethod
-    def _default_mapper(pop: pd.DataFrame) -> str:
+    def _default_mapper(pop: pd.DataFrame) -> Union[pd.Series, str]:
         return pop.squeeze(axis=1)
