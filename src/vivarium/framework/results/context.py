@@ -105,10 +105,11 @@ class ResultsContext:
         ].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
-            stratified_pop = population.copy()
             if pop_filter:
-                stratified_pop = stratified_pop.query(pop_filter)
-            pop_groups = stratified_pop.groupby(list(stratifications))
+                filtered_pop = population.query(pop_filter)
+            else:
+                filtered_pop = population
+            pop_groups = filtered_pop.groupby(list(stratifications))
             for measure, aggregator_sources, aggregator, additional_keys in observations:
                 if aggregator_sources:
                     aggregates = pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
