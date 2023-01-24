@@ -37,7 +37,7 @@ class ResultsContext:
                 "Attempting to set an empty list as the default grouping columns "
                 "for results production."
             )
-        self._default_grouping_columns = default_grouping_columns
+        self._default_stratifications = default_grouping_columns
 
     def add_stratification(
         self,
