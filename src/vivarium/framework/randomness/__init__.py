@@ -25,7 +25,10 @@ For mor information, see the Common Random Numbers
 :ref:`concept note <crn_concept>`.
 
 """
-from vivarium.framework.randomness.core import RESIDUAL_CHOICE, choice, get_hash, random
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.manager import RandomnessInterface, RandomnessManager
-from vivarium.framework.randomness.stream import RandomnessStream
+from vivarium.framework.randomness.stream import (
+    RESIDUAL_CHOICE,
+    RandomnessStream,
+    get_hash,
+)

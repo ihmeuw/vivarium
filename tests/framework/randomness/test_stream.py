@@ -7,7 +7,37 @@ from vivarium.framework.randomness import (
     RandomnessError,
     RandomnessStream,
 )
-from vivarium.framework.randomness import core as random
+from vivarium.framework.randomness.stream import (
+    _normalize_shape,
+    _set_residual_probability,
+)
+
+
+def test_normalize_shape(weights_with_residuals, index):
+    p = _normalize_shape(weights_with_residuals, index)
+    assert p.shape == (len(index), len(weights_with_residuals))
+
+
+def test__set_residual_probability(weights_with_residuals, index):
+    # Coerce the weights to a 2-d numpy array.
+    p = _normalize_shape(weights_with_residuals, index)
+
+    residual = np.where(p == RESIDUAL_CHOICE, 1, 0)
+    non_residual = np.where(p != RESIDUAL_CHOICE, p, 0)
+
+    if np.any(non_residual.sum(axis=1) > 1):
+        with pytest.raises(RandomnessError):
+            # We received un-normalized probability weights.
+            _set_residual_probability(p)
+
+    elif np.any(residual.sum(axis=1) > 1):
+        with pytest.raises(RandomnessError):
+            # We received multiple instances of `RESIDUAL_CHOICE`
+            _set_residual_probability(p)
+
+    else:  # Things should work
+        p_total = np.sum(_set_residual_probability(p))
+        assert np.isclose(p_total, len(index), atol=0.0001)
 
 
 def test_filter_for_probability(index):
@@ -42,7 +72,7 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
     dates = [pd.Timestamp(1990, 1, 1)]
     randomness = RandomnessStream("test", dates.pop, 1)
 
-    p = random._normalize_shape(weights_with_residuals, index)
+    p = _normalize_shape(weights_with_residuals, index)
 
     residual = np.where(p == RESIDUAL_CHOICE, 1, 0)
     non_residual = np.where(p != RESIDUAL_CHOICE, p, 0)

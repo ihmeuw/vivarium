@@ -5,10 +5,9 @@ Randomness System Manager
 """
 import pandas as pd
 
-from vivarium.framework.randomness.core import get_hash
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
-from vivarium.framework.randomness.stream import RandomnessStream
+from vivarium.framework.randomness.stream import RandomnessStream, get_hash
 
 
 class RandomnessManager:
