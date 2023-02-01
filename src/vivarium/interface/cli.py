@@ -42,11 +42,13 @@ from loguru import logger
 
 from vivarium.examples import disease_model
 from vivarium.framework.engine import run_simulation
-from vivarium.framework.utilities import handle_exceptions
-
-from .utilities import (
+from vivarium.framework.utilities import (
     configure_logging_to_file,
     configure_logging_to_terminal,
+    handle_exceptions,
+)
+
+from .utilities import (
     get_output_root,
 )
 
@@ -104,7 +106,7 @@ def run(
     is provided, a subdirectory will be created with the same name as the
     MODEL_SPECIFICATION if one does not exist. Results will be written to a
     further subdirectory named after the start time of the simulation run."""
-    configure_logging_to_terminal(verbose)
+    configure_logging_to_terminal(logger, verbose)
 
     start = time()
 
@@ -113,7 +115,7 @@ def run(
     _ = os.umask(0o002)
     results_root.mkdir(parents=True, exist_ok=False)
 
-    configure_logging_to_file(results_root)
+    configure_logging_to_file(logger, results_root)
     shutil.copy(model_specification, results_root / "model_specification.yaml")
 
     output_data = {"results_directory": str(results_root)}
@@ -139,7 +141,7 @@ def test():
     """Run a test simulation using the ``disease_model.yaml`` model specification
     provided in the examples directory.
     """
-    configure_logging_to_terminal(verbose=True)
+    configure_logging_to_terminal(logger, verbose=True)
     model_specification = disease_model.get_model_specification_path()
 
     main = handle_exceptions(run_simulation, logger, with_debugger=False)

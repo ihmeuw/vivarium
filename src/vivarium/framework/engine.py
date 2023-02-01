@@ -18,17 +18,18 @@ Finally, there are a handful of wrapper methods that allow a user or user
 tools to easily setup and run a simulation.
 
 """
-import time
 from pathlib import Path
 from pprint import pformat
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Union
 
 import numpy as np
 import pandas as pd
 from loguru import logger
 
 from vivarium.config_tree import ConfigTree
+from vivarium.exceptions import VivariumError
 from vivarium.framework.configuration import build_model_specification
+from vivarium.framework.utilities import configure_logging_to_terminal
 
 from .artifact import ArtifactInterface
 from .components import ComponentInterface
@@ -46,13 +47,21 @@ from .values import ValuesInterface
 
 
 class SimulationContext:
+
+    _default_context_count = 0
+    _custom_contexts = set()
+
     def __init__(
         self,
         model_specification: Union[str, Path, ConfigTree] = None,
         components: Union[List, Dict, ConfigTree] = None,
         configuration: Union[Dict, ConfigTree] = None,
         plugin_configuration: Union[Dict, ConfigTree] = None,
+        sim_name: str = None,
+        verbose: Union[bool, None] = True,
     ):
+        self._id = self.__get_id(sim_name)
+
         # Bootstrap phase: Parse arguments, make private managers
         component_configuration = (
             components if isinstance(components, (dict, ConfigTree)) else None
@@ -68,7 +77,7 @@ class SimulationContext:
 
         self._plugin_manager = PluginManager(model_specification.plugins)
 
-        # TODO: Setup logger here.
+        self._log_id = configure_logging_to_terminal(logger, verbose, simulation_id=self._id)
 
         self._builder = Builder(self.configuration, self._plugin_manager)
 
@@ -235,6 +244,25 @@ class SimulationContext:
     def __str__(self):
         return str(self._lifecycle)
 
+    def __del__(self):
+        logger.warning(f'Deleting {self._id}')
+        SimulationContext._custom_contexts.remove(self._id)
+
+    def __get_id(self, sim_name: Union[str, None]) -> str:
+        # Not threadsafe, but I don't see why we'd need to be.
+        if sim_name:
+            if sim_name in SimulationContext._custom_contexts:
+                msg = ("Attempting to create two SimulationContexts "
+                       f"with the same name {sim_name}")
+                raise VivariumError(msg)
+
+        else:
+            SimulationContext._default_context_count += 1
+            sim_name = str(SimulationContext._default_context_count)
+        SimulationContext._custom_contexts.add(sim_name)
+        return sim_name
+
+
 
 class Builder:
     """Toolbox for constructing and configuring simulation components.
@@ -320,9 +348,10 @@ def run_simulation(
     components: Union[List, Dict, ConfigTree] = None,
     configuration: Union[Dict, ConfigTree] = None,
     plugin_configuration: Union[Dict, ConfigTree] = None,
+    verbose: bool = None,
 ):
     simulation = SimulationContext(
-        model_specification, components, configuration, plugin_configuration
+        model_specification, components, configuration, plugin_configuration, verbose=verbose,
     )
     simulation.setup()
     simulation.initialize_simulants()

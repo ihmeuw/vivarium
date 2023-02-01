@@ -10,6 +10,7 @@ import functools
 from bdb import BdbQuit
 from importlib import import_module
 from typing import Any, Callable
+import sys
 
 import numpy as np
 
@@ -79,3 +80,44 @@ def handle_exceptions(func: Callable, logger: Any, with_debugger: bool) -> Calla
                 raise
 
     return wrapped
+
+
+def add_logging_sink(logger, sink, verbose, colorize, serialize, simulation_id):
+    sim_id_block = (
+        f"<light-cyan>Simulation {simulation_id}</light-cyan> |" if simulation_id else ""
+    )
+    message_format = (
+        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+        f"{sim_id_block}"
+        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> "
+        "- <level>{message}</level>"
+    )
+    level = "DEBUG" if verbose else "WARNING"
+    return logger.add(
+        sink, colorize=colorize, level=level, format=message_format, serialize=serialize
+    )
+
+
+def configure_logging_to_terminal(logger, verbose, simulation_id=None):
+    if verbose is not None:
+        logger.remove(0)  # Clear default configuration
+        return add_logging_sink(
+            logger=logger,
+            sink=sys.stdout,
+            verbose=verbose,
+            colorize=True,
+            serialize=False,
+            simulation_id=simulation_id
+        )
+
+
+def configure_logging_to_file(logger, output_directory, simulation_id=None):
+    main_log = output_directory / "simulation.log"
+    return add_logging_sink(
+        logger=logger,
+        sink=main_log,
+        verbose=True,
+        colorize=False,
+        serialize=False,
+        simulation_id=simulation_id
+    )
