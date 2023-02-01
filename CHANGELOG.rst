@@ -1,3 +1,7 @@
+**1.0.4 - 01/25/23**
+
+ - Bugfixes for ResultsContext
+
 **1.0.3 - 01/19/23**
 
  - Enhancement to use pop_data.user_data.get pattern in BasePopulation example
