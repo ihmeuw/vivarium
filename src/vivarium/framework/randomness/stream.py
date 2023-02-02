@@ -88,14 +88,14 @@ class RandomnessStream:
         key: str,
         clock: Callable,
         seed: Any,
-        index_map: IndexMap = None,
-        for_initialization: bool = False,
+        index_map: IndexMap,
+        initializes_crn_attributes: bool = False,
     ):
         self.key = key
         self.clock = clock
         self.seed = seed
         self.index_map = index_map
-        self._for_initialization = for_initialization
+        self._initializes_crn_attributes = initializes_crn_attributes
 
     @property
     def name(self):
@@ -132,89 +132,76 @@ class RandomnessStream:
         -------
         pandas.Series
             A series of random numbers indexed by the provided `pandas.Index`.
-        """
-        if self._for_initialization:
-            draw = random(
-                self._key(additional_key), pd.Index(range(len(index))), self.index_map
-            )
-            draw.index = index
-        else:
-            draw = random(self._key(additional_key), index, self.index_map)
 
-        return draw
+        Note
+        ----
+        This is the core of the CRN implementation, allowing for consistent use of random
+        numbers across simulations with multiple scenarios.
 
-    def filter_for_rate(
-        self,
-        population: Union[pd.DataFrame, pd.Series, pd.Index],
-        rate: Union[List, Tuple, np.ndarray, pd.Series],
-        additional_key: Any = None,
-    ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
-        """Decide an event outcome for each individual from rates.
-
-        Given a population or its index and an array of associated rates for
-        some event to happen, we create and return the sub-population for whom
-        the event occurred.
-
-        Parameters
-        ----------
-        population
-            A view on the simulants for which we are determining the
-            outcome of an event.
-        rate
-            A 1d list of rates of the event under consideration occurring which
-            corresponds (i.e. `len(population) == len(probability))` to the
-            population view passed in. The rates must be scaled to the
-            simulation time-step size either manually or as a post-processing
-            step in a rate pipeline.
-        additional_key
-            Any additional information used to create the seed.
-
-        Returns
-        -------
-        pandas.core.generic.PandasObject
-            The sub-population of the simulants for whom the event occurred.
-            The return type will be the same as type(population)
+        See Also
+        --------
+        https://en.wikipedia.org/wiki/Variance_reduction and
+        "Untangling Uncertainty with Common Random Numbers:
+        A Simulation Study; A.Flaxman, et. al., Summersim 2017"
 
         """
-        return self.filter_for_probability(
-            population, rate_to_probability(rate), additional_key
-        )
+        # Return a structured null value if an empty index is passed
+        if index.empty:
+            return pd.Series(index=index, dtype=float)
 
-    def filter_for_probability(
-        self,
-        population: Union[pd.DataFrame, pd.Series, pd.Index],
-        probability: Union[List, Tuple, np.ndarray, pd.Series],
-        additional_key: Any = None,
-    ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
-        """Decide an outcome for each individual from probabilities.
+        # Initialize a random_state with a seed based on the simulation clock,
+        # the decision_point this stream represents, and any additional user-supplied
+        # information. This is one key pre-condition to reproducibility.
+        seed = get_hash(self._key(additional_key))
+        random_state = np.random.RandomState(seed=seed)
+        # Second, we need to sample a very large chunk of random numbers.
+        # The size of the index map is set at the simulation start and is at
+        # least 10x the size of the initial population.
+        # Which means this is a consistently sampled block of uniformly distributed
+        # random numbers, irrespective of the size of the simulation population, which
+        # is important if there are scenarios that result in different population sizes
+        # through time.
+        sample_size = len(self.index_map)
+        raw_draws = random_state.random_sample(sample_size)
 
-        Given a population or its index and an array of associated probabilities
-        for some event to happen, we create and return the sub-population for
-        whom the event occurred.
+        # Next we need to do two mapping tricks to ensure we get a consistent random
+        # number for each simulant each time step. First, we need to use a range index
+        # if this stream is being used for the initialization of CRN attributes, i.e.,
+        # for the initialization of attributes used to identify a simulant across multiple
+        # simulations. We want a range index in this case because a simulant may have a
+        # different label in the population index in different simulations if scenario
+        # parameters change the number of simulants that enter the simulation each time step.
+        #
+        # Let's consider an example with two simulations, two time steps, and two randomness
+        # streams.
 
-        Parameters
-        ----------
-        population
-            A view on the simulants for which we are determining the
-            outcome of an event.
-        probability
-            A 1d list of probabilities of the event under consideration
-            occurring which corresponds (i.e.
-            `len(population) == len(probability)` to the population view
-            passed in.
-        additional_key
-            Any additional information used to create the seed.
+        # t = 0
+        # pop_id crn_idx1 draw_idx1 draw1  A     crn_idx2 draw_idx2  draw2 B
+        # 1      1        1         0.432  0.432 1        865271     0.814 'blue'
+        # 2      2        2         0.616  0.616 2        143122     0.889 'blue'
+        # 3      3        3         0.013  0.013 3        218957     0.261 'blue'
 
-        Returns
-        -------
-        pandas.core.generic.PandasObject
-            The sub-population of the simulants for whom the event occurred.
-            The return type will be the same as type(population)
+        # simulation 1, t = 1
+        # pop_id crn_idx1 draw_idx1 draw1  A     crn_idx2 draw_idx2  draw2 B
+        # 4      1        865271    0.432  0.432 1        865271     0.814 'blue'
+        # 5      2        143122    0.616  0.616 2        143122     0.889 'blue'
 
-        """
-        return filter_for_probability(
-            self._key(additional_key), population, probability, self.index_map
-        )
+        # simulation 1, t = 2
+        # pop_id crn_idx1 draw_idx1 draw1  A     crn_idx2 draw_idx2  draw2 B
+        # 4      1        865271    0.432  0.432 1        865271     0.814 'blue'
+        # 5      2        143122    0.616  0.616 2        143122     0.889 'blue'
+
+        # t = 1
+        # pop_id  crn_idx1   draw_idx1   draw1   crn_attr  crn_idx2  draw_idx2  draw2  non_crn_attr
+        # 2       1          3543896     0.4325  0.4325    1         865271     0.8141 'blue'
+        # 3       2          3543896     0.4325  0.4325    1         865271     0.8141 'blue'
+        # 3       2          3543896     0.4325  0.4325    1         865271     0.8141 'blue'
+
+        crn_index = pd.Index(range(len(index))) if self._initializes_crn_attributes else index
+        draw_index = self.index_map[crn_index]
+        draws = pd.Series(raw_draws[draw_index], index=index)
+
+        return draws
 
     def choice(
         self,
@@ -259,7 +246,84 @@ class RandomnessStream:
             more than one reference to `RESIDUAL_CHOICE`.
 
         """
-        return choice(self._key(additional_key), index, choices, p, self.index_map)
+        draws = self.get_draw(index, additional_key=additional_key)
+        return _choice(draws, choices, p)
+
+    def filter_for_probability(
+        self,
+        population: Union[pd.DataFrame, pd.Series, pd.Index],
+        probability: Union[List, Tuple, np.ndarray, pd.Series],
+        additional_key: Any = None,
+    ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
+        """Decide an outcome for each individual from probabilities.
+
+        Given a population or its index and an array of associated probabilities
+        for some event to happen, we create and return the subpopulation for
+        whom the event occurred.
+
+        Parameters
+        ----------
+        population
+            A view on the simulants for which we are determining the
+            outcome of an event.
+        probability
+            A 1d list of probabilities of the event under consideration
+            occurring which corresponds (i.e.  `lenn(population) == len(probability)`
+            to the population view passed in.
+        additional_key
+            Any additional information used to create the seed.
+
+        Returns
+        -------
+        pandas.core.generic.PandasObject
+            The subpopulation of the simulants for whom the event occurred.
+            The return type will be the same as type(population)
+
+        """
+        if population.empty:
+            return population
+
+        index = population if isinstance(population, pd.Index) else population.index
+        draws = self.get_draw(index, additional_key=additional_key)
+        mask = np.array(draws < probability)
+        return population[mask]
+
+    def filter_for_rate(
+        self,
+        population: Union[pd.DataFrame, pd.Series, pd.Index],
+        rate: Union[List, Tuple, np.ndarray, pd.Series],
+        additional_key: Any = None,
+    ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
+        """Decide an event outcome for each individual from rates.
+
+        Given a population or its index and an array of associated rates for
+        some event to happen, we create and return the subpopulation for whom
+        the event occurred.
+
+        Parameters
+        ----------
+        population
+            A view on the simulants for which we are determining the
+            outcome of an event.
+        rate
+            A 1d list of rates of the event under consideration occurring which
+            corresponds (i.e. `len(population) == len(probability))` to the
+            population view passed in. The rates must be scaled to the
+            simulation time-step size either manually or as a post-processing
+            step in a rate pipeline.
+        additional_key
+            Any additional information used to create the seed.
+
+        Returns
+        -------
+        pandas.core.generic.PandasObject
+            The subpopulation of the simulants for whom the event occurred.
+            The return type will be the same as type(population)
+
+        """
+        return self.filter_for_probability(
+            population, rate_to_probability(rate), additional_key
+        )
 
     def __repr__(self) -> str:
         return "RandomnessStream(key={!r}, clock={!r}, seed={!r})".format(
@@ -267,61 +331,10 @@ class RandomnessStream:
         )
 
 
-def random(
-    key: str,
-    index: Union[pd.Index, pd.MultiIndex],
-    index_map: IndexMap = None,
-) -> pd.Series:
-    """Produces an indexed set of uniformly distributed random numbers.
-
-    The index passed in typically corresponds to a subset of rows in a
-    `pandas.DataFrame` for which a probabilistic draw needs to be made.
-
-    Parameters
-    ----------
-    key :
-        A string used to create a seed for the random number generation.
-    index :
-        The index used for the returned series.
-    index_map :
-        A mapping between the provided index (which may contain ints, floats,
-        datetimes or any arbitrary combination of them) and an integer index
-        into the random number array.
-
-    Returns
-    -------
-    pandas.Series
-        A series of random numbers indexed by the provided index.
-
-    """
-    if len(index) > 0:
-        random_state = np.random.RandomState(seed=get_hash(key))
-
-        # Generate a random number for every simulant.
-        #
-        # NOTE: We generate a full set of random numbers for the population
-        # even when we may only need a few.  This ensures consistency in outcomes
-        # across simulations.
-        # See Also:
-        # 1. https://en.wikipedia.org/wiki/Variance_reduction
-        # 2. Untangling Uncertainty with Common Random Numbers: A Simulation Study; A.Flaxman, et. al., Summersim 2017
-        sample_size = index_map.map_size if index_map is not None else index.max() + 1
-        try:
-            draw_index = index_map[index]
-        except (IndexError, TypeError):
-            draw_index = index
-        raw_draws = random_state.random_sample(sample_size)
-        return pd.Series(raw_draws[draw_index], index=index)
-
-    return pd.Series(index=index, dtype=float)  # Structured null value
-
-
-def choice(
-    key: str,
-    index: Union[pd.Index, pd.MultiIndex],
+def _choice(
+    draws: pd.Series,
     choices: Union[List, Tuple, np.ndarray, pd.Series],
     p: Union[List, Tuple, np.ndarray, pd.Series] = None,
-    index_map: IndexMap = None,
 ) -> pd.Series:
     """Decides between a weighted or unweighted set of choices.
 
@@ -331,24 +344,19 @@ def choice(
 
     Parameters
     ----------
-    key
-        A string used to create a seed for the random number generation.
-    index
-        An index whose length is the number of random draws made
-        and which indexes the returned `pandas.Series`.
+    draws
+        A uniformly distributed random number for every simulant to make
+        a choice for.
     choices
-        A set of options to choose from.
+        A set of options to choose from. Choices must be the same for every
+        simulant.
     p
         The relative weights of the choices.  Can be either a 1-d array of
-        the same length as `choices` or a 2-d array with `len(index)` rows
+        the same length as `choices` or a 2-d array with `len(draws)` rows
         and `len(choices)` columns.  In the 1-d case, the same set of weights
         are used to decide among the choices for every item in the `index`.
         In the 2-d case, each row in `p` contains a separate set of weights
         for every item in the `index`.
-    index_map
-        A mapping between the provided index (which may contain ints, floats,
-        datetimes or any arbitrary combination of them) and an integer index
-        into the random number array.
 
     Returns
     -------
@@ -365,19 +373,17 @@ def choice(
     """
     # Convert p to normalized probabilities broadcasted over index.
     p = (
-        _set_residual_probability(_normalize_shape(p, index))
+        _set_residual_probability(_normalize_shape(p, draws.index))
         if p is not None
-        else np.ones((len(index), len(choices)))
+        else np.ones((len(draws.index), len(choices)))
     )
     p = p / p.sum(axis=1, keepdims=True)
 
-    draw = random(key, index, index_map)
-
     p_bins = np.cumsum(p, axis=1)
     # Use the random draw to make a choice for every row in index.
-    choice_index = (draw.values[np.newaxis].T > p_bins).sum(axis=1)
+    choice_index = (draws.values[np.newaxis].T > p_bins).sum(axis=1)
 
-    return pd.Series(np.array(choices)[choice_index], index=index)
+    return pd.Series(np.array(choices)[choice_index], index=draws.index)
 
 
 def _normalize_shape(
@@ -428,48 +434,3 @@ def _set_residual_probability(p: np.ndarray) -> np.ndarray:
 
         p[residual_mask] = residual_p
     return p
-
-
-def filter_for_probability(
-    key: str,
-    population: Union[pd.DataFrame, pd.Series, pd.Index],
-    probability: Union[List, Tuple, np.ndarray, pd.Series],
-    index_map: IndexMap = None,
-) -> Union[pd.DataFrame, pd.Series, pd.Index]:
-    """Decide an event outcome for each individual in a population from
-    probabilities.
-
-    Given a population or its index and an array of associated probabilities
-    for some event to happen, we create and return the sub-population for whom
-    the event occurred.
-
-    Parameters
-    ----------
-    key
-        A string used to create a seed for the random number generation.
-    population
-        A view on the simulants for which we are determining the
-        outcome of an event.
-    probability
-        A 1d list of probabilities of the event under consideration
-        occurring which corresponds (i.e. `len(population) == len(probability)`)
-        to the population array passed in.
-    index_map
-        A mapping between the provided index (which may contain ints, floats,
-        datetimes or any arbitrary combination of them) and an integer index
-        into the random number array.
-
-    Returns
-    -------
-    Union[pandas.DataFrame, pandas.Series, pandas.Index]
-        The sub-population of the simulants for whom the event occurred.
-        The return type will be the same as type(population)
-
-    """
-    if population.empty:
-        return population
-
-    index = population if isinstance(population, pd.Index) else population.index
-    draw = random(key, index, index_map)
-    mask = np.array(draw < probability)
-    return population[mask]
