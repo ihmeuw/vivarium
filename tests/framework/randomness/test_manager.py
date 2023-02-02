@@ -1,11 +1,8 @@
 import pandas as pd
 import pytest
 
-from vivarium.framework.randomness.manager import (
-    RandomnessError,
-    RandomnessManager,
-    get_hash,
-)
+from vivarium.framework.randomness.manager import RandomnessError, RandomnessManager
+from vivarium.framework.randomness.stream import get_hash
 
 
 def mock_clock():
