@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-from vivarium.framework.randomness import core as random
 from vivarium.framework.randomness.manager import RandomnessError, RandomnessManager
+from vivarium.framework.randomness.stream import get_hash
 
 
 def mock_clock():
@@ -56,6 +56,4 @@ def test_get_random_seed():
     rm._seed = seed
     rm._clock = mock_clock
 
-    assert rm.get_seed(decision_point) == random.get_hash(
-        f"{decision_point}_{rm._clock()}_{seed}"
-    )
+    assert rm.get_seed(decision_point) == get_hash(f"{decision_point}_{rm._clock()}_{seed}")
