@@ -203,6 +203,76 @@ class RandomnessStream:
 
         return draws
 
+    def filter_for_rate(
+        self,
+        population: Union[pd.DataFrame, pd.Series, pd.Index],
+        rate: Union[List, Tuple, np.ndarray, pd.Series],
+        additional_key: Any = None,
+    ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
+        """Decide an event outcome for each individual from rates.
+        Given a population or its index and an array of associated rates for
+        some event to happen, we create and return the subpopulation for whom
+        the event occurred.
+        Parameters
+        ----------
+        population
+            A view on the simulants for which we are determining the
+            outcome of an event.
+        rate
+            A 1d list of rates of the event under consideration occurring which
+            corresponds (i.e. `len(population) == len(probability))` to the
+            population view passed in. The rates must be scaled to the
+            simulation time-step size either manually or as a post-processing
+            step in a rate pipeline.
+        additional_key
+            Any additional information used to create the seed.
+        Returns
+        -------
+        pandas.core.generic.PandasObject
+            The subpopulation of the simulants for whom the event occurred.
+            The return type will be the same as type(population)
+        """
+        return self.filter_for_probability(
+            population, rate_to_probability(rate), additional_key
+        )
+
+
+    def filter_for_probability(
+        self,
+        population: Union[pd.DataFrame, pd.Series, pd.Index],
+        probability: Union[List, Tuple, np.ndarray, pd.Series],
+        additional_key: Any = None,
+    ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
+        """Decide an outcome for each individual from probabilities.
+        Given a population or its index and an array of associated probabilities
+        for some event to happen, we create and return the subpopulation for
+        whom the event occurred.
+        Parameters
+        ----------
+        population
+            A view on the simulants for which we are determining the
+            outcome of an event.
+        probability
+            A 1d list of probabilities of the event under consideration
+            occurring which corresponds (i.e.
+            `len(population) == len(probability)` to the population view
+            passed in.
+        additional_key
+            Any additional information used to create the seed.
+        Returns
+        -------
+        pandas.core.generic.PandasObject
+            The subpopulation of the simulants for whom the event occurred.
+            The return type will be the same as type(population)
+        """
+        if population.empty:
+            return population
+
+        index = population if isinstance(population, pd.Index) else population.index
+        draws = self.get_draw(index, additional_key)
+        mask = np.array(draws < probability)
+        return population[mask]
+
     def choice(
         self,
         index: pd.Index,
@@ -211,11 +281,9 @@ class RandomnessStream:
         additional_key: Any = None,
     ) -> pd.Series:
         """Decides between a weighted or unweighted set of choices.
-
         Given a set of choices with or without corresponding weights,
         returns an indexed set of decisions from those choices. This is
         simply a vectorized way to make decisions with some book-keeping.
-
         Parameters
         ----------
         index
@@ -232,98 +300,19 @@ class RandomnessStream:
             set of weights for every item in the `index`.
         additional_key
             Any additional information used to seed random number generation.
-
         Returns
         -------
         pandas.Series
             An indexed set of decisions from among the available `choices`.
-
         Raises
         ------
         RandomnessError
             If any row in `p` contains `RESIDUAL_CHOICE` and the remaining
             weights in the row are not normalized or any row of `p contains
             more than one reference to `RESIDUAL_CHOICE`.
-
         """
-        draws = self.get_draw(index, additional_key=additional_key)
+        draws = self.get_draw(index, additional_key)
         return _choice(draws, choices, p)
-
-    def filter_for_probability(
-        self,
-        population: Union[pd.DataFrame, pd.Series, pd.Index],
-        probability: Union[List, Tuple, np.ndarray, pd.Series],
-        additional_key: Any = None,
-    ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
-        """Decide an outcome for each individual from probabilities.
-
-        Given a population or its index and an array of associated probabilities
-        for some event to happen, we create and return the subpopulation for
-        whom the event occurred.
-
-        Parameters
-        ----------
-        population
-            A view on the simulants for which we are determining the
-            outcome of an event.
-        probability
-            A 1d list of probabilities of the event under consideration
-            occurring which corresponds (i.e.  `lenn(population) == len(probability)`
-            to the population view passed in.
-        additional_key
-            Any additional information used to create the seed.
-
-        Returns
-        -------
-        pandas.core.generic.PandasObject
-            The subpopulation of the simulants for whom the event occurred.
-            The return type will be the same as type(population)
-
-        """
-        if population.empty:
-            return population
-
-        index = population if isinstance(population, pd.Index) else population.index
-        draws = self.get_draw(index, additional_key=additional_key)
-        mask = np.array(draws < probability)
-        return population[mask]
-
-    def filter_for_rate(
-        self,
-        population: Union[pd.DataFrame, pd.Series, pd.Index],
-        rate: Union[List, Tuple, np.ndarray, pd.Series],
-        additional_key: Any = None,
-    ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
-        """Decide an event outcome for each individual from rates.
-
-        Given a population or its index and an array of associated rates for
-        some event to happen, we create and return the subpopulation for whom
-        the event occurred.
-
-        Parameters
-        ----------
-        population
-            A view on the simulants for which we are determining the
-            outcome of an event.
-        rate
-            A 1d list of rates of the event under consideration occurring which
-            corresponds (i.e. `len(population) == len(probability))` to the
-            population view passed in. The rates must be scaled to the
-            simulation time-step size either manually or as a post-processing
-            step in a rate pipeline.
-        additional_key
-            Any additional information used to create the seed.
-
-        Returns
-        -------
-        pandas.core.generic.PandasObject
-            The subpopulation of the simulants for whom the event occurred.
-            The return type will be the same as type(population)
-
-        """
-        return self.filter_for_probability(
-            population, rate_to_probability(rate), additional_key
-        )
 
     def __repr__(self) -> str:
         return "RandomnessStream(key={!r}, clock={!r}, seed={!r})".format(
