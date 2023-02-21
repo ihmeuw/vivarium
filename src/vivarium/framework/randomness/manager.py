@@ -62,7 +62,7 @@ class RandomnessManager:
         )
 
     def get_randomness_stream(
-        self, decision_point: str, for_initialization: bool = False
+        self, decision_point: str, initializes_crn_attributes: bool = False
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -72,7 +72,7 @@ class RandomnessManager:
             A unique identifier for a stream of random numbers.  Typically
             represents a decision that needs to be made each time step like
             'moves_left' or 'gets_disease'.
-        for_initialization
+        initializes_crn_attributes
             A flag indicating whether this stream is used to generate key
             initialization information that will be used to identify simulants
             in the Common Random Number framework. These streams cannot be
@@ -86,8 +86,8 @@ class RandomnessManager:
             with the same identifier.
 
         """
-        stream = self._get_randomness_stream(decision_point, for_initialization)
-        if not for_initialization:
+        stream = self._get_randomness_stream(decision_point, initializes_crn_attributes)
+        if not initializes_crn_attributes:
             # We need the key columns to be created before this stream can be called.
             self.resources.add_resources(
                 "stream",
@@ -112,7 +112,7 @@ class RandomnessManager:
         return stream
 
     def _get_randomness_stream(
-        self, decision_point: str, for_initialization: bool = False
+        self, decision_point: str, initializes_crn_attributes: bool = False
     ) -> RandomnessStream:
         if decision_point in self._decision_points:
             raise RandomnessError(
@@ -124,7 +124,7 @@ class RandomnessManager:
             clock=self._clock,
             seed=self._seed,
             index_map=self._key_mapping,
-            for_initialization=for_initialization,
+            initializes_crn_attributes=initializes_crn_attributes,
         )
         self._decision_points[decision_point] = stream
         return stream
@@ -182,7 +182,7 @@ class RandomnessInterface:
         self._manager = manager
 
     def get_stream(
-        self, decision_point: str, for_initialization: bool = False
+        self, decision_point: str, initializes_crn_attributes: bool = False
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -198,7 +198,7 @@ class RandomnessInterface:
             A unique identifier for a stream of random numbers.  Typically
             represents a decision that needs to be made each time step like
             'moves_left' or 'gets_disease'.
-        for_initialization
+        initializes_crn_attributes
             A flag indicating whether this stream is used to generate key
             initialization information that will be used to identify simulants
             in the Common Random Number framework. These streams cannot be
@@ -213,7 +213,7 @@ class RandomnessInterface:
             other utilities.
 
         """
-        return self._manager.get_randomness_stream(decision_point, for_initialization)
+        return self._manager.get_randomness_stream(decision_point, initializes_crn_attributes)
 
     def get_seed(self, decision_point: str) -> int:
         """Get a randomly generated seed for use with external randomness tools.

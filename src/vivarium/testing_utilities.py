@@ -31,7 +31,7 @@ class NonCRNTestPopulation:
     def setup(self, builder):
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream(
-            "population_age_fuzz", for_initialization=True
+            "population_age_fuzz", initializes_crn_attributes=True
         )
         columns = ["age", "sex", "location", "alive", "entrance_time", "exit_time"]
         self.population_view = builder.population.get_view(columns)
@@ -72,7 +72,7 @@ class TestPopulation(NonCRNTestPopulation):
     def setup(self, builder):
         super().setup(builder)
         self.age_randomness = builder.randomness.get_stream(
-            "age_initialization", for_initialization=True
+            "age_initialization", initializes_crn_attributes=True
         )
         self.register = builder.randomness.register_simulants
 
