@@ -88,7 +88,7 @@ class RandomnessStream:
         key: str,
         clock: Callable,
         seed: Any,
-        index_map: IndexMap = None,
+        index_map: IndexMap,
         for_initialization: bool = False,
     ):
         self.key = key
@@ -305,7 +305,7 @@ def random(
         # See Also:
         # 1. https://en.wikipedia.org/wiki/Variance_reduction
         # 2. Untangling Uncertainty with Common Random Numbers: A Simulation Study; A.Flaxman, et. al., Summersim 2017
-        sample_size = index_map.map_size if index_map is not None else index.max() + 1
+        sample_size = len(index_map) if index_map is not None else index.max() + 1
         try:
             draw_index = index_map[index]
         except (IndexError, TypeError):
@@ -410,21 +410,21 @@ def _set_residual_probability(p: np.ndarray) -> np.ndarray:
     residual_mask = p == RESIDUAL_CHOICE
     if residual_mask.any():  # I.E. if we have any placeholders.
         if np.any(np.sum(residual_mask, axis=1) - 1):
-            raise RandomnessError(
-                "More than one residual choice supplied for a single set of weights. Weights: {}.".format(
-                    p
-                )
+            msg = (
+                "More than one residual choice supplied for a single "
+                f"set of weights. Weights: {p}."
             )
+            raise RandomnessError(msg)
 
         p[residual_mask] = 0
         residual_p = 1 - np.sum(p, axis=1)  # Probabilities sum to 1.
 
         if np.any(residual_p < 0):  # We got un-normalized probability weights.
-            raise RandomnessError(
-                "Residual choice supplied with weights that summed to more than 1. Weights: {}.".format(
-                    p
-                )
+            msg = (
+                "Residual choice supplied with weights that summed to more than 1. "
+                f"Weights: {p}."
             )
+            raise RandomnessError(msg)
 
         p[residual_mask] = residual_p
     return p
