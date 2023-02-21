@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from vivarium.framework import randomness
+from vivarium.framework.randomness.index_map import IndexMap
 
 
 class NonCRNTestPopulation:
@@ -195,10 +196,14 @@ def make_dummy_column(name, initial_value):
 
 
 def get_randomness(
-    key="test", clock=lambda: pd.Timestamp(1990, 7, 2), seed=12345, for_initialization=False
+    key="test", clock=lambda: pd.Timestamp(1990, 7, 2), seed=12345, initializes_crn_attributes=False
 ):
     return randomness.RandomnessStream(
-        key, clock, seed=seed, for_initialization=for_initialization
+        key,
+        clock,
+        seed=seed,
+        index_map=IndexMap(),
+        initializes_crn_attributes=initializes_crn_attributes,
     )
 
 
