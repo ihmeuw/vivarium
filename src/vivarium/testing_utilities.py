@@ -196,7 +196,10 @@ def make_dummy_column(name, initial_value):
 
 
 def get_randomness(
-    key="test", clock=lambda: pd.Timestamp(1990, 7, 2), seed=12345, initializes_crn_attributes=False
+    key="test",
+    clock=lambda: pd.Timestamp(1990, 7, 2),
+    seed=12345,
+    initializes_crn_attributes=False,
 ):
     return randomness.RandomnessStream(
         key,
