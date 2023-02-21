@@ -95,7 +95,7 @@ class RandomnessStream:
         self.clock = clock
         self.seed = seed
         self.index_map = index_map
-        self._initializes_crn_attributes = initializes_crn_attributes
+        self.initializes_crn_attributes = initializes_crn_attributes
 
     @property
     def name(self):
@@ -197,7 +197,7 @@ class RandomnessStream:
         # 3       2          3543896     0.4325  0.4325    1         865271     0.8141 'blue'
         # 3       2          3543896     0.4325  0.4325    1         865271     0.8141 'blue'
 
-        crn_index = pd.Index(range(len(index))) if self._initializes_crn_attributes else index
+        crn_index = pd.Index(range(len(index))) if self.initializes_crn_attributes else index
         draw_index = self.index_map[crn_index]
         draws = pd.Series(raw_draws[draw_index], index=index)
 

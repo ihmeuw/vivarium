@@ -18,8 +18,8 @@ from vivarium.framework.randomness.stream import RandomnessStream
 from vivarium.interface import InteractiveContext
 
 
-@pytest.mark.parametrize("for_initialization", [True, False])
-def test_basic_repeatability(for_initialization):
+@pytest.mark.parametrize("initializes_crn_attributes", [True, False])
+def test_basic_repeatability(initializes_crn_attributes):
     test_idx = pd.Index(range(100))
     index_map = IndexMap()
 
@@ -28,7 +28,7 @@ def test_basic_repeatability(for_initialization):
         "clock": lambda: pd.Timestamp("2020-01-01"),
         "seed": "abc",
         "index_map": index_map,
-        "for_initialization": for_initialization,
+        "initializes_crn_attributes": initializes_crn_attributes,
     }
 
     stream_base = RandomnessStream(**stream_args)
@@ -81,7 +81,7 @@ class BasePopulation:
         self.register = builder.randomness.register_simulants
         self.randomness_init = builder.randomness.get_stream(
             "crn_init",
-            for_initialization=self.with_crn,
+            initializes_crn_attributes=self.with_crn,
         )
         self.randomness_other = builder.randomness.get_stream("other")
 
