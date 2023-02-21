@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.manager import RandomnessError, RandomnessManager
 from vivarium.framework.randomness.stream import get_hash
 
@@ -34,6 +35,7 @@ def test_RandomnessManager_register_simulants():
     rm._seed = seed
     rm._clock = mock_clock
     rm._key_columns = ["age", "sex"]
+    rm._key_mapping = IndexMap()
 
     bad_df = pd.DataFrame({"age": range(10), "not_sex": [1] * 5 + [2] * 5})
     with pytest.raises(RandomnessError):

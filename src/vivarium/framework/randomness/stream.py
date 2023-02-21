@@ -416,21 +416,21 @@ def _set_residual_probability(p: np.ndarray) -> np.ndarray:
     residual_mask = p == RESIDUAL_CHOICE
     if residual_mask.any():  # I.E. if we have any placeholders.
         if np.any(np.sum(residual_mask, axis=1) - 1):
-            raise RandomnessError(
-                "More than one residual choice supplied for a single set of weights. Weights: {}.".format(
-                    p
-                )
+            msg = (
+                "More than one residual choice supplied for a single "
+                f"set of weights. Weights: {p}."
             )
+            raise RandomnessError(msg)
 
         p[residual_mask] = 0
         residual_p = 1 - np.sum(p, axis=1)  # Probabilities sum to 1.
 
         if np.any(residual_p < 0):  # We got un-normalized probability weights.
-            raise RandomnessError(
-                "Residual choice supplied with weights that summed to more than 1. Weights: {}.".format(
-                    p
-                )
+            msg = (
+                "Residual choice supplied with weights that summed to more than 1. "
+                f"Weights: {p}."
             )
+            raise RandomnessError(msg)
 
         p[residual_mask] = residual_p
     return p

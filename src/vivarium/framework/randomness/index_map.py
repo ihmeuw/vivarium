@@ -23,7 +23,7 @@ class IndexMap:
 
     TEN_DIGIT_MODULUS = 10_000_000_000
 
-    def __init__(self, use_crn: bool, size: int = 1_000_000):
+    def __init__(self, use_crn: bool = True, size: int = 1_000_000):
         self._use_crn = use_crn
         self._map = pd.Series(dtype=float)
         self._size = size
