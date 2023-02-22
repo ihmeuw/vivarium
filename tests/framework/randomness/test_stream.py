@@ -7,10 +7,18 @@ from vivarium.framework.randomness import (
     RandomnessError,
     RandomnessStream,
 )
+from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import (
     _normalize_shape,
     _set_residual_probability,
 )
+
+
+@pytest.fixture
+def randomness_stream():
+    dates = [pd.Timestamp(1991, 1, 1), pd.Timestamp(1990, 1, 1)]
+    randomness = RandomnessStream("test", dates.pop, 1, IndexMap())
+    return randomness
 
 
 def test_normalize_shape(weights_with_residuals, index):
@@ -40,22 +48,17 @@ def test__set_residual_probability(weights_with_residuals, index):
         assert np.isclose(p_total, len(index), atol=0.0001)
 
 
-def test_filter_for_probability(index):
-    dates = [pd.Timestamp(1991, 1, 1), pd.Timestamp(1990, 1, 1)]
-    randomness = RandomnessStream("test", dates.pop, 1)
+def test_filter_for_probability(randomness_stream, index):
 
-    sub_index = randomness.filter_for_probability(index, 0.5)
+    sub_index = randomness_stream.filter_for_probability(index, 0.5)
     assert round(len(sub_index) / len(index), 1) == 0.5
 
-    sub_sub_index = randomness.filter_for_probability(sub_index, 0.5)
+    sub_sub_index = randomness_stream.filter_for_probability(sub_index, 0.5)
     assert round(len(sub_sub_index) / len(sub_index), 1) == 0.5
 
 
-def test_choice(index, choices, weights):
-    dates = [pd.Timestamp(1990, 1, 1)]
-    randomness = RandomnessStream("test", dates.pop, 1)
-
-    chosen = randomness.choice(index, choices, p=weights)
+def test_choice(randomness_stream, index, choices, weights):
+    chosen = randomness_stream.choice(index, choices, p=weights)
     count = chosen.value_counts()
     # If we have weights, normalize them, otherwise generate uniform weights.
     weights = (
@@ -67,10 +70,8 @@ def test_choice(index, choices, weights):
         assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
 
 
-def test_choice_with_residuals(index, choices, weights_with_residuals):
+def test_choice_with_residuals(randomness_stream, index, choices, weights_with_residuals):
     print(RESIDUAL_CHOICE in weights_with_residuals)
-    dates = [pd.Timestamp(1990, 1, 1)]
-    randomness = RandomnessStream("test", dates.pop, 1)
 
     p = _normalize_shape(weights_with_residuals, index)
 
@@ -80,15 +81,15 @@ def test_choice_with_residuals(index, choices, weights_with_residuals):
     if np.any(non_residual.sum(axis=1) > 1):
         with pytest.raises(RandomnessError):
             # We received un-normalized probability weights.
-            randomness.choice(index, choices, p=weights_with_residuals)
+            randomness_stream.choice(index, choices, p=weights_with_residuals)
 
     elif np.any(residual.sum(axis=1) > 1):
         with pytest.raises(RandomnessError):
             # We received multiple instances of `RESIDUAL_CHOICE`
-            randomness.choice(index, choices, p=weights_with_residuals)
+            randomness_stream.choice(index, choices, p=weights_with_residuals)
 
     else:  # Things should work
-        chosen = randomness.choice(index, choices, p=weights_with_residuals)
+        chosen = randomness_stream.choice(index, choices, p=weights_with_residuals)
         count = chosen.value_counts()
         print(weights_with_residuals)
         # We're relying on the fact that weights_with_residuals is a 1-d list

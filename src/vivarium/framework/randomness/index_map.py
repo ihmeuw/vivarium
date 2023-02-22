@@ -9,7 +9,6 @@ a set of static identifying characteristics about a simulant and hash them to a 
 positional index within a stream of seeded random numbers.
 
 """
-
 import datetime
 from typing import Union
 
@@ -24,9 +23,10 @@ class IndexMap:
 
     TEN_DIGIT_MODULUS = 10_000_000_000
 
-    def __init__(self, map_size=1_000_000):
+    def __init__(self, use_crn: bool = True, size: int = 1_000_000):
+        self._use_crn = use_crn
         self._map = pd.Series(dtype=float)
-        self.map_size = map_size
+        self._size = size
 
     def update(self, new_keys: pd.Index) -> None:
         """Adds the new keys to the mapping.
@@ -37,13 +37,12 @@ class IndexMap:
             The new index to hash.
 
         """
-
-        if new_keys.empty:
+        if new_keys.empty or not self._use_crn:
             return  # Nothing to do
         elif not self._map.index.intersection(new_keys).empty:
             raise KeyError("Non-unique keys in index")
 
-        mapping_update = self.hash_(new_keys)
+        mapping_update = self._hash(new_keys)
         if self._map.empty:
             self._map = mapping_update.drop_duplicates()
         else:
@@ -52,12 +51,12 @@ class IndexMap:
         collisions = mapping_update.index.difference(self._map.index)
         salt = 1
         while not collisions.empty:
-            mapping_update = self.hash_(collisions, salt)
+            mapping_update = self._hash(collisions, salt)
             self._map = pd.concat([self._map, mapping_update]).drop_duplicates()
             collisions = mapping_update.index.difference(self._map.index)
             salt += 1
 
-    def hash_(self, keys: pd.Index, salt: int = 0) -> pd.Series:
+    def _hash(self, keys: pd.Index, salt: int = 0) -> pd.Series:
         """Hashes the index into an integer index in the range [0, self.stride]
 
         Parameters
@@ -78,10 +77,10 @@ class IndexMap:
         """
         key_frame = keys.to_frame()
         new_map = pd.Series(0, index=keys)
-        salt = self.convert_to_ten_digit_int(pd.Series(salt, index=keys))
+        salt = self._convert_to_ten_digit_int(pd.Series(salt, index=keys))
 
         for i, column_name in enumerate(key_frame.columns):
-            column = self.convert_to_ten_digit_int(key_frame[column_name])
+            column = self._convert_to_ten_digit_int(key_frame[column_name])
 
             primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 27]
             out = pd.Series(1, index=column.index)
@@ -90,12 +89,12 @@ class IndexMap:
                 # to modding out by 2**64.  Since it's much much larger than
                 # our map size the amount of additional periodicity this
                 # introduces is pretty trivial.
-                out *= np.power(p, self.digit(column, idx))
+                out *= np.power(p, self._digit(column, idx))
             new_map += out + salt
 
-        return new_map % self.map_size
+        return new_map % len(self)
 
-    def convert_to_ten_digit_int(self, column: pd.Series) -> pd.Series:
+    def _convert_to_ten_digit_int(self, column: pd.Series) -> pd.Series:
         """Converts a column of datetimes, integers, or floats into a column
         of 10 digit integers.
 
@@ -117,15 +116,15 @@ class IndexMap:
 
         """
         if isinstance(column.iloc[0], datetime.datetime):
-            column = self.clip_to_seconds(column.view(np.int64))
+            column = self._clip_to_seconds(column.view(np.int64))
         elif np.issubdtype(column.iloc[0], np.integer):
             if not len(column >= 0) == len(column):
                 raise RandomnessError(
                     "Values in integer columns must be greater than or equal to zero."
                 )
-            column = self.spread(column)
+            column = self._spread(column)
         elif np.issubdtype(column.iloc[0], np.floating):
-            column = self.shift(column)
+            column = self._shift(column)
         else:
             raise RandomnessError(
                 f"Unhashable column type {type(column.iloc[0])}. "
@@ -134,20 +133,20 @@ class IndexMap:
         return column
 
     @staticmethod
-    def digit(m: Union[int, pd.Series], n: int) -> Union[int, pd.Series]:
+    def _digit(m: Union[int, pd.Series], n: int) -> Union[int, pd.Series]:
         """Returns the nth digit of each number in m."""
         return (m // (10**n)) % 10
 
     @staticmethod
-    def clip_to_seconds(m: Union[int, pd.Series]) -> Union[int, pd.Series]:
+    def _clip_to_seconds(m: Union[int, pd.Series]) -> Union[int, pd.Series]:
         """Clips UTC datetime in nanoseconds to seconds."""
         return m // pd.Timedelta(1, unit="s").value
 
-    def spread(self, m: Union[int, pd.Series]) -> Union[int, pd.Series]:
+    def _spread(self, m: Union[int, pd.Series]) -> Union[int, pd.Series]:
         """Spreads out integer values to give smaller values more weight."""
         return (m * 111_111) % self.TEN_DIGIT_MODULUS
 
-    def shift(self, m: Union[float, pd.Series]) -> Union[int, pd.Series]:
+    def _shift(self, m: Union[float, pd.Series]) -> Union[int, pd.Series]:
         """Shifts floats so that the first 10 decimal digits are significant."""
         out = m % 1 * self.TEN_DIGIT_MODULUS // 1
         if isinstance(out, pd.Series):
@@ -155,13 +154,15 @@ class IndexMap:
         return int(out)
 
     def __getitem__(self, index: pd.Index) -> pd.Series:
+        if not self._use_crn:
+            return pd.Series(index, index=index)
         if isinstance(index, (pd.Index, pd.MultiIndex)):
             return self._map[index]
         else:
             raise IndexError(index)
 
     def __len__(self) -> int:
-        return len(self._map)
+        return self._size
 
     def __repr__(self) -> str:
         return "IndexMap({})".format("\n         ".join(repr(self._map).split("\n")))
