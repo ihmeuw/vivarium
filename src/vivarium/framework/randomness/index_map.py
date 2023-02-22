@@ -25,7 +25,7 @@ class IndexMap:
 
     def __init__(self, use_crn: bool = True, size: int = 1_000_000):
         self._use_crn = use_crn
-        self._map = pd.Series(dtype=float)
+        self._map = pd.Series(dtype=int)
         self._size = size
 
     def update(self, new_keys: pd.Index) -> None:
@@ -73,7 +73,7 @@ class IndexMap:
         -------
         pandas.Series
             A pandas series indexed by the given keys and whose values take on
-            integers in the range [0, self.stride].  Duplicates may appear and
+            integers in the range [0, len(self)].  Duplicates may appear and
             should be dealt with by the calling code.
 
         """
