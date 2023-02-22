@@ -55,7 +55,7 @@ class BasePopulation:
             )
 
         self.age_randomness = builder.randomness.get_stream(
-            "age_initialization", for_initialization=self.with_common_random_numbers
+            "age_initialization", initializes_crn_attributes=self.with_common_random_numbers
         )
         self.sex_randomness = builder.randomness.get_stream("sex_initialization")
 

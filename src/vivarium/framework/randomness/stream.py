@@ -89,13 +89,13 @@ class RandomnessStream:
         clock: Callable,
         seed: Any,
         index_map: IndexMap,
-        for_initialization: bool = False,
+        initializes_crn_attributes: bool = False,
     ):
         self.key = key
         self.clock = clock
         self.seed = seed
         self.index_map = index_map
-        self._for_initialization = for_initialization
+        self.initializes_crn_attributes = initializes_crn_attributes
 
     @property
     def name(self):
@@ -133,7 +133,7 @@ class RandomnessStream:
         pandas.Series
             A series of random numbers indexed by the provided `pandas.Index`.
         """
-        if self._for_initialization:
+        if self.initializes_crn_attributes:
             draw = random(
                 self._key(additional_key), pd.Index(range(len(index))), self.index_map
             )

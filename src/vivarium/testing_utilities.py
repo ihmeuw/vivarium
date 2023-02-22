@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 
 from vivarium.framework import randomness
+from vivarium.framework.randomness.index_map import IndexMap
 
 
 class NonCRNTestPopulation:
@@ -31,7 +32,7 @@ class NonCRNTestPopulation:
     def setup(self, builder):
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream(
-            "population_age_fuzz", for_initialization=True
+            "population_age_fuzz", initializes_crn_attributes=True
         )
         columns = ["age", "sex", "location", "alive", "entrance_time", "exit_time"]
         self.population_view = builder.population.get_view(columns)
@@ -72,7 +73,7 @@ class TestPopulation(NonCRNTestPopulation):
     def setup(self, builder):
         super().setup(builder)
         self.age_randomness = builder.randomness.get_stream(
-            "age_initialization", for_initialization=True
+            "age_initialization", initializes_crn_attributes=True
         )
         self.register = builder.randomness.register_simulants
 
@@ -195,10 +196,17 @@ def make_dummy_column(name, initial_value):
 
 
 def get_randomness(
-    key="test", clock=lambda: pd.Timestamp(1990, 7, 2), seed=12345, for_initialization=False
+    key="test",
+    clock=lambda: pd.Timestamp(1990, 7, 2),
+    seed=12345,
+    initializes_crn_attributes=False,
 ):
     return randomness.RandomnessStream(
-        key, clock, seed=seed, for_initialization=for_initialization
+        key,
+        clock,
+        seed=seed,
+        index_map=IndexMap(),
+        initializes_crn_attributes=initializes_crn_attributes,
     )
 
 
