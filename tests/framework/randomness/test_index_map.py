@@ -172,13 +172,14 @@ def index_map(mocker):
         seed = 123456
         rs = np.random.RandomState(seed=seed + salt)
         return pd.Series(rs.randint(0, len(k) * 10, size=len(k)), index=k)
+
     mocker.patch.object(m, "_hash", side_effect=hash_mock)
 
     return m
 
 
 def test_update_empty_bad_keys(index_map):
-    keys = pd.Index(["a"]*10)
+    keys = pd.Index(["a"] * 10)
     with pytest.raises(RandomnessError):
         index_map.update(keys)
 
