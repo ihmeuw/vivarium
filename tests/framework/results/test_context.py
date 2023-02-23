@@ -259,7 +259,7 @@ def test__get_stratifications(
         "len_aggregator_one_stratification",
         "sum_aggregator_one_stratification",
         "custom_aggregator_one_stratification",
-        "len_aggregator_two_stratifications_empty_filter",
+        "empty_pop_filter",
     ],
 )
 def test_gather_results(
