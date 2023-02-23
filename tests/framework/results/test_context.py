@@ -250,6 +250,7 @@ def test__get_stratifications(
             ["house"],
             1.53277,
         ),
+        ("wizard_count", "house=='Durmstrang'", None, len, ["house", "familiar"], 4),
     ],
     ids=[
         "len_aggregator_two_stratifications",
@@ -258,6 +259,7 @@ def test__get_stratifications(
         "len_aggregator_one_stratification",
         "sum_aggregator_one_stratification",
         "custom_aggregator_one_stratification",
+        "len_aggregator_two_stratifications_empty_filter",
     ],
 )
 def test_gather_results(
