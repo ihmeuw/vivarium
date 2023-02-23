@@ -133,13 +133,12 @@ class RandomnessStream:
         pandas.Series
             A series of random numbers indexed by the provided `pandas.Index`.
         """
+        key = self._key(additional_key)
         if self.initializes_crn_attributes:
-            draw = random(
-                self._key(additional_key), pd.Index(range(len(index))), self.index_map
-            )
+            draw = random(key, pd.Index(range(len(index))))
             draw.index = index
         else:
-            draw = random(self._key(additional_key), index, self.index_map)
+            draw = random(key, index, self.index_map)
 
         return draw
 

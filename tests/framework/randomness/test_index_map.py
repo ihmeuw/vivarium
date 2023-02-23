@@ -18,13 +18,13 @@ def almost_powerset(iterable):
 def generate_keys(number, types=("int", "float", "datetime"), seed=123456):
     rs = np.random.RandomState(seed=seed)
 
-    index = []
+    keys = {}
     if "datetime" in types:
         year = rs.choice(np.arange(1980, 2018))
         day = rs.choice(pd.date_range(f"01/01/{year}", periods=365))
         start_time = rs.choice(pd.date_range(day, periods=86400, freq="s"))
         freq = rs.choice(["ms", "s", "min", "h"])
-        index.append(pd.date_range(start_time, periods=number, freq=freq))
+        keys["datetime"] = pd.date_range(start_time, periods=number, freq=freq)
 
     if "int" in types:
         kind = rs.choice(["random", "sequential"])
@@ -32,15 +32,15 @@ def generate_keys(number, types=("int", "float", "datetime"), seed=123456):
             ints = np.unique(rs.randint(0, 1000 * number, size=100 * number))
             assert len(ints) > number
             rs.shuffle(ints)
-            index.append(ints[:number])
+            keys["int"] = ints[:number]
         else:
             start = rs.randint(0, 100 * number)
-            index.append(np.arange(start, start + number, dtype=int))
+            keys["int"] = np.arange(start, start + number, dtype=int)
 
     if "float" in types:
-        index.append(rs.random_sample(size=number))
+        keys["float"] = rs.random_sample(size=number)
 
-    return pd.Series(0, index=index).index
+    return pd.DataFrame(keys, index=pd.RangeIndex(number))
 
 
 rs = np.random.RandomState(seed=456789)
@@ -55,8 +55,9 @@ def id_fun(param):
 
 @pytest.fixture(scope="module", params=list(product(index_sizes, types, seeds)), ids=id_fun)
 def map_size_and_hashed_values(request):
-    keys = generate_keys(*request.param)
-    m = IndexMap()
+    index_size, types_, seed = request.param
+    keys = generate_keys(*request.param).set_index(types_).index
+    m = IndexMap(key_columns=types_)
     return len(m), m._hash(keys)
 
 
@@ -166,47 +167,56 @@ def test_hash_uniformity(map_size_and_hashed_values):
 
 @pytest.fixture(scope="function")
 def index_map(mocker):
-    m = IndexMap()
+    mock_index_map = IndexMap
 
     def hash_mock(k, salt=0):
         seed = 123456
         rs = np.random.RandomState(seed=seed + salt)
         return pd.Series(rs.randint(0, len(k) * 10, size=len(k)), index=k)
 
-    mocker.patch.object(m, "_hash", side_effect=hash_mock)
+    mocker.patch.object(mock_index_map, "_hash", side_effect=hash_mock)
 
-    return m
+    return mock_index_map
 
 
 def test_update_empty_bad_keys(index_map):
-    keys = pd.Index(["a"] * 10)
+    keys = pd.DataFrame({"A": ["a"] * 10}, index=range(10))
+    m = index_map(key_columns=list(keys.columns))
     with pytest.raises(RandomnessError):
-        index_map.update(keys)
+        m.update(keys)
 
 
 def test_update_nonempty_bad_keys(index_map):
     keys = generate_keys(1000)
-
-    index_map.update(keys)
+    m = index_map(key_columns=list(keys.columns))
+    m.update(keys)
     with pytest.raises(RandomnessError):
-        index_map.update(keys)
+        m.update(keys)
 
 
 def test_update_empty_good_keys(index_map):
     keys = generate_keys(1000)
-    index_map.update(keys)
-    assert len(index_map._map) == len(keys), "All keys not in mapping"
-    assert index_map._map.index.difference(keys).empty, "All keys not in mapping"
-    assert len(index_map._map.unique()) == len(keys), "Duplicate values in mapping"
+    m = index_map(key_columns=list(keys.columns))
+    m.update(keys)
+    key_index = keys.set_index(list(keys.columns)).index
+    assert len(m._map) == len(keys), "All keys not in mapping"
+    assert (
+        m._map.index.droplevel(m.SIM_INDEX_COLUMN).difference(key_index).empty
+    ), "Extra keys in mapping"
+    assert len(m._map.unique()) == len(keys), "Duplicate values in mapping"
 
 
 def test_update_nonempty_good_keys(index_map):
     keys = generate_keys(2000)
+    m = index_map(key_columns=list(keys.columns))
     keys1, keys2 = keys[:1000], keys[1000:]
 
-    index_map.update(keys1)
-    index_map.update(keys2)
+    m.update(keys1)
+    m.update(keys2)
 
-    assert len(index_map._map) == len(keys), "All keys not in mapping"
-    assert index_map._map.index.difference(keys).empty, "All keys not in mapping"
-    assert len(index_map._map.unique()) == len(keys), "Duplicate values in mapping"
+    key_index = keys.set_index(list(keys.columns)).index
+    assert len(m._map) == len(keys), "All keys not in mapping"
+    assert (
+        m._map.index.droplevel(m.SIM_INDEX_COLUMN).difference(key_index).empty
+    ), "Extra keys in mapping"
+    assert len(m._map.unique()) == len(keys), "Duplicate values in mapping"
