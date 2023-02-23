@@ -164,9 +164,9 @@ def test_hash_uniformity(map_size_and_hashed_values):
     assert p > 0.05, "Data not uniform"
 
 
-def test_update(mocker):
+@pytest.fixture(scope="function")
+def index_map(mocker):
     m = IndexMap()
-    keys = generate_keys(10000)
 
     def hash_mock(k, salt=0):
         seed = 123456
@@ -174,21 +174,39 @@ def test_update(mocker):
         return pd.Series(rs.randint(0, len(k) * 10, size=len(k)), index=k)
 
     mocker.patch.object(m, "_hash", side_effect=hash_mock)
-    m.update(keys)
-    assert len(m._map) == len(keys), "All keys not in mapping"
-    assert m._map.index.difference(keys).empty, "All keys not in mapping"
-    assert len(m._map.unique()) == len(keys), "Duplicate values in mapping"
 
-    # Can't have duplicate keys.
-    with pytest.raises(KeyError):
-        m.update(keys)
+    return m
 
-    new_unique_keys = generate_keys(1000).difference(keys)
-    m.update(new_unique_keys)
-    assert len(m._map) == len(keys) + len(new_unique_keys), "All keys not in mapping"
-    assert m._map.index.difference(
-        keys.union(new_unique_keys)
-    ).empty, "All keys not in mapping"
-    assert len(m._map.unique()) == len(keys) + len(
-        new_unique_keys
-    ), "Duplicate values in mapping"
+
+def test_update_empty_bad_keys(index_map):
+    keys = pd.Index(["a"] * 10)
+    with pytest.raises(RandomnessError):
+        index_map.update(keys)
+
+
+def test_update_nonempty_bad_keys(index_map):
+    keys = generate_keys(1000)
+
+    index_map.update(keys)
+    with pytest.raises(RandomnessError):
+        index_map.update(keys)
+
+
+def test_update_empty_good_keys(index_map):
+    keys = generate_keys(1000)
+    index_map.update(keys)
+    assert len(index_map._map) == len(keys), "All keys not in mapping"
+    assert index_map._map.index.difference(keys).empty, "All keys not in mapping"
+    assert len(index_map._map.unique()) == len(keys), "Duplicate values in mapping"
+
+
+def test_update_nonempty_good_keys(index_map):
+    keys = generate_keys(2000)
+    keys1, keys2 = keys[:1000], keys[1000:]
+
+    index_map.update(keys1)
+    index_map.update(keys2)
+
+    assert len(index_map._map) == len(keys), "All keys not in mapping"
+    assert index_map._map.index.difference(keys).empty, "All keys not in mapping"
+    assert len(index_map._map.unique()) == len(keys), "Duplicate values in mapping"

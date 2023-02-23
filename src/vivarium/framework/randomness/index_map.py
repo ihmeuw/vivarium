@@ -39,8 +39,10 @@ class IndexMap:
         """
         if new_keys.empty or not self._use_crn:
             return  # Nothing to do
-        elif not self._map.index.intersection(new_keys).empty:
-            raise KeyError("Non-unique keys in index")
+
+        new_index = self._map.index.append(new_keys)
+        if len(new_index) != len(new_index.unique()):
+            raise RandomnessError("Non-unique keys in index")
 
         mapping_update = self._hash(new_keys)
         if self._map.empty:
