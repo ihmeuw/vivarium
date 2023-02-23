@@ -115,7 +115,9 @@ class ResultsContext:
                 pop_groups = filtered_pop.groupby(list(stratifications))
                 for measure, aggregator_sources, aggregator, additional_keys in observations:
                     if aggregator_sources:
-                        aggregates = pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
+                        aggregates = (
+                            pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
+                        )
                     else:
                         aggregates = pop_groups.apply(aggregator)
 
