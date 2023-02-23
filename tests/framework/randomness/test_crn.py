@@ -280,8 +280,8 @@ class BrokenPopulation(BasePopulation):
 @pytest.mark.parametrize(
     "with_crn, sims_to_add",
     [
-        pytest.param(True, cycle([0]), marks=pytest.mark.xfail),
-        pytest.param(True, cycle([1]), marks=pytest.mark.xfail),
+        pytest.param(True, cycle([0])),
+        pytest.param(True, cycle([1])),
         pytest.param(False, cycle([0])),
         pytest.param(False, cycle([1])),
     ],

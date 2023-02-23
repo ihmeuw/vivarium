@@ -40,11 +40,10 @@ class RandomnessManager:
         self._clock = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
 
-        use_crn = bool(self._key_columns)
         map_size = builder.configuration.randomness.map_size
         pop_size = builder.configuration.population.population_size
         map_size = max(map_size, 10 * pop_size)
-        self._key_mapping = IndexMap(use_crn, map_size)
+        self._key_mapping = IndexMap(self._key_columns, map_size)
 
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
@@ -168,7 +167,7 @@ class RandomnessManager:
             raise RandomnessError(
                 "The simulants dataframe does not have all specified key_columns."
             )
-        self._key_mapping.update(simulants.set_index(self._key_columns).index)
+        self._key_mapping.update(simulants.loc[:, self._key_columns])
 
     def __str__(self):
         return "RandomnessManager()"

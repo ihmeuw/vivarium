@@ -10,7 +10,7 @@ positional index within a stream of seeded random numbers.
 
 """
 import datetime
-from typing import Union
+from typing import List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -21,42 +21,127 @@ from vivarium.framework.randomness.exceptions import RandomnessError
 class IndexMap:
     """A key-index mapping with a vectorized hash and vectorized lookups."""
 
+    SIM_INDEX_COLUMN = "simulant_index"
     TEN_DIGIT_MODULUS = 10_000_000_000
 
-    def __init__(self, use_crn: bool = True, size: int = 1_000_000):
-        self._use_crn = use_crn
-        self._map = pd.Series(dtype=int)
+    def __init__(self, key_columns: List[str] = None, size: int = 1_000_000):
+        self._use_crn = bool(key_columns)
+        self._key_columns = key_columns
+        self._map = None
         self._size = size
 
-    def update(self, new_keys: pd.Index) -> None:
+    def update(self, new_keys: pd.DataFrame) -> None:
         """Adds the new keys to the mapping.
 
         Parameters
         ----------
         new_keys
-            The new index to hash.
+            A pandas DataFrame indexed by the simulant index and columns corresponding to
+            the randomness system key columns.
 
         """
         if new_keys.empty or not self._use_crn:
             return  # Nothing to do
 
-        new_index = self._map.index.append(new_keys)
-        if len(new_index) != len(new_index.unique()):
+        new_mapping_index, final_mapping_index = self._parse_new_keys(new_keys)
+
+        final_keys = final_mapping_index.droplevel(self.SIM_INDEX_COLUMN)
+        if len(final_keys) != len(final_keys.unique()):
             raise RandomnessError("Non-unique keys in index")
 
-        mapping_update = self._hash(new_keys)
-        if self._map.empty:
-            self._map = mapping_update.drop_duplicates()
-        else:
-            self._map = pd.concat([self._map, mapping_update]).drop_duplicates()
+        new_map = self._build_new_mapping(new_mapping_index)
 
-        collisions = mapping_update.index.difference(self._map.index)
+        # Tack on the simulant index to the front of the map.
+        new_map.index = final_mapping_index
+        self._map = new_map
+
+    def _parse_new_keys(self, new_keys: pd.DataFrame) -> Tuple[pd.MultiIndex, pd.MultiIndex]:
+        """Parses raw new keys into the mapping index.
+
+        Parameters
+        ----------
+        new_keys
+            A pandas DataFrame indexed by the simulant index and columns corresponding to
+            the randomness system key columns.
+
+        Returns
+        -------
+        Tuple[pd.MultiIndex, pd.MultiIndex]
+            A tuple of the new mapping index and the final mapping index. Both are pandas
+            indices with a level for the index assigned by the population system and
+            additional levels for the key columns associated with the simulant index. The
+            new mapping index contains only the values for the new keys and the final mapping
+            combines the existing mapping and the new mapping index.
+
+        """
+        keys = new_keys.copy()
+        keys.index.name = self.SIM_INDEX_COLUMN
+        new_mapping_index = keys.set_index(self._key_columns, append=True).index
+
+        if self._map is not None:
+            final_mapping_index = self._map.index.append(new_mapping_index)
+        else:
+            final_mapping_index = new_mapping_index
+        return new_mapping_index, final_mapping_index
+
+    def _build_new_mapping(self, new_mapping_index: pd.Index) -> pd.Series:
+        """Builds a new mapping between key columns and the randomness index from the
+        new mapping index.
+
+        Parameters
+        ----------
+        new_mapping_index
+            An index with a level for the index assigned by the population system and
+            additional levels for the key columns associated with the simulant index.
+
+        Returns
+        -------
+        pd.Series
+            The new mapping incorporating the updates from the new mapping index and
+            resolving collisions.
+
+        """
+        new_key_index = new_mapping_index.droplevel(self.SIM_INDEX_COLUMN)
+        mapping_update = self._hash(new_key_index)
+        if self._map is None:
+            current_map = mapping_update
+        else:
+            old_map = self._map.droplevel(self.SIM_INDEX_COLUMN)
+            current_map = pd.concat([old_map, mapping_update])
+
+        return self._resolve_collisions(new_key_index, current_map)
+
+    def _resolve_collisions(
+        self,
+        new_key_index: pd.MultiIndex,
+        current_mapping: pd.Series,
+    ) -> pd.Series:
+        """Resolves collisions in the new mapping by perturbing the hash.
+
+        Parameters
+        ----------
+        new_key_index
+            The index of new key attributes to hash.
+        current_mapping
+            The new mapping incorporating the updates from the new mapping index with
+            collisions unresolved.
+
+        Returns
+        -------
+        pd.Series
+            The new mapping incorporating the updates from the new mapping index and
+            resolving collisions.
+
+        """
+        current_mapping = current_mapping.drop_duplicates()
+        collisions = new_key_index.difference(current_mapping.index)
         salt = 1
         while not collisions.empty:
             mapping_update = self._hash(collisions, salt)
-            self._map = pd.concat([self._map, mapping_update]).drop_duplicates()
-            collisions = mapping_update.index.difference(self._map.index)
+            current_mapping = pd.concat([current_mapping, mapping_update]).drop_duplicates()
+            collisions = mapping_update.index.difference(current_mapping.index)
             salt += 1
+        return current_mapping
 
     def _hash(self, keys: pd.Index, salt: int = 0) -> pd.Series:
         """Hashes the index into an integer index in the range [0, self.stride]
@@ -158,8 +243,8 @@ class IndexMap:
     def __getitem__(self, index: pd.Index) -> pd.Series:
         if not self._use_crn:
             return pd.Series(index, index=index)
-        if isinstance(index, (pd.Index, pd.MultiIndex)):
-            return self._map[index]
+        if isinstance(index, pd.Index):
+            return self._map.loc[index]
         else:
             raise IndexError(index)
 

@@ -24,7 +24,7 @@ def base_config():
             },
             "randomness": {"key_columns": ["entrance_time", "age"]},
         },
-        **metadata(__file__),
+        **metadata(__file__, layer="model_override"),
     )
     return config
 
