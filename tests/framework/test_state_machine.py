@@ -53,7 +53,9 @@ def test_transition():
 
 
 def test_choice(base_config):
-    base_config.update({"population": {"population_size": 10000}})
+    base_config.update(
+        {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
+    )
     a_state = State("a")
     b_state = State("b")
     start_state = State("start")
@@ -75,7 +77,9 @@ def test_choice(base_config):
 
 
 def test_null_transition(base_config):
-    base_config.update({"population": {"population_size": 10000}})
+    base_config.update(
+        {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
+    )
     a_state = State("a")
     start_state = State("start")
     start_state.add_transition(
@@ -95,7 +99,9 @@ def test_null_transition(base_config):
 
 
 def test_no_null_transition(base_config):
-    base_config.update({"population": {"population_size": 10000}})
+    base_config.update(
+        {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
+    )
     a_state = State("a")
     b_state = State("b")
     start_state = State("start")

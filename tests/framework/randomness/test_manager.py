@@ -35,7 +35,7 @@ def test_RandomnessManager_register_simulants():
     rm._seed = seed
     rm._clock = mock_clock
     rm._key_columns = ["age", "sex"]
-    rm._key_mapping = IndexMap()
+    rm._key_mapping = IndexMap(["age", "sex"])
 
     bad_df = pd.DataFrame({"age": range(10), "not_sex": [1] * 5 + [2] * 5})
     with pytest.raises(RandomnessError):
@@ -44,9 +44,9 @@ def test_RandomnessManager_register_simulants():
     good_df = pd.DataFrame({"age": range(10), "sex": [1] * 5 + [2] * 5})
 
     rm.register_simulants(good_df)
-    assert rm._key_mapping._map.index.difference(
-        good_df.set_index(good_df.columns.tolist()).index
-    ).empty
+    map_index = rm._key_mapping._map.droplevel(rm._key_mapping.SIM_INDEX_COLUMN).index
+    good_index = good_df.set_index(good_df.columns.tolist()).index
+    assert map_index.difference(good_index).empty
 
 
 def test_get_random_seed():

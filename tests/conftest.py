@@ -21,9 +21,10 @@ def base_config():
                 },
                 "end": {"year": 2010},
                 "step_size": 30.5,
-            }
+            },
+            "randomness": {"key_columns": ["entrance_time", "age"]},
         },
-        **metadata(__file__),
+        **metadata(__file__, layer="model_override"),
     )
     return config
 

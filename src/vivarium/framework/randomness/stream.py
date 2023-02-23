@@ -236,7 +236,6 @@ class RandomnessStream:
             population, rate_to_probability(rate), additional_key
         )
 
-
     def filter_for_probability(
         self,
         population: Union[pd.DataFrame, pd.Series, pd.Index],

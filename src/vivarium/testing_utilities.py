@@ -215,5 +215,5 @@ def reset_mocks(mocks):
         mock.reset_mock()
 
 
-def metadata(file_path):
-    return {"layer": "override", "source": str(Path(file_path).resolve())}
+def metadata(file_path, layer="override"):
+    return {"layer": layer, "source": str(Path(file_path).resolve())}
