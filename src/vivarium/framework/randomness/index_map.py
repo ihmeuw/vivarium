@@ -49,11 +49,11 @@ class IndexMap:
         if len(final_keys) != len(final_keys.unique()):
             raise RandomnessError("Non-unique keys in index")
 
-        new_map = self._build_new_mapping(new_mapping_index)
+        final_mapping = self._build_final_mapping(new_mapping_index)
 
         # Tack on the simulant index to the front of the map.
-        new_map.index = final_mapping_index
-        self._map = new_map
+        final_mapping.index = final_mapping_index
+        self._map = final_mapping
 
     def _parse_new_keys(self, new_keys: pd.DataFrame) -> Tuple[pd.MultiIndex, pd.MultiIndex]:
         """Parses raw new keys into the mapping index.
@@ -78,15 +78,15 @@ class IndexMap:
         keys.index.name = self.SIM_INDEX_COLUMN
         new_mapping_index = keys.set_index(self._key_columns, append=True).index
 
-        if self._map is not None:
-            final_mapping_index = self._map.index.append(new_mapping_index)
-        else:
+        if self._map is None:
             final_mapping_index = new_mapping_index
+        else:
+            final_mapping_index = self._map.index.append(new_mapping_index)
         return new_mapping_index, final_mapping_index
 
-    def _build_new_mapping(self, new_mapping_index: pd.Index) -> pd.Series:
+    def _build_final_mapping(self, new_mapping_index: pd.Index) -> pd.Series:
         """Builds a new mapping between key columns and the randomness index from the
-        new mapping index.
+        new mapping index and the existing map.
 
         Parameters
         ----------

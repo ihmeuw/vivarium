@@ -255,8 +255,12 @@ def test_multi_sim_reproducibility_with_different_pop_growth(with_crn, pop_class
         assert_frame_equal(pop1.loc[overlap], pop2.loc[overlap])
 
 
-class BrokenPopulation(BasePopulation):
-    """CRN system falls over if the first CRN attribute is an int or float."""
+class UnBrokenPopulation(BasePopulation):
+    """CRN system used to fall over if the first CRN attribute is an int or float.
+
+    This is now a regression testing class.
+
+    """
 
     def on_initialize_simulants(self, pop_data: SimulantData):
         crn_attr = (1_000_000 * self.randomness_init.get_draw(index=pop_data.index)).astype(
@@ -286,14 +290,14 @@ class BrokenPopulation(BasePopulation):
         pytest.param(False, cycle([1])),
     ],
 )
-def test_failure_path_when_first_crn_attribute_not_datelike(with_crn, sims_to_add):
+def test_prior_failure_path_when_first_crn_attribute_not_datelike(with_crn, sims_to_add):
     if with_crn:
         configuration = {"randomness": {"key_columns": ["crn_attr1", "crn_attr2"]}}
     else:
         configuration = {}
 
     sim = InteractiveContext(
-        components=[BrokenPopulation(with_crn=with_crn, sims_to_add=sims_to_add)],
+        components=[UnBrokenPopulation(with_crn=with_crn, sims_to_add=sims_to_add)],
         configuration=configuration,
     )
 
