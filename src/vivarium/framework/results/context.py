@@ -37,7 +37,7 @@ class ResultsContext:
                 "Attempting to set an empty list as the default grouping columns "
                 "for results production."
             )
-        self._default_grouping_columns = default_grouping_columns
+        self._default_stratifications = default_grouping_columns
 
     def add_stratification(
         self,
@@ -106,25 +106,32 @@ class ResultsContext:
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
             if pop_filter:
-                population = population.query(pop_filter)
-            pop_groups = population.groupby(list(stratifications))
-            for measure, aggregator_sources, aggregator, additional_keys in observations:
-                if aggregator_sources:
-                    aggregates = pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
-                else:
-                    aggregates = pop_groups.apply(aggregator)
+                filtered_pop = population.query(pop_filter)
+            else:
+                filtered_pop = population
+            if filtered_pop.empty:
+                yield {}
+            else:
+                pop_groups = filtered_pop.groupby(list(stratifications))
+                for measure, aggregator_sources, aggregator, additional_keys in observations:
+                    if aggregator_sources:
+                        aggregates = (
+                            pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
+                        )
+                    else:
+                        aggregates = pop_groups.apply(aggregator)
 
-                # Ensure we are dealing with a single column of formattable results
-                if isinstance(aggregates, pd.DataFrame):
-                    aggregates = aggregates.squeeze(axis=1)
-                if not isinstance(aggregates, pd.Series):
-                    raise TypeError(
-                        f"The aggregator return value is a {type(aggregates)} and could not be "
-                        "made into a pandas.Series. This is probably not correct."
-                    )
+                    # Ensure we are dealing with a single column of formattable results
+                    if isinstance(aggregates, pd.DataFrame):
+                        aggregates = aggregates.squeeze(axis=1)
+                    if not isinstance(aggregates, pd.Series):
+                        raise TypeError(
+                            f"The aggregator return value is a {type(aggregates)} and could not be "
+                            "made into a pandas.Series. This is probably not correct."
+                        )
 
-                # Keep formatting all in one place.
-                yield self._format_results(measure, aggregates, **additional_keys)
+                    # Keep formatting all in one place.
+                    yield self._format_results(measure, aggregates, **additional_keys)
 
     def _get_stratifications(
         self,

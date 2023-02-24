@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 from vivarium import InteractiveContext
-from vivarium.framework.randomness import choice
 from vivarium.framework.state_machine import Machine, State, Transition
 
 
@@ -29,11 +28,12 @@ def _even_population_fixture(column, values):
             return "test_pop_fixture"
 
         def setup(self, builder):
+            self.randomness = builder.randomness.get_stream(self.name)
             self.population_view = builder.population.get_view([column])
             builder.population.initializes_simulants(self.inner, creates_columns=[column])
 
         def inner(self, pop_data):
-            self.population_view.update(choice("start", pop_data.index, values))
+            self.population_view.update(self.randomness.choice(pop_data.index, values))
 
     return pop_fixture()
 
@@ -53,7 +53,9 @@ def test_transition():
 
 
 def test_choice(base_config):
-    base_config.update({"population": {"population_size": 10000}})
+    base_config.update(
+        {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
+    )
     a_state = State("a")
     b_state = State("b")
     start_state = State("start")
@@ -75,7 +77,9 @@ def test_choice(base_config):
 
 
 def test_null_transition(base_config):
-    base_config.update({"population": {"population_size": 10000}})
+    base_config.update(
+        {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
+    )
     a_state = State("a")
     start_state = State("start")
     start_state.add_transition(
@@ -95,7 +99,9 @@ def test_null_transition(base_config):
 
 
 def test_no_null_transition(base_config):
-    base_config.update({"population": {"population_size": 10000}})
+    base_config.update(
+        {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
+    )
     a_state = State("a")
     b_state = State("b")
     start_state = State("start")
