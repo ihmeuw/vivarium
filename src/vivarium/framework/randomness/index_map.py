@@ -251,6 +251,3 @@ class IndexMap:
 
     def __repr__(self) -> str:
         return "IndexMap({})".format("\n         ".join(repr(self._map).split("\n")))
-
-    def __str__(self):
-        """Returns a string representation of the IndexMap."""
