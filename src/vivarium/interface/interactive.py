@@ -236,7 +236,14 @@ class InteractiveContext(SimulationContext):
 
     def print_initializer_order(self):
         """Print the order in which population initializers are called."""
-        initializers = [f'{r.__self__}.{r.__name__}' for r in self._resource]
+        initializers = []
+        for r in self._resource:
+            name = r.__name__
+            if hasattr(r, "__self__"):
+                obj = r.__self__
+                initializers.append(f"{obj.__class__.__name__}({obj.name}).{name}")
+            else:
+                initializers.append(f"Unbound function {name}")
         print("\n".join(initializers))
 
     def print_lifecycle_order(self):
