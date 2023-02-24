@@ -236,7 +236,8 @@ class InteractiveContext(SimulationContext):
 
     def print_initializer_order(self):
         """Print the order in which population initializers are called."""
-        print("\n".join([r.name for r in self._resource]))
+        initializers = [f'{r.__self__}.{r.__name__}' for r in self._resource]
+        print("\n".join(initializers))
 
     def print_lifecycle_order(self):
         """Print the order of lifecycle events (including user event handlers)."""
