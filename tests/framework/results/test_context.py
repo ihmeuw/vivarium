@@ -250,7 +250,6 @@ def test__get_stratifications(
             ["house"],
             1.53277,
         ),
-        ("wizard_count", "house=='Durmstrang'", None, len, ["house", "familiar"], 4),
     ],
     ids=[
         "len_aggregator_two_stratifications",
@@ -259,7 +258,6 @@ def test__get_stratifications(
         "len_aggregator_one_stratification",
         "sum_aggregator_one_stratification",
         "custom_aggregator_one_stratification",
-        "empty_pop_filter",
     ],
 )
 def test_gather_results(
@@ -374,6 +372,26 @@ def test_gather_results_partial_stratifications_in_results(
         unladen_results = {k: v for (k, v) in r.items() if "unladen_swallow" in k}
         assert len(unladen_results.items()) > 0
         assert all(v == 0 for v in unladen_results.values())
+
+
+def test_gather_results_with_empty_pop_filter():
+    """Test case where pop_filter filters to an empty population. gather_results should return an empty dict"""
+    ctx = ResultsContext()
+
+    # Generate population DataFrame
+    population = BASE_POPULATION.copy()
+
+    event_name = "collect_metrics"
+    ctx.add_observation(
+        name="wizard_count",
+        pop_filter="house == 'durmstrang'",
+        aggregator_sources=None,
+        aggregator=len,
+        event_name=event_name,
+    )
+
+    for result in ctx.gather_results(population, event_name):
+        assert len(result) == 0
 
 
 def test__format_results():
