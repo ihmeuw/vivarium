@@ -234,5 +234,13 @@ class InteractiveContext(SimulationContext):
         """
         return self._component_manager.get_component(name)
 
+    def print_initializer_order(self):
+        """Print the order in which population initializers are called."""
+        print("\n".join([r.name for r in self._resource]))
+
+    def print_lifecycle_order(self):
+        """Print the order of lifecycle events (including user event handlers)."""
+        print(self._lifecycle)
+
     def __repr__(self):
         return "InteractiveContext()"
