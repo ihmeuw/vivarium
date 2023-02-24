@@ -240,16 +240,17 @@ class IndexMap:
             return out.astype("int64")
         return int(out)
 
-    def __getitem__(self, index: pd.Index) -> pd.Series:
-        if not self._use_crn:
-            return pd.Series(index, index=index)
-        if isinstance(index, pd.Index):
-            return self._map.loc[index]
+    def __getitem__(self, index: pd.Index) -> np.ndarray:
+        if self._use_crn:
+            return self._map.loc[index].values
         else:
-            raise IndexError(index)
+            return index.values
 
     def __len__(self) -> int:
         return self._size
 
     def __repr__(self) -> str:
         return "IndexMap({})".format("\n         ".join(repr(self._map).split("\n")))
+
+    def __str__(self):
+        """Returns a string representation of the IndexMap."""
