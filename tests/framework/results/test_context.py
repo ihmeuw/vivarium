@@ -374,6 +374,26 @@ def test_gather_results_partial_stratifications_in_results(
         assert all(v == 0 for v in unladen_results.values())
 
 
+def test_gather_results_with_empty_pop_filter():
+    """Test case where pop_filter filters to an empty population. gather_results should return an empty dict"""
+    ctx = ResultsContext()
+
+    # Generate population DataFrame
+    population = BASE_POPULATION.copy()
+
+    event_name = "collect_metrics"
+    ctx.add_observation(
+        name="wizard_count",
+        pop_filter="house == 'durmstrang'",
+        aggregator_sources=None,
+        aggregator=len,
+        event_name=event_name,
+    )
+
+    for result in ctx.gather_results(population, event_name):
+        assert len(result) == 0
+
+
 def test__format_results():
     """Test that format results produces the expected number of keys and a specific expected key"""
     ctx = ResultsContext()
