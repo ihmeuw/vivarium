@@ -233,6 +233,3 @@ class InteractiveContext(SimulationContext):
 
         """
         return self._component_manager.get_component(name)
-
-    def __repr__(self):
-        return "InteractiveContext()"
