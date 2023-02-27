@@ -18,11 +18,18 @@ class ResultsContext:
     """
 
     def __init__(self):
-        self._default_stratifications: List[str] = []
-        self._stratifications: List[Stratification] = []
-        # keys are event names: ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"]
-        # values are dicts with key (filter, grouper) value (measure, aggregator_sources, aggregator, additional_keys)
-        self._observations = defaultdict(lambda: defaultdict(list))
+        self.default_stratifications: List[str] = []
+        self.stratifications: List[Stratification] = []
+        # keys are event names: [
+        #     "time_step__prepare",
+        #     "time_step",
+        #     "time_step__cleanup",
+        #     "collect_metrics",
+        # ]
+        # values are dicts with
+        #     key (filter, grouper)
+        #     value (measure, aggregator_sources, aggregator, additional_keys)
+        self.observations = defaultdict(lambda: defaultdict(list))
 
     @property
     def name(self):
@@ -33,7 +40,7 @@ class ResultsContext:
 
     # noinspection PyAttributeOutsideInit
     def set_default_stratifications(self, default_grouping_columns: List[str]):
-        if self._default_stratifications:
+        if self.default_stratifications:
             raise ResultsConfigurationError(
                 "Multiple calls are being made to set default grouping columns "
                 "for results production."
@@ -43,7 +50,7 @@ class ResultsContext:
                 "Attempting to set an empty list as the default grouping columns "
                 "for results production."
             )
-        self._default_stratifications = default_grouping_columns
+        self.default_stratifications = default_grouping_columns
 
     def add_stratification(
         self,
@@ -77,10 +84,10 @@ class ResultsContext:
         None
 
         """
-        if len([s.name for s in self._stratifications if s.name == name]):
+        if len([s.name for s in self.stratifications if s.name == name]):
             raise ValueError(f"Name `{name}` is already used")
         stratification = Stratification(name, sources, categories, mapper, is_vectorized)
-        self._stratifications.append(stratification)
+        self.stratifications.append(stratification)
 
     def add_observation(
         self,
@@ -93,21 +100,21 @@ class ResultsContext:
         when: str = "collect_metrics",
         **additional_keys: str,
     ):
-        self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
+
         stratifications = self._get_stratifications(
             additional_stratifications, excluded_stratifications
         )
-        self._observations[when][(pop_filter, stratifications)].append(
+        self.observations[when][(pop_filter, stratifications)].append(
             (name, aggregator_sources, aggregator, additional_keys)
         )
 
     def gather_results(self, population: pd.DataFrame, event_name: str) -> Dict[str, float]:
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
-        for stratification in self._stratifications:
+        for stratification in self.stratifications:
             population = stratification(population)
 
-        for (pop_filter, stratifications), observations in self._observations[
+        for (pop_filter, stratifications), observations in self.observations[
             event_name
         ].items():
             # Results production can be simplified to
@@ -146,7 +153,7 @@ class ResultsContext:
         excluded_stratifications: List[str] = (),
     ) -> Tuple[str, ...]:
         stratifications = list(
-            set(self._default_stratifications) - set(excluded_stratifications)
+            set(self.default_stratifications) - set(excluded_stratifications)
             | set(additional_stratifications)
         )
         # Makes sure measure identifiers have fields in the same relative order.
@@ -191,27 +198,3 @@ class ResultsContext:
             )
             results[key] = val
         return results
-
-    def _warn_check_stratifications(
-        self, additional_stratifications, excluded_stratifications
-    ):
-        """Check additional and excluded stratifications if they'd not affect
-        stratifications (i.e., would be NOP), and emit warning."""
-        nop_additional = [
-            s for s in additional_stratifications if s in self._default_stratifications
-        ]
-        if len(nop_additional):
-            warnings.warn(
-                f"Specified additional stratifications are already included by default: {nop_additional}",
-                UserWarning,
-            )
-        nop_exclude = [
-            s for s in excluded_stratifications if s not in self._default_stratifications
-        ]
-        if len(nop_exclude):
-            warnings.warn(
-                f"Specified excluded stratifications are already not included by default: {nop_exclude}",
-                UserWarning,
-            )
-        if len(nop_additional) or len(nop_exclude):
-            self.logger.debug(f"Default stratifications are: {self._default_stratifications}")
