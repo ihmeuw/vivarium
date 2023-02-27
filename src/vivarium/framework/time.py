@@ -11,6 +11,7 @@ For more information about time in the simulation, see the associated
 
 """
 from datetime import datetime, timedelta
+import math
 from numbers import Number
 from typing import Callable, Union
 
@@ -50,6 +51,11 @@ class SimulationClock:
         assert self._step_size is not None, "No step size provided"
         return self._step_size
 
+    @property
+    def steps_remaining(self) -> int:
+        """Returns the number of steps remaining until the simulation stops."""
+        return math.ceil((self.stop_time - self.time) / self.step_size)
+
     def step_forward(self) -> None:
         """Advances the clock by the current step size."""
         self._time += self.step_size
@@ -57,6 +63,8 @@ class SimulationClock:
     def step_backward(self):
         """Rewinds the clock by the current step size."""
         self._time -= self.step_size
+
+
 
 
 class SimpleClock(SimulationClock):

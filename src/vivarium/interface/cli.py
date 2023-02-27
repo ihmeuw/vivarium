@@ -94,6 +94,12 @@ def simulate():
     help="Suppresses all logging except for warnings and errors.",
 )
 @click.option(
+    "--progress-bar",
+    "--pb",
+    is_flag=True,
+    help="Show a progress bar for time steps in the simulation."
+)
+@click.option(
     "--pdb",
     "with_debugger",
     is_flag=True,
@@ -106,6 +112,7 @@ def run(
     results_directory: Path,
     verbose: bool,
     quiet: bool,
+    progress_bar: bool,
     with_debugger: bool,
 ):
     """Run a simulation from the command line.
@@ -122,6 +129,12 @@ def run(
         raise click.UsageError("Cannot be both verbose and quiet.")
     verbosity = 1 + int(verbose) - int(quiet)
     configure_logging_to_terminal(verbosity=verbosity, long_format=False)
+
+    if verbose and progress_bar:
+        logger.warning(
+            "Progress bar may work poorly with verbose logging. "
+            "Consider disabling one of these options."
+        )
 
     start = time()
 
@@ -142,12 +155,17 @@ def run(
     override_configuration = {"output_data": output_data, "input_data": input_data}
 
     main = handle_exceptions(run_simulation, logger, with_debugger)
-    finished_sim = main(model_specification, configuration=override_configuration)
+    finished_sim = main(
+        model_specification,
+        configuration=override_configuration,
+        progress_bar=progress_bar,
+    )
 
     metrics = pd.DataFrame(finished_sim.report(), index=[0])
     metrics["simulation_run_time"] = time() - start
     metrics["random_seed"] = finished_sim.configuration.randomness.random_seed
     metrics["input_draw"] = finished_sim.configuration.input_data.input_draw_number
+
     metrics.to_hdf(results_root / "output.hdf", key="data")
 
 

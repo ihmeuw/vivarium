@@ -24,6 +24,7 @@ from typing import Dict, List, Set, Union
 
 import numpy as np
 import pandas as pd
+from tqdm import auto as tqdm
 
 from vivarium.config_tree import ConfigTree
 from vivarium.exceptions import VivariumError
@@ -202,23 +203,34 @@ class SimulationContext:
         )
         self._clock.step_forward()
 
-    def step(self):
-        self._logger.debug(self._clock.time)
+    def step(self, log_step: bool = True):
+        if log_step:
+            self._logger.debug(self._clock.time)
+
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
             self.time_step_emitters[event](self._population.get_population(True).index)
+
         self._clock.step_forward()
 
-    def run(self):
-        while self._clock.time < self._clock.stop_time:
-            self.step()
+    def take_steps(self, number_of_steps: int, progress_bar: bool = False) -> None:
+        with tqdm.tqdm(total=number_of_steps, disable=not progress_bar) as pbar:
+            for _ in range(number_of_steps):
+                pbar.set_description(f"Time step {self._clock.time}")
+                self.step()
+                pbar.update(1)
+
+    def run(self, progress_bar: bool = False) -> int:
+        number_of_steps = self._clock.steps_remaining
+        self.take_steps(number_of_steps, progress_bar=progress_bar)
+        return number_of_steps
 
     def finalize(self):
         self._lifecycle.set_state("simulation_end")
         self.end_emitter(self._population.get_population(True).index)
         unused_config_keys = self.configuration.unused_keys()
         if unused_config_keys:
-            self._logger.warn(
+            self._logger.warning(
                 f"Some configuration keys not used during run: {unused_config_keys}."
             )
 
@@ -356,12 +368,16 @@ def run_simulation(
     components: Union[List, Dict, ConfigTree] = None,
     configuration: Union[Dict, ConfigTree] = None,
     plugin_configuration: Union[Dict, ConfigTree] = None,
+    progress_bar: bool = False,
 ):
     simulation = SimulationContext(
-        model_specification, components, configuration, plugin_configuration
+        model_specification,
+        components,
+        configuration,
+        plugin_configuration,
     )
     simulation.setup()
     simulation.initialize_simulants()
-    simulation.run()
+    simulation.run(progress_bar=progress_bar)
     simulation.finalize()
     return simulation

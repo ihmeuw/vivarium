@@ -40,6 +40,7 @@ if __name__ == "__main__":
         "tables",
         "networkx",
         "loguru",
+        "tqdm",
     ]
 
     interactive_requirements = [
