@@ -6,7 +6,8 @@ from vivarium.framework.components import (
     ComponentManager,
     OrderedComponentSet,
 )
-from vivarium.framework.engine import Builder, SimulationContext
+from vivarium.framework.engine import Builder
+from vivarium.framework.engine import SimulationContext as SimulationContext_
 from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
 from vivarium.framework.lookup import LookupTableInterface, LookupTableManager
@@ -25,6 +26,12 @@ def is_same_object_method(m1, m2):
     return m1.__func__ is m2.__func__ and m1.__self__ is m2.__self__
 
 
+@pytest.fixture()
+def SimulationContext():
+    yield SimulationContext_
+    SimulationContext_._clear_context_cache()
+
+
 @pytest.fixture
 def components():
     return [
@@ -39,7 +46,16 @@ def log(mocker):
     return mocker.patch("vivarium.framework.engine.logger")
 
 
-def test_SimulationContext_init_default(components):
+def test_SimulationContext_get_sim_name(SimulationContext):
+    assert SimulationContext._created_simulation_contexts == set()
+
+    assert SimulationContext._get_context_name(None) == "simulation_1"
+    assert SimulationContext._get_context_name("foo") == "foo"
+
+    assert SimulationContext._created_simulation_contexts == {"simulation_1", "foo"}
+
+
+def test_SimulationContext_init_default(SimulationContext, components):
     sim = SimulationContext(components=components)
 
     assert isinstance(sim._lifecycle, LifeCycleManager)
@@ -103,7 +119,27 @@ def test_SimulationContext_init_default(components):
     assert isinstance(list(sim._component_manager._components)[-1], Metrics)
 
 
-def test_SimulationContext_setup_default(base_config, components):
+def test_SimulationContext_name_management(SimulationContext):
+    assert SimulationContext._created_simulation_contexts == set()
+
+    sim1 = SimulationContext()
+    assert sim1._name == "simulation_1"
+    assert SimulationContext._created_simulation_contexts == {"simulation_1"}
+
+    sim2 = SimulationContext(sim_name="foo")
+    assert sim2._name == "foo"
+    assert SimulationContext._created_simulation_contexts == {"simulation_1", "foo"}
+
+    sim3 = SimulationContext()
+    assert sim3._name == "simulation_3"
+    assert SimulationContext._created_simulation_contexts == {
+        "simulation_1",
+        "foo",
+        "simulation_3",
+    }
+
+
+def test_SimulationContext_setup_default(SimulationContext, base_config, components):
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if "listener" in c.args][0]
     assert not listener.post_setup_called
@@ -140,7 +176,7 @@ def test_SimulationContext_setup_default(base_config, components):
     assert listener.post_setup_called
 
 
-def test_SimulationContext_initialize_simulants(base_config, components):
+def test_SimulationContext_initialize_simulants(SimulationContext, base_config, components):
     sim = SimulationContext(base_config, components)
     sim.setup()
     pop_size = sim.configuration.population.population_size
@@ -151,7 +187,7 @@ def test_SimulationContext_initialize_simulants(base_config, components):
     assert sim._clock.time == current_time
 
 
-def test_SimulationContext_step(log, base_config, components):
+def test_SimulationContext_step(SimulationContext, log, base_config, components):
     sim = SimulationContext(base_config, components)
     sim.setup()
     sim.initialize_simulants()
@@ -177,7 +213,7 @@ def test_SimulationContext_step(log, base_config, components):
     assert sim._clock.time == current_time + step_size
 
 
-def test_SimulationContext_finalize(base_config, components):
+def test_SimulationContext_finalize(SimulationContext, base_config, components):
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if "listener" in c.args][0]
     sim.setup()
@@ -188,7 +224,7 @@ def test_SimulationContext_finalize(base_config, components):
     assert listener.simulation_end_called
 
 
-def test_SimulationContext_report(base_config, components):
+def test_SimulationContext_report(SimulationContext, base_config, components):
     sim = SimulationContext(base_config, components)
     sim.setup()
     sim.initialize_simulants()
