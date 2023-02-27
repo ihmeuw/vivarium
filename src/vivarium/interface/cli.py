@@ -84,11 +84,14 @@ def simulate():
 @click.option(
     "--verbose",
     "-v",
-    count=True,
-    help=(
-        "How verbose the logging should be. Defaults to warning level. Logs at info level if "
-        "given once, and debug level if given twice or more."
-    ),
+    is_flag=True,
+    help="Logs verbosely. Useful for debugging and development.",
+)
+@click.option(
+    "--quiet",
+    "-q",
+    is_flag=True,
+    help="Suppresses all logging except for warnings and errors.",
 )
 @click.option(
     "--pdb",
@@ -101,7 +104,8 @@ def run(
     location: str,
     artifact_path: Path,
     results_directory: Path,
-    verbose: int,
+    verbose: bool,
+    quiet: bool,
     with_debugger: bool,
 ):
     """Run a simulation from the command line.
@@ -114,7 +118,10 @@ def run(
     further subdirectory named after the start time of the simulation run.
 
     """
-    configure_logging_to_terminal(verbosity=verbose, long_format=False)
+    if verbose and quiet:
+        raise click.UsageError("Cannot be both verbose and quiet.")
+    verbosity = 1 + int(verbose) - int(quiet)
+    configure_logging_to_terminal(verbosity=verbosity, long_format=False)
 
     start = time()
 
