@@ -18,16 +18,16 @@ Finally, there are a handful of wrapper methods that allow a user or user
 tools to easily setup and run a simulation.
 
 """
-import time
 from pathlib import Path
 from pprint import pformat
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Set, Union
 
 import numpy as np
 import pandas as pd
 from loguru import logger
 
 from vivarium.config_tree import ConfigTree
+from vivarium.exceptions import VivariumError
 from vivarium.framework.configuration import build_model_specification
 
 from .artifact import ArtifactInterface
@@ -46,13 +46,65 @@ from .values import ValuesInterface
 
 
 class SimulationContext:
+
+    _created_simulation_contexts: Set[str] = set()
+
+    @staticmethod
+    def _get_context_name(sim_name: Union[str, None]) -> str:
+        """Get a unique name for a simulation context.
+
+        Parameters
+        ----------
+        sim_name
+            The name of the simulation context.  If None, a unique name will be generated.
+
+        Returns
+        -------
+        str
+            A unique name for the simulation context.
+
+        Note
+        ----
+        This method mutates process global state (the class attribute
+        ``_created_simulation_contexts``) in order to keep track contexts that have been
+        generated. This functionality makes generating simulation contexts in parallel
+        a non-threadsafe operation.
+
+        """
+        if sim_name is None:
+            sim_number = len(SimulationContext._created_simulation_contexts) + 1
+            sim_name = f"simulation_{sim_number}"
+
+        if sim_name in SimulationContext._created_simulation_contexts:
+            msg = (
+                "Attempting to create two SimulationContexts "
+                f"with the same name {sim_name}"
+            )
+            raise VivariumError(msg)
+
+        SimulationContext._created_simulation_contexts.add(sim_name)
+        return sim_name
+
+    @staticmethod
+    def _clear_context_cache():
+        """Clear the cache of simulation context names.
+
+        This is primarily useful for testing purposes.
+
+        """
+        SimulationContext._created_simulation_contexts = set()
+
     def __init__(
         self,
         model_specification: Union[str, Path, ConfigTree] = None,
         components: Union[List, Dict, ConfigTree] = None,
         configuration: Union[Dict, ConfigTree] = None,
         plugin_configuration: Union[Dict, ConfigTree] = None,
+        sim_name: str = None,
     ):
+
+        self._name = self._get_context_name(sim_name)
+
         # Bootstrap phase: Parse arguments, make private managers
         component_configuration = (
             components if isinstance(components, (dict, ConfigTree)) else None
@@ -138,7 +190,7 @@ class SimulationContext:
 
     @property
     def name(self):
-        return "simulation_context"
+        return self._name
 
     def setup(self):
         self._lifecycle.set_state("setup")
@@ -230,10 +282,7 @@ class SimulationContext:
         return self._population.get_population(untracked)
 
     def __repr__(self):
-        return "SimulationContext()"
-
-    def __str__(self):
-        return str(self._lifecycle)
+        return f"SimulationContext({self.name})"
 
 
 class Builder:
@@ -256,7 +305,7 @@ class Builder:
     population: PopulationInterface
         Provides access to simulant state table via the
         :ref:`population<population_concept>` system.
-    resource: ResourceInterface
+    resources: ResourceInterface
         Provides access to the :ref:`resource<resource_concept>` system,
         which manages dependencies between components.
     time: TimeInterface
