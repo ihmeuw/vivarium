@@ -132,8 +132,8 @@ def run(
 
     if verbose and progress_bar:
         logger.warning(
-            "Progress bar may work poorly with verbose logging. "
-            "Consider disabling one of these options."
+            "Progress bar may work poorly with verbose logging if there are user generated"
+            "logs within a time step. Consider disabling one of these options if problematic."
         )
 
     start = time()

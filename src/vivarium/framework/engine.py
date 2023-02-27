@@ -214,10 +214,11 @@ class SimulationContext:
         self._clock.step_forward()
 
     def take_steps(self, number_of_steps: int, progress_bar: bool = False) -> None:
+        log_step = not progress_bar
         with tqdm.tqdm(total=number_of_steps, disable=not progress_bar) as pbar:
             for _ in range(number_of_steps):
                 pbar.set_description(f"Time step {self._clock.time}")
-                self.step()
+                self.step(log_step=log_step)
                 pbar.update(1)
 
     def run(self, progress_bar: bool = False) -> int:
