@@ -203,7 +203,7 @@ class SimulationContext:
         self._clock.step_forward()
 
     def step(self):
-        self._logger.info(self._clock.time)
+        self._logger.debug(self._clock.time)
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
             self.time_step_emitters[event](self._population.get_population(True).index)
