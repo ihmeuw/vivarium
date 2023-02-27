@@ -42,13 +42,13 @@ from loguru import logger
 
 from vivarium.examples import disease_model
 from vivarium.framework.engine import run_simulation
-from vivarium.framework.utilities import handle_exceptions
-
-from .utilities import (
+from vivarium.framework.logging import (
     configure_logging_to_file,
     configure_logging_to_terminal,
-    get_output_root,
 )
+from vivarium.framework.utilities import handle_exceptions
+
+from .utilities import get_output_root
 
 
 @click.group()
@@ -81,7 +81,15 @@ def simulate():
     help="The directory to write results to. A folder will be created "
     "in this directory with the same name as the configuration file.",
 )
-@click.option("--verbose", "-v", is_flag=True, help="Report each time step.")
+@click.option(
+    "--verbose",
+    "-v",
+    count=True,
+    help=(
+        "How verbose the logging should be. Defaults to warning level. Logs at info level if "
+        "given once, and debug level if given twice or more."
+    ),
+)
 @click.option(
     "--pdb",
     "with_debugger",
@@ -103,8 +111,10 @@ def run(
     Within the results directory, which defaults to ~/vivarium_results if none
     is provided, a subdirectory will be created with the same name as the
     MODEL_SPECIFICATION if one does not exist. Results will be written to a
-    further subdirectory named after the start time of the simulation run."""
-    configure_logging_to_terminal(verbose)
+    further subdirectory named after the start time of the simulation run.
+
+    """
+    configure_logging_to_terminal(verbosity=verbose, long_format=False)
 
     start = time()
 
@@ -113,7 +123,7 @@ def run(
     _ = os.umask(0o002)
     results_root.mkdir(parents=True, exist_ok=False)
 
-    configure_logging_to_file(results_root)
+    configure_logging_to_file(output_directory=results_root)
     shutil.copy(model_specification, results_root / "model_specification.yaml")
 
     output_data = {"results_directory": str(results_root)}
@@ -139,7 +149,7 @@ def test():
     """Run a test simulation using the ``disease_model.yaml`` model specification
     provided in the examples directory.
     """
-    configure_logging_to_terminal(verbose=True)
+    configure_logging_to_terminal(verbosity=2, long_format=False)
     model_specification = disease_model.get_model_specification_path()
 
     main = handle_exceptions(run_simulation, logger, with_debugger=False)
@@ -151,15 +161,18 @@ def test():
 
 @simulate.command()
 @click.argument(
-    "model_specification", type=click.Path(exists=True, dir_okay=False, resolve_path=True)
+    "model_specification",
+    type=click.Path(exists=True, dir_okay=False, resolve_path=True),
 )
 @click.option(
     "--results_directory",
     "-o",
     type=click.Path(resolve_path=True),
     default=Path("~/vivarium_results/").expanduser(),
-    help="The directory to write results to. A folder will be created "
-    "in this directory with the same name as the configuration file.",
+    help=(
+        "The directory to write results to. A folder will be created "
+        "in this directory with the same name as the configuration file."
+    ),
 )
 @click.option(
     "--process/--no-process",
@@ -170,9 +183,7 @@ def test():
     ),
 )
 def profile(model_specification, results_directory, process):
-    """Run a simulation based on the provided MODEL_SPECIFICATION and profile
-    the run.
-    """
+    """Run a simulation based on the provided MODEL_SPECIFICATION and profile the run."""
     model_specification = Path(model_specification)
     results_directory = Path(results_directory)
 
@@ -180,7 +191,7 @@ def profile(model_specification, results_directory, process):
         "yaml", "stats"
     )
     command = f'run_simulation("{model_specification}")'
-    cProfile.runctx(command, globals=globals(), locals=locals(), filename=out_stats_file)
+    cProfile.runctx(command, globals=globals(), locals=locals(), filename=str(out_stats_file))
 
     if process:
         out_txt_file = results_directory / (out_stats_file.name + ".txt")

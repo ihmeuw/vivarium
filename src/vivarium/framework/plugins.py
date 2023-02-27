@@ -14,6 +14,10 @@ from vivarium.exceptions import VivariumError
 from .utilities import import_by_path
 
 _MANAGERS = {
+    "logging": {
+        "controller": "vivarium.framework.logging.LoggingManager",
+        "builder_interface": "vivarium.framework.logging.LoggingInterface",
+    },
     "lookup": {
         "controller": "vivarium.framework.lookup.LookupTableManager",
         "builder_interface": "vivarium.framework.lookup.LookupTableInterface",

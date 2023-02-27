@@ -3,7 +3,6 @@ from collections import defaultdict
 from typing import Callable, Dict, List, Tuple
 
 import pandas as pd
-from loguru import logger
 
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.stratification import Stratification
@@ -24,6 +23,13 @@ class ResultsContext:
         # keys are event names: ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"]
         # values are dicts with key (filter, grouper) value (measure, aggregator_sources, aggregator, additional_keys)
         self._observations = defaultdict(lambda: defaultdict(list))
+
+    @property
+    def name(self):
+        return "results_context"
+
+    def setup(self, builder):
+        self.logger = builder.logging.get_logger(self.name)
 
     # noinspection PyAttributeOutsideInit
     def set_default_stratifications(self, default_grouping_columns: List[str]):
@@ -69,6 +75,7 @@ class ResultsContext:
         Returns
         ------
         None
+
         """
         if len([s.name for s in self._stratifications if s.name == name]):
             raise ValueError(f"Name `{name}` is already used")
@@ -207,4 +214,4 @@ class ResultsContext:
                 UserWarning,
             )
         if len(nop_additional) or len(nop_exclude):
-            logger.debug(f"Default stratifications are: {self._default_stratifications}")
+            self.logger.debug(f"Default stratifications are: {self._default_stratifications}")
