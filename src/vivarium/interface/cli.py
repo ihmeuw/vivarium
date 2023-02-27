@@ -16,7 +16,7 @@ from the command line.  It provides three subcommands:
         - | Runs a single simulation from a model specification file.
     *   - | **test**
         - | Runs an example simulation that comes packaged with ``vivarium``.
-           | Useful as an installation test.
+          | Useful as an installation test.
     *   - | **profile**
         - | Produces a profile of a simulation using the python
           | :mod:`cProfile` module
