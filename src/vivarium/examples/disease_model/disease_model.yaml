@@ -26,7 +26,7 @@ configuration:
             year: 2026
             month: 12
             day: 31
-        step_size: 0.5  # Days
+        step_size: 30  # Days
     population:
         population_size: 100_000
         age_start: 0

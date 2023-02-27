@@ -10,8 +10,8 @@ For more information about time in the simulation, see the associated
 :ref:`concept note <time_concept>`.
 
 """
-from datetime import datetime, timedelta
 import math
+from datetime import datetime, timedelta
 from numbers import Number
 from typing import Callable, Union
 
@@ -63,8 +63,6 @@ class SimulationClock:
     def step_backward(self):
         """Rewinds the clock by the current step size."""
         self._time -= self.step_size
-
-
 
 
 class SimpleClock(SimulationClock):

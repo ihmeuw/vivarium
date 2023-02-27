@@ -41,7 +41,7 @@ class InteractiveContext(SimulationContext):
         super().setup()
         self.initialize_simulants()
 
-    def step(self, step_size: Timedelta = None):
+    def step(self, step_size: Timedelta = None, log_step: bool = True):
         """Advance the simulation one step.
 
         Parameters
@@ -49,10 +49,12 @@ class InteractiveContext(SimulationContext):
         step_size
             An optional size of step to take. Must be the same type as the
             simulation clock's step size (usually a pandas.Timedelta).
+        log_step
+            Whether to log the step taken.
 
         """
         with self._adjust_step_size(step_size) as _:
-            super().step()
+            super().step(log_step=log_step)
 
     def take_steps(
         self,
@@ -135,9 +137,7 @@ class InteractiveContext(SimulationContext):
         step_size = step_size if step_size is not None else self._clock.step_size
         number_of_steps = int(ceil((end_time - self._clock.time) / self._clock.step_size))
         self.take_steps(
-            number_of_steps=number_of_steps,
-            step_size=step_size,
-            progress_bar=progress_bar
+            number_of_steps=number_of_steps, step_size=step_size, progress_bar=progress_bar
         )
         return number_of_steps
 
@@ -270,4 +270,3 @@ class InteractiveContext(SimulationContext):
             self._clock._step_size = step_size
         yield
         self._clock._step_size = old_step_size
-

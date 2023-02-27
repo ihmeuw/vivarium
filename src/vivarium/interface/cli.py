@@ -97,7 +97,7 @@ def simulate():
     "--progress-bar",
     "--pb",
     is_flag=True,
-    help="Show a progress bar for time steps in the simulation."
+    help="Show a progress bar for time steps in the simulation.",
 )
 @click.option(
     "--pdb",
