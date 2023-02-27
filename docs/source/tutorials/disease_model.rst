@@ -734,7 +734,7 @@ to 0.0097 deaths per person-year, very close to the 0.01 rate we provided.
    }
 
    sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
-   sim.take_steps(2)
+   sim.take_steps(2, progress_bar=False)
 
 
 Observer
