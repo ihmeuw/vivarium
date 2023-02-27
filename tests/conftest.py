@@ -2,12 +2,21 @@ from pathlib import Path
 
 import pytest
 import tables
+from _pytest.logging import LogCaptureFixture
+from loguru import logger
 
 from vivarium.framework.configuration import (
     build_model_specification,
     build_simulation_configuration,
 )
 from vivarium.testing_utilities import metadata
+
+
+@pytest.fixture
+def caplog(caplog: LogCaptureFixture):
+    handler_id = logger.add(caplog.handler, format="{message}")
+    yield caplog
+    logger.remove(handler_id)
 
 
 @pytest.fixture

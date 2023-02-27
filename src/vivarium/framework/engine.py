@@ -96,12 +96,12 @@ class SimulationContext:
 
         self._plugin_manager = PluginManager(model_specification.plugins)
 
-        self._logging_manager = self._plugin_manager.get_plugin("logging")
-        self._logging_manager.configure_logging(
+        self._logging = self._plugin_manager.get_plugin("logging")
+        self._logging.configure_logging(
             simulation_name=self.name,
             verbosity=logging_verbosity,
         )
-        self._logger = self._logging_manager.get_logger()
+        self._logger = self._logging.get_logger()
 
         self._builder = Builder(self.configuration, self._plugin_manager)
 
@@ -139,7 +139,7 @@ class SimulationContext:
         # manager requires the population manager.  The remaining managers need
         # no ordering.
         managers = [
-            self._logging_manager,
+            self._logging,
             self._clock,
             self._lifecycle,
             self._resource,
@@ -218,7 +218,7 @@ class SimulationContext:
         self.end_emitter(self._population.get_population(True).index)
         unused_config_keys = self.configuration.unused_keys()
         if unused_config_keys:
-            self._logger.warn(
+            self._logger.warning(
                 f"Some configuration keys not used during run: {unused_config_keys}."
             )
 

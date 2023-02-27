@@ -47,6 +47,7 @@ class ResultsManager:
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: "Builder"):
+        self.logger = builder.logging.get_logger(self.name)
         self.population_view = builder.population.get_view([])
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
@@ -179,6 +180,7 @@ class ResultsManager:
         excluded_stratifications: List[str] = (),
         when: str = "collect_metrics",
     ) -> None:
+        self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
         self._results_context.add_observation(
             name,
             pop_filter,
@@ -217,3 +219,27 @@ class ResultsManager:
         # Shim for now to allow incremental transition to new results system.
         metrics.update(self.metrics)
         return metrics
+
+    def _warn_check_stratifications(
+        self, additional_stratifications, excluded_stratifications
+    ):
+        """Check additional and excluded stratifications if they'd not affect
+        stratifications (i.e., would be NOP), and emit warning."""
+        nop_additional = [
+            s
+            for s in additional_stratifications
+            if s in self._results_context.default_stratifications
+        ]
+        if len(nop_additional):
+            self.logger.warning(
+                f"Specified additional stratifications are already included by default: {nop_additional}",
+            )
+        nop_exclude = [
+            s
+            for s in excluded_stratifications
+            if s not in self._results_context.default_stratifications
+        ]
+        if len(nop_exclude):
+            self.logger.warning(
+                f"Specified excluded stratifications are already not included by default: {nop_exclude}",
+            )
