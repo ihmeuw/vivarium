@@ -1,6 +1,6 @@
 """
 =====================
-The Logging Susbystem
+The Logging Subsystem
 =====================
 
 """
