@@ -42,7 +42,7 @@ class LoggingManager:
         return "logging_manager"
 
     def get_logger(self, component_name: str = None) -> Logger:
-        bind_args = {simulation: self._simulation_name}
+        bind_args = {"simulation": self._simulation_name}
         if component_name:
             bind_args["component"] = component_name
         return logger.bind(**bind_args)
