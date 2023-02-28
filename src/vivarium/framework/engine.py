@@ -52,23 +52,47 @@ class SimulationContext:
 
     @staticmethod
     def _get_context_name(sim_name: Union[str, None]) -> str:
-        # Not threadsafe, but I don't see why we'd need to be.
-        if sim_name:
-            if sim_name in SimulationContext._created_simulation_contexts:
-                msg = (
-                    "Attempting to create two SimulationContexts "
-                    f"with the same name {sim_name}"
-                )
-                raise VivariumError(msg)
+        """Get a unique name for a simulation context.
 
+        Parameters
+        ----------
+        sim_name
+            The name of the simulation context.  If None, a unique name will be generated.
+
+        Returns
+        -------
+        str
+            A unique name for the simulation context.
+
+        Note
+        ----
+        This method mutates process global state (the class attribute
+        ``_created_simulation_contexts``) in order to keep track contexts that have been
+        generated. This functionality makes generating simulation contexts in parallel
+        a non-threadsafe operation.
+
+        """
         if sim_name is None:
             sim_number = len(SimulationContext._created_simulation_contexts) + 1
             sim_name = f"simulation_{sim_number}"
+
+        if sim_name in SimulationContext._created_simulation_contexts:
+            msg = (
+                "Attempting to create two SimulationContexts "
+                f"with the same name {sim_name}"
+            )
+            raise VivariumError(msg)
+
         SimulationContext._created_simulation_contexts.add(sim_name)
         return sim_name
 
     @staticmethod
     def _clear_context_cache():
+        """Clear the cache of simulation context names.
+
+        This is primarily useful for testing purposes.
+
+        """
         SimulationContext._created_simulation_contexts = set()
 
     def __init__(
