@@ -10,6 +10,7 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.engine import SimulationContext as SimulationContext_
 from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
+from vivarium.framework.logging import LoggingInterface, LoggingManager
 from vivarium.framework.lookup import LookupTableInterface, LookupTableManager
 from vivarium.framework.metrics import Metrics
 from vivarium.framework.population import PopulationInterface, PopulationManager
@@ -43,7 +44,7 @@ def components():
 
 @pytest.fixture
 def log(mocker):
-    return mocker.patch("vivarium.framework.engine.logger")
+    return mocker.patch("vivarium.framework.logging.manager.logger")
 
 
 def test_SimulationContext_get_sim_name(SimulationContext):
@@ -58,6 +59,7 @@ def test_SimulationContext_get_sim_name(SimulationContext):
 def test_SimulationContext_init_default(SimulationContext, components):
     sim = SimulationContext(components=components)
 
+    assert isinstance(sim._logging, LoggingManager)
     assert isinstance(sim._lifecycle, LifeCycleManager)
     assert isinstance(sim._component_manager, ComponentManager)
     assert isinstance(sim._clock, DateTimeClock)
@@ -73,6 +75,8 @@ def test_SimulationContext_init_default(SimulationContext, components):
     assert isinstance(sim._builder, Builder)
     assert sim._builder.configuration is sim.configuration
 
+    assert isinstance(sim._builder.logging, LoggingInterface)
+    assert sim._builder.logging._manager is sim._logging
     assert isinstance(sim._builder.lookup, LookupTableInterface)
     assert sim._builder.lookup._manager is sim._tables
     assert isinstance(sim._builder.value, ValuesInterface)
@@ -98,6 +102,7 @@ def test_SimulationContext_init_default(SimulationContext, components):
 
     # Ordering matters.
     managers = [
+        sim._logging,
         sim._clock,
         sim._lifecycle,
         sim._resource,

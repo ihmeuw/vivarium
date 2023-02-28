@@ -24,7 +24,6 @@ from typing import Dict, List, Set, Union
 
 import numpy as np
 import pandas as pd
-from loguru import logger
 
 from vivarium.config_tree import ConfigTree
 from vivarium.exceptions import VivariumError
@@ -34,6 +33,7 @@ from .artifact import ArtifactInterface
 from .components import ComponentInterface
 from .event import EventInterface
 from .lifecycle import LifeCycleInterface
+from .logging import LoggingInterface
 from .lookup import LookupTableInterface
 from .metrics import Metrics
 from .plugins import PluginManager
@@ -101,8 +101,8 @@ class SimulationContext:
         configuration: Union[Dict, ConfigTree] = None,
         plugin_configuration: Union[Dict, ConfigTree] = None,
         sim_name: str = None,
+        logging_verbosity: int = 1,
     ):
-
         self._name = self._get_context_name(sim_name)
 
         # Bootstrap phase: Parse arguments, make private managers
@@ -120,7 +120,12 @@ class SimulationContext:
 
         self._plugin_manager = PluginManager(model_specification.plugins)
 
-        # TODO: Setup logger here.
+        self._logging = self._plugin_manager.get_plugin("logging")
+        self._logging.configure_logging(
+            simulation_name=self.name,
+            verbosity=logging_verbosity,
+        )
+        self._logger = self._logging.get_logger()
 
         self._builder = Builder(self.configuration, self._plugin_manager)
 
@@ -152,12 +157,13 @@ class SimulationContext:
             setattr(self, f"_{name}", controller)
 
         # The order the managers are added is important.  It represents the
-        # order in which they will be set up.  The clock is required by
-        # several of the other managers, including the lifecycle manager.  The
+        # order in which they will be set up.  The logging manager and the clock are
+        # required by several of the other managers, including the lifecycle manager. The
         # lifecycle manager is also required by most managers. The randomness
         # manager requires the population manager.  The remaining managers need
         # no ordering.
         managers = [
+            self._logging,
             self._clock,
             self._lifecycle,
             self._resource,
@@ -221,7 +227,7 @@ class SimulationContext:
         self._clock.step_forward()
 
     def step(self):
-        logger.debug(self._clock.time)
+        self._logger.debug(self._clock.time)
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
             self.time_step_emitters[event](self._population.get_population(True).index)
@@ -236,7 +242,7 @@ class SimulationContext:
         self.end_emitter(self._population.get_population(True).index)
         unused_config_keys = self.configuration.unused_keys()
         if unused_config_keys:
-            logger.debug(
+            self._logger.warning(
                 f"Some configuration keys not used during run: {unused_config_keys}."
             )
 
@@ -246,13 +252,13 @@ class SimulationContext:
             self._population.get_population(True).index
         )
         if print_results:
-            logger.debug("\n" + pformat(metrics))
+            self._logger.info("\n" + pformat(metrics))
             performance_metrics = self.get_performance_metrics()
             performance_metrics = performance_metrics.to_string(
                 index=False,
                 float_format=lambda x: f"{x:.2f}",
             )
-            logger.debug("\n" + performance_metrics)
+            self._logger.info("\n" + performance_metrics)
 
         return metrics
 
@@ -293,6 +299,8 @@ class Builder:
 
     Attributes
     ----------
+    logging: LoggingInterface
+        Provides access to the :ref:`logging<logging_concept>` system.
     lookup: LookupTableInterface
         Provides access to simulant-specific data via the
         :ref:`lookup table<lookup_concept>` abstraction.
@@ -331,6 +339,9 @@ class Builder:
     def __init__(self, configuration, plugin_manager):
         self.configuration = configuration
 
+        self.logging = plugin_manager.get_plugin_interface(
+            "logging"
+        )  # type: LoggingInterface
         self.lookup = plugin_manager.get_plugin_interface(
             "lookup"
         )  # type: LookupTableInterface
