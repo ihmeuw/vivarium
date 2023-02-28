@@ -29,9 +29,9 @@ class LoggingManager:
         # This hacks into the internals of loguru to see if we've already configured a
         # terminal sink. Loguru maintains a global increment of the loggers it has generated
         # and has a default logger configured with id 0. All code paths in this library that
-        # configure logging handlers delete the default handler with id 0, add a terminal 
+        # configure logging handlers delete the default handler with id 0, add a terminal
         # logging handler (with id 1) and potentially have a file logging handler with id 2.
-        # This behavior is based on sequencing of the handle definition. This is a bit 
+        # This behavior is based on sequencing of the handle definition. This is a bit
         # fragile since it depends on a loguru's internals as well as the stability of code
         # paths in vivarium, but both are quite stable at this point, so I think it's pretty,
         # low risk.
