@@ -9,7 +9,7 @@ Collection of utility functions shared by the ``vivarium`` framework.
 import functools
 from bdb import BdbQuit
 from importlib import import_module
-from typing import Any, Callable, Union, List, Tuple
+from typing import Any, Callable, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -23,9 +23,7 @@ def to_yearly(value, time_step):
     return value / (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
-def rate_to_probability(
-    rate: Union[float, List, Tuple, np.ndarray, pd.Series]
-) -> np.ndarray:
+def rate_to_probability(rate: Union[float, List, Tuple, np.ndarray, pd.Series]) -> np.ndarray:
     # encountered underflow from rate > 30k
     # for rates greater than 250, exp(-rate) evaluates to 1e-109
     # beware machine-specific floating point issues
