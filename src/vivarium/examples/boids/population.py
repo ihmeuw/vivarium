@@ -3,7 +3,6 @@ import pandas as pd
 
 
 class Population:
-
     configuration_defaults = {
         "population": {
             "colors": ["red", "blue"],

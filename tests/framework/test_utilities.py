@@ -33,6 +33,12 @@ def test_rate_to_probability():
     assert np.isclose(prob, 0.00099950016662497809)
 
 
+def test_very_high_rate_to_probability():
+    rate = np.array([10_000])
+    prob = rate_to_probability(rate)
+    assert np.isclose(prob, 1.0)
+
+
 def test_probability_to_rate():
     prob = np.array([0.00099950016662497809])
     rate = probability_to_rate(prob)

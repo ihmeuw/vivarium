@@ -3,7 +3,6 @@ from scipy import spatial
 
 
 class Neighbors:
-
     configuration_defaults = {"neighbors": {"radius": 10}}
 
     def __init__(self):

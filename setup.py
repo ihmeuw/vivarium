@@ -20,7 +20,6 @@ from pathlib import Path
 from setuptools import find_packages, setup
 
 if __name__ == "__main__":
-
     base_dir = Path(__file__).parent
     src_dir = base_dir / "src"
 

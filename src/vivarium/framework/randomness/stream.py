@@ -184,7 +184,7 @@ class RandomnessStream:
     def filter_for_rate(
         self,
         population: Union[pd.DataFrame, pd.Series, pd.Index],
-        rate: Union[List, Tuple, np.ndarray, pd.Series],
+        rate: Union[float, List, Tuple, np.ndarray, pd.Series],
         additional_key: Any = None,
     ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
         """Decide an event outcome for each individual from rates.
@@ -221,7 +221,7 @@ class RandomnessStream:
     def filter_for_probability(
         self,
         population: Union[pd.DataFrame, pd.Series, pd.Index],
-        probability: Union[List, Tuple, np.ndarray, pd.Series],
+        probability: Union[float, List, Tuple, np.ndarray, pd.Series],
         additional_key: Any = None,
     ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
         """Decide an outcome for each individual from probabilities.
