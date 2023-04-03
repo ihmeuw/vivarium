@@ -100,7 +100,6 @@ class ResultsContext:
         when: str = "collect_metrics",
         **additional_keys: str,
     ):
-
         stratifications = self._get_stratifications(
             additional_stratifications, excluded_stratifications
         )

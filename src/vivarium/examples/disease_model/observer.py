@@ -6,7 +6,6 @@ from vivarium.framework.engine import Builder
 
 
 class Observer:
-
     configuration_defaults = {
         "mortality": {
             "life_expectancy": 80,
@@ -24,7 +23,6 @@ class Observer:
         builder.value.register_value_modifier("metrics", self.metrics)
 
     def metrics(self, index: pd.Index, metrics: Dict):
-
         pop = self.population_view.get(index)
         metrics["total_population_alive"] = len(pop[pop.alive == "alive"])
         metrics["total_population_dead"] = len(pop[pop.alive == "dead"])

@@ -46,7 +46,6 @@ from .values import ValuesInterface
 
 
 class SimulationContext:
-
     _created_simulation_contexts: Set[str] = set()
 
     @staticmethod

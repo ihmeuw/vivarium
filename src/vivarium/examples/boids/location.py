@@ -3,7 +3,6 @@ import pandas as pd
 
 
 class Location:
-
     configuration_defaults = {
         "location": {
             "width": 1000,  # Width of our field

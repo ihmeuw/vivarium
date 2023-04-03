@@ -4,7 +4,6 @@ from vivarium.framework.engine import Builder
 
 
 class TreatmentIntervention:
-
     configuration_defaults = {
         "intervention": {
             "effect_size": 0.5,

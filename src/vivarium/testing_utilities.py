@@ -16,7 +16,6 @@ from vivarium.framework.randomness.index_map import IndexMap
 
 
 class NonCRNTestPopulation:
-
     configuration_defaults = {
         "population": {
             "age_start": 0,

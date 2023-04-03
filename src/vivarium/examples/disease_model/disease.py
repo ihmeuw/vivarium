@@ -150,7 +150,6 @@ class DiseaseModel(Machine):
 
 
 class SISDiseaseModel:
-
     configuration_defaults = {
         "disease": {
             "incidence_rate": 0.005,

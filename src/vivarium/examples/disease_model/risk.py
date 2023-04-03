@@ -2,7 +2,6 @@ import pandas as pd
 
 
 class Risk:
-
     configuration_defaults = {
         "risk": {
             "proportion_exposed": 0.3,
@@ -50,7 +49,6 @@ class Risk:
 
 
 class RiskEffect:
-
     configuration_defaults = {
         "risk_effect": {
             "relative_risk": 2,

@@ -48,13 +48,48 @@ def test__set_residual_probability(weights_with_residuals, index):
         assert np.isclose(p_total, len(index), atol=0.0001)
 
 
-def test_filter_for_probability(randomness_stream, index):
-
+def test_filter_for_probability_single_probability(randomness_stream, index):
     sub_index = randomness_stream.filter_for_probability(index, 0.5)
-    assert round(len(sub_index) / len(index), 1) == 0.5
+    assert np.isclose(len(sub_index) / len(index), 0.5, rtol=0.1)
 
     sub_sub_index = randomness_stream.filter_for_probability(sub_index, 0.5)
-    assert round(len(sub_sub_index) / len(sub_index), 1) == 0.5
+    assert np.isclose(len(sub_sub_index) / len(sub_index), 0.5, rtol=0.1)
+
+
+def test_filter_for_probability_multiple_probabilities(randomness_stream, index):
+    probabilities = pd.Series([0.3, 0.3, 0.3, 0.6, 0.6] * (index.size // 5), index=index)
+    threshold_0_3 = probabilities.index[probabilities == 0.3]
+    threshold_0_6 = probabilities.index.difference(threshold_0_3)
+
+    sub_index = randomness_stream.filter_for_probability(index, probabilities)
+    assert np.isclose(
+        len(sub_index.intersection(threshold_0_3)) / len(threshold_0_3), 0.3, rtol=0.1
+    )
+    assert np.isclose(
+        len(sub_index.intersection(threshold_0_6)) / len(threshold_0_6), 0.6, rtol=0.1
+    )
+
+
+def test_filter_for_rate_single_probability(randomness_stream, index):
+    sub_index = randomness_stream.filter_for_rate(index, 0.5)
+    assert np.isclose(len(sub_index) / len(index), 1 - np.exp(-0.5), rtol=0.1)
+
+    sub_sub_index = randomness_stream.filter_for_rate(sub_index, 0.5)
+    assert np.isclose(len(sub_sub_index) / len(sub_index), 1 - np.exp(-0.5), rtol=0.1)
+
+
+def test_filter_for_rate_multiple_probabilities(randomness_stream, index):
+    rates = pd.Series([0.3, 0.3, 0.3, 0.6, 0.6] * (index.size // 5), index=index)
+    rate_0_3 = rates.index[rates == 0.3]
+    rate_0_6 = rates.index.difference(rate_0_3)
+
+    sub_index = randomness_stream.filter_for_rate(index, rates)
+    assert np.isclose(
+        len(sub_index.intersection(rate_0_3)) / len(rate_0_3), 1 - np.exp(-0.3), rtol=0.1
+    )
+    assert np.isclose(
+        len(sub_index.intersection(rate_0_6)) / len(rate_0_6), 1 - np.exp(-0.6), rtol=0.1
+    )
 
 
 def test_choice(randomness_stream, index, choices, weights):

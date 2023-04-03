@@ -66,7 +66,6 @@ class InterpolatedTable:
         extrapolate: bool,
         validate: bool,
     ):
-
         self.data = data
         self.population_view = population_view
         self.key_columns = key_columns
@@ -138,7 +137,6 @@ class ScalarTable:
         values: Union[List[ScalarValue], Tuple[ScalarValue]],
         value_columns: Union[List[str], Tuple[str]],
     ):
-
         self.values = values
         self.value_columns = value_columns
 

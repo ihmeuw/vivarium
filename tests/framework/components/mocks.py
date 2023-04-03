@@ -42,7 +42,6 @@ class MockComponentB:
 
 
 class MockGenericComponent:
-
     configuration_defaults = {
         "component": {
             "key1": "val",
