@@ -199,11 +199,12 @@ class RandomnessStream:
             A view on the simulants for which we are determining the
             outcome of an event.
         rate
-            A 1d list of rates of the event under consideration occurring which
-            corresponds (i.e. `len(population) == len(probability))` to the
-            population view passed in. The rates must be scaled to the
-            simulation time-step size either manually or as a post-processing
-            step in a rate pipeline.
+            A scalar float value or a 1d list of rates of the event under
+            consideration occurring which corresponds (i.e.
+            `len(population) == len(probability))` to the population view passed
+            in. The rates must be scaled to the simulation time-step size either
+            manually or as a post-processing step in a rate pipeline. If a
+            scalar is provided, it is applied to every row in the population.
         additional_key
             Any additional information used to create the seed.
 
@@ -236,10 +237,11 @@ class RandomnessStream:
             A view on the simulants for which we are determining the
             outcome of an event.
         probability
-            A 1d list of probabilities of the event under consideration
-            occurring which corresponds (i.e.
+            A scalar float value or a 1d list of probabilities of the event
+            under consideration occurring which corresponds (i.e.
             `len(population) == len(probability)` to the population view
-            passed in.
+            passed in. If a scalar is provided, it is applied to every row in
+            the population.
         additional_key
             Any additional information used to create the seed.
 
