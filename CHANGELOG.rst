@@ -1,3 +1,10 @@
+**1.1.0 - 05/03/23**
+
+ - Clean up randomness system
+ - Fix a bug in stratification when a stratum is empty
+ - Create a dedicated logging system
+ - Fix bug in preventing passing an Iterable to `rate_to_probability`
+
 **1.0.4 - 01/25/23**
 
  - Bugfixes for ResultsContext
