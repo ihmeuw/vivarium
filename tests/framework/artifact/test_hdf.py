@@ -325,7 +325,6 @@ def test_EntityKey_with_name():
 
 
 def test_entity_key_equality():
-
     type_ = "cause"
     name = "diarrheal_diseases"
     measure = "incidence"

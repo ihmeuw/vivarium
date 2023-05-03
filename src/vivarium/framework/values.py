@@ -18,7 +18,6 @@ from typing import Any, Callable, Iterable, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
-from loguru import logger
 
 from vivarium.exceptions import VivariumError
 from vivarium.framework.utilities import from_yearly
@@ -258,6 +257,7 @@ class ValuesManager:
         return "values_manager"
 
     def setup(self, builder):
+        self.logger = builder.logging.get_logger(self.name)
         self.step_size = builder.time.step_size()
         builder.event.register_listener("post_setup", self.on_post_setup)
 
@@ -273,7 +273,7 @@ class ValuesManager:
         # modifiers to values that aren't required in a simulation.
         unsourced_pipelines = [p for p, v in self._pipelines.items() if not v.source]
         if unsourced_pipelines:
-            logger.warning(f"Unsourced pipelines: {unsourced_pipelines}")
+            self.logger.warning(f"Unsourced pipelines: {unsourced_pipelines}")
 
         # register_value_producer and register_value_modifier record the
         # dependency structure for the pipeline source and pipeline modifiers,
@@ -335,7 +335,7 @@ class ValuesManager:
         preferred_post_processor: Callable,
     ):
         """Configure the named value pipeline with a source, combiner, and post-processor."""
-        logger.debug(f"Registering value pipeline {value_name}")
+        self.logger.debug(f"Registering value pipeline {value_name}")
         pipeline = self._pipelines[value_name]
         if pipeline.source:
             raise DynamicValueError(
@@ -389,7 +389,7 @@ class ValuesManager:
         pipeline.mutators.append(modifier)
 
         name = f"{value_name}.{len(pipeline.mutators)}.{modifier_name}"
-        logger.debug(f"Registering {name} as modifier to {value_name}")
+        self.logger.debug(f"Registering {name} as modifier to {value_name}")
         dependencies = self._convert_dependencies(
             modifier, requires_columns, requires_values, requires_streams
         )

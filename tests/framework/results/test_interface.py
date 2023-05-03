@@ -76,7 +76,7 @@ def test_register_observation(
     mocker.patch.object(builder, "value.get_value")
     builder.value.get_value = MethodType(mock_get_value, builder)
     mgr.setup(builder)
-    assert len(interface._manager._results_context._observations) == 0
+    assert len(interface._manager._results_context.observations) == 0
     interface.register_observation(
         name,
         pop_filter,
@@ -87,13 +87,13 @@ def test_register_observation(
         additional_stratifications,
         excluded_stratifications,
     )
-    assert len(interface._manager._results_context._observations) == 1
+    assert len(interface._manager._results_context.observations) == 1
 
 
 def test_register_observations():
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    assert len(interface._manager._results_context._observations) == 0
+    assert len(interface._manager._results_context.observations) == 0
     interface.register_observation(
         "living_person_time",
         'alive == "alive" and undead == False',
@@ -105,7 +105,7 @@ def test_register_observations():
         [],
         "collect_metrics",
     )
-    assert len(interface._manager._results_context._observations) == 1
+    assert len(interface._manager._results_context.observations) == 1
     interface.register_observation(
         "undead_person_time",
         "undead == True",
@@ -117,13 +117,13 @@ def test_register_observations():
         [],
         "time_step__prepare",
     )
-    assert len(interface._manager._results_context._observations) == 2
+    assert len(interface._manager._results_context.observations) == 2
 
 
 def test_unhashable_pipeline():
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    assert len(interface._manager._results_context._observations) == 0
+    assert len(interface._manager._results_context.observations) == 0
     with pytest.raises(TypeError, match="unhashable"):
         interface.register_observation(
             "living_person_time",

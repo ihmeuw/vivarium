@@ -8,13 +8,11 @@ interfaces for ``vivarium``.
 
 """
 import functools
-import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Union
 
 import yaml
-from loguru import logger
 
 from vivarium.exceptions import VivariumError
 
@@ -124,6 +122,7 @@ def get_output_model_name_string(
     -------
     str
         A model name string for use in output labeling.
+
     """
     if artifact_path:
         model_name = Path(artifact_path).stem
@@ -146,29 +145,3 @@ def get_output_root(
     model_name = get_output_model_name_string(artifact_path, model_specification_file)
     output_root = Path(results_directory + f"/{model_name}/{launch_time}")
     return output_root
-
-
-def add_logging_sink(sink, verbose, colorize=False, serialize=False):
-    message_format = (
-        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
-        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> "
-        "- <level>{message}</level>"
-    )
-    if verbose:
-        logger.add(
-            sink, colorize=colorize, level="DEBUG", format=message_format, serialize=serialize
-        )
-    else:
-        logger.add(
-            sink, colorize=colorize, level="ERROR", format=message_format, serialize=serialize
-        )
-
-
-def configure_logging_to_terminal(verbose):
-    logger.remove(0)  # Clear default configuration
-    add_logging_sink(sys.stdout, verbose, colorize=True)
-
-
-def configure_logging_to_file(output_directory):
-    master_log = output_directory / "simulation.log"
-    add_logging_sink(master_log, verbose=True)

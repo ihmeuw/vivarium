@@ -81,7 +81,6 @@ def import_and_instantiate_mock(mocker):
 
 
 def test_parse_component_config(components):
-
     source = yaml.full_load(components)["components"]
     component_list = parse_component_config_to_list(source)
     assert set(TEST_COMPONENTS_PARSED) == set(component_list)

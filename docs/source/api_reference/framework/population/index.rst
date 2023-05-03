@@ -1,3 +1,7 @@
+=====================
+Population Management
+=====================
+
 .. automodule:: vivarium.framework.population
 
 .. toctree::

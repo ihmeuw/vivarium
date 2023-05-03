@@ -44,7 +44,6 @@ class Interpolation:
         extrapolate: bool,
         validate: bool,
     ):
-
         # TODO: allow for order 1 interpolation with binned edges
         if order != 0:
             raise NotImplementedError(
@@ -241,7 +240,6 @@ def check_data_complete(data, parameter_columns):
             warnings.simplefilter(action="ignore", category=FutureWarning)
             sub_tables = list(sub_tables)
         for _, table in sub_tables:
-
             param_data = table[[p[0], p[1]]].copy().sort_values(by=p[0])
             start, end = param_data[p[0]].reset_index(drop=True), param_data[
                 p[1]

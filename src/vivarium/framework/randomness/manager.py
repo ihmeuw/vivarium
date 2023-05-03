@@ -5,10 +5,9 @@ Randomness System Manager
 """
 import pandas as pd
 
-from vivarium.framework.randomness.core import get_hash
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
-from vivarium.framework.randomness.stream import RandomnessStream
+from vivarium.framework.randomness.stream import RandomnessStream, get_hash
 
 
 class RandomnessManager:
@@ -17,7 +16,7 @@ class RandomnessManager:
     configuration_defaults = {
         "randomness": {
             "map_size": 1_000_000,
-            "key_columns": ["entrance_time"],
+            "key_columns": [],
             "random_seed": 0,
             "additional_seed": None,
         }
@@ -27,7 +26,7 @@ class RandomnessManager:
         self._seed = None
         self._clock = None
         self._key_columns = None
-        self._key_mapping = IndexMap()
+        self._key_mapping = None
         self._decision_points = dict()
 
     @property
@@ -40,9 +39,11 @@ class RandomnessManager:
             self._seed += str(builder.configuration.randomness.additional_seed)
         self._clock = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
+
         map_size = builder.configuration.randomness.map_size
         pop_size = builder.configuration.population.population_size
-        self._key_mapping.map_size = max(map_size, 10 * pop_size)
+        map_size = max(map_size, 10 * pop_size)
+        self._key_mapping = IndexMap(self._key_columns, map_size)
 
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
@@ -60,7 +61,7 @@ class RandomnessManager:
         )
 
     def get_randomness_stream(
-        self, decision_point: str, for_initialization: bool = False
+        self, decision_point: str, initializes_crn_attributes: bool = False
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -70,7 +71,7 @@ class RandomnessManager:
             A unique identifier for a stream of random numbers.  Typically
             represents a decision that needs to be made each time step like
             'moves_left' or 'gets_disease'.
-        for_initialization
+        initializes_crn_attributes
             A flag indicating whether this stream is used to generate key
             initialization information that will be used to identify simulants
             in the Common Random Number framework. These streams cannot be
@@ -84,8 +85,8 @@ class RandomnessManager:
             with the same identifier.
 
         """
-        stream = self._get_randomness_stream(decision_point, for_initialization)
-        if not for_initialization:
+        stream = self._get_randomness_stream(decision_point, initializes_crn_attributes)
+        if not initializes_crn_attributes:
             # We need the key columns to be created before this stream can be called.
             self.resources.add_resources(
                 "stream",
@@ -110,7 +111,7 @@ class RandomnessManager:
         return stream
 
     def _get_randomness_stream(
-        self, decision_point: str, for_initialization: bool = False
+        self, decision_point: str, initializes_crn_attributes: bool = False
     ) -> RandomnessStream:
         if decision_point in self._decision_points:
             raise RandomnessError(
@@ -122,7 +123,7 @@ class RandomnessManager:
             clock=self._clock,
             seed=self._seed,
             index_map=self._key_mapping,
-            for_initialization=for_initialization,
+            initializes_crn_attributes=initializes_crn_attributes,
         )
         self._decision_points[decision_point] = stream
         return stream
@@ -166,7 +167,7 @@ class RandomnessManager:
             raise RandomnessError(
                 "The simulants dataframe does not have all specified key_columns."
             )
-        self._key_mapping.update(simulants.set_index(self._key_columns).index)
+        self._key_mapping.update(simulants.loc[:, self._key_columns])
 
     def __str__(self):
         return "RandomnessManager()"
@@ -180,7 +181,7 @@ class RandomnessInterface:
         self._manager = manager
 
     def get_stream(
-        self, decision_point: str, for_initialization: bool = False
+        self, decision_point: str, initializes_crn_attributes: bool = False
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -196,7 +197,7 @@ class RandomnessInterface:
             A unique identifier for a stream of random numbers.  Typically
             represents a decision that needs to be made each time step like
             'moves_left' or 'gets_disease'.
-        for_initialization
+        initializes_crn_attributes
             A flag indicating whether this stream is used to generate key
             initialization information that will be used to identify simulants
             in the Common Random Number framework. These streams cannot be
@@ -211,7 +212,7 @@ class RandomnessInterface:
             other utilities.
 
         """
-        return self._manager.get_randomness_stream(decision_point, for_initialization)
+        return self._manager.get_randomness_stream(decision_point, initializes_crn_attributes)
 
     def get_seed(self, decision_point: str) -> int:
         """Get a randomly generated seed for use with external randomness tools.

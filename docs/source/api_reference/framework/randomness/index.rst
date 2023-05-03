@@ -1,3 +1,7 @@
+========================
+Random Number Generation
+========================
+
 .. automodule:: vivarium.framework.randomness
 
 .. toctree::
