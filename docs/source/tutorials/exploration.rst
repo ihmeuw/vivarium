@@ -297,8 +297,9 @@ the population as a whole.
     75%           3.744090
     max           4.999967
     Name: age, dtype: float64
+    alive
     alive    100000
-    Name: alive, dtype: int64
+    Name: count, dtype: int64
     count    100000.000000
     mean          0.500602
     std           0.288434
@@ -308,15 +309,19 @@ the population as a whole.
     75%           0.749816
     max           0.999978
     Name: child_wasting_propensity, dtype: float64
+    lower_respiratory_infections
     susceptible_to_lower_respiratory_infections    100000
-    Name: lower_respiratory_infections, dtype: int64
+    Name: count, dtype: int64
+    entrance_time
     2021-12-31 12:00:00    100000
-    Name: entrance_time, dtype: int64
+    Name: count, dtype: int64
+    sex
     Male      50162
     Female    49838
-    Name: sex, dtype: int64
+    Name: count, dtype: int64
+    tracked
     True    100000
-    Name: tracked, dtype: int64
+    Name: count, dtype: int64
 
 
 

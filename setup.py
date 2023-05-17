@@ -1,6 +1,6 @@
 import sys
 
-min_version, max_version = ((3, 6), "3.6"), ((3, 10), "3.10")
+min_version, max_version = ((3, 8), "3.8"), ((3, 10), "3.10")
 
 if not (min_version[0] <= sys.version_info[:2] <= max_version[0]):
     # Python 3.5 does not support f-strings
@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     install_requirements = [
         "numpy",
-        "pandas<2.0.0",
+        "pandas>=2.0",
         "pyyaml>=5.1",
         "scipy",
         "click",
