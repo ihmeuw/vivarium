@@ -212,6 +212,10 @@ class State:
     def setup(self, builder: "Builder") -> None:
         pass
 
+    def set_model(self, model_name: str) -> None:
+        """Defines the column name for the model this state belongs to"""
+        self._model = model_name
+
     def next_state(
         self, index: pd.Index, event_time: "Time", population_view: "PopulationView"
     ) -> None:
@@ -488,7 +492,7 @@ class Machine:
     def add_states(self, states: Iterable[State]) -> None:
         for state in states:
             self.states.append(state)
-            state._model = self.state_column
+            state.set_model(self.state_column)
 
     def transition(self, index: pd.Index, event_time: "Time") -> None:
         """Finds the population in each state and moves them to the next state.
