@@ -391,7 +391,7 @@ def test__format_results():
     ctx = ResultsContext()
     aggregates = BASE_POPULATION.groupby(["house", "familiar"]).apply(len)
     measure = "wizard_count"
-    rv = ctx._format_results(measure, aggregates)
+    rv = ctx._format_results(measure, aggregates, has_stratifications=True)
 
     # Check that the number of expected data column names are there
     expected_keys_len = len(CATEGORIES) * len(FAMILIARS)

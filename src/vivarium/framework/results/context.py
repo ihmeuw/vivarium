@@ -121,10 +121,8 @@ class ResultsContext:
                 yield {}
             else:
                 if not len(list(stratifications)):  # Handle situation of no stratifications
-                    no_stratifications = True # used in _format_results
                     pop_groups = filtered_pop.groupby(lambda _: True)
                 else:
-                    no_stratifications = False
                     pop_groups = filtered_pop.groupby(list(stratifications))
 
                 for measure, aggregator_sources, aggregator, additional_keys in observations:
@@ -145,7 +143,7 @@ class ResultsContext:
                         )
 
                     # Keep formatting all in one place.
-                    yield self._format_results(measure, aggregates, no_stratifications, **additional_keys)
+                    yield self._format_results(measure, aggregates, bool(len(list(stratifications))), **additional_keys)
 
     def _get_stratifications(
         self,
@@ -163,12 +161,12 @@ class ResultsContext:
     def _format_results(
         measure: str,
         aggregates: pd.Series,
-        no_stratifications: bool = False,
+        has_stratifications: bool,
         **additional_keys: str,
     ) -> Dict[str, float]:
         results = {}
         # Simpler formatting if we don't have stratifications
-        if no_stratifications:
+        if not has_stratifications:
             return {measure: aggregates.squeeze()}
         else:
             # First we expand the categorical index over unobserved pairs.
