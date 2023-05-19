@@ -45,11 +45,6 @@ class ResultsContext:
                 "Multiple calls are being made to set default grouping columns "
                 "for results production."
             )
-        if not default_grouping_columns:
-            raise ResultsConfigurationError(
-                "Attempting to set an empty list as the default grouping columns "
-                "for results production."
-            )
         self.default_stratifications = default_grouping_columns
 
     def add_stratification(
@@ -125,7 +120,11 @@ class ResultsContext:
             if filtered_pop.empty:
                 yield {}
             else:
-                pop_groups = filtered_pop.groupby(list(stratifications))
+                if not len(list(stratifications)):  # Handle situation of no stratifications
+                    pop_groups = filtered_pop.groupby(lambda _: True)
+                else:
+                    pop_groups = filtered_pop.groupby(list(stratifications))
+
                 for measure, aggregator_sources, aggregator, additional_keys in observations:
                     if aggregator_sources:
                         aggregates = (
@@ -144,7 +143,12 @@ class ResultsContext:
                         )
 
                     # Keep formatting all in one place.
-                    yield self._format_results(measure, aggregates, **additional_keys)
+                    yield self._format_results(
+                        measure,
+                        aggregates,
+                        bool(len(list(stratifications))),
+                        **additional_keys,
+                    )
 
     def _get_stratifications(
         self,
@@ -162,38 +166,43 @@ class ResultsContext:
     def _format_results(
         measure: str,
         aggregates: pd.Series,
+        has_stratifications: bool,
         **additional_keys: str,
     ) -> Dict[str, float]:
         results = {}
-        # First we expand the categorical index over unobserved pairs.
-        # This ensures that the produced results are always the same length.
-        if isinstance(aggregates.index, pd.MultiIndex):
-            idx = pd.MultiIndex.from_product(
-                aggregates.index.levels, names=aggregates.index.names
-            )
+        # Simpler formatting if we don't have stratifications
+        if not has_stratifications:
+            return {measure: aggregates.squeeze()}
         else:
-            idx = aggregates.index
-        data = pd.Series(data=0, index=idx)
-        data.loc[aggregates.index] = aggregates
+            # First we expand the categorical index over unobserved pairs.
+            # This ensures that the produced results are always the same length.
+            if isinstance(aggregates.index, pd.MultiIndex):
+                idx = pd.MultiIndex.from_product(
+                    aggregates.index.levels, names=aggregates.index.names
+                )
+            else:
+                idx = aggregates.index
+            data = pd.Series(data=0, index=idx)
+            data.loc[aggregates.index] = aggregates
 
-        def _format(field, param):
-            """Format of the measure identifier tokens into FIELD_param."""
-            return f"{str(field).upper()}_{param}"
+            def _format(field, param):
+                """Format of the measure identifier tokens into FIELD_param."""
+                return f"{str(field).upper()}_{param}"
 
-        for categories, val in data.items():
-            if isinstance(categories, str):  # handle single stratification case
-                categories = [categories]
-            key = "_".join(
-                [_format("measure", measure)]
-                + [
-                    _format(field, category)
-                    for field, category in zip(data.index.names, categories)
-                ]
-                # Sorts additional_keys by the field name.
-                + [
-                    _format(field, category)
-                    for field, category in sorted(additional_keys.items())
-                ]
-            )
-            results[key] = val
-        return results
+            for categories, val in data.items():
+                if isinstance(categories, str):  # handle single stratification case
+                    categories = [categories]
+                key = "_".join(
+                    [_format("measure", measure)]
+                    + [
+                        _format(field, category)
+                        for field, category in zip(data.index.names, categories)
+                    ]
+                    # Sorts additional_keys by the field name.
+                    + [
+                        _format(field, category)
+                        for field, category in sorted(additional_keys.items())
+                    ]
+                )
+                results[key] = val
+            return results
