@@ -143,7 +143,12 @@ class ResultsContext:
                         )
 
                     # Keep formatting all in one place.
-                    yield self._format_results(measure, aggregates, bool(len(list(stratifications))), **additional_keys)
+                    yield self._format_results(
+                        measure,
+                        aggregates,
+                        bool(len(list(stratifications))),
+                        **additional_keys,
+                    )
 
     def _get_stratifications(
         self,
