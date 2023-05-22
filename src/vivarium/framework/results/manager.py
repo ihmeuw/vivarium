@@ -29,6 +29,12 @@ class ResultsManager:
     `collect_metrics`).
     """
 
+    configuration_defaults = {
+        "stratification": {
+            "default": [],
+        }
+    }
+
     def __init__(self):
         self._metrics = Counter()
         self._results_context = ResultsContext()
@@ -58,6 +64,8 @@ class ResultsManager:
         builder.event.register_listener("collect_metrics", self.on_collect_metrics)
 
         self.get_value = builder.value.get_value
+
+        self.set_default_stratifications(builder.configuration.stratification.default)
 
         builder.value.register_value_modifier("metrics", self.get_results)
 

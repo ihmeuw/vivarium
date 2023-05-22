@@ -3,6 +3,7 @@ import pandas as pd
 import pytest
 
 from vivarium.framework.results.stratification import Stratification
+from vivarium.framework.results.manager import ResultsManager
 
 from .mocks import (
     CATEGORIES,
@@ -140,3 +141,18 @@ def test_stratification_call_raises(
     my_stratification = Stratification(name, sources, categories, mapper, is_vectorized)
     with pytest.raises(expected_exception):
         raise my_stratification(STUDENT_TABLE)
+
+
+def test_results_manager_setup(mocker):
+    """Test that set default stratifications happens at setup"""
+    rm = ResultsManager()
+    builder = mocker.Mock()
+
+    rm.set_default_stratifications = mocker.Mock()
+    rm.set_default_stratifications.assert_not_called()
+
+    rm.setup(builder)
+
+    rm.set_default_stratifications.assert_called_once_with(
+        builder.configuration.stratification.default
+    )
