@@ -366,12 +366,32 @@ def test_gather_results_with_empty_pop_filter():
         assert len(result) == 0
 
 
+def test_gather_results_with_no_stratifications():
+    """Test case where we have no stratifications. gather_results should return one value."""
+    ctx = ResultsContext()
+
+    # Generate population DataFrame
+    population = BASE_POPULATION.copy()
+
+    event_name = "collect_metrics"
+    ctx.add_observation(
+        name="wizard_count",
+        pop_filter="",
+        aggregator_sources=None,
+        aggregator=len,
+        event_name=event_name,
+    )
+
+    assert len(ctx.stratifications) == 0
+    assert len(list(ctx.gather_results(population, event_name))) == 1
+
+
 def test__format_results():
     """Test that format results produces the expected number of keys and a specific expected key"""
     ctx = ResultsContext()
     aggregates = BASE_POPULATION.groupby(["house", "familiar"]).apply(len)
     measure = "wizard_count"
-    rv = ctx._format_results(measure, aggregates)
+    rv = ctx._format_results(measure, aggregates, has_stratifications=True)
 
     # Check that the number of expected data column names are there
     expected_keys_len = len(CATEGORIES) * len(FAMILIARS)
