@@ -173,36 +173,36 @@ class ResultsContext:
         # Simpler formatting if we don't have stratifications
         if not has_stratifications:
             return {measure: aggregates.squeeze()}
+
+        # First we expand the categorical index over unobserved pairs.
+        # This ensures that the produced results are always the same length.
+        if isinstance(aggregates.index, pd.MultiIndex):
+            idx = pd.MultiIndex.from_product(
+                aggregates.index.levels, names=aggregates.index.names
+            )
         else:
-            # First we expand the categorical index over unobserved pairs.
-            # This ensures that the produced results are always the same length.
-            if isinstance(aggregates.index, pd.MultiIndex):
-                idx = pd.MultiIndex.from_product(
-                    aggregates.index.levels, names=aggregates.index.names
-                )
-            else:
-                idx = aggregates.index
-            data = pd.Series(data=0, index=idx)
-            data.loc[aggregates.index] = aggregates
+            idx = aggregates.index
+        data = pd.Series(data=0, index=idx)
+        data.loc[aggregates.index] = aggregates
 
-            def _format(field, param):
-                """Format of the measure identifier tokens into FIELD_param."""
-                return f"{str(field).upper()}_{param}"
+        def _format(field, param):
+            """Format of the measure identifier tokens into FIELD_param."""
+            return f"{str(field).upper()}_{param}"
 
-            for categories, val in data.items():
-                if isinstance(categories, str):  # handle single stratification case
-                    categories = [categories]
-                key = "_".join(
-                    [_format("measure", measure)]
-                    + [
-                        _format(field, category)
-                        for field, category in zip(data.index.names, categories)
-                    ]
-                    # Sorts additional_keys by the field name.
-                    + [
-                        _format(field, category)
-                        for field, category in sorted(additional_keys.items())
-                    ]
-                )
-                results[key] = val
-            return results
+        for categories, val in data.items():
+            if isinstance(categories, str):  # handle single stratification case
+                categories = [categories]
+            key = "_".join(
+                [_format("measure", measure)]
+                + [
+                    _format(field, category)
+                    for field, category in zip(data.index.names, categories)
+                ]
+                # Sorts additional_keys by the field name.
+                + [
+                    _format(field, category)
+                    for field, category in sorted(additional_keys.items())
+                ]
+            )
+            results[key] = val
+        return results
