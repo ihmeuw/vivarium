@@ -65,7 +65,7 @@ class ResultsManager:
 
         self.get_value = builder.value.get_value
 
-        self.set_default_stratifications(builder.configuration.stratification.default)
+        self.set_default_stratifications(builder)
 
         builder.value.register_value_modifier("metrics", self.get_results)
 
@@ -86,7 +86,8 @@ class ResultsManager:
         for results_group in self._results_context.gather_results(population, event_name):
             self._metrics.update(results_group)
 
-    def set_default_stratifications(self, default_stratifications: List[str]):
+    def set_default_stratifications(self, builder):
+        default_stratifications = builder.configuration.stratification.default
         self._results_context.set_default_stratifications(default_stratifications)
 
     def register_stratification(

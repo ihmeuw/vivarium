@@ -226,7 +226,7 @@ def test_add_observation_nop_stratifications(
         assert m in caplog.text
 
 
-def test_setting_default_stratifications(mocker):
+def test_setting_default_stratifications_at_setup(mocker):
     """Test that set default stratifications happens at setup"""
     mgr = ResultsManager()
     builder = mocker.Mock()

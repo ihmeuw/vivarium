@@ -143,16 +143,13 @@ def test_stratification_call_raises(
         raise my_stratification(STUDENT_TABLE)
 
 
-def test_results_manager_setup(mocker):
-    """Test that set default stratifications happens at setup"""
-    rm = ResultsManager()
+@pytest.mark.parametrize("default_stratifications", [["age", "sex"], ["age"], []])
+def test_setting_default_stratifications(default_stratifications, mocker):
+    '''Test that default stratifications are set as expected.'''
+    mgr = ResultsManager()
     builder = mocker.Mock()
+    builder.configuration.stratification.default = default_stratifications
 
-    rm.set_default_stratifications = mocker.Mock()
-    rm.set_default_stratifications.assert_not_called()
+    mgr.setup(builder)
 
-    rm.setup(builder)
-
-    rm.set_default_stratifications.assert_called_once_with(
-        builder.configuration.stratification.default
-    )
+    assert mgr._results_context.default_stratifications == default_stratifications
