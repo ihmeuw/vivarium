@@ -145,7 +145,7 @@ def test_stratification_call_raises(
 
 @pytest.mark.parametrize("default_stratifications", [["age", "sex"], ["age"], []])
 def test_setting_default_stratifications(default_stratifications, mocker):
-    '''Test that default stratifications are set as expected.'''
+    """Test that default stratifications are set as expected."""
     mgr = ResultsManager()
     builder = mocker.Mock()
     builder.configuration.stratification.default = default_stratifications
