@@ -173,6 +173,13 @@ class ResultsContext:
         # Simpler formatting if we don't have stratifications
         if not has_stratifications:
             return {measure: aggregates.squeeze()}
+
+        # First we expand the categorical index over unobserved pairs.
+        # This ensures that the produced results are always the same length.
+        if isinstance(aggregates.index, pd.MultiIndex):
+            idx = pd.MultiIndex.from_product(
+                aggregates.index.levels, names=aggregates.index.names
+            )
         else:
             # First we expand the categorical index over unobserved pairs.
             # This ensures that the produced results are always the same length.
