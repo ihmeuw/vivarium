@@ -52,7 +52,8 @@ class IndexMap:
         final_mapping = self._build_final_mapping(new_mapping_index)
 
         # Tack on the simulant index to the front of the map.
-        final_mapping.index = final_mapping_index
+        final_mapping.index = final_mapping.index.join(final_mapping_index).reorder_levels([self.SIM_INDEX_COLUMN] + self._key_columns)
+        final_mapping = final_mapping.sort_index(level=self.SIM_INDEX_COLUMN)
         self._map = final_mapping
 
     def _parse_new_keys(self, new_keys: pd.DataFrame) -> Tuple[pd.MultiIndex, pd.MultiIndex]:
