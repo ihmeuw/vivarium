@@ -55,7 +55,9 @@ class IndexMap:
         final_mapping = self._build_final_mapping(new_mapping_index, clock_time)
 
         # Tack on the simulant index to the front of the map.
-        final_mapping.index = final_mapping.index.join(final_mapping_index).reorder_levels([self.SIM_INDEX_COLUMN] + self._key_columns)
+        final_mapping.index = final_mapping.index.join(final_mapping_index).reorder_levels(
+            [self.SIM_INDEX_COLUMN] + self._key_columns
+        )
         final_mapping = final_mapping.sort_index(level=self.SIM_INDEX_COLUMN)
         self._map = final_mapping
 
@@ -88,7 +90,9 @@ class IndexMap:
             final_mapping_index = self._map.index.append(new_mapping_index)
         return new_mapping_index, final_mapping_index
 
-    def _build_final_mapping(self, new_mapping_index: pd.Index, clock_time: pd.Timestamp) -> pd.Series:
+    def _build_final_mapping(
+        self, new_mapping_index: pd.Index, clock_time: pd.Timestamp
+    ) -> pd.Series:
         """Builds a new mapping between key columns and the randomness index from the
         new mapping index and the existing map.
 
