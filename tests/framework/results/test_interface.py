@@ -72,6 +72,7 @@ def test_register_observation(
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
+    builder.configuration.stratification.default = []
     # Set up mock builder with mocked get_value call for Pipelines
     mocker.patch.object(builder, "value.get_value")
     builder.value.get_value = MethodType(mock_get_value, builder)

@@ -163,6 +163,9 @@ configuration by simply printing it.
             component_configs: True
         extrapolate:
             component_configs: True
+    stratification:
+        default:
+            component_configs: []
 
 
 What do we see here?  The configuration is *hierarchical*.  There are a set of
