@@ -30,7 +30,7 @@ class IndexMap:
         self._map = None
         self._size = size
 
-    def update(self, new_keys: pd.DataFrame) -> None:
+    def update(self, new_keys: pd.DataFrame, clock_time: pd.Timestamp) -> None:
         """Adds the new keys to the mapping.
 
         Parameters
@@ -38,6 +38,9 @@ class IndexMap:
         new_keys
             A pandas DataFrame indexed by the simulant index and columns corresponding to
             the randomness system key columns.
+        clock_time
+            The simulation clock time. Used as the salt during hashing to
+            minimize inter-simulation collisions.
 
         """
         if new_keys.empty or not self._use_crn:
@@ -49,7 +52,7 @@ class IndexMap:
         if len(final_keys) != len(final_keys.unique()):
             raise RandomnessError("Non-unique keys in index")
 
-        final_mapping = self._build_final_mapping(new_mapping_index)
+        final_mapping = self._build_final_mapping(new_mapping_index, clock_time)
 
         # Tack on the simulant index to the front of the map.
         final_mapping.index = final_mapping.index.join(final_mapping_index).reorder_levels([self.SIM_INDEX_COLUMN] + self._key_columns)
@@ -85,7 +88,7 @@ class IndexMap:
             final_mapping_index = self._map.index.append(new_mapping_index)
         return new_mapping_index, final_mapping_index
 
-    def _build_final_mapping(self, new_mapping_index: pd.Index) -> pd.Series:
+    def _build_final_mapping(self, new_mapping_index: pd.Index, clock_time: pd.Timestamp) -> pd.Series:
         """Builds a new mapping between key columns and the randomness index from the
         new mapping index and the existing map.
 
@@ -94,6 +97,9 @@ class IndexMap:
         new_mapping_index
             An index with a level for the index assigned by the population system and
             additional levels for the key columns associated with the simulant index.
+        clock_time
+            The simulation clock time. Used as the salt during hashing to
+            minimize inter-simulation collisions.
 
         Returns
         -------
@@ -103,7 +109,7 @@ class IndexMap:
 
         """
         new_key_index = new_mapping_index.droplevel(self.SIM_INDEX_COLUMN)
-        mapping_update = self._hash(new_key_index)
+        mapping_update = self._hash(new_key_index, salt=clock_time)
         if self._map is None:
             current_map = mapping_update
         else:
