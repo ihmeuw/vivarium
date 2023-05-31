@@ -289,7 +289,7 @@ the population as a whole.
    print(pop.tracked.value_counts())
 
 
-.. testoutput::ß
+.. testoutput::
 
     count    100000.000000
     mean          2.503326
