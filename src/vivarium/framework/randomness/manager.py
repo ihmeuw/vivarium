@@ -167,7 +167,7 @@ class RandomnessManager:
             raise RandomnessError(
                 "The simulants dataframe does not have all specified key_columns."
             )
-        self._key_mapping.update(simulants.loc[:, self._key_columns])
+        self._key_mapping.update(simulants.loc[:, self._key_columns], self._clock())
 
     def __str__(self):
         return "RandomnessManager()"
