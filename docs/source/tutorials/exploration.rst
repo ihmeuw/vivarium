@@ -163,6 +163,9 @@ configuration by simply printing it.
             component_configs: True
         extrapolate:
             component_configs: True
+    stratification:
+        default:
+            component_configs: []
 
 
 What do we see here?  The configuration is *hierarchical*.  There are a set of
@@ -300,20 +303,20 @@ the population as a whole.
     alive    100000
     Name: alive, dtype: int64
     count    100000.000000
-    mean          0.500602
-    std           0.288434
-    min           0.000022
-    25%           0.251288
-    50%           0.499957
-    75%           0.749816
+    mean          0.499756
+    std           0.288412
+    min           0.000015
+    25%           0.251550
+    50%           0.497587
+    75%           0.749215
     max           0.999978
     Name: child_wasting_propensity, dtype: float64
     susceptible_to_lower_respiratory_infections    100000
     Name: lower_respiratory_infections, dtype: int64
     2021-12-31 12:00:00    100000
     Name: entrance_time, dtype: int64
-    Male      50162
-    Female    49838
+    Male      50185
+    Female    49815
     Name: sex, dtype: int64
     True    100000
     Name: tracked, dtype: int64

@@ -45,11 +45,6 @@ class ResultsContext:
                 "Multiple calls are being made to set default grouping columns "
                 "for results production."
             )
-        if not default_grouping_columns:
-            raise ResultsConfigurationError(
-                "Attempting to set an empty list as the default grouping columns "
-                "for results production."
-            )
         self.default_stratifications = default_grouping_columns
 
     def add_stratification(
@@ -125,7 +120,11 @@ class ResultsContext:
             if filtered_pop.empty:
                 yield {}
             else:
-                pop_groups = filtered_pop.groupby(list(stratifications))
+                if not len(list(stratifications)):  # Handle situation of no stratifications
+                    pop_groups = filtered_pop.groupby(lambda _: True)
+                else:
+                    pop_groups = filtered_pop.groupby(list(stratifications))
+
                 for measure, aggregator_sources, aggregator, additional_keys in observations:
                     if aggregator_sources:
                         aggregates = (
@@ -144,7 +143,12 @@ class ResultsContext:
                         )
 
                     # Keep formatting all in one place.
-                    yield self._format_results(measure, aggregates, **additional_keys)
+                    yield self._format_results(
+                        measure,
+                        aggregates,
+                        bool(len(list(stratifications))),
+                        **additional_keys,
+                    )
 
     def _get_stratifications(
         self,
@@ -162,9 +166,14 @@ class ResultsContext:
     def _format_results(
         measure: str,
         aggregates: pd.Series,
+        has_stratifications: bool,
         **additional_keys: str,
     ) -> Dict[str, float]:
         results = {}
+        # Simpler formatting if we don't have stratifications
+        if not has_stratifications:
+            return {measure: aggregates.squeeze()}
+
         # First we expand the categorical index over unobserved pairs.
         # This ensures that the produced results are always the same length.
         if isinstance(aggregates.index, pd.MultiIndex):

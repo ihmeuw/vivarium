@@ -68,20 +68,14 @@ class Interpolation:
         if self.key_columns:
             # Since there are key_columns we need to group the table by those
             # columns to get the sub-tables to fit
-            # TODO: fix rather than suppress this FutureWarning
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=FutureWarning)
-                sub_tables = self.data.groupby(list(self.key_columns))
+            sub_tables = self.data.groupby(list(self.key_columns))
         else:
             # There are no key columns so we will fit the whole table
             sub_tables = {None: self.data}.items()
 
         self.interpolations = {}
 
-        # TODO: fix rather than suppress this FutureWarning
-        with warnings.catch_warnings():
-            warnings.simplefilter(action="ignore", category=FutureWarning)
-            sub_tables = list(sub_tables)
+        sub_tables = list(sub_tables)
         for key, base_table in sub_tables:
             if (
                 base_table.empty
@@ -114,10 +108,7 @@ class Interpolation:
             validate_call_data(interpolants, self.key_columns, self.parameter_columns)
 
         if self.key_columns:
-            # TODO: fix rather than suppress this FutureWarning
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=FutureWarning)
-                sub_tables = interpolants.groupby(list(self.key_columns))
+            sub_tables = interpolants.groupby(list(self.key_columns))
         else:
             sub_tables = [(None, interpolants)]
         # specify some numeric type for columns so they won't be objects but will updated with whatever
@@ -125,10 +116,7 @@ class Interpolation:
         result = pd.DataFrame(
             index=interpolants.index, columns=self.value_columns, dtype=np.float64
         )
-        # TODO: fix rather than suppress this FutureWarning
-        with warnings.catch_warnings():
-            warnings.simplefilter(action="ignore", category=FutureWarning)
-            sub_tables = list(sub_tables)
+        sub_tables = list(sub_tables)
         for key, sub_table in sub_tables:
             if sub_table.empty:
                 continue
@@ -226,19 +214,13 @@ def check_data_complete(data, parameter_columns):
     for p in param_edges:
         other_params = [p_ed[0] for p_ed in param_edges if p_ed != p]
         if other_params:
-            # TODO: fix rather than suppress this FutureWarning
-            with warnings.catch_warnings():
-                warnings.simplefilter(action="ignore", category=FutureWarning)
-                sub_tables = data.groupby(list(other_params))
+            sub_tables = data.groupby(list(other_params))
         else:
             sub_tables = {None: data}.items()
 
         n_p_total = len(set(data[p[0]]))
 
-        # TODO: fix rather than suppress this FutureWarning
-        with warnings.catch_warnings():
-            warnings.simplefilter(action="ignore", category=FutureWarning)
-            sub_tables = list(sub_tables)
+        sub_tables = list(sub_tables)
         for _, table in sub_tables:
             param_data = table[[p[0], p[1]]].copy().sort_values(by=p[0])
             start, end = param_data[p[0]].reset_index(drop=True), param_data[
