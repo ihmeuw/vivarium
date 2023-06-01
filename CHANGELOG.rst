@@ -1,3 +1,11 @@
+**1.2.0 - 06/01/23**
+
+ - Stop supporting Python 3.7 and start supporting 3.11
+ - Bugfix to allow for zero stratifications
+ - Removes ignore filters for known FutureWarnings
+ - Refactor location of default stratification definition
+ - Bugfix to stop shuffling simulants when drawing common random number
+
 **1.1.0 - 05/03/23**
 
  - Clean up randomness system
