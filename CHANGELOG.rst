@@ -1,4 +1,4 @@
-**1.1.1 - 06/01/23**
+**1.2.0 - 06/01/23**
 
  - Stop supporting Python 3.7 and start supporting 3.11
  - Bugfix to allow for zero stratifications
