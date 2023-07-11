@@ -125,6 +125,7 @@ class ResultsManager:
         ------
         None
         """
+        self.logger.debug(f"Registering stratification {name}")
         target_columns = list(requires_columns) + list(requires_values)
         self._results_context.add_stratification(
             name, target_columns, categories, mapper, is_vectorized
@@ -189,6 +190,7 @@ class ResultsManager:
         excluded_stratifications: List[str] = (),
         when: str = "collect_metrics",
     ) -> None:
+        self.logger.debug(f"Registering observation {name}")
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
         self._results_context.add_observation(
             name,
