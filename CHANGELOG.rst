@@ -1,3 +1,8 @@
+**1.2.1 - 07/12/23**
+
+ - Adds logging for registering stratifications and observations
+ - Changes version metadata to use setuptools_scm
+
 **1.2.0 - 06/01/23**
 
  - Stop supporting Python 3.7 and start supporting 3.11
