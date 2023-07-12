@@ -33,13 +33,13 @@ sys.path.insert(0, str(Path("..").resolve()))
 # -- Project information -----------------------------------------------------
 
 project = about["__title__"]
-copyright = f'2021, {about["__author__"]}'
+copyright = f'2023, {about["__author__"]}'
 author = about["__author__"]
 
 # The short X.Y version.
-version = about["__version__"]
+version = vivarium.__version__
 # The full version, including alpha/beta/rc tags.
-release = about["__version__"]
+release = vivarium.__version__
 
 
 # -- General configuration ------------------------------------------------
