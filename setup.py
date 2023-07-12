@@ -41,6 +41,8 @@ if __name__ == "__main__":
         "loguru",
     ]
 
+    setup_requires = ["setuptools_scm"]
+
     interactive_requirements = [
         "IPython",
         "ipywidgets",
@@ -62,7 +64,6 @@ if __name__ == "__main__":
 
     setup(
         name=about["__title__"],
-        version=about["__version__"],
         description=about["__summary__"],
         long_description=long_description,
         license=about["__license__"],
@@ -106,4 +107,10 @@ if __name__ == "__main__":
                 simulate=vivarium.interface.cli:simulate
             """,
         zip_safe=False,
+        use_scm_version={
+            "write_to": "src/vivarium/_version.py",
+            "write_to_template": '__version__ = "{version}"\n',
+            "tag_regex": r"^(?P<prefix>v)?(?P<version>[^\+]+)(?P<suffix>.*)?$",
+        },
+        setup_requires=setup_requires,
     )
