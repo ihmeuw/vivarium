@@ -1,8 +1,8 @@
+import itertools
 from collections import Counter
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, List, Union
 
-import itertools
 import pandas as pd
 
 from vivarium.framework.event import Event
@@ -87,17 +87,24 @@ class ResultsManager:
         # update self._metrics to have all output keys
         def create_measure_specific_keys(measure: str, stratifications: list[str]) -> None:
             measure_str = f"MEASURE_{measure}_"
-            individual_stratification_strings = [[f"{stratification.name.upper()}_{category}"
-                                                  for category in stratification.categories]
-                                                 for stratification in
-                                                 sorted(self._results_context.stratifications, key=lambda x: x.name)
-                                                 if stratification.name in stratifications]
+            individual_stratification_strings = [
+                [
+                    f"{stratification.name.upper()}_{category}"
+                    for category in stratification.categories
+                ]
+                for stratification in sorted(
+                    self._results_context.stratifications, key=lambda x: x.name
+                )
+                if stratification.name in stratifications
+            ]
             for string_list in itertools.product(*individual_stratification_strings):
-                key = measure_str + '_'.join(string_list)
+                key = measure_str + "_".join(string_list)
                 self._metrics[key] = 0
 
         for event in self._results_context.observations:
-            for (_, stratifications), observations in self._results_context.observations[event].items():
+            for (_, stratifications), observations in self._results_context.observations[
+                event
+            ].items():
                 for measure, *_ in observations:
                     create_measure_specific_keys(measure, stratifications)
 
