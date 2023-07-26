@@ -97,8 +97,8 @@ class ResultsManager:
                 )
                 if stratification.name in stratifications
             ]
-            for string_list in itertools.product(*individual_stratification_strings):
-                key = measure_str + "_".join(string_list)
+            for complete_stratifications in itertools.product(*individual_stratification_strings):
+                key = measure_str + "_".join(complete_stratifications)
                 self._metrics[key] = 0
 
         for event in self._results_context.observations:
