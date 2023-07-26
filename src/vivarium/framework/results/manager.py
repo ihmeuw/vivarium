@@ -85,7 +85,7 @@ class ResultsManager:
 
     def on_post_setup(self, event: Event):
         # update self._metrics to have all output keys
-        def create_measure_specific_keys(measure: str, stratifications: list[str]) -> None:
+        def create_measure_specific_keys(measure: str, stratifications: List[str]) -> None:
             measure_str = f"MEASURE_{measure}_"
             individual_stratification_strings = [
                 [
