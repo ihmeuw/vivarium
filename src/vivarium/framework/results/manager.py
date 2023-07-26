@@ -59,29 +59,17 @@ class ResultsManager:
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
 
+        builder.event.register_listener("post_setup", self.on_post_setup)
         builder.event.register_listener("time_step__prepare", self.on_time_step_prepare)
         builder.event.register_listener("time_step", self.on_time_step)
         builder.event.register_listener("time_step__cleanup", self.on_time_step_cleanup)
         builder.event.register_listener("collect_metrics", self.on_collect_metrics)
-        builder.event.register_listener("post_setup", self.on_post_setup)
 
         self.get_value = builder.value.get_value
 
         self.set_default_stratifications(builder)
 
         builder.value.register_value_modifier("metrics", self.get_results)
-
-    def on_time_step_prepare(self, event: Event):
-        self.gather_results("time_step__prepare", event)
-
-    def on_time_step(self, event: Event):
-        self.gather_results("time_step", event)
-
-    def on_time_step_cleanup(self, event: Event):
-        self.gather_results("time_step__cleanup", event)
-
-    def on_collect_metrics(self, event: Event):
-        self.gather_results("collect_metrics", event)
 
     def on_post_setup(self, event: Event):
         # update self._metrics to have all output keys
@@ -109,6 +97,18 @@ class ResultsManager:
             ].items():
                 for measure, *_ in observations:
                     create_measure_specific_keys(measure, stratifications)
+
+    def on_time_step_prepare(self, event: Event):
+        self.gather_results("time_step__prepare", event)
+
+    def on_time_step(self, event: Event):
+        self.gather_results("time_step", event)
+
+    def on_time_step_cleanup(self, event: Event):
+        self.gather_results("time_step__cleanup", event)
+
+    def on_collect_metrics(self, event: Event):
+        self.gather_results("collect_metrics", event)
 
     def gather_results(self, event_name: str, event: Event):
         population = self._prepare_population(event)
