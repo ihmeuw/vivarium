@@ -2,6 +2,7 @@ from collections import Counter
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, List, Union
 
+import itertools
 import pandas as pd
 
 from vivarium.framework.event import Event
@@ -62,6 +63,7 @@ class ResultsManager:
         builder.event.register_listener("time_step", self.on_time_step)
         builder.event.register_listener("time_step__cleanup", self.on_time_step_cleanup)
         builder.event.register_listener("collect_metrics", self.on_collect_metrics)
+        builder.event.register_listener("post_setup", self.on_post_setup)
 
         self.get_value = builder.value.get_value
 
@@ -80,6 +82,24 @@ class ResultsManager:
 
     def on_collect_metrics(self, event: Event):
         self.gather_results("collect_metrics", event)
+
+    def on_post_setup(self, event: Event):
+        # update self._metrics to have all output keys
+        def create_measure_specific_keys(measure: str, stratifications: list[str]) -> None:
+            measure_str = f"MEASURE_{measure}_"
+            individual_stratification_strings = [[f"{stratification.name.upper()}_{category}"
+                                                  for category in stratification.categories]
+                                                 for stratification in
+                                                 sorted(self._results_context.stratifications, key=lambda x: x.name)
+                                                 if stratification.name in stratifications]
+            for string_list in itertools.product(*individual_stratification_strings):
+                key = measure_str + '_'.join(string_list)
+                self._metrics[key] = 0
+
+        for event in self._results_context.observations:
+            for (_, stratifications), observations in self._results_context.observations[event].items():
+                for measure, *_ in observations:
+                    create_measure_specific_keys(measure, stratifications)
 
     def gather_results(self, event_name: str, event: Event):
         population = self._prepare_population(event)
