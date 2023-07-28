@@ -1,3 +1,4 @@
+import itertools
 from collections import Counter
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, List, Union
@@ -58,6 +59,7 @@ class ResultsManager:
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
 
+        builder.event.register_listener("post_setup", self.on_post_setup)
         builder.event.register_listener("time_step__prepare", self.on_time_step_prepare)
         builder.event.register_listener("time_step", self.on_time_step)
         builder.event.register_listener("time_step__cleanup", self.on_time_step_cleanup)
@@ -68,6 +70,33 @@ class ResultsManager:
         self.set_default_stratifications(builder)
 
         builder.value.register_value_modifier("metrics", self.get_results)
+
+    def on_post_setup(self, event: Event):
+        # update self._metrics to have all output keys
+        def create_measure_specific_keys(measure: str, stratifications: List[str]) -> None:
+            measure_str = f"MEASURE_{measure}_"
+            individual_stratification_strings = [
+                [
+                    f"{stratification.name.upper()}_{category}"
+                    for category in stratification.categories
+                ]
+                for stratification in sorted(
+                    self._results_context.stratifications, key=lambda x: x.name
+                )
+                if stratification.name in stratifications
+            ]
+            for complete_stratifications in itertools.product(
+                *individual_stratification_strings
+            ):
+                key = measure_str + "_".join(complete_stratifications)
+                self._metrics[key] = 0
+
+        for event in self._results_context.observations:
+            for (_, stratifications), observations in self._results_context.observations[
+                event
+            ].items():
+                for measure, *_ in observations:
+                    create_measure_specific_keys(measure, stratifications)
 
     def on_time_step_prepare(self, event: Event):
         self.gather_results("time_step__prepare", event)
