@@ -105,11 +105,6 @@ class VivariumComponent(ABC):
     def setup(self, builder: "Builder") -> None:
         """Method that vivarium will run during the setup phase."""
         self.set_population_view(builder)
-        self.register_simulant_initializer(builder)
-        self.register_time_step_prepare_listener(builder)
-        self.register_time_step_listener(builder)
-        self.register_time_step_cleanup_listener(builder)
-        self.register_collect_metrics_listener(builder)
 
     def on_post_setup(self, builder: "Builder") -> None:
         """
