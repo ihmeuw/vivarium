@@ -12,6 +12,7 @@ from vivarium.__about__ import (
     __uri__,
 )
 from vivarium._version import __version__
+from vivarium.component import Component
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.artifact import Artifact
 from vivarium.framework.configuration import build_model_specification
