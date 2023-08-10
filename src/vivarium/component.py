@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from vivarium.framework.population import PopulationView, SimulantData
 
 
-class VivariumComponent(ABC):
+class Component(ABC):
     """A component that can be used in a Vivarium simulation."""
 
     """
@@ -32,7 +32,7 @@ class VivariumComponent(ABC):
         pass
 
     @property
-    def sub_components(self) -> List["VivariumComponent"]:
+    def sub_components(self) -> List["Component"]:
         """A list of the components that are managed by this component."""
         return self._sub_components
 
@@ -99,7 +99,7 @@ class VivariumComponent(ABC):
     #####################
 
     def __init__(self):
-        self._sub_components: List["VivariumComponent"] = []
+        self._sub_components: List["Component"] = []
         self.population_view: Optional[PopulationView] = None
 
     def setup(self, builder: "Builder") -> None:
