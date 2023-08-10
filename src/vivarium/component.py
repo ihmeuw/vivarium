@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional, Callable
+from typing import TYPE_CHECKING, List, Optional
 
 from vivarium.framework.event import Event
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.framework.population import SimulantData, PopulationView
+    from vivarium.framework.population import PopulationView, SimulantData
 
 
 class VivariumComponent(ABC):
@@ -76,7 +76,7 @@ class VivariumComponent(ABC):
 
     @property
     def time_step_priority(self) -> int:
-        """ The priority of this component's time-step listener if it exists. """
+        """The priority of this component's time-step listener if it exists."""
         return 5
 
     @property
@@ -160,7 +160,7 @@ class VivariumComponent(ABC):
         )
 
     def register_time_step_listener(self, builder: "Builder") -> None:
-        """ Registers a time-step listener if this component has defined one. """
+        """Registers a time-step listener if this component has defined one."""
         builder.event.register_listener(
             "time_step",
             self.on_time_step,
