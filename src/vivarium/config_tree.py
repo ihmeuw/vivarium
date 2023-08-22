@@ -513,6 +513,9 @@ class ConfigTree:
 
     def __setattr__(self, name, value):
         """Set a value on the outermost layer."""
+        if name.startswith("__") and name.endswith("__"):
+            raise AttributeError
+
         if name not in self:
             raise ConfigurationKeyError(
                 "New configuration keys can only be created with the update method.",
@@ -531,6 +534,9 @@ class ConfigTree:
 
     def __getattr__(self, name):
         """Get a value from the outermost layer in which it appears."""
+        if name.startswith("__") and name.endswith("__"):
+            raise AttributeError
+
         return self.get_from_layer(name)
 
     def __getitem__(self, name):
