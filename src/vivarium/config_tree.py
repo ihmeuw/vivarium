@@ -513,6 +513,7 @@ class ConfigTree:
 
     def __setattr__(self, name, value):
         """Set a value on the outermost layer."""
+        # https://stackoverflow.com/a/50888571/
         if name.startswith("__") and name.endswith("__"):
             raise AttributeError
 
@@ -534,6 +535,7 @@ class ConfigTree:
 
     def __getattr__(self, name):
         """Get a value from the outermost layer in which it appears."""
+        # https://stackoverflow.com/a/50888571/
         if name.startswith("__") and name.endswith("__"):
             raise AttributeError
 
