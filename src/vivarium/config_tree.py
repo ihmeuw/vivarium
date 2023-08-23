@@ -513,11 +513,16 @@ class ConfigTree:
 
     def __setattr__(self, name, value):
         """Set a value on the outermost layer."""
-        # https://stackoverflow.com/a/50888571/
-        if name.startswith("__") and name.endswith("__"):
-            raise AttributeError
-
         if name not in self:
+            if name.startswith("__") and name.endswith("__"):
+                # Note that we allow keys that look like dunder attributes,
+                # they just raise a different error when you try to access ones
+                # that don't exist (as attributes).
+                # This is important because it is expected by some modules,
+                # in particular the pickle module.
+                # https://stackoverflow.com/a/50888571/
+                raise AttributeError
+
             raise ConfigurationKeyError(
                 "New configuration keys can only be created with the update method.",
                 self._name,
@@ -535,8 +540,13 @@ class ConfigTree:
 
     def __getattr__(self, name):
         """Get a value from the outermost layer in which it appears."""
-        # https://stackoverflow.com/a/50888571/
-        if name.startswith("__") and name.endswith("__"):
+        if name not in self and name.startswith("__") and name.endswith("__"):
+            # Note that we allow keys that look like dunder attributes,
+            # they just raise a different error when you try to access ones
+            # that don't exist (as attributes).
+            # This is important because it is expected by some modules,
+            # in particular the pickle module.
+            # https://stackoverflow.com/a/50888571/
             raise AttributeError
 
         return self.get_from_layer(name)
