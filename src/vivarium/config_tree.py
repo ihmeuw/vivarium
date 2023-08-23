@@ -514,15 +514,6 @@ class ConfigTree:
     def __setattr__(self, name, value):
         """Set a value on the outermost layer."""
         if name not in self:
-            if name.startswith("__") and name.endswith("__"):
-                # Note that we allow keys that look like dunder attributes,
-                # they just raise a different error when you try to access ones
-                # that don't exist (as attributes).
-                # This is important because it is expected by some modules,
-                # in particular the pickle module.
-                # https://stackoverflow.com/a/50888571/
-                raise AttributeError
-
             raise ConfigurationKeyError(
                 "New configuration keys can only be created with the update method.",
                 self._name,
@@ -540,16 +531,22 @@ class ConfigTree:
 
     def __getattr__(self, name):
         """Get a value from the outermost layer in which it appears."""
-        if name not in self and name.startswith("__") and name.endswith("__"):
-            # Note that we allow keys that look like dunder attributes,
-            # they just raise a different error when you try to access ones
-            # that don't exist (as attributes).
-            # This is important because it is expected by some modules,
-            # in particular the pickle module.
-            # https://stackoverflow.com/a/50888571/
-            raise AttributeError
-
         return self.get_from_layer(name)
+
+    # We need custom definitions of __getstate__ and __setstate__
+    # because of our custom attribute getters/setters.
+    # Specifically:
+    # * The pickle module will invoke our __getattr__ checking for __getstate__
+    #   and __setstate__, and only catch AttributeError (not ConfigurationKeyError), and
+    # * Calling __getattr__ before we have set up the state doesn't work,
+    #   because it leads to an infinite loop looking for the module's
+    #   actual attributes (not config keys)
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, state: Dict):
+        for k, v in state.items():
+            self.__dict__[k] = v
 
     def __getitem__(self, name):
         """Get a value from the outermost layer in which it appears."""
