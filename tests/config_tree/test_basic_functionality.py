@@ -440,10 +440,29 @@ def test_to_dict_yaml(test_spec):
     assert yaml_config == config.to_dict()
 
 
-def test_to_from_pickle():
+@pytest.mark.xfail(reason="Not yet implemented")
+def test_equals():
     test_dict = {"configuration": {"time": {"start": {"year": 2000}}}}
     config = ConfigTree(test_dict)
-    assert pickle.loads(pickle.dumps(config)).to_dict() == test_dict
+    config2 = ConfigTree(test_dict.copy())
+    assert config == config2
+
+
+def test_to_from_pickle():
+    test_dict = {"configuration": {"time": {"start": {"year": 2000}}}}
+    second_layer = {"configuration": {"time": {"start": {"year": 2001}}}}
+    config = ConfigTree(test_dict, layers=["first_layer", "second_layer"])
+    config.update(second_layer, layer="second_layer")
+    unpickled = pickle.loads(pickle.dumps(config))
+
+    # We can't just assert unpickled == config because
+    # equals doesn't work with our custom attribute
+    # accessor scheme (also why pickling didn't use to work).
+    # See the previous xfailed test.
+    assert unpickled.to_dict() == config.to_dict()
+    assert unpickled._frozen == config._frozen
+    assert unpickled._name == config._name
+    assert unpickled._layers == config._layers
 
 
 def test_freeze():
