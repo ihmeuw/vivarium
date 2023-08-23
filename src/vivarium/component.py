@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Callable, List, Optional
 
 from vivarium.framework.event import Event
 
@@ -105,6 +105,11 @@ class Component(ABC):
     def setup(self, builder: "Builder") -> None:
         """Method that vivarium will run during the setup phase."""
         self.set_population_view(builder)
+        self.register_simulant_initializer(builder)
+        self.register_time_step_prepare_listener(builder)
+        self.register_time_step_listener(builder)
+        self.register_time_step_cleanup_listener(builder)
+        self.register_collect_metrics_listener(builder)
 
     def on_post_setup(self, builder: "Builder") -> None:
         """
@@ -142,67 +147,63 @@ class Component(ABC):
 
     def register_simulant_initializer(self, builder: "Builder") -> None:
         """Registers a simulant initializer if this component has defined one."""
-        builder.population.initializes_simulants(
-            self.on_initialize_simulants,
-            creates_columns=self.columns_created,
-            requires_streams=self.initialization_columns_required,
-        )
+        if self.on_initialize_simulants is not None:
+            builder.population.initializes_simulants(
+                self.on_initialize_simulants,
+                creates_columns=self.columns_created,
+                requires_streams=self.initialization_columns_required,
+            )
 
     def register_time_step_prepare_listener(self, builder: "Builder") -> None:
         """
         Registers a time-step prepare listener if this component has defined
         one.
         """
-        builder.event.register_listener(
-            "time_step__prepare",
-            self.on_time_step_prepare,
-            self.time_step_prepare_priority,
-        )
+        if self.on_time_step_prepare is not None:
+            builder.event.register_listener(
+                "time_step__prepare",
+                self.on_time_step_prepare,
+                self.time_step_prepare_priority,
+            )
 
     def register_time_step_listener(self, builder: "Builder") -> None:
         """Registers a time-step listener if this component has defined one."""
-        builder.event.register_listener(
-            "time_step",
-            self.on_time_step,
-            self.time_step_priority,
-        )
+        if self.on_time_step is not None:
+            builder.event.register_listener(
+                "time_step",
+                self.on_time_step,
+                self.time_step_priority,
+            )
 
     def register_time_step_cleanup_listener(self, builder: "Builder") -> None:
         """
         Registers a time-step cleanup listener if this component has defined
         one.
         """
-        builder.event.register_listener(
-            "time_step__cleanup",
-            self.on_time_step_cleanup,
-            self.time_step_cleanup_priority,
-        )
+        if self.on_time_step_cleanup is not None:
+            builder.event.register_listener(
+                "time_step__cleanup",
+                self.on_time_step_cleanup,
+                self.time_step_cleanup_priority,
+            )
 
     def register_collect_metrics_listener(self, builder: "Builder") -> None:
         """
         Registers a collect metrics listener if this component has defined one.
         """
-        builder.event.register_listener(
-            "collect_metrics",
-            self.on_collect_metrics,
-            self.collect_metrics_priority,
-        )
+        if self.on_collect_metrics is not None:
+            builder.event.register_listener(
+                "collect_metrics",
+                self.on_collect_metrics,
+                self.collect_metrics_priority,
+            )
 
     ########################
     # Event-driven methods #
     ########################
 
-    def on_initialize_simulants(self, pop_data: "SimulantData") -> None:
-        pass
-
-    def on_time_step_prepare(self, event: Event) -> None:
-        pass
-
-    def on_time_step(self, event: Event) -> None:
-        pass
-
-    def on_time_step_cleanup(self, event: Event) -> None:
-        pass
-
-    def on_collect_metrics(self, event: Event) -> None:
-        pass
+    on_initialize_simulants: Optional[Callable[["SimulantData"], None]] = None
+    on_time_step_prepare: Optional[Callable[[Event], None]] = None
+    on_time_step: Optional[Callable[[Event], None]] = None
+    on_time_step_cleanup: Optional[Callable[[Event], None]] = None
+    on_collect_metrics: Optional[Callable[[Event], None]] = None
