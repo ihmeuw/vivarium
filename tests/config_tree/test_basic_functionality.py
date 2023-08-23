@@ -1,3 +1,4 @@
+import pickle
 import textwrap
 
 import pytest
@@ -437,6 +438,12 @@ def test_to_dict_yaml(test_spec):
     with test_spec.open() as f:
         yaml_config = yaml.full_load(f)
     assert yaml_config == config.to_dict()
+
+
+def test_to_from_pickle():
+    test_dict = {"configuration": {"time": {"start": {"year": 2000}}}}
+    config = ConfigTree(test_dict)
+    assert pickle.loads(pickle.dumps(config)).to_dict() == test_dict
 
 
 def test_freeze():
