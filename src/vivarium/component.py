@@ -11,7 +11,15 @@ if TYPE_CHECKING:
 
 
 class Component(ABC):
-    """A component that can be used in a Vivarium simulation."""
+    """
+    A component that can be used in a Vivarium simulation. This component is
+    expected to be sub-classed to create components for use in Vivarium
+    simulations.
+
+    If a Component takes arguments to its `__init__` function, those arguments
+    are expected to have been saved as attributes with the same name as the
+    argument in the `__init__` signature.
+    """
 
     """
     A dictionary containing the defaults for any configurations managed by this
@@ -233,5 +241,14 @@ class Component(ABC):
     ##################
 
     def _get_initialization_parameters(self) -> List[str]:
-        # todo docstring
+        """
+        Gets and casts as a string the values of all parameters specified in the
+        __init__`.
+
+        Note: this makes the assumption that all arguments to the `__init__`
+        are saved as attributes with the same name.
+
+        Note: this retrieves the value of the attribute at the time of calling
+        which is not guaranteed to be the same as the original value.
+        """
         return [str(self.__getattribute__(x)) for x in signature(self.__init__).parameters]
