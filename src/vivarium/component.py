@@ -1,5 +1,6 @@
 import re
 from abc import ABC, abstractmethod
+from inspect import signature
 from typing import TYPE_CHECKING, Callable, List, Optional
 
 from vivarium.framework.event import Event
@@ -29,13 +30,24 @@ class Component(ABC):
     @property
     def name(self) -> str:
         """
-        The name of the component. By convention these are in snake case.
+        The name of the component. By convention these are in snake case with
+        arguments of the `__init__` appended separated by '.'.
 
         Names must be unique within a simulation.
         """
-        name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", self.__class__.__name__)
-        name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
-        return name
+        if not self._name:
+            name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", self.__class__.__name__)
+            name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
+
+            # This is making the assumption that all arguments to the `__init__`
+            # have been saved in an attribute of the same name.
+            args = [
+                str(self.__getattribute__(x)) for x in signature(self.__init__).parameters
+            ]
+            name = ".".join([name] + args)
+            self._name = name
+
+        return self._name
 
     @property
     def sub_components(self) -> List["Component"]:
@@ -105,6 +117,7 @@ class Component(ABC):
     #####################
 
     def __init__(self):
+        self._name: str = ""
         self._sub_components: List["Component"] = []
         self.population_view: Optional[PopulationView] = None
 

@@ -1,10 +1,8 @@
 from typing import List
 
 import pandas as pd
-import pytest
 
 from vivarium import Component, InteractiveContext
-from vivarium.framework.components import ComponentConfigError
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
@@ -66,11 +64,12 @@ class NoPopulationView(Component):
 
 class ParameterizedNoName(Component):
     def __repr__(self):
-        return f"ParameterizedNoName({self.parameter})"
+        return f"ParameterizedNoName({self.parameter_one}, {self.parameter_two})"
 
-    def __init__(self, parameter: str):
+    def __init__(self, parameter_one: str, parameter_two: int):
         super().__init__()
-        self.parameter = parameter
+        self.parameter_one = parameter_one
+        self.parameter_two = parameter_two
 
 
 class DefaultPriorities(Component):
@@ -111,20 +110,18 @@ class CustomPriorities(DefaultPriorities):
         return 6
 
 
-def test_unique_component_has_correct_name():
+def test_component_with_no_arguments_has_correct_name():
     component = NoPopulationView()
 
     # Assert component has the correct name
     assert component.name == "no_population_view"
 
 
-def test_parameterized_component_without_explicit_name_throws_error():
-    # Confirm that component implementers will error out if they fail to define
-    # for non-unique components at runtime
-    with pytest.raises(ComponentConfigError):
-        InteractiveContext(
-            components=[ParameterizedNoName("value_1"), ParameterizedNoName("value_2")]
-        )
+def test_parameterized_component_has_name_that_incorporates_arguments():
+    component = ParameterizedNoName("some_value", 5)
+
+    # Assert component has the correct name
+    assert component.name == "parameterized_no_name.some_value.5"
 
 
 def test_component_that_creates_columns_population_view():
