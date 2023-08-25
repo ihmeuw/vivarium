@@ -175,7 +175,7 @@ class Component(ABC):
 
     def register_simulant_initializer(self, builder: "Builder") -> None:
         """Registers a simulant initializer if this component has defined one."""
-        if self.__class__.on_initialize_simulants != Component.on_initialize_simulants:
+        if type(self).on_initialize_simulants != Component.on_initialize_simulants:
             builder.population.initializes_simulants(
                 self.on_initialize_simulants,
                 creates_columns=self.columns_created,
@@ -187,7 +187,7 @@ class Component(ABC):
         Registers a time-step prepare listener if this component has defined
         one.
         """
-        if self.__class__.on_time_step_prepare != Component.on_time_step_prepare:
+        if type(self).on_time_step_prepare != Component.on_time_step_prepare:
             builder.event.register_listener(
                 "time_step__prepare",
                 self.on_time_step_prepare,
@@ -196,7 +196,7 @@ class Component(ABC):
 
     def register_time_step_listener(self, builder: "Builder") -> None:
         """Registers a time-step listener if this component has defined one."""
-        if self.__class__.on_time_step != Component.on_time_step:
+        if type(self).on_time_step != Component.on_time_step:
             builder.event.register_listener(
                 "time_step",
                 self.on_time_step,
@@ -208,7 +208,7 @@ class Component(ABC):
         Registers a time-step cleanup listener if this component has defined
         one.
         """
-        if self.__class__.on_time_step_cleanup != Component.on_time_step_cleanup:
+        if type(self).on_time_step_cleanup != Component.on_time_step_cleanup:
             builder.event.register_listener(
                 "time_step__cleanup",
                 self.on_time_step_cleanup,
@@ -219,7 +219,7 @@ class Component(ABC):
         """
         Registers a collect metrics listener if this component has defined one.
         """
-        if self.__class__.on_collect_metrics != Component.on_collect_metrics:
+        if type(self).on_collect_metrics != Component.on_collect_metrics:
             builder.event.register_listener(
                 "collect_metrics",
                 self.on_collect_metrics,
