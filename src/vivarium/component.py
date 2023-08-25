@@ -31,7 +31,7 @@ class Component(ABC):
         """A string representation of the __init__ call made to create this object"""
         if not self._repr:
             args = ", ".join(self._get_initialization_parameters())
-            self._repr = f"{self.__class__.__name__}({args})"
+            self._repr = f"{type(self).__name__}({args})"
 
         return self._repr
 
@@ -48,7 +48,7 @@ class Component(ABC):
         Names must be unique within a simulation.
         """
         if not self._name:
-            base_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", self.__class__.__name__)
+            base_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", type(self).__name__)
             base_name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", base_name).lower()
 
             # This is making the assumption that all arguments to the `__init__`
@@ -175,7 +175,7 @@ class Component(ABC):
 
     def register_simulant_initializer(self, builder: "Builder") -> None:
         """Registers a simulant initializer if this component has defined one."""
-        if self.on_initialize_simulants is not None:
+        if type(self).on_initialize_simulants != Component.on_initialize_simulants:
             builder.population.initializes_simulants(
                 self.on_initialize_simulants,
                 creates_columns=self.columns_created,
@@ -187,7 +187,7 @@ class Component(ABC):
         Registers a time-step prepare listener if this component has defined
         one.
         """
-        if self.on_time_step_prepare is not None:
+        if type(self).on_time_step_prepare != Component.on_time_step_prepare:
             builder.event.register_listener(
                 "time_step__prepare",
                 self.on_time_step_prepare,
@@ -196,7 +196,7 @@ class Component(ABC):
 
     def register_time_step_listener(self, builder: "Builder") -> None:
         """Registers a time-step listener if this component has defined one."""
-        if self.on_time_step is not None:
+        if type(self).on_time_step != Component.on_time_step:
             builder.event.register_listener(
                 "time_step",
                 self.on_time_step,
@@ -208,7 +208,7 @@ class Component(ABC):
         Registers a time-step cleanup listener if this component has defined
         one.
         """
-        if self.on_time_step_cleanup is not None:
+        if type(self).on_time_step_cleanup != Component.on_time_step_cleanup:
             builder.event.register_listener(
                 "time_step__cleanup",
                 self.on_time_step_cleanup,
@@ -219,7 +219,7 @@ class Component(ABC):
         """
         Registers a collect metrics listener if this component has defined one.
         """
-        if self.on_collect_metrics is not None:
+        if type(self).on_collect_metrics != Component.on_collect_metrics:
             builder.event.register_listener(
                 "collect_metrics",
                 self.on_collect_metrics,
@@ -230,11 +230,20 @@ class Component(ABC):
     # Event-driven methods #
     ########################
 
-    on_initialize_simulants: Optional[Callable[["SimulantData"], None]] = None
-    on_time_step_prepare: Optional[Callable[[Event], None]] = None
-    on_time_step: Optional[Callable[[Event], None]] = None
-    on_time_step_cleanup: Optional[Callable[[Event], None]] = None
-    on_collect_metrics: Optional[Callable[[Event], None]] = None
+    def on_initialize_simulants(self, pop_data: "SimulantData") -> None:
+        pass
+
+    def on_time_step_prepare(self, event: Event) -> None:
+        pass
+
+    def on_time_step(self, event: Event) -> None:
+        pass
+
+    def on_time_step_cleanup(self, event: Event) -> None:
+        pass
+
+    def on_collect_metrics(self, event: Event) -> None:
+        pass
 
     ##################
     # Helper methods #
