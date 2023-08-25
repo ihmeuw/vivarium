@@ -1,5 +1,5 @@
 import re
-from abc import ABC, abstractmethod
+from abc import ABC
 from inspect import signature
 from typing import TYPE_CHECKING, Callable, List, Optional
 
@@ -19,9 +19,13 @@ class Component(ABC):
     """
     configuration_defaults = {}
 
-    @abstractmethod
     def __repr__(self):
-        pass
+        """A string representation of the __init__ call made to create this object"""
+        if not self._repr:
+            args = ", ".join(self._get_initialization_parameters())
+            self._repr = f"{self.__class__.__name__}({args})"
+
+        return self._repr
 
     ##############
     # Properties #
@@ -36,16 +40,12 @@ class Component(ABC):
         Names must be unique within a simulation.
         """
         if not self._name:
-            name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", self.__class__.__name__)
-            name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
+            base_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", self.__class__.__name__)
+            base_name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", base_name).lower()
 
             # This is making the assumption that all arguments to the `__init__`
             # have been saved in an attribute of the same name.
-            args = [
-                str(self.__getattribute__(x)) for x in signature(self.__init__).parameters
-            ]
-            name = ".".join([name] + args)
-            self._name = name
+            self._name = ".".join([base_name] + self._get_initialization_parameters())
 
         return self._name
 
@@ -117,6 +117,7 @@ class Component(ABC):
     #####################
 
     def __init__(self):
+        self._repr: str = ""
         self._name: str = ""
         self._sub_components: List["Component"] = []
         self.population_view: Optional[PopulationView] = None
@@ -226,3 +227,11 @@ class Component(ABC):
     on_time_step: Optional[Callable[[Event], None]] = None
     on_time_step_cleanup: Optional[Callable[[Event], None]] = None
     on_collect_metrics: Optional[Callable[[Event], None]] = None
+
+    ##################
+    # Helper methods #
+    ##################
+
+    def _get_initialization_parameters(self) -> List[str]:
+        # todo docstring
+        return [str(self.__getattribute__(x)) for x in signature(self.__init__).parameters]
