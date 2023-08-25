@@ -1,8 +1,10 @@
 from typing import List
 
 import pandas as pd
+import pytest
 
 from vivarium import Component, InteractiveContext
+from vivarium.framework.components import ComponentConfigError
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
@@ -10,10 +12,6 @@ from vivarium.framework.population import SimulantData
 class ColumnCreator(Component):
     def __repr__(self):
         return "ColumnCreator()"
-
-    @property
-    def name(self) -> str:
-        return "column_creator"
 
     @property
     def columns_created(self) -> List[str]:
@@ -31,10 +29,6 @@ class ColumnRequirer(Component):
         return "ColumnRequirer()"
 
     @property
-    def name(self) -> str:
-        return "column_requirer"
-
-    @property
     def columns_required(self) -> List[str]:
         return ["test_column_1", "test_column_2"]
 
@@ -42,10 +36,6 @@ class ColumnRequirer(Component):
 class ColumnCreatorAndRequirer(Component):
     def __repr__(self):
         return "ColumnCreatorAndRequirer()"
-
-    @property
-    def name(self) -> str:
-        return "column_creator_and_requirer"
 
     @property
     def columns_required(self) -> List[str]:
@@ -65,10 +55,6 @@ class AllColumnsRequirer(Component):
         return "AllColumnsRequirer()"
 
     @property
-    def name(self) -> str:
-        return "all_columns_requirer"
-
-    @property
     def columns_required(self) -> List[str]:
         return []
 
@@ -77,18 +63,19 @@ class NoPopulationView(Component):
     def __repr__(self):
         return "NoPopulationView()"
 
-    @property
-    def name(self) -> str:
-        return "no_population_view"
+
+class ParameterizedNoName(Component):
+    def __repr__(self):
+        return f"ParameterizedNoName({self.parameter})"
+
+    def __init__(self, parameter: str):
+        super().__init__()
+        self.parameter = parameter
 
 
 class DefaultPriorities(Component):
     def __repr__(self):
         return "DefaultPriorities()"
-
-    @property
-    def name(self) -> str:
-        return "default_priorities"
 
     def on_time_step_prepare(self, event: Event) -> None:
         pass
@@ -108,10 +95,6 @@ class CustomPriorities(DefaultPriorities):
         return "CustomPriorities()"
 
     @property
-    def name(self) -> str:
-        return "custom_priorities"
-
-    @property
     def time_step_prepare_priority(self) -> int:
         return 7
 
@@ -126,6 +109,22 @@ class CustomPriorities(DefaultPriorities):
     @property
     def collect_metrics_priority(self) -> int:
         return 6
+
+
+def test_unique_component_has_correct_name():
+    component = NoPopulationView()
+
+    # Assert component has the correct name
+    assert component.name == "no_population_view"
+
+
+def test_parameterized_component_without_explicit_name_throws_error():
+    # Confirm that component implementers will error out if they fail to define
+    # for non-unique components at runtime
+    with pytest.raises(ComponentConfigError):
+        InteractiveContext(
+            components=[ParameterizedNoName("value_1"), ParameterizedNoName("value_2")]
+        )
 
 
 def test_component_that_creates_columns_population_view():
