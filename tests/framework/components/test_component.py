@@ -8,9 +8,6 @@ from vivarium.framework.population import SimulantData
 
 
 class ColumnCreator(Component):
-    def __repr__(self):
-        return "ColumnCreator()"
-
     @property
     def columns_created(self) -> List[str]:
         return ["test_column_1", "test_column_2", "test_column_3"]
@@ -23,18 +20,12 @@ class ColumnCreator(Component):
 
 
 class ColumnRequirer(Component):
-    def __repr__(self):
-        return "ColumnRequirer()"
-
     @property
     def columns_required(self) -> List[str]:
         return ["test_column_1", "test_column_2"]
 
 
 class ColumnCreatorAndRequirer(Component):
-    def __repr__(self):
-        return "ColumnCreatorAndRequirer()"
-
     @property
     def columns_required(self) -> List[str]:
         return ["test_column_2"]
@@ -49,17 +40,13 @@ class ColumnCreatorAndRequirer(Component):
 
 
 class AllColumnsRequirer(Component):
-    def __repr__(self):
-        return "AllColumnsRequirer()"
-
     @property
     def columns_required(self) -> List[str]:
         return []
 
 
 class NoPopulationView(Component):
-    def __repr__(self):
-        return "NoPopulationView()"
+    pass
 
 
 class ParameterizedNoName(Component):
@@ -73,9 +60,6 @@ class ParameterizedNoName(Component):
 
 
 class DefaultPriorities(Component):
-    def __repr__(self):
-        return "DefaultPriorities()"
-
     def on_time_step_prepare(self, event: Event) -> None:
         pass
 
@@ -90,9 +74,6 @@ class DefaultPriorities(Component):
 
 
 class CustomPriorities(DefaultPriorities):
-    def __repr__(self):
-        return "CustomPriorities()"
-
     @property
     def time_step_prepare_priority(self) -> int:
         return 7
@@ -108,6 +89,20 @@ class CustomPriorities(DefaultPriorities):
     @property
     def collect_metrics_priority(self) -> int:
         return 6
+
+
+def test_unique_component_has_correct_repr():
+    component = NoPopulationView()
+
+    # Assert component has the correct repr
+    assert component.__repr__() == "NoPopulationView()"
+
+
+def test_parameterized_component_has_repr_that_incorporates_arguments():
+    component = ParameterizedNoName("some_value", 5)
+
+    # Assert component has the correct name
+    assert component.__repr__() == "ParameterizedNoName(some_value, 5)"
 
 
 def test_component_with_no_arguments_has_correct_name():
