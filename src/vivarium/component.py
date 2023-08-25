@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 DEFAULT_EVENT_PRIORITY = 5
 
+
 class Component(ABC):
     """
     A component that can be used in a Vivarium simulation. This component is
