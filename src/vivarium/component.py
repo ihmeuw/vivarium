@@ -1,3 +1,4 @@
+import re
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Callable, List, Optional
 
@@ -26,10 +27,15 @@ class Component(ABC):
     ##############
 
     @property
-    @abstractmethod
     def name(self) -> str:
-        """The name of the component. Names must be unique within a simulation."""
-        pass
+        """
+        The name of the component. By convention these are in snake case.
+
+        Names must be unique within a simulation.
+        """
+        name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", self.__class__.__name__)
+        name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", name).lower()
+        return name
 
     @property
     def sub_components(self) -> List["Component"]:
