@@ -176,7 +176,7 @@ class InteractiveContext(SimulationContext):
         """List all event types registered with the simulation."""
         return self._events.list_events()
 
-    def get_listeners(self, event_type: str) -> List[Callable]:
+    def get_listeners(self, event_type: str) -> Dict[int, List[Callable]]:
         """Get all listeners of a particular type of event.
 
         Available event types can be found by calling
