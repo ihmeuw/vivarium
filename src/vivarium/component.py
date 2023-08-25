@@ -31,7 +31,7 @@ class Component(ABC):
         """A string representation of the __init__ call made to create this object"""
         if not self._repr:
             args = ", ".join(self._get_initialization_parameters())
-            self._repr = f"{self.__class__.__name__}({args})"
+            self._repr = f"{type(self).__name__}({args})"
 
         return self._repr
 
@@ -48,7 +48,7 @@ class Component(ABC):
         Names must be unique within a simulation.
         """
         if not self._name:
-            base_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", self.__class__.__name__)
+            base_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", type(self).__name__)
             base_name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", base_name).lower()
 
             # This is making the assumption that all arguments to the `__init__`
