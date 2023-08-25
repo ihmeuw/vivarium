@@ -1,13 +1,16 @@
 import re
 from abc import ABC
 from inspect import signature
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from vivarium.framework.event import Event
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.population import PopulationView, SimulantData
+
+
+DEFAULT_EVENT_PRIORITY = 5
 
 
 class Component(ABC):
@@ -93,32 +96,39 @@ class Component(ABC):
         return []
 
     @property
+    def post_setup_priority(self) -> int:
+        """The priority of this component's post_setup listener if it exists."""
+        return DEFAULT_EVENT_PRIORITY
+
+    @property
     def time_step_prepare_priority(self) -> int:
         """
-        The priority of this component's time-step prepare listener if it
+        The priority of this component's time_step__prepare listener if it
         exists.
         """
-        return 5
+        return DEFAULT_EVENT_PRIORITY
 
     @property
     def time_step_priority(self) -> int:
-        """The priority of this component's time-step listener if it exists."""
-        return 5
+        """The priority of this component's time_step listener if it exists."""
+        return DEFAULT_EVENT_PRIORITY
 
     @property
     def time_step_cleanup_priority(self) -> int:
-        """
-        The priority of this component's time-step cleanup listener if it
-        exists.
-        """
-        return 5
+        """The priority of this component's time_step__cleanup listener if it exists."""
+        return DEFAULT_EVENT_PRIORITY
 
     @property
     def collect_metrics_priority(self) -> int:
         """
-        The priority of this component's collect metrics listener if it exists.
+        The priority of this component's collect_metrics listener if it exists.
         """
-        return 5
+        return DEFAULT_EVENT_PRIORITY
+
+    @property
+    def simulation_end_priority(self) -> int:
+        """The priority of this component's simulation_end listener if it exists."""
+        return DEFAULT_EVENT_PRIORITY
 
     #####################
     # Lifecycle methods #
@@ -133,19 +143,13 @@ class Component(ABC):
     def setup(self, builder: "Builder") -> None:
         """Method that vivarium will run during the setup phase."""
         self.set_population_view(builder)
+        self.register_post_setup_listener(builder)
         self.register_simulant_initializer(builder)
         self.register_time_step_prepare_listener(builder)
         self.register_time_step_listener(builder)
         self.register_time_step_cleanup_listener(builder)
         self.register_collect_metrics_listener(builder)
-
-    def on_post_setup(self, builder: "Builder") -> None:
-        """
-        Method that vivarium will run during the post-setup phase.
-
-        NOTE: this is not commonly used functionality.
-        """
-        pass
+        self.register_simulation_end_listener(builder)
 
     #################
     # Setup methods #
@@ -173,6 +177,15 @@ class Component(ABC):
         if population_view_columns is not None:
             self.population_view = builder.population.get_view(population_view_columns)
 
+    def register_post_setup_listener(self, builder: "Builder") -> None:
+        """Registers a post_setup listener if this component has defined one."""
+        if type(self).on_post_setup != Component.on_post_setup:
+            builder.event.register_listener(
+                "post_setup",
+                self.on_post_setup,
+                self.post_setup_priority,
+            )
+
     def register_simulant_initializer(self, builder: "Builder") -> None:
         """Registers a simulant initializer if this component has defined one."""
         if type(self).on_initialize_simulants != Component.on_initialize_simulants:
@@ -184,7 +197,7 @@ class Component(ABC):
 
     def register_time_step_prepare_listener(self, builder: "Builder") -> None:
         """
-        Registers a time-step prepare listener if this component has defined
+        Registers a time_step__prepare listener if this component has defined
         one.
         """
         if type(self).on_time_step_prepare != Component.on_time_step_prepare:
@@ -195,7 +208,7 @@ class Component(ABC):
             )
 
     def register_time_step_listener(self, builder: "Builder") -> None:
-        """Registers a time-step listener if this component has defined one."""
+        """Registers a time_step listener if this component has defined one."""
         if type(self).on_time_step != Component.on_time_step:
             builder.event.register_listener(
                 "time_step",
@@ -205,7 +218,7 @@ class Component(ABC):
 
     def register_time_step_cleanup_listener(self, builder: "Builder") -> None:
         """
-        Registers a time-step cleanup listener if this component has defined
+        Registers a time_step__cleanup listener if this component has defined
         one.
         """
         if type(self).on_time_step_cleanup != Component.on_time_step_cleanup:
@@ -217,7 +230,7 @@ class Component(ABC):
 
     def register_collect_metrics_listener(self, builder: "Builder") -> None:
         """
-        Registers a collect metrics listener if this component has defined one.
+        Registers a collect_metrics listener if this component has defined one.
         """
         if type(self).on_collect_metrics != Component.on_collect_metrics:
             builder.event.register_listener(
@@ -226,23 +239,49 @@ class Component(ABC):
                 self.collect_metrics_priority,
             )
 
+    def register_simulation_end_listener(self, builder: "Builder") -> None:
+        """Registers a post_setup listener if this component has defined one."""
+        if type(self).on_simulation_end != Component.on_simulation_end:
+            builder.event.register_listener(
+                "simulation_end",
+                self.on_simulation_end,
+                self.simulation_end_priority,
+            )
+
     ########################
     # Event-driven methods #
     ########################
 
+    def on_post_setup(self, event: Event) -> None:
+        """
+        Method that vivarium will run during the post_setup event.
+
+        NOTE: this is not commonly used functionality.
+        """
+        pass
+
     def on_initialize_simulants(self, pop_data: "SimulantData") -> None:
+        """Method that vivarium will run during simulant initialization"""
         pass
 
     def on_time_step_prepare(self, event: Event) -> None:
+        """Method that vivarium will run during the time_step__prepare event"""
         pass
 
     def on_time_step(self, event: Event) -> None:
+        """Method that vivarium will run during the time_step event"""
         pass
 
     def on_time_step_cleanup(self, event: Event) -> None:
+        """Method that vivarium will run during the time_step__cleanup event"""
         pass
 
     def on_collect_metrics(self, event: Event) -> None:
+        """Method that vivarium will run during the collect_metrics event"""
+        pass
+
+    def on_simulation_end(self, event: Event) -> None:
+        """Method that vivarium will run during the simulation_end event."""
         pass
 
     ##################
