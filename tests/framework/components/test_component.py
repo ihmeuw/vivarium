@@ -60,6 +60,9 @@ class ParameterizedNoName(Component):
 
 
 class DefaultPriorities(Component):
+    def on_post_setup(self, event: Event) -> None:
+        pass
+
     def on_time_step_prepare(self, event: Event) -> None:
         pass
 
@@ -72,8 +75,15 @@ class DefaultPriorities(Component):
     def on_collect_metrics(self, event: Event) -> None:
         pass
 
+    def on_simulation_end(self, event: Event) -> None:
+        pass
+
 
 class CustomPriorities(DefaultPriorities):
+    @property
+    def post_setup_priority(self) -> int:
+        return 8
+
     @property
     def time_step_prepare_priority(self) -> int:
         return 7
@@ -89,6 +99,10 @@ class CustomPriorities(DefaultPriorities):
     @property
     def collect_metrics_priority(self) -> int:
         return 6
+
+    @property
+    def simulation_end_priority(self) -> int:
+        return 1
 
 
 def test_unique_component_has_correct_repr():
@@ -196,48 +210,62 @@ def test_listeners_are_not_registered_if_not_defined():
     component = NoPopulationView()
     simulation = InteractiveContext(components=[component])
 
+    post_setup_methods = simulation.get_listeners("post_setup")
     time_step_prepare_methods = simulation.get_listeners("time_step__prepare")
     time_step_methods = simulation.get_listeners("time_step")
     time_step_cleanup_methods = simulation.get_listeners("time_step__cleanup")
     collect_metrics_methods = simulation.get_listeners("collect_metrics")
+    simulation_end_methods = simulation.get_listeners("simulation_end")
 
     for i in range(10):
+        assert component.on_post_setup not in set(post_setup_methods.get(i, []))
         assert component.on_time_step_prepare not in set(time_step_prepare_methods.get(i, []))
         assert component.on_time_step not in set(time_step_methods.get(i, []))
         assert component.on_time_step_cleanup not in set(time_step_cleanup_methods.get(i, []))
         assert component.on_collect_metrics not in set(collect_metrics_methods.get(i, []))
+        assert component.on_simulation_end not in set(simulation_end_methods.get(i, []))
 
 
 def test_listeners_are_registered_if_defined():
     component = DefaultPriorities()
     simulation = InteractiveContext(components=[component])
 
+    post_setup_methods = simulation.get_listeners("post_setup")
     time_step_prepare_methods = simulation.get_listeners("time_step__prepare")
     time_step_methods = simulation.get_listeners("time_step")
     time_step_cleanup_methods = simulation.get_listeners("time_step__cleanup")
     collect_metrics_methods = simulation.get_listeners("collect_metrics")
+    simulation_end_methods = simulation.get_listeners("simulation_end")
 
-    assert component.on_time_step_prepare in set(time_step_prepare_methods[5])
-    assert component.on_time_step in set(time_step_methods[5])
-    assert component.on_time_step_cleanup in set(time_step_cleanup_methods[5])
-    assert component.on_collect_metrics in set(collect_metrics_methods[5])
+    assert component.on_post_setup in set(post_setup_methods.get(5, []))
+    assert component.on_time_step_prepare in set(time_step_prepare_methods.get(5, []))
+    assert component.on_time_step in set(time_step_methods.get(5, []))
+    assert component.on_time_step_cleanup in set(time_step_cleanup_methods.get(5, []))
+    assert component.on_collect_metrics in set(collect_metrics_methods.get(5, []))
+    assert component.on_simulation_end in set(simulation_end_methods.get(5, []))
 
 
 def test_listeners_are_registered_at_custom_priorities():
     component = CustomPriorities()
     simulation = InteractiveContext(components=[component])
 
+    post_setup_methods = simulation.get_listeners("post_setup")
     time_step_prepare_methods = simulation.get_listeners("time_step__prepare")
     time_step_methods = simulation.get_listeners("time_step")
     time_step_cleanup_methods = simulation.get_listeners("time_step__cleanup")
     collect_metrics_methods = simulation.get_listeners("collect_metrics")
+    simulation_end_methods = simulation.get_listeners("simulation_end")
 
-    assert component.on_time_step_prepare not in set(time_step_prepare_methods[5])
-    assert component.on_time_step not in set(time_step_methods[5])
-    assert component.on_time_step_cleanup not in set(time_step_cleanup_methods[5])
-    assert component.on_collect_metrics not in set(collect_metrics_methods[5])
+    assert component.on_post_setup not in set(post_setup_methods.get(5, []))
+    assert component.on_time_step_prepare not in set(time_step_prepare_methods.get(5, []))
+    assert component.on_time_step not in set(time_step_methods.get(5, []))
+    assert component.on_time_step_cleanup not in set(time_step_cleanup_methods.get(5, []))
+    assert component.on_collect_metrics not in set(collect_metrics_methods.get(5, []))
+    assert component.on_simulation_end not in set(simulation_end_methods.get(5, []))
 
-    assert component.on_time_step_prepare in set(time_step_prepare_methods[7])
-    assert component.on_time_step in set(time_step_methods[2])
-    assert component.on_time_step_cleanup in set(time_step_cleanup_methods[3])
-    assert component.on_collect_metrics in set(collect_metrics_methods[6])
+    assert component.on_post_setup in set(post_setup_methods.get(8, []))
+    assert component.on_time_step_prepare in set(time_step_prepare_methods.get(7, []))
+    assert component.on_time_step in set(time_step_methods.get(2, []))
+    assert component.on_time_step_cleanup in set(time_step_cleanup_methods.get(3, []))
+    assert component.on_collect_metrics in set(collect_metrics_methods.get(6, []))
+    assert component.on_simulation_end in set(simulation_end_methods.get(1, []))
