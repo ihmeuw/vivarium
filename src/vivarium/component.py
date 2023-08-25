@@ -10,6 +10,8 @@ if TYPE_CHECKING:
     from vivarium.framework.population import PopulationView, SimulantData
 
 
+DEFAULT_EVENT_PRIORITY = 5
+
 class Component(ABC):
     """
     A component that can be used in a Vivarium simulation. This component is
@@ -95,7 +97,7 @@ class Component(ABC):
     @property
     def post_setup_priority(self) -> int:
         """The priority of this component's post_setup listener if it exists."""
-        return 5
+        return DEFAULT_EVENT_PRIORITY
 
     @property
     def time_step_prepare_priority(self) -> int:
@@ -103,29 +105,29 @@ class Component(ABC):
         The priority of this component's time_step__prepare listener if it
         exists.
         """
-        return 5
+        return DEFAULT_EVENT_PRIORITY
 
     @property
     def time_step_priority(self) -> int:
         """The priority of this component's time_step listener if it exists."""
-        return 5
+        return DEFAULT_EVENT_PRIORITY
 
     @property
     def time_step_cleanup_priority(self) -> int:
         """The priority of this component's time_step__cleanup listener if it exists."""
-        return 5
+        return DEFAULT_EVENT_PRIORITY
 
     @property
     def collect_metrics_priority(self) -> int:
         """
         The priority of this component's collect_metrics listener if it exists.
         """
-        return 5
+        return DEFAULT_EVENT_PRIORITY
 
     @property
     def simulation_end_priority(self) -> int:
         """The priority of this component's simulation_end listener if it exists."""
-        return 5
+        return DEFAULT_EVENT_PRIORITY
 
     #####################
     # Lifecycle methods #
