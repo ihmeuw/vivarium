@@ -38,6 +38,16 @@ def _even_population_fixture(column, values):
     return pop_fixture()
 
 
+def test_initialize_allowing_self_transition():
+    self_transitions = State("self-transitions", allow_self_transitions=True)
+    no_self_transitions = State("no-self-transitions", allow_self_transitions=False)
+    undefined_self_transitions = State("self-transitions")
+
+    assert self_transitions.transition_set.allow_null_transition
+    assert not no_self_transitions.transition_set.allow_null_transition
+    assert not undefined_self_transitions.transition_set.allow_null_transition
+
+
 def test_transition():
     done_state = State("done")
     start_state = State("start")

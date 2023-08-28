@@ -6,7 +6,6 @@ State Machine
 A state machine implementation for use in ``vivarium`` simulations.
 
 """
-import warnings
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, Iterable, List, Tuple
 
@@ -191,9 +190,11 @@ class State:
 
     """
 
-    def __init__(self, state_id: str):
+    def __init__(self, state_id: str, allow_self_transitions: bool = False):
         self.state_id = state_id
-        self.transition_set = TransitionSet(self.name)
+        self.transition_set = TransitionSet(
+            self.name, allow_null_transition=allow_self_transitions
+        )
         self._model = None
         self._sub_components = [self.transition_set]
 

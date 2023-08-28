@@ -1,3 +1,7 @@
+**1.2.3 - 08/28/23**
+
+ - Enable allowing self transitions directly in a State's constructor
+
 **1.2.2 - 08/04/23**
 
  - Bugfix to include all metrics outputs in results manager
