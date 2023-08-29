@@ -180,7 +180,7 @@ class Transition:
         return f"{c}({self.input_state}, {self.output_state})"
 
 
-class State:
+class State(Component):
     """An abstract representation of a particular position in a state space.
 
     Attributes
@@ -192,7 +192,12 @@ class State:
 
     """
 
+    #####################
+    # Lifecycle methods #
+    #####################
+
     def __init__(self, state_id: str, allow_self_transitions: bool = False):
+        super().__init__()
         self.state_id = state_id
         self.transition_set = TransitionSet(
             self.name, allow_null_transition=allow_self_transitions
@@ -200,17 +205,9 @@ class State:
         self._model = None
         self._sub_components = [self.transition_set]
 
-    @property
-    def name(self) -> str:
-        state_type = self.__class__.__name__.lower()
-        return f"{state_type}.{self.state_id}"
-
-    @property
-    def sub_components(self) -> List:
-        return self._sub_components
-
-    def setup(self, builder: "Builder") -> None:
-        pass
+    ##################
+    # Public methods #
+    ##################
 
     def set_model(self, model_name: str) -> None:
         """Defines the column name for the model this state belongs to"""
@@ -268,6 +265,11 @@ class State:
         ----------
         output
             The end state after the transition.
+        probability_func
+            Function to be used to determine the probability of exiting this
+            state by means of this transition
+        triggered
+            The triggered state this transition should be initialized with
 
         Returns
         -------
@@ -282,15 +284,15 @@ class State:
     def allow_self_transitions(self) -> None:
         self.transition_set.allow_null_transition = True
 
+    ##################
+    # Helper methods #
+    ##################
+
     def _transition_side_effect(self, index: pd.Index, event_time: "Time") -> None:
         pass
 
     def _cleanup_effect(self, index: pd.Index, event_time: "Time") -> None:
         pass
-
-    def __repr__(self):
-        c = self.__class__.__name__
-        return f"{c}({self.state_id})"
 
 
 class Transient:
@@ -300,8 +302,7 @@ class Transient:
 
 
 class TransientState(State, Transient):
-    def __repr__(self):
-        return f"TransientState({self.state_id})"
+    pass
 
 
 class TransitionSet:
