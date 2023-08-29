@@ -7,10 +7,12 @@ A state machine implementation for use in ``vivarium`` simulations.
 
 """
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Iterable, List, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+
+from vivarium import Component
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -451,7 +453,7 @@ class TransitionSet:
         return hash(id(self))
 
 
-class Machine:
+class Machine(Component):
     """A collection of states and transitions between those states.
 
     Attributes
@@ -465,23 +467,32 @@ class Machine:
 
     """
 
-    def __init__(self, state_column: str, states: Iterable[State] = ()):
-        self.states = []
-        self.state_column = state_column
-        if states:
-            self.add_states(states)
-
-    @property
-    def name(self) -> str:
-        machine_type = self.__class__.__name__.lower()
-        return f"{machine_type}.{self.state_column}"
+    ##############
+    # Properties #
+    ##############
 
     @property
     def sub_components(self):
         return self.states
 
-    def setup(self, builder: "Builder") -> None:
-        self.population_view = builder.population.get_view([self.state_column])
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return [self.state_column]
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def __init__(self, state_column: str, states: Iterable[State] = ()):
+        super().__init__()
+        self.states = []
+        self.state_column = state_column
+        if states:
+            self.add_states(states)
+
+    ##################
+    # Public methods #
+    ##################
 
     def add_states(self, states: Iterable[State]) -> None:
         for state in states:
@@ -519,5 +530,16 @@ class Machine:
             for state in self.states
         ]
 
-    def __repr__(self):
-        return f"Machine(state_column= {self.state_column})"
+    ##################
+    # Helper methods #
+    ##################
+
+    def get_initialization_parameters(self) -> Dict[str, Any]:
+        """
+        Gets the values of the state column specified in the __init__`.
+
+        Note: this retrieves the value of the attribute at the time of calling
+        which is not guaranteed to be the same as the original value.
+        """
+
+        return {"state_column": self.state_column}
