@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 import pandas as pd
 
 from vivarium.framework.state_machine import Machine, State, Transition
@@ -98,7 +100,24 @@ class DiseaseState(State):
 
 
 class DiseaseModel(Machine):
-    def __init__(self, disease, initial_state, **kwargs):
+
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def columns_created(self) -> List[str]:
+        return [self.state_column]
+
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return ["age", "sex"]
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def __init__(self, disease: str, initial_state: DiseaseState, **kwargs):
         super().__init__(disease, **kwargs)
         self.initial_state = initial_state.state_id
 
@@ -121,13 +140,9 @@ class DiseaseModel(Machine):
         )
         builder.value.register_value_modifier("metrics", modifier=self.metrics)
 
-        creates_columns = [self.state_column]
-        builder.population.initializes_simulants(
-            self.on_initialize_simulants, creates_columns=creates_columns
-        )
-        self.population_view = builder.population.get_view(["age", "sex", self.state_column])
-
-        builder.event.register_listener("time_step", self.on_time_step)
+    ########################
+    # Event-driven methods #
+    ########################
 
     def on_initialize_simulants(self, pop_data):
         condition_column = pd.Series(
@@ -137,6 +152,10 @@ class DiseaseModel(Machine):
 
     def on_time_step(self, event):
         self.transition(event.index, event.time)
+
+    ##################################
+    # Pipeline sources and modifiers #
+    ##################################
 
     def delete_cause_specific_mortality(self, index, rates):
         return rates - self.cause_specific_mortality_rate(index)
