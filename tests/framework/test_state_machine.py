@@ -39,8 +39,8 @@ def _even_population_fixture(column, values):
 
 
 def test_initialize_allowing_self_transition():
-    self_transitions = State("self-transitions", allow_self_transitions=True)
-    no_self_transitions = State("no-self-transitions", allow_self_transitions=False)
+    self_transitions = State("self-transitions", allow_self_transition=True)
+    no_self_transitions = State("no-self-transitions", allow_self_transition=False)
     undefined_self_transitions = State("self-transitions")
 
     assert self_transitions.transition_set.allow_null_transition

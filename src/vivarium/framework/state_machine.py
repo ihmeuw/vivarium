@@ -196,11 +196,11 @@ class State(Component):
     # Lifecycle methods #
     #####################
 
-    def __init__(self, state_id: str, allow_self_transitions: bool = False):
+    def __init__(self, state_id: str, allow_self_transition: bool = False):
         super().__init__()
         self.state_id = state_id
         self.transition_set = TransitionSet(
-            self.name, allow_null_transition=allow_self_transitions
+            self.name, allow_null_transition=allow_self_transition
         )
         self._model = None
         self._sub_components = [self.transition_set]
