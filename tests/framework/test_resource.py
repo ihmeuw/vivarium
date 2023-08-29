@@ -12,7 +12,6 @@ from vivarium.framework.resource import (
 
 
 class RsesourceProducer(Component):
-
     @property
     def name(self) -> str:
         return self._name
