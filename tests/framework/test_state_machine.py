@@ -3,7 +3,7 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 
-from vivarium import InteractiveContext, Component
+from vivarium import Component, InteractiveContext
 from vivarium.framework.population import SimulantData
 from vivarium.framework.state_machine import Machine, State, Transition
 from vivarium.framework.time import Time
