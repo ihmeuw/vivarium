@@ -131,7 +131,7 @@ class Transition:
         input_state: "State",
         output_state: "State",
         probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(
-            1, index=index
+            1.0, index=index
         ),
         triggered=Trigger.NOT_TRIGGERED,
     ):
@@ -180,7 +180,7 @@ class Transition:
         return f"{c}({self.input_state}, {self.output_state})"
 
 
-class State:
+class State(Component):
     """An abstract representation of a particular position in a state space.
 
     Attributes
@@ -192,25 +192,30 @@ class State:
 
     """
 
-    def __init__(self, state_id: str, allow_self_transitions: bool = False):
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def model(self) -> str:
+        return self._model
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def __init__(self, state_id: str, allow_self_transition: bool = False):
+        super().__init__()
         self.state_id = state_id
         self.transition_set = TransitionSet(
-            self.name, allow_null_transition=allow_self_transitions
+            self.name, allow_null_transition=allow_self_transition
         )
         self._model = None
         self._sub_components = [self.transition_set]
 
-    @property
-    def name(self) -> str:
-        state_type = self.__class__.__name__.lower()
-        return f"{state_type}.{self.state_id}"
-
-    @property
-    def sub_components(self) -> List:
-        return self._sub_components
-
-    def setup(self, builder: "Builder") -> None:
-        pass
+    ##################
+    # Public methods #
+    ##################
 
     def set_model(self, model_name: str) -> None:
         """Defines the column name for the model this state belongs to"""
@@ -249,48 +254,31 @@ class State:
 
         """
         population_view.update(pd.Series(self.state_id, index=index))
-        self._transition_side_effect(index, event_time)
+        self.transition_side_effect(index, event_time)
 
     def cleanup_effect(self, index: pd.Index, event_time: "Time") -> None:
-        self._cleanup_effect(index, event_time)
+        pass
 
-    def add_transition(
-        self,
-        output: "State",
-        probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(
-            1.0, index=index
-        ),
-        triggered=Trigger.NOT_TRIGGERED,
-    ) -> Transition:
-        """Builds a transition from this state to the given state.
+    def add_transition(self, transition: Transition) -> None:
+        """Adds a transition to this state and its `TransitionSet`.
 
         Parameters
         ----------
-        output
-            The end state after the transition.
-
-        Returns
-        -------
-        Transition
-            The created transition object.
+        transition
+            The transition to add
 
         """
-        t = Transition(self, output, probability_func=probability_func, triggered=triggered)
-        self.transition_set.append(t)
-        return t
+        self.transition_set.append(transition)
 
     def allow_self_transitions(self) -> None:
         self.transition_set.allow_null_transition = True
 
-    def _transition_side_effect(self, index: pd.Index, event_time: "Time") -> None:
-        pass
+    ##################
+    # Helper methods #
+    ##################
 
-    def _cleanup_effect(self, index: pd.Index, event_time: "Time") -> None:
+    def transition_side_effect(self, index: pd.Index, event_time: "Time") -> None:
         pass
-
-    def __repr__(self):
-        c = self.__class__.__name__
-        return f"{c}({self.state_id})"
 
 
 class Transient:
@@ -300,8 +288,7 @@ class Transient:
 
 
 class TransientState(State, Transient):
-    def __repr__(self):
-        return f"TransientState({self.state_id})"
+    pass
 
 
 class TransitionSet:
