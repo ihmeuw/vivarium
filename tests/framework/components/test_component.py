@@ -55,14 +55,18 @@ class NoPopulationView(Component):
     pass
 
 
-class ParameterizedNoName(Component):
-    def __repr__(self):
-        return f"ParameterizedNoName({self.parameter_one}, {self.parameter_two})"
-
-    def __init__(self, parameter_one: str, parameter_two: int):
+class Parameterized(Component):
+    def __init__(self, p_one: str, p_two: int, p_three: str):
         super().__init__()
-        self.parameter_one = parameter_one
-        self.parameter_two = parameter_two
+        self.p_one = p_one
+        self.p_two = p_two
+        self._p_three = p_three
+
+
+class ParameterizedByComponent(Component):
+    def __init__(self, param: Parameterized):
+        super().__init__()
+        self.param = param
 
 
 class DefaultPriorities(Component):
@@ -119,10 +123,19 @@ def test_unique_component_has_correct_repr():
 
 
 def test_parameterized_component_has_repr_that_incorporates_arguments():
-    component = ParameterizedNoName("some_value", 5)
+    component = Parameterized("some_value", 5, "another_value")
 
-    # Assert component has the correct name
-    assert component.__repr__() == "ParameterizedNoName(some_value, 5)"
+    # Assert component has the correct repr
+    assert component.__repr__() == "Parameterized(p_one=some_value, p_two=5)"
+
+
+def test_component_by_other_component_has_repr_that_incorporates_arguments():
+    arg = Parameterized("some_value", 5, "another_value")
+    component = ParameterizedByComponent(arg)
+
+    # Assert component has the correct repr
+    expected_repr = "ParameterizedByComponent(param=Parameterized(p_one=some_value, p_two=5))"
+    assert component.__repr__() == expected_repr
 
 
 def test_component_with_no_arguments_has_correct_name():
@@ -133,10 +146,19 @@ def test_component_with_no_arguments_has_correct_name():
 
 
 def test_parameterized_component_has_name_that_incorporates_arguments():
-    component = ParameterizedNoName("some_value", 5)
+    component = Parameterized("some_value", 5, "another_value")
 
     # Assert component has the correct name
-    assert component.name == "parameterized_no_name.some_value.5"
+    assert component.name == "parameterized.some_value.5"
+
+
+def test_component_by_other_component_has_name_that_incorporates_arguments():
+    arg = Parameterized("some_value", 5, "another_value")
+    component = ParameterizedByComponent(arg)
+
+    # Assert component has the correct repr
+    expected = "parameterized_by_component.'parameterized.some_value.5'"
+    assert component.name == expected
 
 
 def test_component_that_creates_columns_population_view():
