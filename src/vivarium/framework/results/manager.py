@@ -7,9 +7,9 @@ import pandas as pd
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.context import ResultsContext
+from vivarium.manager import Manager
 
 if TYPE_CHECKING:
-    # Cyclic import
     from vivarium.framework.engine import Builder
 
 
@@ -18,7 +18,7 @@ class SourceType(Enum):
     VALUE = 1
 
 
-class ResultsManager:
+class ResultsManager(Manager):
     """Backend manager object for the results management system.
 
     The :class:`ResultManager` actually performs the actions needed to

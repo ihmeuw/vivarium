@@ -22,6 +22,7 @@ from typing import Any, Callable, Iterable, List
 import networkx as nx
 
 from vivarium.exceptions import VivariumError
+from vivarium.manager import Manager
 
 
 class ResourceError(VivariumError):
@@ -101,7 +102,7 @@ class ResourceGroup:
         return f"({resources})"
 
 
-class ResourceManager:
+class ResourceManager(Manager):
     """Manages all the resources needed for population initialization."""
 
     def __init__(self):
