@@ -192,6 +192,14 @@ class State(Component):
 
     """
 
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def model(self) -> str:
+        return self._model
+
     #####################
     # Lifecycle methods #
     #####################
@@ -251,35 +259,16 @@ class State(Component):
     def cleanup_effect(self, index: pd.Index, event_time: "Time") -> None:
         self._cleanup_effect(index, event_time)
 
-    def add_transition(
-        self,
-        output: "State",
-        probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(
-            1.0, index=index
-        ),
-        triggered=Trigger.NOT_TRIGGERED,
-    ) -> Transition:
-        """Builds a transition from this state to the given state.
+    def add_transition(self, transition: Transition) -> None:
+        """Adds a transition to this state and its `TransitionSet`.
 
         Parameters
         ----------
-        output
-            The end state after the transition.
-        probability_func
-            Function to be used to determine the probability of exiting this
-            state by means of this transition
-        triggered
-            The triggered state this transition should be initialized with
-
-        Returns
-        -------
-        Transition
-            The created transition object.
+        transition
+            The transition to add
 
         """
-        t = Transition(self, output, probability_func=probability_func, triggered=triggered)
-        self.transition_set.append(t)
-        return t
+        self.transition_set.append(transition)
 
     def allow_self_transitions(self) -> None:
         self.transition_set.allow_null_transition = True
