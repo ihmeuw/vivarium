@@ -231,7 +231,7 @@ class PopulationManager:
             if query is None:
                 query = "tracked == True"
             elif "tracked" not in query:
-                query += "and tracked == True"
+                query += " and tracked == True"
         self._last_id += 1
         return PopulationView(self, self._last_id, columns, query)
 
