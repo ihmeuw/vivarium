@@ -1,7 +1,10 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from vivarium.framework.engine import Builder
+from vivarium.framework.event import Event
+from vivarium.framework.population import SimulantData
 from vivarium.framework.state_machine import Machine, State, Transition
 from vivarium.framework.utilities import rate_to_probability
 from vivarium.framework.values import list_combiner, union_post_processor
@@ -42,13 +45,26 @@ class DiseaseTransition(Transition):
 
 
 class DiseaseState(State):
-    def __init__(self, state_name, cause_key, with_excess_mortality=False):
-        super().__init__(state_name)
-        self.cause_key = cause_key
-        self.with_excess_mortality = with_excess_mortality
+
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def population_view_query(self) -> Optional[str]:
+        return f"alive == 'alive' and {self.model} == '{self.state_id}'"
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def __init__(self, state_id: str, cause_key: str, with_excess_mortality: bool = False):
+        super().__init__(state_id)
+        self._cause_key = cause_key
+        self._with_excess_mortality = with_excess_mortality
 
     # noinspection PyAttributeOutsideInit
-    def setup(self, builder):
+    def setup(self, builder: Builder):
         """Performs this component's simulation setup.
 
         Parameters
@@ -57,9 +73,9 @@ class DiseaseState(State):
             Interface to several simulation tools.
         """
         super().setup(builder)
-        if self.with_excess_mortality:
+        if self._with_excess_mortality:
             self._excess_mortality_rate = builder.configuration[
-                self.cause_key
+                self._cause_key
             ].excess_mortality_rate
         else:
             self._excess_mortality_rate = 0
@@ -78,21 +94,30 @@ class DiseaseState(State):
         )
 
         builder.value.register_value_modifier("mortality_rate", self.add_in_excess_mortality)
-        self.population_view = builder.population.get_view(
-            [self._model], query=f"alive == 'alive' and {self._model} == '{self.state_id}'"
-        )
 
-    def add_transition(self, output, measure, rate_name, **kwargs):
-        t = DiseaseTransition(self, output, self.cause_key, measure, rate_name, **kwargs)
-        self.transition_set.append(t)
+    ##################
+    # Public methods #
+    ##################
+
+    def add_disease_transition(
+        self, output: State, measure: str, rate_name: str, **kwargs
+    ) -> DiseaseTransition:
+        t = DiseaseTransition(self, output, self._cause_key, measure, rate_name, **kwargs)
+        self.add_transition(t)
         return t
 
-    def risk_deleted_excess_mortality_rate(self, index):
+    ##################################
+    # Pipeline sources and modifiers #
+    ##################################
+
+    def risk_deleted_excess_mortality_rate(self, index: pd.Index) -> pd.Series:
         return pd.Series(self._excess_mortality_rate, index=index) * (
             1 - self.excess_mortality_rate_paf(index)
         )
 
-    def add_in_excess_mortality(self, index, mortality_rates):
+    def add_in_excess_mortality(
+        self, index: pd.Index, mortality_rates: pd.Series
+    ) -> pd.Series:
         affected = self.population_view.get(index)
         mortality_rates.loc[affected.index] += self.excess_mortality_rate(affected.index)
 
@@ -122,7 +147,7 @@ class DiseaseModel(Machine):
         self.initial_state = initial_state.state_id
 
     # noinspection PyAttributeOutsideInit
-    def setup(self, builder):
+    def setup(self, builder: Builder) -> None:
         super().setup(builder)
         config = builder.configuration[self.state_column]
         # Reasonable approximation for short duration diseases.
@@ -144,23 +169,23 @@ class DiseaseModel(Machine):
     # Event-driven methods #
     ########################
 
-    def on_initialize_simulants(self, pop_data):
+    def on_initialize_simulants(self, pop_data: SimulantData):
         condition_column = pd.Series(
             self.initial_state, index=pop_data.index, name=self.state_column
         )
         self.population_view.update(condition_column)
 
-    def on_time_step(self, event):
+    def on_time_step(self, event: Event):
         self.transition(event.index, event.time)
 
     ##################################
     # Pipeline sources and modifiers #
     ##################################
 
-    def delete_cause_specific_mortality(self, index, rates):
+    def delete_cause_specific_mortality(self, index: pd.Index, rates: pd.Series):
         return rates - self.cause_specific_mortality_rate(index)
 
-    def metrics(self, index, metrics):
+    def metrics(self, index: pd.Index, metrics: Dict[str, Any]):
         pop = self.population_view.get(index, query="alive == 'alive'")
         metrics[self.state_column + "_prevalent_cases"] = len(
             pop[pop[self.state_column] != self.initial_state]
@@ -189,13 +214,13 @@ class SISDiseaseModel:
         )
 
         susceptible_state.allow_self_transitions()
-        susceptible_state.add_transition(
+        susceptible_state.add_disease_transition(
             infected_state,
             measure="incidence_rate",
             rate_name=f"{infected_state.state_id}.incidence_rate",
         )
         infected_state.allow_self_transitions()
-        infected_state.add_transition(
+        infected_state.add_disease_transition(
             susceptible_state,
             measure="remission_rate",
             rate_name=f"{infected_state.state_id}.remission_rate",
