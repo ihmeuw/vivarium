@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import pandas as pd
 
@@ -43,6 +43,12 @@ class AllColumnsRequirer(Component):
     @property
     def columns_required(self) -> List[str]:
         return []
+
+
+class FilteredPopulationView(ColumnRequirer):
+    @property
+    def population_view_query(self) -> Optional[str]:
+        return "test_column_1 == 5"
 
 
 class NoPopulationView(Component):
@@ -174,6 +180,14 @@ def test_component_that_requires_all_columns_population_view():
 
     assert component.population_view is not None
     assert set(component.population_view.columns) == set(expected_columns)
+
+
+def test_component_with_filtered_population_view():
+    component = FilteredPopulationView()
+    InteractiveContext(components=[ColumnCreator(), component])
+
+    # Assert population view is being filtered using the desired query
+    assert component.population_view.query == "test_column_1 == 5 and tracked == True"
 
 
 def test_component_with_no_population_view():
