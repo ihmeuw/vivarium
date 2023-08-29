@@ -1,7 +1,7 @@
 import re
 from abc import ABC
 from inspect import signature
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from vivarium.framework.event import Event
 
@@ -33,7 +33,11 @@ class Component(ABC):
     def __repr__(self):
         """A string representation of the __init__ call made to create this object"""
         if not self._repr:
-            args = ", ".join(self._get_initialization_parameters())
+            args = [
+                f"{name}={value}"
+                for name, value in self.get_initialization_parameters().items()
+            ]
+            args = ", ".join(args)
             self._repr = f"{type(self).__name__}({args})"
 
         return self._repr
@@ -54,9 +58,11 @@ class Component(ABC):
             base_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", type(self).__name__)
             base_name = re.sub("([a-z0-9])([A-Z])", r"\1_\2", base_name).lower()
 
-            # This is making the assumption that all arguments to the `__init__`
-            # have been saved in an attribute of the same name.
-            self._name = ".".join([base_name] + self._get_initialization_parameters())
+            args = [
+                f"'{value.name}'" if isinstance(value, Component) else str(value)
+                for value in self.get_initialization_parameters().values()
+            ]
+            self._name = ".".join([base_name] + args)
 
         return self._name
 
@@ -299,15 +305,20 @@ class Component(ABC):
     # Helper methods #
     ##################
 
-    def _get_initialization_parameters(self) -> List[str]:
+    def get_initialization_parameters(self) -> Dict[str, Any]:
         """
-        Gets and casts as a string the values of all parameters specified in the
-        __init__`.
+        Gets the values of all parameters specified in the __init__` that have
+        an attribute with the same name.
 
-        Note: this makes the assumption that all arguments to the `__init__`
-        are saved as attributes with the same name.
+        This makes the assumption that arguments to the `__init__` are saved as
+        attributes with the same name.
 
         Note: this retrieves the value of the attribute at the time of calling
         which is not guaranteed to be the same as the original value.
         """
-        return [str(self.__getattribute__(x)) for x in signature(self.__init__).parameters]
+
+        return {
+            parameter_name: getattr(self, parameter_name)
+            for parameter_name in signature(self.__init__).parameters
+            if hasattr(self, parameter_name)
+        }
