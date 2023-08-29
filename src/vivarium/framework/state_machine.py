@@ -131,7 +131,7 @@ class Transition:
         input_state: "State",
         output_state: "State",
         probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(
-            1, index=index
+            1.0, index=index
         ),
         triggered=Trigger.NOT_TRIGGERED,
     ):
@@ -254,10 +254,10 @@ class State(Component):
 
         """
         population_view.update(pd.Series(self.state_id, index=index))
-        self._transition_side_effect(index, event_time)
+        self.transition_side_effect(index, event_time)
 
     def cleanup_effect(self, index: pd.Index, event_time: "Time") -> None:
-        self._cleanup_effect(index, event_time)
+        pass
 
     def add_transition(self, transition: Transition) -> None:
         """Adds a transition to this state and its `TransitionSet`.
@@ -277,10 +277,7 @@ class State(Component):
     # Helper methods #
     ##################
 
-    def _transition_side_effect(self, index: pd.Index, event_time: "Time") -> None:
-        pass
-
-    def _cleanup_effect(self, index: pd.Index, event_time: "Time") -> None:
+    def transition_side_effect(self, index: pd.Index, event_time: "Time") -> None:
         pass
 
 
