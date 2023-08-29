@@ -1,6 +1,7 @@
 import networkx as nx
 import pytest
 
+from vivarium import Component
 from vivarium.framework.resource import (
     NULL_RESOURCE_TYPE,
     RESOURCE_TYPES,
@@ -10,16 +11,22 @@ from vivarium.framework.resource import (
 )
 
 
-class Component:
-    def __init__(self, name):
-        self.name = name
+class RsesourceProducer(Component):
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def __init__(self, name: str):
+        super().__init__()
+        self._name = name
 
     def producer(self):
         return "resources!"
 
 
 def test_resource_group():
-    c = Component("base")
+    c = RsesourceProducer("base")
     r_type = "column"
     r_names = [str(i) for i in range(5)]
     r_producer = c.producer
@@ -36,7 +43,7 @@ def test_resource_group():
 
 def test_resource_manager_get_resource_group():
     rm = ResourceManager()
-    c = Component("base")
+    c = RsesourceProducer("base")
     r_type = "column"
     r_names = [str(i) for i in range(5)]
     r_producer = c.producer
@@ -53,7 +60,7 @@ def test_resource_manager_get_resource_group():
 
 def test_resource_manager_get_resource_group_null():
     rm = ResourceManager()
-    c = Component("base")
+    c = RsesourceProducer("base")
     r_type = "column"
     r_names = []
     r_producer = c.producer
@@ -70,7 +77,7 @@ def test_resource_manager_get_resource_group_null():
 
 def test_resource_manager_add_resources_bad_type():
     rm = ResourceManager()
-    c = Component("base")
+    c = RsesourceProducer("base")
     r_type = "unknown"
     r_names = [str(i) for i in range(5)]
     r_producer = c.producer
@@ -82,8 +89,8 @@ def test_resource_manager_add_resources_bad_type():
 
 def test_resource_manager_add_resources_multiple_producers():
     rm = ResourceManager()
-    c1 = Component("1")
-    c2 = Component("2")
+    c1 = RsesourceProducer("1")
+    c2 = RsesourceProducer("2")
     r_type = "column"
     r1_names = [str(i) for i in range(5)]
     r2_names = [str(i) for i in range(5, 10)] + ["1"]
@@ -101,7 +108,7 @@ def test_resource_manager_add_resources():
     for r_type in RESOURCE_TYPES:
         old_names = []
         for i in range(5):
-            c = Component(f"r_type_{i}")
+            c = RsesourceProducer(f"r_type_{i}")
             names = [f"r_type_{i}_{j}" for j in range(5)]
             rm.add_resources(r_type, names, c.producer, old_names)
             old_names = names
@@ -109,7 +116,7 @@ def test_resource_manager_add_resources():
 
 def test_resource_manager_sorted_nodes_two_node_cycle():
     rm = ResourceManager()
-    c = Component("test")
+    c = RsesourceProducer("test")
 
     rm.add_resources("column", ["1"], c.producer, ["stream.2"])
     rm.add_resources("stream", ["2"], c.producer, ["column.1"])
@@ -120,7 +127,7 @@ def test_resource_manager_sorted_nodes_two_node_cycle():
 
 def test_resource_manager_sorted_nodes_three_node_cycle():
     rm = ResourceManager()
-    c = Component("test")
+    c = RsesourceProducer("test")
 
     rm.add_resources("column", ["1"], c.producer, ["stream.3"])
     rm.add_resources("stream", ["2"], c.producer, ["column.1"])
@@ -132,7 +139,7 @@ def test_resource_manager_sorted_nodes_three_node_cycle():
 
 def test_resource_manager_sorted_nodes_large_cycle():
     rm = ResourceManager()
-    c = Component("test")
+    c = RsesourceProducer("test")
 
     for i in range(10):
         rm.add_resources("column", [f"{i}"], c.producer, [f"column.{i%10}"])
@@ -143,7 +150,7 @@ def test_resource_manager_sorted_nodes_large_cycle():
 
 def test_resource_manager_sorted_nodes_diamond():
     rm = ResourceManager()
-    c = Component("test")
+    c = RsesourceProducer("test")
 
     rm.add_resources("column", ["1"], c.producer, [])
     rm.add_resources("column", ["2"], c.producer, ["column.1"])
