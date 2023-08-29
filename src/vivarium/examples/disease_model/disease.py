@@ -169,20 +169,20 @@ class DiseaseModel(Machine):
     # Event-driven methods #
     ########################
 
-    def on_initialize_simulants(self, pop_data: SimulantData):
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         condition_column = pd.Series(
             self.initial_state, index=pop_data.index, name=self.state_column
         )
         self.population_view.update(condition_column)
 
-    def on_time_step(self, event: Event):
+    def on_time_step(self, event: Event) -> None:
         self.transition(event.index, event.time)
 
     ##################################
     # Pipeline sources and modifiers #
     ##################################
 
-    def delete_cause_specific_mortality(self, index: pd.Index, rates: pd.Series):
+    def delete_cause_specific_mortality(self, index: pd.Index, rates: pd.Series) -> pd.Series:
         return rates - self.cause_specific_mortality_rate(index)
 
     def metrics(self, index: pd.Index, metrics: Dict[str, Any]):
