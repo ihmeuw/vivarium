@@ -6,7 +6,6 @@ from vivarium.framework.event import Event
 
 
 class MockComponentA(Component):
-
     @property
     def name(self) -> str:
         return self._name
@@ -22,7 +21,6 @@ class MockComponentA(Component):
 
 
 class MockComponentB(Component):
-
     @property
     def name(self) -> str:
         return self._name
@@ -70,9 +68,7 @@ class MockGenericComponent(Component):
 
     @property
     def configuration_defaults(self) -> Dict[str, Any]:
-        return {
-            self.name: self.CONFIGURATION_DEFAULTS["component"]
-        }
+        return {self.name: self.CONFIGURATION_DEFAULTS["component"]}
 
     def __init__(self, name: str):
         super().__init__()
