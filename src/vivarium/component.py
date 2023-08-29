@@ -96,6 +96,15 @@ class Component(ABC):
         return []
 
     @property
+    def population_view_query(self) -> Optional[str]:
+        """
+        A pandas query string to use to filter the component's `PopulationView`.
+
+        None if no filtering is desired.
+        """
+        return None
+
+    @property
     def post_setup_priority(self) -> int:
         """The priority of this component's post_setup listener if it exists."""
         return DEFAULT_EVENT_PRIORITY
@@ -175,7 +184,9 @@ class Component(ABC):
             population_view_columns = None
 
         if population_view_columns is not None:
-            self.population_view = builder.population.get_view(population_view_columns)
+            self.population_view = builder.population.get_view(
+                population_view_columns, self.population_view_query
+            )
 
     def register_post_setup_listener(self, builder: "Builder") -> None:
         """Registers a post_setup listener if this component has defined one."""
