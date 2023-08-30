@@ -8,7 +8,7 @@ The manager and :ref:`builder <builder_concept>` interface for the
 
 """
 from types import MethodType
-from typing import Any, Callable, Dict, List, NamedTuple, Tuple, Union
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -279,7 +279,7 @@ class PopulationManager:
             "column", list(creates_columns), initializer, dependencies
         )
 
-    def get_simulant_creator(self) -> Callable:
+    def get_simulant_creator(self) -> Callable[[int, Optional[Dict[str, Any]]], pd.Index]:
         """Gets a function that can generate new simulants.
 
         Returns
@@ -408,7 +408,7 @@ class PopulationInterface:
         """
         return self._manager.get_view(columns, query)
 
-    def get_simulant_creator(self) -> Callable[[int, Union[Dict[str, Any], None]], pd.Index]:
+    def get_simulant_creator(self) -> Callable[[int, Optional[Dict[str, Any]]], pd.Index]:
         """Gets a function that can generate new simulants.
 
         Returns

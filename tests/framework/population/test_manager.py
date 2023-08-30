@@ -66,6 +66,13 @@ def test_initializer_set_duplicate_columns():
         component_set.add(component2.initializer, ["sneaky_column"] + columns)
 
 
+def test_initializer_set_population_manager():
+    component_set = InitializerComponentSet()
+    population_manager = PopulationManager()
+
+    component_set.add(population_manager.on_initialize_simulants, ["tracked"])
+
+
 def test_initializer_set():
     component_set = InitializerComponentSet()
     for i in range(10):

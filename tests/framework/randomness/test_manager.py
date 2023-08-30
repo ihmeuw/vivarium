@@ -10,7 +10,7 @@ def mock_clock():
     return pd.Timestamp("1/1/2005")
 
 
-def test_RandomnessManager_get_randomness_stream():
+def test_randomness_manager_get_randomness_stream():
     seed = 123456
 
     rm = RandomnessManager()
@@ -28,7 +28,7 @@ def test_RandomnessManager_get_randomness_stream():
         rm.get_randomness_stream("test")
 
 
-def test_RandomnessManager_register_simulants():
+def test_randomness_manager_register_simulants():
     seed = 123456
     rm = RandomnessManager()
     rm._add_constraint = lambda f, **kwargs: f
