@@ -221,7 +221,7 @@ def test_component_with_initialization_requirements():
 
     assert "value.pipeline_1" in dependencies
     assert "column.test_column_2" in dependencies
-    assert "stream.stream_1"
+    assert "stream.stream_1" in dependencies
 
 
 def test_component_that_requires_all_columns_population_view():
