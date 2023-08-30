@@ -3,13 +3,14 @@ Integration tests primarily meant to test the CRN guarantees for the Randomness 
 
 """
 from itertools import cycle
-from typing import Iterator
+from typing import Iterator, List, Type
 
 import numpy as np
 import pandas as pd
 import pytest
 from pandas.testing import assert_frame_equal
 
+from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
@@ -53,11 +54,19 @@ def test_basic_repeatability(initializes_crn_attributes):
             assert not np.allclose(draw_base, draw_1)
 
 
-class BasePopulation:
-    """Population class with parameters to turn on and off CRN and to add simulants on
-    time steps.
-
+class BasePopulation(Component):
     """
+    Population class with parameters to turn on and off CRN and to add simulants on
+    time steps.
+    """
+
+    @property
+    def name(self):
+        return "population"
+
+    @property
+    def columns_created(self) -> List[str]:
+        return ["crn_attr1", "crn_attr2", "other_attr1"]
 
     def __init__(self, with_crn: bool, sims_to_add: Iterator = cycle([0])):
         """
@@ -70,48 +79,33 @@ class BasePopulation:
             current time step.
 
         """
+        super().__init__()
         self.with_crn = with_crn
         self.sims_to_add = sims_to_add
 
-    @property
-    def name(self):
-        return "population"
-
-    def setup(self, builder: Builder):
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.register = builder.randomness.register_simulants
         self.randomness_init = builder.randomness.get_stream(
             "crn_init",
             initializes_crn_attributes=self.with_crn,
         )
         self.randomness_other = builder.randomness.get_stream("other")
-
-        columns_created = ["crn_attr1", "crn_attr2", "other_attr1"]
-        builder.population.initializes_simulants(
-            self.on_initialize_simulants,
-            creates_columns=columns_created,
-        )
-        self.population_view = builder.population.get_view(columns_created)
         self.simulant_creator = builder.population.get_simulant_creator()
-        builder.event.register_listener("time_step", self.on_time_step)
 
-    def on_initialize_simulants(self, pop_data: SimulantData):
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         pass
 
-    def on_time_step(self, event: Event):
+    def on_time_step(self, event: Event) -> None:
         sims_to_add = next(self.sims_to_add)
         if sims_to_add > 0:
-            self.simulant_creator(
-                count=sims_to_add,
-                population_configuration={
-                    "sim_state": "time_step",
-                },
-            )
+            self.simulant_creator(sims_to_add, {"sim_state": "time_step"})
 
 
 class EntranceTimePopulation(BasePopulation):
     """Population that bases identity on entrance time and a random number"""
 
-    def on_initialize_simulants(self, pop_data: SimulantData):
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         crn_attr = (1_000_000 * self.randomness_init.get_draw(index=pop_data.index)).astype(
             int
         )
@@ -131,13 +125,14 @@ class EntranceTimePopulation(BasePopulation):
 
 
 class SequentialPopulation(BasePopulation):
-    """Population that bases identity on the order simulants enter the simulation.
+    """
+    Population that bases identity on the order simulants enter the simulation.
 
     NOTE: This population is not fully supported by the CRN system and is here to explicitly
     test and assert the expected failure cases.
     """
 
-    def setup(self, builder: Builder):
+    def setup(self, builder: Builder) -> None:
         super().setup(builder)
         self.count = 0
 
@@ -177,9 +172,9 @@ class SequentialPopulation(BasePopulation):
     ],
 )
 def test_multi_sim_basic_reproducibility_with_same_pop_growth(
-    pop_class,
-    with_crn,
-    sims_to_add,
+    pop_class: Type,
+    with_crn: bool,
+    sims_to_add: cycle,
 ):
     if with_crn:
         configuration = {"randomness": {"key_columns": ["crn_attr1", "crn_attr2"]}}
@@ -217,7 +212,7 @@ def test_multi_sim_basic_reproducibility_with_same_pop_growth(
         pytest.param(SequentialPopulation, False),
     ],
 )
-def test_multi_sim_reproducibility_with_different_pop_growth(with_crn, pop_class):
+def test_multi_sim_reproducibility_with_different_pop_growth(pop_class: Type, with_crn: bool):
     if with_crn:
         configuration = {"randomness": {"key_columns": ["crn_attr1", "crn_attr2"]}}
     else:
@@ -256,10 +251,10 @@ def test_multi_sim_reproducibility_with_different_pop_growth(with_crn, pop_class
 
 
 class UnBrokenPopulation(BasePopulation):
-    """CRN system used to fall over if the first CRN attribute is an int or float.
+    """
+    CRN system used to fall over if the first CRN attribute is an int or float.
 
     This is now a regression testing class.
-
     """
 
     def on_initialize_simulants(self, pop_data: SimulantData):
@@ -290,7 +285,9 @@ class UnBrokenPopulation(BasePopulation):
         pytest.param(False, cycle([1])),
     ],
 )
-def test_prior_failure_path_when_first_crn_attribute_not_datelike(with_crn, sims_to_add):
+def test_prior_failure_path_when_first_crn_attribute_not_datelike(
+    with_crn: bool, sims_to_add: cycle
+):
     if with_crn:
         configuration = {"randomness": {"key_columns": ["crn_attr1", "crn_attr2"]}}
     else:

@@ -28,7 +28,7 @@ class Component(ABC):
     A dictionary containing the defaults for any configurations managed by this
     component.
     """
-    configuration_defaults = {}
+    CONFIGURATION_DEFAULTS: Dict[str, Any] = {}
 
     def __repr__(self):
         """A string representation of the __init__ call made to create this object"""
@@ -70,6 +70,14 @@ class Component(ABC):
     def sub_components(self) -> List["Component"]:
         """A list of the components that are managed by this component."""
         return self._sub_components
+
+    @property
+    def configuration_defaults(self) -> Dict[str, Any]:
+        """
+        A dictionary containing the defaults for any configurations managed by
+        this component.
+        """
+        return self.CONFIGURATION_DEFAULTS
 
     @property
     def columns_created(self) -> List[str]:
