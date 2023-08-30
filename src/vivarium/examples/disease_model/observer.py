@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
@@ -29,7 +29,7 @@ class Observer(Component):
     #####################
 
     # noinspection PyAttributeOutsideInit
-    def setup(self, builder: Builder):
+    def setup(self, builder: Builder) -> None:
         super().setup(builder)
         self.life_expectancy = builder.configuration.mortality.life_expectancy
 
@@ -39,7 +39,7 @@ class Observer(Component):
     # Pipeline sources and modifiers #
     ##################################
 
-    def metrics(self, index: pd.Index, metrics: Dict):
+    def metrics(self, index: pd.Index, metrics: Dict) -> Dict:
         pop = self.population_view.get(index)
         metrics["total_population_alive"] = len(pop[pop.alive == "alive"])
         metrics["total_population_dead"] = len(pop[pop.alive == "dead"])
