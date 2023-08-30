@@ -99,15 +99,19 @@ class Component(ABC):
         return None
 
     @property
-    def initialization_columns_required(self) -> List[str]:
+    def initialization_requirements(self) -> Dict[str, List[str]]:
         """
-        A list of the columns this component requires during simulant
-        initialization.
+        A dict containing the values this component requires during simulant
+        initialization in addition to the columns it creates.
 
-        An empty list means no columns beyond those created by this component
-        are needed during initialization.
+        For each key, an empty list means nothing new is needed during
+        initialization.
         """
-        return []
+        return {
+            "requires_columns": [],
+            "requires_values": [],
+            "requires_streams": [],
+        }
 
     @property
     def population_view_query(self) -> Optional[str]:
@@ -217,7 +221,7 @@ class Component(ABC):
             builder.population.initializes_simulants(
                 self.on_initialize_simulants,
                 creates_columns=self.columns_created,
-                requires_streams=self.initialization_columns_required,
+                **self.initialization_requirements,
             )
 
     def register_time_step_prepare_listener(self, builder: "Builder") -> None:
