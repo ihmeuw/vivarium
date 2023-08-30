@@ -202,17 +202,17 @@ def test_SimulationContext_step(SimulationContext, log, base_config, components)
 
     listener = [c for c in components if "listener" in c.args][0]
 
-    assert not listener.time_step__prepare_called
+    assert not listener.time_step_prepare_called
     assert not listener.time_step_called
-    assert not listener.time_step__cleanup_called
+    assert not listener.time_step_cleanup_called
     assert not listener.collect_metrics_called
 
     sim.step()
 
     assert log.debug.called_once_with(current_time)
-    assert listener.time_step__prepare_called
+    assert listener.time_step_prepare_called
     assert listener.time_step_called
-    assert listener.time_step__cleanup_called
+    assert listener.time_step_cleanup_called
     assert listener.collect_metrics_called
 
     assert sim._clock.time == current_time + step_size
