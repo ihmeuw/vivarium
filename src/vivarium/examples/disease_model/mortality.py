@@ -52,6 +52,7 @@ class Mortality(Component):
         builder :
             Access to simulation tools and subsystems.
         """
+        super().setup(builder)
         self.config = builder.configuration.mortality
         self.randomness = builder.randomness.get_stream("mortality")
 
