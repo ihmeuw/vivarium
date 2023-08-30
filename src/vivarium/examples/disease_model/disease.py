@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
@@ -11,7 +12,19 @@ from vivarium.framework.values import list_combiner, union_post_processor
 
 
 class DiseaseTransition(Transition):
-    def __init__(self, input_state, output_state, cause_key, measure, rate_name, **kwargs):
+
+    #####################
+    # Lifecycle methods #
+    #####################
+    def __init__(
+        self,
+        input_state: "DiseaseState",
+        output_state: "DiseaseState",
+        cause_key: str,
+        measure: str,
+        rate_name: str,
+        **kwargs,
+    ):
         super().__init__(
             input_state, output_state, probability_func=self._probability, **kwargs
         )
@@ -20,7 +33,8 @@ class DiseaseTransition(Transition):
         self.rate_name = rate_name
 
     # noinspection PyAttributeOutsideInit
-    def setup(self, builder):
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         rate = builder.configuration[self.cause_key][self.measure]
 
         self.base_rate = lambda index: pd.Series(rate, index=index)
@@ -34,14 +48,22 @@ class DiseaseTransition(Transition):
             preferred_post_processor=union_post_processor,
         )
 
-    def _probability(self, index):
-        effective_rate = self.transition_rate(index)
-        return rate_to_probability(effective_rate)
+    ##################################
+    # Pipeline sources and modifiers #
+    ##################################
 
-    def _risk_deleted_rate(self, index):
+    def _risk_deleted_rate(self, index: pd.Index) -> pd.Series:
         return self.base_rate(index) * (
             1 - self.joint_population_attributable_fraction(index)
         )
+
+    ##################
+    # Helper methods #
+    ##################
+
+    def _probability(self, index: pd.Index) -> pd.Series:
+        effective_rate = self.transition_rate(index)
+        return pd.Series(rate_to_probability(effective_rate))
 
 
 class DiseaseState(State):
@@ -100,7 +122,7 @@ class DiseaseState(State):
     ##################
 
     def add_disease_transition(
-        self, output: State, measure: str, rate_name: str, **kwargs
+        self, output: "DiseaseState", measure: str, rate_name: str, **kwargs
     ) -> DiseaseTransition:
         t = DiseaseTransition(self, output, self._cause_key, measure, rate_name, **kwargs)
         self.add_transition(t)
@@ -193,7 +215,7 @@ class DiseaseModel(Machine):
         return metrics
 
 
-class SISDiseaseModel:
+class SISDiseaseModel(Component):
     configuration_defaults = {
         "disease": {
             "incidence_rate": 0.005,
@@ -202,7 +224,8 @@ class SISDiseaseModel:
         }
     }
 
-    def __init__(self, disease_name):
+    def __init__(self, disease_name: str):
+        super().__init__()
         self._name = disease_name
         self.configuration_defaults = {
             disease_name: SISDiseaseModel.configuration_defaults["disease"]
@@ -232,11 +255,3 @@ class SISDiseaseModel:
             states=[susceptible_state, infected_state],
         )
         self._sub_components = [model]
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def sub_components(self):
-        return self._sub_components
