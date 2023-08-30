@@ -30,6 +30,7 @@ from typing import Any, Callable, Dict, List, NamedTuple, Optional
 
 import pandas as pd
 
+from ..manager import Manager
 from .lifecycle import ConstraintError
 from .time import Time, Timedelta
 
@@ -126,7 +127,7 @@ class EventChannel:
         return f"EventChannel(listeners: {[listener for bucket in self.listeners for listener in bucket]})"
 
 
-class EventManager:
+class EventManager(Manager):
     """The configuration for the event system.
 
     Notes

@@ -16,11 +16,13 @@ from typing import Callable, Union
 
 import pandas as pd
 
+from vivarium.manager import Manager
+
 Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
 
 
-class SimulationClock:
+class SimulationClock(Manager):
     """Defines a base implementation for a simulation clock."""
 
     def __init__(self):

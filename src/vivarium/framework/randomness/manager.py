@@ -8,9 +8,10 @@ import pandas as pd
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import RandomnessStream, get_hash
+from vivarium.manager import Manager
 
 
-class RandomnessManager:
+class RandomnessManager(Manager):
     """Access point for common random number generation."""
 
     configuration_defaults = {
