@@ -204,7 +204,7 @@ class State(Component):
         super().__init__()
         self.state_id = state_id
         self.transition_set = TransitionSet(
-            self.name, allow_null_transition=allow_self_transition
+            self.name, allow_self_transition=allow_self_transition
         )
         self._model = None
         self._sub_components = [self.transition_set]
@@ -287,7 +287,7 @@ class TransientState(State, Transient):
     pass
 
 
-class TransitionSet:
+class TransitionSet(Component):
     """A container for state machine transitions.
 
     Parameters
@@ -298,26 +298,32 @@ class TransitionSet:
     iterable
         Any iterable whose elements are `Transition` objects.
     allow_null_transition
+        Specified whether it is possible not to transition on a given time-step
 
     """
 
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def name(self) -> str:
+        return f"transition_set.{self.state_name}"
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
     def __init__(
-        self, state_name: str, *transitions: Transition, allow_null_transition: bool = False
+        self, state_name: str, *transitions: Transition, allow_self_transition: bool = False
     ):
-        self._state_name = state_name
-        self.allow_null_transition = allow_null_transition
+        super().__init__()
+        self.state_name = state_name
+        self.allow_null_transition = allow_self_transition
         self.transitions = []
         self._sub_components = self.transitions
 
         self.extend(transitions)
-
-    @property
-    def name(self) -> str:
-        return f"transition_set.{self._state_name}"
-
-    @property
-    def sub_components(self) -> List:
-        return self._sub_components
 
     def setup(self, builder: "Builder") -> None:
         """Performs this component's simulation setup and return sub-components.
@@ -329,7 +335,12 @@ class TransitionSet:
             number generation, in particular.
 
         """
+        super().setup(builder)
         self.random = builder.randomness.get_stream(self.name)
+
+    ##################
+    # Public methods #
+    ##################
 
     def choose_new_state(self, index: pd.Index) -> Tuple[List, pd.Series]:
         """Chooses a new state for each simulant in the index.
@@ -357,6 +368,22 @@ class TransitionSet:
         probabilities = np.transpose(probabilities)
         outputs, probabilities = self._normalize_probabilities(outputs, probabilities)
         return outputs, self.random.choice(index, outputs, probabilities)
+
+    def append(self, transition: Transition) -> None:
+        if not isinstance(transition, Transition):
+            raise TypeError(
+                "TransitionSet must contain only Transition objects. "
+                f"Check constructor arguments: {self}"
+            )
+        self.transitions.append(transition)
+
+    def extend(self, transitions: Iterable[Transition]) -> None:
+        for transition in transitions:
+            self.append(transition)
+
+    ##################
+    # Helper methods #
+    ##################
 
     def _normalize_probabilities(self, outputs, probabilities):
         """Normalize probabilities to sum to 1 and add a null transition.
@@ -414,27 +441,11 @@ class TransitionSet:
 
         return outputs, probabilities
 
-    def append(self, transition: Transition) -> None:
-        if not isinstance(transition, Transition):
-            raise TypeError(
-                "TransitionSet must contain only Transition objects. Check constructor arguments: {}".format(
-                    self
-                )
-            )
-        self.transitions.append(transition)
-
-    def extend(self, transitions: Iterable[Transition]) -> None:
-        for transition in transitions:
-            self.append(transition)
-
     def __iter__(self):
         return iter(self.transitions)
 
     def __len__(self):
         return len(self.transitions)
-
-    def __repr__(self):
-        return f"TransitionSet(transitions={[x for x in self.transitions]})"
 
     def __hash__(self):
         return hash(id(self))
