@@ -111,7 +111,7 @@ def _process_trigger(trigger):
         raise ValueError("Invalid trigger state provided: {}".format(trigger))
 
 
-class Transition:
+class Transition(Component):
     """A process by which an entity might change into a particular state.
 
     Parameters
@@ -126,6 +126,10 @@ class Transition:
 
     """
 
+    #####################
+    # Lifecycle methods #
+    #####################
+
     def __init__(
         self,
         input_state: "State",
@@ -135,18 +139,15 @@ class Transition:
         ),
         triggered=Trigger.NOT_TRIGGERED,
     ):
+        super().__init__()
         self.input_state = input_state
         self.output_state = output_state
         self._probability = probability_func
         self._active_index, self.start_active = _process_trigger(triggered)
 
-    @property
-    def name(self) -> str:
-        transition_type = self.__class__.__name__.lower()
-        return f"{transition_type}.{self.input_state.name}.{self.output_state.name}"
-
-    def setup(self, builder: "Builder") -> None:
-        pass
+    ##################
+    # Public methods #
+    ##################
 
     def set_active(self, index: pd.Index) -> None:
         if self._active_index is None:
@@ -174,10 +175,6 @@ class Transition:
         activated = pd.Series(self._probability(activated_index), index=activated_index)
         null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
         return activated.append(null)
-
-    def __repr__(self):
-        c = self.__class__.__name__
-        return f"{c}({self.input_state}, {self.output_state})"
 
 
 class State(Component):
