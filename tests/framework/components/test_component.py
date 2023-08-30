@@ -209,7 +209,7 @@ def test_component_with_initialization_requirements():
     simulation = InteractiveContext(components=[ColumnCreator(), component])
 
     # Assert required resources have been recorded by the ResourceManager
-    dependencies = [
+    component_dependencies_list = [
         r.dependencies
         # get all resources in the dependency graph
         for r in simulation._resource.sorted_nodes
@@ -217,11 +217,13 @@ def test_component_with_initialization_requirements():
         if hasattr(r.producer, "__self__")
         # and is a method of ColumnCreatorAndRequirer
         and isinstance(r.producer.__self__, ColumnCreatorAndRequirer)
-    ][0]
+    ]
+    assert len(component_dependencies_list) == 1
+    component_dependencies = component_dependencies_list[0]
 
-    assert "value.pipeline_1" in dependencies
-    assert "column.test_column_2" in dependencies
-    assert "stream.stream_1"
+    assert "value.pipeline_1" in component_dependencies
+    assert "column.test_column_2" in component_dependencies
+    assert "stream.stream_1" in component_dependencies
 
 
 def test_component_that_requires_all_columns_population_view():
