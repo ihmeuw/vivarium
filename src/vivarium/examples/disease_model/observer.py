@@ -1,28 +1,45 @@
-from typing import Dict
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
+from vivarium import Component
 from vivarium.framework.engine import Builder
 
 
-class Observer:
-    configuration_defaults = {
-        "mortality": {
-            "life_expectancy": 80,
-        }
-    }
+class Observer(Component):
 
-    def __init__(self):
-        self.name = "observer"
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def configuration_defaults(self) -> Dict[str, Any]:
+        return {
+            "mortality": {
+                "life_expectancy": 80,
+            }
+        }
+
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return ["age", "alive"]
+
+    #####################
+    # Lifecycle methods #
+    #####################
 
     # noinspection PyAttributeOutsideInit
-    def setup(self, builder: Builder):
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.life_expectancy = builder.configuration.mortality.life_expectancy
-        self.population_view = builder.population.get_view(["age", "alive"])
 
         builder.value.register_value_modifier("metrics", self.metrics)
 
-    def metrics(self, index: pd.Index, metrics: Dict):
+    ##################################
+    # Pipeline sources and modifiers #
+    ##################################
+
+    def metrics(self, index: pd.Index, metrics: Dict) -> Dict:
         pop = self.population_view.get(index)
         metrics["total_population_alive"] = len(pop[pop.alive == "alive"])
         metrics["total_population_dead"] = len(pop[pop.alive == "dead"])
