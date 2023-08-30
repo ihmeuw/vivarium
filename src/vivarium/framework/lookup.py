@@ -18,6 +18,7 @@ import pandas as pd
 
 from vivarium.framework.population import PopulationView
 from vivarium.interpolation import Interpolation
+from vivarium.manager import Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -312,7 +313,7 @@ def validate_parameters(
                 )
 
 
-class LookupTableManager:
+class LookupTableManager(Manager):
     """Manages complex data in the simulation.
 
     Notes

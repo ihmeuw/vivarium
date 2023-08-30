@@ -21,6 +21,7 @@ from typing import Any, Dict, Iterator, List, Tuple, Type, Union
 
 from vivarium.config_tree import ConfigurationError, DuplicatedConfigurationError
 from vivarium.exceptions import VivariumError
+from vivarium.manager import Manager
 
 if typing.TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -92,7 +93,7 @@ class OrderedComponentSet:
         return f"OrderedComponentSet({[c.name for c in self.components]})"
 
 
-class ComponentManager:
+class ComponentManager(Manager):
     """Manages the initialization and setup of :mod:`vivarium` components.
 
 
