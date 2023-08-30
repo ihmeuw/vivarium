@@ -14,6 +14,7 @@ import pandas as pd
 
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
+from vivarium.manager import Manager
 
 
 class SimulantData(NamedTuple):
@@ -105,7 +106,7 @@ class InitializerComponentSet:
         return str(self._components)
 
 
-class PopulationManager:
+class PopulationManager(Manager):
     """Manages the state of the simulated population."""
 
     # TODO: Move the configuration for initial population creation to

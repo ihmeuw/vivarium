@@ -39,6 +39,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 import numpy as np
 
 from vivarium.exceptions import VivariumError
+from vivarium.manager import Manager
 
 
 class LifeCycleError(VivariumError):
@@ -447,7 +448,7 @@ class ConstraintMaker:
         return self.constrain_normal_method(method, permitted_states)
 
 
-class LifeCycleManager:
+class LifeCycleManager(Manager):
     """Manages ordering- and constraint-based contracts in the simulation."""
 
     def __init__(self):
