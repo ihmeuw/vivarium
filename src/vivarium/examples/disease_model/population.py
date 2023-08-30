@@ -1,35 +1,46 @@
+from typing import Any, Dict, List
+
 import pandas as pd
 
+from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
 
-class BasePopulation:
-    """Generates a base population with a uniform distribution of age and sex.
+class BasePopulation(Component):
+    """Generates a base population with a uniform distribution of age and sex."""
 
-    Attributes
-    ----------
-    configuration_defaults :
+    ##############
+    # Properties #
+    ##############
+
+    @property
+    def configuration_defaults(self) -> Dict[str, Any]:
+        """
         A set of default configuration values for this component. These can be
         overwritten in the simulation model specification or by providing
         override values when constructing an interactive simulation.
-    """
+        """
+        return {
+            "population": {
+                # The range of ages to be generated in the initial population
+                "age_start": 0,
+                "age_end": 100,
+                # Note: There is also a 'population_size' key.
+            },
+        }
 
-    configuration_defaults = {
-        "population": {
-            # The range of ages to be generated in the initial population
-            "age_start": 0,
-            "age_end": 100,
-            # Note: There is also a 'population_size' key.
-        },
-    }
+    @property
+    def columns_created(self) -> List[str]:
+        return ["age", "sex", "alive", "entrance_time"]
 
-    def __init__(self):
-        self.name = "base_population"
+    #####################
+    # Lifecycle methods #
+    #####################
 
     # noinspection PyAttributeOutsideInit
-    def setup(self, builder: Builder):
+    def setup(self, builder: Builder) -> None:
         """Performs this component's simulation setup.
 
         The ``setup`` method is automatically called by the simulation
@@ -41,6 +52,7 @@ class BasePopulation:
         builder :
             Access to simulation tools and subsystems.
         """
+        super().setup(builder)
         self.config = builder.configuration
 
         self.with_common_random_numbers = bool(self.config.randomness.key_columns)
@@ -59,16 +71,11 @@ class BasePopulation:
         )
         self.sex_randomness = builder.randomness.get_stream("sex_initialization")
 
-        columns_created = ["age", "sex", "alive", "entrance_time"]
-        builder.population.initializes_simulants(
-            self.on_initialize_simulants, creates_columns=columns_created
-        )
+    ########################
+    # Event-driven methods #
+    ########################
 
-        self.population_view = builder.population.get_view(columns_created)
-
-        builder.event.register_listener("time_step", self.age_simulants)
-
-    def on_initialize_simulants(self, pop_data: SimulantData):
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Called by the simulation whenever new simulants are added.
 
         This component is responsible for creating and filling four columns
@@ -126,7 +133,7 @@ class BasePopulation:
 
         self.population_view.update(population)
 
-    def age_simulants(self, event: Event):
+    def on_time_step(self, event: Event) -> None:
         """Updates simulant age on every time step.
 
         Parameters
