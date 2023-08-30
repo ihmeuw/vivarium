@@ -19,9 +19,7 @@ class TreatmentIntervention(Component):
 
     @property
     def configuration_defaults(self) -> Dict[str, Any]:
-        return {
-            self.intervention: self.CONFIGURATION_DEFAULTS["intervention"]
-        }
+        return {self.intervention: self.CONFIGURATION_DEFAULTS["intervention"]}
 
     #####################
     # Lifecycle methods #
