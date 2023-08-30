@@ -15,11 +15,12 @@ import pandas as pd
 
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.artifact.artifact import Artifact
+from vivarium.manager import Manager
 
 _Filter = Union[str, int, Sequence[int], Sequence[str]]
 
 
-class ArtifactManager:
+class ArtifactManager(Manager):
     """The controller plugin component for managing a data artifact."""
 
     configuration_defaults = {
@@ -105,7 +106,7 @@ class ArtifactManager:
 class ArtifactInterface:
     """The builder interface for accessing a data artifact."""
 
-    def __init__(self, manager):
+    def __init__(self, manager: ArtifactManager):
         self._manager = manager
 
     def load(self, entity_key: str, **column_filters: Union[_Filter]) -> pd.DataFrame:

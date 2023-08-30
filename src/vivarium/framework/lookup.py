@@ -18,6 +18,7 @@ import pandas as pd
 
 from vivarium.framework.population import PopulationView
 from vivarium.interpolation import Interpolation
+from vivarium.manager import Manager
 
 ScalarValue = Union[Number, timedelta, datetime]
 
@@ -308,7 +309,7 @@ def validate_parameters(
                 )
 
 
-class LookupTableManager:
+class LookupTableManager(Manager):
     """Manages complex data in the simulation.
 
     Notes

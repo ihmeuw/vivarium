@@ -8,9 +8,10 @@ from loguru import logger
 from loguru._logger import Logger
 
 from vivarium.framework.logging.utilities import configure_logging_to_terminal
+from vivarium.manager import Manager
 
 
-class LoggingManager:
+class LoggingManager(Manager):
     def __init__(self):
         self._simulation_name = None
 
