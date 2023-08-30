@@ -1,3 +1,5 @@
+from typing import Any, Dict
+
 import pytest
 
 from vivarium.framework.components.manager import (
@@ -7,15 +9,10 @@ from vivarium.framework.components.manager import (
 )
 from vivarium.framework.configuration import build_simulation_configuration
 
-from .mocks import (
-    MockComponentA,
-    MockComponentB,
-    MockGenericComponent,
-    NamelessComponent,
-)
+from .mocks import MockComponentA, MockComponentB, MockGenericComponent
 
 
-def test_ComponentSet_add():
+def test_component_set_add():
     component_list = OrderedComponentSet()
 
     component_0 = MockComponentA(name="component_0")
@@ -28,12 +25,8 @@ def test_ComponentSet_add():
     with pytest.raises(ComponentConfigError, match="duplicate name"):
         component_list.add(component_0)
 
-    # no name
-    with pytest.raises(ComponentConfigError, match="no name"):
-        component_list.add(NamelessComponent())
 
-
-def test_ComponentSet_update():
+def test_component_set_update():
     component_list = OrderedComponentSet()
 
     components = [MockComponentA(name="component_0"), MockComponentA("component_1")]
@@ -42,11 +35,9 @@ def test_ComponentSet_update():
 
     with pytest.raises(ComponentConfigError, match="duplicate name"):
         component_list.update(components)
-    with pytest.raises(ComponentConfigError, match="no name"):
-        component_list.update([NamelessComponent()])
 
 
-def test_ComponentSet_initialization():
+def test_component_set_initialization():
     component_1 = MockComponentA()
     component_2 = MockComponentB()
 
@@ -54,7 +45,7 @@ def test_ComponentSet_initialization():
     assert component_list.components == [component_1, component_2]
 
 
-def test_ComponentSet_pop():
+def test_component_set_pop():
     component = MockComponentA()
     component_list = OrderedComponentSet(component)
 
@@ -65,7 +56,7 @@ def test_ComponentSet_pop():
         component_list.pop()
 
 
-def test_ComponentSet_contains():
+def test_component_set_contains():
     component_list = OrderedComponentSet()
 
     assert not bool(component_list)
@@ -80,10 +71,10 @@ def test_ComponentSet_contains():
     assert component_3 not in component_list
 
     with pytest.raises(ComponentConfigError, match="no name"):
-        throwaway = 10 in component_list
+        _ = 10 in component_list
 
 
-def test_ComponentSet_eq():
+def test_component_set_eq():
     component_1 = MockComponentA()
     component_2 = MockComponentB()
     component_list = OrderedComponentSet(component_1, component_2)
@@ -95,7 +86,7 @@ def test_ComponentSet_eq():
     assert component_list != second_list
 
 
-def test_ComponentSet_bool_len():
+def test_component_set_bool_len():
     component_list = OrderedComponentSet()
 
     assert not bool(component_list)
@@ -109,7 +100,7 @@ def test_ComponentSet_bool_len():
     assert len(component_list) == 2
 
 
-def test_ComponentSet_dunder_add():
+def test_component_set_dunder_add():
     l1 = OrderedComponentSet(*[MockComponentA(name=str(i)) for i in range(5)])
     l2 = OrderedComponentSet(*[MockComponentA(name=str(i)) for i in range(5, 10)])
     combined = OrderedComponentSet(*[MockComponentA(name=str(i)) for i in range(10)])
@@ -166,7 +157,7 @@ def test_flatten_with_nested_sub_components():
         if depth == 1:
             return MockComponentA(name=str(start))
         c = MockComponentA(name=str(start))
-        c.sub_components = [nest(start + 1, depth - 1)]
+        c._sub_components = [nest(start + 1, depth - 1)]
         return c
 
     components = []
@@ -219,7 +210,7 @@ def test_apply_configuration_defaults_no_op():
 
 def test_apply_configuration_defaults_duplicate():
     config = build_simulation_configuration()
-    c = config.to_dict()
+
     cm = ComponentManager()
     cm.configuration = config
     component = MockGenericComponent("test_component")
@@ -231,13 +222,17 @@ def test_apply_configuration_defaults_duplicate():
 
 
 def test_apply_configuration_defaults_bad_structure():
+    class BadConfigComponent(MockComponentA):
+        @property
+        def configuration_defaults(self) -> Dict[str, Any]:
+            return {"test_component": "val"}
+
     config = build_simulation_configuration()
-    c = config.to_dict()
+
     cm = ComponentManager()
     cm.configuration = config
     component1 = MockGenericComponent("test_component")
-    component2 = MockComponentA(name="test_component2")
-    component2.configuration_defaults = {"test_component": "val"}
+    component2 = BadConfigComponent(name="test_component2")
 
     cm.apply_configuration_defaults(component1)
     cm._components.add(component1)
@@ -267,7 +262,7 @@ def test_add_components():
     "components",
     ([MockComponentA("Eric"), MockComponentB("half", "a", "bee")], [MockComponentA("Eric")]),
 )
-def test_ComponentManager_add_components(components):
+def test_component_manager_add_components(components):
     config = build_simulation_configuration()
     cm = ComponentManager()
     cm.configuration = config
@@ -288,7 +283,7 @@ def test_ComponentManager_add_components(components):
         [MockComponentA(), MockComponentA(), MockComponentB("foo", "bar")],
     ),
 )
-def test_ComponentManager_add_components_duplicated(components):
+def test_component_manager_add_components_duplicated(components):
     config = build_simulation_configuration()
     cm = ComponentManager()
     cm.configuration = config
@@ -299,21 +294,4 @@ def test_ComponentManager_add_components_duplicated(components):
     cm = ComponentManager()
     cm.configuration = config
     with pytest.raises(ComponentConfigError, match="duplicate name"):
-        cm.add_components(components)
-
-
-@pytest.mark.parametrize(
-    "components", ([NamelessComponent()], [NamelessComponent(), MockComponentA()])
-)
-def test_ComponentManager_add_components_unnamed(components):
-    config = build_simulation_configuration()
-    cm = ComponentManager()
-    cm.configuration = config
-    with pytest.raises(ComponentConfigError, match="no name"):
-        cm.add_managers(components)
-
-    config = build_simulation_configuration()
-    cm = ComponentManager()
-    cm.configuration = config
-    with pytest.raises(ComponentConfigError, match="no name"):
         cm.add_components(components)
