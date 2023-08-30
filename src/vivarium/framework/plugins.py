@@ -11,6 +11,7 @@ The Plugin Management System
 from vivarium.config_tree import ConfigTree
 from vivarium.exceptions import VivariumError
 
+from ..manager import Manager
 from .utilities import import_by_path
 
 _MANAGERS = {
@@ -83,7 +84,7 @@ class PluginConfigurationError(VivariumError):
     pass
 
 
-class PluginManager:
+class PluginManager(Manager):
     def __init__(self, plugin_configuration=None):
         self._plugin_configuration = ConfigTree(
             DEFAULT_PLUGINS["plugins"], layers=["base", "override"]

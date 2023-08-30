@@ -21,6 +21,7 @@ import pandas as pd
 
 from vivarium.exceptions import VivariumError
 from vivarium.framework.utilities import from_yearly
+from vivarium.manager import Manager
 
 # Supports standard algebraic operations with scalar values.
 NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
@@ -245,7 +246,7 @@ class Pipeline:
         return f"_Pipeline({self.name})"
 
 
-class ValuesManager:
+class ValuesManager(Manager):
     """Manager for the dynamic value system."""
 
     def __init__(self):
