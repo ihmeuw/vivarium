@@ -1,8 +1,9 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import pandas as pd
 
 from vivarium import Component, InteractiveContext
+from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
@@ -11,6 +12,11 @@ class ColumnCreator(Component):
     @property
     def columns_created(self) -> List[str]:
         return ["test_column_1", "test_column_2", "test_column_3"]
+
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
+        builder.value.register_value_producer("pipeline_1", lambda x: x)
+        builder.randomness.get_stream("stream_1")
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame(
@@ -28,11 +34,19 @@ class ColumnRequirer(Component):
 class ColumnCreatorAndRequirer(Component):
     @property
     def columns_required(self) -> List[str]:
-        return ["test_column_2"]
+        return ["test_column_1", "test_column_2"]
 
     @property
     def columns_created(self) -> List[str]:
         return ["test_column_4"]
+
+    @property
+    def initialization_requirements(self) -> Dict[str, List[str]]:
+        return {
+            "requires_columns": ["test_column_2"],
+            "requires_values": ["pipeline_1"],
+            "requires_streams": ["stream_1"],
+        }
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame({"test_column_4": 8}, index=pop_data.index)
@@ -188,6 +202,26 @@ def test_component_that_creates_and_requires_columns_population_view():
 
     assert component.population_view is not None
     assert set(component.population_view.columns) == set(expected_columns)
+
+
+def test_component_with_initialization_requirements():
+    component = ColumnCreatorAndRequirer()
+    simulation = InteractiveContext(components=[ColumnCreator(), component])
+
+    # Assert required resources have been recorded by the ResourceManager
+    dependencies = [
+        r.dependencies
+        # get all resources in the dependency graph
+        for r in simulation._resource.sorted_nodes
+        # if the producer is an instance method
+        if hasattr(r.producer, "__self__")
+        # and is a method of ColumnCreatorAndRequirer
+        and isinstance(r.producer.__self__, ColumnCreatorAndRequirer)
+    ][0]
+
+    assert "value.pipeline_1" in dependencies
+    assert "column.test_column_2" in dependencies
+    assert "stream.stream_1"
 
 
 def test_component_that_requires_all_columns_population_view():
