@@ -1,7 +1,10 @@
+from typing import List
+
 import pytest
 
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
 from vivarium.framework.components import (
+    ComponentConfigError,
     ComponentInterface,
     ComponentManager,
     OrderedComponentSet,
@@ -45,6 +48,15 @@ def components():
 @pytest.fixture
 def log(mocker):
     return mocker.patch("vivarium.framework.logging.manager.logger")
+
+
+def test_simulation_with_non_components(SimulationContext, components: List):
+    class NonComponent:
+        def __init__(self):
+            self.name = "non_component"
+
+    with pytest.raises(ComponentConfigError):
+        SimulationContext(components=components + [NonComponent()])
 
 
 def test_SimulationContext_get_sim_name(SimulationContext):

@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 
+from vivarium import Component
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.manager import Manager
@@ -69,20 +70,21 @@ class InitializerComponentSet:
         """
         if not isinstance(initializer, MethodType):
             raise TypeError(
-                "Population initializers must be methods of named simulation components. "
+                "Population initializers must be methods of vivarium Components "
+                "or the simulation's PopulationManager. "
                 f"You provided {initializer} which is of type {type(initializer)}."
             )
         component = initializer.__self__
-        if not hasattr(component, "name"):
+        # TODO: consider if we can initialize the tracked column with a component instead
+        if not (isinstance(component, Component) or isinstance(component, PopulationManager)):
             raise AttributeError(
-                "Population initializers must be methods of named simulation components. "
-                f"You provided {initializer} which is bound to {component} that has no "
-                f"name attribute."
+                "Population initializers must be methods of vivarium Components "
+                "or the simulation's PopulationManager. "
+                f"You provided {initializer} which is bound to {component} that "
+                f"is of type {type(component)} which does not inherit from "
+                "Component."
             )
 
-        # We want to keep the static typing annoyance because it's a good reminder that
-        # we need a generic component type that tells us about attributes like a name,
-        # but we also want it to be a little less noisy.
         component_name = component.name
         if component_name in self._components:
             raise PopulationError(
