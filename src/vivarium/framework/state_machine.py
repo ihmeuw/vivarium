@@ -457,8 +457,6 @@ class Machine(Component):
         The collection of states represented by this state machine.
     state_column
         A label for the piece of simulation state governed by this state machine.
-    population_view
-        A view of the internal state of the simulation.
 
     """
 
