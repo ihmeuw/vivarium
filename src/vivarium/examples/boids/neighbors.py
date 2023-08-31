@@ -1,14 +1,33 @@
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 from scipy import spatial
 
+from vivarium import Component
+from vivarium.framework.engine import Builder
+from vivarium.framework.event import Event
+from vivarium.framework.population import SimulantData
 
-class Neighbors:
-    configuration_defaults = {"neighbors": {"radius": 10}}
 
-    def __init__(self):
-        self.name = "Neighbors"
+class Neighbors(Component):
 
-    def setup(self, builder):
+    ##############
+    # Properties #
+    ##############
+    @property
+    def configuration_defaults(self) -> Dict[str, Any]:
+        return {"neighbors": {"radius": 10}}
+
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return ["x", "y"]
+
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.radius = builder.configuration.neighbors.radius
 
         self.neighbors_calculated = False
@@ -17,23 +36,30 @@ class Neighbors:
             "neighbors", source=self.get_neighbors
         )
 
-        builder.population.initializes_simulants(self.on_create_simulants)
-        self.population_view = builder.population.get_view(["x", "y"])
+    ########################
+    # Event-driven methods #
+    ########################
 
-        builder.event.register_listener("time_step", self.on_time_step)
-
-    def on_create_simulants(self, pop_data):
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         self._neighbors = pd.Series([[]] * len(pop_data.index), index=pop_data.index)
 
-    def on_time_step(self, event):
+    def on_time_step(self, event: Event) -> None:
         self.neighbors_calculated = False
 
-    def get_neighbors(self, index):
+    ##################################
+    # Pipeline sources and modifiers #
+    ##################################
+
+    def get_neighbors(self, index: pd.Index) -> pd.Series:
         if not self.neighbors_calculated:
-            self.calculate_neighbors()
+            self._calculate_neighbors()
         return self._neighbors[index]
 
-    def calculate_neighbors(self):
+    ##################
+    # Helper methods #
+    ##################
+
+    def _calculate_neighbors(self) -> None:
         # Reset our list of neighbors
         pop = self.population_view.get(self._neighbors.index)
         self._neighbors = pd.Series([[]] * len(pop), index=pop.index)
