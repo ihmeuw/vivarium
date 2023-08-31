@@ -20,11 +20,12 @@ There are three steps to this process.
 3. Importing and instantiating the actual components
 
 """
-from typing import Any, Dict, List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.utilities import import_by_path
 
+from ... import Component
 from .manager import ComponentConfigError
 
 
@@ -57,7 +58,9 @@ class ComponentConfigurationParser:
     either take no arguments or take arguments specified as strings.
     """
 
-    def get_components(self, component_config: Union[ConfigTree, List]) -> List:
+    def get_components(
+        self, component_config: Union[ConfigTree, List[str]]
+    ) -> List[Component]:
         """Extracts component specifications from configuration information and
         returns initialized components.
 
@@ -238,7 +241,9 @@ def clean_args(args: List, path: str) -> Tuple:
     return tuple(out)
 
 
-def import_and_instantiate_components(component_list: List[Tuple[str, Tuple[str]]]) -> List:
+def import_and_instantiate_components(
+    component_list: List[Tuple[str, Tuple[str]]]
+) -> List[Component]:
     """Transform the list of tuples representing components into the actual
     instantiated component objects.
 

@@ -20,7 +20,7 @@ tools to easily setup and run a simulation.
 """
 from pathlib import Path
 from pprint import pformat
-from typing import Dict, List, Set, Union
+from typing import Any, Dict, List, Set, Union
 
 import numpy as np
 import pandas as pd
@@ -97,7 +97,7 @@ class SimulationContext:
     def __init__(
         self,
         model_specification: Union[str, Path, ConfigTree] = None,
-        components: Union[List, Dict, ConfigTree] = None,
+        components: Union[List[Component], Dict, ConfigTree] = None,
         configuration: Union[Dict, ConfigTree] = None,
         plugin_configuration: Union[Dict, ConfigTree] = None,
         sim_name: str = None,
@@ -203,10 +203,10 @@ class SimulationContext:
         self.add_components(components)
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
-    def setup(self):
+    def setup(self) -> None:
         self._lifecycle.set_state("setup")
         self.configuration.freeze()
         self._component_manager.setup_components(self._builder)
@@ -223,29 +223,27 @@ class SimulationContext:
         self._lifecycle.set_state("post_setup")
         post_setup(None)
 
-    def initialize_simulants(self):
+    def initialize_simulants(self) -> None:
         self._lifecycle.set_state("population_creation")
         pop_params = self.configuration.population
         # Fencepost the creation of the initial population.
         self._clock.step_backward()
         population_size = pop_params.population_size
-        self.simulant_creator(
-            population_size, population_configuration={"sim_state": "setup"}
-        )
+        self.simulant_creator(population_size, {"sim_state": "setup"})
         self._clock.step_forward()
 
-    def step(self):
+    def step(self) -> None:
         self._logger.debug(self._clock.time)
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
             self.time_step_emitters[event](self._population.get_population(True).index)
         self._clock.step_forward()
 
-    def run(self):
+    def run(self) -> None:
         while self._clock.time < self._clock.stop_time:
             self.step()
 
-    def finalize(self):
+    def finalize(self) -> None:
         self._lifecycle.set_state("simulation_end")
         self.end_emitter(self._population.get_population(True).index)
         unused_config_keys = self.configuration.unused_keys()
@@ -254,7 +252,7 @@ class SimulationContext:
                 f"Some configuration keys not used during run: {unused_config_keys}."
             )
 
-    def report(self, print_results=True):
+    def report(self, print_results: bool = True) -> Dict[str, Any]:
         self._lifecycle.set_state("report")
         metrics = self._values.get_value("metrics")(
             self._population.get_population(True).index
@@ -288,11 +286,11 @@ class SimulationContext:
         performance_metrics = pd.DataFrame(records)
         return performance_metrics
 
-    def add_components(self, component_list):
+    def add_components(self, component_list: List[Component]) -> None:
         """Adds new components to the simulation."""
         self._component_manager.add_components(component_list)
 
-    def get_population(self, untracked: bool = True):
+    def get_population(self, untracked: bool = True) -> pd.DataFrame:
         return self._population.get_population(untracked)
 
     def __repr__(self):
