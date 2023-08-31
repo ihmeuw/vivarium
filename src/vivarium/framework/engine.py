@@ -29,8 +29,9 @@ from vivarium.config_tree import ConfigTree
 from vivarium.exceptions import VivariumError
 from vivarium.framework.configuration import build_model_specification
 
+from .. import Component
 from .artifact import ArtifactInterface
-from .components import ComponentInterface
+from .components import ComponentConfigError, ComponentInterface
 from .event import EventInterface
 from .lifecycle import LifeCycleInterface
 from .logging import LoggingInterface
@@ -185,6 +186,14 @@ class SimulationContext:
             + self._additional_components
             + [Metrics()]
         )
+
+        non_components = [obj for obj in components if not isinstance(obj, Component)]
+        if non_components:
+            raise ComponentConfigError(
+                "Attempting to create a simulation with the following components "
+                "that do not inherit from `vivarium.Component`: "
+                f"[{[c.name for c in non_components]}]."
+            )
 
         self._lifecycle.add_constraint(self.add_components, allow_during=["initialization"])
         self._lifecycle.add_constraint(
