@@ -1,27 +1,45 @@
+from typing import Any, Dict, List
+
 import numpy as np
 import pandas as pd
 
+from vivarium import Component
+from vivarium.framework.engine import Builder
+from vivarium.framework.population import SimulantData
 
-class Location:
-    configuration_defaults = {
-        "location": {
-            "width": 1000,  # Width of our field
-            "height": 1000,  # Height of our field
+
+class Location(Component):
+
+    ##############
+    # Properties #
+    ##############
+    @property
+    def configuration_defaults(self) -> Dict[str, Any]:
+        return {
+            "location": {
+                "width": 1000,  # Width of our field
+                "height": 1000,  # Height of our field
+            }
         }
-    }
 
-    def __init__(self):
-        self.name = "location"
+    @property
+    def columns_created(self) -> List[str]:
+        return ["x", "vx", "y", "vy"]
 
-    def setup(self, builder):
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def setup(self, builder: Builder) -> None:
+        super().setup(builder)
         self.width = builder.configuration.location.width
         self.height = builder.configuration.location.height
 
-        columns_created = ["x", "vx", "y", "vy"]
-        builder.population.initializes_simulants(self.on_create_simulants, columns_created)
-        self.population_view = builder.population.get_view(columns_created)
+    ########################
+    # Event-driven methods #
+    ########################
 
-    def on_create_simulants(self, pop_data):
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         count = len(pop_data.index)
         # Start clustered in the center with small random velocities
         new_population = pd.DataFrame(
