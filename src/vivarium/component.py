@@ -165,10 +165,12 @@ class Component(ABC):
         self._repr: str = ""
         self._name: str = ""
         self._sub_components: List["Component"] = []
+        self.logger = None
         self.population_view: Optional[PopulationView] = None
 
     def setup(self, builder: "Builder") -> None:
         """Method that vivarium will run during the setup phase."""
+        self.logger = builder.logging.get_logger(self.name)
         self.set_population_view(builder)
         self.register_post_setup_listener(builder)
         self.register_simulant_initializer(builder)
