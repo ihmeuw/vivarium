@@ -189,11 +189,14 @@ class SimulationContext:
 
         non_components = [obj for obj in components if not isinstance(obj, Component)]
         if non_components:
-            raise ComponentConfigError(
+            message = (
                 "Attempting to create a simulation with the following components "
                 "that do not inherit from `vivarium.Component`: "
                 f"[{[c.name for c in non_components]}]."
             )
+            self._logger.warning(message)
+            # TODO: raise error once all active Component implementations have been refactored
+            # raise ComponentConfigError(message)
 
         self._lifecycle.add_constraint(self.add_components, allow_during=["initialization"])
         self._lifecycle.add_constraint(
