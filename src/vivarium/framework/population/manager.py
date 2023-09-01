@@ -76,13 +76,20 @@ class InitializerComponentSet:
             )
         component = initializer.__self__
         # TODO: consider if we can initialize the tracked column with a component instead
-        if not (isinstance(component, Component) or isinstance(component, PopulationManager)):
+        # TODO: raise error once all active Component implementations have been refactored
+        # if not (isinstance(component, Component) or isinstance(component, PopulationManager)):
+        #     raise AttributeError(
+        #         "Population initializers must be methods of vivarium Components "
+        #         "or the simulation's PopulationManager. "
+        #         f"You provided {initializer} which is bound to {component} that "
+        #         f"is of type {type(component)} which does not inherit from "
+        #         "Component."
+        #     )
+        if not hasattr(component, "name"):
             raise AttributeError(
-                "Population initializers must be methods of vivarium Components "
-                "or the simulation's PopulationManager. "
-                f"You provided {initializer} which is bound to {component} that "
-                f"is of type {type(component)} which does not inherit from "
-                "Component."
+                "Population initializers must be methods of named simulation components. "
+                f"You provided {initializer} which is bound to {component} that has no "
+                f"name attribute."
             )
 
         component_name = component.name
