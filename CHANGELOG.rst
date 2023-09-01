@@ -1,3 +1,7 @@
+**1.2.4 - 09/01/23**
+
+ - Create LookupTableData type alias for the source data to LookupTables
+
 **1.2.3 - 08/28/23**
 
  - Enable allowing self transitions directly in a State's constructor
