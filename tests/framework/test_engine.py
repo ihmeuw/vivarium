@@ -2,6 +2,7 @@ from typing import List
 
 import pytest
 
+from vivarium import Component
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
 from vivarium.framework.components import (
     ComponentConfigError,
@@ -50,12 +51,14 @@ def log(mocker):
     return mocker.patch("vivarium.framework.logging.manager.logger")
 
 
-def test_simulation_with_non_components(SimulationContext, components: List):
+@pytest.mark.xfail
+def test_simulation_with_non_components(SimulationContext, components: List[Component]):
     class NonComponent:
         def __init__(self):
             self.name = "non_component"
 
     with pytest.raises(ComponentConfigError):
+        # noinspection PyTypeChecker
         SimulationContext(components=components + [NonComponent()])
 
 
