@@ -12,14 +12,18 @@ that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 """
 from datetime import datetime, timedelta
 from numbers import Number
-from typing import Callable, List, Tuple, Union
+from typing import TYPE_CHECKING, Callable, List, Tuple, Union
 
 import pandas as pd
 
 from vivarium.framework.population import PopulationView
 from vivarium.interpolation import Interpolation
 
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
+
 ScalarValue = Union[Number, timedelta, datetime]
+LookupTableData = Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]]
 
 
 class InterpolatedTable:
@@ -110,7 +114,7 @@ class InterpolatedTable:
 
         return self.interpolation(pop)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "InterpolatedTable()"
 
 
@@ -166,7 +170,7 @@ class ScalarTable:
             )
         return pd.DataFrame(values)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "ScalarTable(value(s)={})".format(self.values)
 
 
@@ -252,7 +256,7 @@ class LookupTable:
             return table_view[table_view.columns[0]]
         return table_view
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "LookupTable()"
 
 
@@ -261,7 +265,7 @@ def validate_parameters(
     key_columns: Union[List[str], Tuple[str]],
     parameter_columns: Union[List[str], Tuple],
     value_columns: Union[List[str], Tuple[str]],
-):
+) -> None:
     """Makes sure the data format agrees with the provided column layout."""
     if (
         data is None
@@ -323,10 +327,10 @@ class LookupTableManager:
     }
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "lookup_table_manager"
 
-    def setup(self, builder):
+    def setup(self, builder: "Builder") -> None:
         self.tables = {}
         self._pop_view_builder = builder.population.get_view
         self.clock = builder.time.clock()
@@ -339,7 +343,7 @@ class LookupTableManager:
 
     def build_table(
         self,
-        data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
+        data: LookupTableData,
         key_columns: Union[List[str], Tuple[str]],
         parameter_columns: Union[List[str], Tuple[str]],
         value_columns: Union[List[str], Tuple[str]],
@@ -351,7 +355,13 @@ class LookupTableManager:
         )
         return table
 
-    def _build_table(self, data, key_columns, parameter_columns, value_columns):
+    def _build_table(
+        self,
+        data: LookupTableData,
+        key_columns: Union[List[str], Tuple[str]],
+        parameter_columns: Union[List[str], Tuple[str]],
+        value_columns: Union[List[str], Tuple[str]],
+    ) -> LookupTable:
         # We don't want to require explicit names for tables, but giving them
         # generic names is useful for introspection.
         table_number = len(self.tables)
@@ -370,7 +380,7 @@ class LookupTableManager:
         self.tables[table_number] = table
         return table
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "LookupTableManager()"
 
 
@@ -390,7 +400,7 @@ class LookupTableInterface:
 
     def build_table(
         self,
-        data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
+        data: LookupTableData,
         key_columns: Union[List[str], Tuple[str]] = None,
         parameter_columns: Union[List[str], Tuple[str]] = None,
         value_columns: Union[List[str], Tuple[str]] = None,
