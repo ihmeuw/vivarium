@@ -589,3 +589,6 @@ class ConfigTree:
                 for name, c in self._children.items()
             ]
         )
+
+    def __eq__(self, other):
+        raise NotImplementedError
