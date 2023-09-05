@@ -1,3 +1,7 @@
+**1.2.5 - 09/05/23**
+
+ - Update ConfigTree to make it pickleable; raise NotImplementedError on equality calls
+
 **1.2.4 - 09/01/23**
 
  - Create LookupTableData type alias for the source data to LookupTables
