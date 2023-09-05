@@ -440,12 +440,14 @@ def test_to_dict_yaml(test_spec):
     assert yaml_config == config.to_dict()
 
 
-@pytest.mark.xfail(reason="Not yet implemented")
 def test_equals():
-    test_dict = {"configuration": {"time": {"start": {"year": 2000}}}}
-    config = ConfigTree(test_dict)
-    config2 = ConfigTree(test_dict.copy())
-    assert config == config2
+    # TODO: Assert should succeed, instead of raising, once equality is
+    # implemented for ConfigTrees
+    with pytest.raises(NotImplementedError):
+        test_dict = {"configuration": {"time": {"start": {"year": 2000}}}}
+        config = ConfigTree(test_dict)
+        config2 = ConfigTree(test_dict.copy())
+        assert config == config2
 
 
 def test_to_from_pickle():
