@@ -1,7 +1,3 @@
-**1.2.6 - 09/05/23**
-
- - Update to run linting before tests for builds.
-
 **1.2.5 - 09/05/23**
 
  - Update ConfigTree to make it pickleable; raise NotImplementedError on equality calls
