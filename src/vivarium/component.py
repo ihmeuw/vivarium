@@ -31,7 +31,13 @@ class Component(ABC):
     CONFIGURATION_DEFAULTS: Dict[str, Any] = {}
 
     def __repr__(self):
-        """A string representation of the __init__ call made to create this object"""
+        """
+        A string representation of the __init__ call made to create this object.
+
+        IMPORTANT: this property must not be accessed within this component or
+        its subclasses' `__init__` functions or its value may not be initialized
+        correctly.
+        """
         if not self._repr:
             args = [
                 f"{name}={value.__repr__() if isinstance(value, Component) else value}"
@@ -56,6 +62,10 @@ class Component(ABC):
         arguments of the `__init__` appended separated by '.'.
 
         Names must be unique within a simulation.
+
+        IMPORTANT: this property must not be accessed within this component or
+        its subclasses' `__init__` functions or its value may not be initialized
+        correctly.
         """
         if not self._name:
             base_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", type(self).__name__)
