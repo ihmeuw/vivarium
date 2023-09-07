@@ -205,7 +205,7 @@ class State(Component):
         super().__init__()
         self.state_id = state_id
         self.transition_set = TransitionSet(
-            self.name, allow_self_transition=allow_self_transition
+            self.state_id, allow_self_transition=allow_self_transition
         )
         self._model = None
         self._sub_components = [self.transition_set]
@@ -293,7 +293,7 @@ class TransitionSet(Component):
 
     Parameters
     ----------
-    state_name
+    state_id
         The unique name of the state that instantiated this TransitionSet. Typically
         a string but any object implementing __str__ will do.
     iterable
@@ -309,17 +309,17 @@ class TransitionSet(Component):
 
     @property
     def name(self) -> str:
-        return f"transition_set.{self.state_name}"
+        return f"transition_set.{self.state_id}"
 
     #####################
     # Lifecycle methods #
     #####################
 
     def __init__(
-        self, state_name: str, *transitions: Transition, allow_self_transition: bool = False
+        self, state_id: str, *transitions: Transition, allow_self_transition: bool = False
     ):
         super().__init__()
-        self.state_name = state_name
+        self.state_id = state_id
         self.allow_null_transition = allow_self_transition
         self.transitions = []
         self._sub_components = self.transitions

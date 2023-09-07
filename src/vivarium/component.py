@@ -34,12 +34,15 @@ class Component(ABC):
         """A string representation of the __init__ call made to create this object"""
         if not self._repr:
             args = [
-                f"{name}={value}"
+                f"{name}={value.__repr__() if isinstance(value, Component) else value}"
                 for name, value in self.get_initialization_parameters().items()
             ]
             args = ", ".join(args)
             self._repr = f"{type(self).__name__}({args})"
 
+        return self._repr
+
+    def __str__(self):
         return self._repr
 
     ##############
