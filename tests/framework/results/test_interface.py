@@ -72,6 +72,7 @@ def test_register_observation(
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
+    builder.configuration.stratification.default = []
     # Set up mock builder with mocked get_value call for Pipelines
     mocker.patch.object(builder, "value.get_value")
     builder.value.get_value = MethodType(mock_get_value, builder)
@@ -90,9 +91,13 @@ def test_register_observation(
     assert len(interface._manager._results_context.observations) == 1
 
 
-def test_register_observations():
+def test_register_observations(mocker):
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
+    builder = mocker.Mock()
+    builder.configuration.stratification.default = []
+    mgr.setup(builder)
+
     assert len(interface._manager._results_context.observations) == 0
     interface.register_observation(
         "living_person_time",
@@ -120,9 +125,13 @@ def test_register_observations():
     assert len(interface._manager._results_context.observations) == 2
 
 
-def test_unhashable_pipeline():
+def test_unhashable_pipeline(mocker):
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
+    builder = mocker.Mock()
+    builder.configuration.stratification.default = []
+    mgr.setup(builder)
+
     assert len(interface._manager._results_context.observations) == 0
     with pytest.raises(TypeError, match="unhashable"):
         interface.register_observation(
@@ -157,6 +166,9 @@ def test_integration_full_observation(mocker):
     # Create interface
     mgr = ResultsManager()
     results_interface = ResultsInterface(mgr)
+    builder = mocker.Mock()
+    builder.configuration.stratification.default = []
+    mgr.setup(builder)
 
     # register stratifications
     results_interface.register_stratification("house", HOUSES, None, True, ["house"], [])

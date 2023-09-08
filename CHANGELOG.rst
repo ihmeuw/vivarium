@@ -1,3 +1,32 @@
+**1.2.5 - 09/05/23**
+
+ - Update ConfigTree to make it pickleable; raise NotImplementedError on equality calls
+
+**1.2.4 - 09/01/23**
+
+ - Create LookupTableData type alias for the source data to LookupTables
+
+**1.2.3 - 08/28/23**
+
+ - Enable allowing self transitions directly in a State's constructor
+
+**1.2.2 - 08/04/23**
+
+ - Bugfix to include all metrics outputs in results manager
+
+**1.2.1 - 07/12/23**
+
+ - Adds logging for registering stratifications and observations
+ - Changes version metadata to use setuptools_scm
+
+**1.2.0 - 06/01/23**
+
+ - Stop supporting Python 3.7 and start supporting 3.11
+ - Bugfix to allow for zero stratifications
+ - Removes ignore filters for known FutureWarnings
+ - Refactor location of default stratification definition
+ - Bugfix to stop shuffling simulants when drawing common random number
+
 **1.1.0 - 05/03/23**
 
  - Clean up randomness system

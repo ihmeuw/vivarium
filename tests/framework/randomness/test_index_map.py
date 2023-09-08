@@ -169,8 +169,9 @@ def test_hash_uniformity(map_size_and_hashed_values):
 def index_map(mocker):
     mock_index_map = IndexMap
 
-    def hash_mock(k, salt=0):
+    def hash_mock(k, salt):
         seed = 123456
+        salt = IndexMap()._convert_to_ten_digit_int(pd.Series(salt, index=k))
         rs = np.random.RandomState(seed=seed + salt)
         return pd.Series(rs.randint(0, len(k) * 10, size=len(k)), index=k)
 
@@ -183,21 +184,21 @@ def test_update_empty_bad_keys(index_map):
     keys = pd.DataFrame({"A": ["a"] * 10}, index=range(10))
     m = index_map(key_columns=list(keys.columns))
     with pytest.raises(RandomnessError):
-        m.update(keys)
+        m.update(keys, pd.to_datetime("2023-01-01"))
 
 
 def test_update_nonempty_bad_keys(index_map):
     keys = generate_keys(1000)
     m = index_map(key_columns=list(keys.columns))
-    m.update(keys)
+    m.update(keys, pd.to_datetime("2023-01-01"))
     with pytest.raises(RandomnessError):
-        m.update(keys)
+        m.update(keys, pd.to_datetime("2023-01-01"))
 
 
 def test_update_empty_good_keys(index_map):
     keys = generate_keys(1000)
     m = index_map(key_columns=list(keys.columns))
-    m.update(keys)
+    m.update(keys, pd.to_datetime("2023-01-01"))
     key_index = keys.set_index(list(keys.columns)).index
     assert len(m._map) == len(keys), "All keys not in mapping"
     assert (
@@ -211,8 +212,8 @@ def test_update_nonempty_good_keys(index_map):
     m = index_map(key_columns=list(keys.columns))
     keys1, keys2 = keys[:1000], keys[1000:]
 
-    m.update(keys1)
-    m.update(keys2)
+    m.update(keys1, pd.to_datetime("2023-01-01"))
+    m.update(keys2, pd.to_datetime("2023-01-01"))
 
     key_index = keys.set_index(list(keys.columns)).index
     assert len(m._map) == len(keys), "All keys not in mapping"

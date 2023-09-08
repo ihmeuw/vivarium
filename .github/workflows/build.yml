@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -27,6 +27,11 @@ jobs:
       - name: Install dependencies
         run: |
           pip install .[dev]
+      - name: Lint
+        run: |
+          pip install black==22.3.0 isort
+          black . --check --diff
+          isort . --check --verbose --only-modified --diff
       - name: Test
         run: |
           pytest ./tests
@@ -36,8 +41,3 @@ jobs:
       - name: Doctest
         run: |
           make doctest -C docs/
-      - name: Lint
-        run: |
-          pip install black==22.3.0 isort
-          black . --check --diff
-          isort . --check --verbose --only-modified --diff

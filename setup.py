@@ -1,6 +1,6 @@
 import sys
 
-min_version, max_version = ((3, 6), "3.6"), ((3, 10), "3.10")
+min_version, max_version = ((3, 8), "3.8"), ((3, 11), "3.11")
 
 if not (min_version[0] <= sys.version_info[:2] <= max_version[0]):
     # Python 3.5 does not support f-strings
@@ -41,6 +41,8 @@ if __name__ == "__main__":
         "loguru",
     ]
 
+    setup_requires = ["setuptools_scm"]
+
     interactive_requirements = [
         "IPython",
         "ipywidgets",
@@ -62,7 +64,6 @@ if __name__ == "__main__":
 
     setup(
         name=about["__title__"],
-        version=about["__version__"],
         description=about["__summary__"],
         long_description=long_description,
         license=about["__license__"],
@@ -106,4 +107,10 @@ if __name__ == "__main__":
                 simulate=vivarium.interface.cli:simulate
             """,
         zip_safe=False,
+        use_scm_version={
+            "write_to": "src/vivarium/_version.py",
+            "write_to_template": '__version__ = "{version}"\n',
+            "tag_regex": r"^(?P<prefix>v)?(?P<version>[^\+]+)(?P<suffix>.*)?$",
+        },
+        setup_requires=setup_requires,
     )

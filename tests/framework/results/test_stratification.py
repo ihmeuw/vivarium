@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.results.stratification import Stratification
 
 from .mocks import (
@@ -140,3 +141,15 @@ def test_stratification_call_raises(
     my_stratification = Stratification(name, sources, categories, mapper, is_vectorized)
     with pytest.raises(expected_exception):
         raise my_stratification(STUDENT_TABLE)
+
+
+@pytest.mark.parametrize("default_stratifications", [["age", "sex"], ["age"], []])
+def test_setting_default_stratifications(default_stratifications, mocker):
+    """Test that default stratifications are set as expected."""
+    mgr = ResultsManager()
+    builder = mocker.Mock()
+    builder.configuration.stratification.default = default_stratifications
+
+    mgr.setup(builder)
+
+    assert mgr._results_context.default_stratifications == default_stratifications

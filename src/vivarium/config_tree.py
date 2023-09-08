@@ -533,6 +533,21 @@ class ConfigTree:
         """Get a value from the outermost layer in which it appears."""
         return self.get_from_layer(name)
 
+    # We need custom definitions of __getstate__ and __setstate__
+    # because of our custom attribute getters/setters.
+    # Specifically:
+    # * The pickle module will invoke our __getattr__ checking for __getstate__
+    #   and __setstate__, and only catch AttributeError (not ConfigurationKeyError), and
+    # * Calling __getattr__ before we have set up the state doesn't work,
+    #   because it leads to an infinite loop looking for the module's
+    #   actual attributes (not config keys)
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, state: Dict):
+        for k, v in state.items():
+            self.__dict__[k] = v
+
     def __getitem__(self, name):
         """Get a value from the outermost layer in which it appears."""
         return self.get_from_layer(name)
@@ -574,3 +589,6 @@ class ConfigTree:
                 for name, c in self._children.items()
             ]
         )
+
+    def __eq__(self, other):
+        raise NotImplementedError
