@@ -1,3 +1,7 @@
+**1.2.6 - 09/14/23**
+
+ - Update state machine to prepare for pandas 2.0
+
 **1.2.5 - 09/05/23**
 
  - Update ConfigTree to make it pickleable; raise NotImplementedError on equality calls
