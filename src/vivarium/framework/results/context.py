@@ -183,7 +183,7 @@ class ResultsContext:
         else:
             idx = aggregates.index
         data = pd.Series(data=0, index=idx)
-        data.loc[aggregates.index] = aggregates
+        data.loc[aggregates.index] = aggregates.values
 
         def _format(field, param):
             """Format of the measure identifier tokens into FIELD_param."""
