@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     install_requirements = [
         "numpy",
-        "pandas<2.1.0",
+        "pandas",
         "pyyaml>=5.1",
         "scipy",
         "click",
