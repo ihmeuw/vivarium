@@ -1,3 +1,7 @@
+**1.2.7 - 09/14/23**
+
+ - Allow pandas <2.1.0
+
 **1.2.6 - 09/14/23**
 
  - Update state machine to prepare for pandas 2.0
