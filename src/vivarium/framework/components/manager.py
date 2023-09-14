@@ -47,8 +47,8 @@ class OrderedComponentSet:
 
     """
 
-    def __init__(self, *args: Component):
-        self.components: List[Component] = []
+    def __init__(self, *args: Union[Component, Manager]):
+        self.components: List[Union[Component, Manager]] = []
         if args:
             self.update(args)
 
@@ -59,20 +59,23 @@ class OrderedComponentSet:
             )
         self.components.append(component)
 
-    def update(self, components: Union[List[Component], Tuple[Component]]) -> None:
+    def update(
+        self,
+        components: Union[List[Union[Component, Manager]], Tuple[Union[Component, Manager]]],
+    ) -> None:
         for c in components:
             self.add(c)
 
-    def pop(self) -> Component:
+    def pop(self) -> Union[Component, Manager]:
         component = self.components.pop(0)
         return component
 
-    def __contains__(self, component: Component) -> bool:
+    def __contains__(self, component: Union[Component, Manager]) -> bool:
         if not hasattr(component, "name"):
             raise ComponentConfigError(f"Component {component} has no name attribute")
         return component.name in [c.name for c in self.components]
 
-    def __iter__(self) -> Iterator[Component]:
+    def __iter__(self) -> Iterator[Union[Component, Manager]]:
         return iter(self.components)
 
     def __len__(self) -> int:
@@ -300,9 +303,12 @@ class ComponentManager(Manager):
 
     @staticmethod
     def _setup_components(builder: "Builder", components: OrderedComponentSet):
-        for c in components:
-            if hasattr(c, "setup"):
-                c.setup(builder)
+        for component in components:
+            if isinstance(component, Component):
+                component.setup_component(builder)
+            # TODO: remove hasattr check as part of MIC-4487
+            elif isinstance(component, Manager) or hasattr(component, "setup"):
+                component.setup(builder)
 
     def __repr__(self):
         return "ComponentManager()"

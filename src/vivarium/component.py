@@ -181,9 +181,10 @@ class Component(ABC):
         self.logger = None
         self.population_view: Optional[PopulationView] = None
 
-    def setup(self, builder: "Builder") -> None:
+    def setup_component(self, builder: "Builder") -> None:
         """Method that vivarium will run during the setup phase."""
         self.logger = builder.logging.get_logger(self.name)
+        self.setup(builder)
         self.set_population_view(builder)
         self.register_post_setup_listener(builder)
         self.register_simulant_initializer(builder)
@@ -196,6 +197,13 @@ class Component(ABC):
     #################
     # Setup methods #
     #################
+
+    def setup(self, builder: "Builder") -> None:
+        """
+        Method in which to define custom actions this component needs to run
+        during the setup phase.
+        """
+        pass
 
     def set_population_view(self, builder: "Builder") -> None:
         """
