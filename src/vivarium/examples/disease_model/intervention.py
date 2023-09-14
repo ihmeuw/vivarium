@@ -32,7 +32,6 @@ class TreatmentIntervention(Component):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         effect_size = builder.configuration[self.intervention].effect_size
         builder.value.register_value_modifier(
             self.affected_value, modifier=self.intervention_effect

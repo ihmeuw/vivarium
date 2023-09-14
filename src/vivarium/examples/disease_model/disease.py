@@ -12,7 +12,6 @@ from vivarium.framework.values import list_combiner, union_post_processor
 
 
 class DiseaseTransition(Transition):
-
     #####################
     # Lifecycle methods #
     #####################
@@ -67,7 +66,6 @@ class DiseaseTransition(Transition):
 
 
 class DiseaseState(State):
-
     ##############
     # Properties #
     ##############
@@ -147,7 +145,6 @@ class DiseaseState(State):
 
 
 class DiseaseModel(Machine):
-
     ##############
     # Properties #
     ##############
