@@ -24,7 +24,7 @@ class DiseaseTransition(Transition):
         )
         self.joint_population_attributable_fraction = builder.value.register_value_producer(
             f"{self.rate_name}.population_attributable_fraction",
-            source=lambda index: [pd.Series(0, index=index)],
+            source=lambda index: [pd.Series(0.0, index=index)],
             preferred_combiner=list_combiner,
             preferred_post_processor=union_post_processor,
         )
@@ -70,7 +70,7 @@ class DiseaseState(State):
         )
         self.excess_mortality_rate_paf = builder.value.register_value_producer(
             f"{self.state_id}.excess_mortality_rate.population_attributable_fraction",
-            source=lambda index: [pd.Series(0, index=index)],
+            source=lambda index: [pd.Series(0.0, index=index)],
             preferred_combiner=list_combiner,
             preferred_post_processor=union_post_processor,
         )
