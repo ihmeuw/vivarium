@@ -101,7 +101,7 @@ def test_register_observations(mocker):
     assert len(interface._manager._results_context.observations) == 0
     interface.register_observation(
         "living_person_time",
-        'alive == "alive" and undead == False',
+        [],
         [],
         _silly_aggregator,
         [],
@@ -110,7 +110,13 @@ def test_register_observations(mocker):
         [],
         "collect_metrics",
     )
+    # Test observation gets added
     assert len(interface._manager._results_context.observations) == 1
+    # Test for default pop_filter
+    assert (
+        interface._manager._results_context.observations["collect_metrics"][0]
+        == "tracked==True"
+    )
     interface.register_observation(
         "undead_person_time",
         "undead == True",
@@ -122,7 +128,18 @@ def test_register_observations(mocker):
         [],
         "time_step__prepare",
     )
+    # Test new observation gets added
     assert len(interface._manager._results_context.observations) == 2
+    # Preserve other observation and its pop filter
+    assert (
+        interface._manager._results_context.observations["collect_metrics"][0]
+        == "tracked==True"
+    )
+    # Test for overridden pop_filter
+    assert (
+        interface._manager._results_context.observations["time_step__prepare"][0]
+        == "undead == True"
+    )
 
 
 def test_unhashable_pipeline(mocker):
