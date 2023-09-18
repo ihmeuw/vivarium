@@ -106,7 +106,9 @@ class InteractiveContext(SimulationContext):
         ----------
         end_time
             The time to run the simulation until. The simulation will run until
-            its clock is greater than or equal to the provided end time.
+            its clock is greater than or equal to the provided end time. Must be
+            the same type as the simulation clock's step size (usually a pandas.Timestamp)
+
         with_logging
             Whether or not to log the simulation steps. Only works in an ipython
             environment.
