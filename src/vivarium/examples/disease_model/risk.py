@@ -7,7 +7,6 @@ from vivarium.framework.engine import Builder
 
 
 class Risk(Component):
-
     CONFIGURATION_DEFAULTS = {
         "risk": {
             "proportion_exposed": 0.3,
@@ -44,7 +43,6 @@ class Risk(Component):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         proportion_exposed = builder.configuration[self.risk].proportion_exposed
         self.base_exposure_threshold = builder.value.register_value_producer(
             f"{self.risk}.base_proportion_exposed",
@@ -103,7 +101,6 @@ class RiskEffect(Component):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         relative_risk = builder.configuration[self.risk].relative_risk
         self.relative_risk = builder.value.register_value_producer(
             f"{self.risk}.relative_risk",

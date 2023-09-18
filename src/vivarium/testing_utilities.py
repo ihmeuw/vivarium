@@ -34,7 +34,6 @@ class NonCRNTestPopulation(Component):
         return ["age", "sex", "location", "alive", "entrance_time", "exit_time"]
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream(
             "population_age_fuzz", initializes_crn_attributes=True

@@ -9,7 +9,6 @@ from vivarium.framework.population import SimulantData
 
 
 class Location(Component):
-
     ##############
     # Properties #
     ##############
@@ -31,7 +30,6 @@ class Location(Component):
     #####################
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.width = builder.configuration.location.width
         self.height = builder.configuration.location.height
 

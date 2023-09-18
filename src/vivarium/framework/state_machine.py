@@ -332,7 +332,6 @@ class TransitionSet(Component):
             number generation, in particular.
 
         """
-        super().setup(builder)
         self.random = builder.randomness.get_stream(self.name)
 
     ##################

@@ -14,7 +14,6 @@ class ColumnCreator(Component):
         return ["test_column_1", "test_column_2", "test_column_3"]
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         builder.value.register_value_producer("pipeline_1", lambda x: x)
         builder.randomness.get_stream("stream_1")
 
