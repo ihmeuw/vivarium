@@ -31,7 +31,7 @@ or build it from source with
 
   ``> cd vivarium``
 
-  ``> python setup.py install``
+  ``> pip install -e .[dev]``
 
 This will make the ``vivarium`` library available to python and install a
 command-line executable called ``simulate`` that you can use to verify your
