@@ -123,7 +123,7 @@ class ResultsContext:
                 if not len(list(stratifications)):  # Handle situation of no stratifications
                     pop_groups = filtered_pop.groupby(lambda _: True)
                 else:
-                    pop_groups = filtered_pop.groupby(list(stratifications))
+                    pop_groups = filtered_pop.groupby(list(stratifications), observed=False)
 
                 for measure, aggregator_sources, aggregator, additional_keys in observations:
                     if aggregator_sources:
@@ -182,7 +182,7 @@ class ResultsContext:
             )
         else:
             idx = aggregates.index
-        data = pd.Series(data=0, index=idx)
+        data = pd.Series(data=0.0, index=idx)
         data.loc[aggregates.index] = aggregates
 
         def _format(field, param):

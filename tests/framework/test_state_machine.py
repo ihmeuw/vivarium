@@ -62,6 +62,23 @@ def test_transition():
     assert np.all(simulation.get_population().state == "done")
 
 
+def test_single_transition(base_config):
+    base_config.update(
+        {"population": {"population_size": 1}, "randomness": {"key_columns": []}}
+    )
+    done_state = State("done")
+    start_state = State("start")
+    start_state.add_transition(done_state)
+    machine = Machine("state", states=[start_state, done_state])
+
+    simulation = InteractiveContext(
+        components=[machine, _population_fixture("state", "start")], configuration=base_config
+    )
+    event_time = simulation._clock.time + simulation._clock.step_size
+    machine.transition(simulation.get_population().index, event_time)
+    assert np.all(simulation.get_population().state == "done")
+
+
 def test_choice(base_config):
     base_config.update(
         {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}

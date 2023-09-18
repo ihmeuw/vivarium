@@ -82,14 +82,10 @@ def _groupby_new_state(
         into that state.
 
     """
-    output_map = {o: i for i, o in enumerate(outputs)}
-    groups = pd.Series(index).groupby([output_map[d] for d in decisions])
-    results = [(outputs[i], pd.Index(sub_group.values)) for i, sub_group in groups]
-    selected_outputs = [o for o, _ in results]
-    for output in outputs:
-        if output not in selected_outputs:
-            results.append((output, pd.Index([])))
-    return results
+    groups = pd.Series(index).groupby(
+        pd.Categorical(decisions.values, categories=outputs), observed=False
+    )
+    return [(output, pd.Index(sub_group.values)) for output, sub_group in groups]
 
 
 class Trigger(Enum):

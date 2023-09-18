@@ -1,3 +1,15 @@
+**1.2.8 - 09/18/23**
+
+ - Unpin pandas
+
+**1.2.7 - 09/14/23**
+
+ - Allow pandas <2.1.0
+
+**1.2.6 - 09/14/23**
+
+ - Update state machine to prepare for pandas 2.0
+
 **1.2.5 - 09/05/23**
 
  - Update ConfigTree to make it pickleable; raise NotImplementedError on equality calls
