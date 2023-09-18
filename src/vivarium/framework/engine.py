@@ -195,7 +195,7 @@ class SimulationContext:
                 f"[{[c.name for c in non_components]}]."
             )
             self._logger.warning(message)
-            # TODO: raise error once all active Component implementations have been refactored
+            # TODO: raise error as part of MIC-4487
             # raise ComponentConfigError(message)
 
         self._lifecycle.add_constraint(self.add_components, allow_during=["initialization"])

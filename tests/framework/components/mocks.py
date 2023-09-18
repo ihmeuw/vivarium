@@ -35,7 +35,6 @@ class MockComponentB(Component):
                 self._sub_components.append(MockComponentB(arg, name=arg))
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.builder_used_for_setup = builder
         builder.value.register_value_modifier("metrics", self.metrics)
 
@@ -76,7 +75,6 @@ class MockGenericComponent(Component):
         self.builder_used_for_setup = None
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.builder_used_for_setup = builder
         self.config = builder.configuration[self.name]
 

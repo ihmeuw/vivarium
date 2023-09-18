@@ -10,7 +10,6 @@ from vivarium.framework.population import SimulantData
 
 
 class Neighbors(Component):
-
     ##############
     # Properties #
     ##############
@@ -27,7 +26,6 @@ class Neighbors(Component):
     #####################
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.radius = builder.configuration.neighbors.radius
 
         self.neighbors_calculated = False
