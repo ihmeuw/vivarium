@@ -32,7 +32,7 @@ def test_joint_value(manager):
 
     value = manager.register_value_producer(
         "test",
-        source=lambda idx: [pd.Series(0, index=idx)],
+        source=lambda idx: [pd.Series(0.0, index=idx)],
         preferred_combiner=list_combiner,
         preferred_post_processor=union_post_processor,
     )
