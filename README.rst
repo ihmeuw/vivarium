@@ -31,6 +31,8 @@ or build it from source with
 
   ``> cd vivarium``
 
+  ``> conda create -n ENVIRONMENT_NAME python=3.11``
+
   ``> pip install -e .[dev]``
 
 This will make the ``vivarium`` library available to python and install a
