@@ -52,7 +52,6 @@ class BasePopulation(Component):
         builder :
             Access to simulation tools and subsystems.
         """
-        super().setup(builder)
         self.config = builder.configuration
 
         self.with_common_random_numbers = bool(self.config.randomness.key_columns)

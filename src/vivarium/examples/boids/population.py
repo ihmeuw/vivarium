@@ -9,7 +9,6 @@ from vivarium.framework.population import SimulantData
 
 
 class Population(Component):
-
     ##############
     # Properties #
     ##############
@@ -30,7 +29,6 @@ class Population(Component):
     #####################
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.colors = builder.configuration.population.colors
 
     ########################

@@ -84,7 +84,6 @@ class BasePopulation(Component):
         self.sims_to_add = sims_to_add
 
     def setup(self, builder: Builder) -> None:
-        super().setup(builder)
         self.register = builder.randomness.register_simulants
         self.randomness_init = builder.randomness.get_stream(
             "crn_init",
