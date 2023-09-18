@@ -101,14 +101,13 @@ def test_register_observations(mocker):
     assert len(interface._manager._results_context.observations) == 0
     interface.register_observation(
         "living_person_time",
-        None,
-        [],
-        _silly_aggregator,
-        [],
-        [],
-        [],
-        [],
-        "collect_metrics",
+        aggregator_sources=[],
+        aggregator=_silly_aggregator,
+        requires_columns=[],
+        requires_values=[],
+        additional_stratifications=[],
+        excluded_stratifications=[],
+        when="collect_metrics",
     )
     # Test observation gets added
     assert len(interface._manager._results_context.observations) == 1
