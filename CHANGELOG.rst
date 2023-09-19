@@ -1,3 +1,7 @@
+**1.2.9 - 09/19/23**
+
+ - Set default in register_observation
+
 **1.2.8 - 09/18/23**
 
  - Unpin pandas
