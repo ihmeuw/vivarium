@@ -185,18 +185,18 @@ class Component(ABC):
         """Method that vivarium will run during the setup phase."""
         self.logger = builder.logging.get_logger(self.name)
         self.setup(builder)
-        self.set_population_view(builder)
-        self.register_post_setup_listener(builder)
-        self.register_simulant_initializer(builder)
-        self.register_time_step_prepare_listener(builder)
-        self.register_time_step_listener(builder)
-        self.register_time_step_cleanup_listener(builder)
-        self.register_collect_metrics_listener(builder)
-        self.register_simulation_end_listener(builder)
+        self._set_population_view(builder)
+        self._register_post_setup_listener(builder)
+        self._register_simulant_initializer(builder)
+        self._register_time_step_prepare_listener(builder)
+        self._register_time_step_listener(builder)
+        self._register_time_step_cleanup_listener(builder)
+        self._register_collect_metrics_listener(builder)
+        self._register_simulation_end_listener(builder)
 
-    #################
-    # Setup methods #
-    #################
+    #######################
+    # Methods to override #
+    #######################
 
     def setup(self, builder: "Builder") -> None:
         """
@@ -204,105 +204,6 @@ class Component(ABC):
         during the setup phase.
         """
         pass
-
-    def set_population_view(self, builder: "Builder") -> None:
-        """
-        Creates the PopulationView for this component if it needs access to the
-        state table.
-        """
-
-        if self.columns_required:
-            # Get all columns created and required
-            population_view_columns = self.columns_created + self.columns_required
-        elif self.columns_required == []:
-            # Empty list means population view needs all available columns
-            population_view_columns = []
-        elif self.columns_required is None and self.columns_created:
-            # No additional columns required, so just get columns created
-            population_view_columns = self.columns_created
-        else:
-            # no need for a population view if no columns created or required
-            population_view_columns = None
-
-        if population_view_columns is not None:
-            self.population_view = builder.population.get_view(
-                population_view_columns, self.population_view_query
-            )
-
-    def register_post_setup_listener(self, builder: "Builder") -> None:
-        """Registers a post_setup listener if this component has defined one."""
-        if type(self).on_post_setup != Component.on_post_setup:
-            builder.event.register_listener(
-                "post_setup",
-                self.on_post_setup,
-                self.post_setup_priority,
-            )
-
-    def register_simulant_initializer(self, builder: "Builder") -> None:
-        """Registers a simulant initializer if this component has defined one."""
-        if type(self).on_initialize_simulants != Component.on_initialize_simulants:
-            builder.population.initializes_simulants(
-                self.on_initialize_simulants,
-                creates_columns=self.columns_created,
-                **self.initialization_requirements,
-            )
-
-    def register_time_step_prepare_listener(self, builder: "Builder") -> None:
-        """
-        Registers a time_step__prepare listener if this component has defined
-        one.
-        """
-        if type(self).on_time_step_prepare != Component.on_time_step_prepare:
-            builder.event.register_listener(
-                "time_step__prepare",
-                self.on_time_step_prepare,
-                self.time_step_prepare_priority,
-            )
-
-    def register_time_step_listener(self, builder: "Builder") -> None:
-        """Registers a time_step listener if this component has defined one."""
-        if type(self).on_time_step != Component.on_time_step:
-            builder.event.register_listener(
-                "time_step",
-                self.on_time_step,
-                self.time_step_priority,
-            )
-
-    def register_time_step_cleanup_listener(self, builder: "Builder") -> None:
-        """
-        Registers a time_step__cleanup listener if this component has defined
-        one.
-        """
-        if type(self).on_time_step_cleanup != Component.on_time_step_cleanup:
-            builder.event.register_listener(
-                "time_step__cleanup",
-                self.on_time_step_cleanup,
-                self.time_step_cleanup_priority,
-            )
-
-    def register_collect_metrics_listener(self, builder: "Builder") -> None:
-        """
-        Registers a collect_metrics listener if this component has defined one.
-        """
-        if type(self).on_collect_metrics != Component.on_collect_metrics:
-            builder.event.register_listener(
-                "collect_metrics",
-                self.on_collect_metrics,
-                self.collect_metrics_priority,
-            )
-
-    def register_simulation_end_listener(self, builder: "Builder") -> None:
-        """Registers a post_setup listener if this component has defined one."""
-        if type(self).on_simulation_end != Component.on_simulation_end:
-            builder.event.register_listener(
-                "simulation_end",
-                self.on_simulation_end,
-                self.simulation_end_priority,
-            )
-
-    ########################
-    # Event-driven methods #
-    ########################
 
     def on_post_setup(self, event: Event) -> None:
         """
@@ -357,3 +258,98 @@ class Component(ABC):
             for parameter_name in signature(self.__init__).parameters
             if hasattr(self, parameter_name)
         }
+
+    def _set_population_view(self, builder: "Builder") -> None:
+        """
+        Creates the PopulationView for this component if it needs access to the
+        state table.
+        """
+
+        if self.columns_required:
+            # Get all columns created and required
+            population_view_columns = self.columns_created + self.columns_required
+        elif self.columns_required == []:
+            # Empty list means population view needs all available columns
+            population_view_columns = []
+        elif self.columns_required is None and self.columns_created:
+            # No additional columns required, so just get columns created
+            population_view_columns = self.columns_created
+        else:
+            # no need for a population view if no columns created or required
+            population_view_columns = None
+
+        if population_view_columns is not None:
+            self.population_view = builder.population.get_view(
+                population_view_columns, self.population_view_query
+            )
+
+    def _register_post_setup_listener(self, builder: "Builder") -> None:
+        """Registers a post_setup listener if this component has defined one."""
+        if type(self).on_post_setup != Component.on_post_setup:
+            builder.event.register_listener(
+                "post_setup",
+                self.on_post_setup,
+                self.post_setup_priority,
+            )
+
+    def _register_simulant_initializer(self, builder: "Builder") -> None:
+        """Registers a simulant initializer if this component has defined one."""
+        if type(self).on_initialize_simulants != Component.on_initialize_simulants:
+            builder.population.initializes_simulants(
+                self.on_initialize_simulants,
+                creates_columns=self.columns_created,
+                **self.initialization_requirements,
+            )
+
+    def _register_time_step_prepare_listener(self, builder: "Builder") -> None:
+        """
+        Registers a time_step__prepare listener if this component has defined
+        one.
+        """
+        if type(self).on_time_step_prepare != Component.on_time_step_prepare:
+            builder.event.register_listener(
+                "time_step__prepare",
+                self.on_time_step_prepare,
+                self.time_step_prepare_priority,
+            )
+
+    def _register_time_step_listener(self, builder: "Builder") -> None:
+        """Registers a time_step listener if this component has defined one."""
+        if type(self).on_time_step != Component.on_time_step:
+            builder.event.register_listener(
+                "time_step",
+                self.on_time_step,
+                self.time_step_priority,
+            )
+
+    def _register_time_step_cleanup_listener(self, builder: "Builder") -> None:
+        """
+        Registers a time_step__cleanup listener if this component has defined
+        one.
+        """
+        if type(self).on_time_step_cleanup != Component.on_time_step_cleanup:
+            builder.event.register_listener(
+                "time_step__cleanup",
+                self.on_time_step_cleanup,
+                self.time_step_cleanup_priority,
+            )
+
+    def _register_collect_metrics_listener(self, builder: "Builder") -> None:
+        """
+        Registers a collect_metrics listener if this component has defined one.
+        """
+        if type(self).on_collect_metrics != Component.on_collect_metrics:
+            builder.event.register_listener(
+                "collect_metrics",
+                self.on_collect_metrics,
+                self.collect_metrics_priority,
+            )
+
+    def _register_simulation_end_listener(self, builder: "Builder") -> None:
+        """Registers a post_setup listener if this component has defined one."""
+        if type(self).on_simulation_end != Component.on_simulation_end:
+            builder.event.register_listener(
+                "simulation_end",
+                self.on_simulation_end,
+                self.simulation_end_priority,
+            )
