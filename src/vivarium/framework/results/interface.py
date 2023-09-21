@@ -135,7 +135,7 @@ class ResultsInterface:
     def register_observation(
         self,
         name: str,
-        pop_filter: str = "",
+        pop_filter: str = "tracked==True",
         aggregator_sources: List[str] = None,
         aggregator: Callable[[pd.DataFrame], float] = len,
         requires_columns: List[str] = (),
