@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-#   - invoked on push, pull_request, or manual trigger
+#   - invoked on push, pull_request, manual trigger, or schedule
 #   - test under at least 3 versions of python
 # -----------------------------------------------------------------------------
 name: build
@@ -8,7 +8,7 @@ on:
   pull_request:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 8 * * *"
 
 jobs:
   build:
