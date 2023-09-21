@@ -55,7 +55,7 @@ def test_single_transition(base_config):
     )
     done_state = State("done")
     start_state = State("start")
-    start_state.add_transition(done_state)
+    start_state.add_transition(Transition(start_state, done_state))
     machine = Machine("state", states=[start_state, done_state])
 
     simulation = InteractiveContext(
