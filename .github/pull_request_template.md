@@ -7,6 +7,7 @@
                    revert, test, release, other/misc -->
 - *JIRA issue*: [MIC-XYZ](https://jira.ihme.washington.edu/browse/MIC-XYZ)
 
+### Changes and notes
 <!-- 
 Change description – why, what, anything unexplained by the above.
 Include guidance to reviewers if changes are complex.
