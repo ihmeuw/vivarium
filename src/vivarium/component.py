@@ -20,8 +20,8 @@ if TYPE_CHECKING:
     from vivarium.framework.population import PopulationView, SimulantData
 
 
-"""The default priority at which events will be triggered."""
 DEFAULT_EVENT_PRIORITY = 5
+"""The default priority at which events will be triggered."""
 
 
 class Component(ABC):
