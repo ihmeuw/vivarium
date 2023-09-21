@@ -1,3 +1,14 @@
+**2.0.0 - 09/22/23**
+
+ - Create `Component` and `Manager` classes
+ - Ensure all managers and components inherit from them
+ - Define properties in `Component` that components can override
+ - Define lifecycle methods in `Component` that components override
+ - Refactor all components in vivarium to use and leverage`Component`
+ - Warn when using components not inheriting from `Component`
+ - Change the behavior of `State.add_transition` to take a Transition object rather than another State
+ - Add optional argument to State constructor to allow self transitions
+
 **1.2.9 - 09/19/23**
 
  - Set default in register_observation
