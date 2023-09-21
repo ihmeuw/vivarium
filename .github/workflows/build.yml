@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-#   - invoked on push, pull_request, or manual trigger
+#   - invoked on push, pull_request, manual trigger, or schedule
 #   - test under at least 3 versions of python
 # -----------------------------------------------------------------------------
 name: build
