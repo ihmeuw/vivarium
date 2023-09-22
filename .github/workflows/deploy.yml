@@ -18,6 +18,10 @@ jobs:
           python --version
           python -m pip install --upgrade pip
           pip install setuptools wheel twine
+      - name: Test
+        run: |
+          pip install .[test]
+          pytest --runslow ./tests
       - name: Build and publish
         env:
           TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
@@ -25,3 +29,4 @@ jobs:
         run: |
           python setup.py sdist bdist_wheel
           twine upload dist/*
+      
