@@ -55,3 +55,11 @@ def test_contains(manager):
     manager.register_value_producer("test_value", source=lambda: 1)
     assert value in manager
     assert rate not in manager
+
+
+def test_returned_series_name(manager):
+    value = manager.register_value_producer(
+        "test",
+        source=lambda idx: pd.Series(0.0, index=idx),
+    )
+    assert value(pd.Index(range(10))).name == "test"
