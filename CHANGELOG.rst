@@ -1,3 +1,7 @@
+**2.0.1 - 10/04/23**
+
+ - Set pipeline's returned Series' name to the pipeline's name
+
 **2.0.0 - 09/22/23**
 
  - Create `Component` and `Manager` classes
