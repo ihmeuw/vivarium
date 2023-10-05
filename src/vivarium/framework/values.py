@@ -239,6 +239,8 @@ class Pipeline:
             value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
             return self.post_processor(value, self.manager.step_size())
+        if isinstance(value, pd.Series):
+            value.name = self.name
 
         return value
 
