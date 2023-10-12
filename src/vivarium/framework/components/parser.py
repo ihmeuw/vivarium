@@ -36,15 +36,16 @@ class ParsingError(ComponentConfigError):
 
 
 class ComponentConfigurationParser:
-    """Parses component configuration from model specification and initializes
+    # todo update docstring
+    """
+    Parses component configuration from model specification and initializes
     components.
 
     To define your own set of parsing rules, you should write a parser class
     that inherits from this class and overrides ``parse_component_config``.
     You can then define a set of parsing rules that turn component configuration
-    information into a list of strings where each string is the full python
-    import path to the class followed by a set of parentheses containing
-    initialization arguments.
+    information into a string which is the full python import path to the class
+    followed by a set of parentheses containing initialization arguments.
 
     For example, say your component configuration specifies ``FancyClass`` from
     the ``important_module`` of your ``made_up_package`` and that ``FancyClass``
@@ -87,23 +88,48 @@ class ComponentConfigurationParser:
 
         """
         if isinstance(component_config, ConfigTree):
-            component_list = self.parse_component_config(component_config.to_dict())
+            component_list = self.parse_component_config(component_config)
         else:  # Components were specified in a list rather than a tree.
-            component_list = component_config
-        component_list = self.prep_components(component_list)
-        return self.import_and_instantiate_components(component_list)
+            component_list = [
+                self.create_component_from_string(component) for component in component_config
+            ]
+        return component_list
 
-    def parse_component_config(
-        self, component_config: Dict[str, Union[Dict, List]]
-    ) -> List[str]:
+    def parse_component_config(self, component_config: ConfigTree) -> List[Component]:
+        """
+        Helper function for parsing a ConfigTree into a flat list of Components.
+
+        This function converts the ConfigTree into a dictionary and passes it
+        along with an empty prefix list to
+        :meth:`process_level <ComponentConfigurationParser.process_level>`. The
+        result is a flat list of components.
+
+        Parameters
+        ----------
+        component_config
+            A ConfigTree representing a hierarchical component specification blob.
+
+        Returns
+        -------
+        List[Component]
+            A flat list of Components
+        """
+        if not component_config:
+            return []
+
+        return self.process_level(component_config.to_dict(), [])
+
+    def process_level(
+        self, level: Union[List[str], Dict[str, Union[Dict, List]]], prefix: List[str]
+    ) -> List[Component]:
         """Helper function for parsing hierarchical component configuration into a
-        flat list.
+        flat list of Components.
 
-        This function recursively walks the component configuration dictionary,
+        This function recursively walks the hierarchical component configuration,
         treating it like a prefix tree and building the import path prefix. When it
-        hits a list, it prepends the built prefix onto each item in the list. If the
-        dictionary contains multiple lists, the prefix-prepended lists are concated
-        together. For example, a component configuration dictionary like the
+        hits a string, it prepends the built prefix onto the string. If the
+        dictionary contains multiple lists, the prefix-prepended lists are
+        combined. For example, a component configuration dictionary like the
         following:
 
         .. code-block:: python
@@ -128,60 +154,77 @@ class ComponentConfigurationParser:
 
         Parameters
         ----------
-        component_config
-            A hierarchical component specification blob.
+        level
+            A level of the hierarchical component specification blob.
+        prefix
+            A list of strings representing the import path prefix.
 
         Returns
         -------
-            A flat list of strings, each string representing the full python import
-            path to the component, the component name, and any arguments.
+        List[Component]
+            A flat list of Components
         """
-        if not component_config:
-            return []
-
-        return self._process_level(component_config, [])
-
-    def _process_level(self, level, prefix):
         if not level:
             raise ParsingError(
-                f"Check your configuration. Component {prefix} should not be left empty with the header"
+                f"Check your configuration. Component {prefix} should not "
+                "be left empty with the header"
             )
 
-        if isinstance(level, list):
-            return [".".join(prefix + [child]) for child in level]
-
         component_list = []
-        for name, child in level.items():
-            component_list.extend(self._process_level(child, prefix + [name]))
+        if isinstance(level, dict):
+            for name, child in level.items():
+                component_list.extend(self.process_level(child, prefix + [name]))
+        else:
+            for child in level:
+                component = self.create_component_from_string(".".join(prefix + [child]))
+                component_list.append(component)
 
         return component_list
 
-    def prep_components(
-        self, component_list: Union[List[str], Tuple[str]]
-    ) -> List[Tuple[str, Tuple]]:
-        """Transform component description strings into tuples of component paths
+    def create_component_from_string(self, component_string: str) -> Component:
+        """
+        Helper function for creating a component from a string.
+
+        This function takes a string representing a component and turns it into
+        an instantiated component object.
+
+        Parameters
+        ----------
+        component_string
+            A string representing the full python import path to the component,
+            the component name, and any arguments.
+
+        Returns
+        -------
+        Component
+            An instantiated component object.
+        """
+        component_path, args = self.prep_component(component_string)
+        component = self.import_and_instantiate_component(component_path, args)
+        return component
+
+    def prep_component(self, component_string: str) -> Tuple[str, Tuple]:
+        """Transform component description string into a tuple of component paths
         and required arguments.
 
         Parameters
         ----------
-        component_list
-            The component descriptions to transform.
+        component_string
+            The component description to transform.
 
         Returns
         -------
-        List[Tuple[str, Tuple]]
-            List of component/argument tuples.
+        Tuple[str, Tuple]
+            Component/argument tuple.
         """
-        components = []
-        for c in component_list:
-            path, args_plus = c.split("(")
-            cleaned_args = self.clean_args(args_plus[:-1].split(","), path)
-            components.append((path, cleaned_args))
-        return components
+        path, args_plus = component_string.split("(")
+        cleaned_args = self._clean_args(args_plus[:-1].split(","), path)
+        return path, cleaned_args
 
     @staticmethod
-    def clean_args(args: List, path: str) -> Tuple:
-        """Transform component arguments into a tuple, validating that each argument
+    def _clean_args(args: List, path: str) -> Tuple:
+        """
+        Transform component arguments into a tuple, validating that each argument
         is a string.
 
         Parameters
@@ -212,24 +255,23 @@ class ComponentConfigurationParser:
         return tuple(out)
 
     @staticmethod
-    def import_and_instantiate_components(
-        component_list: List[Tuple[str, Tuple[str]]]
-    ) -> List[Component]:
-        """Transform the list of tuples representing components into the actual
-        instantiated component objects.
+    def import_and_instantiate_component(component_path: str, args: Tuple[str]) -> Component:
+        """
+        Transform a tuple representing a Component into an actual instantiated
+        component object.
 
         Parameters
         ----------
-        component_list
-            A list of tuples representing components, where the first element of
-            each tuple is a string with the full import path to the component and
-            the component name and the second element is a tuple of the arguments to
-            the component.
+        component_path
+            A string with the full import path to the component and the
+            component name
+        args
+            A tuple of arguments to the component specified at ``component_path``.
 
         Returns
         -------
-        List
-            A list of instantiated component objects.
+        Component
+            An instantiated component object.
 
         """
-        return [import_by_path(component)(*args) for component, args in component_list]
+        return import_by_path(component_path)(*args)
