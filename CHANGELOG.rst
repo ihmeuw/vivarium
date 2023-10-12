@@ -1,3 +1,7 @@
+**2.1.0 - 10/12/23**
+
+ - Remove explicit support for Python 3.8
+
 **2.0.1 - 10/04/23**
 
  - Set pipeline's returned Series' name to the pipeline's name
