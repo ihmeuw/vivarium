@@ -90,23 +90,41 @@ class ComponentConfigurationParser:
             component_list = self.parse_component_config(component_config.to_dict())
         else:  # Components were specified in a list rather than a tree.
             component_list = component_config
-        component_list = prep_components(component_list)
-        return import_and_instantiate_components(component_list)
+        component_list = self.prep_components(component_list)
+        return self.import_and_instantiate_components(component_list)
 
     def parse_component_config(
         self, component_config: Dict[str, Union[Dict, List]]
     ) -> List[str]:
-        """Parses a hierarchical component specification into a list of
-        standardized component definitions.
+        """Helper function for parsing hierarchical component configuration into a
+        flat list.
 
-        This default parser expects component configurations as a list of dicts.
-        Each dict at the top level corresponds to a different package and has
-        a single key. This key may be just the name of the package or a Python
-        style import path to the module in which components live. The values of
-        the top level dicts are a list of dicts or strings. If dicts, the keys
-        are another step along the import path. If strings, the strings are
-        representations of calls to the class constructor of components to be
-        generated. This pattern may be arbitrarily nested.
+        This function recursively walks the component configuration dictionary,
+        treating it like a prefix tree and building the import path prefix. When it
+        hits a list, it prepends the built prefix onto each item in the list. If the
+        dictionary contains multiple lists, the prefix-prepended lists are concated
+        together. For example, a component configuration dictionary like the
+        following:
+
+        .. code-block:: python
+
+            component_config = {
+                'vivarium_examples': {
+                    'disease_model': {
+                        'population': ['BasePopulation()', 'Mortality()']
+                        'disease': ['SIS_DiseaseModel("diarrhea")]
+                    }
+                }
+            }
+
+        would be parsed by this function into the following list:
+
+        .. code-block:: python
+
+            ['vivarium_examples.disease_model.population.BasePopulation()',
+             'vivarium_examples.disease_model.population.Mortality()',
+             'vivarium_examples.disease_model.disease.SIS_DiseaseModel("diarrhea")']
+
 
         Parameters
         ----------
@@ -115,61 +133,15 @@ class ComponentConfigurationParser:
 
         Returns
         -------
-            A list of standardized component definitions. Component definition
-            strings are specified as
-            ``'absolute.import.path.ClassName("argument1", "argument2", ...)'``.
-
+            A flat list of strings, each string representing the full python import
+            path to the component, the component name, and any arguments.
         """
-        return parse_component_config_to_list(component_config)
+        if not component_config:
+            return []
 
+        return self._process_level(component_config, [])
 
-def parse_component_config_to_list(
-    component_config: Dict[str, Union[Dict, List]]
-) -> List[str]:
-    """Helper function for parsing hierarchical component configuration into a
-    flat list.
-
-    This function recursively walks the component configuration dictionary,
-    treating it like a prefix tree and building the import path prefix. When it
-    hits a list, it prepends the built prefix onto each item in the list. If the
-    dictionary contains multiple lists, the prefix-prepended lists are concated
-    together. For example, a component configuration dictionary like the
-    following:
-
-    .. code-block:: python
-
-        component_config = {
-            'vivarium_examples': {
-                'disease_model': {
-                    'population': ['BasePopulation()', 'Mortality()']
-                    'disease': ['SIS_DiseaseModel("diarrhea")]
-                }
-            }
-        }
-
-    would be parsed by this function into the following list:
-
-    .. code-block:: python
-
-        ['vivarium_examples.disease_model.population.BasePopulation()',
-         'vivarium_examples.disease_model.population.Mortality()',
-         'vivarium_examples.disease_model.disease.SIS_DiseaseModel("diarrhea")']
-
-
-    Parameters
-    ----------
-    component_config
-        A hierarchical component specification blob.
-
-    Returns
-    -------
-        A flat list of strings, each string representing the full python import
-        path to the component, the component name, and any arguments.
-    """
-    if not component_config:
-        return []
-
-    def _process_level(level, prefix):
+    def _process_level(self, level, prefix):
         if not level:
             raise ParsingError(
                 f"Check your configuration. Component {prefix} should not be left empty with the header"
@@ -180,85 +152,84 @@ def parse_component_config_to_list(
 
         component_list = []
         for name, child in level.items():
-            component_list.extend(_process_level(child, prefix + [name]))
+            component_list.extend(self._process_level(child, prefix + [name]))
 
         return component_list
 
-    return _process_level(component_config, [])
+    def prep_components(
+        self, component_list: Union[List[str], Tuple[str]]
+    ) -> List[Tuple[str, Tuple]]:
+        """Transform component description strings into tuples of component paths
+        and required arguments.
 
+        Parameters
+        ----------
+        component_list
+            The component descriptions to transform.
 
-def prep_components(component_list: Union[List[str], Tuple[str]]) -> List[Tuple[str, Tuple]]:
-    """Transform component description strings into tuples of component paths
-    and required arguments.
+        Returns
+        -------
+        List[Tuple[str, Tuple]]
+            List of component/argument tuples.
+        """
+        components = []
+        for c in component_list:
+            path, args_plus = c.split("(")
+            cleaned_args = self.clean_args(args_plus[:-1].split(","), path)
+            components.append((path, cleaned_args))
+        return components
 
-    Parameters
-    ----------
-    component_list
-        The component descriptions to transform.
+    @staticmethod
+    def clean_args(args: List, path: str) -> Tuple:
+        """Transform component arguments into a tuple, validating that each argument
+        is a string.
 
-    Returns
-    -------
-    List[Tuple[str, Tuple]]
-        List of component/argument tuples.
-    """
-    components = []
-    for c in component_list:
-        path, args_plus = c.split("(")
-        cleaned_args = clean_args(args_plus[:-1].split(","), path)
-        components.append((path, cleaned_args))
-    return components
+        Parameters
+        ----------
+        args
+            List of arguments to the component specified at ``path``.
+        path
+            Path representing the component for which arguments are being cleaned.
 
+        Returns
+        -------
+        Tuple
+            A tuple of arguments, each of which is guaranteed to be a string.
+        """
+        out = []
+        for a in args:
+            a = a.strip()
+            if not a:
+                continue
 
-def clean_args(args: List, path: str) -> Tuple:
-    """Transform component arguments into a tuple, validating that each argument
-    is a string.
+            not_a_valid_string = len(a) < 3 or not (
+                (a[0] == a[-1] == "'") or (a[0] == a[-1] == '"')
+            )
+            if not_a_valid_string:
+                raise ParsingError(f"Invalid component argument {a} for component {path}")
 
-    Parameters
-    ----------
-    args
-        List of arguments to the component specified at ``path``.
-    path
-        Path representing the component for which arguments are being cleaned.
+            out.append(a[1:-1])
+        return tuple(out)
 
-    Returns
-    -------
-    Tuple
-        A tuple of arguments, each of which is guaranteed to be a string.
-    """
-    out = []
-    for a in args:
-        a = a.strip()
-        if not a:
-            continue
+    @staticmethod
+    def import_and_instantiate_components(
+        component_list: List[Tuple[str, Tuple[str]]]
+    ) -> List[Component]:
+        """Transform the list of tuples representing components into the actual
+        instantiated component objects.
 
-        not_a_valid_string = len(a) < 3 or not (
-            (a[0] == a[-1] == "'") or (a[0] == a[-1] == '"')
-        )
-        if not_a_valid_string:
-            raise ParsingError(f"Invalid component argument {a} for component {path}")
+        Parameters
+        ----------
+        component_list
+            A list of tuples representing components, where the first element of
+            each tuple is a string with the full import path to the component and
+            the component name and the second element is a tuple of the arguments to
+            the component.
 
-        out.append(a[1:-1])
-    return tuple(out)
+        Returns
+        -------
+        List
+            A list of instantiated component objects.
 
-
-def import_and_instantiate_components(
-    component_list: List[Tuple[str, Tuple[str]]]
-) -> List[Component]:
-    """Transform the list of tuples representing components into the actual
-    instantiated component objects.
-
-    Parameters
-    ----------
-    component_list
-        A list of tuples representing components, where the first element of
-        each tuple is a string with the full import path to the component and
-        the component name and the second element is a tuple of the arguments to
-        the component.
-
-    Returns
-    -------
-    List
-        A list of instantiated component objects.
-
-    """
-    return [import_by_path(component)(*args) for component, args in component_list]
+        """
+        return [import_by_path(component)(*args) for component, args in component_list]
