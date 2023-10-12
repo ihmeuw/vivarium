@@ -143,7 +143,7 @@ class ConfigNode:
         """
         self._frozen = True
 
-    def get_value(self, layer: Optional[str]) -> Any:
+    def get_value(self, layer: Optional[str] = None) -> Any:
         """Returns the value at the specified layer.
 
         If no layer is specified, the outermost (highest priority) layer
