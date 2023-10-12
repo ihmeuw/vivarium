@@ -144,16 +144,20 @@ def test_node_get_value_with_source(full_node):
 
 def test_node_get_value_empty(empty_node):
     with pytest.raises(ConfigurationKeyError):
-        empty_node.get_value(layer=None)
+        empty_node.get_value()
 
     for layer in empty_node._layers:
         with pytest.raises(ConfigurationKeyError):
-            empty_node.get_value(layer=layer)
+            empty_node.get_value()
 
     assert not empty_node.accessed
 
 
 def test_node_get_value(full_node):
+    assert full_node.get_value() == f"test_value_{len(full_node._layers)}"
+    assert full_node.accessed
+    full_node._accessed = False
+
     assert full_node.get_value(layer=None) == f"test_value_{len(full_node._layers)}"
     assert full_node.accessed
     full_node._accessed = False

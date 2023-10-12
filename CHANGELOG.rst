@@ -1,6 +1,7 @@
 **2.1.0 - 10/12/23**
 
  - Remove explicit support for Python 3.8
+ - Set default value for ConfigNode::get_value to None
 
 **2.0.1 - 10/04/23**
 
