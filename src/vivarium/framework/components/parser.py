@@ -172,9 +172,12 @@ class ComponentConfigurationParser:
         component_list = []
         if isinstance(level, dict):
             for name, child in level.items():
-                component_list.extend(self.process_level(child, prefix + [name]))
+                components = self.process_level(child, prefix + [name])
+                component_list.extend(components)
         elif isinstance(level, list):
-            component_list.extend([self.process_level(child, prefix) for child in level])
+            for child in level:
+                component = self.process_level(child, prefix)
+                component_list.extend(component)
         elif isinstance(level, str):
             component = self.create_component_from_string(".".join(prefix + [level]))
             component_list.append(component)

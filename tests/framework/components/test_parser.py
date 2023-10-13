@@ -14,10 +14,11 @@ from .mocks import MockComponentA, MockComponentB
 
 TEST_COMPONENTS_NESTED = """
 components:
-    ministry.silly_walk:
-       - Prance()
-       - Jump('front_flip')
-       - PratFall('15')
+    ministry:
+        silly_walk:
+           - Prance()
+           - Jump('front_flip')
+           - PratFall('15')
     pet_shop:
        - Parrot()
        - dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')
