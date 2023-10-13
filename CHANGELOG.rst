@@ -1,6 +1,7 @@
 **2.1.1 - 10/13/23**
 
  - Enable RandomnessStream to sample from a distribution
+ - Refactor `ComponentConfigurationParser` to create components as they are parsed
 
 **2.1.0 - 10/12/23**
 
