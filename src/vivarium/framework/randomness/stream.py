@@ -26,6 +26,7 @@ from typing import Any, Callable, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
@@ -305,6 +306,44 @@ class RandomnessStream:
         """
         draws = self.get_draw(index, additional_key)
         return _choice(draws, choices, p)
+
+    def sample_from_distribution(
+        self,
+        index: pd.Index,
+        distribution: stats.rv_continuous = None,
+        ppf: Callable[[pd.Series, ...], pd.Series] = None,
+        additional_key: Any = None,
+        **distribution_kwargs: Any,
+    ) -> pd.Series:
+        """
+        Given a distribution, returns an indexed set of samples from that
+        distribution.
+
+        Parameters
+        ----------
+        index
+            An index whose length is the number of random draws made
+            and which indexes the returned `pandas.Series`.
+        distribution
+            A scipy.stats distribution object.
+        ppf
+            A function that takes a series of draws and returns a series of samples.
+        additional_key
+            Any additional information used to seed random number generation.
+        distribution_kwargs
+            Additional keyword arguments to pass to the distribution's ppf function.
+        """
+        if ppf is None and distribution is None:
+            raise ValueError("Either distribution or ppf must be provided")
+        if ppf is not None and distribution is not None:
+            raise ValueError("Only one of distribution or ppf can be provided")
+
+        if distribution is not None:
+            ppf = distribution.ppf
+
+        draws = self.get_draw(index, additional_key)
+        samples = pd.Series(ppf(draws, **distribution_kwargs), index=index)
+        return samples
 
     def __repr__(self) -> str:
         return "RandomnessStream(key={!r}, clock={!r}, seed={!r})".format(
