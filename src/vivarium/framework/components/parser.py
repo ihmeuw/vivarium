@@ -36,7 +36,6 @@ class ParsingError(ComponentConfigError):
 
 
 class ComponentConfigurationParser:
-    # todo update docstring
     """
     Parses component configuration from model specification and initializes
     components.
@@ -120,7 +119,7 @@ class ComponentConfigurationParser:
         return self.process_level(component_config.to_dict(), [])
 
     def process_level(
-        self, level: Union[List[str], Dict[str, Union[Dict, List]]], prefix: List[str]
+        self, level: Union[str, List[str], Dict[str, Union[Dict, List]]], prefix: List[str]
     ) -> List[Component]:
         """Helper function for parsing hierarchical component configuration into a
         flat list of Components.
@@ -174,10 +173,16 @@ class ComponentConfigurationParser:
         if isinstance(level, dict):
             for name, child in level.items():
                 component_list.extend(self.process_level(child, prefix + [name]))
+        elif isinstance(level, list):
+            component_list.extend([self.process_level(child, prefix) for child in level])
+        elif isinstance(level, str):
+            component = self.create_component_from_string(".".join(prefix + [level]))
+            component_list.append(component)
         else:
-            for child in level:
-                component = self.create_component_from_string(".".join(prefix + [child]))
-                component_list.append(component)
+            raise ParsingError(
+                f"Check your configuration. Component {''.join(prefix)}::{level}"
+                " should be a string, list, or dictionary."
+            )
 
         return component_list
 

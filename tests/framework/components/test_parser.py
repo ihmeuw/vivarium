@@ -21,10 +21,11 @@ components:
     pet_shop:
        - Parrot()
        - dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')
+    news: SomethingCompletelyDifferent()
 """
 
 # common case when users comment out and ends up having none
-TEST_COMPONENTS_BAD = """
+TEST_COMPONENTS_EMPTY_KEY = """
 components:
     ministry.silly_walk:
        - Prance()
@@ -33,6 +34,19 @@ components:
     pet_shop:
 #       - Parrot()
 #       - dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')
+    news: SomethingCompletelyDifferent()
+"""
+
+TEST_COMPONENTS_NON_STRING = """
+components:
+    ministry.silly_walk:
+       - 42
+       - Jump('front_flip')
+       - PratFall('15')
+    pet_shop:
+#       - Parrot()
+#       - dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')
+    news: SomethingCompletelyDifferent()
 """
 
 TEST_COMPONENTS_FLAT = """
@@ -42,6 +56,7 @@ components:
     - ministry.silly_walk.PratFall('15')
     - pet_shop.Parrot()
     - pet_shop.dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')
+    - news.SomethingCompletelyDifferent()
 """
 
 TEST_COMPONENTS_PARSED = [
@@ -50,6 +65,7 @@ TEST_COMPONENTS_PARSED = [
     "ministry.silly_walk.PratFall('15')",
     "pet_shop.Parrot()",
     "pet_shop.dangerous_animals.Crocodile('gold_tooth', 'teacup', '3.14')",
+    "news.SomethingCompletelyDifferent()",
 ]
 
 TEST_COMPONENTS_PREPPED = [
@@ -58,6 +74,7 @@ TEST_COMPONENTS_PREPPED = [
     ("ministry.silly_walk.PratFall", ("15",)),
     ("pet_shop.Parrot", tuple()),
     ("pet_shop.dangerous_animals.Crocodile", ("gold_tooth", "teacup", "3.14")),
+    ("news.SomethingCompletelyDifferent", tuple()),
 ]
 
 
@@ -147,7 +164,14 @@ def test_get_components(parser, components):
     parser.import_and_instantiate_component.assert_has_calls(calls)
 
 
-def test_components_config_valid(parser):
-    bad_config = ConfigTree(yaml.full_load(TEST_COMPONENTS_BAD))["components"]
-    with pytest.raises(ParsingError):
+@pytest.mark.parametrize(
+    "config, error_message",
+    [
+        (TEST_COMPONENTS_EMPTY_KEY, "empty with the header"),
+        (TEST_COMPONENTS_NON_STRING, "should be a string, list, or dictionary"),
+    ],
+)
+def test_components_invalid_config(parser, config, error_message):
+    bad_config = ConfigTree(yaml.full_load(config))["components"]
+    with pytest.raises(ParsingError, match=error_message):
         parser.parse_component_config(bad_config)
