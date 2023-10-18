@@ -60,6 +60,66 @@ class SimulationClock(Manager):
         """Rewinds the clock by the current step size."""
         self._time -= self.step_size
 
+class MultiClock(Manager):
+    """A clock that includes global clock and a pandas series of clocks for each simulant"""
+    def __init__(self):
+        self._clock_time = None
+        self._clock_step_size = None
+        self._watch_times = None
+        self._watch_step_sizes = None
+        self._stop_time = None
+        
+    @property
+    def name(self):
+        return "multi_clock"
+
+    @property
+    def clock_time(self) -> Time:
+        """The current simulation time."""
+        assert self._clock_time is not None, "No start time provided"
+        return self._clock_time
+
+    @property
+    def stop_time(self) -> Time:
+        """The time at which the simulation will stop."""
+        assert self._clock_stop_time is not None, "No stop time provided"
+        return self._clock_stop_time
+
+    @property
+    def clock_step_size(self) -> Timedelta:
+        """The size of the next time step."""
+        assert self._clock_step_size is not None, "No step size provided"
+        return self._clock_step_size
+    
+    def watch_times(self) -> pd.Series:
+        """The next time each simulant will be updated."""
+        assert self._watch_times is not None, "No watch times provided"
+        return self._watch_times
+    
+    def watch_step_sizes(self) -> pd.Series:
+        """The step size for each simulant."""
+        assert self._watch_step_sizes is not None, "No watch step sizes provided"
+        return self._watch_step_sizes
+    
+    def step_forward(self) -> None:
+        """Advances the clock by the current step size."""
+        self._clock_time += self.clock_step_size
+        pop_to_update = self.timely_pop()
+        self._watch_times.loc[pop_to_update] += self.watch_step_sizes.loc[pop_to_update]
+
+    def step_backward(self):
+        """Rewinds the clock by the current step size."""
+        self._clock_time -= self.clock_step_size
+        pop_to_update = self.timely_pop()
+        self._watch_times.loc[pop_to_update] -= self.watch_step_sizes.loc[pop_to_update]
+    
+    def timely_pop(self):
+        """Gets population that is aligned with global clock"""
+        watch_times = self.watch_times()
+        return watch_times.index[watch_times == self.clock_time]
+
+        
+        
 
 class SimpleClock(SimulationClock):
     """A unitless step-count based simulation clock."""
@@ -118,6 +178,33 @@ class DateTimeClock(SimulationClock):
 
     def __repr__(self):
         return "DateTimeClock()"
+
+class SimpleMultiClock(MultiClock):
+    """Multi-clock verson of SimpleClock"""
+    configuration_defaults = {
+        "time": {
+            "start": 0,
+            "end": 100,
+            "step_size": 1,
+        }
+    }
+
+    @property
+    def name(self):
+        return "simple_multi_clock"
+
+    def setup(self, builder):
+        self._clock_time = builder.configuration.time.start
+        self._clock_stop_time = builder.configuration.time.end
+        self._clock_step_size = builder.configuration.time.step_size
+        self._watch_times = pd.Series([self._clock_time]*len(builder.population))
+        self._watch_step_sizes = pd.Series([self._clock_step_size]*len(builder.population))
+
+    def __repr__(self):
+        return "SimpleMultiClock()"
+        
+    
+    
 
 
 class TimeInterface:
