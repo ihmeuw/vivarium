@@ -1,3 +1,7 @@
+**2.2.0 - 10/19/23**
+
+ - Refactor Manager configuration defaults
+
 **2.1.1 - 10/13/23**
 
  - Enable RandomnessStream to sample from a distribution

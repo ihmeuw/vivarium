@@ -30,7 +30,7 @@ class LookupTableManager(Manager):
 
     """
 
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "interpolation": {"order": 0, "validate": True, "extrapolate": True}
     }
 
