@@ -157,13 +157,8 @@ def test_interpolated_tables__only_categorical_parameters(base_config):
     output_data = lookup_table(population.index)
 
     for i, (sex, location) in combinations:
-        assert (
-            output_data.loc[
-                (output_data["sex"] == sex) & output_data["location"] == location,
-                "some_value",
-            ].all()
-            == i**2
-        )
+        sub_table_mask = (output_data["sex"] == sex) & output_data["location"] == location
+        assert (output_data.loc[sub_table_mask, "some_value"] == i**2).all()
 
 
 def test_lookup_table_scalar_from_list(base_config):

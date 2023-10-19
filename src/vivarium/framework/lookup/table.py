@@ -380,7 +380,7 @@ def validate_parameters(
         if parameter_columns is not None:
             for p in parameter_columns:
                 all_parameter_columns += [p, f"{p}_start", f"{p}_end"]
-        
+
         if set(key_columns).intersection(set(all_parameter_columns)):
             raise ValueError(
                 f"There should be no overlap between key columns: {key_columns} "
