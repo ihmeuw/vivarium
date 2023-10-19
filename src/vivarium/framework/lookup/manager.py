@@ -4,10 +4,11 @@ Lookup Tables
 =============
 
 Simulations tend to require a large quantity of data to run.  :mod:`vivarium`
-provides the :class:`LookupTable` abstraction to ensure that accurate data can
-be retrieved when it's needed. It's a callable object that takes in a
-population index and returns data specific to the individuals represented by
-that index. See the :ref:`lookup concept note <lookup_concept>` for more.
+provides the :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`
+abstraction to ensure that accurate data can be retrieved when it's needed. It's
+a callable object that takes in a population index and returns data specific to
+the individuals represented by that index. See the
+:ref:`lookup concept note <lookup_concept>` for more.
 
 """
 from typing import TYPE_CHECKING, List, Tuple, Union
@@ -95,7 +96,7 @@ class LookupTableInterface:
     """The lookup table management system.
 
     Simulations tend to require a large quantity of data to run. ``vivarium``
-    provides the :class:`Lookup Table <vivarium.framework.lookup.LookupTable>`
+    provides the :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`
     abstraction to ensure that accurate data can be retrieved when it's needed.
 
     For more information, see :ref:`here <lookup_concept>`.
@@ -130,7 +131,7 @@ class LookupTableInterface:
         ----------
         data
             The source data which will be used to build the resulting
-            :class:`LookupTable`.
+            :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`.
         key_columns
             Columns used to select between interpolation functions. These
             should be the non-continuous variables in the data. For example
