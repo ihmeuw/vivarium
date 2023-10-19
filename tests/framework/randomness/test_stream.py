@@ -1,6 +1,9 @@
+from typing import Dict
+
 import numpy as np
 import pandas as pd
 import pytest
+from scipy import stats
 
 from vivarium.framework.randomness import (
     RESIDUAL_CHOICE,
@@ -133,3 +136,65 @@ def test_choice_with_residuals(randomness_stream, index, choices, weights_with_r
 
         for k, c in count.items():
             assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
+
+
+@pytest.mark.parametrize(
+    "distribution, ppf, error_message",
+    [
+        (None, None, "Either distribution or ppf must be provided"),
+        (stats.norm, lambda x: x, "Only one of distribution or ppf can be provided"),
+    ],
+)
+def test_sample_from_distribution_bad_args(
+    distribution, ppf, error_message, randomness_stream
+):
+    with pytest.raises(ValueError, match=error_message):
+        randomness_stream.sample_from_distribution(
+            index=pd.Index([]),
+            distribution=distribution,
+            ppf=ppf,
+        )
+
+
+@pytest.mark.parametrize(
+    "distribution, params",
+    [
+        (stats.norm, {"loc": 5, "scale": 1}),
+        (stats.beta, {"a": 1, "b": 2}),
+    ],
+)
+def test_sample_from_distribution_using_scipy(
+    index: pd.Index, distribution: stats.rv_continuous, params: Dict
+):
+    randomness_stream = RandomnessStream(
+        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()
+    )
+    draws = randomness_stream.get_draw(index, "some_key")
+    expected = distribution.ppf(draws, **params)
+
+    sample = randomness_stream.sample_from_distribution(
+        index=index, distribution=distribution, additional_key="some_key", **params
+    )
+
+    assert isinstance(sample, pd.Series)
+    assert sample.index.equals(index)
+    assert np.allclose(sample, expected)
+
+
+def test_sample_from_distribution_using_ppf(index: pd.Index):
+    def silly_ppf(x, add, mult):
+        return mult * (x**2) + add
+
+    randomness_stream = RandomnessStream(
+        "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()
+    )
+    draws = randomness_stream.get_draw(index, "some_key")
+    expected = 2 * (draws**2) + 1
+
+    sample = randomness_stream.sample_from_distribution(
+        index=index, ppf=silly_ppf, additional_key="some_key", add=1, mult=2
+    )
+
+    assert isinstance(sample, pd.Series)
+    assert sample.index.equals(index)
+    assert np.allclose(sample, expected)
