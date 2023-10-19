@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -7,14 +9,13 @@ from vivarium.framework.lookup import LookupTable, validate_parameters
 from vivarium.testing_utilities import TestPopulation, build_table
 
 
-@pytest.mark.skip(reason="only order 0 interpolation with age bin edges currently supported")
+@pytest.mark.skip(reason="only order 0 interpolation currently supported")
 def test_interpolated_tables(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
     years = build_table(lambda age, sex, year: year, year_start, year_end)
     ages = build_table(lambda age, sex, year: age, year_start, year_end)
     one_d_age = ages.copy()
-    del one_d_age["year"]
     one_d_age = one_d_age.drop_duplicates()
     base_config.update(
         {"population": {"population_size": 10000}, "interpolation": {"order": 1}}
@@ -71,7 +72,7 @@ def test_interpolated_tables(base_config):
     assert np.allclose(result_ages_1d, pop.age)
 
 
-@pytest.mark.skip(reason="only order 0 interpolation with age bin edges currently supported")
+@pytest.mark.skip(reason="only order 0 interpolation currently supported")
 def test_interpolated_tables_without_uninterpolated_columns(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
@@ -128,6 +129,40 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
         simulation._clock._time = pd.Timestamp(year, 1, 1)
         assert np.allclose(
             years(simulation.get_population().index), simulation._clock.time.year + 1 / 365
+        )
+
+
+def test_interpolated_tables__only_categorical_parameters(base_config):
+    sexes = ["Female", "Male"]
+    locations = ["USA", "Canada", "Mexico"]
+    combinations = enumerate(itertools.product(sexes, locations))
+    input_data = [
+        {"sex": sex, "location": location, "some_value": i**2}
+        for i, (sex, location) in combinations
+    ]
+    input_data = pd.DataFrame(input_data)
+
+    base_config.update({"population": {"population_size": 10000}})
+
+    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
+    manager = simulation._tables
+    lookup_table = manager._build_table(
+        input_data,
+        key_columns=["sex", "location"],
+        parameter_columns=None,
+        value_columns=["some_value"],
+    )
+
+    population = simulation.get_population()[["sex", "location"]]
+    output_data = lookup_table(population.index)
+
+    for i, (sex, location) in combinations:
+        assert (
+            output_data.loc[
+                (output_data["sex"] == sex) & output_data["location"] == location,
+                "some_value",
+            ].all()
+            == i**2
         )
 
 
