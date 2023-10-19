@@ -14,7 +14,7 @@ from vivarium.manager import Manager
 class RandomnessManager(Manager):
     """Access point for common random number generation."""
 
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "randomness": {
             "map_size": 1_000_000,
             "key_columns": [],

@@ -119,8 +119,8 @@ class PopulationManager(Manager):
     """Manages the state of the simulated population."""
 
     # TODO: Move the configuration for initial population creation to
-    # user components.
-    configuration_defaults = {
+    #  user components.
+    CONFIGURATION_DEFAULTS = {
         "population": {
             "population_size": 100,
         },
