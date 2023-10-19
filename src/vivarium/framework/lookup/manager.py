@@ -109,9 +109,9 @@ class LookupTableInterface:
     def build_table(
         self,
         data: LookupTableData,
-        key_columns: Union[List[str], Tuple[str]] = None,
-        parameter_columns: Union[List[str], Tuple[str]] = None,
-        value_columns: Union[List[str], Tuple[str]] = None,
+        key_columns: Union[List[str], Tuple[str]] = (),
+        parameter_columns: Union[List[str], Tuple[str]] = (),
+        value_columns: Union[List[str], Tuple[str]] = (),
     ) -> LookupTable:
         """Construct a LookupTable from input data.
 

@@ -124,18 +124,14 @@ class CategoricalTable:
     Attributes
     ----------
     data
-        The data from which to build the interpolation.
+        The categorical data from which to select values.
     population_view
         View of the population to be used when the table is called with an
         index.
     key_columns
-        Column names to be used as categorical parameters in Interpolation
-        to select between interpolation functions.
+        Column names to be used as categorical parameters.
     value_columns
-        Names of value columns to be interpolated over. All non parameter- and
-        key- columns in data.
-    validate
-        Whether to validate the data and column names.
+        Names of value columns to be retrived. All non key-columns in data.
 
     Notes
     -----
@@ -148,15 +144,12 @@ class CategoricalTable:
         self,
         data: pd.DataFrame,
         population_view: PopulationView,
-        key_columns: Union[List[str], Tuple[str]],
-        value_columns: Union[List[str], Tuple[str]],
-        validate: bool,
+        key_columns: Union[List[str], Tuple[str]]
     ):
         self.data = data
         self.population_view = population_view
         self.key_columns = key_columns
-        self.value_columns = value_columns
-        self.validate = validate
+        self.value_columns = self.data.columns.difference(set(self.key_columns))
 
     def __call__(self, index: pd.Index) -> pd.DataFrame:
         """Get the mapped values for the rows in ``index``.
@@ -283,7 +276,6 @@ class LookupTable:
         validate: bool,
     ):
         self.table_number = table_number
-        key_columns = [] if key_columns is None else key_columns
 
         if validate:
             validate_parameters(data, key_columns, parameter_columns, value_columns)
@@ -291,12 +283,7 @@ class LookupTable:
         # Note datetime catches pandas timestamps
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
             self._table = ScalarTable(data, value_columns)
-        elif parameter_columns is None:
-            view_columns = list(key_columns) + ["tracked"]
-            self._table = CategoricalTable(
-                data, population_view(view_columns), key_columns, value_columns, validate
-            )
-        else:
+        elif parameter_columns:
             view_columns = sorted((set(key_columns) | set(parameter_columns)) - {"year"}) + [
                 "tracked"
             ]
@@ -311,6 +298,9 @@ class LookupTable:
                 extrapolate,
                 validate,
             )
+        else:
+            view_columns = list(key_columns) + ["tracked"]
+            self._table = CategoricalTable(data, population_view(view_columns), key_columns)
 
     @property
     def name(self) -> str:
@@ -345,7 +335,7 @@ class LookupTable:
 
 
 def validate_parameters(
-    data: pd.DataFrame,
+    data: LookupTableData,
     key_columns: Union[List[str], Tuple[str]],
     parameter_columns: Union[List[str], Tuple],
     value_columns: Union[List[str], Tuple[str]],
@@ -377,9 +367,8 @@ def validate_parameters(
 
     if isinstance(data, pd.DataFrame):
         all_parameter_columns = []
-        if parameter_columns is not None:
-            for p in parameter_columns:
-                all_parameter_columns += [p, f"{p}_start", f"{p}_end"]
+        for p in parameter_columns:
+            all_parameter_columns += [p, f"{p}_start", f"{p}_end"]
 
         if set(key_columns).intersection(set(all_parameter_columns)):
             raise ValueError(

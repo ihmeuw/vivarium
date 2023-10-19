@@ -147,10 +147,7 @@ def test_interpolated_tables__only_categorical_parameters(base_config):
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     lookup_table = manager._build_table(
-        input_data,
-        key_columns=["sex", "location"],
-        parameter_columns=None,
-        value_columns=["some_value"],
+        input_data, key_columns=["sex", "location"], parameter_columns=(), value_columns=()
     )
 
     population = simulation.get_population()[["sex", "location"]]
