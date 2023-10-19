@@ -12,9 +12,10 @@ For more information about time in the simulation, see the associated
 """
 from datetime import datetime, timedelta
 from numbers import Number
-from typing import Callable, Union
+from typing import Callable, Union, List
 
 import pandas as pd
+from vivarium.framework.engine import Builder
 
 from vivarium.manager import Manager
 
@@ -64,14 +65,18 @@ class MultiClock(Manager):
     """A clock that includes global clock and a pandas series of clocks for each simulant"""
     def __init__(self):
         self._clock_time = None
+        self._stop_time = None
         self._clock_step_size = None
         self._watch_times = None
         self._watch_step_sizes = None
-        self._stop_time = None
         
     @property
     def name(self):
         return "multi_clock"
+    
+    @property
+    def columns_created(self) -> List[str]:
+        return ["next_event_time", "step_size"]
 
     @property
     def clock_time(self) -> Time:
@@ -91,15 +96,21 @@ class MultiClock(Manager):
         assert self._clock_step_size is not None, "No step size provided"
         return self._clock_step_size
     
+    @property
     def watch_times(self) -> pd.Series:
         """The next time each simulant will be updated."""
         assert self._watch_times is not None, "No watch times provided"
         return self._watch_times
     
+    @property
     def watch_step_sizes(self) -> pd.Series:
         """The step size for each simulant."""
         assert self._watch_step_sizes is not None, "No watch step sizes provided"
         return self._watch_step_sizes
+    
+    def setup(self, builder: Builder):
+        builder.population.register_simulant_initializer(self.on_initialize_simulants, creates_columns=self.columns_created)
+        self.population_view = builder.population.get_view(columns=self.columns_created)
     
     def step_forward(self) -> None:
         """Advances the clock by the current step size."""
@@ -115,9 +126,19 @@ class MultiClock(Manager):
     
     def timely_pop(self):
         """Gets population that is aligned with global clock"""
-        watch_times = self.watch_times()
+        watch_times = self.watch_times
         return watch_times.index[watch_times == self.clock_time]
-
+    
+    def on_initialize_simulants(self, pop_data):
+        """Sets the next_event_time and step_size columns for each simulant"""
+        watches = pd.DataFrame(
+            {
+                "next_event_time": [self.clock_time] * len(pop_data.index),
+                "step_size": [self.clock_step_size] * len(pop_data.index),
+            },
+            index=pop_data.index,
+        )
+        self.population_view.update(watches)
         
         
 
@@ -194,11 +215,12 @@ class SimpleMultiClock(MultiClock):
         return "simple_multi_clock"
 
     def setup(self, builder):
+        super().setup(builder)
         self._clock_time = builder.configuration.time.start
         self._clock_stop_time = builder.configuration.time.end
         self._clock_step_size = builder.configuration.time.step_size
-        self._watch_times = pd.Series([self._clock_time]*len(builder.population))
-        self._watch_step_sizes = pd.Series([self._clock_step_size]*len(builder.population))
+        self._watch_times = self.population_view.get("next_event_time")
+        self._watch_step_sizes = self.population_view.get("step_size")
 
     def __repr__(self):
         return "SimpleMultiClock()"
@@ -218,3 +240,11 @@ class TimeInterface:
     def step_size(self) -> Callable[[], Timedelta]:
         """Gets a callable that returns the current simulation step size."""
         return lambda: self._manager.step_size
+    
+    def watch_times(self) -> Callable[[], pd.Series]:
+        """Gets a callable that returns the current simulation step size."""
+        return lambda: self._manager.watch_times
+    
+    def watch_step_sizes(self) -> Callable[[], pd.Series]:
+        """Gets a callable that returns the current simulation step size."""
+        return lambda: self._manager.watch_step_sizes
