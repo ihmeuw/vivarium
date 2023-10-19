@@ -1,3 +1,8 @@
+**2.2.0 - 10/19/23**
+
+ - Refactor lookup package
+ - Enable LookupTable to have source data that is only categorical
+
 **2.1.1 - 10/13/23**
 
  - Enable RandomnessStream to sample from a distribution
