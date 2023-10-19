@@ -144,7 +144,7 @@ class CategoricalTable:
         self,
         data: pd.DataFrame,
         population_view: PopulationView,
-        key_columns: Union[List[str], Tuple[str]]
+        key_columns: Union[List[str], Tuple[str]],
     ):
         self.data = data
         self.population_view = population_view
