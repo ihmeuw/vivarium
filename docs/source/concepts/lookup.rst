@@ -9,7 +9,7 @@ reasonable way to look at a simulation is to think of it as a task of
 getting the right data and the right random numbers in the appropriate
 place at the appropriate time.  To address the first concern,
 :mod:`vivarium` provides the
-:class:`Lookup Table <vivarium.framework.lookup.LookupTable>` abstraction
+:class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>` abstraction
 to ensure that the right data can be retrieved when it's needed. In
 particular, it attempts to wrap different strategies for constructing
 interpolations or distributions on data such that a user simply needs to
@@ -26,35 +26,35 @@ extended to compositions of of several data-based values by :mod:`vivarium`'s
 The Lookup Table
 ----------------
 
-A :class:`Lookup Table <vivarium.framework.lookup.LookupTable>`
+A :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`
 for a quantity is a callable object that is built from
 a scalar value or a :class:`pandas.DataFrame` of data points that describes
 how the quantity varies with other variable(s). It is called with a
 :class:`pandas.Index` as a function parameter which represents a simulated
 population as discussed in the :ref:`population concept <population_concept>`.
-When called, the :class:`Lookup Table <vivarium.framework.lookup.LookupTable>`
+When called, the :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`
 simply returns appropriate values of the quantity for the population it was
 passed, interpolating if necessary or extrapolating if configured to. This
 behavior represents the standard interface for asking for data about a
 population in a simulation.
 
 The lookup table system is built in layers. At the top is the
-:class:`Lookup Table <vivarium.framework.lookup.LookupTable>` object which
+:class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>` object which
 is responsible for providing a uniform interface to the user regardless
 of the underlying implementation. From the user's perspective, it takes in
 a data set or scalar value on initialization and then lets them query against
 that data with a population index.
 
 The next layer is selected at initialization time based on the type of data
-provided. The :class:`Lookup Table <vivarium.framework.lookup.LookupTable>`
-picks either a :class:`ScalarTable <vivarium.framework.lookup.ScalarTable>`
+provided. The :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`
+picks either a :class:`ScalarTable <vivarium.framework.lookup.table.ScalarTable>`
 if a single value is provided as the data or a
-:class:`InterpolatedTable <vivarium.framework.lookup.InterpolatedTable>` if
+:class:`InterpolatedTable <vivarium.framework.lookup.table.InterpolatedTable>` if
 a :class:`pandas.DataFrame` is provided as the data.
 
 .. note::
 
-   The :class:`InterpolatedTable <vivarium.framework.lookup.InterpolatedTable>`
+   The :class:`InterpolatedTable <vivarium.framework.lookup.table.InterpolatedTable>`
    is a misnomer here. It confuses the data handling strategy with the
    underlying data representation.  A better name would be ``BinnedDataTable``
    to indicate that it wraps data where the continuous parameters are
@@ -64,14 +64,14 @@ a :class:`pandas.DataFrame` is provided as the data.
    parameters are categorical.
 
 If the underlying data is a single value, this is the last layer of
-abstraction. The :class:`ScalarTable <vivarium.framework.lookup.ScalarTable>`
+abstraction. The :class:`ScalarTable <vivarium.framework.lookup.table.ScalarTable>`
 has only one reasonable strategy which is to broadcast the value over
 the population index.  If we have a :class:`pandas.DataFrame` and therefore an
-:class:`InterpolatedTable <vivarium.framework.lookup.InterpolatedTable>`,
+:class:`InterpolatedTable <vivarium.framework.lookup.table.InterpolatedTable>`,
 there are additional layers to the lookup system to allow the user to
 control the strategy for turning the population index into values based on
 the data.  The
-:class:`InterpolatedTable <vivarium.framework.lookup.InterpolatedTable>`
+:class:`InterpolatedTable <vivarium.framework.lookup.table.InterpolatedTable>`
 is then responsible for turning the population index into a set of
 attributes relevant to the value production based on the structure of
 the input data and then providing those attributes to the value production

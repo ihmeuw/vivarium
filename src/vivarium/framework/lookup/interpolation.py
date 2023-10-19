@@ -7,7 +7,6 @@ Provides interpolation algorithms across tabular data for ``vivarium``
 simulations.
 
 """
-import warnings
 from typing import List, Tuple, Union
 
 import numpy as np
