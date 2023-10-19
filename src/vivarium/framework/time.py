@@ -22,47 +22,8 @@ from vivarium.manager import Manager
 Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
 
-
 class SimulationClock(Manager):
-    """Defines a base implementation for a simulation clock."""
-
-    def __init__(self):
-        self._time = None
-        self._stop_time = None
-        self._step_size = None
-
-    @property
-    def name(self):
-        return "simulation_clock"
-
-    @property
-    def time(self) -> Time:
-        """The current simulation time."""
-        assert self._time is not None, "No start time provided"
-        return self._time
-
-    @property
-    def stop_time(self) -> Time:
-        """The time at which the simulation will stop."""
-        assert self._stop_time is not None, "No stop time provided"
-        return self._stop_time
-
-    @property
-    def step_size(self) -> Timedelta:
-        """The size of the next time step."""
-        assert self._step_size is not None, "No step size provided"
-        return self._step_size
-
-    def step_forward(self) -> None:
-        """Advances the clock by the current step size."""
-        self._time += self.step_size
-
-    def step_backward(self):
-        """Rewinds the clock by the current step size."""
-        self._time -= self.step_size
-
-class MultiClock(Manager):
-    """A clock that includes global clock and a pandas series of clocks for each simulant"""
+    """A base clock that includes global clock and a pandas series of clocks for each simulant"""
     def __init__(self):
         self._clock_time = None
         self._stop_time = None
@@ -139,8 +100,7 @@ class MultiClock(Manager):
             index=pop_data.index,
         )
         self.population_view.update(watches)
-        
-        
+
 
 class SimpleClock(SimulationClock):
     """A unitless step-count based simulation clock."""
@@ -158,9 +118,12 @@ class SimpleClock(SimulationClock):
         return "simple_clock"
 
     def setup(self, builder):
+        super.setup(builder)    
         self._time = builder.configuration.time.start
         self._stop_time = builder.configuration.time.end
         self._step_size = builder.configuration.time.step_size
+        self._watch_times = self.population_view.get("next_event_time")
+        self._watch_step_sizes = self.population_view.get("step_size")
 
     def __repr__(self):
         return "SimpleClock()"
@@ -190,44 +153,19 @@ class DateTimeClock(SimulationClock):
         return "datetime_clock"
 
     def setup(self, builder):
+        super().setup(builder)
         time = builder.configuration.time
         self._time = get_time_stamp(time.start)
         self._stop_time = get_time_stamp(time.end)
         self._step_size = pd.Timedelta(
             days=time.step_size // 1, hours=(time.step_size % 1) * 24
         )
-
-    def __repr__(self):
-        return "DateTimeClock()"
-
-class SimpleMultiClock(MultiClock):
-    """Multi-clock verson of SimpleClock"""
-    configuration_defaults = {
-        "time": {
-            "start": 0,
-            "end": 100,
-            "step_size": 1,
-        }
-    }
-
-    @property
-    def name(self):
-        return "simple_multi_clock"
-
-    def setup(self, builder):
-        super().setup(builder)
-        self._clock_time = builder.configuration.time.start
-        self._clock_stop_time = builder.configuration.time.end
-        self._clock_step_size = builder.configuration.time.step_size
         self._watch_times = self.population_view.get("next_event_time")
         self._watch_step_sizes = self.population_view.get("step_size")
 
     def __repr__(self):
-        return "SimpleMultiClock()"
-        
+        return "DateTimeClock()"        
     
-    
-
 
 class TimeInterface:
     def __init__(self, manager: SimulationClock):
