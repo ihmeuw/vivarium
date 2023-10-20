@@ -249,8 +249,6 @@ class ComponentManager(Manager):
         self._setup_components(builder, self._managers + self._components)
 
     def apply_configuration_defaults(self, component: Union[Component, Manager]) -> None:
-        if not hasattr(component, "configuration_defaults"):
-            return
         try:
             self.configuration.update(
                 component.configuration_defaults,
@@ -295,10 +293,16 @@ class ComponentManager(Manager):
             current = components.pop()
             if isinstance(current, (list, tuple)):
                 components.extend(current[::-1])
-            else:
-                if hasattr(current, "sub_components"):
-                    components.extend(current.sub_components[::-1])
+            elif isinstance(current, Component):
+                components.extend(current.sub_components[::-1])
                 out.append(current)
+            elif isinstance(current, Manager):
+                out.append(current)
+            else:
+                raise TypeError(
+                    "Expected Component, Manager, List, or Tuple. "
+                    f"Got {type(current)}: {current}"
+                )
         return out
 
     @staticmethod
@@ -306,8 +310,7 @@ class ComponentManager(Manager):
         for component in components:
             if isinstance(component, Component):
                 component.setup_component(builder)
-            # TODO: remove hasattr check as part of MIC-4487
-            elif isinstance(component, Manager) or hasattr(component, "setup"):
+            elif isinstance(component, Manager):
                 component.setup(builder)
 
     def __repr__(self):

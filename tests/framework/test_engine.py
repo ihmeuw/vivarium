@@ -51,14 +51,12 @@ def log(mocker):
     return mocker.patch("vivarium.framework.logging.manager.logger")
 
 
-@pytest.mark.xfail
 def test_simulation_with_non_components(SimulationContext, components: List[Component]):
     class NonComponent:
         def __init__(self):
             self.name = "non_component"
 
     with pytest.raises(ComponentConfigError):
-        # noinspection PyTypeChecker
         SimulationContext(components=components + [NonComponent()])
 
 
