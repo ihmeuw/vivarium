@@ -30,8 +30,7 @@ class SimulationClock(Manager):
         self._clock_time = None
         self._stop_time = None
         self._clock_step_size = None
-        self._watch_times = None
-        self._watch_step_sizes = None
+        self.population_view = None
         
     @property
     def name(self):
@@ -50,8 +49,8 @@ class SimulationClock(Manager):
     @property
     def stop_time(self) -> Time:
         """The time at which the simulation will stop."""
-        assert self._clock_stop_time is not None, "No stop time provided"
-        return self._clock_stop_time
+        assert self._stop_time is not None, "No stop time provided"
+        return self._stop_time
 
     @property
     def step_size(self) -> Timedelta:
@@ -59,17 +58,17 @@ class SimulationClock(Manager):
         assert self._clock_step_size is not None, "No step size provided"
         return self._clock_step_size
     
-    @property
+
     def watch_times(self, index: pd.Index) -> pd.Series:
         """The next time each simulant will be updated."""
-        assert self._watch_times is not None, "No watch times provided"
-        return self._watch_times
+        assert self.population_view is not None, "No watch times provided"
+        return self.population_view.subview(["next_event_time"]).get(index)
     
-    @property
+
     def watch_step_sizes(self, index: pd.Index) -> pd.Series:
         """The step size for each simulant."""
-        assert self._watch_step_sizes is not None, "No watch step sizes provided"
-        return self._watch_step_sizes
+        assert self.population_view is not None, "No watch step sizes provided"
+        return self.population_view.subview(["step_size"]).get(index)
     
     def setup(self, builder: "Builder"):
         builder.population.initializes_simulants(self.on_initialize_simulants, creates_columns=self.columns_created)

@@ -1,6 +1,7 @@
 from typing import List
 
 import pytest
+import numpy as np
 
 from vivarium import Component
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
@@ -118,11 +119,11 @@ def test_SimulationContext_init_default(SimulationContext, components):
     # Ordering matters.
     managers = [
         sim._logging,
-        sim._clock,
         sim._lifecycle,
         sim._resource,
         sim._values,
         sim._population,
+        sim._clock,
         sim._randomness,
         sim._events,
         sim._tables,
@@ -203,8 +204,11 @@ def test_SimulationContext_initialize_simulants(SimulationContext, base_config, 
     current_time = sim._clock.time
     assert sim._population.get_population(True).empty
     sim.initialize_simulants()
-    assert len(sim._population.get_population(True)) == pop_size
+    pop = sim._population.get_population(True)
+    assert len(pop) == pop_size
     assert sim._clock.time == current_time
+    assert np.all(sim._clock.watch_times(pop.index) == sim._clock.time + sim._clock.step_size)
+    assert np.all(sim._clock.watch_step_sizes(pop.index) == sim._clock.step_size)
 
 
 def test_SimulationContext_step(SimulationContext, log, base_config, components):
@@ -223,6 +227,7 @@ def test_SimulationContext_step(SimulationContext, log, base_config, components)
     assert not listener.collect_metrics_called
 
     sim.step()
+    pop = sim._population.get_population(True)
 
     assert log.debug.called_once_with(current_time)
     assert listener.time_step_prepare_called
@@ -231,6 +236,9 @@ def test_SimulationContext_step(SimulationContext, log, base_config, components)
     assert listener.collect_metrics_called
 
     assert sim._clock.time == current_time + step_size
+    #not quite right
+    assert np.all(sim._clock.watch_times(pop.index) == sim._clock.time + sim._clock.step_size)
+    assert np.all(sim._clock.watch_step_sizes(pop.index) == sim._clock.step_size)
 
 
 def test_SimulationContext_finalize(SimulationContext, base_config, components):
