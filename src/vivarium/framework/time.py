@@ -60,13 +60,13 @@ class SimulationClock(Manager):
         return self._clock_step_size
     
     @property
-    def watch_times(self) -> pd.Series:
+    def watch_times(self, index: pd.Index) -> pd.Series:
         """The next time each simulant will be updated."""
         assert self._watch_times is not None, "No watch times provided"
         return self._watch_times
     
     @property
-    def watch_step_sizes(self) -> pd.Series:
+    def watch_step_sizes(self, index: pd.Index) -> pd.Series:
         """The step size for each simulant."""
         assert self._watch_step_sizes is not None, "No watch step sizes provided"
         return self._watch_step_sizes
@@ -88,6 +88,11 @@ class SimulationClock(Manager):
         self.population_view.update(watches)
     
     
+    def step_backward(self) -> None:
+        """Rewinds the clock by the current step size."""
+        self._clock_time -= self.step_size
+    
+    
     def step_forward(self, index: pd.Index) -> None:
         """Advances the clock by the current step size."""
         self._clock_time += self.step_size
@@ -95,12 +100,6 @@ class SimulationClock(Manager):
         pop_to_update["next_event_time"] = self.time + pop_to_update["step_size"]
         self.population_view.update(pop_to_update)
         
-
-
-    def step_backward(self) -> None:
-        """Rewinds the clock by the current step size."""
-        self._clock_time -= self.step_size
-
     
     def timely_pop(self, index: pd.Index = None):
         """Gets population that is aligned with global clock"""
@@ -126,9 +125,9 @@ class SimpleClock(SimulationClock):
 
     def setup(self, builder):
         super.setup(builder)    
-        self._time = builder.configuration.time.start
+        self._clock_time = builder.configuration.time.start
         self._stop_time = builder.configuration.time.end
-        self._step_size = builder.configuration.time.step_size
+        self._clock_step_size = builder.configuration.time.step_size
 
     def __repr__(self):
         return "SimpleClock()"
@@ -183,10 +182,10 @@ class TimeInterface:
         """Gets a callable that returns the current simulation step size."""
         return lambda: self._manager.step_size
     
-    def watch_times(self) -> Callable[[], pd.Series]:
+    def watch_times(self) -> Callable[[pd.Index], pd.Series]:
         """Gets a callable that returns the current simulation step size."""
         return lambda: self._manager.watch_times
     
-    def watch_step_sizes(self) -> Callable[[], pd.Series]:
+    def watch_step_sizes(self) -> Callable[[pd.Index], pd.Series]:
         """Gets a callable that returns the current simulation step size."""
         return lambda: self._manager.watch_step_sizes

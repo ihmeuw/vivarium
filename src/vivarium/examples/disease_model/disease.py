@@ -69,6 +69,10 @@ class DiseaseState(State):
     ##############
     # Properties #
     ##############
+    
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return [self.model, "alive"]
 
     @property
     def population_view_query(self) -> Optional[str]:
