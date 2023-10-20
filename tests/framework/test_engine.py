@@ -236,8 +236,7 @@ def test_SimulationContext_step(SimulationContext, log, base_config, components)
     assert listener.collect_metrics_called
 
     assert sim._clock.time == current_time + step_size
-    #not quite right
-    assert np.all(sim._clock.watch_times(pop.index) == sim._clock.time + sim._clock.step_size)
+    assert np.all(sim._clock.watch_times(pop.index) - sim._clock.watch_step_sizes(pop.index) == sim._clock.time)
     assert np.all(sim._clock.watch_step_sizes(pop.index) == sim._clock.step_size)
 
 
