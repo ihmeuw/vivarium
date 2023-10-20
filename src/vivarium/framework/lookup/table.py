@@ -24,6 +24,94 @@ ScalarValue = Union[Number, timedelta, datetime]
 LookupTableData = Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]]
 
 
+class LookupTable:
+    """Wrapper for different strategies for looking up values for an index.
+
+    In :mod:`vivarium` simulations, the index is synonymous with the simulated
+    population.  The lookup system allows the user to provide different kinds
+    of data and strategies for using that data.  When the simulation is
+    running, then, components can lookup parameter values based solely on
+    the population index.
+
+    Notes
+    -----
+    These should not be created directly. Use the `lookup` method on the builder
+    during setup.
+
+    """
+
+    def __init__(
+        self,
+        table_number: int,
+        data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
+        population_view: Callable,
+        key_columns: Union[List[str], Tuple[str]],
+        parameter_columns: Union[List[str], Tuple],
+        value_columns: Union[List[str], Tuple[str]],
+        interpolation_order: int,
+        clock: Callable,
+        extrapolate: bool,
+        validate: bool,
+    ):
+        self.table_number = table_number
+
+        if validate:
+            validate_parameters(data, key_columns, parameter_columns, value_columns)
+
+        # Note datetime catches pandas timestamps
+        if isinstance(data, (Number, datetime, timedelta, list, tuple)):
+            self._table = ScalarTable(data, value_columns)
+        elif parameter_columns:
+            view_columns = sorted((set(key_columns) | set(parameter_columns)) - {"year"}) + [
+                "tracked"
+            ]
+            self._table = InterpolatedTable(
+                data,
+                population_view(view_columns),
+                key_columns,
+                parameter_columns,
+                value_columns,
+                interpolation_order,
+                clock,
+                extrapolate,
+                validate,
+            )
+        else:
+            view_columns = list(key_columns) + ["tracked"]
+            self._table = CategoricalTable(data, population_view(view_columns), key_columns)
+
+    @property
+    def name(self) -> str:
+        """Tables are generically named after the order they were created."""
+        return f"lookup_table_{self.table_number}"
+
+    def __call__(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
+        """Get the interpolated or scalar table values for the given index.
+
+        Parameters
+        ----------
+        index
+            Index for population view.
+
+        Returns
+        -------
+            pandas.Series if interpolated or scalar values for index are one
+            column, pandas.DataFrame if multiple columns
+
+        """
+        return self._call(index)
+
+    def _call(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
+        """Private method to allow LookupManager to add constraints."""
+        table_view = self._table(index)
+        if len(table_view.columns) == 1:
+            return table_view[table_view.columns[0]]
+        return table_view
+
+    def __repr__(self) -> str:
+        return "LookupTable()"
+
+
 class InterpolatedTable:
     """A callable that interpolates data according to a given strategy.
 
@@ -244,94 +332,6 @@ class ScalarTable:
 
     def __repr__(self) -> str:
         return "ScalarTable(value(s)={})".format(self.values)
-
-
-class LookupTable:
-    """Wrapper for different strategies for looking up values for an index.
-
-    In :mod:`vivarium` simulations, the index is synonymous with the simulated
-    population.  The lookup system allows the user to provide different kinds
-    of data and strategies for using that data.  When the simulation is
-    running, then, components can lookup parameter values based solely on
-    the population index.
-
-    Notes
-    -----
-    These should not be created directly. Use the `lookup` method on the builder
-    during setup.
-
-    """
-
-    def __init__(
-        self,
-        table_number: int,
-        data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
-        population_view: Callable,
-        key_columns: Union[List[str], Tuple[str]],
-        parameter_columns: Union[List[str], Tuple],
-        value_columns: Union[List[str], Tuple[str]],
-        interpolation_order: int,
-        clock: Callable,
-        extrapolate: bool,
-        validate: bool,
-    ):
-        self.table_number = table_number
-
-        if validate:
-            validate_parameters(data, key_columns, parameter_columns, value_columns)
-
-        # Note datetime catches pandas timestamps
-        if isinstance(data, (Number, datetime, timedelta, list, tuple)):
-            self._table = ScalarTable(data, value_columns)
-        elif parameter_columns:
-            view_columns = sorted((set(key_columns) | set(parameter_columns)) - {"year"}) + [
-                "tracked"
-            ]
-            self._table = InterpolatedTable(
-                data,
-                population_view(view_columns),
-                key_columns,
-                parameter_columns,
-                value_columns,
-                interpolation_order,
-                clock,
-                extrapolate,
-                validate,
-            )
-        else:
-            view_columns = list(key_columns) + ["tracked"]
-            self._table = CategoricalTable(data, population_view(view_columns), key_columns)
-
-    @property
-    def name(self) -> str:
-        """Tables are generically named after the order they were created."""
-        return f"lookup_table_{self.table_number}"
-
-    def __call__(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
-        """Get the interpolated or scalar table values for the given index.
-
-        Parameters
-        ----------
-        index
-            Index for population view.
-
-        Returns
-        -------
-            pandas.Series if interpolated or scalar values for index are one
-            column, pandas.DataFrame if multiple columns
-
-        """
-        return self._call(index)
-
-    def _call(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
-        """Private method to allow LookupManager to add constraints."""
-        table_view = self._table(index)
-        if len(table_view.columns) == 1:
-            return table_view[table_view.columns[0]]
-        return table_view
-
-    def __repr__(self) -> str:
-        return "LookupTable()"
 
 
 def validate_parameters(
