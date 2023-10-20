@@ -164,11 +164,11 @@ class SimulationContext:
         # no ordering.
         managers = [
             self._logging,
-            self._clock,
             self._lifecycle,
             self._resource,
             self._values,
             self._population,
+            self._clock,
             self._randomness,
             self._events,
             self._tables,
@@ -233,14 +233,14 @@ class SimulationContext:
         self._clock.step_backward()
         population_size = pop_params.population_size
         self.simulant_creator(population_size, {"sim_state": "setup"})
-        self._clock.step_forward()
+        self._clock.step_forward(self._population.get_population(True).index)
 
     def step(self) -> None:
         self._logger.debug(self._clock.time)
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
             self.time_step_emitters[event](self._population.get_population(True).index)
-        self._clock.step_forward()
+        self._clock.step_forward(self._population.get_population(True).index)
 
     def run(self) -> None:
         while self._clock.time < self._clock.stop_time:
