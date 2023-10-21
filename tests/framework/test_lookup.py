@@ -1,11 +1,12 @@
 import itertools
+from typing import Union
 
 import numpy as np
 import pandas as pd
 import pytest
 
 from vivarium import InteractiveContext
-from vivarium.framework.lookup import LookupTable, validate_parameters
+from vivarium.framework.lookup import LookupTable, validate_build_table_parameters
 from vivarium.testing_utilities import TestPopulation, build_table
 
 
@@ -217,20 +218,20 @@ def test_lookup_table_interpolated_return_types(base_config):
 )
 def test_validate_parameters_no_data(data):
     with pytest.raises(ValueError, match="supply some data"):
-        validate_parameters(data, [], [], [])
+        validate_build_table_parameters(data, [], [], [])
 
 
 @pytest.mark.parametrize(
     "key_cols, param_cols, val_cols, match",
     [
-        (None, None, None, "supply value_columns"),
-        (None, None, [], "supply value_columns"),
-        (None, None, ["a", "b"], "match the number of values"),
+        ((), (), (), "supply value_columns"),
+        ((), (), [], "supply value_columns"),
+        ((), (), ["a", "b"], "match the number of values"),
     ],
 )
 def test_validate_parameters_error_scalar_data(key_cols, param_cols, val_cols, match):
     with pytest.raises(ValueError, match=match):
-        validate_parameters([1, 2, 3], key_cols, param_cols, val_cols)
+        validate_build_table_parameters([1, 2, 3], key_cols, param_cols, val_cols)
 
 
 @pytest.mark.parametrize(
@@ -240,7 +241,7 @@ def test_validate_parameters_error_scalar_data(key_cols, param_cols, val_cols, m
 def test_validate_parameters_error_dataframe(key_cols, param_cols, val_cols, match):
     data = pd.DataFrame({"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]})
     with pytest.raises(ValueError, match=match):
-        validate_parameters(data, key_cols, param_cols, val_cols)
+        validate_build_table_parameters(data, key_cols, param_cols, val_cols)
 
 
 @pytest.mark.parametrize(
@@ -248,7 +249,7 @@ def test_validate_parameters_error_dataframe(key_cols, param_cols, val_cols, mat
 )
 def test_validate_parameters_fail_other_data(data):
     with pytest.raises(TypeError, match="only allowable types"):
-        validate_parameters(data, [], [], [])
+        validate_build_table_parameters(data, [], [], [])
 
 
 @pytest.mark.parametrize(
@@ -261,7 +262,7 @@ def test_validate_parameters_fail_other_data(data):
     ],
 )
 def test_validate_parameters_pass_scalar_data(key_cols, param_cols, val_cols):
-    validate_parameters([1, 2, 3], key_cols, param_cols, val_cols)
+    validate_build_table_parameters([1, 2, 3], key_cols, param_cols, val_cols)
 
 
 @pytest.mark.parametrize(
@@ -270,25 +271,35 @@ def test_validate_parameters_pass_scalar_data(key_cols, param_cols, val_cols):
 )
 def test_validate_parameters_pass_dataframe(key_cols, param_cols, val_cols):
     data = pd.DataFrame({"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]})
-    validate_parameters(data, key_cols, param_cols, val_cols)
+    validate_build_table_parameters(data, key_cols, param_cols, val_cols)
+
+
+class TestLookupTable(LookupTable):
+    def call(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
+        pass
 
 
 @pytest.mark.parametrize("validate", [True, False])
-def test_validate_option_invalid_data(validate):
+def test_validate_option_invalid_data(validate, base_config):
+    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
+    manager = simulation._tables
+    manager._validate = validate
     if validate:
         with pytest.raises(ValueError, match="supply some data"):
-            lookup = LookupTable(0, [], None, [], [], [], 0, None, True, validate)
+            manager._build_table([], [], [], [])
     else:
-        lookup = LookupTable(0, [], None, [], [], [], 0, None, True, validate)
+        manager._build_table([], [], [], [])
 
 
 @pytest.mark.parametrize("validate", [True, False])
-def test_validate_option_valid_data(validate):
+def test_validate_option_valid_data(validate, base_config):
     data = [1, 2, 3]
     key_cols = ["KEY"]
     param_cols = ["d"]
     val_cols = ["a", "b", "c"]
 
-    lookup = LookupTable(
-        0, data, None, key_cols, param_cols, val_cols, 0, None, True, validate
-    )
+    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
+    manager = simulation._tables
+    manager._validate = validate
+
+    manager._build_table(data, key_cols, param_cols, val_cols)

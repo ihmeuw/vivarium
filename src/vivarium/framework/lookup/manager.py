@@ -11,9 +11,19 @@ the individuals represented by that index. See the
 :ref:`lookup concept note <lookup_concept>` for more.
 
 """
+from datetime import datetime, timedelta
+from numbers import Number
 from typing import TYPE_CHECKING, List, Tuple, Union
 
-from vivarium.framework.lookup.table import LookupTable, LookupTableData
+import pandas as pd
+
+from vivarium.framework.lookup.table import (
+    CategoricalTable,
+    InterpolatedTable,
+    LookupTable,
+    LookupTableData,
+    ScalarTable,
+)
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
@@ -59,7 +69,7 @@ class LookupTableManager(Manager):
         """Construct a lookup table from input data."""
         table = self._build_table(data, key_columns, parameter_columns, value_columns)
         self._add_constraint(
-            table._call, restrict_during=["initialization", "setup", "post_setup"]
+            table.call, restrict_during=["initialization", "setup", "post_setup"]
         )
         return table
 
@@ -73,17 +83,31 @@ class LookupTableManager(Manager):
         # We don't want to require explicit names for tables, but giving them
         # generic names is useful for introspection.
         table_number = len(self.tables)
-        table = LookupTable(
-            table_number,
-            data,
-            self._pop_view_builder,
-            key_columns,
-            parameter_columns,
-            value_columns,
-            self._interpolation_order,
-            self.clock,
-            self._extrapolate,
-            self._validate,
+
+        if self._validate:
+            validate_build_table_parameters(
+                data, key_columns, parameter_columns, value_columns
+            )
+
+        # Note datetime catches pandas timestamps
+        if isinstance(data, (Number, datetime, timedelta, list, tuple)):
+            table_type = ScalarTable
+        elif parameter_columns:
+            table_type = InterpolatedTable
+        else:
+            table_type = CategoricalTable
+
+        table = table_type(
+            table_number=table_number,
+            data=data,
+            population_view_builder=self._pop_view_builder,
+            key_columns=key_columns,
+            parameter_columns=parameter_columns,
+            value_columns=value_columns,
+            interpolation_order=self._interpolation_order,
+            clock=self.clock,
+            extrapolate=self._extrapolate,
+            validate=self._validate,
         )
         self.tables[table_number] = table
         return table
@@ -150,3 +174,56 @@ class LookupTableInterface:
             LookupTable
         """
         return self._manager.build_table(data, key_columns, parameter_columns, value_columns)
+
+
+def validate_build_table_parameters(
+    data: LookupTableData,
+    key_columns: Union[List[str], Tuple[str]],
+    parameter_columns: Union[List[str], Tuple],
+    value_columns: Union[List[str], Tuple[str]],
+) -> None:
+    """Makes sure the data format agrees with the provided column layout."""
+    if (
+        data is None
+        or (isinstance(data, pd.DataFrame) and data.empty)
+        or (isinstance(data, (list, tuple)) and not data)
+    ):
+        raise ValueError("Must supply some data")
+
+    if not isinstance(data, (Number, datetime, timedelta, list, tuple, pd.DataFrame)):
+        raise TypeError(
+            f"The only allowable types for data are number, datetime, timedelta, "
+            f"list, tuple, or pandas.DataFrame. You passed {type(data)}."
+        )
+
+    if isinstance(data, (list, tuple)):
+        if not value_columns:
+            raise ValueError(
+                f"To invoke scalar view with multiple values, you must supply value_columns"
+            )
+        if len(value_columns) != len(data):
+            raise ValueError(
+                f"The number of value columns must match the number of values."
+                f"You supplied values: {data} and value_columns: {value_columns}"
+            )
+
+    if isinstance(data, pd.DataFrame):
+        all_parameter_columns = []
+        for p in parameter_columns:
+            all_parameter_columns += [p, f"{p}_start", f"{p}_end"]
+
+        if set(key_columns).intersection(set(all_parameter_columns)):
+            raise ValueError(
+                f"There should be no overlap between key columns: {key_columns} "
+                f"and parameter columns: {parameter_columns}."
+            )
+
+        if value_columns:
+            data_value_columns = data.columns.difference(
+                set(key_columns) | set(all_parameter_columns)
+            )
+            if set(value_columns) != set(data_value_columns):
+                raise ValueError(
+                    f"The value columns you supplied: {value_columns} do not match "
+                    f"the non-parameter columns in the passed data: {data_value_columns}"
+                )
