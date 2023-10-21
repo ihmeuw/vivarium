@@ -1,6 +1,7 @@
 **2.2.0 - 10/19/23**
 
- - Refactor lookup package and Manager configuration defaults
+ - Refactor Manager configuration defaults
+ - Refactor and simplify LookupTable implementations
  - Enable LookupTable to have source data that is only categorical
 
 **2.1.1 - 10/13/23**
