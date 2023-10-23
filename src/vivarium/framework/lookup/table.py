@@ -46,22 +46,22 @@ class LookupTable(ABC):
     """Unique identifier of the table."""
     data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]]
     """The data from which to build the interpolation."""
-    population_view_builder: Callable
+    population_view_builder: Callable = None
     """Callable to get a population view to be used by the lookup table."""
-    key_columns: Union[List[str], Tuple[str]]
+    key_columns: Union[List[str], Tuple[str]] = ()
     """Column names to be used as categorical parameters in Interpolation
     to select between interpolation functions."""
-    parameter_columns: Union[List[str], Tuple]
+    parameter_columns: Union[List[str], Tuple] = ()
     """Column names to be used as continuous parameters in Interpolation."""
-    value_columns: Union[List[str], Tuple[str]]
+    value_columns: Union[List[str], Tuple[str]] = ()
     """Names of value columns to be interpolated over."""
-    interpolation_order: int
+    interpolation_order: int = 0
     """Order of interpolation. Used to decide interpolation strategy."""
-    clock: Callable
+    clock: Callable = None
     """Callable for current time in simulation."""
-    extrapolate: bool
+    extrapolate: bool = True
     """Whether to extrapolate beyond edges of given bins."""
-    validate: bool
+    validate: bool = True
     """Whether to validate the data before building the LookupTable."""
 
     @property
@@ -118,16 +118,16 @@ class InterpolatedTable(LookupTable):
         validate: bool,
     ):
         super().__init__(
-            table_number,
-            data,
-            population_view_builder,
-            key_columns,
-            parameter_columns,
-            value_columns,
-            interpolation_order,
-            clock,
-            extrapolate,
-            validate,
+            table_number=table_number,
+            data=data,
+            population_view_builder=population_view_builder,
+            key_columns=key_columns,
+            parameter_columns=parameter_columns,
+            value_columns=value_columns,
+            interpolation_order=interpolation_order,
+            clock=clock,
+            extrapolate=extrapolate,
+            validate=validate,
         )
         param_cols_with_edges = []
         for p in parameter_columns:
@@ -137,11 +137,24 @@ class InterpolatedTable(LookupTable):
         ]
 
         self.parameter_columns_with_edges = param_cols_with_edges
+
+        extra_columns = self.data.columns.difference(
+            set(self.key_columns)
+            | set([col for p in self.parameter_columns_with_edges for col in p])
+            | set(self.value_columns)
+        )
+
+        if not self.value_columns:
+            self.value_columns = list(extra_columns)
+        else:
+            self.data = self.data.drop(columns=extra_columns)
+
         self.population_view = population_view_builder(view_columns)
         self.interpolation = Interpolation(
             data,
             self.key_columns,
             self.parameter_columns_with_edges,
+            self.value_columns,
             order=self.interpolation_order,
             extrapolate=self.extrapolate,
             validate=self.validate,
@@ -193,11 +206,27 @@ class CategoricalTable(LookupTable):
         data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
         population_view_builder: Callable,
         key_columns: Union[List[str], Tuple[str]],
+        value_columns: Union[List[str], Tuple[str]],
         **kwargs,
     ):
-        super().__init__(table_number, data, population_view_builder, key_columns, **kwargs)
+        super().__init__(
+            table_number=table_number,
+            data=data,
+            population_view_builder=population_view_builder,
+            key_columns=key_columns,
+            value_columns=value_columns,
+            **kwargs,
+        )
         self.population_view = population_view_builder(self.key_columns + ["tracked"])
-        self.value_columns = self.data.columns.difference(set(self.key_columns))
+
+        extra_columns = self.data.columns.difference(
+            set(self.key_columns) | set(self.value_columns)
+        )
+
+        if not self.value_columns:
+            self.value_columns = list(extra_columns)
+        else:
+            self.data = self.data.drop(columns=extra_columns)
 
     def call(self, index: pd.Index) -> pd.DataFrame:
         """Get the mapped values for the rows in ``index``.

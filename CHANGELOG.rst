@@ -3,6 +3,7 @@
  - Refactor Manager configuration defaults
  - Refactor and simplify LookupTable implementations
  - Enable LookupTable to have source data that is only categorical
+ - Enable LookupTables with DataFrame source data to specify value columns
 
 **2.1.1 - 10/13/23**
 

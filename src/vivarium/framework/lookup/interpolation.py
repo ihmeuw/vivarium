@@ -37,8 +37,9 @@ class Interpolation:
     def __init__(
         self,
         data: pd.DataFrame,
-        categorical_parameters: Union[List[str], Tuple[str]],
+        categorical_parameters: Union[List[str], Tuple[str, ...]],
         continuous_parameters: ParameterType,
+        value_columns: Union[List[str], Tuple[str, ...]],
         order: int,
         extrapolate: bool,
         validate: bool,
@@ -50,26 +51,24 @@ class Interpolation:
             )
 
         if validate:
-            validate_parameters(data, categorical_parameters, continuous_parameters)
+            validate_parameters(
+                data, categorical_parameters, continuous_parameters, value_columns
+            )
 
-        self.key_columns = categorical_parameters
+        self.categorical_parameters = categorical_parameters
         self.data = data.copy()
-        self.parameter_columns = continuous_parameters
-
-        self.value_columns = self.data.columns.difference(
-            set(self.key_columns) | set([col for p in self.parameter_columns for col in p])
-        )
-
+        self.continuous_parameters = continuous_parameters
+        self.value_columns = value_columns
         self.order = order
         self.extrapolate = extrapolate
         self.validate = validate
 
-        if self.key_columns:
+        if self.categorical_parameters:
             # Since there are key_columns we need to group the table by those
             # columns to get the sub-tables to fit
-            sub_tables = self.data.groupby(list(self.key_columns))
+            sub_tables = self.data.groupby(list(self.categorical_parameters))
         else:
-            # There are no key columns so we will fit the whole table
+            # There are no key columns, so we will fit the whole table
             sub_tables = {None: self.data}.items()
 
         self.interpolations = {}
@@ -83,7 +82,7 @@ class Interpolation:
             # since order 0, we can interpolate all values at once
             self.interpolations[key] = Order0Interp(
                 base_table,
-                self.parameter_columns,
+                self.continuous_parameters,
                 self.value_columns,
                 self.extrapolate,
                 self.validate,
@@ -104,10 +103,12 @@ class Interpolation:
         """
 
         if self.validate:
-            validate_call_data(interpolants, self.key_columns, self.parameter_columns)
+            validate_call_data(
+                interpolants, self.categorical_parameters, self.continuous_parameters
+            )
 
-        if self.key_columns:
-            sub_tables = interpolants.groupby(list(self.key_columns))
+        if self.categorical_parameters:
+            sub_tables = interpolants.groupby(list(self.categorical_parameters))
         else:
             sub_tables = [(None, interpolants)]
         # specify some numeric type for columns, so they won't be objects but
@@ -130,7 +131,7 @@ class Interpolation:
         return "Interpolation()"
 
 
-def validate_parameters(data, categorical_parameters, continuous_parameters):
+def validate_parameters(data, categorical_parameters, continuous_parameters, value_columns):
     if data.empty:
         raise ValueError("You must supply non-empty data to create the interpolation.")
 
@@ -150,15 +151,10 @@ def validate_parameters(data, categorical_parameters, continuous_parameters):
 
     # break out the individual columns from binned column name lists
     param_cols = [col for p in continuous_parameters for col in p]
-
-    # These are the columns which the interpolation function will approximate
-    value_columns = sorted(
-        data.columns.difference(set(categorical_parameters) | set(param_cols))
-    )
     if not value_columns:
         raise ValueError(
             f"No non-parameter data. Available columns: {data.columns}, "
-            f"Parameter columns: {set(categorical_parameters)|set(continuous_parameters)}"
+            f"Parameter columns: {set(categorical_parameters) | set(continuous_parameters)}"
         )
     return value_columns
 
