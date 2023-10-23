@@ -64,11 +64,11 @@ class Interpolation:
         self.validate = validate
 
         if self.categorical_parameters:
-            # Since there are key_columns we need to group the table by those
-            # columns to get the sub-tables to fit
+            # Since there are categorical_parameters we need to group the table
+            # by those columns to get the sub-tables to fit
             sub_tables = self.data.groupby(list(self.categorical_parameters))
         else:
-            # There are no key columns, so we will fit the whole table
+            # There are no categorical parameters, so we will fit the whole table
             sub_tables = {None: self.data}.items()
 
         self.interpolations = {}
@@ -77,7 +77,7 @@ class Interpolation:
         for key, base_table in sub_tables:
             if (
                 base_table.empty
-            ):  # if one of the key columns is a category and not all values are present in data
+            ):  # if one of the categorical parameters is a category and not all values are present in data
                 continue
             # since order 0, we can interpolate all values at once
             self.interpolations[key] = Order0Interp(
@@ -159,32 +159,34 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, val
     return value_columns
 
 
-def validate_call_data(data, key_columns, parameter_columns):
+def validate_call_data(data, categorical_parameters, continuous_parameters):
     if not isinstance(data, pd.DataFrame):
         raise TypeError(
             f"Interpolations can only be called on pandas.DataFrames. You"
             f"passed {type(data)}."
         )
-    callable_param_cols = [p[0] for p in parameter_columns]
+    callable_param_cols = [p[0] for p in continuous_parameters]
 
     if not set(callable_param_cols) <= set(data.columns.values.tolist()):
         raise ValueError(
-            f"The continuous parameter columns with which you built the Interpolation must all "
+            f"The continuous continuous parameters with which you built the Interpolation must all "
             f"be present in the data you call it on. The Interpolation has key "
             f"columns: {callable_param_cols} and your data has columns: "
             f"{data.columns.values.tolist()}"
         )
 
-    if key_columns and not set(key_columns) <= set(data.columns.values.tolist()):
+    if categorical_parameters and not set(categorical_parameters) <= set(
+        data.columns.values.tolist()
+    ):
         raise ValueError(
             f"The key (categorical) columns with which you built the Interpolation must all"
             f"be present in the data you call it on. The Interpolation has key"
-            f"columns: {key_columns} and your data has columns: "
+            f"columns: {categorical_parameters} and your data has columns: "
             f"{data.columns.values.tolist()}"
         )
 
 
-def check_data_complete(data, parameter_columns):
+def check_data_complete(data, continuous_parameters):
     """For any parameters specified with edges, make sure edges
     don't overlap and don't have any gaps. Assumes that edges are
     specified with ends and starts overlapping (but one exclusive and
@@ -202,7 +204,7 @@ def check_data_complete(data, parameter_columns):
     """
 
     param_edges = [
-        p[1:] for p in parameter_columns if isinstance(p, (Tuple, List))
+        p[1:] for p in continuous_parameters if isinstance(p, (Tuple, List))
     ]  # strip out call column name
 
     # check no overlaps/gaps
@@ -224,7 +226,7 @@ def check_data_complete(data, parameter_columns):
 
             if len(set(start)) < n_p_total:
                 raise ValueError(
-                    f"You must provide a value for every combination of {parameter_columns}."
+                    f"You must provide a value for every combination of {continuous_parameters}."
                 )
 
             if len(start) <= 1:
@@ -239,7 +241,7 @@ def check_data_complete(data, parameter_columns):
                     )
                 if e < s:
                     raise NotImplementedError(
-                        f"Interpolation only supported for parameter columns "
+                        f"Interpolation only supported for continuous parameters "
                         f"with continuous bins. Parameter {p} contains "
                         f"non-continuous bins."
                     )
@@ -253,14 +255,14 @@ class Order0Interp:
     data :
         The data from which to build the interpolation. Contains
         categorical_parameters and continuous_parameters.
-    parameter_columns :
+    continuous_parameters :
         Column names to be used as parameters in Interpolation.
     """
 
     def __init__(
         self,
         data,
-        parameter_columns: ParameterType,
+        continuous_parameters: ParameterType,
         value_columns: List[str],
         extrapolate: bool,
         validate: bool,
@@ -271,7 +273,7 @@ class Order0Interp:
         ----------
         data :
             Data frame used to build interpolation.
-        parameter_columns :
+        continuous_parameters :
             Parameter columns. Should be of form (column name used in call,
             column name for left bin edge, column name for right bin edge)
             or column name. Assumes left bin edges are inclusive and
@@ -281,7 +283,7 @@ class Order0Interp:
 
         """
         if validate:
-            check_data_complete(data, parameter_columns)
+            check_data_complete(data, continuous_parameters)
 
         self.data = data.copy()
         self.value_columns = value_columns
@@ -291,7 +293,7 @@ class Order0Interp:
         #               [ordered left edges of bins], max right edge (used when extrapolation not allowed)
         self.parameter_bins = {}
 
-        for p in parameter_columns:
+        for p in continuous_parameters:
             left_edge = self.data[p[1]].drop_duplicates().sort_values()
             max_right = self.data[p[2]].drop_duplicates().max()
 
