@@ -52,16 +52,16 @@ def test_unequal_steps(SimulationContext, base_config, components):
     sim._population._population.step_size[0] *= 2
     sim.step()
     assert (
-        len(sim._clock.aligned_pop(sim._population.get_population(True).index))
+        len(sim._clock.aligned_pop(sim._population.get_population(True).index, sim._clock.time + sim._clock.step_size))
         == pop_size - 1
     )
 
     # Now check that everybody does
     sim.step()
-    assert len(sim._clock.aligned_pop(sim._population.get_population(True).index)) == pop_size
+    assert len(sim._clock.aligned_pop(sim._population.get_population(True).index, sim._clock.time + sim._clock.step_size)) == pop_size
     # Revert change to 0
     sim._population._population.step_size[0] /= 2
     # Still step forward even with a non-integer step size
     sim._population._population.step_size[7] /= 2
     sim.step()
-    assert len(sim._clock.aligned_pop(sim._population.get_population(True).index)) == pop_size
+    assert len(sim._clock.aligned_pop(sim._population.get_population(True).index, sim._clock.time + sim._clock.step_size)) == pop_size
