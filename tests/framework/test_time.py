@@ -1,9 +1,9 @@
 import pytest
-import numpy as np
 
 from vivarium.framework.engine import SimulationContext as SimulationContext_
-from vivarium.framework.time import DateTimeClock, TimeInterface
+
 from .components.mocks import Listener, MockComponentA, MockComponentB
+
 
 @pytest.fixture()
 def SimulationContext():
@@ -20,7 +20,6 @@ def components():
     ]
 
 
-
 def test_align_times(SimulationContext, base_config, components):
     sim = SimulationContext(base_config, components)
     sim.setup()
@@ -33,15 +32,15 @@ def test_align_times(SimulationContext, base_config, components):
     # After one step (and no step adjustments, simulants should still be aligned)
     assert len(sim._clock.aligned_pop(sim._population.get_population(True).index)) == pop_size
     sim._population._population.step_size *= 2
-    
+
     sim.step()
     # No simulants should be aligned after a step size adjustment
     assert sim._clock.aligned_pop(sim._population.get_population(True).index).empty
-    
+
     sim.step()
     # Now they should be aligned again
     assert len(sim._clock.aligned_pop(sim._population.get_population(True).index)) == pop_size
-    
+
 
 def test_unequal_steps(SimulationContext, base_config, components):
     sim = SimulationContext(base_config, components)
@@ -52,7 +51,10 @@ def test_unequal_steps(SimulationContext, base_config, components):
     # Check that the 0th simulant doesn't step forward
     sim._population._population.step_size[0] *= 2
     sim.step()
-    assert len(sim._clock.aligned_pop(sim._population.get_population(True).index)) == pop_size - 1
+    assert (
+        len(sim._clock.aligned_pop(sim._population.get_population(True).index))
+        == pop_size - 1
+    )
 
     # Now check that everybody does
     sim.step()
@@ -63,8 +65,3 @@ def test_unequal_steps(SimulationContext, base_config, components):
     sim._population._population.step_size[7] /= 2
     sim.step()
     assert len(sim._clock.aligned_pop(sim._population.get_population(True).index)) == pop_size
-    
-    
-    
-    
-    

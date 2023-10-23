@@ -1,7 +1,7 @@
 from typing import List
 
-import pytest
 import numpy as np
+import pytest
 
 from vivarium import Component
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
@@ -207,7 +207,7 @@ def test_SimulationContext_initialize_simulants(SimulationContext, base_config, 
     pop = sim._population.get_population(True)
     assert len(pop) == pop_size
     assert sim._clock.time == current_time
-    
+
     assert np.all(sim._clock.simulant_next_event_times(pop.index) == sim._clock.time)
     assert np.all(sim._clock.simulant_step_sizes(pop.index) == sim._clock.step_size)
 
