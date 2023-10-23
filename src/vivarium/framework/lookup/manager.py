@@ -62,9 +62,9 @@ class LookupTableManager(Manager):
     def build_table(
         self,
         data: LookupTableData,
-        key_columns: Union[List[str], Tuple[str]],
-        parameter_columns: Union[List[str], Tuple[str]],
-        value_columns: Union[List[str], Tuple[str]],
+        key_columns: Union[List[str], Tuple[str, ...]],
+        parameter_columns: Union[List[str], Tuple[str, ...]],
+        value_columns: Union[List[str], Tuple[str, ...]],
     ) -> LookupTable:
         """Construct a lookup table from input data."""
         table = self._build_table(data, key_columns, parameter_columns, value_columns)
@@ -76,9 +76,9 @@ class LookupTableManager(Manager):
     def _build_table(
         self,
         data: LookupTableData,
-        key_columns: Union[List[str], Tuple[str]],
-        parameter_columns: Union[List[str], Tuple[str]],
-        value_columns: Union[List[str], Tuple[str]],
+        key_columns: Union[List[str], Tuple[str, ...]],
+        parameter_columns: Union[List[str], Tuple[str, ...]],
+        value_columns: Union[List[str], Tuple[str, ...]],
     ) -> LookupTable:
         # We don't want to require explicit names for tables, but giving them
         # generic names is useful for introspection.
@@ -133,9 +133,9 @@ class LookupTableInterface:
     def build_table(
         self,
         data: LookupTableData,
-        key_columns: Union[List[str], Tuple[str]] = (),
-        parameter_columns: Union[List[str], Tuple[str]] = (),
-        value_columns: Union[List[str], Tuple[str]] = (),
+        key_columns: Union[List[str], Tuple[str, ...]] = (),
+        parameter_columns: Union[List[str], Tuple[str, ...]] = (),
+        value_columns: Union[List[str], Tuple[str, ...]] = (),
     ) -> LookupTable:
         """Construct a LookupTable from input data.
 
@@ -178,9 +178,9 @@ class LookupTableInterface:
 
 def validate_build_table_parameters(
     data: LookupTableData,
-    key_columns: Union[List[str], Tuple[str]],
-    parameter_columns: Union[List[str], Tuple],
-    value_columns: Union[List[str], Tuple[str]],
+    key_columns: Union[List[str], Tuple[str, ...]],
+    parameter_columns: Union[List[str], Tuple[str, ...]],
+    value_columns: Union[List[str], Tuple[str, ...]],
 ) -> None:
     """Makes sure the data format agrees with the provided column layout."""
     if (
@@ -200,31 +200,50 @@ def validate_build_table_parameters(
     if isinstance(data, (list, tuple)):
         if not value_columns:
             raise ValueError(
-                f"To invoke scalar view with multiple values, you must supply value_columns"
+                "To invoke scalar view with multiple values, you must supply value_columns"
             )
         if len(value_columns) != len(data):
             raise ValueError(
-                f"The number of value columns must match the number of values."
+                "The number of value columns must match the number of values."
                 f"You supplied values: {data} and value_columns: {value_columns}"
+            )
+        if key_columns:
+            raise ValueError(
+                f"key_columns are not allowed for scalar view: Provided {key_columns}."
+            )
+        if parameter_columns:
+            raise ValueError(
+                "parameter_columns are not allowed for scalar view: "
+                f"Provided {parameter_columns}."
             )
 
     if isinstance(data, pd.DataFrame):
-        all_parameter_columns = []
-        for p in parameter_columns:
-            all_parameter_columns += [p, f"{p}_start", f"{p}_end"]
+        if not key_columns and not parameter_columns:
+            raise ValueError(
+                "Must supply either key_columns or parameter_columns with a DataFrame."
+            )
 
-        if set(key_columns).intersection(set(all_parameter_columns)):
+        bin_edge_columns = []
+        for p in parameter_columns:
+            bin_edge_columns.extend([f"{p}_start", f"{p}_end"])
+        all_parameter_columns = set(parameter_columns) | set(bin_edge_columns)
+
+        if set(key_columns).intersection(all_parameter_columns):
             raise ValueError(
                 f"There should be no overlap between key columns: {key_columns} "
                 f"and parameter columns: {parameter_columns}."
             )
 
-        if value_columns:
-            data_value_columns = data.columns.difference(
-                set(key_columns) | set(all_parameter_columns)
+        lookup_columns = set(key_columns) | all_parameter_columns
+        if set(value_columns).intersection(lookup_columns):
+            raise ValueError(
+                f"There should be no overlap between value columns: {value_columns} "
+                f"and key or parameter columns: {lookup_columns}."
             )
-            if set(value_columns) != set(data_value_columns):
-                raise ValueError(
-                    f"The value columns you supplied: {value_columns} do not match "
-                    f"the non-parameter columns in the passed data: {data_value_columns}"
-                )
+
+        specified_columns = set(key_columns) | set(bin_edge_columns) | set(value_columns)
+        if specified_columns.difference(data.columns):
+            raise ValueError(
+                f"The columns supplied: {specified_columns} must all be "
+                f"present in the passed data: {data.columns}"
+            )
