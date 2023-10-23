@@ -120,7 +120,7 @@ class SimpleClock(SimulationClock):
         return "simple_clock"
 
     def setup(self, builder):
-        super.setup(builder)
+        super().setup(builder)
         self._clock_time = builder.configuration.time.start
         self._stop_time = builder.configuration.time.end
         self._clock_step_size = builder.configuration.time.step_size
