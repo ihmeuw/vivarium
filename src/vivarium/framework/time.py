@@ -45,29 +45,34 @@ class SimulationClock(Manager):
     @property
     def time(self) -> Time:
         """The current simulation time."""
-        assert self._clock_time is not None, "No start time provided"
+        if not self._clock_time:
+            raise ValueError("No start time provided")
         return self._clock_time
 
     @property
     def stop_time(self) -> Time:
         """The time at which the simulation will stop."""
-        assert self._stop_time is not None, "No stop time provided"
+        if not self._stop_time:
+            raise ValueError("No stop time provided")
         return self._stop_time
 
     @property
     def step_size(self) -> Timedelta:
         """The size of the next time step."""
-        assert self._clock_step_size is not None, "No step size provided"
+        if not self._clock_step_size:
+            raise ValueError("No step size provided")
         return self._clock_step_size
 
-    def simulant_next_event_times(self, index: pd.Index) -> pd.Series:
+    def simulant_last_event_times(self, index: pd.Index) -> pd.Series:
         """The next time each simulant will be updated."""
-        assert self.population_view is not None, "No population view available"
-        return self.population_view.subview(["next_event_time"]).get(index)
+        if not self.population_view:
+            raise ValueError("No population view defined")
+        return self.population_view.subview(["last_event_time"]).get(index)
 
     def simulant_step_sizes(self, index: pd.Index) -> pd.Series:
         """The step size for each simulant."""
-        assert self.population_view is not None, "No population view available"
+        if not self.population_view: 
+            raise ValueError("No population view defined")
         return self.population_view.subview(["step_size"]).get(index)
 
     def setup(self, builder: "Builder"):
