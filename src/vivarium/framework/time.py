@@ -59,15 +59,15 @@ class SimulationClock(Manager):
         return self._clock_step_size
     
 
-    def watch_times(self, index: pd.Index) -> pd.Series:
+    def simulant_next_event_times(self, index: pd.Index) -> pd.Series:
         """The next time each simulant will be updated."""
-        assert self.population_view is not None, "No watch times provided"
+        assert self.population_view is not None, "No population view available"
         return self.population_view.subview(["next_event_time"]).get(index)
     
 
-    def watch_step_sizes(self, index: pd.Index) -> pd.Series:
+    def simulant_step_sizes(self, index: pd.Index) -> pd.Series:
         """The step size for each simulant."""
-        assert self.population_view is not None, "No watch step sizes provided"
+        assert self.population_view is not None, "No population view available"
         return self.population_view.subview(["step_size"]).get(index)
     
     def setup(self, builder: "Builder"):
@@ -93,17 +93,17 @@ class SimulationClock(Manager):
     
     
     def step_forward(self, index: pd.Index) -> None:
-        """Advances the clock by the current step size."""
-        self._clock_time += self.step_size
-        pop_to_update = self.timely_pop(index)
+        """Advances the clock by the current step size, and updates aligned simulant clocks."""
+        pop_to_update = self.aligned_pop(index)
         pop_to_update["next_event_time"] = self.time + pop_to_update["step_size"]
         self.population_view.update(pop_to_update)
+        self._clock_time += self.step_size
         
     
-    def timely_pop(self, index: pd.Index = None):
+    def aligned_pop(self, index: pd.Index = None):
         """Gets population that is aligned with global clock"""
-        watches = self.population_view.get(index)
-        return watches[watches.next_event_time <= self.time]
+        pop = self.population_view.get(index)
+        return pop[pop.next_event_time <= self.time]
     
 
 
@@ -183,8 +183,8 @@ class TimeInterface:
     
     def watch_times(self) -> Callable[[pd.Index], pd.Series]:
         """Gets a callable that returns the current simulation step size."""
-        return lambda: self._manager.watch_times
+        return lambda: self._manager.simulant_next_event_times
     
     def watch_step_sizes(self) -> Callable[[pd.Index], pd.Series]:
         """Gets a callable that returns the current simulation step size."""
-        return lambda: self._manager.watch_step_sizes
+        return lambda: self._manager.simulant_step_sizes
