@@ -1,6 +1,7 @@
 **2.2.0 - 10/19/23**
 
- - Refactor Manager configuration defaults
+ - Refactor lookup package and Manager configuration defaults
+ - Enable LookupTable to have source data that is only categorical
  - Throw an error if simulation attempts to use a component that is not an instance of Component
 
 **2.1.1 - 10/13/23**

@@ -22,7 +22,7 @@ class Interpolation:
     ----------
     data :
         The data from which to build the interpolation. Contains
-        cateogrical_parameters and continuous_parameters.
+        categorical_parameters and continuous_parameters.
     categorical_parameters :
         Column names to be used as categorical parameters in Interpolation
         to select between interpolation functions.
@@ -110,8 +110,8 @@ class Interpolation:
             sub_tables = interpolants.groupby(list(self.key_columns))
         else:
             sub_tables = [(None, interpolants)]
-        # specify some numeric type for columns so they won't be objects but will updated with whatever
-        # column type actually is
+        # specify some numeric type for columns, so they won't be objects but
+        # will be updated with whatever column type it actually is
         result = pd.DataFrame(
             index=interpolants.index, columns=self.value_columns, dtype=np.float64
         )
