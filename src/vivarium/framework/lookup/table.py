@@ -70,7 +70,7 @@ class LookupTable(ABC):
         return f"lookup_table_{self.table_number}"
 
     def __call__(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
-        """Get the interpolated or scalar table values for the given index.
+        """Get the mapped values for the given index.
 
         Parameters
         ----------
@@ -79,8 +79,8 @@ class LookupTable(ABC):
 
         Returns
         -------
-            pandas.Series if interpolated or scalar values for index are one
-            column, pandas.DataFrame if multiple columns
+            pandas.Series if only one value_column, pandas.DataFrame if multiple
+            columns
 
         """
         return self.call(index).squeeze(axis=1)
@@ -275,7 +275,6 @@ class ScalarTable(LookupTable):
     -----
     These should not be created directly. Use the `lookup` interface on the
     builder during setup.
-
     """
 
     def call(self, index: pd.Index) -> pd.DataFrame:
