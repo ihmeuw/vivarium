@@ -80,7 +80,7 @@ class SimulationClock(Manager):
         """Sets the next_event_time and step_size columns for each simulant"""
         watches = pd.DataFrame(
             {
-                "next_event_time": [self.time] * len(pop_data.index),
+                "next_event_time": [self.time + self.step_size] * len(pop_data.index),
                 "step_size": [self.step_size] * len(pop_data.index),
             },
             index=pop_data.index,
@@ -93,15 +93,15 @@ class SimulationClock(Manager):
 
     def step_forward(self, index: pd.Index) -> None:
         """Advances the clock by the current step size, and updates aligned simulant clocks."""
-        pop_to_update = self.aligned_pop(index)
+        self._clock_time += self.step_size
+        pop_to_update = self.aligned_pop(index, self.time)
         pop_to_update["next_event_time"] = self.time + pop_to_update["step_size"]
         self.population_view.update(pop_to_update)
-        self._clock_time += self.step_size
 
-    def aligned_pop(self, index: pd.Index = None):
+    def aligned_pop(self, index: pd.Index, time: Time):
         """Gets population that is aligned with global clock"""
         pop = self.population_view.get(index)
-        return pop[pop.next_event_time <= self.time]
+        return pop[pop.next_event_time <= time]
 
 
 class SimpleClock(SimulationClock):

@@ -25,21 +25,21 @@ def test_align_times(SimulationContext, base_config, components):
     sim.setup()
     sim.initialize_simulants()
     pop_size = len(sim._population.get_population(True))
-    # After initialization, all simulants should be aligned
-    assert len(sim._clock.aligned_pop(sim._population.get_population(True).index)) == pop_size
+    # After initialization, all simulants should be aligned to event times
+    assert len(sim._clock.aligned_pop(sim._population.get_population(True).index, sim._clock.time + sim._clock.step_size)) == pop_size
 
     sim.step()
     # After one step (and no step adjustments, simulants should still be aligned)
-    assert len(sim._clock.aligned_pop(sim._population.get_population(True).index)) == pop_size
+    assert len(sim._clock.aligned_pop(sim._population.get_population(True).index, sim._clock.time + sim._clock.step_size)) == pop_size
     sim._population._population.step_size *= 2
 
     sim.step()
     # No simulants should be aligned after a step size adjustment
-    assert sim._clock.aligned_pop(sim._population.get_population(True).index).empty
+    assert sim._clock.aligned_pop(sim._population.get_population(True).index, sim._clock.time + sim._clock.step_size).empty
 
     sim.step()
     # Now they should be aligned again
-    assert len(sim._clock.aligned_pop(sim._population.get_population(True).index)) == pop_size
+    assert len(sim._clock.aligned_pop(sim._population.get_population(True).index, sim._clock.time + sim._clock.step_size)) == pop_size
 
 
 def test_unequal_steps(SimulationContext, base_config, components):
