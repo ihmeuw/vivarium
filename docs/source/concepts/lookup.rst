@@ -47,10 +47,13 @@ that data with a population index.
 
 The next layer is selected at initialization time based on the type of data
 provided. The :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`
-picks either a :class:`ScalarTable <vivarium.framework.lookup.table.ScalarTable>`
-if a single value is provided as the data or a
-:class:`InterpolatedTable <vivarium.framework.lookup.table.InterpolatedTable>` if
-a :class:`pandas.DataFrame` is provided as the data.
+picks a :class:`ScalarTable <vivarium.framework.lookup.table.ScalarTable>`
+if a single value is provided as the data, a
+:class:`CategoricalTable <vivarium.framework.lookup.table.CategoricalTable>` if a
+:class:`pandas.DataFrame` with only categorical variables is provided as the
+data, and a :class:`InterpolatedTable <vivarium.framework.lookup.table.InterpolatedTable>`
+if a :class:`pandas.DataFrame` which has at least one continuous variable is
+provided as the data.
 
 .. note::
 
@@ -63,10 +66,12 @@ a :class:`pandas.DataFrame` is provided as the data.
    continuous parameters are represented by points and to tables where all
    parameters are categorical.
 
-If the underlying data is a single value, this is the last layer of
-abstraction. The :class:`ScalarTable <vivarium.framework.lookup.table.ScalarTable>`
-has only one reasonable strategy which is to broadcast the value over
-the population index.  If we have a :class:`pandas.DataFrame` and therefore an
+If the underlying data is a single value or consists only of categorical variables,
+this is the last layer of abstraction. The
+:class:`ScalarTable <vivarium.framework.lookup.table.ScalarTable>` and
+:class:`CategoricalTable <vivarium.framework.lookup.table.CategoricalTable>` each
+have only one reasonable strategy which is to broadcast the value over the
+population index. If we have continuous variables and therefore an
 :class:`InterpolatedTable <vivarium.framework.lookup.table.InterpolatedTable>`,
 there are additional layers to the lookup system to allow the user to
 control the strategy for turning the population index into values based on

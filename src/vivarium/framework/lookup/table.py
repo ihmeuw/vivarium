@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from numbers import Number
 from typing import Callable, List, Tuple, Union
 
+import numpy as np
 import pandas as pd
 
 from vivarium.framework.lookup.interpolation import Interpolation
@@ -46,7 +47,7 @@ class InterpolatedTable:
     clock
         Callable for current time in simulation.
     extrapolate
-        Whether or not to extrapolate beyond edges of given bins.
+        Whether to extrapolate beyond edges of given bins.
 
     Notes
     -----
@@ -113,6 +114,80 @@ class InterpolatedTable:
 
     def __repr__(self) -> str:
         return "InterpolatedTable()"
+
+
+class CategoricalTable:
+    """
+    A callable that selects values from a table based on categorical parameters
+    across an index.
+
+    Attributes
+    ----------
+    data
+        The categorical data from which to select values.
+    population_view
+        View of the population to be used when the table is called with an
+        index.
+    key_columns
+        Column names to be used as categorical parameters.
+    value_columns
+        Names of value columns to be retrived. All non key-columns in data.
+
+    Notes
+    -----
+    These should not be created directly. Use the `lookup` interface on the
+    :class:`builder <vivarium.framework.engine.Builder>` during setup.
+
+    """
+
+    def __init__(
+        self,
+        data: pd.DataFrame,
+        population_view: PopulationView,
+        key_columns: Union[List[str], Tuple[str]],
+    ):
+        self.data = data
+        self.population_view = population_view
+        self.key_columns = key_columns
+        self.value_columns = self.data.columns.difference(set(self.key_columns))
+
+    def __call__(self, index: pd.Index) -> pd.DataFrame:
+        """Get the mapped values for the rows in ``index``.
+
+        Parameters
+        ----------
+        index
+            Index of the population to interpolate for.
+
+        Returns
+        -------
+            A table with the interpolated values for the population requested.
+        """
+        pop = self.population_view.get(index)
+        del pop["tracked"]
+
+        # specify some numeric type for columns, so they won't be objects but
+        # will be updated with whatever column type it actually is
+        result = pd.DataFrame(index=pop.index, columns=self.value_columns, dtype=np.float64)
+
+        sub_tables = pop.groupby(list(self.key_columns))
+        for key, sub_table in list(sub_tables):
+            if sub_table.empty:
+                continue
+
+            category_masks = [
+                self.data[self.key_columns[i]] == category for i, category in enumerate(key)
+            ]
+            joint_mask = True
+            for category_mask in category_masks:
+                joint_mask = joint_mask & category_mask
+            values = self.data.loc[joint_mask, self.value_columns].values
+            result.loc[sub_table.index, self.value_columns] = values
+
+        return result
+
+    def __repr__(self) -> str:
+        return "CategoricalTable()"
 
 
 class ScalarTable:
@@ -201,7 +276,6 @@ class LookupTable:
         validate: bool,
     ):
         self.table_number = table_number
-        key_columns = [] if key_columns is None else key_columns
 
         if validate:
             validate_parameters(data, key_columns, parameter_columns, value_columns)
@@ -209,7 +283,7 @@ class LookupTable:
         # Note datetime catches pandas timestamps
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
             self._table = ScalarTable(data, value_columns)
-        else:
+        elif parameter_columns:
             view_columns = sorted((set(key_columns) | set(parameter_columns)) - {"year"}) + [
                 "tracked"
             ]
@@ -224,6 +298,9 @@ class LookupTable:
                 extrapolate,
                 validate,
             )
+        else:
+            view_columns = list(key_columns) + ["tracked"]
+            self._table = CategoricalTable(data, population_view(view_columns), key_columns)
 
     @property
     def name(self) -> str:
@@ -258,7 +335,7 @@ class LookupTable:
 
 
 def validate_parameters(
-    data: pd.DataFrame,
+    data: LookupTableData,
     key_columns: Union[List[str], Tuple[str]],
     parameter_columns: Union[List[str], Tuple],
     value_columns: Union[List[str], Tuple[str]],
@@ -292,6 +369,7 @@ def validate_parameters(
         all_parameter_columns = []
         for p in parameter_columns:
             all_parameter_columns += [p, f"{p}_start", f"{p}_end"]
+
         if set(key_columns).intersection(set(all_parameter_columns)):
             raise ValueError(
                 f"There should be no overlap between key columns: {key_columns} "
