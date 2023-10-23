@@ -1,5 +1,4 @@
 import itertools
-from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -272,11 +271,6 @@ def test_validate_parameters_pass_scalar_data(key_cols, param_cols, val_cols):
 def test_validate_parameters_pass_dataframe(key_cols, param_cols, val_cols):
     data = pd.DataFrame({"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]})
     validate_build_table_parameters(data, key_cols, param_cols, val_cols)
-
-
-class TestLookupTable(LookupTable):
-    def call(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
-        pass
 
 
 @pytest.mark.parametrize("validate", [True, False])
