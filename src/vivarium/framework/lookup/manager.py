@@ -200,11 +200,11 @@ def validate_build_table_parameters(
     if isinstance(data, (list, tuple)):
         if not value_columns:
             raise ValueError(
-                f"To invoke scalar view with multiple values, you must supply value_columns"
+                "To invoke scalar view with multiple values, you must supply value_columns"
             )
         if len(value_columns) != len(data):
             raise ValueError(
-                f"The number of value columns must match the number of values."
+                "The number of value columns must match the number of values."
                 f"You supplied values: {data} and value_columns: {value_columns}"
             )
         if key_columns:
@@ -213,13 +213,14 @@ def validate_build_table_parameters(
             )
         if parameter_columns:
             raise ValueError(
-                f"parameter_columns are not allowed for scalar view: Provided {parameter_columns}."
+                "parameter_columns are not allowed for scalar view: "
+                f"Provided {parameter_columns}."
             )
 
     if isinstance(data, pd.DataFrame):
         if not key_columns and not parameter_columns:
             raise ValueError(
-                f"Must supply either key_columns or parameter_columns with a DataFrame."
+                "Must supply either key_columns or parameter_columns with a DataFrame."
             )
 
         bin_edge_columns = []
