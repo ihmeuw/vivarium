@@ -190,10 +190,11 @@ def validate_build_table_parameters(
     ):
         raise ValueError("Must supply some data")
 
-    if not isinstance(data, (Number, datetime, timedelta, list, tuple, pd.DataFrame)):
+    acceptable_types = (Number, datetime, timedelta, list, tuple, pd.DataFrame)
+    if not isinstance(data, acceptable_types):
         raise TypeError(
-            f"The only allowable types for data are number, datetime, timedelta, "
-            f"list, tuple, or pandas.DataFrame. You passed {type(data)}."
+            f"The only allowable types for data are {acceptable_types}. "
+            f"You passed {type(data)}."
         )
 
     if isinstance(data, (list, tuple)):
