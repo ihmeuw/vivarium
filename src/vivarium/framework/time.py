@@ -98,10 +98,11 @@ class SimulationClock(Manager):
 
     def step_forward(self, index: pd.Index) -> None:
         """Advances the clock by the current step size, and updates aligned simulant clocks."""
-        self._clock_time += self.step_size
-        pop_to_update = self.aligned_pop(index, self.time)
-        pop_to_update["next_event_time"] = self.time + pop_to_update["step_size"]
+        event_time = self.time + self.step_size
+        pop_to_update = self.aligned_pop(index, event_time)
+        pop_to_update["next_event_time"] = event_time + pop_to_update["step_size"]
         self.population_view.update(pop_to_update)
+        self._clock_time += self.step_size
 
     def aligned_pop(self, index: pd.Index, time: Time):
         """Gets population that is aligned with global clock"""
