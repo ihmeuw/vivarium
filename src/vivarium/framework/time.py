@@ -83,14 +83,14 @@ class SimulationClock(Manager):
 
     def on_initialize_simulants(self, pop_data):
         """Sets the next_event_time and step_size columns for each simulant"""
-        watches = pd.DataFrame(
+        simulant_clocks = pd.DataFrame(
             {
                 "next_event_time": [self.time + self.step_size] * len(pop_data.index),
                 "step_size": [self.step_size] * len(pop_data.index),
             },
             index=pop_data.index,
         )
-        self.population_view.update(watches)
+        self.population_view.update(simulant_clocks)
 
     def step_backward(self) -> None:
         """Rewinds the clock by the current step size."""
