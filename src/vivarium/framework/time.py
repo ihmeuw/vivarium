@@ -71,7 +71,7 @@ class SimulationClock(Manager):
 
     def simulant_step_sizes(self, index: pd.Index) -> pd.Series:
         """The step size for each simulant."""
-        if not self.population_view: 
+        if not self.population_view:
             raise ValueError("No population view defined")
         return self.population_view.subview(["step_size"]).get(index)
 
