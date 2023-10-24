@@ -63,11 +63,11 @@ class SimulationClock(Manager):
             raise ValueError("No step size provided")
         return self._clock_step_size
 
-    def simulant_last_event_times(self, index: pd.Index) -> pd.Series:
+    def simulant_next_event_times(self, index: pd.Index) -> pd.Series:
         """The next time each simulant will be updated."""
         if not self.population_view:
             raise ValueError("No population view defined")
-        return self.population_view.subview(["last_event_time"]).get(index)
+        return self.population_view.subview(["next_event_time"]).get(index)
 
     def simulant_step_sizes(self, index: pd.Index) -> pd.Series:
         """The step size for each simulant."""
