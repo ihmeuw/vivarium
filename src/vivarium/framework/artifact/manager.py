@@ -23,7 +23,7 @@ _Filter = Union[str, int, Sequence[int], Sequence[str]]
 class ArtifactManager(Manager):
     """The controller plugin component for managing a data artifact."""
 
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "input_data": {
             "artifact_path": None,
             "artifact_filter_term": None,
