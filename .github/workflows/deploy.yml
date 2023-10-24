@@ -47,5 +47,5 @@ jobs:
           # comma-separated string, send email to
           to: uw_ihme_simulationscience@uw.edu
           # from email name
-          from: Dr Manhattan
+          from: Vivarium Notifications
       
