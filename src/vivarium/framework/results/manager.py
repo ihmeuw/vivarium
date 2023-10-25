@@ -30,7 +30,7 @@ class ResultsManager(Manager):
     `collect_metrics`).
     """
 
-    CONFIGURATION_DEFAULTS = {
+    configuration_defaults = {
         "stratification": {
             "default": [],
         }

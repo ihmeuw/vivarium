@@ -113,7 +113,7 @@ class SimulationClock(Manager):
 class SimpleClock(SimulationClock):
     """A unitless step-count based simulation clock."""
 
-    CONFIGURATION_DEFAULTS = {
+    configuration_defaults = {
         "time": {
             "start": 0,
             "end": 100,
@@ -142,7 +142,7 @@ def get_time_stamp(time):
 class DateTimeClock(SimulationClock):
     """A date-time based simulation clock."""
 
-    CONFIGURATION_DEFAULTS = {
+    configuration_defaults = {
         "time": {
             "start": {"year": 2005, "month": 7, "day": 2},
             "end": {

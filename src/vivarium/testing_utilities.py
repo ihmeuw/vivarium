@@ -83,12 +83,11 @@ class TestPopulation(NonCRNTestPopulation):
         )
         self.register(core_population)
 
-        if "location" in self.config.input_data.keys():
-            location = self.config.input_data.location
-        else:
-            location = self.randomness.choice(
-                pop_data.index, ["USA", "Canada", "Mexico"], additional_key="location_choice"
-            )
+        location = (
+            self.config.input_data.location
+            if "location" in self.config.input_data.keys()
+            else None
+        )
         population = _build_population(core_population, location, self.randomness)
         self.population_view.update(population)
 

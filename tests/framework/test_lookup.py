@@ -1,25 +1,20 @@
-import itertools
-
 import numpy as np
 import pandas as pd
 import pytest
 
 from vivarium import InteractiveContext
-from vivarium.framework.lookup import (
-    LookupTableInterface,
-    LookupTableManager,
-    validate_build_table_parameters,
-)
+from vivarium.framework.lookup import LookupTable, validate_parameters
 from vivarium.testing_utilities import TestPopulation, build_table
 
 
-@pytest.mark.skip(reason="only order 0 interpolation currently supported")
+@pytest.mark.skip(reason="only order 0 interpolation with age bin edges currently supported")
 def test_interpolated_tables(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
     years = build_table(lambda age, sex, year: year, year_start, year_end)
     ages = build_table(lambda age, sex, year: age, year_start, year_end)
     one_d_age = ages.copy()
+    del one_d_age["year"]
     one_d_age = one_d_age.drop_duplicates()
     base_config.update(
         {"population": {"population_size": 10000}, "interpolation": {"order": 1}}
@@ -76,7 +71,7 @@ def test_interpolated_tables(base_config):
     assert np.allclose(result_ages_1d, pop.age)
 
 
-@pytest.mark.skip(reason="only order 0 interpolation currently supported")
+@pytest.mark.skip(reason="only order 0 interpolation with age bin edges currently supported")
 def test_interpolated_tables_without_uninterpolated_columns(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
@@ -126,7 +121,7 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     years = manager._build_table(
-        years, key_columns=["sex"], parameter_columns=["age", "year"], value_columns=()
+        years, key_columns=["sex"], parameter_columns=["age", "year"], value_columns=None
     )
 
     for year in input_years:
@@ -134,32 +129,6 @@ def test_interpolated_tables__exact_values_at_input_points(base_config):
         assert np.allclose(
             years(simulation.get_population().index), simulation._clock.time.year + 1 / 365
         )
-
-
-def test_interpolated_tables__only_categorical_parameters(base_config):
-    sexes = ["Female", "Male"]
-    locations = ["USA", "Canada", "Mexico"]
-    combinations = enumerate(itertools.product(sexes, locations))
-    input_data = [
-        {"sex": sex, "location": location, "some_value": i**2}
-        for i, (sex, location) in combinations
-    ]
-    input_data = pd.DataFrame(input_data)
-
-    base_config.update({"population": {"population_size": 10000}})
-
-    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
-    manager = simulation._tables
-    lookup_table = manager._build_table(
-        input_data, key_columns=["sex", "location"], parameter_columns=(), value_columns=()
-    )
-
-    population = simulation.get_population()[["sex", "location"]]
-    output_data = lookup_table(population.index)
-
-    for i, (sex, location) in combinations:
-        sub_table_mask = (output_data["sex"] == sex) & output_data["location"] == location
-        assert (output_data.loc[sub_table_mask, "some_value"] == i**2).all()
 
 
 def test_lookup_table_scalar_from_list(base_config):
@@ -189,7 +158,9 @@ def test_invalid_data_type_build_table(base_config):
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     with pytest.raises(TypeError):
-        manager._build_table("break", key_columns=(), parameter_columns=(), value_columns=())
+        manager._build_table(
+            "break", key_columns=None, parameter_columns=None, value_columns=None
+        )
 
 
 def test_lookup_table_interpolated_return_types(base_config):
@@ -200,7 +171,7 @@ def test_lookup_table_interpolated_return_types(base_config):
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     table = manager._build_table(
-        data, key_columns=["sex"], parameter_columns=["age", "year"], value_columns=()
+        data, key_columns=["sex"], parameter_columns=["age", "year"], value_columns=None
     )(simulation.get_population().index)
     # make sure a single value column is returned as a series
     assert isinstance(table, pd.Series)
@@ -208,7 +179,7 @@ def test_lookup_table_interpolated_return_types(base_config):
     # now add a second value column to make sure the result is a df
     data["value2"] = data.value
     table = manager._build_table(
-        data, key_columns=["sex"], parameter_columns=["age", "year"], value_columns=()
+        data, key_columns=["sex"], parameter_columns=["age", "year"], value_columns=None
     )(simulation.get_population().index)
 
     assert isinstance(table, pd.DataFrame)
@@ -219,22 +190,30 @@ def test_lookup_table_interpolated_return_types(base_config):
 )
 def test_validate_parameters_no_data(data):
     with pytest.raises(ValueError, match="supply some data"):
-        validate_build_table_parameters(data, [], [], [])
+        validate_parameters(data, [], [], [])
 
 
 @pytest.mark.parametrize(
     "key_cols, param_cols, val_cols, match",
     [
-        ((), (), (), "supply value_columns"),
-        ((), (), [], "supply value_columns"),
-        ((), (), ["a", "b"], "match the number of values"),
-        (("a", "b"), (), ["d", "e", "f"], "key_columns are not allowed"),
-        ((), ("a", "b"), ["d", "e", "f"], "parameter_columns are not allowed"),
+        (None, None, None, "supply value_columns"),
+        (None, None, [], "supply value_columns"),
+        (None, None, ["a", "b"], "match the number of values"),
     ],
 )
 def test_validate_parameters_error_scalar_data(key_cols, param_cols, val_cols, match):
     with pytest.raises(ValueError, match=match):
-        validate_build_table_parameters([1, 2, 3], key_cols, param_cols, val_cols)
+        validate_parameters([1, 2, 3], key_cols, param_cols, val_cols)
+
+
+@pytest.mark.parametrize(
+    "key_cols, param_cols, val_cols, match",
+    [(["a", "b"], ["b"], ["c"], "no overlap"), ([], ["b"], ["c"], "do not match")],
+)
+def test_validate_parameters_error_dataframe(key_cols, param_cols, val_cols, match):
+    data = pd.DataFrame({"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]})
+    with pytest.raises(ValueError, match=match):
+        validate_parameters(data, key_cols, param_cols, val_cols)
 
 
 @pytest.mark.parametrize(
@@ -242,63 +221,47 @@ def test_validate_parameters_error_scalar_data(key_cols, param_cols, val_cols, m
 )
 def test_validate_parameters_fail_other_data(data):
     with pytest.raises(TypeError, match="only allowable types"):
-        validate_build_table_parameters(data, [], [], [])
-
-
-@pytest.mark.parametrize(
-    "key_cols, param_cols, val_cols, match",
-    [
-        ([], [], ["c"], "either key_columns or parameter_columns"),
-        (["a", "b"], ["b"], ["c"], "no overlap between key.*and parameter columns"),
-        (["a"], ["b"], ["a", "c"], "no overlap between value.*and key.*columns"),
-        (["a"], ["b"], ["b", "c"], "no overlap between value.*and.*parameter columns"),
-        (["d"], ["b"], ["c"], "columns.*must all be present"),
-        (["a"], ["d"], ["c"], "columns.*must all be present"),
-        (["a"], ["b"], ["d"], "columns.*must all be present"),
-    ],
-)
-def test_validate_parameters_error_dataframe(key_cols, param_cols, val_cols, match):
-    data = pd.DataFrame({"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]})
-    with pytest.raises(ValueError, match=match):
-        validate_build_table_parameters(data, key_cols, param_cols, val_cols)
-
-
-def test_validate_parameters_pass_scalar_data():
-    validate_build_table_parameters([1, 2, 3], (), (), ["a", "b", "c"])
+        validate_parameters(data, [], [], [])
 
 
 @pytest.mark.parametrize(
     "key_cols, param_cols, val_cols",
     [
-        (["a"], ["b"], ["c"]),
-        ([], ["b"], ["c", "a"]),
-        ([], ["b"], ["a", "c"]),
-        ([], ["b"], ["c"]),
-        (["a"], [], ["c"]),
-        (["a"], ["b"], []),
-        (["a"], [], []),
-        ([], ["b"], []),
+        (None, None, ["a", "b", "c"]),
+        (None, ["d"], ["one", "two", "three"]),
+        (["KEY"], None, ["a", "b", "c"]),
+        (["KEY"], ["d"], ["a", "b", "c"]),
     ],
+)
+def test_validate_parameters_pass_scalar_data(key_cols, param_cols, val_cols):
+    validate_parameters([1, 2, 3], key_cols, param_cols, val_cols)
+
+
+@pytest.mark.parametrize(
+    "key_cols, param_cols, val_cols",
+    [(["a"], ["b"], ["c"]), ([], ["b"], ["c", "a"]), ([], ["b"], ["a", "c"])],
 )
 def test_validate_parameters_pass_dataframe(key_cols, param_cols, val_cols):
     data = pd.DataFrame({"a": [1, 2], "b_start": [0, 5], "b_end": [5, 10], "c": [100, 150]})
-    validate_build_table_parameters(data, key_cols, param_cols, val_cols)
+    validate_parameters(data, key_cols, param_cols, val_cols)
 
 
 @pytest.mark.parametrize("validate", [True, False])
-def test_validate_flag(mocker, validate):
-    manager = LookupTableManager()
-    manager.setup(mocker.Mock())
-    manager._validate = validate
-    interface = LookupTableInterface(manager)
-
-    mock_validator = mocker.patch(
-        "vivarium.framework.lookup.manager.validate_build_table_parameters"
-    )
-
-    interface.build_table(0, value_columns=["a"])
-
+def test_validate_option_invalid_data(validate):
     if validate:
-        mock_validator.assert_called_once()
+        with pytest.raises(ValueError, match="supply some data"):
+            lookup = LookupTable(0, [], None, [], [], [], 0, None, True, validate)
     else:
-        mock_validator.assert_not_called()
+        lookup = LookupTable(0, [], None, [], [], [], 0, None, True, validate)
+
+
+@pytest.mark.parametrize("validate", [True, False])
+def test_validate_option_valid_data(validate):
+    data = [1, 2, 3]
+    key_cols = ["KEY"]
+    param_cols = ["d"]
+    val_cols = ["a", "b", "c"]
+
+    lookup = LookupTable(
+        0, data, None, key_cols, param_cols, val_cols, 0, None, True, validate
+    )
