@@ -237,7 +237,10 @@ class SimulationContext:
         self._logger.debug(self._clock.time)
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
-            self.time_step_emitters[event](self._population.get_population(True).index)
+            pop_to_update = self._clock.aligned_pop(
+                self._population.get_population(True).index, event.time
+            )
+            self.time_step_emitters[event](pop_to_update.index)
         self._clock.step_forward(self._population.get_population(True).index)
 
     def run(self) -> None:
