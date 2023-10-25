@@ -87,7 +87,7 @@ def list_combiner(value: List, mutator: Callable, *args: Any, **kwargs: Any) -> 
     return value
 
 
-def rescale_post_processor(value: NumberLike, time_step: pd.Timedelta):
+def rescale_post_processor(value: NumberLike, time_step: Union[pd.Timedelta, pd.Series]):
     """Rescales annual rates to time-step appropriate rates.
 
     This should only be used with a simulation using a
@@ -110,6 +110,8 @@ def rescale_post_processor(value: NumberLike, time_step: pd.Timedelta):
         The annual rates rescaled to the size of the current time step size.
 
     """
+    if isinstance(time_step, pd.Series):
+        time_step = time_step.dt
     return from_yearly(value, time_step)
 
 
@@ -238,7 +240,7 @@ class Pipeline:
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
-            return self.post_processor(value, self.manager.step_size())
+            return self.post_processor(value, self.manager.step_sizes())
         if isinstance(value, pd.Series):
             value.name = self.name
 
@@ -261,7 +263,7 @@ class ValuesManager(Manager):
 
     def setup(self, builder):
         self.logger = builder.logging.get_logger(self.name)
-        self.step_size = builder.time.step_size()
+        self.step_sizes = builder.time.simulant_step_sizes()
         builder.event.register_listener("post_setup", self.on_post_setup)
 
         self.resources = builder.resources
