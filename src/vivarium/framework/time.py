@@ -12,9 +12,12 @@ For more information about time in the simulation, see the associated
 """
 from datetime import datetime, timedelta
 from numbers import Number
-from typing import Callable, Union
+from typing import TYPE_CHECKING, Callable, List, Union
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
 
 from vivarium.manager import Manager
 
@@ -23,42 +26,88 @@ Timedelta = Union[pd.Timedelta, timedelta, Number]
 
 
 class SimulationClock(Manager):
-    """Defines a base implementation for a simulation clock."""
-
-    def __init__(self):
-        self._time = None
-        self._stop_time = None
-        self._step_size = None
+    """A base clock that includes global clock and a pandas series of clocks for each simulant"""
 
     @property
     def name(self):
         return "simulation_clock"
 
     @property
+    def columns_created(self) -> List[str]:
+        return ["next_event_time", "step_size"]
+
+    @property
     def time(self) -> Time:
         """The current simulation time."""
-        assert self._time is not None, "No start time provided"
-        return self._time
+        if not self._clock_time:
+            raise ValueError("No start time provided")
+        return self._clock_time
 
     @property
     def stop_time(self) -> Time:
         """The time at which the simulation will stop."""
-        assert self._stop_time is not None, "No stop time provided"
+        if not self._stop_time:
+            raise ValueError("No stop time provided")
         return self._stop_time
 
     @property
     def step_size(self) -> Timedelta:
         """The size of the next time step."""
-        assert self._step_size is not None, "No step size provided"
-        return self._step_size
+        if not self._clock_step_size:
+            raise ValueError("No step size provided")
+        return self._clock_step_size
 
-    def step_forward(self) -> None:
-        """Advances the clock by the current step size."""
-        self._time += self.step_size
+    def __init__(self):
+        self._clock_time = None
+        self._stop_time = None
+        self._clock_step_size = None
+        self.population_view = None
 
-    def step_backward(self):
+    def setup(self, builder: "Builder"):
+        builder.population.initializes_simulants(
+            self.on_initialize_simulants, creates_columns=self.columns_created
+        )
+        self.population_view = builder.population.get_view(columns=self.columns_created)
+
+    def on_initialize_simulants(self, pop_data):
+        """Sets the next_event_time and step_size columns for each simulant"""
+        simulant_clocks = pd.DataFrame(
+            {
+                "next_event_time": [self.time + self.step_size] * len(pop_data.index),
+                "step_size": [self.step_size] * len(pop_data.index),
+            },
+            index=pop_data.index,
+        )
+        self.population_view.update(simulant_clocks)
+
+    def simulant_next_event_times(self, index: pd.Index) -> pd.Series:
+        """The next time each simulant will be updated."""
+        if not self.population_view:
+            raise ValueError("No population view defined")
+        return self.population_view.subview(["next_event_time"]).get(index)
+
+    def simulant_step_sizes(self, index: pd.Index) -> pd.Series:
+        """The step size for each simulant."""
+        if not self.population_view:
+            raise ValueError("No population view defined")
+        return self.population_view.subview(["step_size"]).get(index)
+
+    def step_backward(self) -> None:
         """Rewinds the clock by the current step size."""
-        self._time -= self.step_size
+        self._clock_time -= self.step_size
+
+    def step_forward(self, index: pd.Index) -> None:
+        """Advances the clock by the current step size, and updates aligned simulant clocks."""
+        event_time = self.time + self.step_size
+        pop_to_update = self.aligned_pop(index, event_time)
+        pop_to_update["next_event_time"] = event_time + pop_to_update["step_size"]
+        self.population_view.update(pop_to_update)
+        self._clock_time += self.step_size
+
+    def aligned_pop(self, index: pd.Index, time: Time):
+        """Gets population that is aligned with global clock"""
+        pop = self.population_view.get(index)
+        return pop[pop.next_event_time <= time]
 
 
 class SimpleClock(SimulationClock):
@@ -77,9 +126,10 @@ class SimpleClock(SimulationClock):
         return "simple_clock"
 
     def setup(self, builder):
-        self._time = builder.configuration.time.start
+        super().setup(builder)
+        self._clock_time = builder.configuration.time.start
         self._stop_time = builder.configuration.time.end
-        self._step_size = builder.configuration.time.step_size
+        self._clock_step_size = builder.configuration.time.step_size
 
     def __repr__(self):
         return "SimpleClock()"
@@ -109,10 +159,11 @@ class DateTimeClock(SimulationClock):
         return "datetime_clock"
 
     def setup(self, builder):
+        super().setup(builder)
         time = builder.configuration.time
-        self._time = get_time_stamp(time.start)
+        self._clock_time = get_time_stamp(time.start)
         self._stop_time = get_time_stamp(time.end)
-        self._step_size = pd.Timedelta(
+        self._clock_step_size = pd.Timedelta(
             days=time.step_size // 1, hours=(time.step_size % 1) * 24
         )
 
@@ -131,3 +182,11 @@ class TimeInterface:
     def step_size(self) -> Callable[[], Timedelta]:
         """Gets a callable that returns the current simulation step size."""
         return lambda: self._manager.step_size
+
+    def simulant_next_event_times(self) -> Callable[[pd.Index], pd.Series]:
+        """Gets a callable that returns the current simulation step size."""
+        return self._manager.simulant_next_event_times
+
+    def simulant_step_sizes(self) -> Callable[[pd.Index], pd.Series]:
+        """Gets a callable that returns the current simulation step size."""
+        return self._manager.simulant_step_sizes
