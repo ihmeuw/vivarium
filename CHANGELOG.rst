@@ -1,4 +1,8 @@
-**2.2.0 - 10/19/23**
+**2.2.1 - 10/24/23**
+
+ - Hotfix to expose ScalarValue at the lookup package level
+
+**2.2.0 - 10/24/23**
 
  - Refactor Manager configuration defaults
  - Throw an error if simulation attempts to use a component that is not an instance of Component
