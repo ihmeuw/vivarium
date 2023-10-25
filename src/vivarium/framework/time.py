@@ -185,8 +185,8 @@ class TimeInterface:
 
     def simulant_next_event_times(self) -> Callable[[pd.Index], pd.Series]:
         """Gets a callable that returns the current simulation step size."""
-        return lambda: self._manager.simulant_next_event_times
+        return self._manager.simulant_next_event_times
 
     def simulant_step_sizes(self) -> Callable[[pd.Index], pd.Series]:
         """Gets a callable that returns the current simulation step size."""
-        return lambda: self._manager.simulant_step_sizes
+        return self._manager.simulant_step_sizes
