@@ -28,12 +28,6 @@ Timedelta = Union[pd.Timedelta, timedelta, Number]
 class SimulationClock(Manager):
     """A base clock that includes global clock and a pandas series of clocks for each simulant"""
 
-    def __init__(self):
-        self._clock_time = None
-        self._stop_time = None
-        self._clock_step_size = None
-        self.population_view = None
-
     @property
     def name(self):
         return "simulation_clock"
@@ -63,17 +57,11 @@ class SimulationClock(Manager):
             raise ValueError("No step size provided")
         return self._clock_step_size
 
-    def simulant_next_event_times(self, index: pd.Index) -> pd.Series:
-        """The next time each simulant will be updated."""
-        if not self.population_view:
-            raise ValueError("No population view defined")
-        return self.population_view.subview(["next_event_time"]).get(index)
-
-    def simulant_step_sizes(self, index: pd.Index) -> pd.Series:
-        """The step size for each simulant."""
-        if not self.population_view:
-            raise ValueError("No population view defined")
-        return self.population_view.subview(["step_size"]).get(index)
+    def __init__(self):
+        self._clock_time = None
+        self._stop_time = None
+        self._clock_step_size = None
+        self.population_view = None
 
     def setup(self, builder: "Builder"):
         builder.population.initializes_simulants(
@@ -91,6 +79,18 @@ class SimulationClock(Manager):
             index=pop_data.index,
         )
         self.population_view.update(simulant_clocks)
+
+    def simulant_next_event_times(self, index: pd.Index) -> pd.Series:
+        """The next time each simulant will be updated."""
+        if not self.population_view:
+            raise ValueError("No population view defined")
+        return self.population_view.subview(["next_event_time"]).get(index)
+
+    def simulant_step_sizes(self, index: pd.Index) -> pd.Series:
+        """The step size for each simulant."""
+        if not self.population_view:
+            raise ValueError("No population view defined")
+        return self.population_view.subview(["step_size"]).get(index)
 
     def step_backward(self) -> None:
         """Rewinds the clock by the current step size."""
