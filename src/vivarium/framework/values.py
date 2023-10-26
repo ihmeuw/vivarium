@@ -240,7 +240,7 @@ class Pipeline:
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
-            return self.post_processor(value, self.manager.step_sizes())
+            return self.post_processor(value, self.manager.step_sizes(value.index))
         if isinstance(value, pd.Series):
             value.name = self.name
 
