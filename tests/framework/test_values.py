@@ -2,14 +2,21 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vivarium.framework.values import ValuesManager, list_combiner, union_post_processor, rescale_post_processor
+from vivarium.framework.values import (
+    ValuesManager,
+    list_combiner,
+    rescale_post_processor,
+    union_post_processor,
+)
 
 
 @pytest.fixture
 def manager(mocker):
     manager = ValuesManager()
     builder = mocker.MagicMock()
-    builder.time.simulant_step_sizes = lambda: lambda idx: pd.Series(pd.Timedelta(days=3), index=idx)
+    builder.time.simulant_step_sizes = lambda: lambda idx: pd.Series(
+        pd.Timedelta(days=3), index=idx
+    )
     manager.setup(builder)
     return manager
 
@@ -63,7 +70,8 @@ def test_returned_series_name(manager):
         source=lambda idx: pd.Series(0.0, index=idx),
     )
     assert value(pd.Index(range(10))).name == "test"
-    
+
+
 def test_rescale_postprocessor(manager):
     index = pd.Index(range(10))
 
@@ -73,4 +81,3 @@ def test_rescale_postprocessor(manager):
         preferred_post_processor=rescale_post_processor,
     )
     assert np.all(value(index) == 0.5 * 3 / 365)
-    

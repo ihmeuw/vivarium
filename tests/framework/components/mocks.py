@@ -91,7 +91,7 @@ class Listener(MockComponentB):
         self.time_step_cleanup_called = False
         self.collect_metrics_called = False
         self.simulation_end_called = False
-        
+
         self.time_step_prepare_index = None
         self.time_step_index = None
         self.time_step_cleanup_index = None

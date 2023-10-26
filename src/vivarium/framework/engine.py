@@ -238,7 +238,8 @@ class SimulationContext:
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
             pop_to_update = self._clock.aligned_pop(
-                self._population.get_population(True).index, self._clock.time + self._clock.step_size
+                self._population.get_population(True).index,
+                self._clock.time + self._clock.step_size,
             )
             self.time_step_emitters[event](pop_to_update.index)
         self._clock.step_forward(self._population.get_population(True).index)

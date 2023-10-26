@@ -87,16 +87,15 @@ def test_unequal_steps(SimulationContext, base_config, components):
         )
         == pop_size - 1
     )
-    
+
     # Show that now that the next_event_time is updated, 0th simulant isn't included in events
     sim.step()
     assert 0 not in listener.time_step_prepare_index
     assert 0 not in listener.time_step_index
     assert 0 not in listener.time_step_cleanup_index
     assert 0 not in listener.collect_metrics_index
-    
 
-    #Check that everybody will step forward next step
+    # Check that everybody will step forward next step
     assert (
         len(
             sim._clock.aligned_pop(
@@ -118,7 +117,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
     sim._population._population.step_size[7] /= 2
     # Do a step just to update the next_event_time
     sim.step()
-    #Check that next step, we will still update all
+    # Check that next step, we will still update all
     assert (
         len(
             sim._clock.aligned_pop(
