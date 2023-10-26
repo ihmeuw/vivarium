@@ -39,7 +39,7 @@ jobs:
           isort . --check --verbose --only-modified --diff
       - name: Test
         run: |
-          if github.event_name == 'schedule'; then
+          if "${{ github.event_name == 'schedule' }}"; then
             pytest --runslow ./tests
           else
             pytest ./tests
