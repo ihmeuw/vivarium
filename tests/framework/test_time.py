@@ -70,11 +70,12 @@ def test_align_times(SimulationContext, base_config, components):
 
 def test_unequal_steps(SimulationContext, base_config, components):
     sim = SimulationContext(base_config, components)
+    listener = [c for c in components if "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
     pop_size = len(sim._population.get_population(True))
 
-    # Check that the 0th simulant doesn't step forward
+    # Check that the 0th simulant won't step forward
     sim._population._population.step_size[0] *= 2
     sim.step()
     assert (
@@ -86,9 +87,16 @@ def test_unequal_steps(SimulationContext, base_config, components):
         )
         == pop_size - 1
     )
-
-    # Now check that everybody does
+    
+    # Show that now that the next_event_time is updated, 0th simulant isn't included in events
     sim.step()
+    assert 0 not in listener.time_step_prepare_index
+    assert 0 not in listener.time_step_index
+    assert 0 not in listener.time_step_cleanup_index
+    assert 0 not in listener.collect_metrics_index
+    
+
+    #Check that everybody will step forward next step
     assert (
         len(
             sim._clock.aligned_pop(
@@ -98,11 +106,19 @@ def test_unequal_steps(SimulationContext, base_config, components):
         )
         == pop_size
     )
+    # Check that they are actually included in events
+    sim.step()
+    assert 0 in listener.time_step_prepare_index
+    assert 0 in listener.time_step_index
+    assert 0 in listener.time_step_cleanup_index
+    assert 0 in listener.collect_metrics_index
     # Revert change to 0
     sim._population._population.step_size[0] /= 2
     # Still step forward even with a non-integer step size
     sim._population._population.step_size[7] /= 2
+    # Do a step just to update the next_event_time
     sim.step()
+    #Check that next step, we will still update all
     assert (
         len(
             sim._clock.aligned_pop(
@@ -112,3 +128,9 @@ def test_unequal_steps(SimulationContext, base_config, components):
         )
         == pop_size
     )
+    # Check that we actually include 7 in events
+    sim.step()
+    assert 7 in listener.time_step_prepare_index
+    assert 7 in listener.time_step_index
+    assert 7 in listener.time_step_cleanup_index
+    assert 7 in listener.collect_metrics_index
