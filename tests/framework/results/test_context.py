@@ -243,7 +243,7 @@ def test_gather_results(
     population = BASE_POPULATION.copy()
     # Mock out some extra columns that would be produced by the manager's _prepare_population() method
     population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
-    population["step_size"] = timedelta(days=28)
+    population["event_step_size"] = timedelta(days=28)
     population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
         days=28
     )
@@ -316,7 +316,7 @@ def test_gather_results_partial_stratifications_in_results(
 
     # Mock out some extra columns that would be produced by the manager's _prepare_population() method
     population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
-    population["step_size"] = timedelta(days=28)
+    population["event_step_size"] = timedelta(days=28)
     population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
         days=28
     )
