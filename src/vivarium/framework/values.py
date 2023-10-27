@@ -110,9 +110,13 @@ def rescale_post_processor(value: NumberLike, time_step: Union[pd.Timedelta, Cal
         The annual rates rescaled to the size of the current time step size.
 
     """
-    if not value.index:
-        raise ValueError("Rescale post processor requires a pandas index")
     if isinstance(time_step, Callable):
+        if not hasattr(value, 'index'):
+            raise ValueError(
+                "Using a rescale post-processor with individual clocks"
+                "requires a pipeline with indexed values."
+                )
+        
         time_step = time_step(value.index).dt
     return from_yearly(value, time_step)
 
