@@ -159,6 +159,13 @@ def union_post_processor(values: List[NumberLike], _) -> NumberLike:
     joint_value = 1 - product
     return joint_value
 
+def step_size_post_processor(values: List[NumberLike], time_steps: Callable) -> NumberLike:
+    
+    if not values:
+        ## This is wrong and a placeholder
+        return time_steps
+    ## return series with min of each row in the values list
+    return pd.DataFrame(values).min(axis=0)
 
 class Pipeline:
     """A tool for building up values across several components.
