@@ -112,6 +112,8 @@ def rescale_post_processor(value: NumberLike, time_step: Union[pd.Timedelta, Cal
     """
     if isinstance(time_step, Callable):
         if not hasattr(value, "index"):
+            ## TODO MIC-4665 - Accommodate non-indexed values by using global clock
+            ## Ideally with keyword args
             raise ValueError(
                 "Using a rescale post-processor with individual clocks"
                 "requires a pipeline with indexed values."
