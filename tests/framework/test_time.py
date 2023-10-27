@@ -24,12 +24,12 @@ def test_align_times(SimulationContext, base_config, components):
     sim = SimulationContext(base_config, components)
     sim.setup()
     sim.initialize_simulants()
-    pop_size = len(sim._population.get_population(True))
+    pop_size = len(sim.get_population())
     # After initialization, all simulants should be aligned to event times
     assert (
         len(
             sim._clock.aligned_pop(
-                sim._population.get_population(True).index,
+                sim.get_population().index,
                 sim._clock.time + sim._clock.step_size,
             )
         )
@@ -41,7 +41,7 @@ def test_align_times(SimulationContext, base_config, components):
     assert (
         len(
             sim._clock.aligned_pop(
-                sim._population.get_population(True).index,
+                sim.get_population().index,
                 sim._clock.time + sim._clock.step_size,
             )
         )
@@ -52,7 +52,7 @@ def test_align_times(SimulationContext, base_config, components):
     sim.step()
     # No simulants should be aligned after a step size adjustment
     assert sim._clock.aligned_pop(
-        sim._population.get_population(True).index, sim._clock.time + sim._clock.step_size
+        sim.get_population().index, sim._clock.time + sim._clock.step_size
     ).empty
 
     sim.step()
@@ -60,7 +60,7 @@ def test_align_times(SimulationContext, base_config, components):
     assert (
         len(
             sim._clock.aligned_pop(
-                sim._population.get_population(True).index,
+                sim.get_population().index,
                 sim._clock.time + sim._clock.step_size,
             )
         )
@@ -73,7 +73,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
     listener = [c for c in components if "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
-    pop_size = len(sim._population.get_population(True))
+    pop_size = len(sim.get_population())
 
     # Check that the 0th simulant won't step forward
     sim._population._population.step_size[0] *= 2
@@ -81,7 +81,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
     assert (
         len(
             sim._clock.aligned_pop(
-                sim._population.get_population(True).index,
+                sim.get_population().index,
                 sim._clock.time + sim._clock.step_size,
             )
         )
@@ -99,7 +99,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
     assert (
         len(
             sim._clock.aligned_pop(
-                sim._population.get_population(True).index,
+                sim.get_population().index,
                 sim._clock.time + sim._clock.step_size,
             )
         )
@@ -121,7 +121,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
     assert (
         len(
             sim._clock.aligned_pop(
-                sim._population.get_population(True).index,
+                sim.get_population().index,
                 sim._clock.time + sim._clock.step_size,
             )
         )
