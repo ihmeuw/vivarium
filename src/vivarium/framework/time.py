@@ -56,7 +56,7 @@ class SimulationClock(Manager):
         if not self._clock_step_size:
             raise ValueError("No step size provided")
         return self._clock_step_size
-    
+
     @property
     def event_time(self) -> Time:
         "Convenience method for event time, or clock + step"

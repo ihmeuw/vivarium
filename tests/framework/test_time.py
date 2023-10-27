@@ -51,9 +51,7 @@ def test_align_times(SimulationContext, base_config, components):
 
     sim.step()
     # No simulants should be aligned after a step size adjustment
-    assert sim._clock.aligned_pop(
-        sim.get_population().index, sim._clock.event_time
-    ).empty
+    assert sim._clock.aligned_pop(sim.get_population().index, sim._clock.event_time).empty
 
     sim.step()
     # Now they should be aligned again

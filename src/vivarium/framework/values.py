@@ -111,12 +111,12 @@ def rescale_post_processor(value: NumberLike, time_step: Union[pd.Timedelta, Cal
 
     """
     if isinstance(time_step, Callable):
-        if not hasattr(value, 'index'):
+        if not hasattr(value, "index"):
             raise ValueError(
                 "Using a rescale post-processor with individual clocks"
                 "requires a pipeline with indexed values."
-                )
-        
+            )
+
         time_step = time_step(value.index).dt
     return from_yearly(value, time_step)
 
