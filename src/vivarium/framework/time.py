@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
 from vivarium.manager import Manager
+from vivarium.framework.values import list_combiner, step_size_post_processor
 
 Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
@@ -64,6 +65,10 @@ class SimulationClock(Manager):
         self.population_view = None
 
     def setup(self, builder: "Builder"):
+        self.step_size_pipeline = builder.value.register_value_producer("simulant_step_size",
+                                                                        source=lambda idx: pd.Series(None, index=idx),
+                                                                        preferred_combiner=list_combiner,
+                                                                        preferred_post_processor=step_size_post_processor)
         builder.population.initializes_simulants(
             self.on_initialize_simulants, creates_columns=self.columns_created
         )
@@ -74,7 +79,7 @@ class SimulationClock(Manager):
         simulant_clocks = pd.DataFrame(
             {
                 "next_event_time": [self.time + self.step_size] * len(pop_data.index),
-                "step_size": [self.step_size] * len(pop_data.index),
+                "step_size": self.step_size_pipeline(pop_data.index),
             },
             index=pop_data.index,
         )
@@ -101,6 +106,7 @@ class SimulationClock(Manager):
         event_time = self.time + self.step_size
         pop_to_update = self.aligned_pop(index, event_time)
         pop_to_update["next_event_time"] = event_time + pop_to_update["step_size"]
+        pop_to_update["step_size"] = self.step_size_pipeline(pop_to_update.index)
         self.population_view.update(pop_to_update)
         self._clock_time += self.step_size
 
