@@ -246,7 +246,7 @@ class Pipeline:
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
-            return self.post_processor(value, self.manager.step_size)
+            return self.post_processor(value, self.manager.step_size())
         if isinstance(value, pd.Series):
             value.name = self.name
 
@@ -269,7 +269,7 @@ class ValuesManager(Manager):
 
     def setup(self, builder):
         self.logger = builder.logging.get_logger(self.name)
-        self.step_size = builder.time.simulant_step_sizes()
+        self.step_size = builder.time.simulant_step_sizes
         builder.event.register_listener("post_setup", self.on_post_setup)
 
         self.resources = builder.resources
