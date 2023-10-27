@@ -30,7 +30,7 @@ def test_align_times(SimulationContext, base_config, components):
         len(
             sim._clock.aligned_pop(
                 sim.get_population().index,
-                sim._clock.time + sim._clock.step_size,
+                sim._clock.event_time,
             )
         )
         == pop_size
@@ -42,7 +42,7 @@ def test_align_times(SimulationContext, base_config, components):
         len(
             sim._clock.aligned_pop(
                 sim.get_population().index,
-                sim._clock.time + sim._clock.step_size,
+                sim._clock.event_time,
             )
         )
         == pop_size
@@ -52,7 +52,7 @@ def test_align_times(SimulationContext, base_config, components):
     sim.step()
     # No simulants should be aligned after a step size adjustment
     assert sim._clock.aligned_pop(
-        sim.get_population().index, sim._clock.time + sim._clock.step_size
+        sim.get_population().index, sim._clock.event_time
     ).empty
 
     sim.step()
@@ -61,7 +61,7 @@ def test_align_times(SimulationContext, base_config, components):
         len(
             sim._clock.aligned_pop(
                 sim.get_population().index,
-                sim._clock.time + sim._clock.step_size,
+                sim._clock.event_time,
             )
         )
         == pop_size
@@ -82,7 +82,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
         len(
             sim._clock.aligned_pop(
                 sim.get_population().index,
-                sim._clock.time + sim._clock.step_size,
+                sim._clock.event_time,
             )
         )
         == pop_size - 1
@@ -100,7 +100,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
         len(
             sim._clock.aligned_pop(
                 sim.get_population().index,
-                sim._clock.time + sim._clock.step_size,
+                sim._clock.event_time,
             )
         )
         == pop_size
@@ -122,7 +122,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
         len(
             sim._clock.aligned_pop(
                 sim.get_population().index,
-                sim._clock.time + sim._clock.step_size,
+                sim._clock.event_time,
             )
         )
         == pop_size

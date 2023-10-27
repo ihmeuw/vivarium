@@ -56,6 +56,11 @@ class SimulationClock(Manager):
         if not self._clock_step_size:
             raise ValueError("No step size provided")
         return self._clock_step_size
+    
+    @property
+    def event_time(self) -> Time:
+        "Convenience method for event time, or clock + step"
+        return self.time + self.step_size
 
     def __init__(self):
         self._clock_time = None
@@ -73,7 +78,7 @@ class SimulationClock(Manager):
         """Sets the next_event_time and step_size columns for each simulant"""
         simulant_clocks = pd.DataFrame(
             {
-                "next_event_time": [self.time + self.step_size] * len(pop_data.index),
+                "next_event_time": [self.event_time] * len(pop_data.index),
                 "step_size": [self.step_size] * len(pop_data.index),
             },
             index=pop_data.index,
@@ -98,7 +103,7 @@ class SimulationClock(Manager):
 
     def step_forward(self, index: pd.Index) -> None:
         """Advances the clock by the current step size, and updates aligned simulant clocks."""
-        event_time = self.time + self.step_size
+        event_time = self.event_time
         pop_to_update = self.aligned_pop(index, event_time)
         pop_to_update["next_event_time"] = event_time + pop_to_update["step_size"]
         self.population_view.update(pop_to_update)
