@@ -109,7 +109,7 @@ def rescale_post_processor(value: NumberLike, time_step: Union[pd.Timedelta, Cal
         The annual rates rescaled to the size of the current time step size.
 
     """
-    if type(time_step, Callable):
+    if type(time_step) == Callable:
         if not hasattr(value, "index"):
             ## TODO MIC-4665 - Accommodate non-indexed values by using global clock
             ## Ideally with keyword args
@@ -271,7 +271,7 @@ class Pipeline:
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
-            return self.post_processor(value, self.manager)
+            return self.post_processor(value, self.manager.step_size())
         if isinstance(value, pd.Series):
             value.name = self.name
 
@@ -294,8 +294,7 @@ class ValuesManager(Manager):
 
     def setup(self, builder):
         self.logger = builder.logging.get_logger(self.name)
-        self.global_step_size = builder.time.step_size()
-        self.simulant_step_sizes = builder.time.simulant_step_sizes()
+        self.step_size = builder.time.simulant_step_sizes()
         builder.event.register_listener("post_setup", self.on_post_setup)
 
         self.resources = builder.resources
