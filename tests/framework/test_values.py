@@ -8,6 +8,7 @@ from vivarium.framework.values import (
     rescale_post_processor,
     union_post_processor,
 )
+from vivarium.framework.utilities import from_yearly
 
 
 @pytest.fixture
@@ -15,7 +16,7 @@ def manager(mocker):
     manager = ValuesManager()
     builder = mocker.MagicMock()
     builder.time.simulant_step_sizes = lambda: lambda: lambda idx: pd.Series(
-        pd.Timedelta(days=3), index=idx
+        [pd.Timedelta(days=3) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx], index=idx
     )
     manager.setup(builder)
     return manager
@@ -75,9 +76,13 @@ def test_returned_series_name(manager):
 def test_rescale_postprocessor(manager):
     index = pd.Index(range(10))
 
-    value = manager.register_value_producer(
+    pipeline = manager.register_value_producer(
         "test",
         source=lambda idx: pd.Series(0.5, index=idx),
         preferred_post_processor=rescale_post_processor,
     )
-    assert np.all(value(index) == 0.5 * 3 / 365)
+    value = pipeline(index)
+    evens = value.iloc[lambda x: x.index % 2 == 0]
+    odds = value.iloc[lambda x: x.index % 2 == 1]
+    assert np.all(evens == from_yearly(0.5, pd.Timedelta(days=3)))
+    assert np.all(odds == from_yearly(0.5, pd.Timedelta(days=5)))
