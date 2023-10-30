@@ -87,7 +87,7 @@ def list_combiner(value: List, mutator: Callable, *args: Any, **kwargs: Any) -> 
     return value
 
 
-def rescale_post_processor(value: NumberLike, time_step: pd.Timedelta):
+def rescale_post_processor(value: NumberLike, time_step: Union[pd.Timedelta, Callable]):
     """Rescales annual rates to time-step appropriate rates.
 
     This should only be used with a simulation using a
@@ -110,6 +110,16 @@ def rescale_post_processor(value: NumberLike, time_step: pd.Timedelta):
         The annual rates rescaled to the size of the current time step size.
 
     """
+    if isinstance(time_step, Callable):
+        if not hasattr(value, "index"):
+            ## TODO MIC-4665 - Accommodate non-indexed values by using global clock
+            ## Ideally with keyword args
+            raise ValueError(
+                "Using a rescale post-processor with individual clocks"
+                "requires a pipeline with indexed values."
+            )
+
+        time_step = time_step(value.index).dt
     return from_yearly(value, time_step)
 
 
@@ -261,7 +271,7 @@ class ValuesManager(Manager):
 
     def setup(self, builder):
         self.logger = builder.logging.get_logger(self.name)
-        self.step_size = builder.time.step_size()
+        self.step_size = builder.time.simulant_step_sizes()
         builder.event.register_listener("post_setup", self.on_post_setup)
 
         self.resources = builder.resources

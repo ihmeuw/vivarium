@@ -206,10 +206,7 @@ def test_SimulationContext_initialize_simulants(SimulationContext, base_config, 
     assert len(pop) == pop_size
     assert sim._clock.time == current_time
 
-    assert np.all(
-        sim._clock.simulant_next_event_times(pop.index)
-        == sim._clock.time + sim._clock.step_size
-    )
+    assert np.all(sim._clock.simulant_next_event_times(pop.index) == sim._clock.event_time)
     assert np.all(sim._clock.simulant_step_sizes(pop.index) == sim._clock.step_size)
 
 
@@ -238,10 +235,7 @@ def test_SimulationContext_step(SimulationContext, log, base_config, components)
     assert listener.collect_metrics_called
 
     assert sim._clock.time == current_time + step_size
-    assert np.all(
-        sim._clock.simulant_next_event_times(pop.index)
-        == sim._clock.time + sim._clock.step_size
-    )
+    assert np.all(sim._clock.simulant_next_event_times(pop.index) == sim._clock.event_time)
     assert np.all(sim._clock.simulant_step_sizes(pop.index) == sim._clock.step_size)
 
 
