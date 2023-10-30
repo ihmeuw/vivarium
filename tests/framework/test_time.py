@@ -127,4 +127,3 @@ def test_unequal_steps(SimulationContext, base_config, components):
     sim.step()
     for index in listener.event_indexes.values():
         assert 7 in index
-    
