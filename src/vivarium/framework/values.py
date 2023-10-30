@@ -109,7 +109,7 @@ def rescale_post_processor(value: NumberLike, time_step: Union[pd.Timedelta, Cal
         The annual rates rescaled to the size of the current time step size.
 
     """
-    if type(time_step) == Callable:
+    if isinstance(time_step, Callable):
         if not hasattr(value, "index"):
             ## TODO MIC-4665 - Accommodate non-indexed values by using global clock
             ## Ideally with keyword args
