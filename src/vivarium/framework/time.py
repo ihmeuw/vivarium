@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from numbers import Number
 from typing import TYPE_CHECKING, Callable, List, Union
 
+import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
@@ -66,7 +67,7 @@ class SimulationClock(Manager):
 
     def setup(self, builder: "Builder"):
         self.step_size_pipeline = builder.value.register_value_producer("simulant_step_size",
-                                                                        source=lambda idx: pd.Series(None, index=idx),
+                                                                        source=lambda idx: pd.Series(np.nan, index=idx),
                                                                         preferred_combiner=list_combiner,
                                                                         preferred_post_processor=step_size_post_processor)
         builder.population.initializes_simulants(

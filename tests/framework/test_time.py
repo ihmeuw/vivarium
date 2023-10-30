@@ -112,3 +112,6 @@ def test_unequal_steps(SimulationContext, base_config, components):
         )
         == pop_size
     )
+
+def test_step_pipeline():
+    pass

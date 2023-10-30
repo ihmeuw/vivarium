@@ -87,7 +87,7 @@ def list_combiner(value: List, mutator: Callable, *args: Any, **kwargs: Any) -> 
     return value
 
 
-def rescale_post_processor(value: NumberLike, time_step: pd.Timedelta):
+def rescale_post_processor(value: NumberLike, manager: ValuesManager):
     """Rescales annual rates to time-step appropriate rates.
 
     This should only be used with a simulation using a
@@ -110,10 +110,10 @@ def rescale_post_processor(value: NumberLike, time_step: pd.Timedelta):
         The annual rates rescaled to the size of the current time step size.
 
     """
-    return from_yearly(value, time_step)
+    return from_yearly(value, manager.time_step)
 
 
-def union_post_processor(values: List[NumberLike], _) -> NumberLike:
+def union_post_processor(values: List[NumberLike],_) -> NumberLike:
     """Computes a probability on the union of the sample spaces in the values.
 
     Given a list of values where each value is a probability of an independent
@@ -159,13 +159,11 @@ def union_post_processor(values: List[NumberLike], _) -> NumberLike:
     joint_value = 1 - product
     return joint_value
 
-def step_size_post_processor(values: List[NumberLike], time_steps: Callable) -> NumberLike:
+def step_size_post_processor(values: List[NumberLike], manager: ValuesManager) -> NumberLike:
     
-    if not values:
-        ## This is wrong and a placeholder
-        return time_steps
-    ## return series with min of each row in the values list
-    return pd.DataFrame(values).min(axis=0)
+    min_modified = pd.DataFrame(values).min(axis=0)
+    min_global = pd.Series(manager.global_step_size(), index=min_modified.index)
+    return pd.DataFrame([min_modified, min_global]).max(axis=0)
 
 class Pipeline:
     """A tool for building up values across several components.
@@ -245,7 +243,7 @@ class Pipeline:
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
-            return self.post_processor(value, self.manager.step_size())
+            return self.post_processor(value, self.manager)
         if isinstance(value, pd.Series):
             value.name = self.name
 
@@ -268,7 +266,8 @@ class ValuesManager(Manager):
 
     def setup(self, builder):
         self.logger = builder.logging.get_logger(self.name)
-        self.step_size = builder.time.step_size()
+        self.global_step_size = builder.time.step_size()
+        self.simulant_step_size = builder.time.simulant_step_size()
         builder.event.register_listener("post_setup", self.on_post_setup)
 
         self.resources = builder.resources
