@@ -87,7 +87,9 @@ def list_combiner(value: List, mutator: Callable, *args: Any, **kwargs: Any) -> 
     return value
 
 
-def rescale_post_processor(value: NumberLike, time_step: Union[pd.Timedelta, Callable]) -> NumberLike:
+def rescale_post_processor(
+    value: NumberLike, time_step: Union[pd.Timedelta, Callable]
+) -> NumberLike:
     """Rescales annual rates to time-step appropriate rates.
 
     This should only be used with a simulation using a
@@ -173,25 +175,26 @@ def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
     """Computes the largest feasible step size for each simulant. This is the smallest component-modified
     step size, or the global step size, whichever is larger. If no components modify the step size, we default
     to the global step size.
-    
+
     Parameters
     ----------
     values
         A list of step sizes
     manager
         The values manager
-        
+
     Returns
     -------
     pandas.Series
         The largest feasible step size for each simulant
-    
-    
+
+
     """
     if len(values) == 1:
         return values[0]
     min_modified = pd.DataFrame(values[1:]).min(axis=0)
     return pd.DataFrame([values[0], min_modified]).max(axis=0)
+
 
 class Pipeline:
     """A tool for building up values across several components.

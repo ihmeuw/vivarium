@@ -20,8 +20,8 @@ import pandas as pd
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
-from vivarium.manager import Manager
 from vivarium.framework.values import list_combiner, step_size_post_processor
+from vivarium.manager import Manager
 
 Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
@@ -71,10 +71,12 @@ class SimulationClock(Manager):
         self.population_view = None
 
     def setup(self, builder: "Builder"):
-        self.step_size_pipeline = builder.value.register_value_producer("simulant_step_size",
-                                                                        source=lambda idx: [pd.Series(self.step_size, index=idx)],
-                                                                        preferred_combiner=list_combiner,
-                                                                        preferred_post_processor=step_size_post_processor)
+        self.step_size_pipeline = builder.value.register_value_producer(
+            "simulant_step_size",
+            source=lambda idx: [pd.Series(self.step_size, index=idx)],
+            preferred_combiner=list_combiner,
+            preferred_post_processor=step_size_post_processor,
+        )
         builder.population.initializes_simulants(
             self.on_initialize_simulants, creates_columns=self.columns_created
         )

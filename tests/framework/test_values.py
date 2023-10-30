@@ -7,8 +7,8 @@ from vivarium.framework.values import (
     ValuesManager,
     list_combiner,
     rescale_post_processor,
-    union_post_processor,
     step_size_post_processor,
+    union_post_processor,
 )
 
 
@@ -88,6 +88,7 @@ def test_rescale_post_processor(manager):
     assert np.all(evens == from_yearly(0.5, pd.Timedelta(days=3)))
     assert np.all(odds == from_yearly(0.5, pd.Timedelta(days=5)))
 
+
 def test_step_size_post_processor(manager):
     index = pd.Index(range(10))
 
@@ -97,15 +98,24 @@ def test_step_size_post_processor(manager):
         preferred_combiner=list_combiner,
         preferred_post_processor=step_size_post_processor,
     )
-    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(
-        [pd.Timedelta(days=7) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx], index=idx))
-    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(pd.Timedelta(days=9), index=idx))
+    manager.register_value_modifier(
+        "test",
+        modifier=lambda idx: pd.Series(
+            [pd.Timedelta(days=7) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx],
+            index=idx,
+        ),
+    )
+    manager.register_value_modifier(
+        "test", modifier=lambda idx: pd.Series(pd.Timedelta(days=9), index=idx)
+    )
     value = pipeline(index)
     evens = value.iloc[lambda x: x.index % 2 == 0]
     odds = value.iloc[lambda x: x.index % 2 == 1]
     assert np.all(evens == pd.Timedelta(days=7))
     assert np.all(odds == pd.Timedelta(days=5))
-    
-    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx))
+
+    manager.register_value_modifier(
+        "test", modifier=lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx)
+    )
     value = pipeline(index)
     assert np.all(value == pd.Timedelta(days=2))
