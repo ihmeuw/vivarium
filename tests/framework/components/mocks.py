@@ -91,14 +91,13 @@ class Listener(MockComponentB):
         self.time_step_cleanup_called = False
         self.collect_metrics_called = False
         self.simulation_end_called = False
-        
+
         self.event_indexes = {
             "time_step_prepare": None,
             "time_step": None,
             "time_step_cleanup": None,
             "collect_metrics": None,
         }
-
 
     def on_post_setup(self, event: Event) -> None:
         self.post_setup_called = True

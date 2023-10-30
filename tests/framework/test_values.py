@@ -2,13 +2,13 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import (
     ValuesManager,
     list_combiner,
     rescale_post_processor,
     union_post_processor,
 )
-from vivarium.framework.utilities import from_yearly
 
 
 @pytest.fixture
