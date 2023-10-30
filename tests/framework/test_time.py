@@ -123,7 +123,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
         )
         == pop_size
     )
-    # Check that we actually include 7 in events
+    # Check that we actually include simulant of index 7 in events
     sim.step()
     for index in listener.event_indexes.values():
         assert 7 in index
