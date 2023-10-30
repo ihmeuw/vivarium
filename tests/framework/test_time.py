@@ -88,10 +88,8 @@ def test_unequal_steps(SimulationContext, base_config, components):
 
     # Show that now that the next_event_time is updated, 0th simulant isn't included in events
     sim.step()
-    assert 0 not in listener.time_step_prepare_index
-    assert 0 not in listener.time_step_index
-    assert 0 not in listener.time_step_cleanup_index
-    assert 0 not in listener.collect_metrics_index
+    for index in listener.event_indexes.values():
+        assert 0 not in index
 
     # Check that everybody will step forward next step
     assert (
@@ -105,10 +103,8 @@ def test_unequal_steps(SimulationContext, base_config, components):
     )
     # Check that they are actually included in events
     sim.step()
-    assert 0 in listener.time_step_prepare_index
-    assert 0 in listener.time_step_index
-    assert 0 in listener.time_step_cleanup_index
-    assert 0 in listener.collect_metrics_index
+    for index in listener.event_indexes.values():
+        assert 0 in index
     # Revert change to 0
     sim._population._population.step_size[0] /= 2
     # Still step forward even with a non-integer step size
@@ -127,7 +123,5 @@ def test_unequal_steps(SimulationContext, base_config, components):
     )
     # Check that we actually include 7 in events
     sim.step()
-    assert 7 in listener.time_step_prepare_index
-    assert 7 in listener.time_step_index
-    assert 7 in listener.time_step_cleanup_index
-    assert 7 in listener.collect_metrics_index
+    for index in listener.event_indexes.values():
+        assert 7 in index
