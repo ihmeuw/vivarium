@@ -8,6 +8,7 @@ from vivarium.framework.values import (
     list_combiner,
     rescale_post_processor,
     union_post_processor,
+    step_size_post_processor,
 )
 
 
@@ -15,7 +16,8 @@ from vivarium.framework.values import (
 def manager(mocker):
     manager = ValuesManager()
     builder = mocker.MagicMock()
-    builder.time.simulant_step_sizes = lambda: lambda: lambda idx: pd.Series(
+    builder.time.step_size = lambda: lambda: pd.Timedelta(days=2)
+    builder.time.simulant_step_sizes = lambda: lambda idx: pd.Series(
         [pd.Timedelta(days=3) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx], index=idx
     )
     manager.setup(builder)
@@ -73,7 +75,7 @@ def test_returned_series_name(manager):
     assert value(pd.Index(range(10))).name == "test"
 
 
-def test_rescale_postprocessor(manager):
+def test_rescale_post_processor(manager):
     index = pd.Index(range(10))
 
     pipeline = manager.register_value_producer(
@@ -86,3 +88,25 @@ def test_rescale_postprocessor(manager):
     odds = value.iloc[lambda x: x.index % 2 == 1]
     assert np.all(evens == from_yearly(0.5, pd.Timedelta(days=3)))
     assert np.all(odds == from_yearly(0.5, pd.Timedelta(days=5)))
+
+def test_step_size_post_processor(manager):
+    index = pd.Index(range(10))
+
+    pipeline = manager.register_value_producer(
+        "test",
+        source=lambda idx: [pd.Series(np.nan, index=idx).astype('timedelta64[ns]')],
+        preferred_combiner=list_combiner,
+        preferred_post_processor=step_size_post_processor,
+    )
+    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(
+        [pd.Timedelta(days=7) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx], index=idx))
+    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(pd.Timedelta(days=9), index=idx))
+    value = pipeline(index)
+    evens = value.iloc[lambda x: x.index % 2 == 0]
+    odds = value.iloc[lambda x: x.index % 2 == 1]
+    assert np.all(evens == pd.Timedelta(days=7))
+    assert np.all(odds == pd.Timedelta(days=5))
+    
+    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx))
+    value = pipeline(index)
+    assert np.all(value == pd.Timedelta(days=2))
