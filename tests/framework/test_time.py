@@ -28,7 +28,7 @@ def test_align_times(SimulationContext, base_config, components):
     # After initialization, all simulants should be aligned to event times
     assert (
         len(
-            sim._clock.aligned_pop(
+            sim._clock.get_active_population(
                 sim.get_population().index,
                 sim._clock.event_time,
             )
@@ -40,7 +40,7 @@ def test_align_times(SimulationContext, base_config, components):
     # After one step (and no step adjustments, simulants should still be aligned)
     assert (
         len(
-            sim._clock.aligned_pop(
+            sim._clock.get_active_population(
                 sim.get_population().index,
                 sim._clock.event_time,
             )
@@ -51,13 +51,13 @@ def test_align_times(SimulationContext, base_config, components):
 
     sim.step()
     # No simulants should be aligned after a step size adjustment
-    assert sim._clock.aligned_pop(sim.get_population().index, sim._clock.event_time).empty
+    assert sim._clock.get_active_population(sim.get_population().index, sim._clock.event_time).empty
 
     sim.step()
     # Now they should be aligned again
     assert (
         len(
-            sim._clock.aligned_pop(
+            sim._clock.get_active_population(
                 sim.get_population().index,
                 sim._clock.event_time,
             )
@@ -78,7 +78,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
     sim.step()
     assert (
         len(
-            sim._clock.aligned_pop(
+            sim._clock.get_active_population(
                 sim.get_population().index,
                 sim._clock.event_time,
             )
@@ -96,7 +96,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
     # Check that everybody will step forward next step
     assert (
         len(
-            sim._clock.aligned_pop(
+            sim._clock.get_active_population(
                 sim.get_population().index,
                 sim._clock.event_time,
             )
@@ -118,7 +118,7 @@ def test_unequal_steps(SimulationContext, base_config, components):
     # Check that next step, we will still update all
     assert (
         len(
-            sim._clock.aligned_pop(
+            sim._clock.get_active_population(
                 sim.get_population().index,
                 sim._clock.event_time,
             )

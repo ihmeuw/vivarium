@@ -271,7 +271,7 @@ class ValuesManager(Manager):
 
     def setup(self, builder):
         self.logger = builder.logging.get_logger(self.name)
-        self.step_size = builder.time.simulant_step_sizes
+        self.step_size = builder.time.simulant_step_sizes()
         builder.event.register_listener("post_setup", self.on_post_setup)
 
         self.resources = builder.resources

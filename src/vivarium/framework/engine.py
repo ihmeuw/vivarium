@@ -237,7 +237,7 @@ class SimulationContext:
         self._logger.debug(self._clock.time)
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
-            pop_to_update = self._clock.aligned_pop(
+            pop_to_update = self._clock.get_active_population(
                 self._population.get_population(True).index,
                 self._clock.event_time,
             )

@@ -14,7 +14,7 @@ from vivarium.framework.values import (
 def manager(mocker):
     manager = ValuesManager()
     builder = mocker.MagicMock()
-    builder.time.simulant_step_sizes = lambda: lambda idx: pd.Series(
+    builder.time.simulant_step_sizes = lambda: lambda: lambda idx: pd.Series(
         pd.Timedelta(days=3), index=idx
     )
     manager.setup(builder)
