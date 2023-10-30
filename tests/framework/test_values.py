@@ -2,14 +2,22 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from vivarium.framework.values import ValuesManager, list_combiner, union_post_processor
+from vivarium.framework.utilities import from_yearly
+from vivarium.framework.values import (
+    ValuesManager,
+    list_combiner,
+    rescale_post_processor,
+    union_post_processor,
+)
 
 
 @pytest.fixture
 def manager(mocker):
     manager = ValuesManager()
     builder = mocker.MagicMock()
-    builder.step_size = lambda: lambda: pd.Timedelta(days=1)
+    builder.time.simulant_step_sizes = lambda: lambda: lambda idx: pd.Series(
+        [pd.Timedelta(days=3) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx], index=idx
+    )
     manager.setup(builder)
     return manager
 
@@ -63,3 +71,18 @@ def test_returned_series_name(manager):
         source=lambda idx: pd.Series(0.0, index=idx),
     )
     assert value(pd.Index(range(10))).name == "test"
+
+
+def test_rescale_postprocessor(manager):
+    index = pd.Index(range(10))
+
+    pipeline = manager.register_value_producer(
+        "test",
+        source=lambda idx: pd.Series(0.5, index=idx),
+        preferred_post_processor=rescale_post_processor,
+    )
+    value = pipeline(index)
+    evens = value.iloc[lambda x: x.index % 2 == 0]
+    odds = value.iloc[lambda x: x.index % 2 == 1]
+    assert np.all(evens == from_yearly(0.5, pd.Timedelta(days=3)))
+    assert np.all(odds == from_yearly(0.5, pd.Timedelta(days=5)))

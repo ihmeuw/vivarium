@@ -110,7 +110,17 @@ def rescale_post_processor(value: NumberLike, manager: ValuesManager):
         The annual rates rescaled to the size of the current time step size.
 
     """
-    return from_yearly(value, manager.time_step)
+    if isinstance(time_step, Callable):
+        if not hasattr(value, "index"):
+            ## TODO MIC-4665 - Accommodate non-indexed values by using global clock
+            ## Ideally with keyword args
+            raise ValueError(
+                "Using a rescale post-processor with individual clocks"
+                "requires a pipeline with indexed values."
+            )
+
+        time_step = time_step(value.index).dt
+    return from_yearly(value, time_step)
 
 
 def union_post_processor(values: List[NumberLike],_) -> NumberLike:
