@@ -87,7 +87,7 @@ def list_combiner(value: List, mutator: Callable, *args: Any, **kwargs: Any) -> 
     return value
 
 
-def rescale_post_processor(value: NumberLike, manager: 'ValuesManager'):
+def rescale_post_processor(value: NumberLike, time_step: Union[pd.Timedelta, Callable]) -> NumberLike:
     """Rescales annual rates to time-step appropriate rates.
 
     This should only be used with a simulation using a
@@ -109,7 +109,8 @@ def rescale_post_processor(value: NumberLike, manager: 'ValuesManager'):
         The annual rates rescaled to the size of the current time step size.
 
     """
-    if not hasattr(value, "index"):
+    if type(time_step, Callable):
+        if not hasattr(value, "index"):
             ## TODO MIC-4665 - Accommodate non-indexed values by using global clock
             ## Ideally with keyword args
             raise ValueError(
@@ -117,7 +118,7 @@ def rescale_post_processor(value: NumberLike, manager: 'ValuesManager'):
                 "requires a pipeline with indexed values."
             )
 
-    time_step = manager.simulant_step_sizes(value.index).dt
+        time_step = time_step(value.index).dt
     return from_yearly(value, time_step)
 
 
@@ -167,29 +168,6 @@ def union_post_processor(values: List[NumberLike], _) -> NumberLike:
     joint_value = 1 - product
     return joint_value
 
-# def step_size_post_processor(values: List[NumberLike], manager: 'ValuesManager') -> pd.Series:
-#     """Computes the largest feasible step size for each simulant. This is the smallest component-modified
-#     step size, or the global step size, whichever is larger. If no components modify the step size, we default
-#     to the global step size.
-    
-#     Parameters
-#     ----------
-#     values
-#         A list of step sizes
-#     manager
-#         The values manager
-        
-#     Returns
-#     -------
-#     pandas.Series
-#         The largest feasible step size for each simulant
-    
-    
-#     """
-    
-#     min_modified = pd.DataFrame(values).min(axis=0).astype('timedelta64[ns]')
-#     min_global = pd.Series(manager.global_step_size(), index=min_modified.index)
-#     return pd.DataFrame([min_modified, min_global]).max(axis=0)
 
 def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
     """Computes the largest feasible step size for each simulant. This is the smallest component-modified
