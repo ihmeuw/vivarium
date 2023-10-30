@@ -72,7 +72,7 @@ class SimulationClock(Manager):
 
     def setup(self, builder: "Builder"):
         self.step_size_pipeline = builder.value.register_value_producer("simulant_step_size",
-                                                                        source=lambda idx: pd.Series(np.nan, index=idx),
+                                                                        source=lambda idx: [pd.Series(np.nan, index=idx).astype('timedelta64[ns]')],
                                                                         preferred_combiner=list_combiner,
                                                                         preferred_post_processor=step_size_post_processor)
         builder.population.initializes_simulants(
@@ -197,8 +197,8 @@ class TimeInterface:
 
     def simulant_next_event_times(self) -> Callable[[pd.Index], pd.Series]:
         """Gets a callable that returns the current simulation step size."""
-        return lambda: self._manager.simulant_next_event_times
+        return self._manager.simulant_next_event_times
 
     def simulant_step_sizes(self) -> Callable[[pd.Index], pd.Series]:
         """Gets a callable that returns the current simulation step size."""
-        return lambda: self._manager.simulant_step_sizes
+        return self._manager.simulant_step_sizes
