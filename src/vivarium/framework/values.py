@@ -167,7 +167,31 @@ def union_post_processor(values: List[NumberLike], _) -> NumberLike:
     joint_value = 1 - product
     return joint_value
 
-def step_size_post_processor(values: List[NumberLike], manager: 'ValuesManager') -> pd.Series:
+# def step_size_post_processor(values: List[NumberLike], manager: 'ValuesManager') -> pd.Series:
+#     """Computes the largest feasible step size for each simulant. This is the smallest component-modified
+#     step size, or the global step size, whichever is larger. If no components modify the step size, we default
+#     to the global step size.
+    
+#     Parameters
+#     ----------
+#     values
+#         A list of step sizes
+#     manager
+#         The values manager
+        
+#     Returns
+#     -------
+#     pandas.Series
+#         The largest feasible step size for each simulant
+    
+    
+#     """
+    
+#     min_modified = pd.DataFrame(values).min(axis=0).astype('timedelta64[ns]')
+#     min_global = pd.Series(manager.global_step_size(), index=min_modified.index)
+#     return pd.DataFrame([min_modified, min_global]).max(axis=0)
+
+def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
     """Computes the largest feasible step size for each simulant. This is the smallest component-modified
     step size, or the global step size, whichever is larger. If no components modify the step size, we default
     to the global step size.
@@ -186,9 +210,10 @@ def step_size_post_processor(values: List[NumberLike], manager: 'ValuesManager')
     
     
     """
-    min_modified = pd.DataFrame(values).min(axis=0)
-    min_global = pd.Series(manager.global_step_size(), index=min_modified.index)
-    return pd.DataFrame([min_modified, min_global]).max(axis=0)
+    if len(values) == 1:
+        return values[0]
+    min_modified = pd.DataFrame(values[1:]).min(axis=0)
+    return pd.DataFrame([values[0], min_modified]).max(axis=0)
 
 class Pipeline:
     """A tool for building up values across several components.

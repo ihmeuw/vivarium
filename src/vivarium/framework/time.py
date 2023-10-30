@@ -72,7 +72,7 @@ class SimulationClock(Manager):
 
     def setup(self, builder: "Builder"):
         self.step_size_pipeline = builder.value.register_value_producer("simulant_step_size",
-                                                                        source=lambda idx: [pd.Series(np.nan, index=idx).astype('timedelta64[ns]')],
+                                                                        source=lambda idx: [pd.Series(self.step_size, index=idx)],
                                                                         preferred_combiner=list_combiner,
                                                                         preferred_post_processor=step_size_post_processor)
         builder.population.initializes_simulants(

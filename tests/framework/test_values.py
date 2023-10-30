@@ -94,7 +94,7 @@ def test_step_size_post_processor(manager):
 
     pipeline = manager.register_value_producer(
         "test",
-        source=lambda idx: [pd.Series(np.nan, index=idx).astype('timedelta64[ns]')],
+        source=lambda idx: [pd.Series(pd.Timedelta(days=2), index=idx)],
         preferred_combiner=list_combiner,
         preferred_post_processor=step_size_post_processor,
     )
