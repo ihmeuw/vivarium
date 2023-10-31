@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import math
 import pytest
 
 from vivarium.framework.engine import SimulationContext as SimulationContext_
@@ -28,18 +29,17 @@ def components():
 
 
 class StepModifier(MockGenericComponent):
+    def __init__(self, name, step_modifier):
+        super().__init__(name)
+        self.step_modifier = step_modifier
+        
     def setup(self, builder) -> None:
         super().setup(builder)
         builder.value.register_value_modifier("simulant_step_size", self.modify_step)
-        self.step_counter = 0
-        self.ts_step_sizes = {1: 2, 3: 0.5, 4: 5}
-
-    def on_time_step(self, event) -> None:
-        self.step_counter += 1
 
     def modify_step(self, index):
         return pd.Series(
-            pd.Timedelta(days=self.ts_step_sizes.get(self.step_counter, 1)), index=index
+            pd.Timedelta(days=self.step_modifier), index=index
         )
 
 
@@ -135,9 +135,9 @@ def test_step_pipeline(SimulationContext, base_config, components):
     assert np.all(pipeline() == column())
     assert len(active_simulants()) == pop_size
 
-
-def test_step_pipeline_with_modifier(SimulationContext, base_config, components):
-    sim = SimulationContext(base_config, [StepModifier("step_modifier")])
+@pytest.mark.parametrize("step_modifier", [0.5, 1, 2, 3, 5])
+def test_step_pipeline_with_modifier(SimulationContext, base_config, step_modifier):
+    sim = SimulationContext(base_config, [StepModifier("step_modifier", step_modifier)])
     sim.setup()
     sim.initialize_simulants()
     pop_size = len(sim.get_population())
@@ -149,38 +149,26 @@ def test_step_pipeline_with_modifier(SimulationContext, base_config, components)
         sim._population.get_population(True).index
     )
     column = lambda: sim._population._population.step_size
-
-    ## Timestep 0: everyone should update
-    assert np.all(pipeline() == column())
-    assert len(active_simulants()) == pop_size
-
-    ## Timestep 1: everyone should update, but step size should change to 2
-    sim.step()
-    assert np.all(pipeline() == column())
-    assert len(active_simulants()) == pop_size
-
-    ## Timestep 2: nobody should update
-    sim.step()
-    assert np.all(pipeline() == column())
-    assert active_simulants().empty
-
-    ## Timestep 3: everyone should update, but step size should change to 0.5
-    sim.step()
-    assert np.all(pipeline() == column())
-    assert len(active_simulants()) == pop_size
-
-    ## Timestep 4: Everyone should update, but step size should change to 5
-    sim.step()
-    assert np.all(pipeline() == column())
-    assert len(active_simulants()) == pop_size
-
-    ## Timestep 5-8: Nobody should update
-    for _ in range(4):
+    ## Nobody Should update here.
+    ## We subtract two steps, one for initialization
+    ## and one for the last step of the modified range
+    for _ in range(math.ceil(step_modifier) -2):
         sim.step()
         assert np.all(pipeline() == column())
         assert active_simulants().empty
 
-    ## Timestep 9: Everyone should update again
+    ## Everyone should update again
+    sim.step()
+    assert np.all(pipeline() == column())
+    assert len(active_simulants()) == pop_size
+    
+    ## We do it again, but with only one step subtracted
+    for _ in range(math.ceil(step_modifier) -1):
+        sim.step()
+        assert np.all(pipeline() == column())
+        assert active_simulants().empty
+        
+    ## Everyone should update again
     sim.step()
     assert np.all(pipeline() == column())
     assert len(active_simulants()) == pop_size
