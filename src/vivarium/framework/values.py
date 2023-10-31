@@ -192,7 +192,7 @@ def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
     """
     if len(values) == 1:
         return values[0]
-    min_modified = pd.DataFrame(values[1:]).min(axis=0)
+    min_modified = pd.DataFrame(values[1:]).min(axis=0).astype("timedelta64[ns]")
     return pd.DataFrame([values[0], min_modified]).max(axis=0)
 
 
