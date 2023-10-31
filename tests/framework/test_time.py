@@ -135,7 +135,7 @@ def test_step_pipeline(SimulationContext, base_config, components):
     assert np.all(pipeline() == column())
     assert len(active_simulants()) == pop_size
 
-@pytest.mark.parametrize("step_modifier", [0.5, 1, 2, 3, 5])
+@pytest.mark.parametrize("step_modifier", [0.5, 1, 2, 3.5, 5])
 def test_step_pipeline_with_modifier(SimulationContext, base_config, step_modifier):
     sim = SimulationContext(base_config, [StepModifier("step_modifier", step_modifier)])
     sim.setup()
