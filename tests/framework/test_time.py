@@ -1,6 +1,7 @@
+import math
+
 import numpy as np
 import pandas as pd
-import math
 import pytest
 
 from vivarium.framework.engine import SimulationContext as SimulationContext_
