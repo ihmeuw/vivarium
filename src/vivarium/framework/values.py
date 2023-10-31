@@ -102,8 +102,9 @@ def rescale_post_processor(
         Annual rates, either as a number or something we can broadcast
         multiplication over like a :mod:`numpy` array or :mod:`pandas`
         data frame.
-    manager
-        The values manager. May use global and local step sizes
+    time_step
+        A pandas time delta representing the size of the upcoming time
+        step.
 
     Returns
     -------
@@ -180,8 +181,6 @@ def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
     ----------
     values
         A list of step sizes
-    manager
-        The values manager
 
     Returns
     -------
