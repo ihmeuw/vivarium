@@ -32,15 +32,13 @@ class StepModifier(MockGenericComponent):
     def __init__(self, name, step_modifier):
         super().__init__(name)
         self.step_modifier = step_modifier
-        
+
     def setup(self, builder) -> None:
         super().setup(builder)
         builder.value.register_value_modifier("simulant_step_size", self.modify_step)
 
     def modify_step(self, index):
-        return pd.Series(
-            pd.Timedelta(days=self.step_modifier), index=index
-        )
+        return pd.Series(pd.Timedelta(days=self.step_modifier), index=index)
 
 
 def test_align_times(SimulationContext, base_config, components):
@@ -135,6 +133,7 @@ def test_step_pipeline(SimulationContext, base_config, components):
     assert np.all(pipeline() == column())
     assert len(active_simulants()) == pop_size
 
+
 @pytest.mark.parametrize("step_modifier", [0.5, 1, 2, 3.5, 5])
 def test_step_pipeline_with_modifier(SimulationContext, base_config, step_modifier):
     sim = SimulationContext(base_config, [StepModifier("step_modifier", step_modifier)])
@@ -152,7 +151,7 @@ def test_step_pipeline_with_modifier(SimulationContext, base_config, step_modifi
     ## Nobody Should update here.
     ## We subtract two steps, one for initialization
     ## and one for the last step of the modified range
-    for _ in range(math.ceil(step_modifier) -2):
+    for _ in range(math.ceil(step_modifier) - 2):
         sim.step()
         assert np.all(pipeline() == column())
         assert active_simulants().empty
@@ -161,13 +160,13 @@ def test_step_pipeline_with_modifier(SimulationContext, base_config, step_modifi
     sim.step()
     assert np.all(pipeline() == column())
     assert len(active_simulants()) == pop_size
-    
+
     ## We do it again, but with only one step subtracted
-    for _ in range(math.ceil(step_modifier) -1):
+    for _ in range(math.ceil(step_modifier) - 1):
         sim.step()
         assert np.all(pipeline() == column())
         assert active_simulants().empty
-        
+
     ## Everyone should update again
     sim.step()
     assert np.all(pipeline() == column())
