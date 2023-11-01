@@ -82,10 +82,11 @@ class DiseaseState(State):
     # Lifecycle methods #
     #####################
 
-    def __init__(self, state_id: str, cause_key: str, with_excess_mortality: bool = False):
+    def __init__(self, state_id: str, cause_key: str, with_excess_mortality: bool = False, speed_clock: bool = True):
         super().__init__(state_id)
         self._cause_key = cause_key
         self._with_excess_mortality = with_excess_mortality
+        self.speed_clock = speed_clock
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder):
@@ -118,6 +119,8 @@ class DiseaseState(State):
         )
 
         builder.value.register_value_modifier("mortality_rate", self.add_in_excess_mortality)
+        if self.speed_clock:
+            builder.value.register_value_modifier("simulant_step_size", self.adjust_step_size)
 
     ##################
     # Public methods #
@@ -146,6 +149,13 @@ class DiseaseState(State):
         mortality_rates.loc[affected.index] += self.excess_mortality_rate(affected.index)
 
         return mortality_rates
+    
+    def adjust_step_size(self, index: pd.Index) -> pd.Series:
+        affected = self.population_view.get(index)
+        transition_rates = pd.DataFrame([transition.transition_rate(affected.index) for transition in self.transition_set])
+        step_sizes = transition_rates.rdiv(1)
+        return step_sizes.min(axis=0)
+        
 
 
 class DiseaseModel(Machine):
