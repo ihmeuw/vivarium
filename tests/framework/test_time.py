@@ -149,11 +149,11 @@ def test_step_pipeline_with_modifier(SimulationContext, base_config, step_modifi
         sim._population.get_population(True).index
     )
     column = lambda: sim._population._population.step_size
-    
+
     ## Everyone starts active
     assert np.all(pipeline() == column())
     assert len(active_simulants()) == pop_size
-    
+
     ## Go through a couple simulant step cycles
     for _ in range(2):
         for _ in range(math.ceil(step_modifier) - 1):
