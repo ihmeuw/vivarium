@@ -149,26 +149,21 @@ def test_step_pipeline_with_modifier(SimulationContext, base_config, step_modifi
         sim._population.get_population(True).index
     )
     column = lambda: sim._population._population.step_size
-    ## Nobody Should update here.
-    ## We subtract two steps, one for initialization
-    ## and one for the last step of the modified range
-    for _ in range(math.ceil(step_modifier) - 2):
-        sim.step()
-        assert np.all(pipeline() == column())
-        assert active_simulants().empty
-
-    ## Everyone should update again
-    sim.step()
+    
+    ## Everyone starts active
     assert np.all(pipeline() == column())
     assert len(active_simulants()) == pop_size
+    
+    ## Go through a couple simulant step cycles
+    for _ in range(2):
+        for _ in range(math.ceil(step_modifier) - 1):
+            ## Nobody Should update here.
+            ## We subtract  a step for the last step of the modified range
+            sim.step()
+            assert np.all(pipeline() == column())
+            assert active_simulants().empty
 
-    ## We do it again, but with only one step subtracted
-    for _ in range(math.ceil(step_modifier) - 1):
+        ## Everyone should update again
         sim.step()
         assert np.all(pipeline() == column())
-        assert active_simulants().empty
-
-    ## Everyone should update again
-    sim.step()
-    assert np.all(pipeline() == column())
-    assert len(active_simulants()) == pop_size
+        assert len(active_simulants()) == pop_size
