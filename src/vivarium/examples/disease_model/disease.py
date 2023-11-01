@@ -82,11 +82,11 @@ class DiseaseState(State):
     # Lifecycle methods #
     #####################
 
-    def __init__(self, state_id: str, cause_key: str, with_excess_mortality: bool = False, speed_clock: bool = True):
+    def __init__(self, state_id: str, cause_key: str, with_excess_mortality: bool = False, step_size: pd.Timedelta = None):
         super().__init__(state_id)
         self._cause_key = cause_key
         self._with_excess_mortality = with_excess_mortality
-        self.speed_clock = speed_clock
+        self.step_size = step_size
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder):
@@ -119,8 +119,8 @@ class DiseaseState(State):
         )
 
         builder.value.register_value_modifier("mortality_rate", self.add_in_excess_mortality)
-        if self.speed_clock:
-            builder.value.register_value_modifier("simulant_step_size", self.adjust_step_size)
+        if self.step_size:
+            builder.value.register_value_modifier("simulant_step_size", self.adjust_step_size, requires_columns=self.columns_required)
 
     ##################
     # Public methods #
@@ -152,9 +152,7 @@ class DiseaseState(State):
     
     def adjust_step_size(self, index: pd.Index) -> pd.Series:
         affected = self.population_view.get(index)
-        transition_rates = pd.DataFrame([transition.transition_rate(affected.index) for transition in self.transition_set])
-        step_sizes = transition_rates.rdiv(1)
-        return step_sizes.min(axis=0)
+        return pd.Series(self.step_size, index=affected.index)
         
 
 
@@ -242,7 +240,7 @@ class SISDiseaseModel(Component):
             disease_name: SISDiseaseModel.configuration_defaults["disease"]
         }
 
-        susceptible_state = DiseaseState(f"susceptible_to_{self._name}", self._name)
+        susceptible_state = DiseaseState(f"susceptible_to_{self._name}", self._name, step_size= pd.Timedelta(days=3))
         infected_state = DiseaseState(
             f"infected_with_{self._name}", self._name, with_excess_mortality=True
         )
