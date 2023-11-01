@@ -87,7 +87,7 @@ class SimulationClock(Manager):
         simulant_clocks = pd.DataFrame(
             {
                 "next_event_time": [self.event_time] * len(pop_data.index),
-                "step_size": self.step_size_pipeline(pop_data.index),
+                "step_size": [self.step_size] * len(pop_data.index),
             },
             index=pop_data.index,
         )
