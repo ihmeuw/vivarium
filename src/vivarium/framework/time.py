@@ -14,15 +14,41 @@ from datetime import datetime, timedelta
 from numbers import Number
 from typing import TYPE_CHECKING, Callable, List, Union
 
+import numpy as np
 import pandas as pd
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
+from vivarium.framework.values import list_combiner
 from vivarium.manager import Manager
 
 Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
+NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
+
+
+def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
+    """Computes the largest feasible step size for each simulant. This is the smallest component-modified
+    step size, or the global step size, whichever is larger. If no components modify the step size, we default
+    to the global step size.
+
+    Parameters
+    ----------
+    values
+        A list of step sizes
+
+    Returns
+    -------
+    pandas.Series
+        The largest feasible step size for each simulant
+
+
+    """
+    if len(values) == 1:
+        return values[0]
+    min_modified = pd.DataFrame(values[1:]).min(axis=0).astype("timedelta64[ns]")
+    return pd.DataFrame([values[0], min_modified]).max(axis=0)
 
 
 class SimulationClock(Manager):
@@ -69,6 +95,12 @@ class SimulationClock(Manager):
         self.population_view = None
 
     def setup(self, builder: "Builder"):
+        self.step_size_pipeline = builder.value.register_value_producer(
+            "simulant_step_size",
+            source=lambda idx: [pd.Series(self.step_size, index=idx)],
+            preferred_combiner=list_combiner,
+            preferred_post_processor=step_size_post_processor,
+        )
         builder.population.initializes_simulants(
             self.on_initialize_simulants, creates_columns=self.columns_created
         )
@@ -106,6 +138,7 @@ class SimulationClock(Manager):
         event_time = self.event_time
         pop_to_update = self.get_active_population(index, event_time)
         pop_to_update["next_event_time"] = event_time + pop_to_update["step_size"]
+        pop_to_update["step_size"] = self.step_size_pipeline(pop_to_update.index)
         self.population_view.update(pop_to_update)
         self._clock_time += self.step_size
 

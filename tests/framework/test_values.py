@@ -73,7 +73,7 @@ def test_returned_series_name(manager):
     assert value(pd.Index(range(10))).name == "test"
 
 
-def test_rescale_postprocessor(manager):
+def test_rescale_post_processor(manager):
     index = pd.Index(range(10))
 
     pipeline = manager.register_value_producer(
