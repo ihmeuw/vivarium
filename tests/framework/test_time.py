@@ -176,6 +176,8 @@ def test_step_size_post_processor(manager):
         preferred_combiner=list_combiner,
         preferred_post_processor=step_size_post_processor,
     )
+    
+    ## Add modifier that set the step size to 7 for even indices and 5 for odd indices
     manager.register_value_modifier(
         "test_step_size",
         modifier=lambda idx: pd.Series(
@@ -183,12 +185,15 @@ def test_step_size_post_processor(manager):
             index=idx,
         ),
     )
+    ## Add modifier that sets the step size to 9 for all simulants
     manager.register_value_modifier(
         "test_step_size", modifier=lambda idx: pd.Series(pd.Timedelta(days=9), index=idx)
     )
     value = pipeline(index)
     evens = value.iloc[lambda x: x.index % 2 == 0]
     odds = value.iloc[lambda x: x.index % 2 == 1]
+    
+    ## The second modifier shouldn't have an effect, since the first has str
     assert np.all(evens == pd.Timedelta(days=7))
     assert np.all(odds == pd.Timedelta(days=5))
 
