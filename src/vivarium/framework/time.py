@@ -27,30 +27,6 @@ Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
 NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
 
-
-def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
-    """Computes the largest feasible step size for each simulant. This is the smallest component-modified
-    step size, or the global step size, whichever is larger. If no components modify the step size, we default
-    to the global step size.
-
-    Parameters
-    ----------
-    values
-        A list of step sizes
-
-    Returns
-    -------
-    pandas.Series
-        The largest feasible step size for each simulant
-
-
-    """
-    if len(values) == 1:
-        return values[0]
-    min_modified = pd.DataFrame(values[1:]).min(axis=0).astype("timedelta64[ns]")
-    return pd.DataFrame([values[0], min_modified]).max(axis=0)
-
-
 class SimulationClock(Manager):
     """A base clock that includes global clock and a pandas series of clocks for each simulant"""
 
@@ -99,7 +75,7 @@ class SimulationClock(Manager):
             "simulant_step_size",
             source=lambda idx: [pd.Series(self.step_size, index=idx)],
             preferred_combiner=list_combiner,
-            preferred_post_processor=step_size_post_processor,
+            preferred_post_processor=self.step_size_post_processor,
         )
         builder.population.initializes_simulants(
             self.on_initialize_simulants, creates_columns=self.columns_created
@@ -138,14 +114,43 @@ class SimulationClock(Manager):
         event_time = self.event_time
         pop_to_update = self.get_active_population(index, event_time)
         pop_to_update["next_event_time"] = event_time + pop_to_update["step_size"]
-        pop_to_update["step_size"] = self.step_size_pipeline(pop_to_update.index)
+        
+        new_step_sizes = self.step_size_pipeline(pop_to_update.index)
+        pop_to_update["step_size"]  = new_step_sizes
         self.population_view.update(pop_to_update)
-        self._clock_time += self.step_size
+        self._clock_time += new_step_sizes.min()
 
     def get_active_population(self, index: pd.Index, time: Time):
         """Gets population that is aligned with global clock"""
         pop = self.population_view.get(index)
         return pop[pop.next_event_time <= time]
+    
+    @staticmethod
+    def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
+        """Computes the largest feasible step size for each simulant. This is the smallest component-modified
+        step size, or the global step size, whichever is larger. If no components modify the step size, we default
+        to the global step size.
+
+        Parameters
+        ----------
+        values
+            A list of step sizes
+
+        Returns
+        -------
+        pandas.Series
+            The largest feasible step size for each simulant
+
+
+        """
+        source = values[0]
+        if len(values) == 1:
+            return source
+        modifiers = values[1:]
+        min_modified = pd.DataFrame(modifiers).min(axis=0).astype("timedelta64[ns]")
+        raw_step_sizes = pd.DataFrame([source, min_modified]).max(axis=0)
+        ## Rescale pipeline values to global step size
+        return np.ceil(raw_step_sizes / source) * source
 
 
 class SimpleClock(SimulationClock):

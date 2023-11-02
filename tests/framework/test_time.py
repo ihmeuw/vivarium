@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from vivarium.framework.engine import SimulationContext as SimulationContext_
-from vivarium.framework.time import step_size_post_processor
+from vivarium.framework.time import SimulationClock
 from vivarium.framework.values import ValuesManager, list_combiner
 
 from .components.mocks import (
@@ -70,6 +70,7 @@ class StepModifier(MockGenericComponent):
 
 
 def test_align_times(SimulationContext, base_config, components):
+    base_config["time"]["step_size"] = 1
     sim = SimulationContext(base_config, components)
     sim.setup()
     sim.initialize_simulants()
@@ -143,6 +144,7 @@ def test_step_pipeline(SimulationContext, base_config, components):
 
 @pytest.mark.parametrize("step_modifier", [0.5, 1, 2, 3.5, 5])
 def test_step_pipeline_with_modifier(SimulationContext, base_config, step_modifier):
+    base_config["time"]["step_size"] = 1
     sim = SimulationContext(base_config, [StepModifier("step_modifier", step_modifier)])
     sim.setup()
     sim.initialize_simulants()
@@ -174,7 +176,7 @@ def test_step_size_post_processor(manager):
         "test_step_size",
         source=lambda idx: [pd.Series(pd.Timedelta(days=2), index=idx)],
         preferred_combiner=list_combiner,
-        preferred_post_processor=step_size_post_processor,
+        preferred_post_processor=SimulationClock.step_size_post_processor,
     )
 
     ## Add modifier that set the step size to 7 for even indices and 5 for odd indices
@@ -194,8 +196,8 @@ def test_step_size_post_processor(manager):
     odds = value.iloc[lambda x: x.index % 2 == 1]
 
     ## The second modifier shouldn't have an effect, since the first has str
-    assert np.all(evens == pd.Timedelta(days=7))
-    assert np.all(odds == pd.Timedelta(days=5))
+    assert np.all(evens == pd.Timedelta(days=8))
+    assert np.all(odds == pd.Timedelta(days=6))
 
     manager.register_value_modifier(
         "test_step_size", modifier=lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx)
