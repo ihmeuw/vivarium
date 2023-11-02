@@ -198,7 +198,7 @@ def test_step_size_post_processor(manager):
     assert np.all(odds == pd.Timedelta(days=5))
 
     manager.register_value_modifier(
-        "test", modifier=lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx)
+        "test_step_size", modifier=lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx)
     )
     value = pipeline(index)
     assert np.all(value == pd.Timedelta(days=2))
