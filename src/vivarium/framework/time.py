@@ -20,11 +20,35 @@ import pandas as pd
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
-from vivarium.framework.values import list_combiner, step_size_post_processor
+from vivarium.framework.values import list_combiner
 from vivarium.manager import Manager
 
 Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
+NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
+
+
+def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
+    """Computes the largest feasible step size for each simulant. This is the smallest component-modified
+    step size, or the global step size, whichever is larger. If no components modify the step size, we default
+    to the global step size.
+
+    Parameters
+    ----------
+    values
+        A list of step sizes
+
+    Returns
+    -------
+    pandas.Series
+        The largest feasible step size for each simulant
+
+
+    """
+    if len(values) == 1:
+        return values[0]
+    min_modified = pd.DataFrame(values[1:]).min(axis=0).astype("timedelta64[ns]")
+    return pd.DataFrame([values[0], min_modified]).max(axis=0)
 
 
 class SimulationClock(Manager):
