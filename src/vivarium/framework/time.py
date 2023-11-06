@@ -58,6 +58,14 @@ class SimulationClock(Manager):
         if not self._clock_step_size:
             raise ValueError("No step size provided")
         return self._clock_step_size
+    
+    @property
+    def min_step_size(self) -> Timedelta:
+        """The minimum step size."""
+        if not self._min_step_size:
+            raise ValueError("No step size provided")
+        return self._min_step_size
+
 
     @property
     def event_time(self) -> Time:
@@ -68,12 +76,13 @@ class SimulationClock(Manager):
         self._clock_time = None
         self._stop_time = None
         self._clock_step_size = None
+        self._min_step_size = None
         self.population_view = None
 
     def setup(self, builder: "Builder"):
         self.step_size_pipeline = builder.value.register_value_producer(
             "simulant_step_size",
-            source=lambda idx: [pd.Series(self.step_size, index=idx)],
+            source=lambda idx: [pd.Series(self.min_step_size, index=idx)],
             preferred_combiner=list_combiner,
             preferred_post_processor=self.step_size_post_processor,
         )
@@ -113,12 +122,13 @@ class SimulationClock(Manager):
         """Advances the clock by the current step size, and updates aligned simulant clocks."""
         event_time = self.event_time
         pop_to_update = self.get_active_population(index, event_time)
-        pop_to_update["next_event_time"] = event_time + pop_to_update["step_size"]
-        
-        new_step_sizes = self.step_size_pipeline(pop_to_update.index)
-        pop_to_update["step_size"]  = new_step_sizes
-        self.population_view.update(pop_to_update)
-        self._clock_time += new_step_sizes.min()
+        if not pop_to_update.empty:
+            pop_to_update["next_event_time"] = event_time + pop_to_update["step_size"]
+            new_step_sizes = self.step_size_pipeline(pop_to_update.index)
+            pop_to_update["step_size"] = new_step_sizes
+            self.population_view.update(pop_to_update)
+            self._clock_step_size = new_step_sizes.min()
+        self._clock_time += self.step_size
 
     def get_active_population(self, index: pd.Index, time: Time):
         """Gets population that is aligned with global clock"""
@@ -173,6 +183,7 @@ class SimpleClock(SimulationClock):
         self._clock_time = builder.configuration.time.start
         self._stop_time = builder.configuration.time.end
         self._clock_step_size = builder.configuration.time.step_size
+        self._min_step_size = builder.configuration.time.step_size
 
     def __repr__(self):
         return "SimpleClock()"
@@ -209,6 +220,7 @@ class DateTimeClock(SimulationClock):
         self._clock_step_size = pd.Timedelta(
             days=time.step_size // 1, hours=(time.step_size % 1) * 24
         )
+        self._min_step_size = self._clock_step_size
 
     def __repr__(self):
         return "DateTimeClock()"

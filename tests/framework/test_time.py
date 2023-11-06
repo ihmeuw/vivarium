@@ -156,14 +156,7 @@ def test_step_pipeline_with_modifier(SimulationContext, base_config, step_modifi
 
     ## Go through a couple simulant step cycles
     for _ in range(2):
-        for _ in range(math.ceil(step_modifier) - 1):
-            ## Nobody Should update here.
-            ## We subtract  a step for the last step of the modified range
-            sim.step()
-            assert np.all(step_pipeline(sim) == step_column(sim))
-            assert active_simulants(sim).empty
-
-        ## Everyone should update again
+        ## Everyone should update, but the step size should change
         sim.step()
         assert np.all(step_pipeline(sim) == step_column(sim))
         assert len(active_simulants(sim)) == pop_size
