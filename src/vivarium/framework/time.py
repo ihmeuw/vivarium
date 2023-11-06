@@ -51,21 +51,20 @@ class SimulationClock(Manager):
         if not self._stop_time:
             raise ValueError("No stop time provided")
         return self._stop_time
-
+    
+    @property
+    def min_step_size(self) -> Timedelta:
+        """The minimum step size."""
+        if not self._min_step_size:
+            raise ValueError("No minimum step size provided")
+        return self._min_step_size
+    
     @property
     def step_size(self) -> Timedelta:
         """The size of the next time step."""
         if not self._clock_step_size:
             raise ValueError("No step size provided")
         return self._clock_step_size
-    
-    @property
-    def min_step_size(self) -> Timedelta:
-        """The minimum step size."""
-        if not self._min_step_size:
-            raise ValueError("No step size provided")
-        return self._min_step_size
-
 
     @property
     def event_time(self) -> Time:
@@ -75,8 +74,8 @@ class SimulationClock(Manager):
     def __init__(self):
         self._clock_time = None
         self._stop_time = None
-        self._clock_step_size = None
         self._min_step_size = None
+        self._clock_step_size = None
         self.population_view = None
 
     def setup(self, builder: "Builder"):
@@ -182,8 +181,8 @@ class SimpleClock(SimulationClock):
         super().setup(builder)
         self._clock_time = builder.configuration.time.start
         self._stop_time = builder.configuration.time.end
-        self._clock_step_size = builder.configuration.time.step_size
         self._min_step_size = builder.configuration.time.step_size
+        self._clock_step_size = self._min_step_size
 
     def __repr__(self):
         return "SimpleClock()"
@@ -217,10 +216,10 @@ class DateTimeClock(SimulationClock):
         time = builder.configuration.time
         self._clock_time = get_time_stamp(time.start)
         self._stop_time = get_time_stamp(time.end)
-        self._clock_step_size = pd.Timedelta(
+        self._min_step_size = pd.Timedelta(
             days=time.step_size // 1, hours=(time.step_size % 1) * 24
         )
-        self._min_step_size = self._clock_step_size
+        self._clock_step_size = self._min_step_size
 
     def __repr__(self):
         return "DateTimeClock()"
