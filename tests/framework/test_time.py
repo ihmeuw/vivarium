@@ -71,13 +71,14 @@ def take_step(sim):
 
 class StepModifier(MockGenericComponent):
     """This mock component modifies the step size of simulants based on their index
-        Odd simulants get one step size, and even simulants get another.
-        
-        There is also a test pipeline that is registered, whose value is cached to
-        self.ts_pipeline_value every timestep. This is meant to ensure that the 
-        value of a pipeline on a previous timestep was appropriately rescaled
-        to the step that was actually taken.
+    Odd simulants get one step size, and even simulants get another.
+
+    There is also a test pipeline that is registered, whose value is cached to
+    self.ts_pipeline_value every timestep. This is meant to ensure that the
+    value of a pipeline on a previous timestep was appropriately rescaled
+    to the step that was actually taken.
     """
+
     def __init__(self, name, step_modifier_even, step_modifier_odd):
         super().__init__(name)
         self.step_modifier_even = step_modifier_even
