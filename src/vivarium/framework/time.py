@@ -123,10 +123,8 @@ class SimulationClock(Manager):
         self._clock_time += self.step_size
         pop_to_update = self.get_active_population(index, self.time)
         if not pop_to_update.empty:
-            pop_to_update["next_event_time"] = self.time + self.step_size_pipeline(
-                pop_to_update.index
-            )
             pop_to_update["step_size"] = self.step_size_pipeline(pop_to_update.index)
+            pop_to_update["next_event_time"] = self.time + pop_to_update["step_size"]
             self.population_view.update(pop_to_update)
         self._clock_step_size = self.simulant_next_event_times(index).min() - self.time
 
