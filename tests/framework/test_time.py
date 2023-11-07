@@ -5,8 +5,14 @@ import pandas as pd
 import pytest
 
 from vivarium.framework.engine import SimulationContext as SimulationContext_
-from vivarium.framework.time import SimulationClock
-from vivarium.framework.values import ValuesManager, list_combiner
+from vivarium.framework.event import Event
+from vivarium.framework.time import SimulationClock, get_time_stamp
+from vivarium.framework.utilities import from_yearly
+from vivarium.framework.values import (
+    ValuesManager,
+    list_combiner,
+    rescale_post_processor,
+)
 
 from .components.mocks import (
     Listener,
@@ -68,10 +74,19 @@ class StepModifier(MockGenericComponent):
         super().__init__(name)
         self.step_modifier_even = step_modifier_even
         self.step_modifier_odd = step_modifier_odd
+        self.ts_pipeline_value = None
 
     def setup(self, builder) -> None:
         super().setup(builder)
         builder.value.register_value_modifier("simulant_step_size", self.modify_step)
+        self.rate_pipeline = builder.value.register_value_producer(
+            "test_rate",
+            source=lambda idx: pd.Series(1.75, index=idx),
+            preferred_post_processor=rescale_post_processor,
+        )
+
+    def on_time_step(self, event: Event) -> None:
+        self.ts_pipeline_value = self.rate_pipeline(event.index)
 
     def modify_step(self, index):
         return pd.Series(
@@ -91,6 +106,8 @@ def test_basic_iteration(SimulationContext, base_config, components):
     listener = [c for c in components if "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
+    assert sim._clock.time == get_time_stamp(sim.configuration.time.start)
+    assert sim._clock.step_size == pd.Timedelta(days=1)
     pop_size = len(sim.get_population())
     # After initialization, all simulants should be aligned to event times
     assert len(active_simulants(sim)) == pop_size
@@ -169,9 +186,12 @@ def test_uneven_steps(SimulationContext, base_config):
     listener = Listener("listener")
     step_modifier_even = 3
     step_modifier_odd = 7
+    step_modifier_component = StepModifier(
+        "step_modifier", step_modifier_even, step_modifier_odd
+    )
     sim = SimulationContext(
         base_config,
-        [StepModifier("step_modifier", step_modifier_even, step_modifier_odd), listener],
+        [step_modifier_component, listener],
     )
 
     sim.setup()
@@ -184,14 +204,32 @@ def test_uneven_steps(SimulationContext, base_config):
         "odds": sim.get_population().iloc[lambda x: x.index % 2 == 1].index,
         "all": sim.get_population().index,
     }
+    pipeline_values = {
+        "evens": pd.Series(from_yearly(1.75, pd.Timedelta(days=3)), index=test["evens"]),
+        "odds": pd.Series(from_yearly(1.75, pd.Timedelta(days=7)), index=test["odds"]),
+        "all": pd.concat(
+            [
+                pd.Series(from_yearly(1.75, pd.Timedelta(days=3)), index=test["evens"]),
+                pd.Series(from_yearly(1.75, pd.Timedelta(days=7)), index=test["odds"]),
+            ]
+        ).sort_index(),
+    }
 
     ## Ensure that steps and active simulants are correct through one cycle of 21
     for correct_step_size, group in zip(correct_step_sizes, groups):
         assert np.all(step_pipeline(sim) == step_column(sim))
         assert active_simulants(sim).index.equals(test[group])
         assert active_simulants(sim).index.difference(test[group]).empty
+
         taken_step_size = take_step(sim)
         assert taken_step_size == pd.Timedelta(days=correct_step_size)
+        ## Check Event indices match
+        for index in listener.event_indexes.values():
+            assert index.equals(test[group])
+
+        sample_pipeline = step_modifier_component.ts_pipeline_value
+        assert sample_pipeline.index.equals(test[group])
+        assert np.all(sample_pipeline == pipeline_values[group])
 
 
 def test_step_size_post_processor(manager):
@@ -220,7 +258,7 @@ def test_step_size_post_processor(manager):
     evens = value.iloc[lambda x: x.index % 2 == 0]
     odds = value.iloc[lambda x: x.index % 2 == 1]
 
-    ## The second modifier shouldn't have an effect, since the first has str
+    ## The second modifier shouldn't have an effect
     assert np.all(evens == pd.Timedelta(days=8))
     assert np.all(odds == pd.Timedelta(days=6))
 
