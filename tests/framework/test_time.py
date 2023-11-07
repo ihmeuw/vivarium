@@ -70,6 +70,14 @@ def take_step(sim):
 
 
 class StepModifier(MockGenericComponent):
+    """This mock component modifies the step size of simulants based on their index
+        Odd simulants get one step size, and even simulants get another.
+        
+        There is also a test pipeline that is registered, whose value is cached to
+        self.ts_pipeline_value every timestep. This is meant to ensure that the 
+        value of a pipeline on a previous timestep was appropriately rescaled
+        to the step that was actually taken.
+    """
     def __init__(self, name, step_modifier_even, step_modifier_odd):
         super().__init__(name)
         self.step_modifier_even = step_modifier_even
@@ -101,6 +109,10 @@ class StepModifier(MockGenericComponent):
 
 
 def test_basic_iteration(SimulationContext, base_config, components):
+    """Ensure that the basic iteration of the simulation works as expected.
+    The step size should always be 1 in this case, the whole population should
+    be updated, and the pipeline step value should always match the column step value.
+    """
     base_config["time"]["step_size"] = 1
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if "listener" in c.args][0]
@@ -124,6 +136,8 @@ def test_basic_iteration(SimulationContext, base_config, components):
 
 
 def test_empty_active_pop(SimulationContext, base_config, components):
+    """Make sure that if we have no active simulants, we still take a step, given
+    by the minimum step size."""
     base_config["time"]["step_size"] = 1
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if "listener" in c.args][0]
@@ -135,13 +149,14 @@ def test_empty_active_pop(SimulationContext, base_config, components):
     ## This ensures (against the current implementation) that we will have a timestep
     ## that has no simulants aligned. Check that we do the minimum timestep update.
     sim._population._population.next_event_time += pd.Timedelta(days=1)
-
+    ## First Step
     assert active_simulants(sim).empty
     taken_step_size = take_step(sim)
     assert taken_step_size == pd.Timedelta(days=1)
     for index in listener.event_indexes.values():
         assert index.empty
 
+    ## Second Timestep
     assert len(active_simulants(sim)) == pop_size
     taken_step_size = take_step(sim)
     assert taken_step_size == pd.Timedelta(days=1)
@@ -155,6 +170,7 @@ def test_empty_active_pop(SimulationContext, base_config, components):
 def test_skip_iterations(
     SimulationContext, base_config, step_modifier_even, step_modifier_odd
 ):
+    """Test that if everyone has some (non-minimum) step size, the global step adjusts to match"""
     base_config["time"]["step_size"] = 1
     listener = Listener("listener")
     sim = SimulationContext(
@@ -182,6 +198,10 @@ def test_skip_iterations(
 
 
 def test_uneven_steps(SimulationContext, base_config):
+    """Test that if we have a mix of step sizes, we take steps in accordance
+    to reach all simulants' next event times in the fewest steps.
+    """
+
     base_config["time"]["step_size"] = 1
     listener = Listener("listener")
     step_modifier_even = 3
@@ -196,7 +216,8 @@ def test_uneven_steps(SimulationContext, base_config):
 
     sim.setup()
     sim.initialize_simulants()
-
+    ## With step sizes of 3 and 7, we need 3 steps, then 3 more, then one to get 7, then two more to get
+    ## 9, etc.
     correct_step_sizes = [3, 3, 1, 2, 3, 2, 1, 3, 3]
     groups = ["evens", "evens", "odds", "evens", "evens", "odds", "evens", "evens", "all"]
     test = {
@@ -233,6 +254,8 @@ def test_uneven_steps(SimulationContext, base_config):
 
 
 def test_step_size_post_processor(manager):
+    """Test that step size post-processor chooses the minimum modified step, or minimum global step,
+    whichever is larger."""
     index = pd.Index(range(10))
 
     pipeline = manager.register_value_producer(
