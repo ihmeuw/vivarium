@@ -27,6 +27,7 @@ Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
 NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
 
+
 class SimulationClock(Manager):
     """A base clock that includes global clock and a pandas series of clocks for each simulant"""
 
@@ -51,14 +52,14 @@ class SimulationClock(Manager):
         if not self._stop_time:
             raise ValueError("No stop time provided")
         return self._stop_time
-    
+
     @property
     def min_step_size(self) -> Timedelta:
         """The minimum step size."""
         if not self._min_step_size:
             raise ValueError("No minimum step size provided")
         return self._min_step_size
-    
+
     @property
     def step_size(self) -> Timedelta:
         """The size of the next time step."""
@@ -119,21 +120,21 @@ class SimulationClock(Manager):
 
     def step_forward(self, index: pd.Index) -> None:
         """Advances the clock by the current step size, and updates aligned simulant clocks."""
-        event_time = self.event_time
-        pop_to_update = self.get_active_population(index, event_time)
-        if not pop_to_update.empty:
-            pop_to_update["next_event_time"] = event_time + pop_to_update["step_size"]
-            new_step_sizes = self.step_size_pipeline(pop_to_update.index)
-            pop_to_update["step_size"] = new_step_sizes
-            self.population_view.update(pop_to_update)
-            self._clock_step_size = new_step_sizes.min()
         self._clock_time += self.step_size
+        pop_to_update = self.get_active_population(index, self.time)
+        if not pop_to_update.empty:
+            pop_to_update["next_event_time"] = self.time + self.step_size_pipeline(
+                pop_to_update.index
+            )
+            pop_to_update["step_size"] = self.step_size_pipeline(pop_to_update.index)
+            self.population_view.update(pop_to_update)
+        self._clock_step_size = self.simulant_next_event_times(index).min() - self.time
 
     def get_active_population(self, index: pd.Index, time: Time):
         """Gets population that is aligned with global clock"""
         pop = self.population_view.get(index)
         return pop[pop.next_event_time <= time]
-    
+
     @staticmethod
     def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
         """Computes the largest feasible step size for each simulant. This is the smallest component-modified
