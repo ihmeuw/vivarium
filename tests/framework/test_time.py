@@ -5,8 +5,14 @@ import pandas as pd
 import pytest
 
 from vivarium.framework.engine import SimulationContext as SimulationContext_
-from vivarium.framework.time import step_size_post_processor
-from vivarium.framework.values import ValuesManager, list_combiner
+from vivarium.framework.event import Event
+from vivarium.framework.time import SimulationClock, get_time_stamp
+from vivarium.framework.utilities import from_yearly
+from vivarium.framework.values import (
+    ValuesManager,
+    list_combiner,
+    rescale_post_processor,
+)
 
 from .components.mocks import (
     Listener,
@@ -42,139 +48,223 @@ def components():
     ]
 
 
-def active_simulants(sim):
-    return sim._clock.get_active_population(sim.get_population().index, sim._clock.event_time)
-
-
-def step_pipeline(sim):
-    return sim._values.get_value("simulant_step_size")(
+def validate_index_aligned(sim, expected_active_simulants):
+    """Ensure that the pipeline and column step sizes are aligned, and that the
+    active simulants are as expected BEFORE a step"""
+    step_pipeline = sim._values.get_value("simulant_step_size")(
         sim._population.get_population(True).index
     )
+    step_column = sim._population._population.step_size
+    active_simulants = sim._clock.get_active_population(
+        sim.get_population().index, sim._clock.event_time
+    )
+
+    assert np.all(step_pipeline == step_column)
+    assert active_simulants.index.equals(expected_active_simulants)
+    assert active_simulants.index.difference(expected_active_simulants).empty
 
 
-def step_column(sim):
-    return sim._population._population.step_size
+def validate_event_indexes(listener, expected_simulants):
+    """Make sure AFTER a step, that simulants were included in the right events"""
+    for index in listener.event_indexes.values():
+        assert index.equals(expected_simulants)
+
+
+def take_step(sim):
+    old_time = sim._clock.time
+    sim.step()
+    new_time = sim._clock.time
+    return new_time - old_time
+
+
+def take_step_and_validate(sim, listener, expected_simulants, expected_step_size_days):
+    """Take a step, and ensure that we included the right simulants, with the right step size"""
+    ## Check Before Timestep
+    validate_index_aligned(sim, expected_simulants)
+    ## Check Timestep
+    assert take_step(sim) == pd.Timedelta(days=expected_step_size_days)
+    ## Check After
+    validate_event_indexes(listener, expected_simulants)
 
 
 class StepModifier(MockGenericComponent):
-    def __init__(self, name, step_modifier):
+    """This mock component modifies the step size of simulants based on their index
+    Odd simulants get one step size, and even simulants get another.
+
+    There is also a test pipeline that is registered, whose value is cached to
+    self.ts_pipeline_value every timestep. This is meant to ensure that the
+    value of a pipeline on a previous timestep was appropriately rescaled
+    to the step that was actually taken.
+    """
+
+    def __init__(self, name, step_modifier_even, step_modifier_odd):
         super().__init__(name)
-        self.step_modifier = step_modifier
+        self.step_modifier_even = step_modifier_even
+        self.step_modifier_odd = step_modifier_odd
+        self.ts_pipeline_value = None
 
     def setup(self, builder) -> None:
         super().setup(builder)
         builder.value.register_value_modifier("simulant_step_size", self.modify_step)
+        self.rate_pipeline = builder.value.register_value_producer(
+            "test_rate",
+            source=lambda idx: pd.Series(1.75, index=idx),
+            preferred_post_processor=rescale_post_processor,
+        )
+
+    def on_time_step(self, event: Event) -> None:
+        self.ts_pipeline_value = self.rate_pipeline(event.index)
 
     def modify_step(self, index):
-        return pd.Series(pd.Timedelta(days=self.step_modifier), index=index)
+        step_sizes = pd.Series(pd.Timedelta(1), index=index)
+        step_sizes.iloc[lambda x: x.index % 2 == 0] = pd.Timedelta(
+            days=self.step_modifier_even
+        )
+        step_sizes.iloc[lambda x: x.index % 2 == 1] = pd.Timedelta(
+            days=self.step_modifier_odd
+        )
+        return step_sizes
 
 
-def test_align_times(SimulationContext, base_config, components):
-    sim = SimulationContext(base_config, components)
-    sim.setup()
-    sim.initialize_simulants()
-    pop_size = len(sim.get_population())
-    # After initialization, all simulants should be aligned to event times
-    assert len(active_simulants(sim)) == pop_size
-
-    sim.step()
-    # After one step (and no step adjustments, simulants should still be aligned)
-    assert len(active_simulants(sim)) == pop_size
-
-    sim._population._population.step_size *= 2
-
-    sim.step()
-    # No simulants should be aligned after a step size adjustment
-    assert active_simulants(sim).empty
-
-    sim.step()
-    # Now they should be aligned again
-    assert len(active_simulants(sim)) == pop_size
-
-
-def test_unequal_steps(SimulationContext, base_config, components):
+def test_basic_iteration(SimulationContext, base_config, components):
+    """Ensure that the basic iteration of the simulation works as expected.
+    The step size should always be 1 in this case, the whole population should
+    be updated, and the pipeline step value should always match the column step value.
+    """
+    base_config["time"]["step_size"] = 1
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
-    pop_size = len(sim.get_population())
+    full_pop_index = sim.get_population().index
+    assert sim._clock.time == get_time_stamp(sim.configuration.time.start)
+    assert sim._clock.step_size == pd.Timedelta(days=1)
 
-    # Check that the 0th simulant won't step forward
-    sim._population._population.step_size[0] *= 2
-    sim.step()
-    assert len(active_simulants(sim)) == pop_size - 1
-
-    # Show that now that the next_event_time is updated, 0th simulant isn't included in events
-    sim.step()
-    for index in listener.event_indexes.values():
-        assert 0 not in index
-
-    # Check that everybody will step forward next step
-    assert len(active_simulants(sim)) == pop_size
-
-    # Check that they are actually included in events
-    sim.step()
-    for index in listener.event_indexes.values():
-        assert 0 in index
-    # Revert change to 0
-    sim._population._population.step_size[0] /= 2
-    # Still step forward even with a non-integer step size
-    sim._population._population.step_size[7] /= 2
-    # Do a step just to update the next_event_time
-    sim.step()
-    # Check that next step, we will still update all
-    assert len(active_simulants(sim)) == pop_size
-    # Check that we actually include simulant of index 7 in events
-    sim.step()
-    for index in listener.event_indexes.values():
-        assert 7 in index
+    for _ in range(2):
+        # After initialization, all simulants should be aligned to event times
+        # After a step (and no step adjustments), simulants should still be aligned
+        take_step_and_validate(
+            sim, listener, expected_simulants=full_pop_index, expected_step_size_days=1
+        )
 
 
-def test_step_pipeline(SimulationContext, base_config, components):
+def test_empty_active_pop(SimulationContext, base_config, components):
+    """Make sure that if we have no active simulants, we still take a step, given
+    by the minimum step size."""
+    base_config["time"]["step_size"] = 1
     sim = SimulationContext(base_config, components)
+    listener = [c for c in components if "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
+    full_pop_index = sim.get_population().index
 
-    assert np.all(step_pipeline(sim) == step_column(sim))
+    ## Force a next event time update without updating step sizes.
+    ## This ensures (against the current implementation) that we will have a timestep
+    ## that has no simulants aligned. Check that we do the minimum timestep update.
+    sim._population._population.next_event_time += pd.Timedelta(days=1)
+    ## First Step
+    take_step_and_validate(
+        sim, listener, expected_simulants=pd.Index([]), expected_step_size_days=1
+    )
 
-    sim.step()
-    assert np.all(step_pipeline(sim) == step_column(sim))
+    ## Second Timestep
+    take_step_and_validate(
+        sim, listener, expected_simulants=full_pop_index, expected_step_size_days=1
+    )
 
 
-@pytest.mark.parametrize("step_modifier", [0.5, 1, 2, 3.5, 5])
-def test_step_pipeline_with_modifier(SimulationContext, base_config, step_modifier):
-    sim = SimulationContext(base_config, [StepModifier("step_modifier", step_modifier)])
+@pytest.mark.parametrize(
+    "step_modifier_even,step_modifier_odd", [(0.5, 0.5), (1, 1), (2, 2), (4.5, 4)]
+)
+def test_skip_iterations(
+    SimulationContext, base_config, step_modifier_even, step_modifier_odd
+):
+    """Test that if everyone has some (non-minimum) step size, the global step adjusts to match"""
+    base_config["time"]["step_size"] = 1
+    listener = Listener("listener")
+    sim = SimulationContext(
+        base_config,
+        [StepModifier("step_modifier", step_modifier_even, step_modifier_odd), listener],
+    )
+    expected_step_size = math.floor(max([step_modifier_even, 1]))
     sim.setup()
     sim.initialize_simulants()
-    pop_size = len(sim.get_population())
-
-    ## Everyone starts active
-    assert np.all(step_pipeline(sim) == step_column(sim))
-    assert len(active_simulants(sim)) == pop_size
+    full_pop_index = sim.get_population().index
 
     ## Go through a couple simulant step cycles
     for _ in range(2):
-        for _ in range(math.ceil(step_modifier) - 1):
-            ## Nobody Should update here.
-            ## We subtract  a step for the last step of the modified range
-            sim.step()
-            assert np.all(step_pipeline(sim) == step_column(sim))
-            assert active_simulants(sim).empty
+        ## Everyone should update, but the step size should change
+        take_step_and_validate(
+            sim,
+            listener,
+            expected_simulants=full_pop_index,
+            expected_step_size_days=expected_step_size,
+        )
 
-        ## Everyone should update again
-        sim.step()
-        assert np.all(step_pipeline(sim) == step_column(sim))
-        assert len(active_simulants(sim)) == pop_size
+
+def test_uneven_steps(SimulationContext, base_config):
+    """Test that if we have a mix of step sizes, we take steps in accordance
+    to reach all simulants' next event times in the fewest steps.
+    """
+
+    base_config["time"]["step_size"] = 1
+    listener = Listener("listener")
+    step_modifier_even = 3
+    step_modifier_odd = 7
+    step_modifier_component = StepModifier(
+        "step_modifier", step_modifier_even, step_modifier_odd
+    )
+    sim = SimulationContext(
+        base_config,
+        [step_modifier_component, listener],
+    )
+
+    sim.setup()
+    sim.initialize_simulants()
+    ## With step sizes of 3 and 7, we need 3 steps, then 3 more, then one to get 7, then two more to get
+    ## 9, etc.
+    correct_step_sizes = [3, 3, 1, 2, 3, 2, 1, 3, 3]
+    groups = ["evens", "evens", "odds", "evens", "evens", "odds", "evens", "evens", "all"]
+    test = {
+        "evens": sim.get_population().iloc[lambda x: x.index % 2 == 0].index,
+        "odds": sim.get_population().iloc[lambda x: x.index % 2 == 1].index,
+        "all": sim.get_population().index,
+    }
+    pipeline_values = {
+        "evens": pd.Series(from_yearly(1.75, pd.Timedelta(days=3)), index=test["evens"]),
+        "odds": pd.Series(from_yearly(1.75, pd.Timedelta(days=7)), index=test["odds"]),
+        "all": pd.concat(
+            [
+                pd.Series(from_yearly(1.75, pd.Timedelta(days=3)), index=test["evens"]),
+                pd.Series(from_yearly(1.75, pd.Timedelta(days=7)), index=test["odds"]),
+            ]
+        ).sort_index(),
+    }
+
+    ## Ensure that steps and active simulants are correct through one cycle of 21
+    for correct_step_size, group in zip(correct_step_sizes, groups):
+        take_step_and_validate(
+            sim,
+            listener,
+            expected_simulants=test[group],
+            expected_step_size_days=correct_step_size,
+        )
+
+        sample_pipeline = step_modifier_component.ts_pipeline_value
+        assert sample_pipeline.index.equals(test[group])
+        assert np.all(sample_pipeline == pipeline_values[group])
 
 
 def test_step_size_post_processor(manager):
+    """Test that step size post-processor chooses the minimum modified step, or minimum global step,
+    whichever is larger."""
     index = pd.Index(range(10))
 
     pipeline = manager.register_value_producer(
         "test_step_size",
         source=lambda idx: [pd.Series(pd.Timedelta(days=2), index=idx)],
         preferred_combiner=list_combiner,
-        preferred_post_processor=step_size_post_processor,
+        preferred_post_processor=SimulationClock.step_size_post_processor,
     )
 
     ## Add modifier that set the step size to 7 for even indices and 5 for odd indices
@@ -193,9 +283,9 @@ def test_step_size_post_processor(manager):
     evens = value.iloc[lambda x: x.index % 2 == 0]
     odds = value.iloc[lambda x: x.index % 2 == 1]
 
-    ## The second modifier shouldn't have an effect, since the first has str
-    assert np.all(evens == pd.Timedelta(days=7))
-    assert np.all(odds == pd.Timedelta(days=5))
+    ## The second modifier shouldn't have an effect
+    assert np.all(evens == pd.Timedelta(days=6))
+    assert np.all(odds == pd.Timedelta(days=4))
 
     manager.register_value_modifier(
         "test_step_size", modifier=lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx)

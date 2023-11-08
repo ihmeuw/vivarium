@@ -19,6 +19,7 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+    from vivarium.framework.population.population_view import PopulationView
 
 from vivarium.framework.values import list_combiner
 from vivarium.manager import Manager
@@ -26,29 +27,6 @@ from vivarium.manager import Manager
 Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
 NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
-
-
-def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
-    """Computes the largest feasible step size for each simulant. This is the smallest component-modified
-    step size, or the global step size, whichever is larger. If no components modify the step size, we default
-    to the global step size.
-
-    Parameters
-    ----------
-    values
-        A list of step sizes
-
-    Returns
-    -------
-    pandas.Series
-        The largest feasible step size for each simulant
-
-
-    """
-    if len(values) == 1:
-        return values[0]
-    min_modified = pd.DataFrame(values[1:]).min(axis=0).astype("timedelta64[ns]")
-    return pd.DataFrame([values[0], min_modified]).max(axis=0)
 
 
 class SimulationClock(Manager):
@@ -77,6 +55,13 @@ class SimulationClock(Manager):
         return self._stop_time
 
     @property
+    def minimum_step_size(self) -> Timedelta:
+        """The minimum step size."""
+        if not self._minimum_step_size:
+            raise ValueError("No minimum step size provided")
+        return self._minimum_step_size
+
+    @property
     def step_size(self) -> Timedelta:
         """The size of the next time step."""
         if not self._clock_step_size:
@@ -89,17 +74,18 @@ class SimulationClock(Manager):
         return self.time + self.step_size
 
     def __init__(self):
-        self._clock_time = None
-        self._stop_time = None
-        self._clock_step_size = None
-        self.population_view = None
+        self._clock_time: Time = None
+        self._stop_time: Time = None
+        self._minimum_step_size: Timedelta = None
+        self._clock_step_size: Timedelta = None
+        self.population_view: PopulationView = None
 
     def setup(self, builder: "Builder"):
         self.step_size_pipeline = builder.value.register_value_producer(
             "simulant_step_size",
-            source=lambda idx: [pd.Series(self.step_size, index=idx)],
+            source=lambda idx: [pd.Series(self.minimum_step_size, index=idx)],
             preferred_combiner=list_combiner,
-            preferred_post_processor=step_size_post_processor,
+            preferred_post_processor=self.step_size_post_processor,
         )
         builder.population.initializes_simulants(
             self.on_initialize_simulants, creates_columns=self.columns_created
@@ -135,17 +121,45 @@ class SimulationClock(Manager):
 
     def step_forward(self, index: pd.Index) -> None:
         """Advances the clock by the current step size, and updates aligned simulant clocks."""
-        event_time = self.event_time
-        pop_to_update = self.get_active_population(index, event_time)
-        pop_to_update["next_event_time"] = event_time + pop_to_update["step_size"]
-        pop_to_update["step_size"] = self.step_size_pipeline(pop_to_update.index)
-        self.population_view.update(pop_to_update)
         self._clock_time += self.step_size
+        pop_to_update = self.get_active_population(index, self.time)
+        if not pop_to_update.empty:
+            pop_to_update["step_size"] = self.step_size_pipeline(pop_to_update.index)
+            pop_to_update["next_event_time"] = self.time + pop_to_update["step_size"]
+            self.population_view.update(pop_to_update)
+        self._clock_step_size = self.simulant_next_event_times(index).min() - self.time
 
     def get_active_population(self, index: pd.Index, time: Time):
         """Gets population that is aligned with global clock"""
         pop = self.population_view.get(index)
         return pop[pop.next_event_time <= time]
+
+    @staticmethod
+    def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
+        """Computes the largest feasible step size for each simulant. This is the smallest component-modified
+        step size (rounded down to increments of the minimum step size), or the global step size, whichever is larger.
+        If no components modify the step size, we default to the global step size.
+
+        Parameters
+        ----------
+        values
+            A list of step sizes
+
+        Returns
+        -------
+        pandas.Series
+            The largest feasible step size for each simulant
+
+
+        """
+        source = values[0]
+        if len(values) == 1:
+            return source
+        modifiers = values[1:]
+        min_modified = pd.DataFrame(modifiers).min(axis=0).astype("timedelta64[ns]")
+        raw_step_sizes = pd.DataFrame([source, min_modified]).max(axis=0)
+        ## Rescale pipeline values to global step size
+        return np.floor(raw_step_sizes / source) * source
 
 
 class SimpleClock(SimulationClock):
@@ -167,7 +181,8 @@ class SimpleClock(SimulationClock):
         super().setup(builder)
         self._clock_time = builder.configuration.time.start
         self._stop_time = builder.configuration.time.end
-        self._clock_step_size = builder.configuration.time.step_size
+        self._minimum_step_size = builder.configuration.time.step_size
+        self._clock_step_size = self._minimum_step_size
 
     def __repr__(self):
         return "SimpleClock()"
@@ -201,9 +216,10 @@ class DateTimeClock(SimulationClock):
         time = builder.configuration.time
         self._clock_time = get_time_stamp(time.start)
         self._stop_time = get_time_stamp(time.end)
-        self._clock_step_size = pd.Timedelta(
+        self._minimum_step_size = pd.Timedelta(
             days=time.step_size // 1, hours=(time.step_size % 1) * 24
         )
+        self._clock_step_size = self._minimum_step_size
 
     def __repr__(self):
         return "DateTimeClock()"
@@ -222,9 +238,9 @@ class TimeInterface:
         return lambda: self._manager.step_size
 
     def simulant_next_event_times(self) -> Callable[[pd.Index], pd.Series]:
-        """Gets a callable that returns the current simulation step size."""
+        """Gets a callable that returns the next event times for simulants."""
         return lambda: self._manager.simulant_next_event_times
 
     def simulant_step_sizes(self) -> Callable[[pd.Index], pd.Series]:
-        """Gets a callable that returns the current simulation step size."""
+        """Gets a callable that returns the simulant step sizes."""
         return lambda: self._manager.simulant_step_sizes
