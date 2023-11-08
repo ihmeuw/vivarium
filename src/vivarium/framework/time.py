@@ -158,7 +158,7 @@ class SimulationClock(Manager):
         min_modified = pd.DataFrame(modifiers).min(axis=0).astype("timedelta64[ns]")
         raw_step_sizes = pd.DataFrame([source, min_modified]).max(axis=0)
         ## Rescale pipeline values to global step size
-        return np.ceil(raw_step_sizes / source) * source
+        return np.floor(raw_step_sizes / source) * source
 
 
 class SimpleClock(SimulationClock):

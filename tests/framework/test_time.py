@@ -166,7 +166,7 @@ def test_empty_active_pop(SimulationContext, base_config, components):
 
 
 @pytest.mark.parametrize(
-    "step_modifier_even,step_modifier_odd", [(0.5, 0.5), (1, 1), (2, 2), (3.5, 4)]
+    "step_modifier_even,step_modifier_odd", [(0.5, 0.5), (1, 1), (2, 2), (4.5, 4)]
 )
 def test_skip_iterations(
     SimulationContext, base_config, step_modifier_even, step_modifier_odd
@@ -178,7 +178,7 @@ def test_skip_iterations(
         base_config,
         [StepModifier("step_modifier", step_modifier_even, step_modifier_odd), listener],
     )
-    quantized_step = math.ceil(step_modifier_even)
+    quantized_step = math.floor(max([step_modifier_even, 1]))
     sim.setup()
     sim.initialize_simulants()
     pop_size = len(sim.get_population())
@@ -283,8 +283,8 @@ def test_step_size_post_processor(manager):
     odds = value.iloc[lambda x: x.index % 2 == 1]
 
     ## The second modifier shouldn't have an effect
-    assert np.all(evens == pd.Timedelta(days=8))
-    assert np.all(odds == pd.Timedelta(days=6))
+    assert np.all(evens == pd.Timedelta(days=6))
+    assert np.all(odds == pd.Timedelta(days=4))
 
     manager.register_value_modifier(
         "test_step_size", modifier=lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx)
