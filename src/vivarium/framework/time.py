@@ -19,6 +19,7 @@ import pandas as pd
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+    from vivarium.framework.population.population_view import PopulationView
 
 from vivarium.framework.values import list_combiner
 from vivarium.manager import Manager
@@ -73,11 +74,11 @@ class SimulationClock(Manager):
         return self.time + self.step_size
 
     def __init__(self):
-        self._clock_time = None
-        self._stop_time = None
-        self._minimum_step_size = None
-        self._clock_step_size = None
-        self.population_view = None
+        self._clock_time: Time = None
+        self._stop_time: Time = None
+        self._minimum_step_size: Timedelta = None
+        self._clock_step_size: Timedelta = None
+        self.population_view: PopulationView = None
 
     def setup(self, builder: "Builder"):
         self.step_size_pipeline = builder.value.register_value_producer(
