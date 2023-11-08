@@ -54,11 +54,11 @@ class SimulationClock(Manager):
         return self._stop_time
 
     @property
-    def min_step_size(self) -> Timedelta:
+    def minimum_step_size(self) -> Timedelta:
         """The minimum step size."""
-        if not self._min_step_size:
+        if not self._minimum_step_size:
             raise ValueError("No minimum step size provided")
-        return self._min_step_size
+        return self._minimum_step_size
 
     @property
     def step_size(self) -> Timedelta:
@@ -75,14 +75,14 @@ class SimulationClock(Manager):
     def __init__(self):
         self._clock_time = None
         self._stop_time = None
-        self._min_step_size = None
+        self._minimum_step_size = None
         self._clock_step_size = None
         self.population_view = None
 
     def setup(self, builder: "Builder"):
         self.step_size_pipeline = builder.value.register_value_producer(
             "simulant_step_size",
-            source=lambda idx: [pd.Series(self.min_step_size, index=idx)],
+            source=lambda idx: [pd.Series(self.minimum_step_size, index=idx)],
             preferred_combiner=list_combiner,
             preferred_post_processor=self.step_size_post_processor,
         )
@@ -136,8 +136,8 @@ class SimulationClock(Manager):
     @staticmethod
     def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
         """Computes the largest feasible step size for each simulant. This is the smallest component-modified
-        step size, or the global step size, whichever is larger. If no components modify the step size, we default
-        to the global step size.
+        step size (rounded down to increments of the minimum step size), or the global step size, whichever is larger.
+        If no components modify the step size, we default to the global step size.
 
         Parameters
         ----------
@@ -180,8 +180,8 @@ class SimpleClock(SimulationClock):
         super().setup(builder)
         self._clock_time = builder.configuration.time.start
         self._stop_time = builder.configuration.time.end
-        self._min_step_size = builder.configuration.time.step_size
-        self._clock_step_size = self._min_step_size
+        self._minimum_step_size = builder.configuration.time.step_size
+        self._clock_step_size = self._minimum_step_size
 
     def __repr__(self):
         return "SimpleClock()"
@@ -215,10 +215,10 @@ class DateTimeClock(SimulationClock):
         time = builder.configuration.time
         self._clock_time = get_time_stamp(time.start)
         self._stop_time = get_time_stamp(time.end)
-        self._min_step_size = pd.Timedelta(
+        self._minimum_step_size = pd.Timedelta(
             days=time.step_size // 1, hours=(time.step_size % 1) * 24
         )
-        self._clock_step_size = self._min_step_size
+        self._clock_step_size = self._minimum_step_size
 
     def __repr__(self):
         return "DateTimeClock()"

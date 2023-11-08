@@ -98,16 +98,10 @@ class StepModifier(MockGenericComponent):
         self.ts_pipeline_value = self.rate_pipeline(event.index)
 
     def modify_step(self, index):
-        return pd.Series(
-            [
-                pd.Timedelta(days=self.step_modifier_even)
-                if i % 2 == 0
-                else pd.Timedelta(days=self.step_modifier_odd)
-                for i in index
-            ],
-            index=index,
-        )
-
+        step_sizes = pd.Series(np.nan, index=index)
+        step_sizes.iloc[lambda x: x.index % 2 == 0] = pd.Timedelta(days=self.step_modifier_even)
+        step_sizes.iloc[lambda x: x.index % 2 == 1] = pd.Timedelta(days=self.step_modifier_odd)
+        return step_sizes
 
 def test_basic_iteration(SimulationContext, base_config, components):
     """Ensure that the basic iteration of the simulation works as expected.
@@ -178,7 +172,7 @@ def test_skip_iterations(
         base_config,
         [StepModifier("step_modifier", step_modifier_even, step_modifier_odd), listener],
     )
-    quantized_step = math.floor(max([step_modifier_even, 1]))
+    expected_step_size = math.floor(max([step_modifier_even, 1]))
     sim.setup()
     sim.initialize_simulants()
     pop_size = len(sim.get_population())
@@ -191,7 +185,7 @@ def test_skip_iterations(
     for _ in range(2):
         ## Everyone should update, but the step size should change
         taken_step_size = take_step(sim)
-        assert taken_step_size == pd.Timedelta(days=quantized_step)
+        assert taken_step_size == pd.Timedelta(days=expected_step_size)
         assert np.all(step_pipeline(sim) == step_column(sim))
         assert len(active_simulants(sim)) == pop_size
         for index in listener.event_indexes.values():
