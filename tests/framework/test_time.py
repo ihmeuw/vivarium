@@ -21,6 +21,7 @@ from .components.mocks import (
     MockGenericComponent,
 )
 
+
 @pytest.fixture
 def manager(mocker):
     manager = ValuesManager()
@@ -46,6 +47,7 @@ def components():
         MockComponentB("spoon", "antelope", 23),
     ]
 
+
 def validate_step_column_is_pipeline(sim):
     """Ensure that the pipeline and column step sizes are aligned"""
     step_pipeline = sim._values.get_value("simulant_step_size")(
@@ -53,7 +55,6 @@ def validate_step_column_is_pipeline(sim):
     )
     step_column = sim._population._population.step_size
     assert np.all(step_pipeline == step_column)
-
 
 
 def validate_index_aligned(sim, expected_active_simulants):
@@ -127,6 +128,7 @@ class StepModifier(MockGenericComponent):
         )
         return step_sizes
 
+
 @pytest.mark.parametrize("varied_step_size", [True, False])
 def test_basic_iteration(SimulationContext, base_config, components, varied_step_size):
     """Ensure that the basic iteration of the simulation works as expected.
@@ -137,7 +139,7 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
     if varied_step_size:
         components.append(StepModifier("step_modifier", 1, 1))
     sim = SimulationContext(base_config, components)
-    listener = [c for c in components if hasattr(c, 'args') and "listener" in c.args][0]
+    listener = [c for c in components if hasattr(c, "args") and "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
     full_pop_index = sim.get_population().index
@@ -156,13 +158,14 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
             sim, listener, expected_simulants=full_pop_index, expected_step_size_days=1
         )
 
+
 def test_empty_active_pop(SimulationContext, base_config, components):
     """Make sure that if we have no active simulants, we still take a step, given
     by the minimum step size."""
     base_config["time"]["step_size"] = 1
     components.append(StepModifier("step_modifier", 1, 1))
     sim = SimulationContext(base_config, components)
-    listener = [c for c in components if hasattr(c, 'args') and "listener" in c.args][0]
+    listener = [c for c in components if hasattr(c, "args") and "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
     full_pop_index = sim.get_population().index

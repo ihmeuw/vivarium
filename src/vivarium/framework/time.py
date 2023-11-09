@@ -22,8 +22,8 @@ if TYPE_CHECKING:
     from vivarium.framework.population.population_view import PopulationView
     from vivarium.framework.event import Event
 
-from vivarium.manager import Manager
 from vivarium.framework.values import list_combiner
+from vivarium.manager import Manager
 
 Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
@@ -61,7 +61,7 @@ class SimulationClock(Manager):
         if not self._minimum_step_size:
             raise ValueError("No minimum step size provided")
         return self._minimum_step_size
-    
+
     @property
     def default_step_size(self) -> Timedelta:
         """The minimum step size."""
@@ -174,8 +174,11 @@ class SimulationClock(Manager):
         """
 
         min_modified = pd.DataFrame(values).min(axis=0).fillna(self.default_step_size)
-         ## Rescale pipeline values to global minimum step size
-        discretized_step_sizes = np.floor(min_modified / self.minimum_step_size).replace(0,1) * self.minimum_step_size
+        ## Rescale pipeline values to global minimum step size
+        discretized_step_sizes = (
+            np.floor(min_modified / self.minimum_step_size).replace(0, 1)
+            * self.minimum_step_size
+        )
         ## Make sure we don't get zero
         return discretized_step_sizes
 
@@ -201,7 +204,9 @@ class SimpleClock(SimulationClock):
         self._clock_time = time.start
         self._stop_time = time.end
         self._minimum_step_size = time.step_size
-        self._default_step_size = time.default_step_size if time.default_step_size else self._minimum_step_size
+        self._default_step_size = (
+            time.default_step_size if time.default_step_size else self._minimum_step_size
+        )
         self._clock_step_size = self._default_step_size
 
     def __repr__(self):
@@ -240,7 +245,9 @@ class DateTimeClock(SimulationClock):
         self._minimum_step_size = pd.Timedelta(
             days=time.step_size // 1, hours=(time.step_size % 1) * 24
         )
-        self._default_step_size = time.default_step_size if time.default_step_size else self._minimum_step_size
+        self._default_step_size = (
+            time.default_step_size if time.default_step_size else self._minimum_step_size
+        )
         self._clock_step_size = self._default_step_size
 
     def __repr__(self):
