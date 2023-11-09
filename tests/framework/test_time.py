@@ -46,19 +46,22 @@ def components():
         MockComponentB("spoon", "antelope", 23),
     ]
 
-
-def validate_index_aligned(sim, expected_active_simulants):
-    """Ensure that the pipeline and column step sizes are aligned, and that the
-    active simulants are as expected BEFORE a step"""
+def validate_step_column_is_pipeline(sim):
+    """Ensure that the pipeline and column step sizes are aligned"""
     step_pipeline = sim._values.get_value("simulant_step_size")(
         sim._population.get_population(True).index
     )
     step_column = sim._population._population.step_size
+    assert np.all(step_pipeline == step_column)
+
+
+
+def validate_index_aligned(sim, expected_active_simulants):
+    """Ensure that the active simulants are as expected BEFORE a step"""
     active_simulants = sim._clock.get_active_population(
         sim.get_population().index, sim._clock.event_time
     )
 
-    assert np.all(step_pipeline == step_column)
     assert active_simulants.equals(expected_active_simulants)
     assert active_simulants.difference(expected_active_simulants).empty
 
@@ -124,14 +127,15 @@ class StepModifier(MockGenericComponent):
         )
         return step_sizes
 
-
-def test_basic_iteration(SimulationContext, base_config, components):
+@pytest.mark.parametrize("varied_step_size", [True, False])
+def test_basic_iteration(SimulationContext, base_config, components, varied_step_size):
     """Ensure that the basic iteration of the simulation works as expected.
     The step size should always be 1 in this case, the whole population should
     be updated, and the pipeline step value should always match the column step value.
     """
     base_config["time"]["step_size"] = 1
-    components.append(StepModifier("step_modifier", 1, 1))
+    if varied_step_size:
+        components.append(StepModifier("step_modifier", 1, 1))
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if hasattr(c, 'args') and "listener" in c.args][0]
     sim.setup()
@@ -143,10 +147,11 @@ def test_basic_iteration(SimulationContext, base_config, components):
     for _ in range(2):
         # After initialization, all simulants should be aligned to event times
         # After a step (and no step adjustments), simulants should still be aligned
+        if varied_step_size:
+            validate_step_column_is_pipeline(sim)
         take_step_and_validate(
             sim, listener, expected_simulants=full_pop_index, expected_step_size_days=1
         )
-
 
 def test_empty_active_pop(SimulationContext, base_config, components):
     """Make sure that if we have no active simulants, we still take a step, given
@@ -164,11 +169,13 @@ def test_empty_active_pop(SimulationContext, base_config, components):
     ## that has no simulants aligned. Check that we do the minimum timestep update.
     sim._population._population.next_event_time += pd.Timedelta(days=1)
     ## First Step
+    validate_step_column_is_pipeline(sim)
     take_step_and_validate(
         sim, listener, expected_simulants=pd.Index([]), expected_step_size_days=1
     )
 
     ## Second Timestep
+    validate_step_column_is_pipeline(sim)
     take_step_and_validate(
         sim, listener, expected_simulants=full_pop_index, expected_step_size_days=1
     )
@@ -195,6 +202,7 @@ def test_skip_iterations(
     ## Go through a couple simulant step cycles
     for _ in range(2):
         ## Everyone should update, but the step size should change
+        validate_step_column_is_pipeline(sim)
         take_step_and_validate(
             sim,
             listener,
@@ -244,6 +252,7 @@ def test_uneven_steps(SimulationContext, base_config):
 
     ## Ensure that steps and active simulants are correct through one cycle of 21
     for correct_step_size, group in zip(correct_step_sizes, groups):
+        validate_step_column_is_pipeline(sim)
         take_step_and_validate(
             sim,
             listener,
@@ -260,12 +269,14 @@ def test_step_size_post_processor(manager):
     """Test that step size post-processor chooses the minimum modified step, or minimum global step,
     whichever is larger."""
     index = pd.Index(range(10))
+    clock = SimulationClock()
+    clock._default_step_size = clock._minimum_step_size = pd.Timedelta(days=2)
 
     pipeline = manager.register_value_producer(
         "test_step_size",
-        source=lambda idx: [pd.Series(pd.Timedelta(days=2), index=idx)],
+        source=lambda idx: [pd.Series(np.nan, index=idx).astype("timedelta64[ns]")],
         preferred_combiner=list_combiner,
-        preferred_post_processor=SimulationClock.step_size_post_processor,
+        preferred_post_processor=clock.step_size_post_processor,
     )
 
     ## Add modifier that set the step size to 7 for even indices and 5 for odd indices
