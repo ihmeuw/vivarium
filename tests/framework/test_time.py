@@ -21,7 +21,6 @@ from .components.mocks import (
     MockGenericComponent,
 )
 
-
 @pytest.fixture
 def manager(mocker):
     manager = ValuesManager()
@@ -60,8 +59,8 @@ def validate_index_aligned(sim, expected_active_simulants):
     )
 
     assert np.all(step_pipeline == step_column)
-    assert active_simulants.index.equals(expected_active_simulants)
-    assert active_simulants.index.difference(expected_active_simulants).empty
+    assert active_simulants.equals(expected_active_simulants)
+    assert active_simulants.difference(expected_active_simulants).empty
 
 
 def validate_event_indexes(listener, expected_simulants):
@@ -132,8 +131,9 @@ def test_basic_iteration(SimulationContext, base_config, components):
     be updated, and the pipeline step value should always match the column step value.
     """
     base_config["time"]["step_size"] = 1
+    components.append(StepModifier("step_modifier", 1, 1))
     sim = SimulationContext(base_config, components)
-    listener = [c for c in components if "listener" in c.args][0]
+    listener = [c for c in components if hasattr(c, 'args') and "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
     full_pop_index = sim.get_population().index
@@ -152,8 +152,9 @@ def test_empty_active_pop(SimulationContext, base_config, components):
     """Make sure that if we have no active simulants, we still take a step, given
     by the minimum step size."""
     base_config["time"]["step_size"] = 1
+    components.append(StepModifier("step_modifier", 1, 1))
     sim = SimulationContext(base_config, components)
-    listener = [c for c in components if "listener" in c.args][0]
+    listener = [c for c in components if hasattr(c, 'args') and "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
     full_pop_index = sim.get_population().index

@@ -20,9 +20,9 @@ import pandas as pd
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.population.population_view import PopulationView
+    from vivarium.framework.event import Event
 
 from vivarium.manager import Manager
-from vivarium.framework.event import Event
 from vivarium.framework.values import list_combiner
 
 Time = Union[pd.Timestamp, datetime, Number]
@@ -61,6 +61,13 @@ class SimulationClock(Manager):
         if not self._minimum_step_size:
             raise ValueError("No minimum step size provided")
         return self._minimum_step_size
+    
+    @property
+    def default_step_size(self) -> Timedelta:
+        """The minimum step size."""
+        if not self._default_step_size:
+            raise ValueError("No default step size provided")
+        return self._default_step_size
 
     @property
     def step_size(self) -> Timedelta:
@@ -85,16 +92,17 @@ class SimulationClock(Manager):
     def setup(self, builder: "Builder"):
         self.step_size_pipeline = builder.value.register_value_producer(
             "simulant_step_size",
-            source=lambda idx: [],
+            source=lambda idx: [pd.Series(np.nan, index=idx).astype("timedelta64[ns]")],
             preferred_combiner=list_combiner,
             preferred_post_processor=self.step_size_post_processor,
         )
         builder.population.initializes_simulants(
             self.on_initialize_simulants, creates_columns=self.columns_created
         )
+        builder.event.register_listener("post_setup", self.on_post_setup)
         self.population_view = builder.population.get_view(columns=self.columns_created)
 
-    def on_post_setup(self, event: Event):
+    def on_post_setup(self, event: "Event"):
         if not self.step_size_pipeline.mutators:
             ## No components modify the step size, so we use the default
             ## and remove the population view
@@ -165,12 +173,11 @@ class SimulationClock(Manager):
 
         """
 
-        min_modified = pd.DataFrame(values).min(axis=0).astype("timedelta64[ns]")
-        raw_step_sizes = min_modified.apply(
-            lambda x: max(min(x, self._default_step_size), self.minimum_step_size)
-        )
-        ## Rescale pipeline values to global minimum step size
-        return np.floor(raw_step_sizes / self.minimum_step_size) * self.minimum_step_size
+        min_modified = pd.DataFrame(values).min(axis=0).fillna(self.default_step_size)
+         ## Rescale pipeline values to global minimum step size
+        discretized_step_sizes = np.floor(min_modified / self.minimum_step_size).replace(0,1) * self.minimum_step_size
+        ## Make sure we don't get zero
+        return discretized_step_sizes
 
 
 class SimpleClock(SimulationClock):
@@ -231,8 +238,8 @@ class DateTimeClock(SimulationClock):
         self._minimum_step_size = pd.Timedelta(
             days=time.step_size // 1, hours=(time.step_size % 1) * 24
         )
-        self._default_step_size = time.default_step_size
-        self._clock_step_size = self._minimum_step_size
+        self._default_step_size = time.default_step_size if time.default_step_size else self._minimum_step_size
+        self._clock_step_size = self._default_step_size
 
     def __repr__(self):
         return "DateTimeClock()"
