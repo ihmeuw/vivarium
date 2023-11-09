@@ -241,7 +241,7 @@ class SimulationContext:
                 self._population.get_population(True).index,
                 self._clock.event_time,
             )
-            self.time_step_emitters[event](pop_to_update.index)
+            self.time_step_emitters[event](pop_to_update)
         self._clock.step_forward(self._population.get_population(True).index)
 
     def run(self) -> None:
