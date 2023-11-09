@@ -23,6 +23,7 @@ if TYPE_CHECKING:
 
 from vivarium.manager import Manager
 from vivarium.framework.event import Event
+from vivarium.framework.values import list_combiner
 
 Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
@@ -84,21 +85,20 @@ class SimulationClock(Manager):
     def setup(self, builder: "Builder"):
         self.step_size_pipeline = builder.value.register_value_producer(
             "simulant_step_size",
-            source=lambda idx: (self.minimum_step_size, self.default_step_size),
-            preferred_combiner=self.step_size_combiner,
+            source=lambda idx: [],
+            preferred_combiner=list_combiner,
             preferred_post_processor=self.step_size_post_processor,
         )
         builder.population.initializes_simulants(
             self.on_initialize_simulants, creates_columns=self.columns_created
         )
         self.population_view = builder.population.get_view(columns=self.columns_created)
-    
+
     def on_post_setup(self, event: Event):
         if not self.step_size_pipeline.mutators:
             ## No components modify the step size, so we use the default
             ## and remove the population view
             self.population_view = None
-            
 
     def on_initialize_simulants(self, pop_data):
         """Sets the next_event_time and step_size columns for each simulant"""
@@ -147,12 +147,7 @@ class SimulationClock(Manager):
         next_event_times = self.simulant_next_event_times(index)
         return next_event_times[next_event_times <= time].index
 
-    @staticmethod
-    def step_size_combiner():
-        """"""
-    
-    @staticmethod
-    def step_size_post_processor(values: List[NumberLike], _) -> pd.Series:
+    def step_size_post_processor(self, values: List[NumberLike], _) -> pd.Series:
         """Computes the largest feasible step size for each simulant. This is the smallest component-modified
         step size (rounded down to increments of the minimum step size), or the global step size, whichever is larger.
         If no components modify the step size, we default to the global step size.
@@ -169,14 +164,13 @@ class SimulationClock(Manager):
 
 
         """
-        source = values[0]
-        if len(values) == 1:
-            return source
-        modifiers = values[1:]
-        min_modified = pd.DataFrame(modifiers).min(axis=0).astype("timedelta64[ns]")
-        raw_step_sizes = pd.DataFrame([source, min_modified]).max(axis=0)
-        ## Rescale pipeline values to global step size
-        return np.floor(raw_step_sizes / source) * source
+
+        min_modified = pd.DataFrame(values).min(axis=0).astype("timedelta64[ns]")
+        raw_step_sizes = min_modified.apply(
+            lambda x: max(min(x, self._default_step_size), self.minimum_step_size)
+        )
+        ## Rescale pipeline values to global minimum step size
+        return np.floor(raw_step_sizes / self.minimum_step_size) * self.minimum_step_size
 
 
 class SimpleClock(SimulationClock):
@@ -221,7 +215,7 @@ class DateTimeClock(SimulationClock):
                 "day": 2,
             },
             "step_size": 1,
-            "default_step_size": None # Days
+            "default_step_size": None,  # Days
         }
     }
 
