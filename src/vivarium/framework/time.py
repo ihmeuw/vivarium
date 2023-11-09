@@ -197,10 +197,12 @@ class SimpleClock(SimulationClock):
 
     def setup(self, builder):
         super().setup(builder)
-        self._clock_time = builder.configuration.time.start
-        self._stop_time = builder.configuration.time.end
-        self._minimum_step_size = builder.configuration.time.step_size
-        self._clock_step_size = self._minimum_step_size
+        time = builder.configuration.time
+        self._clock_time = time.start
+        self._stop_time = time.end
+        self._minimum_step_size = time.step_size
+        self._default_step_size = time.default_step_size if time.default_step_size else self._minimum_step_size
+        self._clock_step_size = self._default_step_size
 
     def __repr__(self):
         return "SimpleClock()"
