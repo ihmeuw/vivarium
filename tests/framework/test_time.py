@@ -143,6 +143,8 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
     full_pop_index = sim.get_population().index
     assert sim._clock.time == get_time_stamp(sim.configuration.time.start)
     assert sim._clock.step_size == pd.Timedelta(days=1)
+    ## Ensure that we don't have a pop view (and by extension, don't vary clocks)
+    ## If no components modify the step size.
     assert bool(sim._clock.population_view) == varied_step_size
 
     for _ in range(2):
