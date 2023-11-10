@@ -191,6 +191,7 @@ class SimpleClock(SimulationClock):
             "start": 0,
             "end": 100,
             "step_size": 1,
+            "default_step_size": None,
         }
     }
 
