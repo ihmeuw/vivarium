@@ -87,9 +87,7 @@ def list_combiner(value: List, mutator: Callable, *args: Any, **kwargs: Any) -> 
     return value
 
 
-def rescale_post_processor(
-    value: NumberLike, manager: "ValuesManager"
-) -> NumberLike:
+def rescale_post_processor(value: NumberLike, manager: "ValuesManager") -> NumberLike:
     """Rescales annual rates to time-step appropriate rates.
 
     This should only be used with a simulation using a
