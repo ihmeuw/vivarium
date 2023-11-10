@@ -64,7 +64,7 @@ class SimulationClock(Manager):
 
     @property
     def default_step_size(self) -> Timedelta:
-        """The minimum step size."""
+        """The default varied step size."""
         if not self._default_step_size:
             raise ValueError("No default step size provided")
         return self._default_step_size
