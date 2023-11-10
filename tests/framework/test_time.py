@@ -154,6 +154,12 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
         # After a step (and no step adjustments), simulants should still be aligned
         if varied_step_size:
             validate_step_column_is_pipeline(sim)
+            assert np.all(
+                sim._clock.simulant_next_event_times(full_pop_index) == sim._clock.event_time
+            )
+            assert np.all(
+                sim._clock.simulant_step_sizes(full_pop_index) == sim._clock.step_size
+            )
         take_step_and_validate(
             sim, listener, expected_simulants=full_pop_index, expected_step_size_days=1
         )
