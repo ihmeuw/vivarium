@@ -13,18 +13,14 @@ from vivarium.framework.values import (
 
 @pytest.fixture
 def static_step():
-    step_size = lambda: lambda: pd.Timedelta(days=6)
-    simulant_step_sizes = lambda: lambda idx: None
-    return step_size, simulant_step_sizes
+    return lambda idx: None
 
 
 @pytest.fixture
 def variable_step():
-    step_size = lambda: lambda: pd.Timedelta(days=6)
-    simulant_step_sizes = lambda: lambda idx: pd.Series(
+    return lambda idx: pd.Series(
         [pd.Timedelta(days=3) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx], index=idx
     )
-    return step_size, simulant_step_sizes
 
 
 @pytest.fixture
@@ -39,9 +35,8 @@ def manager(mocker):
 def manager_with_step_size(mocker, request):
     manager = ValuesManager()
     builder = mocker.MagicMock()
-    step_size, simulant_step_sizes = request.getfixturevalue(request.param)
-    builder.time.step_size = step_size
-    builder.time.simulant_step_sizes = simulant_step_sizes
+    builder.time.step_size = lambda: lambda: pd.Timedelta(days=6)
+    builder.time.simulant_step_sizes = lambda: request.getfixturevalue(request.param)
     manager.setup(builder)
     return manager
 
