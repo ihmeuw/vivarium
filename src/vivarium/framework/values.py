@@ -112,7 +112,7 @@ def rescale_post_processor(
         The annual rates rescaled to the size of the current time step size.
 
     """
-    if hasattr(value, "index") and manager.simulant_step_sizes:
+    if hasattr(value, "index") and manager.simulant_step_sizes(value.index) is not None:
         time_step = manager.simulant_step_sizes(value.index).dt
     else:
         time_step = manager.step_size()
