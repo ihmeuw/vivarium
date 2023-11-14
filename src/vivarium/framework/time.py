@@ -64,10 +64,10 @@ class SimulationClock(Manager):
         return self._minimum_step_size
 
     @property
-    def default_step_size(self) -> Timedelta:
-        """The default varied step size."""
+    def standard_step_size(self) -> Timedelta:
+        """The standard varied step size."""
         if not self._standard_step_size:
-            raise ValueError("No default step size provided")
+            raise ValueError("No standard step size provided")
         return self._standard_step_size
 
     @property
@@ -178,7 +178,7 @@ class SimulationClock(Manager):
 
         """
 
-        min_modified = pd.DataFrame(values).min(axis=0).fillna(self.default_step_size)
+        min_modified = pd.DataFrame(values).min(axis=0).fillna(self.standard_step_size)
         ## Rescale pipeline values to global minimum step size
         discretized_step_sizes = (
             np.floor(min_modified / self.minimum_step_size).replace(0, 1)
@@ -211,7 +211,7 @@ class SimpleClock(SimulationClock):
         self._stop_time = time.end
         self._minimum_step_size = time.step_size
         self._standard_step_size = (
-            time.default_step_size if time.standard_step_size else self._minimum_step_size
+            time.standard_step_size if time.standard_step_size else self._minimum_step_size
         )
         self._clock_step_size = self._standard_step_size
 
@@ -252,7 +252,7 @@ class DateTimeClock(SimulationClock):
             days=time.step_size // 1, hours=(time.step_size % 1) * 24
         )
         self._standard_step_size = (
-            time.default_step_size if time.standard_step_size else self._minimum_step_size
+            time.standard_step_size if time.standard_step_size else self._minimum_step_size
         )
         self._clock_step_size = self._standard_step_size
 
