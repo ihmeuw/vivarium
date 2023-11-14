@@ -59,7 +59,7 @@ def validate_step_column_is_pipeline(sim):
 
 def validate_index_aligned(sim, expected_active_simulants):
     """Ensure that the active simulants are as expected BEFORE a step"""
-    active_simulants = sim._clock.get_active_population(
+    active_simulants = sim._clock.get_active_simulants(
         sim.get_population().index, sim._clock.event_time
     )
 
@@ -147,7 +147,7 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
     assert sim._clock.step_size == pd.Timedelta(days=1)
     ## Ensure that we don't have a pop view (and by extension, don't vary clocks)
     ## If no components modify the step size.
-    assert bool(sim._clock.individual_clocks) == varied_step_size
+    assert bool(sim._clock._individual_clocks) == varied_step_size
 
     for _ in range(2):
         # After initialization, all simulants should be aligned to event times
@@ -282,7 +282,7 @@ def test_step_size_post_processor(manager):
     whichever is larger."""
     index = pd.Index(range(10))
     clock = SimulationClock()
-    clock._default_step_size = clock._minimum_step_size = pd.Timedelta(days=2)
+    clock._standard_step_size = clock._minimum_step_size = pd.Timedelta(days=2)
 
     pipeline = manager.register_value_producer(
         "test_step_size",

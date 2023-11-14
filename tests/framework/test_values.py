@@ -13,7 +13,7 @@ from vivarium.framework.values import (
 
 @pytest.fixture
 def static_step():
-    return lambda idx: None
+    return lambda idx: pd.Series(pd.Timedelta(days=6), index=idx)
 
 
 @pytest.fixture
