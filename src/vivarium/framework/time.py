@@ -26,7 +26,6 @@ if TYPE_CHECKING:
 from vivarium.framework.values import list_combiner
 from vivarium.manager import Manager
 
-
 Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
 NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
@@ -145,8 +144,12 @@ class SimulationClock(Manager):
             update_index = self.get_active_simulants(index, self.time)
             simulant_clocks_to_update = self._individual_clocks.get(update_index)
             if not simulant_clocks_to_update.empty:
-                simulant_clocks_to_update["step_size"] = self._step_size_pipeline(update_index)
-                simulant_clocks_to_update["next_event_time"] = self.time + simulant_clocks_to_update["step_size"]
+                simulant_clocks_to_update["step_size"] = self._step_size_pipeline(
+                    update_index
+                )
+                simulant_clocks_to_update["next_event_time"] = (
+                    self.time + simulant_clocks_to_update["step_size"]
+                )
                 self._individual_clocks.update(simulant_clocks_to_update)
             self._clock_step_size = self.simulant_next_event_times(index).min() - self.time
 
