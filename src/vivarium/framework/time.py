@@ -142,15 +142,13 @@ class SimulationClock(Manager):
         self._clock_time += self.step_size
         if self._individual_clocks:
             update_index = self.get_active_simulants(index, self.time)
-            simulant_clocks_to_update = self._individual_clocks.get(update_index)
-            if not simulant_clocks_to_update.empty:
-                simulant_clocks_to_update["step_size"] = self._step_size_pipeline(
-                    update_index
+            clocks_to_update = self._individual_clocks.get(update_index)
+            if not clocks_to_update.empty:
+                clocks_to_update["step_size"] = self._step_size_pipeline(update_index)
+                clocks_to_update["next_event_time"] = (
+                    self.time + clocks_to_update["step_size"]
                 )
-                simulant_clocks_to_update["next_event_time"] = (
-                    self.time + simulant_clocks_to_update["step_size"]
-                )
-                self._individual_clocks.update(simulant_clocks_to_update)
+                self._individual_clocks.update(clocks_to_update)
             self._clock_step_size = self.simulant_next_event_times(index).min() - self.time
 
     def get_active_simulants(self, index: pd.Index, time: Time) -> pd.Index:
