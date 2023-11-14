@@ -79,6 +79,26 @@ def take_step(sim):
     new_time = sim._clock.time
     return new_time - old_time
 
+def full_pop_index(sim):
+    return sim.get_population().index
+
+def get_index_by_parity(index, parity):
+    if parity == 'evens':
+        return index[index % 2 == 0]
+    elif parity == 'odds':
+        return index[index % 2 == 1]
+    else:
+        return index
+
+def get_pop_by_parity(sim, parity):
+    pop = sim.get_population()
+    return pop.loc[get_index_by_parity(pop.index, parity)]
+
+def pipeline_by_parity(sim, step_modifiers, parity):
+    if parity == 'all':
+        return pd.concat([pipeline_by_parity(sim, step_modifiers, 'evens'), pipeline_by_parity(sim, step_modifiers, 'odds')]).sort_index()
+    return pd.Series(from_yearly(1.75, pd.Timedelta(days=step_modifiers[parity])), index=get_index_by_parity(full_pop_index(sim), parity))
+
 
 def take_step_and_validate(sim, listener, expected_simulants, expected_step_size_days):
     """Take a step, and ensure that we included the right simulants, with the right step size"""
@@ -100,17 +120,18 @@ class StepModifier(MockGenericComponent):
     to the step that was actually taken.
     """
 
-    def __init__(self, name, step_modifier_even, step_modifier_odd):
+    def __init__(self, name, step_modifier_even, step_modifier_odd=None, modified_simulants='all'):
         super().__init__(name)
         self.step_modifier_even = step_modifier_even
-        self.step_modifier_odd = step_modifier_odd
+        self.step_modifier_odd = step_modifier_odd if step_modifier_odd else step_modifier_even
+        self.modified_simulants = modified_simulants
         self.ts_pipeline_value = None
 
     def setup(self, builder) -> None:
         super().setup(builder)
         builder.value.register_value_modifier("simulant_step_size", self.modify_step)
         self.rate_pipeline = builder.value.register_value_producer(
-            "test_rate",
+            f"test_rate_{self.name}",
             source=lambda idx: pd.Series(1.75, index=idx),
             preferred_post_processor=rescale_post_processor,
         )
@@ -119,13 +140,14 @@ class StepModifier(MockGenericComponent):
         self.ts_pipeline_value = self.rate_pipeline(event.index)
 
     def modify_step(self, index):
-        step_sizes = pd.Series(pd.Timedelta(1), index=index)
-        step_sizes.iloc[lambda x: x.index % 2 == 0] = pd.Timedelta(
+        step_sizes = pd.Series(pd.Timedelta(days=1), index=index)
+        step_sizes.loc[get_index_by_parity(index, "evens")] = pd.Timedelta(
             days=self.step_modifier_even
         )
-        step_sizes.iloc[lambda x: x.index % 2 == 1] = pd.Timedelta(
+        step_sizes.loc[get_index_by_parity(index, "odds")] = pd.Timedelta(
             days=self.step_modifier_odd
         )
+        step_sizes = step_sizes.loc[get_index_by_parity(index, self.modified_simulants)]
         return step_sizes
 
 
@@ -137,7 +159,7 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
     """
     base_config["time"]["step_size"] = 1
     if varied_step_size:
-        components.append(StepModifier("step_modifier", 1, 1))
+        components.append(StepModifier("step_modifier", 1))
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if hasattr(c, "args") and "listener" in c.args][0]
     sim.setup()
@@ -169,7 +191,7 @@ def test_empty_active_pop(SimulationContext, base_config, components):
     """Make sure that if we have no active simulants, we still take a step, given
     by the minimum step size."""
     base_config["time"]["step_size"] = 1
-    components.append(StepModifier("step_modifier", 1, 1))
+    components.append(StepModifier("step_modifier", 1))
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if hasattr(c, "args") and "listener" in c.args][0]
     sim.setup()
@@ -222,7 +244,6 @@ def test_skip_iterations(
             expected_step_size_days=expected_step_size,
         )
 
-
 def test_uneven_steps(SimulationContext, base_config):
     """Test that if we have a mix of step sizes, we take steps in accordance
     to reach all simulants' next event times in the fewest steps.
@@ -230,10 +251,9 @@ def test_uneven_steps(SimulationContext, base_config):
 
     base_config["time"]["step_size"] = 1
     listener = Listener("listener")
-    step_modifier_even = 3
-    step_modifier_odd = 7
+    step_modifiers = {'evens': 3, 'odds': 7}
     step_modifier_component = StepModifier(
-        "step_modifier", step_modifier_even, step_modifier_odd
+        "step_modifier", step_modifiers["evens"], step_modifiers["odds"]
     )
     sim = SimulationContext(
         base_config,
@@ -246,21 +266,6 @@ def test_uneven_steps(SimulationContext, base_config):
     ## 9, etc.
     correct_step_sizes = [3, 3, 1, 2, 3, 2, 1, 3, 3]
     groups = ["evens", "evens", "odds", "evens", "evens", "odds", "evens", "evens", "all"]
-    test = {
-        "evens": sim.get_population().iloc[lambda x: x.index % 2 == 0].index,
-        "odds": sim.get_population().iloc[lambda x: x.index % 2 == 1].index,
-        "all": sim.get_population().index,
-    }
-    pipeline_values = {
-        "evens": pd.Series(from_yearly(1.75, pd.Timedelta(days=3)), index=test["evens"]),
-        "odds": pd.Series(from_yearly(1.75, pd.Timedelta(days=7)), index=test["odds"]),
-        "all": pd.concat(
-            [
-                pd.Series(from_yearly(1.75, pd.Timedelta(days=3)), index=test["evens"]),
-                pd.Series(from_yearly(1.75, pd.Timedelta(days=7)), index=test["odds"]),
-            ]
-        ).sort_index(),
-    }
 
     ## Ensure that steps and active simulants are correct through one cycle of 21
     for correct_step_size, group in zip(correct_step_sizes, groups):
@@ -268,13 +273,86 @@ def test_uneven_steps(SimulationContext, base_config):
         take_step_and_validate(
             sim,
             listener,
-            expected_simulants=test[group],
+            expected_simulants=get_pop_by_parity(sim, group).index,
             expected_step_size_days=correct_step_size,
         )
 
         sample_pipeline = step_modifier_component.ts_pipeline_value
-        assert sample_pipeline.index.equals(test[group])
-        assert np.all(sample_pipeline == pipeline_values[group])
+        assert sample_pipeline.index.equals(get_pop_by_parity(sim, group).index)
+        assert np.all(sample_pipeline == pipeline_by_parity(sim, step_modifiers, group))
+
+def test_partial_modification(SimulationContext, base_config):
+    """Test that if we have one modifier that doesn't apply to all simulants,
+    we choose the default value for unmodified simulants.
+    """
+
+    base_config["time"]["step_size"] = 1
+    listener = Listener("listener")
+    ## Define odds for validation, but don't pass it into the step modifier
+    step_modifiers = {'evens': 3, 'odds': 1}
+    step_modifier_component = StepModifier(
+        "step_modifier", step_modifiers["evens"], modified_simulants='evens'
+    )
+    sim = SimulationContext(
+        base_config,
+        [step_modifier_component, listener],
+    )
+
+    sim.setup()
+    sim.initialize_simulants()
+    ## We should update odds with default each time, and update evens every third step.
+    correct_step_sizes = [1, 1, 1, 1, 1, 1, 1, 1, 1]
+    groups = ["odds", "odds", "all", "odds", "odds", "all", "odds", "odds", "all"]
+
+    ## Ensure that steps and active simulants are correct through one cycle of 21
+    for correct_step_size, group in zip(correct_step_sizes, groups):
+        validate_step_column_is_pipeline(sim)
+        take_step_and_validate(
+            sim,
+            listener,
+            expected_simulants=get_pop_by_parity(sim, group).index,
+            expected_step_size_days=correct_step_size,
+        )
+
+        sample_pipeline = step_modifier_component.ts_pipeline_value
+        assert sample_pipeline.index.equals(get_pop_by_parity(sim, group).index)
+        assert np.all(sample_pipeline == pipeline_by_parity(sim, step_modifiers, group))
+        
+def test_multiple_modifiers(SimulationContext, base_config):
+    """Test that if we have a mix of step sizes, we take steps in accordance
+    to reach all simulants' next event times in the fewest steps.
+    """
+
+    base_config["time"]["step_size"] = 1
+    listener = Listener("listener")
+    step_modifiers = {'evens': 3, 'odds': 7}
+    step_modifier_A = StepModifier(
+        "step_modifier_A", step_modifiers["evens"], modified_simulants='evens'
+    )
+    step_modifier_B = StepModifier(
+        "step_modifier_B", step_modifiers["evens"], step_modifiers["odds"], modified_simulants='odds'
+    )
+    sim = SimulationContext(
+        base_config,
+        [step_modifier_A, step_modifier_B, listener],
+    )
+
+    sim.setup()
+    sim.initialize_simulants()
+    ## With step sizes of 3 and 7, we need 3 steps, then 3 more, then one to get 7, then two more to get
+    ## 9, etc.
+    correct_step_sizes = [3, 3, 1, 2, 3, 2, 1, 3, 3]
+    groups = ["evens", "evens", "odds", "evens", "evens", "odds", "evens", "evens", "all"]
+
+    ## Ensure that steps and active simulants are correct through one cycle of 21
+    for correct_step_size, group in zip(correct_step_sizes, groups):
+        validate_step_column_is_pipeline(sim)
+        take_step_and_validate(
+            sim,
+            listener,
+            expected_simulants=get_pop_by_parity(sim, group).index,
+            expected_step_size_days=correct_step_size,
+        )
 
 
 def test_step_size_post_processor(manager):
