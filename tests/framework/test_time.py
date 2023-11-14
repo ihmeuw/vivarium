@@ -301,7 +301,7 @@ def test_uneven_steps(SimulationContext, base_config):
 
 def test_partial_modification(SimulationContext, base_config):
     """Test that if we have one modifier that doesn't apply to all simulants,
-    we choose the default value for unmodified simulants.
+    we choose the standard value for unmodified simulants.
     """
 
     base_config["time"]["step_size"] = 1
