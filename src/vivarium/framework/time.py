@@ -11,6 +11,7 @@ For more information about time in the simulation, see the associated
 
 """
 from datetime import datetime, timedelta
+from functools import partial
 from numbers import Number
 from typing import TYPE_CHECKING, Callable, List, Union
 
@@ -89,14 +90,16 @@ class SimulationClock(Manager):
         self._standard_step_size: Timedelta = None
         self._clock_step_size: Timedelta = None
         self._individual_clocks: PopulationView = None
+        self._pipeline_name = "simulant_step_size"
 
     def setup(self, builder: "Builder"):
         self._step_size_pipeline = builder.value.register_value_producer(
-            "simulant_step_size",
+            self._pipeline_name,
             source=lambda idx: [pd.Series(np.nan, index=idx).astype("timedelta64[ns]")],
             preferred_combiner=list_combiner,
             preferred_post_processor=self.step_size_post_processor,
         )
+        self.modify_step_size = partial(builder.value.register_value_modifier, self._pipeline_name)
         builder.population.initializes_simulants(
             self.on_initialize_simulants, creates_columns=self.columns_created
         )
@@ -184,7 +187,6 @@ class SimulationClock(Manager):
         )
         ## Make sure we don't get zero
         return discretized_step_sizes
-
 
 class SimpleClock(SimulationClock):
     """A unitless step-count based simulation clock."""
@@ -281,3 +283,29 @@ class TimeInterface:
     def simulant_step_sizes(self) -> Callable[[pd.Index], pd.Series]:
         """Gets a callable that returns the simulant step sizes."""
         return self._manager.simulant_step_sizes
+
+    def modify_step_size(
+        self,
+        modifier: Callable[[pd.Index], pd.Series],
+        requires_columns: List[str] = (),
+        requires_values: List[str] = (),
+        requires_streams: List[str] = (),
+    ) -> None:
+        """Registers a step size modifier.
+        modifier :
+            Modifier of the step size pipeline. Modifiers can take an index 
+            and should return a series of step sizes.
+        requires_columns
+            A list of the state table columns that already need to be present
+            and populated in the state table before the modifier
+            is called.
+        requires_values
+            A list of the value pipelines that need to be properly sourced
+            before the  modifier is called.
+        requires_streams
+            A list of the randomness streams that need to be properly sourced
+            before the modifier is called.
+"""
+        return self._manager.modify_step_size(
+            modifier, requires_columns, requires_values, requires_streams
+        )
