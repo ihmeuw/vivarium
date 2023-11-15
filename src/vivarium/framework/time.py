@@ -99,7 +99,9 @@ class SimulationClock(Manager):
             preferred_combiner=list_combiner,
             preferred_post_processor=self.step_size_post_processor,
         )
-        self.modify_step_size = partial(builder.value.register_value_modifier, self._pipeline_name)
+        self.register_step_modifier = partial(
+            builder.value.register_value_modifier, self._pipeline_name
+        )
         builder.population.initializes_simulants(
             self.on_initialize_simulants, creates_columns=self.columns_created
         )
@@ -187,6 +189,7 @@ class SimulationClock(Manager):
         )
         ## Make sure we don't get zero
         return discretized_step_sizes
+
 
 class SimpleClock(SimulationClock):
     """A unitless step-count based simulation clock."""
@@ -293,7 +296,7 @@ class TimeInterface:
     ) -> None:
         """Registers a step size modifier.
         modifier
-            Modifier of the step size pipeline. Modifiers can take an index 
+            Modifier of the step size pipeline. Modifiers can take an index
             and should return a series of step sizes.
         requires_columns
             A list of the state table columns that already need to be present
@@ -304,8 +307,7 @@ class TimeInterface:
             before the  modifier is called.
         requires_streams
             A list of the randomness streams that need to be properly sourced
-            before the modifier is called.
-"""
-        return self._manager.modify_step_size(
+            before the modifier is called."""
+        return self._manager.register_step_modifier(
             modifier, requires_columns, requires_values, requires_streams
         )
