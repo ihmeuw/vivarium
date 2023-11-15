@@ -250,7 +250,11 @@ class DateTimeClock(SimulationClock):
             days=time.step_size // 1, hours=(time.step_size % 1) * 24
         )
         self._standard_step_size = (
-            time.standard_step_size if time.standard_step_size else self._minimum_step_size
+            pd.Timedelta(
+                days=time.standard_step_size // 1, hours=(time.standard_step_size % 1) * 24
+            )
+            if time.standard_step_size
+            else self._minimum_step_size
         )
         self._clock_step_size = self._standard_step_size
 

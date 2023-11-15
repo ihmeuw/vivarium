@@ -173,7 +173,6 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
     The step size should always be 1 in this case, the whole population should
     be updated, and the pipeline step value should always match the column step value.
     """
-    base_config["time"]["step_size"] = 1
     if varied_step_size:
         components.append(StepModifier("step_modifier", 1))
     sim = SimulationContext(base_config, components)
@@ -206,7 +205,6 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
 def test_empty_active_pop(SimulationContext, base_config, components):
     """Make sure that if we have no active simulants, we still take a step, given
     by the minimum step size."""
-    base_config["time"]["step_size"] = 1
     components.append(StepModifier("step_modifier", 1))
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if hasattr(c, "args") and "listener" in c.args][0]
@@ -238,7 +236,6 @@ def test_skip_iterations(
     SimulationContext, base_config, step_modifier_even, step_modifier_odd
 ):
     """Test that if everyone has some (non-minimum) step size, the global step adjusts to match"""
-    base_config["time"]["step_size"] = 1
     listener = Listener("listener")
     sim = SimulationContext(
         base_config,
@@ -266,7 +263,6 @@ def test_uneven_steps(SimulationContext, base_config):
     to reach all simulants' next event times in the fewest steps.
     """
 
-    base_config["time"]["step_size"] = 1
     listener = Listener("listener")
     step_modifiers = {"evens": 3, "odds": 7}
     step_modifier_component = StepModifier(
@@ -304,7 +300,6 @@ def test_partial_modification(SimulationContext, base_config):
     we choose the standard value for unmodified simulants.
     """
 
-    base_config["time"]["step_size"] = 1
     listener = Listener("listener")
     ## Define odds for validation, but don't pass it into the step modifier
     step_modifiers = {"evens": 3, "odds": 1}
@@ -337,12 +332,49 @@ def test_partial_modification(SimulationContext, base_config):
         assert np.all(sample_pipeline == pipeline_by_parity(sim, step_modifiers, group))
 
 
+def test_standard_step_size(SimulationContext, base_config):
+    """Test that if we have one modifier that doesn't apply to all simulants,
+    we choose the standard value for unmodified simulants.
+    """
+
+    base_config.update({"configuration": {"time": {"standard_step_size": 5}}})
+    listener = Listener("listener")
+    ## Define odds for validation, but don't pass it into the step modifier
+    step_modifiers = {"evens": 3, "odds": 5}
+    step_modifier_component = StepModifier(
+        "step_modifier", step_modifiers["evens"], modified_simulants="evens"
+    )
+    sim = SimulationContext(
+        base_config,
+        [step_modifier_component, listener],
+    )
+
+    sim.setup()
+    sim.initialize_simulants()
+    ## We should give odds standard size, and evens 3 days.
+    correct_step_sizes = [3, 2, 1, 3, 1, 2, 3]
+    groups = ["evens", "odds", "evens", "evens", "odds", "evens", "all"]
+
+    ## Ensure that steps and active simulants are correct through one cycle of 15
+    for correct_step_size, group in zip(correct_step_sizes, groups):
+        validate_step_column_is_pipeline(sim)
+        take_step_and_validate(
+            sim,
+            listener,
+            expected_simulants=get_pop_by_parity(sim, group).index,
+            expected_step_size_days=correct_step_size,
+        )
+
+        sample_pipeline = step_modifier_component.ts_pipeline_value
+        assert sample_pipeline.index.equals(get_pop_by_parity(sim, group).index)
+        assert np.all(sample_pipeline == pipeline_by_parity(sim, step_modifiers, group))
+
+
 def test_multiple_modifiers(SimulationContext, base_config):
     """Test that if we have a mix of step sizes, we take steps in accordance
     to reach all simulants' next event times in the fewest steps.
     """
 
-    base_config["time"]["step_size"] = 1
     listener = Listener("listener")
     step_modifiers = {"evens": 3, "odds": 7}
     step_modifier_A = StepModifier(
