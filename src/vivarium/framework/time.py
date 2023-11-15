@@ -295,7 +295,7 @@ class TimeInterface:
         requires_streams: List[str] = (),
     ) -> None:
         """Registers a step size modifier.
-        
+
         Parameters
         ----------
         modifier
