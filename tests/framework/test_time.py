@@ -417,13 +417,14 @@ def test_step_size_post_processor(builder):
     clock.setup(builder)
 
     ## Add modifier that set the step size to 7 for even indices and 5 for odd indices
-    clock.register_step_modifier(lambda idx: pd.Series(
+    clock.register_step_modifier(
+        lambda idx: pd.Series(
             [pd.Timedelta(days=7) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx],
             index=idx,
-        ))
-    ## Add modifier that sets the step size to 9 for all simulants
-    clock.register_step_modifier(lambda idx: pd.Series(pd.Timedelta(days=9), index=idx)
+        )
     )
+    ## Add modifier that sets the step size to 9 for all simulants
+    clock.register_step_modifier(lambda idx: pd.Series(pd.Timedelta(days=9), index=idx))
     value = clock._step_size_pipeline(index)
     evens = value.iloc[lambda x: x.index % 2 == 0]
     odds = value.iloc[lambda x: x.index % 2 == 1]
@@ -432,7 +433,6 @@ def test_step_size_post_processor(builder):
     assert np.all(evens == pd.Timedelta(days=6))
     assert np.all(odds == pd.Timedelta(days=4))
 
-    clock.register_step_modifier(lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx)
-    )
+    clock.register_step_modifier(lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx))
     value = clock._step_size_pipeline(index)
     assert np.all(value == pd.Timedelta(days=2))
