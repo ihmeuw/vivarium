@@ -12,12 +12,31 @@ from vivarium.framework.values import (
 
 
 @pytest.fixture
+def static_step():
+    return lambda idx: pd.Series(pd.Timedelta(days=6), index=idx)
+
+
+@pytest.fixture
+def variable_step():
+    return lambda idx: pd.Series(
+        [pd.Timedelta(days=3) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx], index=idx
+    )
+
+
+@pytest.fixture
 def manager(mocker):
     manager = ValuesManager()
     builder = mocker.MagicMock()
-    builder.time.simulant_step_sizes = lambda: lambda: lambda idx: pd.Series(
-        [pd.Timedelta(days=3) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx], index=idx
-    )
+    manager.setup(builder)
+    return manager
+
+
+@pytest.fixture
+def manager_with_step_size(mocker, request):
+    manager = ValuesManager()
+    builder = mocker.MagicMock()
+    builder.time.step_size = lambda: lambda: pd.Timedelta(days=6)
+    builder.time.simulant_step_sizes = lambda: request.getfixturevalue(request.param)
     manager.setup(builder)
     return manager
 
@@ -73,10 +92,23 @@ def test_returned_series_name(manager):
     assert value(pd.Index(range(10))).name == "test"
 
 
-def test_rescale_post_processor(manager):
+@pytest.mark.parametrize("manager_with_step_size", ["static_step"], indirect=True)
+def test_rescale_post_processor_static(manager_with_step_size):
     index = pd.Index(range(10))
 
-    pipeline = manager.register_value_producer(
+    pipeline = manager_with_step_size.register_value_producer(
+        "test",
+        source=lambda idx: pd.Series(0.75, index=idx),
+        preferred_post_processor=rescale_post_processor,
+    )
+    assert np.all(pipeline(index) == from_yearly(0.75, pd.Timedelta(days=6)))
+
+
+@pytest.mark.parametrize("manager_with_step_size", ["variable_step"], indirect=True)
+def test_rescale_post_processor_variable(manager_with_step_size):
+    index = pd.Index(range(10))
+
+    pipeline = manager_with_step_size.register_value_producer(
         "test",
         source=lambda idx: pd.Series(0.5, index=idx),
         preferred_post_processor=rescale_post_processor,
