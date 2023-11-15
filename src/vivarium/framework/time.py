@@ -292,7 +292,7 @@ class TimeInterface:
         requires_streams: List[str] = (),
     ) -> None:
         """Registers a step size modifier.
-        modifier :
+        modifier
             Modifier of the step size pipeline. Modifiers can take an index 
             and should return a series of step sizes.
         requires_columns
