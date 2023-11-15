@@ -284,7 +284,7 @@ class TimeInterface:
         """Gets a callable that returns the simulant step sizes."""
         return self._manager.simulant_step_sizes
 
-    def modify_step_size(
+    def register_step_modifier(
         self,
         modifier: Callable[[pd.Index], pd.Series],
         requires_columns: List[str] = (),

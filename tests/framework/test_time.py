@@ -145,7 +145,7 @@ class StepModifier(MockGenericComponent):
 
     def setup(self, builder) -> None:
         super().setup(builder)
-        builder.time.modify_step_size(self.modify_step)
+        builder.time.register_step_modifier(self.modify_step)
         self.rate_pipeline = builder.value.register_value_producer(
             f"test_rate_{self.name}",
             source=lambda idx: pd.Series(1.75, index=idx),
