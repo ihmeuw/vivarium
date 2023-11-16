@@ -23,14 +23,13 @@ from .components.mocks import (
 
 
 @pytest.fixture
-def manager(mocker):
-    manager = ValuesManager()
+def builder(mocker):
     builder = mocker.MagicMock()
-    builder.time.simulant_step_sizes = lambda: lambda: lambda idx: pd.Series(
-        [pd.Timedelta(days=3) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx], index=idx
-    )
+    manager = ValuesManager()
     manager.setup(builder)
-    return manager
+    builder.value.register_value_producer = manager.register_value_producer
+    builder.value.register_value_modifier = manager.register_value_modifier
+    return builder
 
 
 @pytest.fixture()
@@ -145,7 +144,7 @@ class StepModifier(MockGenericComponent):
 
     def setup(self, builder) -> None:
         super().setup(builder)
-        builder.value.register_value_modifier("simulant_step_size", self.modify_step)
+        builder.time.register_step_modifier(self.modify_step)
         self.rate_pipeline = builder.value.register_value_producer(
             f"test_rate_{self.name}",
             source=lambda idx: pd.Series(1.75, index=idx),
@@ -409,33 +408,24 @@ def test_multiple_modifiers(SimulationContext, base_config):
         )
 
 
-def test_step_size_post_processor(manager):
+def test_step_size_post_processor(builder):
     """Test that step size post-processor chooses the minimum modified step, or minimum global step,
     whichever is larger."""
     index = pd.Index(range(10))
     clock = SimulationClock()
     clock._standard_step_size = clock._minimum_step_size = pd.Timedelta(days=2)
-
-    pipeline = manager.register_value_producer(
-        "test_step_size",
-        source=lambda idx: [pd.Series(np.nan, index=idx).astype("timedelta64[ns]")],
-        preferred_combiner=list_combiner,
-        preferred_post_processor=clock.step_size_post_processor,
-    )
+    clock.setup(builder)
 
     ## Add modifier that set the step size to 7 for even indices and 5 for odd indices
-    manager.register_value_modifier(
-        "test_step_size",
-        modifier=lambda idx: pd.Series(
+    clock.register_step_modifier(
+        lambda idx: pd.Series(
             [pd.Timedelta(days=7) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx],
             index=idx,
-        ),
+        )
     )
     ## Add modifier that sets the step size to 9 for all simulants
-    manager.register_value_modifier(
-        "test_step_size", modifier=lambda idx: pd.Series(pd.Timedelta(days=9), index=idx)
-    )
-    value = pipeline(index)
+    clock.register_step_modifier(lambda idx: pd.Series(pd.Timedelta(days=9), index=idx))
+    value = clock._step_size_pipeline(index)
     evens = value.iloc[lambda x: x.index % 2 == 0]
     odds = value.iloc[lambda x: x.index % 2 == 1]
 
@@ -443,8 +433,6 @@ def test_step_size_post_processor(manager):
     assert np.all(evens == pd.Timedelta(days=6))
     assert np.all(odds == pd.Timedelta(days=4))
 
-    manager.register_value_modifier(
-        "test_step_size", modifier=lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx)
-    )
-    value = pipeline(index)
+    clock.register_step_modifier(lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx))
+    value = clock._step_size_pipeline(index)
     assert np.all(value == pd.Timedelta(days=2))
