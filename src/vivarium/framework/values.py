@@ -111,7 +111,7 @@ def rescale_post_processor(value: NumberLike, manager: "ValuesManager") -> Numbe
 
     """
     if hasattr(value, "index"):
-        time_step = manager.simulant_step_sizes(value.index).dt
+        time_step = manager.simulant_step_sizes(value.index).astype('timedelta64[ns]').dt
     else:
         time_step = manager.step_size()
     return from_yearly(value, time_step)

@@ -145,7 +145,7 @@ class SimulationClock(Manager):
     def step_forward(self, index: pd.Index) -> None:
         """Advances the clock by the current step size, and updates aligned simulant clocks."""
         self._clock_time += self.step_size
-        if self._individual_clocks:
+        if self._individual_clocks and index.any():
             update_index = self.get_active_simulants(index, self.time)
             clocks_to_update = self._individual_clocks.get(update_index)
             if not clocks_to_update.empty:
@@ -158,7 +158,7 @@ class SimulationClock(Manager):
 
     def get_active_simulants(self, index: pd.Index, time: Time) -> pd.Index:
         """Gets population that is aligned with global clock"""
-        if not self._individual_clocks:
+        if index.empty or not self._individual_clocks:
             return index
         next_event_times = self.simulant_next_event_times(index)
         return next_event_times[next_event_times <= time].index
