@@ -111,10 +111,15 @@ def rescale_post_processor(value: NumberLike, manager: "ValuesManager") -> Numbe
 
     """
     if hasattr(value, "index"):
-        time_step = manager.simulant_step_sizes(value.index).astype('timedelta64[ns]').dt
+        return value.mul(
+            manager.simulant_step_sizes(value.index)
+            .astype("timedelta64[ns]")
+            .dt.total_seconds()
+            / (60 * 60 * 24 * 365.0),
+            axis=0,
+        )
     else:
-        time_step = manager.step_size()
-    return from_yearly(value, time_step)
+        return from_yearly(value, manager.step_size())
 
 
 def union_post_processor(values: List[NumberLike], _) -> NumberLike:
