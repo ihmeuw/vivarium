@@ -235,12 +235,13 @@ class SimulationContext:
 
     def step(self) -> None:
         self._logger.debug(self._clock.time)
-        for event in self.time_step_events:
-            self._lifecycle.set_state(event)
-            pop_to_update = self._clock.get_active_simulants(
+        pop_to_update = self._clock.get_active_simulants(
                 self._population.get_population(True).index,
                 self._clock.event_time,
             )
+        self._logger.debug("Updating population: %s" % len(pop_to_update))
+        for event in self.time_step_events:
+            self._lifecycle.set_state(event)
             self.time_step_emitters[event](pop_to_update)
         self._clock.step_forward(self._population.get_population(False).index)
 

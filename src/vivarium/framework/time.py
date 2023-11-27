@@ -261,7 +261,7 @@ class DateTimeClock(SimulationClock):
             if time.standard_step_size
             else self._minimum_step_size
         )
-        self._clock_step_size = self._standard_step_size
+        self._clock_step_size = self._minimum_step_size
 
     def __repr__(self):
         return "DateTimeClock()"
