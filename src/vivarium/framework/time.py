@@ -150,6 +150,9 @@ class SimulationClock(Manager):
             clocks_to_update = self._individual_clocks.get(update_index)
             if not clocks_to_update.empty:
                 clocks_to_update["step_size"] = self._step_size_pipeline(update_index)
+                clocks_to_update.loc[
+                    ~clocks_to_update["tracked"], "step_size"
+                ] = pd.to_timedelta(np.nan)
                 clocks_to_update["next_event_time"] = (
                     self.time + clocks_to_update["step_size"]
                 )
@@ -158,10 +161,14 @@ class SimulationClock(Manager):
 
     def get_active_simulants(self, index: pd.Index, time: Time) -> pd.Index:
         """Gets population that is aligned with global clock"""
-        if index.empty or not self._individual_clocks:
+        if not self._individual_clocks:
             return index
-        next_event_times = self.simulant_next_event_times(index)
-        return next_event_times[next_event_times <= time].index
+        query = f"(next_event_time <= {time} or not tracked"
+        return (
+            self._individual_clocks.subview(["next_event_time", "tracked"])
+            .get(index, query)
+            .index
+        )
 
     def step_size_post_processor(self, values: List[NumberLike], _) -> pd.Series:
         """Computes the largest feasible step size for each simulant. This is the smallest component-modified
