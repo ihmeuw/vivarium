@@ -238,7 +238,7 @@ class SimulationContext:
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
             pop_to_update = self._clock.get_active_simulants(
-                self.get_population().index, 
+                self.get_population().index,
                 self._clock.event_time,
             )
             self.time_step_emitters[event](pop_to_update)
@@ -259,9 +259,7 @@ class SimulationContext:
 
     def report(self, print_results: bool = True) -> Dict[str, Any]:
         self._lifecycle.set_state("report")
-        metrics = self._values.get_value("metrics")(
-            self.get_population().index
-        )
+        metrics = self._values.get_value("metrics")(self.get_population().index)
         if print_results:
             self._logger.info("\n" + pformat(metrics))
             performance_metrics = self.get_performance_metrics()
