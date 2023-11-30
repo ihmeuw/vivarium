@@ -44,6 +44,10 @@ class SimulationClock(Manager):
         return ["next_event_time", "step_size"]
 
     @property
+    def columns_required(self) -> List[str]:
+        return ["tracked"]
+
+    @property
     def time(self) -> Time:
         """The current simulation time."""
         if not self._clock_time:
