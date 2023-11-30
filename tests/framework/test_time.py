@@ -186,8 +186,10 @@ class StepModifierWithUntracking(StepModifierWithRatePipeline):
 
     def on_time_step(self, event: Event) -> None:
         super().on_time_step(event)
-        evens = self.population_view.get(event.index).loc[get_index_by_parity(event.index, "evens")]
-        evens['tracked'] = False
+        evens = self.population_view.get(event.index).loc[
+            get_index_by_parity(event.index, "evens")
+        ]
+        evens["tracked"] = False
         self.population_view.update(evens)
 
 
@@ -451,12 +453,13 @@ def test_untracked_simulants(SimulationContext, base_config):
     assert take_step(sim) == pd.Timedelta(days=3)
     ## Check After
     ## The simulants become untracked during time_step
-    expected_simulants = {            
-            "time_step_prepare": pop_index,
-            "time_step": pop_index,
-            "time_step_cleanup": odds,
-            "collect_metrics": odds,}
-    
+    expected_simulants = {
+        "time_step_prepare": pop_index,
+        "time_step": pop_index,
+        "time_step_cleanup": odds,
+        "collect_metrics": odds,
+    }
+
     for event, index in listener.event_indexes.items():
         assert index.equals(expected_simulants[event])
 
