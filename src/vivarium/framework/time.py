@@ -165,7 +165,7 @@ class SimulationClock(Manager):
             return index
         return (
             self._individual_clocks.subview(["next_event_time", "tracked"])
-            .get(index,f"(next_event_time <= {time} or not tracked")
+            .get(index, f"(next_event_time <= {time} or not tracked")
             .index
         )
 
