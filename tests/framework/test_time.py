@@ -173,7 +173,7 @@ class StepModifierWithRatePipeline(StepModifier):
             preferred_post_processor=rescale_post_processor,
         )
 
-    def on_time_step_prepare(self, event: Event) -> None:
+    def on_time_step(self, event: Event) -> None:
         self.ts_pipeline_value = self.rate_pipeline(event.index)
 
 
@@ -463,12 +463,15 @@ def test_untracked_simulants(SimulationContext, base_config):
     for event, index in listener.event_indexes.items():
         assert index.equals(expected_simulants[event])
 
+    assert step_modifier_component.ts_pipeline_value.index.equals(pop_index)
+
     ## We untracked even simulants during the last timestep.
     ## Give them a step size of 5, but show that this has no effect on the next event time.
     step_modifier_component.step_modifier_even = 5
 
-    take_step_and_validate(sim, listener, odds, expected_step_size_days=3)
-    take_step_and_validate(sim, listener, odds, expected_step_size_days=3)
+    for _ in range(2):
+        take_step_and_validate(sim, listener, odds, expected_step_size_days=3)
+        assert step_modifier_component.ts_pipeline_value.index.equals(odds)
 
 
 def test_step_size_post_processor(builder):
