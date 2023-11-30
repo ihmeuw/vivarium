@@ -231,19 +231,18 @@ class SimulationContext:
         self._clock.step_backward()
         population_size = pop_params.population_size
         self.simulant_creator(population_size, {"sim_state": "setup"})
-        self._clock.step_forward(self._population.get_population(True).index)
+        self._clock.step_forward(self.get_population().index)
 
     def step(self) -> None:
         self._logger.debug(self._clock.time)
-        pop_to_update = self._clock.get_active_simulants(
-                self._population.get_population(True).index,
-                self._clock.event_time,
-            )
-        self._logger.debug("Updating population: %s" % len(pop_to_update))
         for event in self.time_step_events:
             self._lifecycle.set_state(event)
+            pop_to_update = self._clock.get_active_simulants(
+                self.get_population().index,
+                self._clock.event_time,
+            )
             self.time_step_emitters[event](pop_to_update)
-        self._clock.step_forward(self._population.get_population(False).index)
+        self._clock.step_forward(self.get_population().index)
 
     def run(self) -> None:
         while self._clock.time < self._clock.stop_time:
@@ -251,7 +250,7 @@ class SimulationContext:
 
     def finalize(self) -> None:
         self._lifecycle.set_state("simulation_end")
-        self.end_emitter(self._population.get_population(True).index)
+        self.end_emitter(self.get_population().index)
         unused_config_keys = self.configuration.unused_keys()
         if unused_config_keys:
             self._logger.warning(
@@ -260,9 +259,7 @@ class SimulationContext:
 
     def report(self, print_results: bool = True) -> Dict[str, Any]:
         self._lifecycle.set_state("report")
-        metrics = self._values.get_value("metrics")(
-            self._population.get_population(True).index
-        )
+        metrics = self._values.get_value("metrics")(self.get_population().index)
         if print_results:
             self._logger.info("\n" + pformat(metrics))
             performance_metrics = self.get_performance_metrics()
