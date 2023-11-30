@@ -181,7 +181,7 @@ class StepModifierWithUntracking(StepModifierWithRatePipeline):
     """Add an event step that untracks/tracks even simulants every timestep"""
 
     @property
-    def columns_required(self) -> List[str] | None:
+    def columns_required(self) -> List[str]:
         return ["tracked"]
 
     def on_time_step(self, event: Event) -> None:
