@@ -163,10 +163,9 @@ class SimulationClock(Manager):
         """Gets population that is aligned with global clock"""
         if not self._individual_clocks:
             return index
-        query = f"(next_event_time <= {time} or not tracked"
         return (
             self._individual_clocks.subview(["next_event_time", "tracked"])
-            .get(index, query)
+            .get(index,f"(next_event_time <= {time} or not tracked")
             .index
         )
 
