@@ -110,7 +110,9 @@ class SimulationClock(Manager):
             self.on_initialize_simulants, creates_columns=self.columns_created
         )
         builder.event.register_listener("post_setup", self.on_post_setup)
-        self._individual_clocks = builder.population.get_view(columns=self.columns_created + self.columns_required)
+        self._individual_clocks = builder.population.get_view(
+            columns=self.columns_created + self.columns_required
+        )
 
     def on_post_setup(self, event: "Event") -> None:
         if not self._step_size_pipeline.mutators:
