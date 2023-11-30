@@ -43,9 +43,6 @@ class SimulationClock(Manager):
     def columns_created(self) -> List[str]:
         return ["next_event_time", "step_size"]
 
-    @property
-    def columns_required(self) -> List[str]:
-        return ["tracked"]
 
     @property
     def time(self) -> Time:
@@ -110,9 +107,8 @@ class SimulationClock(Manager):
             self.on_initialize_simulants, creates_columns=self.columns_created
         )
         builder.event.register_listener("post_setup", self.on_post_setup)
-        self._individual_clocks = builder.population.get_view(
-            columns=self.columns_created + self.columns_required
-        )
+        ## Doesn't include tracked!
+        self._individual_clocks = builder.population.get_view(columns=self.columns_created)
 
     def on_post_setup(self, event: "Event") -> None:
         if not self._step_size_pipeline.mutators:
@@ -170,8 +166,8 @@ class SimulationClock(Manager):
         if not self._individual_clocks:
             return index
         return (
-            self._individual_clocks.subview(["next_event_time", "tracked"])
-            .get(index, f"(next_event_time <= {time} or not tracked")
+            self._individual_clocks.subview(["next_event_time"])
+            .get(index, query=f"next_event_time <= str({time}) or tracked == True")
             .index
         )
 
