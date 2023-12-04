@@ -1,4 +1,5 @@
 import math
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -49,9 +50,7 @@ def components():
 
 def validate_step_column_is_pipeline(sim):
     """Ensure that the pipeline and column step sizes are aligned"""
-    step_pipeline = sim._values.get_value("simulant_step_size")(
-        sim._population.get_population(True).index
-    )
+    step_pipeline = sim._values.get_value("simulant_step_size")(sim.get_population().index)
     step_column = sim._population._population.step_size
     assert np.all(step_pipeline == step_column)
 
@@ -59,7 +58,7 @@ def validate_step_column_is_pipeline(sim):
 def validate_index_aligned(sim, expected_active_simulants):
     """Ensure that the active simulants are as expected BEFORE a step"""
     active_simulants = sim._clock.get_active_simulants(
-        sim.get_population().index, sim._clock.event_time
+        full_pop_index(sim), sim._clock.event_time
     )
 
     assert active_simulants.equals(expected_active_simulants)
@@ -124,11 +123,6 @@ def take_step_and_validate(sim, listener, expected_simulants, expected_step_size
 class StepModifier(MockGenericComponent):
     """This mock component modifies the step size of simulants based on their index
     Odd simulants get one step size, and even simulants get another.
-
-    There is also a test pipeline that is registered, whose value is cached to
-    self.ts_pipeline_value every timestep. This is meant to ensure that the
-    value of a pipeline on a previous timestep was appropriately rescaled
-    to the step that was actually taken.
     """
 
     def __init__(
@@ -140,19 +134,10 @@ class StepModifier(MockGenericComponent):
             step_modifier_odd if step_modifier_odd else step_modifier_even
         )
         self.modified_simulants = modified_simulants
-        self.ts_pipeline_value = None
 
     def setup(self, builder) -> None:
         super().setup(builder)
         builder.time.register_step_modifier(self.modify_step)
-        self.rate_pipeline = builder.value.register_value_producer(
-            f"test_rate_{self.name}",
-            source=lambda idx: pd.Series(1.75, index=idx),
-            preferred_post_processor=rescale_post_processor,
-        )
-
-    def on_time_step(self, event: Event) -> None:
-        self.ts_pipeline_value = self.rate_pipeline(event.index)
 
     def modify_step(self, index):
         step_sizes = pd.Series(pd.Timedelta(days=1), index=index)
@@ -164,6 +149,48 @@ class StepModifier(MockGenericComponent):
         )
         step_sizes = step_sizes.loc[get_index_by_parity(index, self.modified_simulants)]
         return step_sizes
+
+
+class StepModifierWithRatePipeline(StepModifier):
+    """
+    Add a test pipeline that is registered, whose value is cached to
+    self.ts_pipeline_value every timestep. This is meant to ensure that the
+    value of a pipeline on a previous timestep was appropriately rescaled
+    to the step that was actually taken.
+    """
+
+    def __init__(
+        self, name, step_modifier_even, step_modifier_odd=None, modified_simulants="all"
+    ):
+        super().__init__(name, step_modifier_even, step_modifier_odd, modified_simulants)
+        self.ts_pipeline_value = None
+
+    def setup(self, builder) -> None:
+        super().setup(builder)
+        self.rate_pipeline = builder.value.register_value_producer(
+            f"test_rate_{self.name}",
+            source=lambda idx: pd.Series(1.75, index=idx),
+            preferred_post_processor=rescale_post_processor,
+        )
+
+    def on_time_step(self, event: Event) -> None:
+        self.ts_pipeline_value = self.rate_pipeline(event.index)
+
+
+class StepModifierWithUntracking(StepModifierWithRatePipeline):
+    """Add an event step that untracks/tracks even simulants every timestep"""
+
+    @property
+    def columns_required(self) -> List[str]:
+        return ["tracked"]
+
+    def on_time_step(self, event: Event) -> None:
+        super().on_time_step(event)
+        evens = self.population_view.get(event.index).loc[
+            get_index_by_parity(event.index, "evens")
+        ]
+        evens["tracked"] = False
+        self.population_view.update(evens)
 
 
 @pytest.mark.parametrize("varied_step_size", [True, False])
@@ -178,7 +205,7 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
     listener = [c for c in components if hasattr(c, "args") and "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
-    full_pop_index = sim.get_population().index
+    pop_index = full_pop_index(sim)
     assert sim._clock.time == get_time_stamp(sim.configuration.time.start)
     assert sim._clock.step_size == pd.Timedelta(days=1)
     ## Ensure that we don't have a pop view (and by extension, don't vary clocks)
@@ -191,13 +218,11 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
         if varied_step_size:
             validate_step_column_is_pipeline(sim)
             assert np.all(
-                sim._clock.simulant_next_event_times(full_pop_index) == sim._clock.event_time
+                sim._clock.simulant_next_event_times(pop_index) == sim._clock.event_time
             )
-            assert np.all(
-                sim._clock.simulant_step_sizes(full_pop_index) == sim._clock.step_size
-            )
+            assert np.all(sim._clock.simulant_step_sizes(pop_index) == sim._clock.step_size)
         take_step_and_validate(
-            sim, listener, expected_simulants=full_pop_index, expected_step_size_days=1
+            sim, listener, expected_simulants=pop_index, expected_step_size_days=1
         )
 
 
@@ -209,7 +234,7 @@ def test_empty_active_pop(SimulationContext, base_config, components):
     listener = [c for c in components if hasattr(c, "args") and "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
-    full_pop_index = sim.get_population().index
+    pop_index = full_pop_index(sim)
 
     ## Force a next event time update without updating step sizes.
     ## This ensures (against the current implementation) that we will have a timestep
@@ -224,7 +249,7 @@ def test_empty_active_pop(SimulationContext, base_config, components):
     ## Second Timestep
     validate_step_column_is_pipeline(sim)
     take_step_and_validate(
-        sim, listener, expected_simulants=full_pop_index, expected_step_size_days=1
+        sim, listener, expected_simulants=pop_index, expected_step_size_days=1
     )
 
 
@@ -243,7 +268,7 @@ def test_skip_iterations(
     expected_step_size = math.floor(max([step_modifier_even, 1]))
     sim.setup()
     sim.initialize_simulants()
-    full_pop_index = sim.get_population().index
+    pop_index = full_pop_index(sim)
 
     ## Go through a couple simulant step cycles
     for _ in range(2):
@@ -252,7 +277,7 @@ def test_skip_iterations(
         take_step_and_validate(
             sim,
             listener,
-            expected_simulants=full_pop_index,
+            expected_simulants=pop_index,
             expected_step_size_days=expected_step_size,
         )
 
@@ -264,7 +289,7 @@ def test_uneven_steps(SimulationContext, base_config):
 
     listener = Listener("listener")
     step_modifiers = {"evens": 3, "odds": 7}
-    step_modifier_component = StepModifier(
+    step_modifier_component = StepModifierWithRatePipeline(
         "step_modifier", step_modifiers["evens"], step_modifiers["odds"]
     )
     sim = SimulationContext(
@@ -302,7 +327,7 @@ def test_partial_modification(SimulationContext, base_config):
     listener = Listener("listener")
     ## Define odds for validation, but don't pass it into the step modifier
     step_modifiers = {"evens": 3, "odds": 1}
-    step_modifier_component = StepModifier(
+    step_modifier_component = StepModifierWithRatePipeline(
         "step_modifier", step_modifiers["evens"], modified_simulants="evens"
     )
     sim = SimulationContext(
@@ -340,7 +365,7 @@ def test_standard_step_size(SimulationContext, base_config):
     listener = Listener("listener")
     ## Define odds for validation, but don't pass it into the step modifier
     step_modifiers = {"evens": 3, "odds": 5}
-    step_modifier_component = StepModifier(
+    step_modifier_component = StepModifierWithRatePipeline(
         "step_modifier", step_modifiers["evens"], modified_simulants="evens"
     )
     sim = SimulationContext(
@@ -406,6 +431,47 @@ def test_multiple_modifiers(SimulationContext, base_config):
             expected_simulants=get_pop_by_parity(sim, group).index,
             expected_step_size_days=correct_step_size,
         )
+
+
+def test_untracked_simulants(SimulationContext, base_config):
+    """Ensure that we exclude untracked simulants from emitted event indices and
+    exclude them from affecting the next event time."""
+    base_config.update({"configuration": {"time": {"standard_step_size": 7}}})
+    listener = Listener("listener")
+    step_modifier_component = StepModifierWithUntracking("step_modifier", 3)
+    sim = SimulationContext(
+        base_config,
+        [step_modifier_component, listener],
+    )
+
+    sim.setup()
+    sim.initialize_simulants()
+    pop_index = full_pop_index(sim)
+    odds = get_index_by_parity(pop_index, "odds")
+    validate_index_aligned(sim, pop_index)
+    ## Check Timestep
+    assert take_step(sim) == pd.Timedelta(days=3)
+    ## Check After
+    ## The simulants become untracked during time_step
+    expected_simulants = {
+        "time_step_prepare": pop_index,
+        "time_step": pop_index,
+        "time_step_cleanup": odds,
+        "collect_metrics": odds,
+    }
+
+    for event, index in listener.event_indexes.items():
+        assert index.equals(expected_simulants[event])
+
+    assert step_modifier_component.ts_pipeline_value.index.equals(pop_index)
+
+    ## We untracked even simulants during the last timestep.
+    ## Give them a step size of 5, but show that this has no effect on the next event time.
+    step_modifier_component.step_modifier_even = 5
+
+    for _ in range(2):
+        take_step_and_validate(sim, listener, odds, expected_step_size_days=3)
+        assert step_modifier_component.ts_pipeline_value.index.equals(odds)
 
 
 def test_step_size_post_processor(builder):
