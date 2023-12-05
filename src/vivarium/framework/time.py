@@ -42,6 +42,10 @@ class SimulationClock(Manager):
     @property
     def columns_created(self) -> List[str]:
         return ["next_event_time", "step_size"]
+    
+    @property
+    def columns_required(self) -> List[str]:
+        return ["tracked"]
 
     @property
     def time(self) -> Time:
@@ -106,7 +110,7 @@ class SimulationClock(Manager):
             self.on_initialize_simulants, creates_columns=self.columns_created
         )
         builder.event.register_listener("post_setup", self.on_post_setup)
-        self._individual_clocks = builder.population.get_view(columns=self.columns_created)
+        self._individual_clocks = builder.population.get_view(columns=self.columns_created + self.columns_required)
 
     def on_post_setup(self, event: "Event") -> None:
         if not self._step_size_pipeline.mutators:
@@ -150,6 +154,7 @@ class SimulationClock(Manager):
             clocks_to_update = self._individual_clocks.get(update_index)
             if not clocks_to_update.empty:
                 clocks_to_update["step_size"] = self._step_size_pipeline(update_index)
+                clocks_to_update.loc[clocks_to_update["tracked"] == False, "step_size"] = self.stop_time - self.time
                 clocks_to_update["next_event_time"] = (
                     self.time + clocks_to_update["step_size"]
                 )
@@ -161,7 +166,7 @@ class SimulationClock(Manager):
         if not self._individual_clocks:
             return index
         next_event_times = self.simulant_next_event_times(index)
-        return next_event_times[next_event_times <= time].index
+        return next_event_times.loc[next_event_times <= time].index
 
     def step_size_post_processor(self, values: List[NumberLike], _) -> pd.Series:
         """Computes the largest feasible step size for each simulant. This is the smallest component-modified
