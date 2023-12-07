@@ -193,6 +193,16 @@ class StepModifierWithUntracking(StepModifierWithRatePipeline):
         self.population_view.update(evens)
 
 
+class StepModifierWithMovement(StepModifierWithRatePipeline):
+    def setup(self, builder) -> None:
+        super().setup(builder)
+        self.move_simulants_to_end = builder.time.move_simulants_to_end()
+
+    def on_time_step(self, event: Event) -> None:
+        super().on_time_step(event)
+        self.move_simulants_to_end(get_index_by_parity(event.index, "evens"))
+
+
 @pytest.mark.parametrize("varied_step_size", [True, False])
 def test_basic_iteration(SimulationContext, base_config, components, varied_step_size):
     """Ensure that the basic iteration of the simulation works as expected.
@@ -436,8 +446,8 @@ def test_multiple_modifiers(SimulationContext, base_config):
 
 
 def test_untracked_simulants(SimulationContext, base_config):
-    """Ensure that we exclude untracked simulants from emitted event indices and
-    exclude them from affecting the next event time."""
+    """Test that untracked simulants are always included in event indices, and are
+    basically treated the same as any other simulant."""
     base_config.update({"configuration": {"time": {"standard_step_size": 7}}})
     listener = Listener("listener")
     step_modifier_component = StepModifierWithUntracking("step_modifier", 3)
@@ -449,22 +459,28 @@ def test_untracked_simulants(SimulationContext, base_config):
     sim.setup()
     sim.initialize_simulants()
     full_pop_index = get_full_pop_index(sim)
+
+    for _ in range(2):
+        take_step_and_validate(sim, listener, full_pop_index, expected_step_size_days=3)
+        assert step_modifier_component.ts_pipeline_value.index.equals(full_pop_index)
+
+
+def test_move_simulants_to_end(SimulationContext, base_config):
+    """Ensure that we move simulants' next event time to the end of the simulation, if they are even."""
+    base_config.update({"configuration": {"time": {"standard_step_size": 7}}})
+    listener = Listener("listener")
+    step_modifier_component = StepModifierWithMovement("step_modifier", 3)
+    sim = SimulationContext(
+        base_config,
+        [step_modifier_component, listener],
+    )
+
+    sim.setup()
+    sim.initialize_simulants()
+    full_pop_index = get_full_pop_index(sim)
     odds = get_index_by_parity(full_pop_index, "odds")
-    validate_index_aligned(sim, full_pop_index)
-    ## Check Timestep
-    assert take_step(sim) == pd.Timedelta(days=3)
-    ## Check After
-    ## The simulants become untracked during time_step
-    expected_simulants = {
-        "time_step_prepare": full_pop_index,
-        "time_step": full_pop_index,
-        "time_step_cleanup": odds,
-        "collect_metrics": odds,
-    }
 
-    for event, index in listener.event_indexes.items():
-        assert index.equals(expected_simulants[event])
-
+    take_step_and_validate(sim, listener, full_pop_index, expected_step_size_days=3)
     assert step_modifier_component.ts_pipeline_value.index.equals(full_pop_index)
 
     ## We untracked even simulants during the last timestep.

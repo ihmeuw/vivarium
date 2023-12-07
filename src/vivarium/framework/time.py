@@ -41,7 +41,7 @@ class SimulationClock(Manager):
 
     @property
     def columns_created(self) -> List[str]:
-        return ["next_event_time", "step_size", "move_to_end"]
+        return ["next_event_time", "step_size"]
 
     @property
     def columns_required(self) -> List[str]:
@@ -95,6 +95,8 @@ class SimulationClock(Manager):
         self._clock_step_size: Timedelta = None
         self._individual_clocks: PopulationView = None
         self._pipeline_name = "simulant_step_size"
+        # TODO: Delegate this functionality to "tracked" or similar when appropriate
+        self._simulants_to_untrack = pd.Index([])
 
     def setup(self, builder: "Builder"):
         self._step_size_pipeline = builder.value.register_value_producer(
@@ -127,7 +129,6 @@ class SimulationClock(Manager):
                 {
                     "next_event_time": [self.event_time] * len(pop_data.index),
                     "step_size": [self.step_size] * len(pop_data.index),
-                    "move_to_end": [False] * len(pop_data.index),
                 },
                 index=pop_data.index,
             )
@@ -137,13 +138,17 @@ class SimulationClock(Manager):
         """The next time each simulant will be updated."""
         if not self._individual_clocks:
             return pd.Series(self.event_time, index=index)
-        return self._individual_clocks.subview(["next_event_time"]).get(index).squeeze(axis=1)
+        return self._individual_clocks.subview(["next_event_time", "tracked"]).get(index)[
+            "next_event_time"
+        ]
 
     def simulant_step_sizes(self, index: pd.Index) -> pd.Series:
         """The step size for each simulant."""
         if not self._individual_clocks:
             return pd.Series(self.step_size, index=index)
-        return self._individual_clocks.subview(["step_size"]).get(index).squeeze(axis=1)
+        return self._individual_clocks.subview(["step_size", "tracked"]).get(index)[
+            "step_size"
+        ]
 
     def step_backward(self) -> None:
         """Rewinds the clock by the current step size."""
@@ -159,10 +164,11 @@ class SimulationClock(Manager):
                 clocks_to_update["step_size"] = self._step_size_pipeline(update_index)
                 # Simulants that were flagged to get moved to the end should have a next event time
                 # of stop time + 1 minimum timestep
-                clocks_to_update.loc[clocks_to_update["move_to_end"] == True, "step_size"] = (
+                clocks_to_update.loc[self._simulants_to_untrack, "step_size"] = (
                     self.stop_time + self.minimum_step_size - self.time
                 )
-                clocks_to_update["move_to_end"] = False
+                # TODO: Delegate this functionality to "tracked" or similar when appropriate
+                self._simulants_to_untrack = pd.Index([])
                 clocks_to_update["next_event_time"] = (
                     self.time + clocks_to_update["step_size"]
                 )
@@ -178,9 +184,7 @@ class SimulationClock(Manager):
 
     def move_simulants_to_end(self, index: pd.Index) -> None:
         if self._individual_clocks and index.any():
-            clocks_to_update = self._individual_clocks.get(index)
-            clocks_to_update["move_to_end"] = True
-            self._individual_clocks.update(clocks_to_update)
+            self._simulants_to_untrack = self._simulants_to_untrack.union(index)
 
     def step_size_post_processor(self, values: List[NumberLike], _) -> pd.Series:
         """Computes the largest feasible step size for each simulant. This is the smallest component-modified
