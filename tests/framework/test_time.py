@@ -58,7 +58,7 @@ def validate_step_column_is_pipeline(sim):
 def validate_index_aligned(sim, expected_active_simulants):
     """Ensure that the active simulants are as expected BEFORE a step"""
     active_simulants = sim._clock.get_active_simulants(
-        full_pop_index(sim), sim._clock.event_time
+        get_full_pop_index(sim), sim._clock.event_time
     )
 
     assert active_simulants.equals(expected_active_simulants)
@@ -78,7 +78,7 @@ def take_step(sim):
     return new_time - old_time
 
 
-def full_pop_index(sim):
+def get_full_pop_index(sim):
     return sim.get_population().index
 
 
@@ -106,7 +106,7 @@ def pipeline_by_parity(sim, step_modifiers, parity):
         ).sort_index()
     return pd.Series(
         from_yearly(1.75, pd.Timedelta(days=step_modifiers[parity])),
-        index=get_index_by_parity(full_pop_index(sim), parity),
+        index=get_index_by_parity(get_full_pop_index(sim), parity),
     )
 
 
@@ -205,7 +205,7 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
     listener = [c for c in components if hasattr(c, "args") and "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
-    pop_index = full_pop_index(sim)
+    full_pop_index = get_full_pop_index(sim)
     assert sim._clock.time == get_time_stamp(sim.configuration.time.start)
     assert sim._clock.step_size == pd.Timedelta(days=1)
     ## Ensure that we don't have a pop view (and by extension, don't vary clocks)
@@ -218,11 +218,11 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
         if varied_step_size:
             validate_step_column_is_pipeline(sim)
             assert np.all(
-                sim._clock.simulant_next_event_times(pop_index) == sim._clock.event_time
+                sim._clock.simulant_next_event_times(full_pop_index) == sim._clock.event_time
             )
-            assert np.all(sim._clock.simulant_step_sizes(pop_index) == sim._clock.step_size)
+            assert np.all(sim._clock.simulant_step_sizes(full_pop_index) == sim._clock.step_size)
         take_step_and_validate(
-            sim, listener, expected_simulants=pop_index, expected_step_size_days=1
+            sim, listener, expected_simulants=full_pop_index, expected_step_size_days=1
         )
 
 
@@ -234,7 +234,7 @@ def test_empty_active_pop(SimulationContext, base_config, components):
     listener = [c for c in components if hasattr(c, "args") and "listener" in c.args][0]
     sim.setup()
     sim.initialize_simulants()
-    pop_index = full_pop_index(sim)
+    full_pop_index = get_full_pop_index(sim)
 
     ## Force a next event time update without updating step sizes.
     ## This ensures (against the current implementation) that we will have a timestep
@@ -249,7 +249,7 @@ def test_empty_active_pop(SimulationContext, base_config, components):
     ## Second Timestep
     validate_step_column_is_pipeline(sim)
     take_step_and_validate(
-        sim, listener, expected_simulants=pop_index, expected_step_size_days=1
+        sim, listener, expected_simulants=full_pop_index, expected_step_size_days=1
     )
 
 
@@ -268,7 +268,7 @@ def test_skip_iterations(
     expected_step_size = math.floor(max([step_modifier_even, 1]))
     sim.setup()
     sim.initialize_simulants()
-    pop_index = full_pop_index(sim)
+    full_pop_index = get_full_pop_index(sim)
 
     ## Go through a couple simulant step cycles
     for _ in range(2):
@@ -277,7 +277,7 @@ def test_skip_iterations(
         take_step_and_validate(
             sim,
             listener,
-            expected_simulants=pop_index,
+            expected_simulants=full_pop_index,
             expected_step_size_days=expected_step_size,
         )
 
@@ -446,16 +446,16 @@ def test_untracked_simulants(SimulationContext, base_config):
 
     sim.setup()
     sim.initialize_simulants()
-    pop_index = full_pop_index(sim)
-    odds = get_index_by_parity(pop_index, "odds")
-    validate_index_aligned(sim, pop_index)
+    full_pop_index = get_full_pop_index(sim)
+    odds = get_index_by_parity(full_pop_index, "odds")
+    validate_index_aligned(sim, full_pop_index)
     ## Check Timestep
     assert take_step(sim) == pd.Timedelta(days=3)
     ## Check After
     ## The simulants become untracked during time_step
     expected_simulants = {
-        "time_step_prepare": pop_index,
-        "time_step": pop_index,
+        "time_step_prepare": full_pop_index,
+        "time_step": full_pop_index,
         "time_step_cleanup": odds,
         "collect_metrics": odds,
     }
@@ -463,7 +463,7 @@ def test_untracked_simulants(SimulationContext, base_config):
     for event, index in listener.event_indexes.items():
         assert index.equals(expected_simulants[event])
 
-    assert step_modifier_component.ts_pipeline_value.index.equals(pop_index)
+    assert step_modifier_component.ts_pipeline_value.index.equals(full_pop_index)
 
     ## We untracked even simulants during the last timestep.
     ## Give them a step size of 5, but show that this has no effect on the next event time.
