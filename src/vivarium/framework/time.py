@@ -41,8 +41,8 @@ class SimulationClock(Manager):
 
     @property
     def columns_created(self) -> List[str]:
-        return ["next_event_time", "step_size"]
-    
+        return ["next_event_time", "step_size", "move_to_end"]
+
     @property
     def columns_required(self) -> List[str]:
         return ["tracked"]
@@ -110,7 +110,9 @@ class SimulationClock(Manager):
             self.on_initialize_simulants, creates_columns=self.columns_created
         )
         builder.event.register_listener("post_setup", self.on_post_setup)
-        self._individual_clocks = builder.population.get_view(columns=self.columns_created + self.columns_required)
+        self._individual_clocks = builder.population.get_view(
+            columns=self.columns_created + self.columns_required
+        )
 
     def on_post_setup(self, event: "Event") -> None:
         if not self._step_size_pipeline.mutators:
@@ -125,6 +127,7 @@ class SimulationClock(Manager):
                 {
                     "next_event_time": [self.event_time] * len(pop_data.index),
                     "step_size": [self.step_size] * len(pop_data.index),
+                    "move_to_end": [False] * len(pop_data.index),
                 },
                 index=pop_data.index,
             )
@@ -154,7 +157,12 @@ class SimulationClock(Manager):
             clocks_to_update = self._individual_clocks.get(update_index)
             if not clocks_to_update.empty:
                 clocks_to_update["step_size"] = self._step_size_pipeline(update_index)
-                clocks_to_update.loc[clocks_to_update["tracked"] == False, "step_size"] = self.stop_time - self.time
+                # Simulants that were flagged to get moved to the end should have a next event time
+                # of stop time + 1 minimum timestep
+                clocks_to_update.loc[clocks_to_update["move_to_end"] == True, "step_size"] = (
+                    self.stop_time + self.minimum_step_size - self.time
+                )
+                clocks_to_update["move_to_end"] = False
                 clocks_to_update["next_event_time"] = (
                     self.time + clocks_to_update["step_size"]
                 )
@@ -167,6 +175,12 @@ class SimulationClock(Manager):
             return index
         next_event_times = self.simulant_next_event_times(index)
         return next_event_times.loc[next_event_times <= time].index
+
+    def move_simulants_to_end(self, index: pd.Index) -> None:
+        if self._individual_clocks and index.any():
+            clocks_to_update = self._individual_clocks.get(index)
+            clocks_to_update["move_to_end"] = True
+            self._individual_clocks.update(clocks_to_update)
 
     def step_size_post_processor(self, values: List[NumberLike], _) -> pd.Series:
         """Computes the largest feasible step size for each simulant. This is the smallest component-modified
@@ -291,6 +305,10 @@ class TimeInterface:
     def simulant_step_sizes(self) -> Callable[[pd.Index], pd.Series]:
         """Gets a callable that returns the simulant step sizes."""
         return self._manager.simulant_step_sizes
+
+    def move_simulants_to_end(self) -> Callable[[pd.Index], None]:
+        """Gets a callable that moves simulants to the end of the simulation"""
+        return self._manager.move_simulants_to_end
 
     def register_step_modifier(
         self,
