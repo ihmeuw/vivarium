@@ -479,13 +479,13 @@ def test_move_simulants_to_end(SimulationContext, base_config):
     sim.initialize_simulants()
     full_pop_index = get_full_pop_index(sim)
     odds = get_index_by_parity(full_pop_index, "odds")
-
+    evens = get_index_by_parity(full_pop_index, "evens")
     take_step_and_validate(sim, listener, full_pop_index, expected_step_size_days=3)
     assert step_modifier_component.ts_pipeline_value.index.equals(full_pop_index)
-
-    ## We untracked even simulants during the last timestep.
-    ## Give them a step size of 5, but show that this has no effect on the next event time.
-    step_modifier_component.step_modifier_even = 5
+    assert np.all(
+        sim._clock.simulant_next_event_times(evens)
+        == sim._clock.stop_time + sim._clock.minimum_step_size
+    )
 
     for _ in range(2):
         take_step_and_validate(sim, listener, odds, expected_step_size_days=3)
