@@ -44,6 +44,10 @@ class SimulationClock(Manager):
         return ["next_event_time", "step_size"]
 
     @property
+    def columns_required(self) -> List[str]:
+        return ["tracked"]
+
+    @property
     def time(self) -> Time:
         """The current simulation time."""
         if not self._clock_time:
@@ -91,6 +95,8 @@ class SimulationClock(Manager):
         self._clock_step_size: Timedelta = None
         self._individual_clocks: PopulationView = None
         self._pipeline_name = "simulant_step_size"
+        # TODO: Delegate this functionality to "tracked" or similar when appropriate
+        self._simulants_to_snooze = pd.Index([])
 
     def setup(self, builder: "Builder"):
         self._step_size_pipeline = builder.value.register_value_producer(
@@ -106,7 +112,9 @@ class SimulationClock(Manager):
             self.on_initialize_simulants, creates_columns=self.columns_created
         )
         builder.event.register_listener("post_setup", self.on_post_setup)
-        self._individual_clocks = builder.population.get_view(columns=self.columns_created)
+        self._individual_clocks = builder.population.get_view(
+            columns=self.columns_created + self.columns_required
+        )
 
     def on_post_setup(self, event: "Event") -> None:
         if not self._step_size_pipeline.mutators:
@@ -130,13 +138,17 @@ class SimulationClock(Manager):
         """The next time each simulant will be updated."""
         if not self._individual_clocks:
             return pd.Series(self.event_time, index=index)
-        return self._individual_clocks.subview(["next_event_time"]).get(index).squeeze(axis=1)
+        return self._individual_clocks.subview(["next_event_time", "tracked"]).get(index)[
+            "next_event_time"
+        ]
 
     def simulant_step_sizes(self, index: pd.Index) -> pd.Series:
         """The step size for each simulant."""
         if not self._individual_clocks:
             return pd.Series(self.step_size, index=index)
-        return self._individual_clocks.subview(["step_size"]).get(index).squeeze(axis=1)
+        return self._individual_clocks.subview(["step_size", "tracked"]).get(index)[
+            "step_size"
+        ]
 
     def step_backward(self) -> None:
         """Rewinds the clock by the current step size."""
@@ -150,6 +162,13 @@ class SimulationClock(Manager):
             clocks_to_update = self._individual_clocks.get(update_index)
             if not clocks_to_update.empty:
                 clocks_to_update["step_size"] = self._step_size_pipeline(update_index)
+                # Simulants that were flagged to get moved to the end should have a next event time
+                # of stop time + 1 minimum timestep
+                clocks_to_update.loc[self._simulants_to_snooze, "step_size"] = (
+                    self.stop_time + self.minimum_step_size - self.time
+                )
+                # TODO: Delegate this functionality to "tracked" or similar when appropriate
+                self._simulants_to_snooze = pd.Index([])
                 clocks_to_update["next_event_time"] = (
                     self.time + clocks_to_update["step_size"]
                 )
@@ -162,6 +181,10 @@ class SimulationClock(Manager):
             return index
         next_event_times = self.simulant_next_event_times(index)
         return next_event_times[next_event_times <= time].index
+
+    def move_simulants_to_end(self, index: pd.Index) -> None:
+        if self._individual_clocks and index.any():
+            self._simulants_to_snooze = self._simulants_to_snooze.union(index)
 
     def step_size_post_processor(self, values: List[NumberLike], _) -> pd.Series:
         """Computes the largest feasible step size for each simulant. This is the smallest component-modified
@@ -286,6 +309,10 @@ class TimeInterface:
     def simulant_step_sizes(self) -> Callable[[pd.Index], pd.Series]:
         """Gets a callable that returns the simulant step sizes."""
         return self._manager.simulant_step_sizes
+
+    def move_simulants_to_end(self) -> Callable[[pd.Index], None]:
+        """Gets a callable that moves simulants to the end of the simulation"""
+        return self._manager.move_simulants_to_end
 
     def register_step_modifier(
         self,
