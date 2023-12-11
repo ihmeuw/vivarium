@@ -180,7 +180,7 @@ class SimulationClock(Manager):
         if index.empty or not self._individual_clocks:
             return index
         next_event_times = self.simulant_next_event_times(index)
-        return next_event_times.loc[next_event_times <= time].index
+        return next_event_times[next_event_times <= time].index
 
     def move_simulants_to_end(self, index: pd.Index) -> None:
         if self._individual_clocks and index.any():
