@@ -96,7 +96,7 @@ class SimulationClock(Manager):
         self._individual_clocks: PopulationView = None
         self._pipeline_name = "simulant_step_size"
         # TODO: Delegate this functionality to "tracked" or similar when appropriate
-        self._simulants_to_untrack = pd.Index([])
+        self._simulants_to_snooze = pd.Index([])
 
     def setup(self, builder: "Builder"):
         self._step_size_pipeline = builder.value.register_value_producer(
@@ -164,11 +164,11 @@ class SimulationClock(Manager):
                 clocks_to_update["step_size"] = self._step_size_pipeline(update_index)
                 # Simulants that were flagged to get moved to the end should have a next event time
                 # of stop time + 1 minimum timestep
-                clocks_to_update.loc[self._simulants_to_untrack, "step_size"] = (
+                clocks_to_update.loc[self._simulants_to_snooze, "step_size"] = (
                     self.stop_time + self.minimum_step_size - self.time
                 )
                 # TODO: Delegate this functionality to "tracked" or similar when appropriate
-                self._simulants_to_untrack = pd.Index([])
+                self._simulants_to_snooze = pd.Index([])
                 clocks_to_update["next_event_time"] = (
                     self.time + clocks_to_update["step_size"]
                 )
@@ -184,7 +184,7 @@ class SimulationClock(Manager):
 
     def move_simulants_to_end(self, index: pd.Index) -> None:
         if self._individual_clocks and index.any():
-            self._simulants_to_untrack = self._simulants_to_untrack.union(index)
+            self._simulants_to_snooze = self._simulants_to_snooze.union(index)
 
     def step_size_post_processor(self, values: List[NumberLike], _) -> pd.Series:
         """Computes the largest feasible step size for each simulant. This is the smallest component-modified
