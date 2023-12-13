@@ -97,16 +97,6 @@ distributed with ``vivarium``.
    p = get_model_specification_path()
    sim = InteractiveContext(p)
 
-If you are working with a real model, you won't have this convenience function.
-Typically, our models are pip-installable and laid out such that their model specification can
-be found like so:
-
-.. code-block:: python
-
-    import my_vivarium_model
-    p = my_vivarium_model.__file__.replace('__init__.py', 'model_specifications/model_spec.yaml')
-    sim = InteractiveContext(p)
-
 The ``sim`` object produced here is all set up and ready to run if you want
 to jump directly to the :ref:`running the simulation <interactive_run>`
 section.
