@@ -273,9 +273,9 @@ population size to be smaller so the simulation takes less time to run.
     # Setting attributes ensures you are updating existing keys, rather than
     # creating new ones
     sim.configuration.population.population_size = 1_000
-    # .update can be more concise -- but note that this will not warn you if you
-    # are adding new keys, e.g. due to a typo!
-    sim.configuration.update({'population': {'population_size': 1_000}})
+    # .update can be a more concise alternative -- but note that this will not
+    # warn you if you are adding new keys, e.g. due to a typo!
+    # sim.configuration.update({'population': {'population_size': 1_000}})
 
 We then need to call the
 :meth:`vivarium.framework.engine.SimulationContext.setup` method on the
