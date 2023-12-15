@@ -348,9 +348,7 @@ Removing components
 Currently, there isn't a way to use the above approach to *remove* components from
 an existing model (without using private attributes).
 
-This is a very common use case, because often when we run an interactive simulation,
-we don't need any of the simulation's observers.
-However, removing components should be done with care: if you remove a component without
+Removing components should be done with care: if you remove a component without
 removing other components that depend on it, the simulation will break!
 
 You can remove components by creating a model specification and editing it *before* creating
