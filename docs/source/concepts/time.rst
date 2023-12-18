@@ -33,9 +33,9 @@ can more easily facilitate the conversion rates to particular increments of time
 Event Times
 -----------
 Discrete time simulations assume that all changes to a simulant's state vector happen at the 
-end of the time step, that is, the current clock time *plus* the step size. :mod:`Vivarium` explicates this important distinction 
+end of the time step, that is, the current clock time *plus* the step size. :mod:`vivarium` explicates this important distinction 
 and labels this quantity the *event time*. `Events <events_concept>` that correspond to (potential) state changes are mediated through the
-:class:`Event Manager <vivarium.framework.event.manager>`, which propagates events to :ref:`components <components_concept>` subscribed to them during particuar phases of the simulation lifecycle.
+:class:`Event Manager <vivarium.framework.event.EventManager>`, which propagates events to :ref:`components <components_concept>` subscribed to them during particuar phases of the simulation lifecycle.
 The Event Manager uses the event time when calculating time-related outcomes, for example, age or year -dependent rates of morbidity and mortality.
 
 Time Interface
@@ -45,7 +45,7 @@ by other managers or components. In particular, components can access the curren
 
 Individual Clocks
 -----------------
-:mod:`Vivarium` also allows one to update simulants asynchronously with different frequencies depending on their state information.
+:mod:`vivarium` also allows one to update simulants asynchronously with different frequencies depending on their state information.
 For example, a component that simulates the progression of a disease might need to update the state of each individual
 simulant at a different rate depending on the current state of the disease, for example, updating a simulant's state twice as frequently
 when infected than when in remission. The basic method is to give each simulant its own distinct clock time and step size instead of one global clock.
@@ -55,7 +55,7 @@ in term determines the maximum number of iterations that can occur in the simula
  the global clock is advanced to the earliest time in which a simulant must be updated, skipping several "minimum" timesteps if necessary. Simulants that are not scheduled to
  be updated in a particular iteration are simply excluded from the relevant events as propagated by the Event Manager.
 
- The Time Interface provides a method to modify a simulant's step size based on some criteria, :func:`builder.time.register_step_modifier()`.
+ The Time Interface provides a method to modify a simulant's step size based on some criteria, :func:`builder.time.register_step_modifier() <vivarium.framework.time.TimeInterface.register_step_modifier>`.
  If there are multiple modifiers to the same simulant simultaneously, the time manager chooses the smallest one (bounded by the global minimum step size).
  If a simulant has no step modifier, it is given a default value, either the global minimum or another optionally configurable value, the *standard* step size,
  in the case that we want the "background" update frequency to be larger than the minimium size.
