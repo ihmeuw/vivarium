@@ -19,33 +19,33 @@ Outline
 
 The Simulation Clock
 --------------------
-   The Clock plugin manages the progression of time throughout the simulation. 
+   The :class:`SimulationClock <vivarium.framework.time.SimulationClock>` plugin manages the progression of time throughout the simulation. 
 Fundamentally, that means it keeps track of the current time (beginning at the *start time*), provides
 a mechanism to advance the simulation time by some duration (the *step size*), and determines when 
 the simulation is complete via a configured *end time*. The simplest
-implementation of a Clock is the :class:`.SimpleClock` object, which is little more
+implementation of a Clock is the :class:`SimpleClock <vivarium.framework.time.SimpleClock>` object, which is little more
 than an integer counter that is incremented by a fixed step size until it reaches the
 end time. Public health scenarios rely on data that are often tied to particular years or rates, where the 
-desired step size is not necessarily known in advance. Therefore, more commonly used is the :class:`.DateTimeClock`,
-which uses datetime-like objects (specifically pandas Timestamps and Timedeltas) as the temporal units. The DateTimeClock
+desired step size is not necessarily known in advance. Therefore, more commonly used is the :class:`DateTimeClock <vivarium.framework.time.DateTimeClock>`,
+which uses datetime-like objects (specifically :class:`~pandas.Timestamp` and :class:`~pandas.Timedelta`) as the temporal units. The DateTimeClock
 can more easily facilitate the conversion rates to particular increments of time.
 
 Event Times
 -----------
 Discrete time simulations assume that all changes to a simulant's state vector happen at the 
-end of the time step, that is, the current clock time *plus* the step size. *Vivarium* explicates this important distinction 
-and labels this quantity the *event time*. Events that correspond to (potential) state changes are mediated through
-the Event Manager, which propagates events to components subscribed to events during particuar phases of the simulation lifecycle.
+end of the time step, that is, the current clock time *plus* the step size. :mod:`Vivarium` explicates this important distinction 
+and labels this quantity the *event time*. `Events <events_concept>` that correspond to (potential) state changes are mediated through the
+:class:`Event Manager <vivarium.framework.event.manager>`, which propagates events to :ref:`components <components_concept>` subscribed to them during particuar phases of the simulation lifecycle.
 The Event Manager uses the event time when calculating time-related outcomes, for example, age or year -dependent rates of morbidity and mortality.
 
 Time Interface
 --------------
-The Time plugin provides, via the :class:`Builder`, an interface to access several clock methods that might be needed
+The Time plugin provides, via the :ref:`Builder <builder_concept>`, an :class:`interface <vivarium.framework.time.TimeInterface>` to access several clock methods that might be needed
 by other managers or components. In particular, components can access the current time and step size (and, implicitly, the event time).
 
 Individual Clocks
 -----------------
-Vivarium also allows one to update simulants asynchronously with different frequencies depending on their state information.
+:mod:`Vivarium` also allows one to update simulants asynchronously with different frequencies depending on their state information.
 For example, a component that simulates the progression of a disease might need to update the state of each individual
 simulant at a different rate depending on the current state of the disease, for example, updating a simulant's state twice as frequently
 when infected than when in remission. The basic method is to give each simulant its own distinct clock time and step size instead of one global clock.
