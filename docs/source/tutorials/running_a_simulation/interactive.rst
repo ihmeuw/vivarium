@@ -125,12 +125,12 @@ example and we will place them in a normal Python list.
 .. code-block:: python
 
    from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
-                                                SIS_DiseaseModel, Risk, RiskEffect,
+                                                SISDiseaseModel, Risk, RiskEffect,
                                                 TreatmentIntervention)
 
    components = [BasePopulation(),
                  Mortality(),
-                 SIS_DiseaseModel('diarrhea'),
+                 SISDiseaseModel('diarrhea'),
                  Risk('child_growth_failure'),
                  RiskEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate'),
                  RiskEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate'),
