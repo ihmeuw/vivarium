@@ -1,3 +1,9 @@
+**2.3.0 - 12/19/23**
+
+ - Incorporate Individualized Clocks v1
+ - Document how to remove components from an interactive simulation
+ - Update code in docs to match current implementation
+
 **2.2.1 - 10/24/23**
 
  - Hotfix to expose ScalarValue at the lookup package level

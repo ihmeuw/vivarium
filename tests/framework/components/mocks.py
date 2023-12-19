@@ -92,20 +92,31 @@ class Listener(MockComponentB):
         self.collect_metrics_called = False
         self.simulation_end_called = False
 
+        self.event_indexes = {
+            "time_step_prepare": None,
+            "time_step": None,
+            "time_step_cleanup": None,
+            "collect_metrics": None,
+        }
+
     def on_post_setup(self, event: Event) -> None:
         self.post_setup_called = True
 
     def on_time_step_prepare(self, event: Event) -> None:
         self.time_step_prepare_called = True
+        self.event_indexes["time_step_prepare"] = event.index
 
     def on_time_step(self, event: Event) -> None:
         self.time_step_called = True
+        self.event_indexes["time_step"] = event.index
 
     def on_time_step_cleanup(self, event: Event) -> None:
         self.time_step_cleanup_called = True
+        self.event_indexes["time_step_cleanup"] = event.index
 
     def on_collect_metrics(self, event: Event) -> None:
         self.collect_metrics_called = True
+        self.event_indexes["collect_metrics"] = event.index
 
     def on_simulation_end(self, event: Event) -> None:
         self.simulation_end_called = True
