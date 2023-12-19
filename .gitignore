@@ -107,9 +107,11 @@ venv.bak/
 # Pycharm project settings
 .idea/
 
+# Visual Studio Code project settings
+.vscode/
+
 # Local user jupyter notebooks directory
 notebooks/
 
 # Version file
 src/vivarium/_version.py
-
