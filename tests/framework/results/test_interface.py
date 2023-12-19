@@ -167,7 +167,7 @@ def mock__prepare_population(self, event):
 
     # Mock out some extra columns that would be produced by the manager's _prepare_population() method
     population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
-    population["step_size"] = timedelta(days=28)
+    population["event_step_size"] = timedelta(days=28)
     population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
         days=28
     )
