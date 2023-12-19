@@ -314,7 +314,7 @@ class TimeInterface:
         """Gets a callable that moves simulants to the end of the simulation"""
         return self._manager.move_simulants_to_end
 
-    def register_step_modifier(
+    def register_step_size_modifier(
         self,
         modifier: Callable[[pd.Index], pd.Series],
         requires_columns: List[str] = (),

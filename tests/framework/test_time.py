@@ -137,7 +137,7 @@ class StepModifier(MockGenericComponent):
 
     def setup(self, builder) -> None:
         super().setup(builder)
-        builder.time.register_step_modifier(self.modify_step)
+        builder.time.register_step_size_modifier(self.modify_step)
 
     def modify_step(self, index):
         step_sizes = pd.Series(pd.Timedelta(days=1), index=index)
