@@ -55,7 +55,7 @@ However, global step size changes from iteration to iteration and can be larger 
 Simulants that are not scheduled to be updated in a particular iteration are simply excluded from the relevant events as propagated by the Event Manager. 
 In effect, if there are no simulants to be updated in a duration comprising several minimum timesteps, those "minimum timesteps" are skipped.
 
-The Time Interface provides a method to modify a simulant's step size based on some criteria, :func:`builder.time.register_step_size_modifier() <vivarium.framework.time.TimeInterface.register_step_modifier>`.
+The Time Interface provides a method to modify a simulant's step size based on some criteria, :func:`builder.time.register_step_size_modifier() <vivarium.framework.time.TimeInterface.register_step_size_modifier>`.
 If there are multiple modifiers to the same simulant simultaneously, the time manager chooses the smallest one (bounded by the global minimum step size).
 If a simulant has no step modifier, it is given a default value, either the global minimum or another optionally configurable value, the *standard* step size,
 in the case that we want the "background" update frequency to be larger than the minimium size.
