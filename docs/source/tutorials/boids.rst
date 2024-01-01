@@ -219,7 +219,6 @@ we need to track the position and velocity of our birds, so let's start there.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/location.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
-   :lines: 1-35,38-54
 
 You'll notice that this looks very similar to our initial population model.
 Indeed, we can split up the responsibilities of initializing simulants over
@@ -351,7 +350,7 @@ which is the set of simulants affected by the event (in this case, all of them).
 We modify the DataFrame of simulants, and then use ``self.population_view.update``
 to update the population state table.
 
-.. literalinclude:: ../../../src/vivarium/examples/boids/location.py
+.. literalinclude:: ../../../src/vivarium/examples/boids/location_swarming.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
    :emphasize-lines: 36,56-100
 
@@ -375,7 +374,8 @@ For a quick test of our swarming behavior, let's check in on our birds after
 .. plot::
 
    from vivarium import InteractiveContext
-   from vivarium.examples.boids import Population, Location, Neighbors, plot_birds
+   from vivarium.examples.boids import Population, Neighbors, plot_birds
+   from vivarium.examples.boids.location_swarming import Location
 
    sim = InteractiveContext(components=[Population(), Location(), Neighbors()])
    sim.take_steps(100)
