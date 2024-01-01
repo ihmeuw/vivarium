@@ -64,7 +64,7 @@ class Neighbors(Component):
         self._neighbors = pd.Series([[] for _ in range(len(pop))], index=pop.index)
 
         for color in self.colors:
-            color_pop = pop[pop['color'] == color][['x', 'y']]
+            color_pop = pop[pop["color"] == color][["x", "y"]]
             tree = spatial.KDTree(color_pop)
 
             # Iterate over each pair of simulants that are close together.

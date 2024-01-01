@@ -353,7 +353,7 @@ to update the population state table.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/location.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
-   :emphasize-lines: 36,56-97
+   :emphasize-lines: 36,56-100
 
 For a quick test of our swarming behavior, let's check in on our birds after
 100 steps:
@@ -392,7 +392,7 @@ Add this method to ``visualization.py``:
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/visualization.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/visualization.py`
-   :lines: 20-37
+   :lines: 21-38
 
 Then, try it out like so:
 

@@ -33,7 +33,7 @@ class Location(Component):
         self.width = builder.configuration.location.width
         self.height = builder.configuration.location.height
 
-        self.neighbors = builder.value.get_value('neighbors')
+        self.neighbors = builder.value.get_value("neighbors")
 
     ########################
     # Event-driven methods #
@@ -72,13 +72,17 @@ class Location(Component):
                     center_amount = 0.001
                 else:
                     center_amount = -0.01
-                pop.loc[index, 'vx'] += center_amount * distance_x
-                pop.loc[index, 'vy'] += center_amount * distance_y
+                pop.loc[index, "vx"] += center_amount * distance_x
+                pop.loc[index, "vy"] += center_amount * distance_y
 
                 # Match velocity
                 match_factor = 0.1
-                pop.loc[boid.name, 'vx'] += match_factor * (np.average(my_neighbors.vx) - boid.vx)
-                pop.loc[boid.name, 'vy'] += match_factor * (np.average(my_neighbors.vy) - boid.vy)
+                pop.loc[boid.name, "vx"] += match_factor * (
+                    np.average(my_neighbors.vx) - boid.vx
+                )
+                pop.loc[boid.name, "vy"] += match_factor * (
+                    np.average(my_neighbors.vy) - boid.vy
+                )
 
         # Nudge away from edges
         nudge_amount = 1
@@ -90,8 +94,7 @@ class Location(Component):
 
         # Min speed
         speed = np.sqrt(np.square(pop.vx) + np.square(pop.vy))
-        pop.loc[speed < 5, 'vx'] *= 1.5
-        pop.loc[speed < 5, 'vy'] *= 1.5
-
+        pop.loc[speed < 5, "vx"] *= 1.5
+        pop.loc[speed < 5, "vy"] *= 1.5
 
         self.population_view.update(pop)
