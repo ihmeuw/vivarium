@@ -250,7 +250,7 @@ Let's add this component to our model and look again at the population table.
 
 ::
 
-          tracked           x           y        vx        vy entrance_time color
+       tracked           x           y        vx        vy entrance_time color
     0     True  458.281179  463.086940 -0.473012  0.355904    2005-07-01  blue
     1     True  480.864694  596.290448 -0.058006 -0.241146    2005-07-01   red
     2     True  406.092503  533.870307  0.299711 -0.041151    2005-07-01  blue
