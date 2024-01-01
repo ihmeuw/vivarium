@@ -359,7 +359,6 @@ def _write_pandas_data(path: Path, entity_key: EntityKey, data: Union[PandasObj]
 def _write_json_blob(path: Path, entity_key: EntityKey, data: Any):
     """Writes a Python object as json to the HDF file at the given path."""
     with tables.open_file(str(path), "a") as store:
-
         if entity_key.group_prefix not in store:
             store.create_group("/", entity_key.type)
 

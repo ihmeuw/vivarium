@@ -1,16 +1,21 @@
 # -----------------------------------------------------------------------------
-#   - invoked on push, pull_request, or manual trigger
+#   - invoked on push, pull_request, manual trigger, or schedule
 #   - test under at least 3 versions of python
 # -----------------------------------------------------------------------------
 name: build
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -27,17 +32,40 @@ jobs:
       - name: Install dependencies
         run: |
           pip install .[dev]
+      - name: Lint
+        run: |
+          pip install black==22.3.0 isort
+          black . --check --diff
+          isort . --check --verbose --only-modified --diff
       - name: Test
         run: |
-          pytest ./tests
+          if "${{ github.event_name == 'schedule' }}"; then
+            pytest --runslow ./tests
+          else
+            pytest ./tests
+          fi
       - name: Doc build
         run: |
           make html -C docs/ SPHINXOPTS="-W --keep-going -n"
       - name: Doctest
         run: |
           make doctest -C docs/
-      - name: Lint
-        run: |
-          pip install black==22.3.0 isort
-          black . --check --diff
-          isort . --check --verbose --only-modified --diff
+      - name: Send mail
+        # Notify when cron job fails
+        if: (github.event_name == 'schedule' && failure())
+        uses: dawidd6/action-send-mail@v2
+        with:
+          # mail server settings
+          server_address: smtp.gmail.com
+          server_port: 465
+          # user credentials
+          username: ${{ secrets.NOTIFY_EMAIL }}
+          password: ${{ secrets.NOTIFY_PASSWORD }}
+          # email subject
+          subject: ${{ github.job }} job of ${{ github.repository }} has ${{ job.status }}
+          # email body as text
+          body: ${{ github.job }} job in worflow ${{ github.workflow }} of ${{ github.repository }} has ${{ job.status }}
+          # comma-separated string, send email to
+          to: uw_ihme_simulationscience@uw.edu
+          # from email name
+          from: Vivarium Notifications

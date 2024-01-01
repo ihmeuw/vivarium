@@ -88,20 +88,19 @@ One of the things we might want to look at is the simulation
 information, but leaves many things set to defaults. We can see what's in the
 configuration by simply printing it.
 
-.. testsetup::
+.. testsetup:: configuration
 
    from vivarium.examples.disease_model import get_disease_model_simulation
 
    sim = get_disease_model_simulation()
 
-   if 'input_data' in sim.configuration:
-       del sim.configuration['input_data']
+   del sim.configuration['input_data']
 
-.. testcode::
+.. testcode:: configuration
 
    print(sim.configuration)
 
-.. testoutput::
+.. testoutput:: configuration
 
     randomness:
         key_columns:
@@ -164,14 +163,9 @@ configuration by simply printing it.
             component_configs: True
         extrapolate:
             component_configs: True
-    input_data:
-        artifact_path:
-            component_configs: None
-        artifact_filter_term:
-            component_configs: None
-        input_draw_number:
-            component_configs: None
-
+    stratification:
+        default:
+            component_configs: []
 
 
 What do we see here?  The configuration is *hierarchical*.  There are a set of
@@ -306,26 +300,31 @@ the population as a whole.
     75%           3.744090
     max           4.999967
     Name: age, dtype: float64
+    alive
     alive    100000
-    Name: alive, dtype: int64
+    Name: count, dtype: int64
     count    100000.000000
-    mean          0.500602
-    std           0.288434
-    min           0.000022
-    25%           0.251288
-    50%           0.499957
-    75%           0.749816
+    mean          0.499756
+    std           0.288412
+    min           0.000015
+    25%           0.251550
+    50%           0.497587
+    75%           0.749215
     max           0.999978
     Name: child_wasting_propensity, dtype: float64
+    lower_respiratory_infections
     susceptible_to_lower_respiratory_infections    100000
-    Name: lower_respiratory_infections, dtype: int64
+    Name: count, dtype: int64
+    entrance_time
     2021-12-31 12:00:00    100000
-    Name: entrance_time, dtype: int64
-    Male      50162
-    Female    49838
-    Name: sex, dtype: int64
+    Name: count, dtype: int64
+    sex
+    Male      50185
+    Female    49815
+    Name: count, dtype: int64
+    tracked
     True    100000
-    Name: tracked, dtype: int64
+    Name: count, dtype: int64
 
 
 

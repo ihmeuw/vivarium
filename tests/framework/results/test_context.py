@@ -29,11 +29,11 @@ from .mocks import (
 def test_add_stratification(name, sources, categories, mapper, is_vectorized):
     ctx = ResultsContext()
     assert not verify_stratification_added(
-        ctx._stratifications, name, sources, categories, mapper, is_vectorized
+        ctx.stratifications, name, sources, categories, mapper, is_vectorized
     )
     ctx.add_stratification(name, sources, categories, mapper, is_vectorized)
     assert verify_stratification_added(
-        ctx._stratifications, name, sources, categories, mapper, is_vectorized
+        ctx.stratifications, name, sources, categories, mapper, is_vectorized
     )
 
 
@@ -106,7 +106,7 @@ def test_add_observation(
 ):
     ctx = ResultsContext()
     ctx._default_stratifications = ["age", "sex"]
-    assert len(ctx._observations) == 0
+    assert len(ctx.observations) == 0
     ctx.add_observation(
         name,
         pop_filter,
@@ -116,7 +116,7 @@ def test_add_observation(
         excluded_stratifications,
         when,
     )
-    assert len(ctx._observations) == 1
+    assert len(ctx.observations) == 1
 
 
 @pytest.mark.parametrize(
@@ -140,7 +140,7 @@ def test_double_add_observation(
     the context."""
     ctx = ResultsContext()
     ctx._default_stratifications = ["age", "sex"]
-    assert len(ctx._observations) == 0
+    assert len(ctx.observations) == 0
     ctx.add_observation(
         name,
         pop_filter,
@@ -159,35 +159,7 @@ def test_double_add_observation(
         excluded_stratifications,
         when,
     )
-    assert len(ctx._observations) == 1
-
-
-@pytest.mark.parametrize(
-    "default, additional, excluded, match",
-    [
-        (["age", "sex"], ["age"], [], "age"),
-        (["age", "sex"], [], ["eye_color"], "eye_color"),
-        (["age", "sex"], ["age"], ["eye_color"], "age|eye_color"),
-    ],
-    ids=[
-        "additional_no_operation",
-        "exclude_no_operation",
-        "additional_and_exclude_no_operation",
-    ],
-)
-def test_add_observation_nop_stratifications(default, additional, excluded, match):
-    ctx = ResultsContext()
-    ctx._default_stratifications = default
-    with pytest.warns(UserWarning, match=match):
-        ctx.add_observation(
-            "name",
-            'alive == "alive"',
-            [],
-            _aggregate_state_person_time,
-            additional,
-            excluded,
-            "collect_metrics",
-        )
+    assert len(ctx.observations) == 1
 
 
 @pytest.mark.parametrize(
@@ -213,7 +185,7 @@ def test__get_stratifications(
 ):
     ctx = ResultsContext()
     # default_stratifications would normally be set via ResultsInterface.set_default_stratifications()
-    ctx._default_stratifications = default_stratifications
+    ctx.default_stratifications = default_stratifications
     stratifications = ctx._get_stratifications(
         additional_stratifications, excluded_stratifications
     )
@@ -374,12 +346,52 @@ def test_gather_results_partial_stratifications_in_results(
         assert all(v == 0 for v in unladen_results.values())
 
 
+def test_gather_results_with_empty_pop_filter():
+    """Test case where pop_filter filters to an empty population. gather_results should return an empty dict"""
+    ctx = ResultsContext()
+
+    # Generate population DataFrame
+    population = BASE_POPULATION.copy()
+
+    event_name = "collect_metrics"
+    ctx.add_observation(
+        name="wizard_count",
+        pop_filter="house == 'durmstrang'",
+        aggregator_sources=None,
+        aggregator=len,
+        event_name=event_name,
+    )
+
+    for result in ctx.gather_results(population, event_name):
+        assert len(result) == 0
+
+
+def test_gather_results_with_no_stratifications():
+    """Test case where we have no stratifications. gather_results should return one value."""
+    ctx = ResultsContext()
+
+    # Generate population DataFrame
+    population = BASE_POPULATION.copy()
+
+    event_name = "collect_metrics"
+    ctx.add_observation(
+        name="wizard_count",
+        pop_filter="",
+        aggregator_sources=None,
+        aggregator=len,
+        event_name=event_name,
+    )
+
+    assert len(ctx.stratifications) == 0
+    assert len(list(ctx.gather_results(population, event_name))) == 1
+
+
 def test__format_results():
     """Test that format results produces the expected number of keys and a specific expected key"""
     ctx = ResultsContext()
     aggregates = BASE_POPULATION.groupby(["house", "familiar"]).apply(len)
     measure = "wizard_count"
-    rv = ctx._format_results(measure, aggregates)
+    rv = ctx._format_results(measure, aggregates, has_stratifications=True)
 
     # Check that the number of expected data column names are there
     expected_keys_len = len(CATEGORIES) * len(FAMILIARS)

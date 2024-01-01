@@ -1,5 +1,6 @@
 import pytest
 
+from vivarium import Component
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
     InitializerComponentSet,
@@ -20,19 +21,24 @@ def test_initializer_set_fail_type():
         component_set.add(initializer, ["test_column"])
 
 
-class UnnamedComponent:
-    def initializer(self):
+class NonComponent:
+    def initializer(self) -> str:
         return "test"
 
 
-class Component:
-    def __init__(self, name):
-        self.name = name
+class InitializingComponent(Component):
+    @property
+    def name(self) -> str:
+        return self._name
 
-    def initializer(self):
+    def __init__(self, name: str):
+        super().__init__()
+        self._name = name
+
+    def initializer(self) -> str:
         return "test"
 
-    def other_initializer(self):
+    def other_initializer(self) -> str:
         return "whoops"
 
 
@@ -40,12 +46,12 @@ def test_initializer_set_fail_attr():
     component_set = InitializerComponentSet()
 
     with pytest.raises(AttributeError):
-        component_set.add(UnnamedComponent().initializer, ["test_column"])
+        component_set.add(NonComponent().initializer, ["test_column"])
 
 
 def test_initializer_set_duplicate_component():
     component_set = InitializerComponentSet()
-    component = Component("test")
+    component = InitializingComponent("test")
 
     component_set.add(component.initializer, ["test_column1"])
     with pytest.raises(PopulationError, match="multiple population initializers"):
@@ -54,8 +60,8 @@ def test_initializer_set_duplicate_component():
 
 def test_initializer_set_duplicate_columns():
     component_set = InitializerComponentSet()
-    component1 = Component("test1")
-    component2 = Component("test2")
+    component1 = InitializingComponent("test1")
+    component2 = InitializingComponent("test2")
     columns = ["test_column"]
 
     component_set.add(component1.initializer, columns)
@@ -66,10 +72,17 @@ def test_initializer_set_duplicate_columns():
         component_set.add(component2.initializer, ["sneaky_column"] + columns)
 
 
+def test_initializer_set_population_manager():
+    component_set = InitializerComponentSet()
+    population_manager = PopulationManager()
+
+    component_set.add(population_manager.on_initialize_simulants, ["tracked"])
+
+
 def test_initializer_set():
     component_set = InitializerComponentSet()
     for i in range(10):
-        component = Component(i)
+        component = InitializingComponent(str(i))
         columns = [f"test_column_{i}_{j}" for j in range(5)]
         component_set.add(component.initializer, columns)
 

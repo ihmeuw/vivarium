@@ -72,11 +72,12 @@ def test_register_observation(
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
+    builder.configuration.stratification.default = []
     # Set up mock builder with mocked get_value call for Pipelines
     mocker.patch.object(builder, "value.get_value")
     builder.value.get_value = MethodType(mock_get_value, builder)
     mgr.setup(builder)
-    assert len(interface._manager._results_context._observations) == 0
+    assert len(interface._manager._results_context.observations) == 0
     interface.register_observation(
         name,
         pop_filter,
@@ -87,25 +88,33 @@ def test_register_observation(
         additional_stratifications,
         excluded_stratifications,
     )
-    assert len(interface._manager._results_context._observations) == 1
+    assert len(interface._manager._results_context.observations) == 1
 
 
-def test_register_observations():
+def test_register_observations(mocker):
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    assert len(interface._manager._results_context._observations) == 0
+    builder = mocker.Mock()
+    builder.configuration.stratification.default = []
+    mgr.setup(builder)
+
+    assert len(interface._manager._results_context.observations) == 0
     interface.register_observation(
         "living_person_time",
-        'alive == "alive" and undead == False',
-        [],
-        _silly_aggregator,
-        [],
-        [],
-        [],
-        [],
-        "collect_metrics",
+        aggregator_sources=[],
+        aggregator=_silly_aggregator,
+        requires_columns=[],
+        requires_values=[],
+        additional_stratifications=[],
+        excluded_stratifications=[],
+        when="collect_metrics",
     )
-    assert len(interface._manager._results_context._observations) == 1
+    # Test observation gets added
+    assert len(interface._manager._results_context.observations) == 1
+    # Test for default pop_filter
+    assert ("tracked==True", ()) in interface._manager._results_context.observations[
+        "collect_metrics"
+    ]
     interface.register_observation(
         "undead_person_time",
         "undead == True",
@@ -117,13 +126,26 @@ def test_register_observations():
         [],
         "time_step__prepare",
     )
-    assert len(interface._manager._results_context._observations) == 2
+    # Test new observation gets added
+    assert len(interface._manager._results_context.observations) == 2
+    # Preserve other observation and its pop filter
+    assert ("tracked==True", ()) in interface._manager._results_context.observations[
+        "collect_metrics"
+    ]
+    # Test for overridden pop_filter
+    assert ("undead == True", ()) in interface._manager._results_context.observations[
+        "time_step__prepare"
+    ]
 
 
-def test_unhashable_pipeline():
+def test_unhashable_pipeline(mocker):
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
-    assert len(interface._manager._results_context._observations) == 0
+    builder = mocker.Mock()
+    builder.configuration.stratification.default = []
+    mgr.setup(builder)
+
+    assert len(interface._manager._results_context.observations) == 0
     with pytest.raises(TypeError, match="unhashable"):
         interface.register_observation(
             "living_person_time",
@@ -157,6 +179,9 @@ def test_integration_full_observation(mocker):
     # Create interface
     mgr = ResultsManager()
     results_interface = ResultsInterface(mgr)
+    builder = mocker.Mock()
+    builder.configuration.stratification.default = []
+    mgr.setup(builder)
 
     # register stratifications
     results_interface.register_stratification("house", HOUSES, None, True, ["house"], [])

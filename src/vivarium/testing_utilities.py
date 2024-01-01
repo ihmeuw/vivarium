@@ -7,16 +7,21 @@ Utility functions and classes to make testing ``vivarium`` components easier.
 
 """
 from pathlib import Path
+from typing import List
 
 import numpy as np
 import pandas as pd
 
+from vivarium import Component
 from vivarium.framework import randomness
+from vivarium.framework.engine import Builder
+from vivarium.framework.event import Event
+from vivarium.framework.population import SimulantData
+from vivarium.framework.randomness.index_map import IndexMap
 
 
-class NonCRNTestPopulation:
-
-    configuration_defaults = {
+class NonCRNTestPopulation(Component):
+    CONFIGURATION_DEFAULTS = {
         "population": {
             "age_start": 0,
             "age_end": 100,
@@ -25,24 +30,16 @@ class NonCRNTestPopulation:
     }
 
     @property
-    def name(self):
-        return "non_crn_test_population"
+    def columns_created(self) -> List[str]:
+        return ["age", "sex", "location", "alive", "entrance_time", "exit_time"]
 
-    def setup(self, builder):
+    def setup(self, builder: Builder) -> None:
         self.config = builder.configuration
         self.randomness = builder.randomness.get_stream(
-            "population_age_fuzz", for_initialization=True
-        )
-        columns = ["age", "sex", "location", "alive", "entrance_time", "exit_time"]
-        self.population_view = builder.population.get_view(columns)
-
-        builder.population.initializes_simulants(
-            self.generate_test_population, creates_columns=columns
+            "population_age_fuzz", initializes_crn_attributes=True
         )
 
-        builder.event.register_listener("time_step", self.age_simulants)
-
-    def generate_test_population(self, pop_data):
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         age_start = pop_data.user_data.get("age_start", self.config.population.age_start)
         age_end = pop_data.user_data.get("age_end", self.config.population.age_end)
         location = self.config.input_data.location
@@ -58,25 +55,21 @@ class NonCRNTestPopulation:
         )
         self.population_view.update(population)
 
-    def age_simulants(self, event):
+    def on_time_step(self, event: Event) -> None:
         population = self.population_view.get(event.index, query="alive == 'alive'")
         population["age"] += event.step_size / pd.Timedelta(days=365)
         self.population_view.update(population)
 
 
 class TestPopulation(NonCRNTestPopulation):
-    @property
-    def name(self):
-        return "test_population"
-
-    def setup(self, builder):
+    def setup(self, builder: Builder) -> None:
         super().setup(builder)
         self.age_randomness = builder.randomness.get_stream(
-            "age_initialization", for_initialization=True
+            "age_initialization", initializes_crn_attributes=True
         )
         self.register = builder.randomness.register_simulants
 
-    def generate_test_population(self, pop_data):
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         age_start = pop_data.user_data.get("age_start", self.config.population.age_start)
         age_end = pop_data.user_data.get("age_end", self.config.population.age_end)
         age_draw = self.age_randomness.get_draw(pop_data.index)
@@ -90,11 +83,12 @@ class TestPopulation(NonCRNTestPopulation):
         )
         self.register(core_population)
 
-        location = (
-            self.config.input_data.location
-            if "location" in self.config.input_data.keys()
-            else None
-        )
+        if "location" in self.config.input_data.keys():
+            location = self.config.input_data.location
+        else:
+            location = self.randomness.choice(
+                pop_data.index, ["USA", "Canada", "Mexico"], additional_key="location_choice"
+            )
         population = _build_population(core_population, location, self.randomness)
         self.population_view.update(population)
 
@@ -195,10 +189,17 @@ def make_dummy_column(name, initial_value):
 
 
 def get_randomness(
-    key="test", clock=lambda: pd.Timestamp(1990, 7, 2), seed=12345, for_initialization=False
+    key="test",
+    clock=lambda: pd.Timestamp(1990, 7, 2),
+    seed=12345,
+    initializes_crn_attributes=False,
 ):
     return randomness.RandomnessStream(
-        key, clock, seed=seed, for_initialization=for_initialization
+        key,
+        clock,
+        seed=seed,
+        index_map=IndexMap(),
+        initializes_crn_attributes=initializes_crn_attributes,
     )
 
 
@@ -207,5 +208,5 @@ def reset_mocks(mocks):
         mock.reset_mock()
 
 
-def metadata(file_path):
-    return {"layer": "override", "source": str(Path(file_path).resolve())}
+def metadata(file_path, layer="override"):
+    return {"layer": layer, "source": str(Path(file_path).resolve())}

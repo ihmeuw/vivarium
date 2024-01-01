@@ -1,3 +1,4 @@
+import itertools
 from collections import Counter
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, List, Union
@@ -6,9 +7,9 @@ import pandas as pd
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.context import ResultsContext
+from vivarium.manager import Manager
 
 if TYPE_CHECKING:
-    # Cyclic import
     from vivarium.framework.engine import Builder
 
 
@@ -17,7 +18,7 @@ class SourceType(Enum):
     VALUE = 1
 
 
-class ResultsManager:
+class ResultsManager(Manager):
     """Backend manager object for the results management system.
 
     The :class:`ResultManager` actually performs the actions needed to
@@ -28,6 +29,12 @@ class ResultsManager:
     (`time_step__prepare`, `time_step`, `time_step__cleanup`, and
     `collect_metrics`).
     """
+
+    CONFIGURATION_DEFAULTS = {
+        "stratification": {
+            "default": [],
+        }
+    }
 
     def __init__(self):
         self._metrics = Counter()
@@ -47,10 +54,12 @@ class ResultsManager:
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: "Builder"):
+        self.logger = builder.logging.get_logger(self.name)
         self.population_view = builder.population.get_view([])
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
 
+        builder.event.register_listener("post_setup", self.on_post_setup)
         builder.event.register_listener("time_step__prepare", self.on_time_step_prepare)
         builder.event.register_listener("time_step", self.on_time_step)
         builder.event.register_listener("time_step__cleanup", self.on_time_step_cleanup)
@@ -58,7 +67,36 @@ class ResultsManager:
 
         self.get_value = builder.value.get_value
 
+        self.set_default_stratifications(builder)
+
         builder.value.register_value_modifier("metrics", self.get_results)
+
+    def on_post_setup(self, event: Event):
+        # update self._metrics to have all output keys
+        def create_measure_specific_keys(measure: str, stratifications: List[str]) -> None:
+            measure_str = f"MEASURE_{measure}_"
+            individual_stratification_strings = [
+                [
+                    f"{stratification.name.upper()}_{category}"
+                    for category in stratification.categories
+                ]
+                for stratification in sorted(
+                    self._results_context.stratifications, key=lambda x: x.name
+                )
+                if stratification.name in stratifications
+            ]
+            for complete_stratifications in itertools.product(
+                *individual_stratification_strings
+            ):
+                key = measure_str + "_".join(complete_stratifications)
+                self._metrics[key] = 0
+
+        for event in self._results_context.observations:
+            for (_, stratifications), observations in self._results_context.observations[
+                event
+            ].items():
+                for measure, *_ in observations:
+                    create_measure_specific_keys(measure, stratifications)
 
     def on_time_step_prepare(self, event: Event):
         self.gather_results("time_step__prepare", event)
@@ -77,7 +115,8 @@ class ResultsManager:
         for results_group in self._results_context.gather_results(population, event_name):
             self._metrics.update(results_group)
 
-    def set_default_stratifications(self, default_stratifications: List[str]):
+    def set_default_stratifications(self, builder):
+        default_stratifications = builder.configuration.stratification.default
         self._results_context.set_default_stratifications(default_stratifications)
 
     def register_stratification(
@@ -115,6 +154,7 @@ class ResultsManager:
         ------
         None
         """
+        self.logger.debug(f"Registering stratification {name}")
         target_columns = list(requires_columns) + list(requires_values)
         self._results_context.add_stratification(
             name, target_columns, categories, mapper, is_vectorized
@@ -179,6 +219,8 @@ class ResultsManager:
         excluded_stratifications: List[str] = (),
         when: str = "collect_metrics",
     ) -> None:
+        self.logger.debug(f"Registering observation {name}")
+        self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
         self._results_context.add_observation(
             name,
             pop_filter,
@@ -217,3 +259,27 @@ class ResultsManager:
         # Shim for now to allow incremental transition to new results system.
         metrics.update(self.metrics)
         return metrics
+
+    def _warn_check_stratifications(
+        self, additional_stratifications, excluded_stratifications
+    ):
+        """Check additional and excluded stratifications if they'd not affect
+        stratifications (i.e., would be NOP), and emit warning."""
+        nop_additional = [
+            s
+            for s in additional_stratifications
+            if s in self._results_context.default_stratifications
+        ]
+        if len(nop_additional):
+            self.logger.warning(
+                f"Specified additional stratifications are already included by default: {nop_additional}",
+            )
+        nop_exclude = [
+            s
+            for s in excluded_stratifications
+            if s not in self._results_context.default_stratifications
+        ]
+        if len(nop_exclude):
+            self.logger.warning(
+                f"Specified excluded stratifications are already not included by default: {nop_exclude}",
+            )

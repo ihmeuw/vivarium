@@ -34,7 +34,4 @@ def plot_birds_animated(simulation):
         pop = simulation.get_population()
         s.set_offsets(pop[['x', 'y']])
 
-    anim = FuncAnimation(fig, animate, frames=np.arange(1, 500), interval=100)
-
-    plt.draw()
-    plt.show()
+    return FuncAnimation(fig, animate, frames=np.arange(1, 500), interval=100)

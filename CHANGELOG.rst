@@ -1,3 +1,103 @@
+**2.2.1 - 10/24/23**
+
+ - Hotfix to expose ScalarValue at the lookup package level
+
+**2.2.0 - 10/24/23**
+
+ - Refactor Manager configuration defaults
+ - Throw an error if simulation attempts to use a component that is not an instance of Component
+ - Refactor and simplify LookupTable implementations
+ - Enable LookupTable to have source data that is only categorical
+ - Enable LookupTables with DataFrame source data to specify value columns
+
+**2.1.1 - 10/13/23**
+
+ - Enable RandomnessStream to sample from a distribution
+ - Refactor `ComponentConfigurationParser` to create components as they are parsed
+
+**2.1.0 - 10/12/23**
+
+ - Remove explicit support for Python 3.8
+ - Set default value for ConfigNode::get_value to None
+
+**2.0.1 - 10/04/23**
+
+ - Set pipeline's returned Series' name to the pipeline's name
+
+**2.0.0 - 09/22/23**
+
+ - Create `Component` and `Manager` classes
+ - Ensure all managers and components inherit from them
+ - Define properties in `Component` that components can override
+ - Define lifecycle methods in `Component` that components override
+ - Refactor all components in vivarium to use and leverage`Component`
+ - Warn when using components not inheriting from `Component`
+ - Change the behavior of `State.add_transition` to take a Transition object rather than another State
+ - Add optional argument to State constructor to allow self transitions
+
+**1.2.9 - 09/19/23**
+
+ - Set default in register_observation
+
+**1.2.8 - 09/18/23**
+
+ - Unpin pandas
+
+**1.2.7 - 09/14/23**
+
+ - Allow pandas <2.1.0
+
+**1.2.6 - 09/14/23**
+
+ - Update state machine to prepare for pandas 2.0
+
+**1.2.5 - 09/05/23**
+
+ - Update ConfigTree to make it pickleable; raise NotImplementedError on equality calls
+
+**1.2.4 - 09/01/23**
+
+ - Create LookupTableData type alias for the source data to LookupTables
+
+**1.2.3 - 08/28/23**
+
+ - Enable allowing self transitions directly in a State's constructor
+
+**1.2.2 - 08/04/23**
+
+ - Bugfix to include all metrics outputs in results manager
+
+**1.2.1 - 07/12/23**
+
+ - Adds logging for registering stratifications and observations
+ - Changes version metadata to use setuptools_scm
+
+**1.2.0 - 06/01/23**
+
+ - Stop supporting Python 3.7 and start supporting 3.11
+ - Bugfix to allow for zero stratifications
+ - Removes ignore filters for known FutureWarnings
+ - Refactor location of default stratification definition
+ - Bugfix to stop shuffling simulants when drawing common random number
+
+**1.1.0 - 05/03/23**
+
+ - Clean up randomness system
+ - Fix a bug in stratification when a stratum is empty
+ - Create a dedicated logging system
+ - Fix bug in preventing passing an Iterable to `rate_to_probability`
+
+**1.0.4 - 01/25/23**
+
+ - Bugfixes for ResultsContext
+
+**1.0.3 - 01/19/23**
+
+ - Enhancement to use pop_data.user_data.get pattern in BasePopulation example
+ - Mend get_value unhashable argument for Results Manger add_observation()
+ - Split randomness into subpackage
+ - Remove copy_with_additional_key method from RandomnessStream
+
 **1.0.2 - 12/27/22**
 
  - Fix a typo that prevented deployment of v1.0.1
@@ -120,7 +220,7 @@
 **0.10.0 - 10/2/20**
 
  - Fix bug in copying a `RandomnessStream` with a new key
- - Add documentation of randomess in vivarium
+ - Add documentation of randomness in vivarium
  - Add validation to `LookupTable`, `InterpolatedTable`, `Interpolation`, and
    `Order0Interp`
  - Fix bug writing invalid artifact keys
@@ -200,7 +300,7 @@
 **0.8.22 - 07/16/19**
 
  - Bugfix for lookup table input validation.
- - Event subsytem documentation.
+ - Event subsystem documentation.
 
 **0.8.21 - 06/14/19**
 

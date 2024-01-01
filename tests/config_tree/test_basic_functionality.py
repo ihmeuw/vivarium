@@ -1,3 +1,4 @@
+import pickle
 import textwrap
 
 import pytest
@@ -143,16 +144,20 @@ def test_node_get_value_with_source(full_node):
 
 def test_node_get_value_empty(empty_node):
     with pytest.raises(ConfigurationKeyError):
-        empty_node.get_value(layer=None)
+        empty_node.get_value()
 
     for layer in empty_node._layers:
         with pytest.raises(ConfigurationKeyError):
-            empty_node.get_value(layer=layer)
+            empty_node.get_value()
 
     assert not empty_node.accessed
 
 
 def test_node_get_value(full_node):
+    assert full_node.get_value() == f"test_value_{len(full_node._layers)}"
+    assert full_node.accessed
+    full_node._accessed = False
+
     assert full_node.get_value(layer=None) == f"test_value_{len(full_node._layers)}"
     assert full_node.accessed
     full_node._accessed = False
@@ -437,6 +442,33 @@ def test_to_dict_yaml(test_spec):
     with test_spec.open() as f:
         yaml_config = yaml.full_load(f)
     assert yaml_config == config.to_dict()
+
+
+def test_equals():
+    # TODO: Assert should succeed, instead of raising, once equality is
+    # implemented for ConfigTrees
+    with pytest.raises(NotImplementedError):
+        test_dict = {"configuration": {"time": {"start": {"year": 2000}}}}
+        config = ConfigTree(test_dict)
+        config2 = ConfigTree(test_dict.copy())
+        assert config == config2
+
+
+def test_to_from_pickle():
+    test_dict = {"configuration": {"time": {"start": {"year": 2000}}}}
+    second_layer = {"configuration": {"time": {"start": {"year": 2001}}}}
+    config = ConfigTree(test_dict, layers=["first_layer", "second_layer"])
+    config.update(second_layer, layer="second_layer")
+    unpickled = pickle.loads(pickle.dumps(config))
+
+    # We can't just assert unpickled == config because
+    # equals doesn't work with our custom attribute
+    # accessor scheme (also why pickling didn't use to work).
+    # See the previous xfailed test.
+    assert unpickled.to_dict() == config.to_dict()
+    assert unpickled._frozen == config._frozen
+    assert unpickled._name == config._name
+    assert unpickled._layers == config._layers
 
 
 def test_freeze():

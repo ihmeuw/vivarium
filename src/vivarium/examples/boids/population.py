@@ -1,28 +1,41 @@
+from typing import Any, Dict, List
+
 import numpy as np
 import pandas as pd
 
+from vivarium import Component
+from vivarium.framework.engine import Builder
+from vivarium.framework.population import SimulantData
 
-class Population:
 
-    configuration_defaults = {
-        "population": {
-            "colors": ["red", "blue"],
+class Population(Component):
+    ##############
+    # Properties #
+    ##############
+    @property
+    def configuration_defaults(self) -> Dict[str, Any]:
+        return {
+            "population": {
+                "colors": ["red", "blue"],
+            }
         }
-    }
 
-    def __init__(self):
-        self.name = "population"
+    @property
+    def columns_created(self) -> List[str]:
+        return ["color", "entrance_time"]
 
-    def setup(self, builder):
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def setup(self, builder: Builder) -> None:
         self.colors = builder.configuration.population.colors
 
-        columns_created = ["color", "entrance_time"]
-        builder.population.initializes_simulants(
-            self.on_initialize_simulants, columns_created
-        )
-        self.population_view = builder.population.get_view(columns_created)
+    ########################
+    # Event-driven methods #
+    ########################
 
-    def on_initialize_simulants(self, pop_data):
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         new_population = pd.DataFrame(
             {
                 "color": np.random.choice(self.colors, len(pop_data.index)),

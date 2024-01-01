@@ -1,47 +1,44 @@
+from typing import List, Optional
+
 import numpy as np
 import pandas as pd
 
-from vivarium import InteractiveContext
-from vivarium.framework.randomness import choice
+from vivarium import Component, InteractiveContext
+from vivarium.framework.population import SimulantData
 from vivarium.framework.state_machine import Machine, State, Transition
+from vivarium.framework.time import Time
 
 
 def _population_fixture(column, initial_value):
-    class PopFixture:
+    class PopFixture(Component):
         @property
-        def name(self):
+        def name(self) -> str:
             return f"test_pop_fixture_{column}_{initial_value}"
 
-        def setup(self, builder):
-            self.population_view = builder.population.get_view([column])
-            builder.population.initializes_simulants(self.inner, creates_columns=[column])
+        @property
+        def columns_created(self) -> List[str]:
+            return [column]
 
-        def inner(self, pop_data):
+        def on_initialize_simulants(self, pop_data: SimulantData) -> None:
             self.population_view.update(pd.Series(initial_value, index=pop_data.index))
 
     return PopFixture()
 
 
-def _even_population_fixture(column, values):
-    class pop_fixture:
-        @property
-        def name(self):
-            return "test_pop_fixture"
+def test_initialize_allowing_self_transition():
+    self_transitions = State("self-transitions", allow_self_transition=True)
+    no_self_transitions = State("no-self-transitions", allow_self_transition=False)
+    undefined_self_transitions = State("self-transitions")
 
-        def setup(self, builder):
-            self.population_view = builder.population.get_view([column])
-            builder.population.initializes_simulants(self.inner, creates_columns=[column])
-
-        def inner(self, pop_data):
-            self.population_view.update(choice("start", pop_data.index, values))
-
-    return pop_fixture()
+    assert self_transitions.transition_set.allow_null_transition
+    assert not no_self_transitions.transition_set.allow_null_transition
+    assert not undefined_self_transitions.transition_set.allow_null_transition
 
 
 def test_transition():
     done_state = State("done")
     start_state = State("start")
-    start_state.add_transition(done_state)
+    start_state.add_transition(Transition(start_state, done_state))
     machine = Machine("state", states=[start_state, done_state])
 
     simulation = InteractiveContext(
@@ -52,16 +49,39 @@ def test_transition():
     assert np.all(simulation.get_population().state == "done")
 
 
+def test_single_transition(base_config):
+    base_config.update(
+        {"population": {"population_size": 1}, "randomness": {"key_columns": []}}
+    )
+    done_state = State("done")
+    start_state = State("start")
+    start_state.add_transition(Transition(start_state, done_state))
+    machine = Machine("state", states=[start_state, done_state])
+
+    simulation = InteractiveContext(
+        components=[machine, _population_fixture("state", "start")], configuration=base_config
+    )
+    event_time = simulation._clock.time + simulation._clock.step_size
+    machine.transition(simulation.get_population().index, event_time)
+    assert np.all(simulation.get_population().state == "done")
+
+
 def test_choice(base_config):
-    base_config.update({"population": {"population_size": 10000}})
+    base_config.update(
+        {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
+    )
     a_state = State("a")
     b_state = State("b")
     start_state = State("start")
     start_state.add_transition(
-        a_state, probability_func=lambda agents: np.full(len(agents), 0.5)
+        Transition(
+            start_state, a_state, probability_func=lambda agents: np.full(len(agents), 0.5)
+        )
     )
     start_state.add_transition(
-        b_state, probability_func=lambda agents: np.full(len(agents), 0.5)
+        Transition(
+            start_state, b_state, probability_func=lambda agents: np.full(len(agents), 0.5)
+        )
     )
     machine = Machine("state", states=[start_state, a_state, b_state])
 
@@ -75,11 +95,15 @@ def test_choice(base_config):
 
 
 def test_null_transition(base_config):
-    base_config.update({"population": {"population_size": 10000}})
+    base_config.update(
+        {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
+    )
     a_state = State("a")
     start_state = State("start")
     start_state.add_transition(
-        a_state, probability_func=lambda agents: np.full(len(agents), 0.5)
+        Transition(
+            start_state, a_state, probability_func=lambda agents: np.full(len(agents), 0.5)
+        )
     )
     start_state.allow_self_transitions()
 
@@ -95,7 +119,9 @@ def test_null_transition(base_config):
 
 
 def test_no_null_transition(base_config):
-    base_config.update({"population": {"population_size": 10000}})
+    base_config.update(
+        {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
+    )
     a_state = State("a")
     b_state = State("b")
     start_state = State("start")
@@ -122,21 +148,21 @@ def test_no_null_transition(base_config):
 def test_side_effects():
     class DoneState(State):
         @property
-        def name(self):
+        def name(self) -> str:
             return "test_done_state"
 
-        def setup(self, builder):
-            super().setup(builder)
-            self.population_view = builder.population.get_view(["count"])
+        @property
+        def columns_required(self) -> Optional[List[str]]:
+            return ["count"]
 
-        def _transition_side_effect(self, index, event_time):
+        def transition_side_effect(self, index: pd.Index, _: Time) -> None:
             pop = self.population_view.get(index)
             self.population_view.update(pop["count"] + 1)
 
     done_state = DoneState("done")
     start_state = State("start")
-    start_state.add_transition(done_state)
-    done_state.add_transition(start_state)
+    start_state.add_transition(Transition(start_state, done_state))
+    done_state.add_transition(Transition(done_state, start_state))
 
     machine = Machine("state", states=[start_state, done_state])
 

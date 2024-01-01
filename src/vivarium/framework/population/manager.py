@@ -8,12 +8,14 @@ The manager and :ref:`builder <builder_concept>` interface for the
 
 """
 from types import MethodType
-from typing import Any, Callable, Dict, List, NamedTuple, Tuple, Union
+from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple, Union
 
 import pandas as pd
 
+from vivarium import Component
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
+from vivarium.manager import Manager
 
 
 class SimulantData(NamedTuple):
@@ -68,10 +70,21 @@ class InitializerComponentSet:
         """
         if not isinstance(initializer, MethodType):
             raise TypeError(
-                "Population initializers must be methods of named simulation components. "
+                "Population initializers must be methods of vivarium Components "
+                "or the simulation's PopulationManager. "
                 f"You provided {initializer} which is of type {type(initializer)}."
             )
         component = initializer.__self__
+        # TODO: consider if we can initialize the tracked column with a component instead
+        # TODO: raise error once all active Component implementations have been refactored
+        # if not (isinstance(component, Component) or isinstance(component, PopulationManager)):
+        #     raise AttributeError(
+        #         "Population initializers must be methods of vivarium Components "
+        #         "or the simulation's PopulationManager. "
+        #         f"You provided {initializer} which is bound to {component} that "
+        #         f"is of type {type(component)} which does not inherit from "
+        #         "Component."
+        #     )
         if not hasattr(component, "name"):
             raise AttributeError(
                 "Population initializers must be methods of named simulation components. "
@@ -79,9 +92,6 @@ class InitializerComponentSet:
                 f"name attribute."
             )
 
-        # We want to keep the static typing annoyance because it's a good reminder that
-        # we need a generic component type that tells us about attributes like a name,
-        # but we also want it to be a little less noisy.
         component_name = component.name
         if component_name in self._components:
             raise PopulationError(
@@ -105,12 +115,12 @@ class InitializerComponentSet:
         return str(self._components)
 
 
-class PopulationManager:
+class PopulationManager(Manager):
     """Manages the state of the simulated population."""
 
     # TODO: Move the configuration for initial population creation to
-    # user components.
-    configuration_defaults = {
+    #  user components.
+    CONFIGURATION_DEFAULTS = {
         "population": {
             "population_size": 100,
         },
@@ -231,7 +241,7 @@ class PopulationManager:
             if query is None:
                 query = "tracked == True"
             elif "tracked" not in query:
-                query += "and tracked == True"
+                query += " and tracked == True"
         self._last_id += 1
         return PopulationView(self, self._last_id, columns, query)
 
@@ -279,7 +289,7 @@ class PopulationManager:
             "column", list(creates_columns), initializer, dependencies
         )
 
-    def get_simulant_creator(self) -> Callable:
+    def get_simulant_creator(self) -> Callable[[int, Optional[Dict[str, Any]]], pd.Index]:
         """Gets a function that can generate new simulants.
 
         Returns
@@ -408,7 +418,7 @@ class PopulationInterface:
         """
         return self._manager.get_view(columns, query)
 
-    def get_simulant_creator(self) -> Callable[[int, Union[Dict[str, Any], None]], pd.Index]:
+    def get_simulant_creator(self) -> Callable[[int, Optional[Dict[str, Any]]], pd.Index]:
         """Gets a function that can generate new simulants.
 
         Returns

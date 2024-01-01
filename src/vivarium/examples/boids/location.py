@@ -1,31 +1,45 @@
+from typing import Any, Dict, List
+
 import numpy as np
 import pandas as pd
 
+from vivarium import Component
+from vivarium.framework.engine import Builder
+from vivarium.framework.population import SimulantData
 
-class Location:
 
-    configuration_defaults = {
-        "location": {
-            "width": 1000,  # Width of our field
-            "height": 1000,  # Height of our field
+class Location(Component):
+    ##############
+    # Properties #
+    ##############
+    @property
+    def configuration_defaults(self) -> Dict[str, Any]:
+        return {
+            "location": {
+                "width": 1000,  # Width of our field
+                "height": 1000,  # Height of our field
+            }
         }
-    }
 
-    def __init__(self):
-        self.name = "location"
+    @property
+    def columns_created(self) -> List[str]:
+        return ["x", "vx", "y", "vy"]
 
-    def setup(self, builder):
+    #####################
+    # Lifecycle methods #
+    #####################
+
+    def setup(self, builder: Builder) -> None:
         self.width = builder.configuration.location.width
         self.height = builder.configuration.location.height
 
-        columns_created = ["x", "vx", "y", "vy"]
-        builder.population.initializes_simulants(self.on_create_simulants, columns_created)
-        self.population_view = builder.population.get_view(columns_created)
-
         self.neighbors = builder.value.get_value('neighbors')
-        builder.event.register_listener('time_step', self.on_time_step)
 
-    def on_create_simulants(self, pop_data):
+    ########################
+    # Event-driven methods #
+    ########################
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         count = len(pop_data.index)
         # Start clustered in the center with small random velocities
         new_population = pd.DataFrame(
@@ -55,9 +69,9 @@ class Location:
                 distance_y = np.average(my_neighbors.y) - boid.y
                 distance = np.sqrt(np.square(distance_x) + np.square(distance_y))
                 if distance > 10:
-                    center_amount = 0.005
+                    center_amount = 0.001
                 else:
-                    center_amount = -0.1
+                    center_amount = -0.01
                 pop.loc[index, 'vx'] += center_amount * distance_x
                 pop.loc[index, 'vy'] += center_amount * distance_y
 

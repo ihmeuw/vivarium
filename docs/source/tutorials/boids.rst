@@ -48,7 +48,7 @@ Imports
 +++++++
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 1-2
+   :lines: 1-8
 
 `NumPy <http://www.numpy.org/>`_ is a library for doing high performance
 numerical computing in Python. `pandas <https://pandas.pydata.org/>`_ is a set
@@ -66,28 +66,28 @@ Population class
 Vivarium components are expressed as
 `Python classes <https://docs.python.org/3.6/tutorial/classes.html>`_. You can
 find many resources on classes and object-oriented programming with a simple
-google search. We'll assume some fluency with this style of programming, but
+Google search. We'll assume some fluency with this style of programming, but
 you should be able to follow along with most bits even if you're unfamiliar.
 
 Configuration defaults
 ++++++++++++++++++++++
 
 In most simulations, we want to have an easily tunable set up knobs to adjust
-various parameters. vivarium accomplishes this by pulling those knobs out as
+various parameters. Vivarium accomplishes this by pulling those knobs out as
 configuration information. Components typically expose the values they use in
 the ``configuration_defaults`` class attribute.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 5-12
+   :lines: 15-21
+   :dedent: 4
 
 We'll talk more about configuration information later. For now observe that
-we're exposing the size of the population that we want to generate and a
-set of possible colors for our birds.
+we're exposing a set of possible colors for our birds.
 
 The ``setup`` method
 ++++++++++++++++++++
 
-Almost every component in vivarium will have a setup method. The setup method
+Almost every component in Vivarium will have a setup method. The setup method
 gives the component access to an instance of the
 :class:`~vivarium.framework.engine.Builder` which exposes a handful of tools
 to help build components. The simulation framework is responsible for calling
@@ -95,14 +95,12 @@ the setup method on components and providing the builder to them. We'll
 explore these tools that the builder provides in detail as we go.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 14-19
+   :lines: 31-32
    :dedent: 4
-   :linenos:
 
-Our setup method is doing three things.
-
-First, it's accessing the subsection of the configuration that it cares about
-(line ). The full simulation configuration is available from the builder as
+Our setup method is pretty simple: we just save the configured colors for later use.
+The component is accessing the subsection of the configuration that it cares about.
+The full simulation configuration is available from the builder as
 ``builder.configuration``. You can treat the configuration object just like
 a nested python
 `dictionary <https://docs.python.org/3/tutorial/datastructures.html#dictionaries>`_
@@ -110,8 +108,16 @@ that's been extended to support dot-style attribute access. Our access here
 mirrors what's in the ``configuration_defaults`` at the top of the class
 definition.
 
-Next, we interact with the vivarium's
-:doc:`population management system </api_reference/framework/population/index>`.
+The ``columns_created`` property
+++++++++++++++++++++++++++++++++
+
+.. literalinclude:: ../../../src/vivarium/examples/boids/population.py
+   :lines: 23-25
+   :dedent: 4
+
+The ``columns_created`` property tells Vivarium what columns (or "attributes")
+the component will add to the population table.
+See the next section for where we actually create these columns.
 
 .. note::
 
@@ -125,36 +131,21 @@ Next, we interact with the vivarium's
 
    __ https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.html
 
-In line 4 we create a variable to hold the names of the columns we want to
-create and in line 5 we tell the simulation that any time new people get added
-to the simulation from any component the framework should call the
-``on_initialize_simulants`` function in this component to set the
-``'entrance_time'`` and ``'color'`` columns for each new simulant.
-
-We'll see a third argument for this function soon and discuss the population
-management system in more detail.
-
-Next in line 6 we get a view into the population table.
-:class:`Population views <vivarium.framework.population.population_view.PopulationView>` are
-used both to query the current state of simulants and to update that state
-information. When you request a population view from the builder, you must
-tell it which columns in the population table you want to see, and so here we
-pass along the same set of columns we've said we're creating.
-
 
 The ``on_initialize_simulants`` method
 ++++++++++++++++++++++++++++++++++++++
 
-Finally we look at the ``on_initialize_simulants`` method. You can name this
-whatever you like in practice, but I have a tendency to give methods that the
-framework is calling names that describe where in the simulation life-cycle
-they occur. This helps me think more clearly about what's going on and helps
-debugging.
+Finally we look at the ``on_initialize_simulants`` method,
+which is automatically called by Vivarium when new simulants are
+being initialized.
+This is where we should initialize values in the ``columns_created``
+by this component.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 21-26
+   :lines: 38-46
    :dedent: 4
    :linenos:
+   :lineno-start: 38
 
 We see that like the ``setup`` method, ``on_initialize_simulants`` takes in a
 special argument that we don't provide. This argument, ``pop_data`` is an
@@ -176,12 +167,12 @@ simulation time when the simulant was generated.
    simulation to look up information, calculate simulant-specific values,
    and update information about the simulants' state.
 
-Using the population index, we generate a ``pandas.DataFrame`` on lines 2-5
+Using the population index, we generate a ``pandas.DataFrame`` on lines 39-45
 and fill it with the initial values of 'entrance_time' and 'color' for each
 new simulant. Right now, this is just a table with data hanging out in our
-simulation. To actually do something, we have to tell the population
+simulation. To actually do something, we have to tell Vivarium's population
 management system to update the underlying population table, which we do
-on line 6.
+on line 46.
 
 Putting it together
 +++++++++++++++++++
@@ -228,7 +219,7 @@ we need to track the position and velocity of our birds, so let's start there.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/location.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
-   :lines: 1-23,28-37
+   :lines: 1-35,38-54
 
 You'll notice that this looks very similar to our initial population model.
 Indeed, we can split up the responsibilities of initializing simulants over
@@ -362,7 +353,7 @@ to update the population state table.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/location.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
-   :emphasize-lines: 25-26,39-80
+   :emphasize-lines: 36,56-97
 
 For a quick test of our swarming behavior, let's check in on our birds after
 100 steps:
@@ -401,7 +392,7 @@ Add this method to ``visualization.py``:
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/visualization.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/visualization.py`
-   :lines: 20-40
+   :lines: 20-37
 
 Then, try it out like so:
 
@@ -415,4 +406,17 @@ Then, try it out like so:
 
   sim = InteractiveContext(components=[Population(), Location(), Neighbors()])
 
-  plot_birds_animated(sim)
+  anim = plot_birds_animated(sim)
+
+Viewing this animation will depend a bit on what software you have installed.
+If you're running Python in the terminal, this will save a video file:
+
+.. code-block:: python
+
+   anim.save('swarming.mp4')
+
+In IPython, this will display the animation:
+
+.. code-block:: python
+
+   HTML(anim.to_html5_video())

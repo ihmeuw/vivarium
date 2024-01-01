@@ -48,14 +48,17 @@ class InteractiveContext(SimulationContext):
         Parameters
         ----------
         step_size
-            An optional size of step to take. Must be the same type as the
+            An optional size of step to take. Must be compatible with the
             simulation clock's step size (usually a pandas.Timedelta).
         """
         old_step_size = self._clock.step_size
         if step_size is not None:
-            if not isinstance(step_size, type(self._clock.step_size)):
+            if not (
+                isinstance(step_size, type(self._clock.step_size))
+                or isinstance(self._clock.step_size, type(step_size))
+            ):
                 raise ValueError(
-                    f"Provided time must be an instance of {type(self._clock.step_size)}"
+                    f"Provided time must be compatible with {type(self._clock.step_size)}"
                 )
             self._clock._step_size = step_size
         super().step()
@@ -84,8 +87,8 @@ class InteractiveContext(SimulationContext):
         Parameters
         ----------
         duration
-            The length of time to run the simulation for. Should be the same
-            type as the simulation clock's step size (usually a pandas
+            The length of time to run the simulation for. Should be compatible
+            with the simulation clock's step size (usually a pandas
             Timedelta).
         with_logging
             Whether or not to log the simulation steps. Only works in an ipython
@@ -106,7 +109,9 @@ class InteractiveContext(SimulationContext):
         ----------
         end_time
             The time to run the simulation until. The simulation will run until
-            its clock is greater than or equal to the provided end time.
+            its clock is greater than or equal to the provided end time. Must be
+            compatible with the simulation clock's step size (usually a pandas.Timestamp)
+
         with_logging
             Whether or not to log the simulation steps. Only works in an ipython
             environment.
@@ -117,8 +122,13 @@ class InteractiveContext(SimulationContext):
             The number of steps the simulation took.
 
         """
-        if not isinstance(end_time, type(self._clock.time)):
-            raise ValueError(f"Provided time must be an instance of {type(self._clock.time)}")
+        if not (
+            isinstance(end_time, type(self._clock.time))
+            or isinstance(self._clock.time, type(end_time))
+        ):
+            raise ValueError(
+                f"Provided time must be compatible with {type(self._clock.time)}"
+            )
 
         iterations = int(ceil((end_time - self._clock.time) / self._clock.step_size))
         self.take_steps(number_of_steps=iterations, with_logging=with_logging)
@@ -135,7 +145,7 @@ class InteractiveContext(SimulationContext):
         number_of_steps
             The number of steps to take.
         step_size
-            An optional size of step to take. Must be the same type as the
+            An optional size of step to take. Must be compatible with the
             simulation clock's step size (usually a pandas.Timedelta).
         with_logging
             Whether or not to log the simulation steps. Only works in an ipython
@@ -176,7 +186,7 @@ class InteractiveContext(SimulationContext):
         """List all event types registered with the simulation."""
         return self._events.list_events()
 
-    def get_listeners(self, event_type: str) -> List[Callable]:
+    def get_listeners(self, event_type: str) -> Dict[int, List[Callable]]:
         """Get all listeners of a particular type of event.
 
         Available event types can be found by calling
@@ -233,6 +243,22 @@ class InteractiveContext(SimulationContext):
 
         """
         return self._component_manager.get_component(name)
+
+    def print_initializer_order(self):
+        """Print the order in which population initializers are called."""
+        initializers = []
+        for r in self._resource:
+            name = r.__name__
+            if hasattr(r, "__self__"):
+                obj = r.__self__
+                initializers.append(f"{obj.__class__.__name__}({obj.name}).{name}")
+            else:
+                initializers.append(f"Unbound function {name}")
+        print("\n".join(initializers))
+
+    def print_lifecycle_order(self):
+        """Print the order of lifecycle events (including user event handlers)."""
+        print(self._lifecycle)
 
     def __repr__(self):
         return "InteractiveContext()"

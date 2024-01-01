@@ -12,18 +12,18 @@ from pathlib import Path
 from typing import Any, Sequence, Union
 
 import pandas as pd
-from loguru import logger
 
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.artifact.artifact import Artifact
+from vivarium.manager import Manager
 
 _Filter = Union[str, int, Sequence[int], Sequence[str]]
 
 
-class ArtifactManager:
+class ArtifactManager(Manager):
     """The controller plugin component for managing a data artifact."""
 
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "input_data": {
             "artifact_path": None,
             "artifact_filter_term": None,
@@ -37,6 +37,7 @@ class ArtifactManager:
 
     def setup(self, builder):
         """Performs this component's simulation setup."""
+        self.logger = builder.logging.get_logger(self.name)
         # because not all columns are accessible via artifact filter terms, apply config filters separately
         self.config_filter_term = validate_filter_term(
             builder.configuration.input_data.artifact_filter_term
@@ -63,9 +64,9 @@ class ArtifactManager:
             return None
         artifact_path = parse_artifact_path_config(configuration)
         base_filter_terms = get_base_filter_terms(configuration)
-        logger.debug(f"Running simulation from artifact located at {artifact_path}.")
-        logger.debug(f"Artifact base filter terms are {base_filter_terms}.")
-        logger.debug(f"Artifact additional filter terms are {self.config_filter_term}.")
+        self.logger.info(f"Running simulation from artifact located at {artifact_path}.")
+        self.logger.info(f"Artifact base filter terms are {base_filter_terms}.")
+        self.logger.info(f"Artifact additional filter terms are {self.config_filter_term}.")
         return Artifact(artifact_path, base_filter_terms)
 
     def load(self, entity_key: str, **column_filters: _Filter) -> Any:
@@ -105,7 +106,7 @@ class ArtifactManager:
 class ArtifactInterface:
     """The builder interface for accessing a data artifact."""
 
-    def __init__(self, manager):
+    def __init__(self, manager: ArtifactManager):
         self._manager = manager
 
     def load(self, entity_key: str, **column_filters: Union[_Filter]) -> pd.DataFrame:
@@ -233,7 +234,6 @@ def parse_artifact_path_config(config: ConfigTree) -> str:
     path = Path(config.input_data.artifact_path)
 
     if not path.is_absolute():
-
         path_config = config.input_data.metadata("artifact_path")[-1]
         if path_config["source"] is None:
             raise ValueError("Insufficient information provided to find artifact.")

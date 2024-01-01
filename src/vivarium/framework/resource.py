@@ -20,9 +20,9 @@ from types import MethodType
 from typing import Any, Callable, Iterable, List
 
 import networkx as nx
-from loguru import logger
 
 from vivarium.exceptions import VivariumError
+from vivarium.manager import Manager
 
 
 class ResourceError(VivariumError):
@@ -102,7 +102,7 @@ class ResourceGroup:
         return f"({resources})"
 
 
-class ResourceManager:
+class ResourceManager(Manager):
     """Manages all the resources needed for population initialization."""
 
     def __init__(self):
@@ -151,6 +151,9 @@ class ResourceManager:
                     f"{nx.find_cycle(self.graph)}."
                 )
         return self._sorted_nodes
+
+    def setup(self, builder):
+        self.logger = builder.logging.get_logger(self.name)
 
     def add_resources(
         self,
@@ -250,7 +253,7 @@ class ResourceManager:
                 if dependency not in self._resource_group_map:
                     # Warn here because this sometimes happens naturally
                     # if observer components are missing from a simulation.
-                    logger.warning(
+                    self.logger.warning(
                         f"Resource {dependency} is not provided by any component but is needed to "
                         f"compute {resource_group}."
                     )

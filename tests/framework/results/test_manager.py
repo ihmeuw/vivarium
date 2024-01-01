@@ -1,6 +1,7 @@
 from types import MethodType
 
 import pytest
+from loguru import logger
 
 from vivarium.framework.results.manager import ResultsManager
 
@@ -53,7 +54,7 @@ def test_register_stratification_no_pipelines(
     for item in sources:
         assert item in mgr._required_columns
     assert verify_stratification_added(
-        mgr._results_context._stratifications,
+        mgr._results_context.stratifications,
         name,
         sources,
         categories,
@@ -95,7 +96,7 @@ def test_register_stratification_with_pipelines(
     for item in sources:
         assert item in mgr._required_values
     assert verify_stratification_added(
-        mgr._results_context._stratifications,
+        mgr._results_context.stratifications,
         name,
         sources,
         categories,
@@ -143,7 +144,7 @@ def test_register_stratification_with_column_and_pipelines(
     all_sources = sources.copy()
     all_sources.append(mocked_column_name)
     assert verify_stratification_added(
-        mgr._results_context._stratifications,
+        mgr._results_context.stratifications,
         name,
         all_sources,
         categories,
@@ -188,3 +189,52 @@ def test_register_binned_stratification_raises(bins, labels):
         raise mgr.register_binned_stratification(
             BIN_SOURCE, "column", BIN_BINNED_COLUMN, bins, labels
         )
+
+
+@pytest.mark.parametrize(
+    "default, additional, excluded, match",
+    [
+        (["age", "sex"], ["age"], [], ["age"]),
+        (["age", "sex"], [], ["eye_color"], ["eye_color"]),
+        (["age", "sex"], ["age"], ["eye_color"], ["age", "eye_color"]),
+    ],
+    ids=[
+        "additional_no_operation",
+        "exclude_no_operation",
+        "additional_and_exclude_no_operation",
+    ],
+)
+def test_add_observation_nop_stratifications(
+    default, additional, excluded, match, mocker, caplog
+):
+    mgr = ResultsManager()
+    builder = mocker.Mock()
+    mgr.setup(builder)
+    mgr.logger = logger
+
+    mgr._results_context.default_stratifications = default
+    mgr.register_observation(
+        "name",
+        'alive == "alive"',
+        [],
+        lambda: None,
+        additional_stratifications=additional,
+        excluded_stratifications=excluded,
+        when="collect_metrics",
+    )
+    for m in match:
+        assert m in caplog.text
+
+
+def test_setting_default_stratifications_at_setup(mocker):
+    """Test that set default stratifications happens at setup"""
+    mgr = ResultsManager()
+    builder = mocker.Mock()
+    mgr._results_context.set_default_stratifications = mocker.Mock()
+    mgr._results_context.set_default_stratifications.assert_not_called()
+
+    mgr.setup(builder)
+
+    mgr._results_context.set_default_stratifications.assert_called_once_with(
+        builder.configuration.stratification.default
+    )

@@ -16,11 +16,13 @@ from typing import Callable, Union
 
 import pandas as pd
 
+from vivarium.manager import Manager
+
 Time = Union[pd.Timestamp, datetime, Number]
 Timedelta = Union[pd.Timedelta, timedelta, Number]
 
 
-class SimulationClock:
+class SimulationClock(Manager):
     """Defines a base implementation for a simulation clock."""
 
     def __init__(self):
@@ -62,7 +64,7 @@ class SimulationClock:
 class SimpleClock(SimulationClock):
     """A unitless step-count based simulation clock."""
 
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "time": {
             "start": 0,
             "end": 100,
@@ -90,7 +92,7 @@ def get_time_stamp(time):
 class DateTimeClock(SimulationClock):
     """A date-time based simulation clock."""
 
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "time": {
             "start": {"year": 2005, "month": 7, "day": 2},
             "end": {

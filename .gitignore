@@ -109,3 +109,7 @@ venv.bak/
 
 # Local user jupyter notebooks directory
 notebooks/
+
+# Version file
+src/vivarium/_version.py
+
