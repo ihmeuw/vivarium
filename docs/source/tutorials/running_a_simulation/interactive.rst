@@ -125,12 +125,12 @@ example and we will place them in a normal Python list.
 .. code-block:: python
 
    from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
-                                                SIS_DiseaseModel, Risk, RiskEffect,
+                                                SISDiseaseModel, Risk, RiskEffect,
                                                 TreatmentIntervention)
 
    components = [BasePopulation(),
                  Mortality(),
-                 SIS_DiseaseModel('diarrhea'),
+                 SISDiseaseModel('diarrhea'),
                  Risk('child_growth_failure'),
                  RiskEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate'),
                  RiskEffect('child_growth_failure', 'infected_with_diarrhea.excess_mortality_rate'),
@@ -241,8 +241,13 @@ one last way to set up the simulation in an interactive setting.
 Modifying an Existing Simulation
 ++++++++++++++++++++++++++++++++
 
-Another frequent use case is when you're trying to add on to an already
-existing simulation. Here you'll want to grab a prebuilt simulation before the
+Another frequent use case is when you're trying to modify an already
+existing simulation.
+
+Changing configuration
+~~~~~~~~~~~~~~~~~~~~~~
+
+Here you'll want to grab a prebuilt simulation before the
 :ref:`setup phase <lifecycle_concept>` so you can add extra components
 or modify the configuration data. You then have to call setup on the simulation
 yourself.
@@ -265,7 +270,12 @@ population size to be smaller so the simulation takes less time to run.
 
 .. code-block:: python
 
-   sim.configuration.update({'population': {'population_size': 1_000}})
+    # Setting attributes ensures you are updating existing keys, rather than
+    # creating new ones
+    sim.configuration.population.population_size = 1_000
+    # .update can be a more concise alternative -- but note that this will not
+    # warn you if you are adding new keys, e.g. due to a typo!
+    # sim.configuration.update({'population': {'population_size': 1_000}})
 
 We then need to call the
 :meth:`vivarium.framework.engine.SimulationContext.setup` method on the
@@ -294,11 +304,11 @@ After this step, we are ready to  :ref:`run the simulation <interactive_run>`.
 
    p = get_model_specification_path()
    sim = InteractiveContext(p, setup=False)
-   sim.configuration.update({'population': {'population_size': 1_000}})
+   sim.configuration.population.population_size = 1_000
    sim.setup()
 
-Bonus: Adding Additional Components
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Adding additional components
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Another use case for creating the
 :class:`~vivarium.interface.interactive.InteractiveContext` in
@@ -332,6 +342,37 @@ into our disease model. We could do the following.
 This is an easy way to take an old model and toy around with new components
 to immediately see their effects.
 
+Removing components
+~~~~~~~~~~~~~~~~~~~
+
+Currently, there isn't a way to use the above approach to *remove* components from
+an existing model (without using private attributes).
+
+Removing components should be done with care: if you remove a component without
+removing other components that depend on it, the simulation will break!
+
+You can remove components by creating a model specification and editing it *before* creating
+the InteractiveContext:
+
+.. testcode::
+
+    from vivarium import InteractiveContext
+    from vivarium.framework.configuration import build_model_specification
+    from vivarium.examples.disease_model import get_model_specification_path
+
+    p = get_model_specification_path()
+    model_spec = build_model_specification(p)
+
+    # Remove all observer components
+    del model_spec.components['vivarium.examples.disease_model'].observer
+    # Remove all RiskEffect components
+    model_spec.components['vivarium.examples.disease_model'].risk = [
+        c for c in model_spec.components['vivarium.examples.disease_model'].risk
+        if 'RiskEffect' not in c
+    ]
+    # This approach can also be used to change configuration
+    model_spec.configuration.time.start.year = 2021
+    sim = InteractiveContext(model_spec)
 
 .. _interactive_run:
 

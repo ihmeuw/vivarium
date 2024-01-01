@@ -128,6 +128,8 @@ configuration by simply printing it.
                 model_override: 31
         step_size:
             model_override: 0.5
+        standard_step_size:
+            component_configs: None
     population:
         population_size:
             model_override: 100000

@@ -236,7 +236,7 @@ class ResultsManager(Manager):
     def _add_resources(self, target: List[str], target_type: SourceType):
         if not len(target):
             return  # do nothing on empty lists
-        target = set(target) - {"event_time", "current_time", "step_size"}
+        target = set(target) - {"event_time", "current_time", "event_step_size"}
         if target_type == SourceType.COLUMN:
             self._required_columns.update(target)
         elif target_type == SourceType.VALUE:
@@ -247,7 +247,7 @@ class ResultsManager(Manager):
             event.index
         )
         population["current_time"] = self.clock()
-        population["step_size"] = event.step_size
+        population["event_step_size"] = event.step_size
         population["event_time"] = self.clock() + event.step_size
         for k, v in event.user_data.items():
             population[k] = v

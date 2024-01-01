@@ -51,7 +51,7 @@ class InteractiveContext(SimulationContext):
             An optional size of step to take. Must be compatible with the
             simulation clock's step size (usually a pandas.Timedelta).
         """
-        old_step_size = self._clock.step_size
+        old_step_size = self._clock._clock_step_size
         if step_size is not None:
             if not (
                 isinstance(step_size, type(self._clock.step_size))
@@ -60,9 +60,9 @@ class InteractiveContext(SimulationContext):
                 raise ValueError(
                     f"Provided time must be compatible with {type(self._clock.step_size)}"
                 )
-            self._clock._step_size = step_size
+            self._clock._clock_step_size = step_size
         super().step()
-        self._clock._step_size = old_step_size
+        self._clock._clock_step_size = old_step_size
 
     def run(self, with_logging: bool = True) -> int:
         """Run the simulation for the duration specified in the configuration.
