@@ -348,7 +348,7 @@ to update the population state table.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/location_swarming.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
-   :emphasize-lines: 22-25,40,60-166
+   :emphasize-lines: 22-25,40,60-176
 
 For a quick test of our swarming behavior, let's check in on our boids after
 100 steps:

@@ -93,7 +93,11 @@ class Location(Component):
             separation_pairs.groupby("index_1")[["force_x", "force_y"]]
             .sum()
             .rename(columns=lambda c: c.replace("force_", ""))
-            .pipe(self._normalize_and_limit_force, pop=pop, max_force=self.config.separation_force)
+            .pipe(
+                self._normalize_and_limit_force,
+                pop=pop,
+                max_force=self.config.separation_force,
+            )
         )
         acceleration.loc[separation_force.index] += separation_force[["x", "y"]]
 
@@ -102,7 +106,9 @@ class Location(Component):
             pairs.groupby("index_1")[["distance_x", "distance_y"]]
             .sum()
             .rename(columns=lambda c: c.replace("distance_", ""))
-            .pipe(self._normalize_and_limit_force, pop=pop, max_force=self.config.cohesion_force)
+            .pipe(
+                self._normalize_and_limit_force, pop=pop, max_force=self.config.cohesion_force
+            )
         )
         acceleration.loc[cohesion_force.index] += cohesion_force[["x", "y"]]
 
@@ -111,7 +117,11 @@ class Location(Component):
             pairs.groupby("index_1")[["vx_2", "vy_2"]]
             .sum()
             .rename(columns=lambda c: c.replace("v", "").replace("_2", ""))
-            .pipe(self._normalize_and_limit_force, pop=pop, max_force=self.config.alignment_force)
+            .pipe(
+                self._normalize_and_limit_force,
+                pop=pop,
+                max_force=self.config.alignment_force,
+            )
         )
         acceleration.loc[alignment_force.index] += alignment_force[["x", "y"]]
 
