@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 
 
-def plot_birds(simulation, plot_velocity=False):
+def plot_boids(simulation, plot_velocity=False):
     width = simulation.configuration.location.width
     height = simulation.configuration.location.height
     pop = simulation.get_population()
@@ -18,7 +18,7 @@ def plot_birds(simulation, plot_velocity=False):
     plt.show()
 
 
-def plot_birds_animated(simulation):
+def plot_boids_animated(simulation):
     width = simulation.configuration.location.width
     height = simulation.configuration.location.height
     pop = simulation.get_population()
@@ -30,9 +30,13 @@ def plot_birds_animated(simulation):
     plt.ylabel("y")
     plt.axis([0, width, 0, height])
 
-    def animate(i):
+    frames = range(2_000)
+    frame_pops = []
+    for _ in frames:
         simulation.step()
-        pop = simulation.get_population()
-        s.set_offsets(pop[["x", "y"]])
+        frame_pops.append(simulation.get_population()[["x", "y"]])
 
-    return FuncAnimation(fig, animate, frames=np.arange(1, 500), interval=100)
+    def animate(i):
+        s.set_offsets(frame_pops[i])
+
+    return FuncAnimation(fig, animate, frames=frames, interval=10)

@@ -9,6 +9,9 @@ To get started with agent-based modelling, we'll recreate the classic
 This is a relatively simple example but it produces very pleasing
 visualizations.
 
+.. video:: /_static/boids.mp4
+   :autoplay:
+   :loop:
 
 .. contents::
    :depth: 2
@@ -38,8 +41,8 @@ this component as we wish to add more complexity.
    :caption: **File**: :file:`~/code/vivarium_examples/boids/population.py`
 
 
-Here we're defining a component that generates a population of 1000 birds.
-Those birds are then randomly chosen to be either red or blue.
+Here we're defining a component that generates a population of 1000 boids.
+Those boids are then randomly chosen to be either red or blue.
 
 Let's examine what's going on in detail, as you'll see many of the same
 patterns repeated in later components.
@@ -82,7 +85,7 @@ the ``configuration_defaults`` class attribute.
    :dedent: 4
 
 We'll talk more about configuration information later. For now observe that
-we're exposing a set of possible colors for our birds.
+we're exposing a set of possible colors for our boids.
 
 The ``setup`` method
 ++++++++++++++++++++
@@ -214,8 +217,8 @@ Position
 --------
 
 The classic Boids model introduces three *steering* behaviors into a
-population of birds and simulates their resulting behavior. For this to work,
-we need to track the position and velocity of our birds, so let's start there.
+population of boids and simulates their resulting behavior. For this to work,
+we need to track the position and velocity of our boids, so let's start there.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/location.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
@@ -262,8 +265,8 @@ Our population now has initial position and velocity!
 Visualizing our population
 --------------------------
 
-Now is also a good time to come up with a way to plot our birds. We'll later
-use this to generate animations of our birds flying around. We'll use
+Now is also a good time to come up with a way to plot our boids. We'll later
+use this to generate animations of our boids moving around. We'll use
 `matplotlib <https://matplotlib.org/>`__ for this.
 
 Making good visualizations is hard, and beyond the scope of this tutorial, but
@@ -273,7 +276,7 @@ the ``matplotlib`` documentation has a large number of
 useful.
 
 For our purposes, we really just want to be able to plot the positions of our
-birds and maybe some arrows to indicated their velocity.
+boids and maybe some arrows to indicated their velocity.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/visualization.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/visualization.py`
@@ -286,19 +289,19 @@ We can then visualize our flock with
    from vivarium import InteractiveContext
    from vivarium_examples.boids.population import Population
    from vivarium_examples.boids.location import Location
-   from vivarium_examples.boids.visualization import plot_birds
+   from vivarium_examples.boids.visualization import plot_boids
 
    sim = InteractiveContext(components=[Population(), Location()])
 
-   plot_birds(sim, plot_velocity=True)
+   plot_boids(sim, plot_velocity=True)
 
 .. plot::
 
    from vivarium import InteractiveContext
-   from vivarium.examples.boids import Population, Location, plot_birds
+   from vivarium.examples.boids import Population, Location, plot_boids
 
    sim = InteractiveContext(components=[Population(), Location()])
-   plot_birds(sim, plot_velocity=True)
+   plot_boids(sim, plot_velocity=True)
 
 Calculating Neighbors
 ---------------------
@@ -328,20 +331,13 @@ or use our cached value in ``self._neighbors``.
 Swarming Behavior
 -----------------
 
-Now we know which birds are each others' neighbors, but we're not doing anything
-with that information. We need to teach the birds to swarm!
+Now we know which boids are each others' neighbors, but we're not doing anything
+with that information. We need to teach the boids to swarm!
 
 There are lots of potential swarming behaviors to play around with, all of which
-change the way that birds clump up and follow each other. But since that isn't
-the focus of this tutorial, we'll implement a few very simple rules that are
-just enough to see some swarming behavior:
-
-* Birds go toward their neighbors, unless they get too close.
-* Birds try to match their velocity to their neighbors.
-* Birds speed up if they are going below a minimum speed.
-
-In addition to these, we'll need to add another rule to keep birds from flying
-out of bounds.
+change the way that boids clump up and follow each other. But since that isn't
+the focus of this tutorial, we'll implement separation, cohesion, and alignment
+behavior identical to what's in `this D3 example <https://web.archive.org/web/20240103000750/https://d3og.com/git-ashish/2ff94f1f6b985e5fd2d4a15e512c4739/>`_.
 
 To access the values pipeline we created in the Neighbors component, we use
 ``builder.value.get_value`` in the setup method. Then to get the values inside
@@ -352,9 +348,9 @@ to update the population state table.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/location_swarming.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
-   :emphasize-lines: 36,56-100
+   :emphasize-lines: 22-25,40,60-166
 
-For a quick test of our swarming behavior, let's check in on our birds after
+For a quick test of our swarming behavior, let's check in on our boids after
 100 steps:
 
 .. code-block:: python
@@ -363,28 +359,28 @@ For a quick test of our swarming behavior, let's check in on our birds after
    from vivarium_examples.boids.population import Population
    from vivarium_examples.boids.location import Location
    from vivarium_examples.boids.neighbors import Neighbors
-   from vivarium_examples.boids.visualization import plot_birds
+   from vivarium_examples.boids.visualization import plot_boids
 
    sim = InteractiveContext(components=[Population(), Location(), Neighbors()])
 
    sim.take_steps(100)
 
-   plot_birds(sim, plot_velocity=True)
+   plot_boids(sim, plot_velocity=True)
 
 .. plot::
 
    from vivarium import InteractiveContext
-   from vivarium.examples.boids import Population, Neighbors, plot_birds
+   from vivarium.examples.boids import Population, Neighbors, plot_boids
    from vivarium.examples.boids.location_swarming import Location
 
    sim = InteractiveContext(components=[Population(), Location(), Neighbors()])
    sim.take_steps(100)
-   plot_birds(sim, plot_velocity=True)
+   plot_boids(sim, plot_velocity=True)
 
 Viewing our Simulation as an Animation
 --------------------------------------
 
-Great, our simulation is working! But it would be nice to see our birds moving
+Great, our simulation is working! But it would be nice to see our boids moving
 around instead of having static snapshots. We'll use the animation features in
 matplotlib to do this.
 
@@ -402,21 +398,25 @@ Then, try it out like so:
   from vivarium_examples.boids.population import Population
   from vivarium_examples.boids.location import Location
   from vivarium_examples.boids.neighbors import Neighbors
-  from vivarium_examples.boids.visualization import plot_birds_animated
+  from vivarium_examples.boids.visualization import plot_boids_animated
 
   sim = InteractiveContext(components=[Population(), Location(), Neighbors()])
 
-  anim = plot_birds_animated(sim)
+  anim = plot_boids_animated(sim)
 
 Viewing this animation will depend a bit on what software you have installed.
 If you're running Python in the terminal, this will save a video file:
 
 .. code-block:: python
 
-   anim.save('swarming.mp4')
+   anim.save('boids.mp4')
 
 In IPython, this will display the animation:
 
 .. code-block:: python
 
    HTML(anim.to_html5_video())
+
+Either way, it will look like this:
+
+.. video:: /_static/boids.mp4

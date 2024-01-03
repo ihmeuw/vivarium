@@ -18,7 +18,8 @@ class Location(Component):
             "location": {
                 "width": 1000,  # Width of our field
                 "height": 1000,  # Height of our field
-            }
+                "max_velocity": 2,
+            },
         }
 
     @property
@@ -30,8 +31,7 @@ class Location(Component):
     #####################
 
     def setup(self, builder: Builder) -> None:
-        self.width = builder.configuration.location.width
-        self.height = builder.configuration.location.height
+        self.config = builder.configuration.location
 
     ########################
     # Event-driven methods #
@@ -39,13 +39,13 @@ class Location(Component):
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         count = len(pop_data.index)
-        # Start clustered in the center with small random velocities
+        # Start randomly distributed, with random velocities
         new_population = pd.DataFrame(
             {
-                "x": self.width * (0.4 + 0.2 * np.random.random(count)),
-                "y": self.height * (0.4 + 0.2 * np.random.random(count)),
-                "vx": -0.5 + np.random.random(count),
-                "vy": -0.5 + np.random.random(count),
+                "x": self.config.width * np.random.random(count),
+                "y": self.config.height * np.random.random(count),
+                "vx": (1 - np.random.random(count) * 2) * self.config.max_velocity,
+                "vy": (1 - np.random.random(count) * 2) * self.config.max_velocity,
             },
             index=pop_data.index,
         )
