@@ -19,14 +19,13 @@ class Neighbors(Component):
 
     @property
     def columns_required(self) -> Optional[List[str]]:
-        return ["x", "y", "color"]
+        return ["x", "y"]
 
     #####################
     # Lifecycle methods #
     #####################
 
     def setup(self, builder: Builder) -> None:
-        self.colors = builder.configuration.population.colors
         self.radius = builder.configuration.neighbors.radius
 
         self.neighbors_calculated = False
