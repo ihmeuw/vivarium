@@ -44,8 +44,8 @@ class Location(Component):
             {
                 "x": self.config.width * np.random.random(count),
                 "y": self.config.height * np.random.random(count),
-                "vx": (1 - np.random.random(count) * 2) * self.config.max_velocity,
-                "vy": (1 - np.random.random(count) * 2) * self.config.max_velocity,
+                "vx": ((2 * np.random.random(count)) - 1) * self.config.max_velocity,
+                "vy": ((2 * np.random.random(count)) - 1) * self.config.max_velocity,
             },
             index=pop_data.index,
         )
