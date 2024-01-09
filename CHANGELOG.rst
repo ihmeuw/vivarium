@@ -1,3 +1,7 @@
+**2.3.1 - 01/09/24**
+
+ - Update PyPI to 2FA with trusted publisher
+
 **2.3.0 - 12/19/23**
 
  - Incorporate Individualized Clocks v1
