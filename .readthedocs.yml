@@ -4,8 +4,11 @@ version: 2
 
 # Configure the python version and environment construction run before
 # docs are built.
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.11"
 python:
-  version: 3.8
   install:
       # This runs pip install .[docs] from the project root.
     - method: pip
