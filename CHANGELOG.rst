@@ -1,3 +1,7 @@
+**2.3.3 - 01/29/24**
+
+ - Improve readability of api reference docs
+
 **2.3.2 - 01/29/24**
 
  - Fix broken readthedocs build
