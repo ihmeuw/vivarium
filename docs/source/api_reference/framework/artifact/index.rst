@@ -5,7 +5,7 @@ Data Artifact Management
 .. automodule:: vivarium.framework.artifact
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :glob:
 
    *
