@@ -5,7 +5,7 @@ Random Number Generation
 .. automodule:: vivarium.framework.randomness
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :glob:
 
    *
