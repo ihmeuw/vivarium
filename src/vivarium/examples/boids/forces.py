@@ -46,14 +46,11 @@ class Force(Component):
         pop = self.population_view.get(index)
         pairs = self._get_pairs(neighbors, pop)
 
-        force = (
-            self._calculate_force(pairs)
-                .pipe(
-                    self._normalize_and_limit_force,
-                    velocity=pop[["vx", "vy"]],
-                    max_force=self.config.max_force,
-                    max_velocity=self.max_velocity,
-                )
+        force = self._calculate_force(pairs).pipe(
+            self._normalize_and_limit_force,
+            velocity=pop[["vx", "vy"]],
+            max_force=self.config.max_force,
+            max_velocity=self.max_velocity,
         )
 
         acceleration.loc[force.index] += force[["x", "y"]]
@@ -68,8 +65,7 @@ class Force(Component):
 
     def _get_pairs(self, neighbors: pd.Series, pop: pd.DataFrame):
         pairs = (
-            pop
-            .join(neighbors.rename("neighbors"))
+            pop.join(neighbors.rename("neighbors"))
             .reset_index()
             .explode("neighbors")
             .merge(
@@ -81,12 +77,16 @@ class Force(Component):
         )
         pairs["distance_x"] = pairs.x_other - pairs.x_self
         pairs["distance_y"] = pairs.y_other - pairs.y_self
-        pairs["distance"] = np.sqrt(pairs.distance_x ** 2 + pairs.distance_y ** 2)
+        pairs["distance"] = np.sqrt(pairs.distance_x**2 + pairs.distance_y**2)
 
         return pairs
 
     def _normalize_and_limit_force(
-        self, force: pd.DataFrame, velocity: pd.DataFrame, max_force: float, max_velocity: float,
+        self,
+        force: pd.DataFrame,
+        velocity: pd.DataFrame,
+        max_force: float,
+        max_velocity: float,
     ):
         normalization_factor = np.where(
             (force.x != 0) | (force.y != 0),
@@ -110,6 +110,7 @@ class Force(Component):
     def _magnitude(self, df: pd.DataFrame):
         return np.sqrt(np.square(df.x) + np.square(df.y))
 
+
 class Separation(Force):
     """Push boids apart when they get too close."""
 
@@ -128,14 +129,19 @@ class Separation(Force):
             ((-1 / separation_neighbors.distance) / separation_neighbors.distance),
             1.0,
         )
-        separation_neighbors["force_x"] = separation_neighbors["distance_x"] * force_scaling_factor
-        separation_neighbors["force_y"] = separation_neighbors["distance_y"] * force_scaling_factor
+        separation_neighbors["force_x"] = (
+            separation_neighbors["distance_x"] * force_scaling_factor
+        )
+        separation_neighbors["force_y"] = (
+            separation_neighbors["distance_y"] * force_scaling_factor
+        )
 
         return (
             separation_neighbors.groupby("index_self")[["force_x", "force_y"]]
             .sum()
             .rename(columns=lambda c: c.replace("force_", ""))
         )
+
 
 class Cohesion(Force):
     """Push boids together."""
@@ -146,6 +152,7 @@ class Cohesion(Force):
             .sum()
             .rename(columns=lambda c: c.replace("distance_", ""))
         )
+
 
 class Alignment(Force):
     """Push boids toward where others are going."""
