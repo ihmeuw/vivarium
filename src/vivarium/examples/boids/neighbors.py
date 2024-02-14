@@ -13,13 +13,9 @@ class Neighbors(Component):
     ##############
     # Properties #
     ##############
-    @property
-    def configuration_defaults(self) -> Dict[str, Any]:
-        return {"neighbors": {"radius": 60}}
+    configuration_defaults = {"neighbors": {"radius": 60}}
 
-    @property
-    def columns_required(self) -> Optional[List[str]]:
-        return ["x", "y"]
+    columns_required = ["x", "y"]
 
     #####################
     # Lifecycle methods #

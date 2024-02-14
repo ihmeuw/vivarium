@@ -21,7 +21,7 @@ visualizations.
 Setup
 -----
 
-I'm assuming you've read through the material in
+We're assuming you've read through the material in
 :doc:`getting started <getting_started>` and are working in your
 :file:`vivarium_examples` package. If not, you should go there first.
 
@@ -31,17 +31,13 @@ I'm assuming you've read through the material in
 Building a population
 ---------------------
 
-In many ways, this is a bad place to start. The population component is one of
-the more complicated components in a simulation as it typically is
-responsible for bootstrapping some of the more interesting features in
-Vivarium. What we'll do is start with a simple population and revisit
-this component as we wish to add more complexity.
+Create a file called ``population.py`` with the following content:
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/population.py`
+   :linenos:
 
-
-Here we're defining a component that generates a population of 1000 boids.
+Here we're defining a component that generates a population of boids.
 Those boids are then randomly chosen to be either red or blue.
 
 Let's examine what's going on in detail, as you'll see many of the same
@@ -52,6 +48,7 @@ Imports
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
    :lines: 1-8
+   :linenos:
 
 `NumPy <http://www.numpy.org/>`_ is a library for doing high performance
 numerical computing in Python. `pandas <https://pandas.pydata.org/>`_ is a set
@@ -81,8 +78,10 @@ configuration information. Components typically expose the values they use in
 the ``configuration_defaults`` class attribute.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 15-21
+   :lines: 15-19
    :dedent: 4
+   :linenos:
+   :lineno-start: 15
 
 We'll talk more about configuration information later. For now observe that
 we're exposing a set of possible colors for our boids.
@@ -98,8 +97,10 @@ the setup method on components and providing the builder to them. We'll
 explore these tools that the builder provides in detail as we go.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 31-32
+   :lines: 26-27
    :dedent: 4
+   :linenos:
+   :lineno-start: 26
 
 Our setup method is pretty simple: we just save the configured colors for later use.
 The component is accessing the subsection of the configuration that it cares about.
@@ -115,8 +116,10 @@ The ``columns_created`` property
 ++++++++++++++++++++++++++++++++
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 23-25
+   :lines: 20
    :dedent: 4
+   :linenos:
+   :lineno-start: 20
 
 The ``columns_created`` property tells Vivarium what columns (or "attributes")
 the component will add to the population table.
@@ -145,10 +148,10 @@ This is where we should initialize values in the ``columns_created``
 by this component.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 38-46
+   :lines: 33-41
    :dedent: 4
    :linenos:
-   :lineno-start: 38
+   :lineno-start: 33
 
 We see that like the ``setup`` method, ``on_initialize_simulants`` takes in a
 special argument that we don't provide. This argument, ``pop_data`` is an
@@ -189,7 +192,10 @@ we can set up our simulation with the following code:
    from vivarium import InteractiveContext
    from vivarium_examples.boids.population import Population
 
-   sim = InteractiveContext(components=[Population()])
+   sim = InteractiveContext(
+      components=[Population()],
+      configuration={'population': {'population_size': 500}},
+      )
 
    # Peek at the population table
    print(sim.get_population().head())
@@ -201,7 +207,10 @@ we can set up our simulation with the following code:
    from vivarium import InteractiveContext
    from vivarium.examples.boids import Population
 
-   sim = InteractiveContext(components=[Population()])
+   sim = InteractiveContext(
+      components=[Population()],
+      configuration={'population': {'population_size': 500}},
+   )
 
 ::
 
@@ -213,32 +222,90 @@ we can set up our simulation with the following code:
    4     True    2005-07-01   red
 
 
-Position
+Movement
 --------
 
-The classic Boids model introduces three *steering* behaviors into a
-population of boids and simulates their resulting behavior. For this to work,
-we need to track the position and velocity of our boids, so let's start there.
+Before we get to the flocking behavior of boids, we need them to move.
+We create a ``Movement`` component for this purpose.
+It tracks the position and velocity of each boid, and creates an
+``acceleration`` pipeline that we will use later.
 
-.. literalinclude:: ../../../src/vivarium/examples/boids/location.py
-   :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
+.. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
+   :caption: **File**: :file:`~/code/vivarium_examples/boids/movement.py`
 
-You'll notice that this looks very similar to our initial population model.
+You'll notice that some parts of this component look very similar to our population component.
 Indeed, we can split up the responsibilities of initializing simulants over
 many different components. In Vivarium we tend to think of components as being
 responsible for individual behaviors or :term:`attributes <attribute>`. This
 makes it very easy to build very complex models while only having to think
 about local pieces of it.
 
-Let's add this component to our model and look again at the population table.
+However, there are also a few new Vivarium features on display in this component.
+We'll step through these in more detail.
+
+Values pipelines
+++++++++++++++++
+
+A :term:`values pipeline <Pipeline>` is like a column in the population table, in that it contains information
+about our simulants (boids, in this case).
+The key difference is that it is not *stateful* -- each time it is accessed, its values are re-initialized
+from scratch, instead of "remembering" what they were on the previous timestep.
+This makes it appropriate for modeling acceleration, because we only want a boid
+to accelerate due to forces acting on it *now*.
+
+The Builder class exposes an additional property for working with values pipelines:
+:meth:`vivarium.framework.engine.Builder.value`.
+We call the :meth:`vivarium.framework.values.ValuesInterface.register_value_producer`
+method to register a new pipeline.
+
+.. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
+   :lines: 32-34
+   :dedent: 4
+   :linenos:
+   :lineno-start: 32
+
+This call provides a ``source`` function for our pipeline, which initializes the values.
+In this case, the default is zero acceleration:
+
+.. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
+   :lines: 40-41
+   :dedent: 4
+   :linenos:
+   :lineno-start: 40
+
+The ``on_time_step`` method
++++++++++++++++++++++++++++
+
+This is a lifecycle method, much like ``on_initialize_simulants``.
+However, this method will be called on each step forward in time, not only
+when new simulants are initialized.
+
+It can use values from pipelines and update the population table.
+In this case, we change boids' velocity according to their acceleration,
+limit their velocity to a maximum, and update their position according
+to their velocity.
+
+.. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
+   :lines: 61-85
+   :dedent: 4
+   :linenos:
+   :lineno-start: 61
+
+Putting it together
++++++++++++++++++++
+
+Let's run the simulation with our new component and look again at the population table.
 
 .. code-block:: python
 
    from vivarium import InteractiveContext
    from vivarium_examples.boids.population import Population
-   from vivarium_examples.boids.location import Location
+   from vivarium_examples.boids.movement import Movement
 
-   sim = InteractiveContext(components=[Population(), Location()])
+   sim = InteractiveContext(
+      components=[Population(), Movement()],
+      configuration={'population': {'population_size': 500}},
+   )
 
    # Peek at the population table
    print(sim.get_population().head())
@@ -247,20 +314,54 @@ Let's add this component to our model and look again at the population table.
    :hide:
 
    from vivarium import InteractiveContext
-   from vivarium.examples.boids import Population, Location
+   from vivarium.examples.boids import Population, Movement
 
-   sim = InteractiveContext(components=[Population(), Location()])
+   sim = InteractiveContext(
+      components=[Population(), Movement()],
+      configuration={'population': {'population_size': 500}},
+   )
 
 ::
 
-       tracked           x           y        vx        vy entrance_time color
-    0     True  458.281179  463.086940 -0.473012  0.355904    2005-07-01  blue
-    1     True  480.864694  596.290448 -0.058006 -0.241146    2005-07-01   red
-    2     True  406.092503  533.870307  0.299711 -0.041151    2005-07-01  blue
-    3     True  444.028917  497.491363 -0.005976 -0.491665    2005-07-01   red
-    4     True  487.670224  412.832049 -0.145613 -0.123138    2005-07-01  blue
+      tracked color entrance_time        vy        vx           x           y
+   0     True   red    2005-07-01 -1.492285 -1.546289  786.157545  686.064077
+   1     True  blue    2005-07-01  0.360843  1.662424  530.867936  545.621217
+   2     True   red    2005-07-01 -0.369045 -1.747372  779.830506  286.461394
+   3     True   red    2005-07-01 -1.479211  0.659691  373.141406  740.640070
+   4     True   red    2005-07-01  1.143885  0.258908   20.787001  878.792517
 
 Our population now has initial position and velocity!
+Now, we can take a step forward with ``sim.step()`` and "see" our boids' positions change,
+but their velocity stay the same.
+
+.. code-block:: python
+
+   sim.step()
+
+   # Peek at the population table
+   print(sim.get_population().head())
+
+.. testcode::
+   :hide:
+
+   from vivarium import InteractiveContext
+   from vivarium.examples.boids import Population, Movement
+
+   sim = InteractiveContext(
+      components=[Population(), Movement()],
+      configuration={'population': {'population_size': 500}},
+   )
+   sim.step()
+
+::
+
+      tracked color entrance_time        vy        vx           x           y
+   0     True   red    2005-07-01 -1.388859 -1.439121  784.718424  684.675217
+   1     True  blue    2005-07-01  0.360843  1.662424  532.530360  545.982060
+   2     True   red    2005-07-01 -0.369045 -1.747372  778.083134  286.092349
+   3     True   red    2005-07-01 -1.479211  0.659691  373.801097  739.160859
+   4     True   red    2005-07-01  1.143885  0.258908   21.045909  879.936402
+
 
 Visualizing our population
 --------------------------
@@ -288,47 +389,52 @@ We can then visualize our flock with
 
    from vivarium import InteractiveContext
    from vivarium_examples.boids.population import Population
-   from vivarium_examples.boids.location import Location
+   from vivarium_examples.boids.movement import Movement
    from vivarium_examples.boids.visualization import plot_boids
 
-   sim = InteractiveContext(components=[Population(), Location()])
+   sim = InteractiveContext(
+      components=[Population(), Movement()],
+      configuration={'population': {'population_size': 500}},
+   )
 
    plot_boids(sim, plot_velocity=True)
 
 .. plot::
 
    from vivarium import InteractiveContext
-   from vivarium.examples.boids import Population, Location, plot_boids
+   from vivarium.examples.boids import Population, Movement, plot_boids
 
-   sim = InteractiveContext(components=[Population(), Location()])
+   sim = InteractiveContext(
+      components=[Population(), Movement()],
+      configuration={'population': {'population_size': 500}},
+   )
    plot_boids(sim, plot_velocity=True)
 
-Calculating Neighbors
+Calculating neighbors
 ---------------------
 
 The steering behavior in the Boids model is dictated by interactions of each
-bird with its nearby neighbors. A naive implementation of this can be very
+boid with its nearby neighbors. A naive implementation of this can be very
 expensive. Luckily, Python has a ton of great libraries that have solved most
 of the hard problems.
 
 Here, we'll pull in a `KDTree`__ from SciPy and use it to build a component
-that tells us about the neighbor relationships of each bird.
+that tells us about the neighbor relationships of each boid.
 
 __ https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.html
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/neighbors.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/neighbors.py`
 
-This component creates a :term:`values pipeline <Pipeline>` that other components
-can use to access the neighbors of each bird. (We will use this in the Location
-component to implement swarming behaviors.)
+This component creates a values pipeline called ``neighbors`` that other components
+can use to access the neighbors of each boid.
 
 Note that the only thing it does in ``on_time_step`` is ``self.neighbors_calculated = False``.
 That's because we only want to calculate the neighbors once per time step. When the pipeline
 is called, we can tell with ``self.neighbors_calculated`` whether we need to calculate them,
 or use our cached value in ``self._neighbors``.
 
-Swarming Behavior
+Swarming behavior
 -----------------
 
 Now we know which boids are each others' neighbors, but we're not doing anything
@@ -337,31 +443,69 @@ with that information. We need to teach the boids to swarm!
 There are lots of potential swarming behaviors to play around with, all of which
 change the way that boids clump up and follow each other. But since that isn't
 the focus of this tutorial, we'll implement separation, cohesion, and alignment
-behavior identical to what's in `this D3 example <https://web.archive.org/web/20240103000750/https://d3og.com/git-ashish/2ff94f1f6b985e5fd2d4a15e512c4739/>`_.
+behavior identical to what's in `this D3 example <https://web.archive.org/web/20240103000750/https://d3og.com/git-ashish/2ff94f1f6b985e5fd2d4a15e512c4739/>`_,
+and we'll gloss over most of the calculations.
 
 To access the values pipeline we created in the Neighbors component, we use
 ``builder.value.get_value`` in the setup method. Then to get the values inside
 on_time_step, we simply call that pipeline as a function, using ``event.index``,
 which is the set of simulants affected by the event (in this case, all of them).
-We modify the DataFrame of simulants, and then use ``self.population_view.update``
-to update the population state table.
+We use this in a **modifier** to the acceleration pipeline.
 
-.. literalinclude:: ../../../src/vivarium/examples/boids/location_swarming.py
-   :caption: **File**: :file:`~/code/vivarium_examples/boids/location.py`
-   :emphasize-lines: 22-25,40,60-176
+We define a base class for all our forces, since they will have a lot in common.
+We won't get into the details of this class, but at a high level it uses the
+neighbors pipeline to find all the pairs of boids that are neighbors,
+applies some force to (some of) those pairs, and limits that force to a maximum
+magnitude.
 
-For a quick test of our swarming behavior, let's check in on our boids after
+.. literalinclude:: ../../../src/vivarium/examples/boids/forces.py
+   :caption: **File**: :file:`~/code/vivarium_examples/boids/forces.py`
+   :lines: 1-111
+   :linenos:
+
+The major new Vivarium feature seen here is that of the **value modifier**,
+which we register with :meth:`vivarium.framework.values.ValuesInterface.register_value_modifier`:
+
+.. literalinclude:: ../../../src/vivarium/examples/boids/forces.py
+   :caption: **File**: :file:`~/code/vivarium_examples/boids/forces.py`
+   :lines: 35-38
+   :dedent: 4
+   :linenos:
+   :lineno-start: 35
+
+This registers that the ``apply_force`` method will modify the acceleration values.
+Once we start adding these modifiers into our simulation, acceleration won't always be
+zero anymore!
+
+We then define our three forces using the ``Force`` base class.
+We won't step through what these mean in detail.
+They mostly only override the ``_calculate_force`` method that calculates the force between a pair
+of boids.
+The separation force is a bit special in that it also defines an extra configurable
+parameter: the distance within which it should act.
+
+.. literalinclude:: ../../../src/vivarium/examples/boids/forces.py
+   :caption: **File**: :file:`~/code/vivarium_examples/boids/forces.py`
+   :lines: 113-158
+   :linenos:
+   :lineno-start: 113
+
+For a quick test of our swarming behavior, let's add in these forces and check in on our boids after
 100 steps:
 
 .. code-block:: python
 
    from vivarium import InteractiveContext
    from vivarium_examples.boids.population import Population
-   from vivarium_examples.boids.location import Location
+   from vivarium_examples.boids.movement import Movement
    from vivarium_examples.boids.neighbors import Neighbors
+   from vivarium_examples.boids.forces import Separation, Cohesion, Alignment
    from vivarium_examples.boids.visualization import plot_boids
 
-   sim = InteractiveContext(components=[Population(), Location(), Neighbors()])
+   sim = InteractiveContext(
+      components=[Population(), Movement(), Neighbors(), Separation(), Cohesion(), Alignment()],
+      configuration={'population': {'population_size': 500}},
+   )
 
    sim.take_steps(100)
 
@@ -370,14 +514,16 @@ For a quick test of our swarming behavior, let's check in on our boids after
 .. plot::
 
    from vivarium import InteractiveContext
-   from vivarium.examples.boids import Population, Neighbors, plot_boids
-   from vivarium.examples.boids.location_swarming import Location
+   from vivarium.examples.boids import Population, Movement, Neighbors, Separation, Cohesion, Alignment, plot_boids
 
-   sim = InteractiveContext(components=[Population(), Location(), Neighbors()])
+   sim = InteractiveContext(
+      components=[Population(), Movement(), Neighbors(), Separation(), Cohesion(), Alignment()],
+      configuration={'population': {'population_size': 500}},
+   )
    sim.take_steps(100)
    plot_boids(sim, plot_velocity=True)
 
-Viewing our Simulation as an Animation
+Viewing our simulation as an animation
 --------------------------------------
 
 Great, our simulation is working! But it would be nice to see our boids moving
@@ -396,11 +542,15 @@ Then, try it out like so:
 
   from vivarium import InteractiveContext
   from vivarium_examples.boids.population import Population
-  from vivarium_examples.boids.location import Location
+  from vivarium_examples.boids.movement import Movement
   from vivarium_examples.boids.neighbors import Neighbors
+  from vivarium_examples.boids.forces import Separation, Cohesion, Alignment
   from vivarium_examples.boids.visualization import plot_boids_animated
 
-  sim = InteractiveContext(components=[Population(), Location(), Neighbors()])
+  sim = InteractiveContext(
+      components=[Population(), Movement(), Neighbors(), Separation(), Cohesion(), Alignment()],
+      configuration={'population': {'population_size': 500}},
+   )
 
   anim = plot_boids_animated(sim)
 
