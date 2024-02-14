@@ -243,17 +243,17 @@ about local pieces of it.
 However, there are also a few new Vivarium features on display in this component.
 We'll step through these in more detail.
 
-Values pipelines
-++++++++++++++++
+Value pipelines
++++++++++++++++
 
-A :term:`values pipeline <Pipeline>` is like a column in the population table, in that it contains information
+A :term:`value pipeline <Pipeline>` is like a column in the population table, in that it contains information
 about our simulants (boids, in this case).
 The key difference is that it is not *stateful* -- each time it is accessed, its values are re-initialized
 from scratch, instead of "remembering" what they were on the previous timestep.
 This makes it appropriate for modeling acceleration, because we only want a boid
 to accelerate due to forces acting on it *now*.
 
-The Builder class exposes an additional property for working with values pipelines:
+The Builder class exposes an additional property for working with value pipelines:
 :meth:`vivarium.framework.engine.Builder.value`.
 We call the :meth:`vivarium.framework.values.ValuesInterface.register_value_producer`
 method to register a new pipeline.
@@ -426,7 +426,7 @@ __ https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.cKDTree.ht
 .. literalinclude:: ../../../src/vivarium/examples/boids/neighbors.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/neighbors.py`
 
-This component creates a values pipeline called ``neighbors`` that other components
+This component creates a value pipeline called ``neighbors`` that other components
 can use to access the neighbors of each boid.
 
 Note that the only thing it does in ``on_time_step`` is ``self.neighbors_calculated = False``.
@@ -446,7 +446,7 @@ the focus of this tutorial, we'll implement separation, cohesion, and alignment
 behavior identical to what's in `this D3 example <https://web.archive.org/web/20240103000750/https://d3og.com/git-ashish/2ff94f1f6b985e5fd2d4a15e512c4739/>`_,
 and we'll gloss over most of the calculations.
 
-To access the values pipeline we created in the Neighbors component, we use
+To access the value pipeline we created in the Neighbors component, we use
 ``builder.value.get_value`` in the setup method. Then to get the values inside
 on_time_step, we simply call that pipeline as a function, using ``event.index``,
 which is the set of simulants affected by the event (in this case, all of them).
