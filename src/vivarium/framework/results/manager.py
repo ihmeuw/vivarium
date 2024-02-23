@@ -74,7 +74,7 @@ class ResultsManager(Manager):
     def on_post_setup(self, event: Event):
         # update self._metrics to have all output keys
         def create_measure_specific_keys(measure: str, stratifications: List[str]) -> None:
-            measure_str = f"MEASURE_{measure}_"
+            measure_str = f"MEASURE_{measure}"
             individual_stratification_strings = [
                 [
                     f"{stratification.name.upper()}_{category}"
@@ -88,7 +88,12 @@ class ResultsManager(Manager):
             for complete_stratifications in itertools.product(
                 *individual_stratification_strings
             ):
-                key = measure_str + "_".join(complete_stratifications)
+                key = (
+                    measure_str + "_" + "_".join(complete_stratifications)
+                    if complete_stratifications
+                    else measure_str
+                )
+                breakpoint()
                 self._metrics[key] = 0
 
         for event in self._results_context.observations:
