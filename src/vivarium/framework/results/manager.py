@@ -93,7 +93,6 @@ class ResultsManager(Manager):
                     if complete_stratifications
                     else measure_str
                 )
-                breakpoint()
                 self._metrics[key] = 0
 
         for event in self._results_context.observations:
