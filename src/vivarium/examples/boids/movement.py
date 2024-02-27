@@ -13,9 +13,11 @@ class Movement(Component):
     # Properties #
     ##############
     configuration_defaults = {
+        "field": {
+            "width": 1000,
+            "height": 1000,
+        },
         "movement": {
-            "width": 1000,  # Width of our field
-            "height": 1000,  # Height of our field
             "max_velocity": 2,
         },
     }
@@ -27,7 +29,7 @@ class Movement(Component):
     #####################
 
     def setup(self, builder: Builder) -> None:
-        self.config = builder.configuration.movement
+        self.config = builder.configuration
 
         self.acceleration = builder.value.register_value_producer(
             "acceleration", source=self.base_acceleration
@@ -49,10 +51,10 @@ class Movement(Component):
         # Start randomly distributed, with random velocities
         new_population = pd.DataFrame(
             {
-                "x": self.config.width * np.random.random(count),
-                "y": self.config.height * np.random.random(count),
-                "vx": ((2 * np.random.random(count)) - 1) * self.config.max_velocity,
-                "vy": ((2 * np.random.random(count)) - 1) * self.config.max_velocity,
+                "x": self.config.field.width * np.random.random(count),
+                "y": self.config.field.height * np.random.random(count),
+                "vx": ((2 * np.random.random(count)) - 1) * self.config.movement.max_velocity,
+                "vy": ((2 * np.random.random(count)) - 1) * self.config.movement.max_velocity,
             },
             index=pop_data.index,
         )
@@ -67,8 +69,8 @@ class Movement(Component):
         pop[["vx", "vy"]] += acceleration.rename(columns=lambda c: f"v{c}")
         velocity = np.sqrt(np.square(pop.vx) + np.square(pop.vy))
         velocity_scaling_factor = np.where(
-            velocity > self.config.max_velocity,
-            self.config.max_velocity / velocity,
+            velocity > self.config.movement.max_velocity,
+            self.config.movement.max_velocity / velocity,
             1.0,
         )
         pop["vx"] *= velocity_scaling_factor
@@ -79,7 +81,7 @@ class Movement(Component):
         pop["y"] += pop.vy
 
         # Loop around boundaries
-        pop["x"] = pop.x % self.config.width
-        pop["y"] = pop.y % self.config.height
+        pop["x"] = pop.x % self.config.field.width
+        pop["y"] = pop.y % self.config.field.height
 
         self.population_view.update(pop)

@@ -173,12 +173,12 @@ simulation time when the simulant was generated.
    simulation to look up information, calculate simulant-specific values,
    and update information about the simulants' state.
 
-Using the population index, we generate a ``pandas.DataFrame`` on lines 39-45
+Using the population index, we generate a ``pandas.DataFrame`` on lines 34-40
 and fill it with the initial values of 'entrance_time' and 'color' for each
 new simulant. Right now, this is just a table with data hanging out in our
 simulation. To actually do something, we have to tell Vivarium's population
 management system to update the underlying population table, which we do
-on line 46.
+on line 41.
 
 Putting it together
 +++++++++++++++++++
@@ -195,7 +195,7 @@ we can set up our simulation with the following code:
    sim = InteractiveContext(
       components=[Population()],
       configuration={'population': {'population_size': 500}},
-      )
+   )
 
    # Peek at the population table
    print(sim.get_population().head())
@@ -252,6 +252,7 @@ The key difference is that it is not *stateful* -- each time it is accessed, its
 from scratch, instead of "remembering" what they were on the previous timestep.
 This makes it appropriate for modeling acceleration, because we only want a boid
 to accelerate due to forces acting on it *now*.
+You can find an overview of the values system :ref:`here <values_concept>`.
 
 The Builder class exposes an additional property for working with value pipelines:
 :meth:`vivarium.framework.engine.Builder.value`.
@@ -259,19 +260,25 @@ We call the :meth:`vivarium.framework.values.ValuesInterface.register_value_prod
 method to register a new pipeline.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
-   :lines: 32-34
+   :lines: 34-36
    :dedent: 4
    :linenos:
-   :lineno-start: 32
+   :lineno-start: 34
 
 This call provides a ``source`` function for our pipeline, which initializes the values.
 In this case, the default is zero acceleration:
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
-   :lines: 40-41
+   :lines: 42-43
    :dedent: 4
    :linenos:
-   :lineno-start: 40
+   :lineno-start: 42
+
+This may seem pointless, since acceleration will always be zero.
+Value pipelines have another feature we will see later: other components can *modify*
+their values.
+We'll create components later in this tutorial that modify this pipeline to
+exert forces on our boids.
 
 The ``on_time_step`` method
 +++++++++++++++++++++++++++
@@ -285,11 +292,15 @@ In this case, we change boids' velocity according to their acceleration,
 limit their velocity to a maximum, and update their position according
 to their velocity.
 
+To get the values of a pipeline such as ``acceleration`` inside on_time_step,
+we simply call that pipeline as a function, using ``event.index``,
+which is the set of simulants affected by the event (in this case, all of them).
+
 .. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
-   :lines: 61-85
+   :lines: 63-87
    :dedent: 4
    :linenos:
-   :lineno-start: 61
+   :lineno-start: 63
 
 Putting it together
 +++++++++++++++++++
@@ -443,14 +454,9 @@ with that information. We need to teach the boids to swarm!
 There are lots of potential swarming behaviors to play around with, all of which
 change the way that boids clump up and follow each other. But since that isn't
 the focus of this tutorial, we'll implement separation, cohesion, and alignment
-behavior identical to what's in `this D3 example <https://web.archive.org/web/20240103000750/https://d3og.com/git-ashish/2ff94f1f6b985e5fd2d4a15e512c4739/>`_,
+behavior identical to what's in `this D3 example <https://d3og.com/git-ashish/2ff94f1f6b985e5fd2d4a15e512c4739/>`_
+(`Internet Archive version <https://web.archive.org/web/20240103000750/https://d3og.com/git-ashish/2ff94f1f6b985e5fd2d4a15e512c4739/>`_),
 and we'll gloss over most of the calculations.
-
-To access the value pipeline we created in the Neighbors component, we use
-``builder.value.get_value`` in the setup method. Then to get the values inside
-on_time_step, we simply call that pipeline as a function, using ``event.index``,
-which is the set of simulants affected by the event (in this case, all of them).
-We use this in a **modifier** to the acceleration pipeline.
 
 We define a base class for all our forces, since they will have a lot in common.
 We won't get into the details of this class, but at a high level it uses the
@@ -463,18 +469,24 @@ magnitude.
    :lines: 1-111
    :linenos:
 
+To access the value pipeline we created in the Neighbors component, we use
+``builder.value.get_value`` in the setup method. Then, as we saw with the ``acceleration``
+pipeline, we simply call that pipeline as a function inside ``on_time_step`` to retrieve
+its values for a specified index.
 The major new Vivarium feature seen here is that of the **value modifier**,
-which we register with :meth:`vivarium.framework.values.ValuesInterface.register_value_modifier`:
+which we register with :meth:`vivarium.framework.values.ValuesInterface.register_value_modifier`.
+As the name suggests, this allows us to modify the values in a pipeline,
+in this case adding the effect of a force to the values in the ``acceleration`` pipeline.
+We register that the ``apply_force`` method will modify the acceleration values like so:
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/forces.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/forces.py`
-   :lines: 35-38
+   :lines: 36-39
    :dedent: 4
    :linenos:
-   :lineno-start: 35
+   :lineno-start: 36
 
-This registers that the ``apply_force`` method will modify the acceleration values.
-Once we start adding these modifiers into our simulation, acceleration won't always be
+Once we start adding components with these modifiers into our simulation, acceleration won't always be
 zero anymore!
 
 We then define our three forces using the ``Force`` base class.
@@ -486,9 +498,9 @@ parameter: the distance within which it should act.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/forces.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/forces.py`
-   :lines: 113-158
+   :lines: 117-168
    :linenos:
-   :lineno-start: 113
+   :lineno-start: 117
 
 For a quick test of our swarming behavior, let's add in these forces and check in on our boids after
 100 steps:
@@ -534,7 +546,7 @@ Add this method to ``visualization.py``:
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/visualization.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/visualization.py`
-   :lines: 21-38
+   :lines: 21-42
 
 Then, try it out like so:
 

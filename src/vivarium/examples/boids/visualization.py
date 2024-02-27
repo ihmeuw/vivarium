@@ -4,8 +4,8 @@ from matplotlib.animation import FuncAnimation
 
 
 def plot_boids(simulation, plot_velocity=False):
-    width = simulation.configuration.movement.width
-    height = simulation.configuration.movement.height
+    width = simulation.configuration.field.width
+    height = simulation.configuration.field.height
     pop = simulation.get_population()
 
     plt.figure(figsize=[12, 12])
@@ -19,8 +19,8 @@ def plot_boids(simulation, plot_velocity=False):
 
 
 def plot_boids_animated(simulation):
-    width = simulation.configuration.movement.width
-    height = simulation.configuration.movement.height
+    width = simulation.configuration.field.width
+    height = simulation.configuration.field.height
     pop = simulation.get_population()
 
     fig = plt.figure(figsize=[12, 12])

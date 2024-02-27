@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -8,7 +9,7 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
 
 
-class Force(Component):
+class Force(Component, ABC):
     ##############
     # Properties #
     ##############
@@ -46,8 +47,9 @@ class Force(Component):
         pop = self.population_view.get(index)
         pairs = self._get_pairs(neighbors, pop)
 
-        force = self._calculate_force(pairs).pipe(
-            self._normalize_and_limit_force,
+        raw_force = self.calculate_force(pairs)
+        force = self._normalize_and_limit_force(
+            force=raw_force,
             velocity=pop[["vx", "vy"]],
             max_force=self.config.max_force,
             max_velocity=self.max_velocity,
@@ -60,8 +62,9 @@ class Force(Component):
     # Helper methods #
     ##################
 
-    def _calculate_force(self, neighbors: pd.DataFrame):
-        raise NotImplementedError
+    @abstractmethod
+    def calculate_force(self, neighbors: pd.DataFrame):
+        pass
 
     def _get_pairs(self, neighbors: pd.Series, pop: pd.DataFrame):
         pairs = (
@@ -121,7 +124,7 @@ class Separation(Force):
         },
     }
 
-    def _calculate_force(self, neighbors: pd.DataFrame):
+    def calculate_force(self, neighbors: pd.DataFrame):
         # Push boids apart when they get too close
         separation_neighbors = neighbors[neighbors.distance < self.config.distance].copy()
         force_scaling_factor = np.where(
@@ -146,7 +149,7 @@ class Separation(Force):
 class Cohesion(Force):
     """Push boids together."""
 
-    def _calculate_force(self, pairs: pd.DataFrame):
+    def calculate_force(self, pairs: pd.DataFrame):
         return (
             pairs.groupby("index_self")[["distance_x", "distance_y"]]
             .sum()
@@ -157,7 +160,7 @@ class Cohesion(Force):
 class Alignment(Force):
     """Push boids toward where others are going."""
 
-    def _calculate_force(self, pairs: pd.DataFrame):
+    def calculate_force(self, pairs: pd.DataFrame):
         return (
             pairs.groupby("index_self")[["vx_other", "vy_other"]]
             .sum()
