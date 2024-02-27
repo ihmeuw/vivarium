@@ -1,3 +1,7 @@
+**2.3.4 - 02/23/24**
+
+  - Fixes parsing in results manager to remove trailing underscore
+
 **2.3.3 - 01/29/24**
 
  - Improve readability of api reference docs
