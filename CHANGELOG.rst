@@ -1,3 +1,7 @@
+**2.3.5 - 03/01/24**
+
+  - Improves boids example and tutorial
+
 **2.3.4 - 02/23/24**
 
   - Fixes parsing in results manager to remove trailing underscore
