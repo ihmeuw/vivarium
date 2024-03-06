@@ -29,7 +29,7 @@ class Force(Component, ABC):
 
     def setup(self, builder: Builder) -> None:
         self.config = builder.configuration[self.__class__.__name__.lower()]
-        self.max_velocity = builder.configuration.movement.max_velocity
+        self.max_speed = builder.configuration.movement.max_speed
 
         self.neighbors = builder.value.get_value("neighbors")
 
@@ -52,7 +52,7 @@ class Force(Component, ABC):
             force=raw_force,
             velocity=pop[["vx", "vy"]],
             max_force=self.config.max_force,
-            max_velocity=self.max_velocity,
+            max_speed=self.max_speed,
         )
 
         acceleration.loc[force.index] += force[["x", "y"]]
@@ -89,11 +89,11 @@ class Force(Component, ABC):
         force: pd.DataFrame,
         velocity: pd.DataFrame,
         max_force: float,
-        max_velocity: float,
+        max_speed: float,
     ):
         normalization_factor = np.where(
             (force.x != 0) | (force.y != 0),
-            max_velocity / self._magnitude(force),
+            max_speed / self._magnitude(force),
             1.0,
         )
         force["x"] *= normalization_factor
