@@ -12,17 +12,12 @@ class Population(Component):
     ##############
     # Properties #
     ##############
-    @property
-    def configuration_defaults(self) -> Dict[str, Any]:
-        return {
-            "population": {
-                "colors": ["red", "blue"],
-            }
+    configuration_defaults = {
+        "population": {
+            "colors": ["red", "blue"],
         }
-
-    @property
-    def columns_created(self) -> List[str]:
-        return ["color", "entrance_time"]
+    }
+    columns_created = ["color", "entrance_time"]
 
     #####################
     # Lifecycle methods #

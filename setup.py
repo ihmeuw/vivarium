@@ -60,6 +60,7 @@ if __name__ == "__main__":
         "sphinx-click",
         "IPython",
         "matplotlib",
+        "sphinxcontrib-video",
     ]
 
     setup(

@@ -13,13 +13,9 @@ class Neighbors(Component):
     ##############
     # Properties #
     ##############
-    @property
-    def configuration_defaults(self) -> Dict[str, Any]:
-        return {"neighbors": {"radius": 10}}
+    configuration_defaults = {"neighbors": {"radius": 60}}
 
-    @property
-    def columns_required(self) -> Optional[List[str]]:
-        return ["x", "y"]
+    columns_required = ["x", "y"]
 
     #####################
     # Lifecycle methods #
@@ -60,11 +56,11 @@ class Neighbors(Component):
     def _calculate_neighbors(self) -> None:
         # Reset our list of neighbors
         pop = self.population_view.get(self._neighbors.index)
-        self._neighbors = pd.Series([[]] * len(pop), index=pop.index)
+        self._neighbors = pd.Series([[] for _ in range(len(pop))], index=pop.index)
 
-        tree = spatial.KDTree(pop)
+        tree = spatial.KDTree(pop[["x", "y"]])
 
-        # Iterate over each pair of simulates that are close together.
+        # Iterate over each pair of simulants that are close together.
         for boid_1, boid_2 in tree.query_pairs(self.radius):
             # .iloc is used because query_pairs uses 0,1,... indexing instead of pandas.index
             self._neighbors.iloc[boid_1].append(self._neighbors.index[boid_2])
