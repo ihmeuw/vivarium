@@ -18,7 +18,7 @@ class Movement(Component):
             "height": 1000,
         },
         "movement": {
-            "max_velocity": 2,
+            "max_speed": 2,
         },
     }
 
@@ -53,8 +53,8 @@ class Movement(Component):
             {
                 "x": self.config.field.width * np.random.random(count),
                 "y": self.config.field.height * np.random.random(count),
-                "vx": ((2 * np.random.random(count)) - 1) * self.config.movement.max_velocity,
-                "vy": ((2 * np.random.random(count)) - 1) * self.config.movement.max_velocity,
+                "vx": ((2 * np.random.random(count)) - 1) * self.config.movement.max_speed,
+                "vy": ((2 * np.random.random(count)) - 1) * self.config.movement.max_speed,
             },
             index=pop_data.index,
         )
@@ -67,10 +67,10 @@ class Movement(Component):
 
         # Accelerate and limit velocity
         pop[["vx", "vy"]] += acceleration.rename(columns=lambda c: f"v{c}")
-        velocity = np.sqrt(np.square(pop.vx) + np.square(pop.vy))
+        speed = np.sqrt(np.square(pop.vx) + np.square(pop.vy))
         velocity_scaling_factor = np.where(
-            velocity > self.config.movement.max_velocity,
-            self.config.movement.max_velocity / velocity,
+            speed > self.config.movement.max_speed,
+            self.config.movement.max_speed / speed,
             1.0,
         )
         pop["vx"] *= velocity_scaling_factor
