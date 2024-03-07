@@ -25,7 +25,7 @@ class NonCRNTestPopulation(Component):
         "population": {
             "initialization_age_min": 0,
             "initialization_age_max": 100,
-            "untracked_age": None,
+            "untracking_age": None,
         },
     }
 
