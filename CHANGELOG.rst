@@ -1,3 +1,7 @@
+**2.3.6 - 03/07/24**
+
+  - Update population keys in testing utilities to be mmore descriptive
+
 **2.3.5 - 03/01/24**
 
   - Improves boids example and tutorial

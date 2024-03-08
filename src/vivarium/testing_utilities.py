@@ -23,9 +23,9 @@ from vivarium.framework.randomness.index_map import IndexMap
 class NonCRNTestPopulation(Component):
     CONFIGURATION_DEFAULTS = {
         "population": {
-            "age_start": 0,
-            "age_end": 100,
-            "exit_age": None,
+            "initialization_age_min": 0,
+            "initialization_age_max": 100,
+            "untracking_age": None,
         },
     }
 
@@ -40,8 +40,12 @@ class NonCRNTestPopulation(Component):
         )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        age_start = pop_data.user_data.get("age_start", self.config.population.age_start)
-        age_end = pop_data.user_data.get("age_end", self.config.population.age_end)
+        age_start = pop_data.user_data.get(
+            "age_start", self.config.population.initialization_age_min
+        )
+        age_end = pop_data.user_data.get(
+            "age_end", self.config.population.initialization_age_max
+        )
         location = self.config.input_data.location
 
         population = _non_crn_build_population(
@@ -70,8 +74,12 @@ class TestPopulation(NonCRNTestPopulation):
         self.register = builder.randomness.register_simulants
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        age_start = pop_data.user_data.get("age_start", self.config.population.age_start)
-        age_end = pop_data.user_data.get("age_end", self.config.population.age_end)
+        age_start = pop_data.user_data.get(
+            "age_start", self.config.population.initialization_age_min
+        )
+        age_end = pop_data.user_data.get(
+            "age_end", self.config.population.initialization_age_max
+        )
         age_draw = self.age_randomness.get_draw(pop_data.index)
         if age_start == age_end:
             age = age_draw * (pop_data.creation_window / pd.Timedelta(days=365)) + age_start
