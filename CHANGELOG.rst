@@ -1,3 +1,7 @@
+**2.3.7 - 03/21/24**
+  
+  - Add deprecation warning to import ConfigTree from the config_tree package
+
 **2.3.6 - 03/07/24**
 
   - Update population keys in testing utilities to be mmore descriptive
