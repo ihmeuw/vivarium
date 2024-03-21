@@ -1,3 +1,7 @@
+**2.3.8 - 03/21/24**
+  
+  - Fix failing pytests due to pytest-mock 3.13.0
+
 **2.3.7 - 03/21/24**
   
   - Add deprecation warning to import ConfigTree from the config_tree package

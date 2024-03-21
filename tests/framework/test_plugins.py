@@ -107,7 +107,7 @@ def test_PluginManager_get_optional_controllers(test_plugin_manager, mocker):
 
     import_by_path_mock.side_effect = import_by_path_side_effect
     assert test_plugin_manager.get_optional_controllers() == {"george": component}
-    assert import_by_path_mock.mock_calls == [
+    assert import_by_path_mock.mock_calls[-2:] == [
         mocker.call(plugin_config["george"]["controller"]),
         mocker.call(plugin_config["george"]["builder_interface"]),
     ]
@@ -125,7 +125,7 @@ def test_PluginManager_get_optional_interfaces(test_plugin_manager, mocker):
 
     import_by_path_mock.side_effect = import_by_path_side_effect
     assert test_plugin_manager.get_optional_interfaces() == {"george": component}
-    assert import_by_path_mock.mock_calls == [
+    assert import_by_path_mock.mock_calls[-2:] == [
         mocker.call(plugin_config["george"]["controller"]),
         mocker.call(plugin_config["george"]["builder_interface"]),
     ]
