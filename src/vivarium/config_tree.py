@@ -29,6 +29,8 @@ For example:
     'value6'
 
 """
+
+import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
@@ -299,6 +301,14 @@ class ConfigTree:
             earlier ones.
 
         """
+        warnings.warn(
+            "The 'ConfigTree' class is deprecated in 'vivarium' and will be "
+            "removed in a future version. Please install and import it from "
+            "the 'config_tree' package instead.\n"
+            "https://github.com/ihmeuw/config_tree",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.__dict__["_layers"] = layers if layers else ["base"]
         self.__dict__["_children"] = {}
         self.__dict__["_frozen"] = False
