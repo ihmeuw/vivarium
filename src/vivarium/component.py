@@ -72,6 +72,21 @@ class Component(ABC):
     - `on_simulation_end`
     """
 
+    @staticmethod
+    def build_lookup_table_config(
+        value: str, cont_col: List[str], cat_col: List[str], skip: bool = False, **kwargs
+    ) -> dict:
+        config = {
+            "value": value,
+            "data_columns": {
+                "continuous_columns": cont_col,
+                "categorical_columns": cat_col,
+            },
+            "skip": skip,
+        }
+        config.update(kwargs)
+        return config
+
     CONFIGURATION_DEFAULTS: Dict[str, Any] = {}
     """
     A dictionary containing the defaults for any configurations managed by this
@@ -336,6 +351,7 @@ class Component(ABC):
         self._sub_components: List["Component"] = []
         self.logger: Optional[Logger] = None
         self.population_view: Optional[PopulationView] = None
+        self.lookup_tables = {}
 
     def setup_component(self, builder: "Builder") -> None:
         """
@@ -359,6 +375,7 @@ class Component(ABC):
         None
         """
         self.logger = builder.logging.get_logger(self.name)
+        self.create_lookup_tables(builder)
         self.setup(builder)
         self._set_population_view(builder)
         self._register_post_setup_listener(builder)
@@ -550,6 +567,22 @@ class Component(ABC):
             for parameter_name in signature(self.__init__).parameters
             if hasattr(self, parameter_name)
         }
+
+    def create_lookup_tables(self, builder: "Builder") -> None:
+        lookup_table_config = builder.configuration[self.name].lookup_tables
+
+        for table_name, table_config in lookup_table_config.items():
+            if "special" in table_config and table_config.special:
+                continue
+            if table_config.value == "data":
+                table = builder.lookup.build_table(
+                    table_name,
+                    key_columns=table_config["categorical_columns"],
+                    parameter_columns=table_config["continuous_columns"],
+                )
+            else:
+                table = builder.lookup.build_table(table_config.value)
+            self.lookup_tables[table_name] = table
 
     def _set_population_view(self, builder: "Builder") -> None:
         """
