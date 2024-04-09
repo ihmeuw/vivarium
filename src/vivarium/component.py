@@ -74,16 +74,21 @@ class Component(ABC):
 
     @staticmethod
     def build_lookup_table_config(
-        value: str, cont_col: List[str], cat_col: List[str], skip: bool = False, **kwargs
+        value: str,
+        continuous_columns: List[str] = [],
+        categorical_columns: List[str] = [],
+        skip_build: bool = False,
+        key_name: str = None,
+        **kwargs,
     ) -> dict:
         config = {
             "value": value,
-            "data_columns": {
-                "continuous_columns": cont_col,
-                "categorical_columns": cat_col,
-            },
-            "skip": skip,
+            "continuous_columns": continuous_columns,
+            "categorical_columns": categorical_columns,
+            "skip_build": skip_build,
         }
+        if key_name:
+            config["key_name"] = key_name
         config.update(kwargs)
         return config
 
@@ -569,14 +574,21 @@ class Component(ABC):
         }
 
     def create_lookup_tables(self, builder: "Builder") -> None:
+        if (
+            self.name not in builder.configuration
+            or "lookup_tables" not in builder.configuration[self.name]
+        ):
+            return
         lookup_table_config = builder.configuration[self.name].lookup_tables
 
         for table_name, table_config in lookup_table_config.items():
-            if "special" in table_config and table_config.special:
+            if "skip_build" in table_config and table_config.skip_build:
                 continue
+            # TODO: make path to configuration the data key when we align artifact
+            # keys with configuration path
             if table_config.value == "data":
                 table = builder.lookup.build_table(
-                    table_name,
+                    data=builder.data.load(table_config["key_name"]),
                     key_columns=table_config["categorical_columns"],
                     parameter_columns=table_config["continuous_columns"],
                 )
