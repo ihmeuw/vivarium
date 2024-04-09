@@ -1,3 +1,7 @@
+**3.0.0 - FIXME ADD DATE**
+
+  - Add functionality to Component to configure lookup tables
+
 **2.3.8 - 06/17/24**
 
  - Hotfix pin numpy below 2.0
