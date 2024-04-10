@@ -349,8 +349,14 @@ def test_component_lookup_table_configuration(hdf_file_path):
 
     favorite_team = pd.DataFrame(
         {"value": ["team_1", "team_2", "team_3"], "test_column_1": [1, 2, 3]}
-    )
-    favorite_team = favorite_team.set_index("test_column_1")
+    ).set_index("test_column_1")
+    favorite_number = pd.DataFrame(
+        {
+            "value": ["number_1", "number_2", "number_3"],
+            "test_column_3_start": [0, 1, 2],
+            "test_column_3_end": [1, 2, 3],
+        }
+    ).set_index(["test_column_3_start", "test_column_3_end"])
     favorite_color = pd.DataFrame(
         {
             "value": ["color_1", "color_2", "color_3"],
@@ -358,13 +364,11 @@ def test_component_lookup_table_configuration(hdf_file_path):
             "test_column_3_start": [0, 1, 2],
             "test_column_3_end": [1, 2, 3],
         }
-    )
-    favorite_color = favorite_color.set_index(
-        ["test_column_2", "test_column_3_start", "test_column_3_end"]
-    )
+    ).set_index(["test_column_2", "test_column_3_start", "test_column_3_end"])
     artifact_data = {
         "simulants.favorite_team": favorite_team,
         "simulants.favorite_color": favorite_color,
+        "simulants.favorite_number": favorite_number,
     }
     artifact = Artifact(hdf_file_path)
     for key, data in artifact_data.items():
@@ -383,7 +387,7 @@ def test_component_lookup_table_configuration(hdf_file_path):
                         continuous_columns=[],
                         key_name="simulants.favorite_team",
                     ),
-                    "favorite_number": Component.build_lookup_table_config(
+                    "favorite_scalar": Component.build_lookup_table_config(
                         value=0.4,
                     ),
                     "favorite_color": Component.build_lookup_table_config(
@@ -399,6 +403,12 @@ def test_component_lookup_table_configuration(hdf_file_path):
                         key_name="simulants.baking_time",
                         skip_build=True,
                     ),
+                    "favorite_number": Component.build_lookup_table_config(
+                        value="data",
+                        categorical_columns=[],
+                        continuous_columns=["test_column_3"],
+                        key_name="simulants.favorite_number",
+                    ),
                 },
             },
         }
@@ -411,13 +421,16 @@ def test_component_lookup_table_configuration(hdf_file_path):
     assert component.lookup_tables["favorite_color"].key_columns == ["test_column_2"]
     assert component.lookup_tables["favorite_color"].parameter_columns == ["test_column_3"]
     assert (
-        not component.lookup_tables["favorite_number"].key_columns
-        and not component.lookup_tables["favorite_number"].parameter_columns
+        not component.lookup_tables["favorite_scalar"].key_columns
+        and not component.lookup_tables["favorite_scalar"].parameter_columns
     )
-    assert component.lookup_tables["favorite_number"].data == 0.4
+    assert component.lookup_tables["favorite_scalar"].data == 0.4
 
     # Component level asswertions for lookup tables
     assert "baking_time" not in component.lookup_tables.keys()
+    assert set(
+        ["favorite_team", "favorite_color", "favorite_number", "favorite_scalar"]
+    ) == set(component.lookup_tables.keys())
 
 
 @pytest.mark.parametrize(
@@ -476,8 +489,7 @@ def test_failing_component_lookup_table_configurations(
 
     data = pd.DataFrame(
         {"value": ["color_1", "color_2", "color_3"], "test_column_1": [1, 2, 3]}
-    )
-    data = data.set_index("test_column_1")
+    ).set_index("test_column_1")
     artifact = Artifact(hdf_file_path)
     artifact.write("simulants.favorite_color", data)
 
