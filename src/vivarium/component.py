@@ -79,7 +79,7 @@ class Component(ABC):
         categorical_columns: List[str] = [],
         skip_build: bool = False,
         key_name: str = None,
-        **kwargs,
+        **kwargs: Dict[str, Any],
     ) -> dict:
         config = {
             "value": value,
