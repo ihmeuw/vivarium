@@ -77,7 +77,7 @@ class Component(ABC):
         value: str,
         continuous_columns: List[str] = [],
         categorical_columns: List[str] = [],
-        skip_build: bool = False,
+        build_lookup_table: bool = True,
         key_name: str = None,
         **kwargs: Dict[str, Any],
     ) -> dict:
@@ -85,7 +85,7 @@ class Component(ABC):
             "value": value,
             "continuous_columns": continuous_columns,
             "categorical_columns": categorical_columns,
-            "skip_build": skip_build,
+            "build_lookup_table": build_lookup_table,
         }
         if key_name:
             config["key_name"] = key_name
@@ -574,27 +574,30 @@ class Component(ABC):
         }
 
     def create_lookup_tables(self, builder: "Builder") -> None:
-        if (
-            self.name not in builder.configuration
-            or "lookup_tables" not in builder.configuration[self.name]
-        ):
+        # This will always be the case now right?
+        if self.name not in builder.configuration:
             return
-        lookup_table_config = builder.configuration[self.name].lookup_tables
+        component_config = builder.configuration[self.name].to_dict()
 
-        for table_name, table_config in lookup_table_config.items():
-            if "skip_build" in table_config and table_config.skip_build:
+        for key, key_config in component_config.items():
+            if (
+                not isinstance(key_config, dict)
+                or "build_lookup_table" not in key_config.keys()
+                or not key_config["build_lookup_table"]
+            ):
                 continue
             # TODO: make path to configuration the data key when we align artifact
             # keys with configuration path
-            if table_config.value == "data":
-                table = builder.lookup.build_table(
-                    data=builder.data.load(table_config["key_name"]),
-                    key_columns=table_config["categorical_columns"],
-                    parameter_columns=table_config["continuous_columns"],
-                )
-            else:
-                table = builder.lookup.build_table(table_config.value)
-            self.lookup_tables[table_name] = table
+            if "value" in key_config.keys():
+                if key_config["value"] == "data":
+                    table = builder.lookup.build_table(
+                        data=builder.data.load(key_config["key_name"]),
+                        key_columns=key_config["categorical_columns"],
+                        parameter_columns=key_config["continuous_columns"],
+                    )
+                else:
+                    table = builder.lookup.build_table(key_config["value"])
+            self.lookup_tables[key] = table
 
     def _set_population_view(self, builder: "Builder") -> None:
         """
