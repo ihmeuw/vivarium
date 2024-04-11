@@ -380,38 +380,36 @@ def test_component_lookup_table_configuration(hdf_file_path):
         {
             "input_data": {"artifact_path": hdf_file_path},
             component.name: {
-                "lookup_tables": {
-                    "favorite_team": Component.build_lookup_table_config(
-                        value="data",
-                        categorical_columns=["test_column_1"],
-                        continuous_columns=[],
-                        key_name="simulants.favorite_team",
-                    ),
-                    "favorite_scalar": Component.build_lookup_table_config(
-                        value=0.4,
-                    ),
-                    "favorite_color": Component.build_lookup_table_config(
-                        value="data",
-                        categorical_columns=["test_column_2"],
-                        continuous_columns=["test_column_3"],
-                        key_name="simulants.favorite_color",
-                    ),
-                    "baking_time": Component.build_lookup_table_config(
-                        value="data",
-                        categorical_columns=["test_column_1", "test_column_2"],
-                        continuous_columns=["test_column_3"],
-                        key_name="simulants.baking_time",
-                        skip_build=True,
-                    ),
-                    "favorite_number": Component.build_lookup_table_config(
-                        value="data",
-                        categorical_columns=[],
-                        continuous_columns=["test_column_3"],
-                        key_name="simulants.favorite_number",
-                    ),
-                },
+                "favorite_team": Component.build_lookup_table_config(
+                    value="data",
+                    categorical_columns=["test_column_1"],
+                    continuous_columns=[],
+                    key_name="simulants.favorite_team",
+                ),
+                "favorite_scalar": Component.build_lookup_table_config(
+                    value=0.4,
+                ),
+                "favorite_color": Component.build_lookup_table_config(
+                    value="data",
+                    categorical_columns=["test_column_2"],
+                    continuous_columns=["test_column_3"],
+                    key_name="simulants.favorite_color",
+                ),
+                "baking_time": Component.build_lookup_table_config(
+                    value="data",
+                    categorical_columns=["test_column_1", "test_column_2"],
+                    continuous_columns=["test_column_3"],
+                    key_name="simulants.baking_time",
+                    build_lookup_table=False,
+                ),
+                "favorite_number": Component.build_lookup_table_config(
+                    value="data",
+                    categorical_columns=[],
+                    continuous_columns=["test_column_3"],
+                    key_name="simulants.favorite_number",
+                ),
             },
-        }
+        },
     )
     sim.setup()
 
@@ -439,14 +437,12 @@ def test_component_lookup_table_configuration(hdf_file_path):
         (
             # Overlapping columns
             {
-                "lookup_tables": {
-                    "favorite_color": Component.build_lookup_table_config(
-                        value="data",
-                        categorical_columns=["test_column_2"],
-                        continuous_columns=["test_column_2", "test_column_3"],
-                        key_name="simulants.favorite_color",
-                    ),
-                },
+                "favorite_color": Component.build_lookup_table_config(
+                    value="data",
+                    categorical_columns=["test_column_2"],
+                    continuous_columns=["test_column_2", "test_column_3"],
+                    key_name="simulants.favorite_color",
+                ),
             },
             "There should be no overlap between",
             ValueError,
@@ -454,14 +450,12 @@ def test_component_lookup_table_configuration(hdf_file_path):
         (
             # Wrong key for artifact
             {
-                "lookup_tables": {
-                    "favorite_color": Component.build_lookup_table_config(
-                        value="data",
-                        categorical_columns=["test_column_1"],
-                        continuous_columns=[],
-                        key_name="simulants.favorite_team",
-                    ),
-                },
+                "favorite_color": Component.build_lookup_table_config(
+                    value="data",
+                    categorical_columns=["test_column_1"],
+                    continuous_columns=[],
+                    key_name="simulants.favorite_team",
+                ),
             },
             "simulants.favorite_team should be in",
             ArtifactException,
@@ -469,14 +463,12 @@ def test_component_lookup_table_configuration(hdf_file_path):
         (
             # Columns not in artifact data
             {
-                "lookup_tables": {
-                    "favorite_color": Component.build_lookup_table_config(
-                        value="data",
-                        categorical_columns=["test_column_1"],
-                        continuous_columns=["test_column_3"],
-                        key_name="simulants.favorite_color",
-                    ),
-                },
+                "favorite_color": Component.build_lookup_table_config(
+                    value="data",
+                    categorical_columns=["test_column_1"],
+                    continuous_columns=["test_column_3"],
+                    key_name="simulants.favorite_color",
+                ),
             },
             "The columns supplied",
             ValueError,
