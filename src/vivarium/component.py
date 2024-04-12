@@ -579,7 +579,14 @@ class Component(ABC):
         }
 
     def create_lookup_tables(self, builder: "Builder") -> None:
-
+        """
+        Method to create standard lookup tables for the component. This will create a
+        lookup table for each lookup key in self.standard_lookup_tables property. If
+        there is desire to add additional lookup tables, users can override this method
+        by calling the super method and adding additional lookup tables or overriding the
+        standardary lookup tables property if they want to add additional lookup tables
+        that can be build in the standard way (shown below).
+        """
         for lookup_table_name in self.standard_lookup_tables:
             lookup_table_config = builder.configuration[self.name][lookup_table_name]
             # TODO: make path to configuration the data key when we align artifact
