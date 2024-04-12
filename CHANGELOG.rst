@@ -1,3 +1,7 @@
+**2.4.0 - 04/10/24**
+
+  - Add functionality to Component to configure lookup tables
+
 **2.3.7 - 03/21/24**
   
   - Add deprecation warning to import ConfigTree from the config_tree package

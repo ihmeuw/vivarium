@@ -72,6 +72,24 @@ class Component(ABC):
     - `on_simulation_end`
     """
 
+    @staticmethod
+    def build_lookup_table_config(
+        value: str,
+        continuous_columns: List[str] = [],
+        categorical_columns: List[str] = [],
+        key_name: str = None,
+        **kwargs: Dict[str, Any],
+    ) -> dict:
+        config = {
+            "value": value,
+            "continuous_columns": continuous_columns,
+            "categorical_columns": categorical_columns,
+        }
+        if key_name:
+            config["key_name"] = key_name
+        config.update(kwargs)
+        return config
+
     CONFIGURATION_DEFAULTS: Dict[str, Any] = {}
     """
     A dictionary containing the defaults for any configurations managed by this
@@ -208,6 +226,13 @@ class Component(ABC):
         return None
 
     @property
+    def standard_lookup_tables(self) -> List[str]:
+        """
+        Returns a list of keys that are used to create standard lookup tables in a component.
+        """
+        return []
+
+    @property
     def initialization_requirements(self) -> Dict[str, List[str]]:
         """
         Provides the names of all values required by this component during
@@ -336,6 +361,7 @@ class Component(ABC):
         self._sub_components: List["Component"] = []
         self.logger: Optional[Logger] = None
         self.population_view: Optional[PopulationView] = None
+        self.lookup_tables = {}
 
     def setup_component(self, builder: "Builder") -> None:
         """
@@ -359,6 +385,7 @@ class Component(ABC):
         None
         """
         self.logger = builder.logging.get_logger(self.name)
+        self.create_lookup_tables(builder)
         self.setup(builder)
         self._set_population_view(builder)
         self._register_post_setup_listener(builder)
@@ -550,6 +577,22 @@ class Component(ABC):
             for parameter_name in signature(self.__init__).parameters
             if hasattr(self, parameter_name)
         }
+
+    def create_lookup_tables(self, builder: "Builder") -> None:
+
+        for lookup_table_name in self.standard_lookup_tables:
+            lookup_table_config = builder.configuration[self.name][lookup_table_name]
+            # TODO: make path to configuration the data key when we align artifact
+            # keys with configuration path
+            if lookup_table_config["value"] == "data":
+                table = builder.lookup.build_table(
+                    data=builder.data.load(lookup_table_config["key_name"]),
+                    key_columns=lookup_table_config["categorical_columns"],
+                    parameter_columns=lookup_table_config["continuous_columns"],
+                )
+            else:
+                table = builder.lookup.build_table(lookup_table_config["value"])
+            self.lookup_tables[lookup_table_name] = table
 
     def _set_population_view(self, builder: "Builder") -> None:
         """
