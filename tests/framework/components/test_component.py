@@ -26,6 +26,18 @@ class ColumnCreator(Component):
         self.population_view.update(initialization_data)
 
 
+class LookupCreator(ColumnCreator):
+    @property
+    def standard_lookup_tables(self) -> List[str]:
+        return ["favorite_team", "favorite_color", "favorite_number", "favorite_scalar"]
+
+
+class SingleLookupCreator(ColumnCreator):
+    @property
+    def standard_lookup_tables(self) -> List[str]:
+        return ["favorite_color"]
+
+
 class ColumnRequirer(Component):
     @property
     def columns_required(self) -> List[str]:
@@ -374,7 +386,7 @@ def test_component_lookup_table_configuration(hdf_file_path):
     for key, data in artifact_data.items():
         artifact.write(key, data)
 
-    component = ColumnCreator()
+    component = LookupCreator()
     sim = InteractiveContext(components=[component], setup=False)
     sim.configuration.update(
         {
@@ -395,18 +407,19 @@ def test_component_lookup_table_configuration(hdf_file_path):
                     continuous_columns=["test_column_3"],
                     key_name="simulants.favorite_color",
                 ),
+                "favorite_number": Component.build_lookup_table_config(
+                    value="data",
+                    categorical_columns=[],
+                    continuous_columns=["test_column_3"],
+                    key_name="simulants.favorite_number",
+                ),
+                # This is not in the class property so will not get created automatically
                 "baking_time": Component.build_lookup_table_config(
                     value="data",
                     categorical_columns=["test_column_1", "test_column_2"],
                     continuous_columns=["test_column_3"],
                     key_name="simulants.baking_time",
                     build_lookup_table=False,
-                ),
-                "favorite_number": Component.build_lookup_table_config(
-                    value="data",
-                    categorical_columns=[],
-                    continuous_columns=["test_column_3"],
-                    key_name="simulants.favorite_number",
                 ),
             },
         },
@@ -485,7 +498,7 @@ def test_failing_component_lookup_table_configurations(
     artifact = Artifact(hdf_file_path)
     artifact.write("simulants.favorite_color", data)
 
-    component = ColumnCreator()
+    component = SingleLookupCreator()
     sim = InteractiveContext(components=[component], setup=False)
     override_config = {
         "input_data": {"artifact_path": hdf_file_path},
