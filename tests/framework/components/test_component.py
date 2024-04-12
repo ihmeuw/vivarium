@@ -27,6 +27,40 @@ class ColumnCreator(Component):
 
 
 class LookupCreator(ColumnCreator):
+    CONFIGURATION_DEFAULTS = {
+        "lookup_creator": {
+            "favorite_team": Component.build_lookup_table_config(
+                value="data",
+                categorical_columns=["test_column_1"],
+                continuous_columns=[],
+                key_name="simulants.favorite_team",
+            ),
+            "favorite_scalar": Component.build_lookup_table_config(
+                value=0.4,
+            ),
+            "favorite_color": Component.build_lookup_table_config(
+                value="data",
+                categorical_columns=["test_column_2"],
+                continuous_columns=["test_column_3"],
+                key_name="simulants.favorite_color",
+            ),
+            "favorite_number": Component.build_lookup_table_config(
+                value="data",
+                categorical_columns=[],
+                continuous_columns=["test_column_3"],
+                key_name="simulants.favorite_number",
+            ),
+            # This is not in the class property so will not get created automatically
+            "baking_time": Component.build_lookup_table_config(
+                value="data",
+                categorical_columns=["test_column_1", "test_column_2"],
+                continuous_columns=["test_column_3"],
+                key_name="simulants.baking_time",
+                build_lookup_table=False,
+            ),
+        },
+    }
+
     @property
     def standard_lookup_tables(self) -> List[str]:
         return ["favorite_team", "favorite_color", "favorite_number", "favorite_scalar"]
@@ -391,37 +425,6 @@ def test_component_lookup_table_configuration(hdf_file_path):
     sim.configuration.update(
         {
             "input_data": {"artifact_path": hdf_file_path},
-            component.name: {
-                "favorite_team": Component.build_lookup_table_config(
-                    value="data",
-                    categorical_columns=["test_column_1"],
-                    continuous_columns=[],
-                    key_name="simulants.favorite_team",
-                ),
-                "favorite_scalar": Component.build_lookup_table_config(
-                    value=0.4,
-                ),
-                "favorite_color": Component.build_lookup_table_config(
-                    value="data",
-                    categorical_columns=["test_column_2"],
-                    continuous_columns=["test_column_3"],
-                    key_name="simulants.favorite_color",
-                ),
-                "favorite_number": Component.build_lookup_table_config(
-                    value="data",
-                    categorical_columns=[],
-                    continuous_columns=["test_column_3"],
-                    key_name="simulants.favorite_number",
-                ),
-                # This is not in the class property so will not get created automatically
-                "baking_time": Component.build_lookup_table_config(
-                    value="data",
-                    categorical_columns=["test_column_1", "test_column_2"],
-                    continuous_columns=["test_column_3"],
-                    key_name="simulants.baking_time",
-                    build_lookup_table=False,
-                ),
-            },
         },
     )
     sim.setup()
