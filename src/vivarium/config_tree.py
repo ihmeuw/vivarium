@@ -30,6 +30,8 @@ For example:
 
 """
 
+# TODO [MIC-4946]: Remove config_tree.py from vivarium once deprecated
+
 import warnings
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
