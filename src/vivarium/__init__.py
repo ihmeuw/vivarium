@@ -13,6 +13,8 @@ from vivarium.__about__ import (
 )
 from vivarium._version import __version__
 from vivarium.component import Component
+
+# TODO [MIC-4946]: Remove ConfigTree from vivarium once deprecated
 from vivarium.config_tree import ConfigTree
 from vivarium.framework.artifact import Artifact
 from vivarium.framework.configuration import build_model_specification
