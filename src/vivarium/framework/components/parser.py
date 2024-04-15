@@ -4,7 +4,7 @@ The Component Configuration Parser
 ==================================
 
 The :class:`ComponentConfigurationParser` is responsible for taking a list or
-hierarchical :class:`ConfigTree <vivarium.config_tree.ConfigTree>` of components
+hierarchical :class:`LayeredConfigTree <layered_config_tree.LayeredConfigTree>` of components
 derived from a model specification yaml file and turning it into a list of
 instantiated component objects. When a model specification yaml file is loaded,
 the components come in as strings. In order for the simulation to be able to
@@ -20,9 +20,10 @@ There are three steps to this process.
 3. Importing and instantiating the actual components
 
 """
+
 from typing import Dict, List, Tuple, Union
 
-from vivarium.config_tree import ConfigTree
+from layered_config_tree import LayeredConfigTree
 from vivarium.framework.utilities import import_by_path
 
 from ... import Component
@@ -59,7 +60,7 @@ class ComponentConfigurationParser:
     """
 
     def get_components(
-        self, component_config: Union[ConfigTree, List[str]]
+        self, component_config: Union[LayeredConfigTree, List[str]]
     ) -> List[Component]:
         """Extracts component specifications from configuration information and
         returns initialized components.
@@ -68,7 +69,7 @@ class ComponentConfigurationParser:
         validating/prepping, and importing/instantiating.
 
         The first step of parsing is only done for component configurations that
-        come in as a :class:`ConfigTree <vivarium.config_tree.ConfigTree>`.
+        come in as a :class:`LayeredConfigTree <layered_config_tree.LayeredConfigTree>`.
         Configurations that are provided in the form of a list are already
         assumed to be in the correct form.
 
@@ -86,7 +87,7 @@ class ComponentConfigurationParser:
             A list of initialized components.
 
         """
-        if isinstance(component_config, ConfigTree):
+        if isinstance(component_config, LayeredConfigTree):
             component_list = self.parse_component_config(component_config)
         else:  # Components were specified in a list rather than a tree.
             component_list = [
@@ -94,11 +95,11 @@ class ComponentConfigurationParser:
             ]
         return component_list
 
-    def parse_component_config(self, component_config: ConfigTree) -> List[Component]:
+    def parse_component_config(self, component_config: LayeredConfigTree) -> List[Component]:
         """
-        Helper function for parsing a ConfigTree into a flat list of Components.
+        Helper function for parsing a LayeredConfigTree into a flat list of Components.
 
-        This function converts the ConfigTree into a dictionary and passes it
+        This function converts the LayeredConfigTree into a dictionary and passes it
         along with an empty prefix list to
         :meth:`process_level <ComponentConfigurationParser.process_level>`. The
         result is a flat list of components.
@@ -106,7 +107,7 @@ class ComponentConfigurationParser:
         Parameters
         ----------
         component_config
-            A ConfigTree representing a hierarchical component specification blob.
+            A LayeredConfigTree representing a hierarchical component specification blob.
 
         Returns
         -------

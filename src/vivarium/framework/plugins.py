@@ -8,7 +8,8 @@ The Plugin Management System
    in the next PR. -J.C. 05/07/19
 
 """
-from vivarium.config_tree import ConfigTree
+
+from layered_config_tree import LayeredConfigTree
 from vivarium.exceptions import VivariumError
 
 from ..manager import Manager
@@ -86,7 +87,7 @@ class PluginConfigurationError(VivariumError):
 
 class PluginManager(Manager):
     def __init__(self, plugin_configuration=None):
-        self._plugin_configuration = ConfigTree(
+        self._plugin_configuration = LayeredConfigTree(
             DEFAULT_PLUGINS["plugins"], layers=["base", "override"]
         )
         self._plugin_configuration.update(plugin_configuration, source="initialization_args")

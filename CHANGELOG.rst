@@ -1,6 +1,7 @@
 **3.0.0 - FIXME ADD DATE**
 
   - Add functionality to Component to configure lookup tables
+  - Use LayeredConfigTree package instead of local ConfigTree class
 
 **2.3.8 - 06/17/24**
 
