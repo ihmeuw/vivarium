@@ -65,8 +65,8 @@ specification item and the fully instantiated object is the domain of the
 
 The :class:`ComponentConfigurationParser
 <vivarium.framework.components.parser.ComponentConfigurationParser>`
-is responsible for taking a list or hierarchical :class:`ConfigTree
-<vivarium.config_tree.ConfigTree>` of components derived from a model
+is responsible for taking a list or hierarchical :class:`LayeredConfigTree
+<layered_config_tree.LayeredConfigTree>` of components derived from a model
 specification file and turning it into a list of instantiated component objects.
 The :meth:`get_components
 <vivarium.framework.components.parser.ComponentConfigurationParser.get_components>`

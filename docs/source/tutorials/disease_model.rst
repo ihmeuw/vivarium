@@ -150,7 +150,7 @@ method on each component and calls that method with a
 Let's step through the ``setup`` method and examine what's happening.
 
 Line 2 simply grabs a copy of the simulation
-:class:`configuration <vivarium.config_tree.ConfigTree>`. This is essentially
+:class:`configuration <layered_config_tree.LayeredConfigTree>`. This is essentially
 a dictionary that supports ``.``-access notation.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
