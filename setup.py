@@ -31,6 +31,7 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
+        "layered_config_tree",
         "numpy<2.0.0",
         "pandas",
         "pyyaml>=5.1",

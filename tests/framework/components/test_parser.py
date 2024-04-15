@@ -3,7 +3,7 @@ from unittest.mock import call
 import pytest
 import yaml
 
-from vivarium import ConfigTree
+from layered_config_tree import LayeredConfigTree
 from vivarium.framework.components.parser import (
     ComponentConfigurationParser,
     ParsingError,
@@ -173,6 +173,6 @@ def test_get_components(parser, components):
     ],
 )
 def test_components_invalid_config(parser, config, error_message):
-    bad_config = ConfigTree(yaml.full_load(config))["components"]
+    bad_config = LayeredConfigTree(yaml.full_load(config))["components"]
     with pytest.raises(ParsingError, match=error_message):
         parser.parse_component_config(bad_config)
