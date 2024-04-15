@@ -24,7 +24,6 @@ There are three steps to this process.
 from typing import Dict, List, Tuple, Union
 
 from layered_config_tree import LayeredConfigTree
-
 from vivarium.framework.utilities import import_by_path
 
 from ... import Component
