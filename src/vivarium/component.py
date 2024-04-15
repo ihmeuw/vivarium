@@ -582,10 +582,9 @@ class Component(ABC):
         """
         Method to create standard lookup tables for the component. This will create a
         lookup table for each lookup key in self.standard_lookup_tables property. If
-        there is desire to add additional lookup tables, users can override this method
-        by calling the super method and adding additional lookup tables or overriding the
-        standardary lookup tables property if they want to add additional lookup tables
-        that can be build in the standard way (shown below).
+        there is desired to add additional lookup tables, users have two options:
+        (1) override this method by calling the super method and adding them, or
+        (2) overriding the standard 'lookup_tables' property.
         """
         for lookup_table_name in self.standard_lookup_tables:
             lookup_table_config = builder.configuration[self.name][lookup_table_name]
