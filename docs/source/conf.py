@@ -201,6 +201,7 @@ intersphinx_mapping = {
     "tables": ("https://www.pytables.org/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "networkx": ("https://networkx.org/documentation/stable/", None),
+    "layered_config_tree": ("https://layered-config-tree.readthedocs.io/en/latest/", None),
 }
 
 
