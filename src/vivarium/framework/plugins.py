@@ -10,6 +10,7 @@ The Plugin Management System
 """
 
 from layered_config_tree import LayeredConfigTree
+
 from vivarium.exceptions import VivariumError
 
 from ..manager import Manager

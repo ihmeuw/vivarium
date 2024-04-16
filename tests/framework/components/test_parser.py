@@ -2,8 +2,8 @@ from unittest.mock import call
 
 import pytest
 import yaml
-
 from layered_config_tree import LayeredConfigTree
+
 from vivarium.framework.components.parser import (
     ComponentConfigurationParser,
     ParsingError,

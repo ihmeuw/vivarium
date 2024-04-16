@@ -6,6 +6,7 @@ Randomness System Exceptions
 Errors related to improper use of the Randomness system.
 
 """
+
 from vivarium.exceptions import VivariumError
 
 

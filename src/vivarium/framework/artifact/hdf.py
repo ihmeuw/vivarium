@@ -38,6 +38,7 @@ Contracts
   formatted as ``"type.name.measure"`` or ``"type.measure"``.
 
 """
+
 import json
 import re
 from pathlib import Path

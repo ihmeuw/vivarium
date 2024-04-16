@@ -7,6 +7,7 @@ The manager and :ref:`builder <builder_concept>` interface for the
 :ref:`population management system <population_concept>`.
 
 """
+
 from types import MethodType
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple, Union
 

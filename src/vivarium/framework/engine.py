@@ -25,8 +25,8 @@ from typing import Any, Dict, List, Set, Union
 
 import numpy as np
 import pandas as pd
-
 from layered_config_tree import LayeredConfigTree
+
 from vivarium.exceptions import VivariumError
 from vivarium.framework.configuration import build_model_specification
 
