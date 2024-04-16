@@ -25,6 +25,7 @@ from layered_config_tree import (
     DuplicatedConfigurationError,
     LayeredConfigTree,
 )
+
 from vivarium import Component
 from vivarium.exceptions import VivariumError
 from vivarium.framework.lifecycle import LifeCycleManager

@@ -11,6 +11,7 @@ the individuals represented by that index. See the
 :ref:`lookup concept note <lookup_concept>` for more.
 
 """
+
 from datetime import datetime, timedelta
 from numbers import Number
 from typing import TYPE_CHECKING, List, Tuple, Union

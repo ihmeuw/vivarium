@@ -9,6 +9,7 @@ The component here is a normal ``vivarium`` component whose only purpose is
 to provide an empty :class:`dict` as the source of the *"Metrics"* pipeline.
 It is included by default in all simulations.
 """
+
 from typing import TYPE_CHECKING
 
 from vivarium import Component

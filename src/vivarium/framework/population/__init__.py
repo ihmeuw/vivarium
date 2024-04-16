@@ -10,6 +10,7 @@ simulants and providing the ability for components to view and update simulant
 state safely during runtime.
 
 """
+
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
     PopulationInterface,

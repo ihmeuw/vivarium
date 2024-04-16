@@ -26,6 +26,7 @@ For more information, see the associated event
 :ref:`concept note <event_concept>`.
 
 """
+
 from typing import Any, Callable, Dict, List, NamedTuple, Optional
 
 import pandas as pd

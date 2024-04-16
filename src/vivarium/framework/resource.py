@@ -16,6 +16,7 @@ and in turn ask for ordered sequences of these resources according to their
 dependencies or raise exceptions if this is not possible.
 
 """
+
 from types import MethodType
 from typing import Any, Callable, Iterable, List
 

@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Dict, Union
 
 import yaml
-
 from layered_config_tree import ConfigurationError, LayeredConfigTree
+
 from vivarium.framework.plugins import DEFAULT_PLUGINS
 
 
