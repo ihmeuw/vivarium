@@ -4,6 +4,7 @@ Logging
 =======
 
 """
+
 from vivarium.framework.logging.manager import LoggingInterface, LoggingManager
 from vivarium.framework.logging.utilities import (
     configure_logging_to_file,

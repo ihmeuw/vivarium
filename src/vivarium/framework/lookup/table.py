@@ -10,6 +10,7 @@ population index and returns data specific to the individuals represented by
 that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 
 """
+
 import dataclasses
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
