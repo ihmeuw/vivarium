@@ -18,14 +18,15 @@ Finally, there are a handful of wrapper methods that allow a user or user
 tools to easily setup and run a simulation.
 
 """
+
 from pathlib import Path
 from pprint import pformat
 from typing import Any, Dict, List, Set, Union
 
 import numpy as np
 import pandas as pd
+from layered_config_tree import LayeredConfigTree
 
-from vivarium.config_tree import ConfigTree
 from vivarium.exceptions import VivariumError
 from vivarium.framework.configuration import build_model_specification
 
@@ -96,10 +97,10 @@ class SimulationContext:
 
     def __init__(
         self,
-        model_specification: Union[str, Path, ConfigTree] = None,
-        components: Union[List[Component], Dict, ConfigTree] = None,
-        configuration: Union[Dict, ConfigTree] = None,
-        plugin_configuration: Union[Dict, ConfigTree] = None,
+        model_specification: Union[str, Path, LayeredConfigTree] = None,
+        components: Union[List[Component], Dict, LayeredConfigTree] = None,
+        configuration: Union[Dict, LayeredConfigTree] = None,
+        plugin_configuration: Union[Dict, LayeredConfigTree] = None,
         sim_name: str = None,
         logging_verbosity: int = 1,
     ):
@@ -107,7 +108,7 @@ class SimulationContext:
 
         # Bootstrap phase: Parse arguments, make private managers
         component_configuration = (
-            components if isinstance(components, (dict, ConfigTree)) else None
+            components if isinstance(components, (dict, LayeredConfigTree)) else None
         )
         self._additional_components = components if isinstance(components, List) else []
         model_specification = build_model_specification(
@@ -387,10 +388,10 @@ class Builder:
 
 
 def run_simulation(
-    model_specification: Union[str, Path, ConfigTree] = None,
-    components: Union[List, Dict, ConfigTree] = None,
-    configuration: Union[Dict, ConfigTree] = None,
-    plugin_configuration: Union[Dict, ConfigTree] = None,
+    model_specification: Union[str, Path, LayeredConfigTree] = None,
+    components: Union[List, Dict, LayeredConfigTree] = None,
+    configuration: Union[Dict, LayeredConfigTree] = None,
+    plugin_configuration: Union[Dict, LayeredConfigTree] = None,
 ):
     simulation = SimulationContext(
         model_specification, components, configuration, plugin_configuration

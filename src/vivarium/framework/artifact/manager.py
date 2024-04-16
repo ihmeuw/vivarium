@@ -7,13 +7,14 @@ This module contains the :class:`ArtifactManager`, a ``vivarium`` plugin
 for handling complex data bound up in a data artifact.
 
 """
+
 import re
 from pathlib import Path
 from typing import Any, Sequence, Union
 
 import pandas as pd
+from layered_config_tree import LayeredConfigTree
 
-from vivarium.config_tree import ConfigTree
 from vivarium.framework.artifact.artifact import Artifact
 from vivarium.manager import Manager
 
@@ -45,7 +46,7 @@ class ArtifactManager(Manager):
         self.artifact = self._load_artifact(builder.configuration)
         builder.lifecycle.add_constraint(self.load, allow_during=["setup"])
 
-    def _load_artifact(self, configuration: ConfigTree) -> Union[Artifact, None]:
+    def _load_artifact(self, configuration: LayeredConfigTree) -> Union[Artifact, None]:
         """Looks up the path to the artifact hdf file, builds a default filter,
         and generates the data artifact. Stores any configuration specified filter
         terms separately to be applied on loading, because not all columns are
@@ -204,7 +205,7 @@ def _subset_columns(data: pd.DataFrame, **column_filters) -> pd.DataFrame:
     return data.drop(columns=columns_to_remove)
 
 
-def get_base_filter_terms(configuration: ConfigTree):
+def get_base_filter_terms(configuration: LayeredConfigTree):
     """Parses default filter terms from the artifact configuration."""
     base_filter_terms = []
 
@@ -215,7 +216,7 @@ def get_base_filter_terms(configuration: ConfigTree):
     return base_filter_terms
 
 
-def parse_artifact_path_config(config: ConfigTree) -> str:
+def parse_artifact_path_config(config: LayeredConfigTree) -> str:
     """Gets the path to the data artifact from the simulation configuration.
 
     The path specified in the configuration may be absolute or it may be relative

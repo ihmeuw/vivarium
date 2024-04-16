@@ -6,6 +6,7 @@ Component
 A base Component class to be used to create components for use in ``vivarium``
 simulations.
 """
+
 import re
 from abc import ABC
 from inspect import signature
@@ -188,7 +189,7 @@ class Component(ABC):
         managed by this component.
 
         These default values will be stored at the `component_configs` layer of the
-        simulation's ConfigTree.
+        simulation's LayeredConfigTree.
 
         Returns
         -------

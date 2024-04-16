@@ -15,16 +15,18 @@ and managers and components are given to it by the context. It is called on to
 setup everything it holds when the context itself is setup.
 
 """
+
 import inspect
 import typing
 from typing import Any, Dict, Iterator, List, Tuple, Union
 
-from vivarium import Component
-from vivarium.config_tree import (
-    ConfigTree,
+from layered_config_tree import (
     ConfigurationError,
     DuplicatedConfigurationError,
+    LayeredConfigTree,
 )
+
+from vivarium import Component
 from vivarium.exceptions import VivariumError
 from vivarium.framework.lifecycle import LifeCycleManager
 from vivarium.manager import Manager
@@ -130,7 +132,9 @@ class ComponentManager(Manager):
         """The name of this component."""
         return "component_manager"
 
-    def setup(self, configuration: ConfigTree, lifecycle_manager: LifeCycleManager) -> None:
+    def setup(
+        self, configuration: LayeredConfigTree, lifecycle_manager: LifeCycleManager
+    ) -> None:
         """Called by the simulation context."""
         self.configuration = configuration
         self.lifecycle = lifecycle_manager

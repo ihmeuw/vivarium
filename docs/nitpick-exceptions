@@ -22,5 +22,8 @@ py:class vivarium.framework.time.Time
 py:class Timedelta
 py:class vivarium.framework.time.Timedelta
 
+# layered_config_tree
+py:class layered_config_tree.main.LayeredConfigTree
+
 # TODO: Need to revisit this. Nitpicking here to avoid failing builds on 3.8 and 3.9 in state_machine and testing_utils
 py:class Logger

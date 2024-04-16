@@ -6,6 +6,7 @@ State Machine
 A state machine implementation for use in ``vivarium`` simulations.
 
 """
+
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple
 

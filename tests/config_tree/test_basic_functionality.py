@@ -3,13 +3,12 @@ import textwrap
 
 import pytest
 import yaml
-
-from vivarium.config_tree import (
+from layered_config_tree import (
     ConfigNode,
-    ConfigTree,
     ConfigurationError,
     ConfigurationKeyError,
     DuplicatedConfigurationError,
+    LayeredConfigTree,
 )
 
 
@@ -38,7 +37,7 @@ def full_node(layers_and_values):
 
 @pytest.fixture
 def empty_tree(layers):
-    return ConfigTree(layers=layers)
+    return LayeredConfigTree(layers=layers)
 
 
 def test_node_creation(empty_node):
@@ -239,21 +238,21 @@ def test_tree_creation(empty_tree):
 
 def test_tree_coerce_dict():
     d, s = {}, "test"
-    assert ConfigTree._coerce(d, s) == (d, s)
+    assert LayeredConfigTree._coerce(d, s) == (d, s)
     d, s = {"key": "val"}, "test"
-    assert ConfigTree._coerce(d, s) == (d, s)
+    assert LayeredConfigTree._coerce(d, s) == (d, s)
     d = {"key1": {"sub_key1": ["val", "val", "val"], "sub_key2": "val"}, "key2": "val"}
     s = "test"
-    assert ConfigTree._coerce(d, s) == (d, s)
+    assert LayeredConfigTree._coerce(d, s) == (d, s)
 
 
 def test_tree_coerce_str():
     d = """"""
     s = "test"
-    assert ConfigTree._coerce(d, s) == (None, s)
+    assert LayeredConfigTree._coerce(d, s) == (None, s)
     d = """\
     key: val"""
-    assert ConfigTree._coerce(d, s) == ({"key": "val"}, s)
+    assert LayeredConfigTree._coerce(d, s) == ({"key": "val"}, s)
     d = """\
     key1:
         sub_key1:
@@ -263,14 +262,14 @@ def test_tree_coerce_str():
         sub_key2: val
     key2: val"""
     r = {"key1": {"sub_key1": ["val", "val", "val"], "sub_key2": "val"}, "key2": "val"}
-    assert ConfigTree._coerce(d, s) == (r, s)
+    assert LayeredConfigTree._coerce(d, s) == (r, s)
     d = """\
         key1:
             sub_key1: [val, val, val]
             sub_key2: val
         key2: val"""
     r = {"key1": {"sub_key1": ["val", "val", "val"], "sub_key2": "val"}, "key2": "val"}
-    assert ConfigTree._coerce(d, s) == (r, s)
+    assert LayeredConfigTree._coerce(d, s) == (r, s)
 
 
 def test_tree_coerce_yaml(tmpdir):
@@ -290,12 +289,12 @@ def test_tree_coerce_yaml(tmpdir):
     p = tmpdir.join("model_spec.yaml")
     with p.open("w") as f:
         f.write(d)
-    assert ConfigTree._coerce(str(p), s) == (r, s)
-    assert ConfigTree._coerce(str(p), None) == (r, str(p))
+    assert LayeredConfigTree._coerce(str(p), s) == (r, s)
+    assert LayeredConfigTree._coerce(str(p), None) == (r, str(p))
 
 
 def test_single_layer():
-    d = ConfigTree()
+    d = LayeredConfigTree()
     d.update({"test_key": "test_value", "test_key2": "test_value2"})
 
     assert d.test_key == "test_value"
@@ -309,7 +308,7 @@ def test_single_layer():
 
 
 def test_dictionary_style_access():
-    d = ConfigTree()
+    d = LayeredConfigTree()
     d.update({"test_key": "test_value", "test_key2": "test_value2"})
 
     assert d["test_key"] == "test_value"
@@ -323,13 +322,13 @@ def test_dictionary_style_access():
 
 
 def test_get_missing_key():
-    d = ConfigTree()
+    d = LayeredConfigTree()
     with pytest.raises(ConfigurationKeyError):
         _ = d.missing_key
 
 
 def test_set_missing_key():
-    d = ConfigTree()
+    d = LayeredConfigTree()
     with pytest.raises(ConfigurationKeyError):
         d.missing_key = "test_value"
     with pytest.raises(ConfigurationKeyError):
@@ -337,7 +336,7 @@ def test_set_missing_key():
 
 
 def test_multiple_layer_get():
-    d = ConfigTree(layers=["first", "second", "third"])
+    d = LayeredConfigTree(layers=["first", "second", "third"])
     d._set_with_metadata("test_key", "test_with_source_value", "first", source=None)
     d._set_with_metadata("test_key", "test_value2", "second", source=None)
     d._set_with_metadata("test_key", "test_value3", "third", source=None)
@@ -353,19 +352,19 @@ def test_multiple_layer_get():
 
 
 def test_outer_layer_set():
-    d = ConfigTree(layers=["inner", "outer"])
+    d = LayeredConfigTree(layers=["inner", "outer"])
     d._set_with_metadata("test_key", "test_value", "inner", source=None)
     d._set_with_metadata("test_key", "test_value3", layer=None, source=None)
     assert d.test_key == "test_value3"
     assert d["test_key"] == "test_value3"
 
-    d = ConfigTree(layers=["inner", "outer"])
+    d = LayeredConfigTree(layers=["inner", "outer"])
     d._set_with_metadata("test_key", "test_value", "inner", source=None)
     d.test_key = "test_value3"
     assert d.test_key == "test_value3"
     assert d["test_key"] == "test_value3"
 
-    d = ConfigTree(layers=["inner", "outer"])
+    d = LayeredConfigTree(layers=["inner", "outer"])
     d._set_with_metadata("test_key", "test_value", "inner", source=None)
     d["test_key"] = "test_value3"
     assert d.test_key == "test_value3"
@@ -373,7 +372,7 @@ def test_outer_layer_set():
 
 
 def test_update_dict():
-    d = ConfigTree(layers=["inner", "outer"])
+    d = LayeredConfigTree(layers=["inner", "outer"])
     d.update({"test_key": "test_value", "test_key2": "test_value2"}, layer="inner")
     d.update({"test_key": "test_value3"}, layer="outer")
 
@@ -382,7 +381,7 @@ def test_update_dict():
 
 
 def test_update_dict_nested():
-    d = ConfigTree(layers=["inner", "outer"])
+    d = LayeredConfigTree(layers=["inner", "outer"])
     d.update(
         {"test_container": {"test_key": "test_value", "test_key2": "test_value2"}},
         layer="inner",
@@ -399,7 +398,7 @@ def test_update_dict_nested():
 
 
 def test_source_metadata():
-    d = ConfigTree(layers=["inner", "outer"])
+    d = LayeredConfigTree(layers=["inner", "outer"])
     d.update({"test_key": "test_value"}, layer="inner", source="initial_load")
     d.update({"test_key": "test_value2"}, layer="outer", source="update")
 
@@ -410,7 +409,7 @@ def test_source_metadata():
 
 
 def test_exception_on_source_for_missing_key():
-    d = ConfigTree(layers=["inner", "outer"])
+    d = LayeredConfigTree(layers=["inner", "outer"])
     d.update({"test_key": "test_value"}, layer="inner", source="initial_load")
 
     with pytest.raises(ConfigurationKeyError):
@@ -418,7 +417,9 @@ def test_exception_on_source_for_missing_key():
 
 
 def test_unused_keys():
-    d = ConfigTree({"test_key": {"test_key2": "test_value", "test_key3": "test_value2"}})
+    d = LayeredConfigTree(
+        {"test_key": {"test_key2": "test_value", "test_key3": "test_value2"}}
+    )
 
     assert d.unused_keys() == ["test_key.test_key2", "test_key.test_key3"]
 
@@ -433,12 +434,12 @@ def test_unused_keys():
 
 def test_to_dict_dict():
     test_dict = {"configuration": {"time": {"start": {"year": 2000}}}}
-    config = ConfigTree(test_dict)
+    config = LayeredConfigTree(test_dict)
     assert config.to_dict() == test_dict
 
 
 def test_to_dict_yaml(test_spec):
-    config = ConfigTree(str(test_spec))
+    config = LayeredConfigTree(str(test_spec))
     with test_spec.open() as f:
         yaml_config = yaml.full_load(f)
     assert yaml_config == config.to_dict()
@@ -446,18 +447,18 @@ def test_to_dict_yaml(test_spec):
 
 def test_equals():
     # TODO: Assert should succeed, instead of raising, once equality is
-    # implemented for ConfigTrees
+    # implemented for LayeredConfigTrees
     with pytest.raises(NotImplementedError):
         test_dict = {"configuration": {"time": {"start": {"year": 2000}}}}
-        config = ConfigTree(test_dict)
-        config2 = ConfigTree(test_dict.copy())
+        config = LayeredConfigTree(test_dict)
+        config2 = LayeredConfigTree(test_dict.copy())
         assert config == config2
 
 
 def test_to_from_pickle():
     test_dict = {"configuration": {"time": {"start": {"year": 2000}}}}
     second_layer = {"configuration": {"time": {"start": {"year": 2001}}}}
-    config = ConfigTree(test_dict, layers=["first_layer", "second_layer"])
+    config = LayeredConfigTree(test_dict, layers=["first_layer", "second_layer"])
     config.update(second_layer, layer="second_layer")
     unpickled = pickle.loads(pickle.dumps(config))
 
@@ -472,7 +473,7 @@ def test_to_from_pickle():
 
 
 def test_freeze():
-    config = ConfigTree(data={"configuration": {"time": {"start": {"year": 2000}}}})
+    config = LayeredConfigTree(data={"configuration": {"time": {"start": {"year": 2000}}}})
     config.freeze()
 
     with pytest.raises(ConfigurationError):
@@ -487,11 +488,11 @@ def test_retrieval_behavior():
     default_cfg_value = "value_a"
 
     layer_list = [layer_inner, layer_middle, layer_outer]
-    # update the ConfigTree layers in different order and verify that has no effect on
+    # update the LayeredConfigTree layers in different order and verify that has no effect on
     #  the values retrieved ("outer" is retrieved when no layer is specified regardless of
     #  the initialization order
     for scenario in [layer_list, reversed(layer_list)]:
-        cfg = ConfigTree(layers=layer_list)
+        cfg = LayeredConfigTree(layers=layer_list)
         for layer in scenario:
             cfg.update({default_cfg_value: layer}, layer=layer)
         assert cfg.get_from_layer(default_cfg_value) == layer_outer
@@ -512,14 +513,14 @@ def test_repr_display():
     # codifies the notion that repr() displays values from most to least overridden
     #  regardless of initialization order
     layers = ["base", "override_1", "override_2"]
-    cfg = ConfigTree(layers=layers)
+    cfg = LayeredConfigTree(layers=layers)
 
     cfg.update({"Key1": "value_ov_2"}, layer="override_2", source="ov2_src")
     cfg.update({"Key1": "value_ov_1"}, layer="override_1", source="ov1_src")
     cfg.update({"Key1": "value_base"}, layer="base", source="base_src")
     assert repr(cfg) == textwrap.dedent(expected_repr)
 
-    cfg = ConfigTree(layers=layers)
+    cfg = LayeredConfigTree(layers=layers)
     cfg.update({"Key1": "value_base"}, layer="base", source="base_src")
     cfg.update({"Key1": "value_ov_1"}, layer="override_1", source="ov1_src")
     cfg.update({"Key1": "value_ov_2"}, layer="override_2", source="ov2_src")

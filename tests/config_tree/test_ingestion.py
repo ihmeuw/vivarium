@@ -1,4 +1,4 @@
-from vivarium.config_tree import ConfigTree
+from layered_config_tree import LayeredConfigTree
 
 TEST_YAML_ONE = """
 test_section:
@@ -11,7 +11,7 @@ test_section2:
 
 
 def test_load_yaml_string():
-    d = ConfigTree()
+    d = LayeredConfigTree()
     d.update(TEST_YAML_ONE, source="inline_test")
 
     assert d.test_section.test_key == "test_value"
@@ -23,7 +23,7 @@ def test_load_yaml_file(tmpdir):
     tmp_file = tmpdir.join("test_file.yaml")
     tmp_file.write(TEST_YAML_ONE)
 
-    d = ConfigTree()
+    d = LayeredConfigTree()
     d.update(str(tmp_file))
 
     assert d.test_section.test_key == "test_value"
