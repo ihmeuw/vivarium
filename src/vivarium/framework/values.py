@@ -12,6 +12,7 @@ For more information about when and how you should use pipelines in your
 simulations, see the value system :ref:`concept note <values_concept>`.
 
 """
+
 from collections import defaultdict
 from numbers import Number
 from typing import Any, Callable, Iterable, List, Tuple, Union

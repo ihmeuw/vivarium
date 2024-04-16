@@ -6,6 +6,7 @@ Framework Utility Functions
 Collection of utility functions shared by the ``vivarium`` framework.
 
 """
+
 import functools
 from bdb import BdbQuit
 from importlib import import_module
