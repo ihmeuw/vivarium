@@ -21,6 +21,9 @@ if TYPE_CHECKING:
 class Metrics(Component):
     """This class declares a value pipeline that allows other components to store summary metrics."""
 
+    # TODO [MIC-4980] Do we want to keep the metrics pipeline around? If not,
+    # just get rid of it and load the self._results.metrics directly
+
     def setup(self, builder: "Builder") -> None:
         self.metrics = builder.value.register_value_producer(
             "metrics", source=lambda index: {}
