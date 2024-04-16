@@ -145,6 +145,7 @@ def run(
     main = handle_exceptions(run_simulation, logger, with_debugger)
     finished_sim = main(model_specification, configuration=override_configuration)
 
+    # TODO [MIC-4994] finished_sim.report(results_root)
     metrics = pd.DataFrame(finished_sim.report(), index=[0])
     metrics["simulation_run_time"] = time() - start
     metrics["random_seed"] = finished_sim.configuration.randomness.random_seed

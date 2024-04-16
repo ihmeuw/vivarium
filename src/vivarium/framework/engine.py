@@ -263,6 +263,10 @@ class SimulationContext:
     def report(self, print_results: bool = True) -> Dict[str, Any]:
         self._lifecycle.set_state("report")
         metrics = self._values.get_value("metrics")(self.get_population().index)
+
+        # TODO [MIC-4994] - update with new results processing, e.g.
+        #   for measure, dataframe in self._results.metrics.items():
+        #       dataframe.to_csv(f"{results}/{measure}.csv")
         if print_results:
             self._logger.info("\n" + pformat(metrics))
             performance_metrics = self.get_performance_metrics()
