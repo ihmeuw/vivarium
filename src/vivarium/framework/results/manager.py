@@ -1,5 +1,4 @@
 import itertools
-from collections import Counter
 from enum import Enum
 from typing import TYPE_CHECKING, Callable, List, Union
 
@@ -37,7 +36,7 @@ class ResultsManager(Manager):
     }
 
     def __init__(self):
-        self._metrics = Counter()
+        self._metrics = {}
         self._results_context = ResultsContext()
         self._required_columns = {"tracked"}
         self._required_values = set()
@@ -71,36 +70,36 @@ class ResultsManager(Manager):
 
         builder.value.register_value_modifier("metrics", self.get_results)
 
-    def on_post_setup(self, event: Event):
-        # update self._metrics to have all output keys
-        def create_measure_specific_keys(measure: str, stratifications: List[str]) -> None:
-            measure_str = f"MEASURE_{measure}"
-            individual_stratification_strings = [
-                [
-                    f"{stratification.name.upper()}_{category}"
-                    for category in stratification.categories
-                ]
-                for stratification in sorted(
-                    self._results_context.stratifications, key=lambda x: x.name
-                )
-                if stratification.name in stratifications
-            ]
-            for complete_stratifications in itertools.product(
-                *individual_stratification_strings
-            ):
-                key = (
-                    measure_str + "_" + "_".join(complete_stratifications)
-                    if complete_stratifications
-                    else measure_str
-                )
-                self._metrics[key] = 0
-
-        for event in self._results_context.observations:
-            for (_, stratifications), observations in self._results_context.observations[
-                event
-            ].items():
+    def on_post_setup(self, _: Event):
+        """Initialize self._metrics with 0s dataframe for each measure and all stratifications"""
+        for event_name in self._results_context.observations:
+            for (
+                _pop_filter,
+                stratification_names,
+            ), observations in self._results_context.observations[event_name].items():
                 for measure, *_ in observations:
-                    create_measure_specific_keys(measure, stratifications)
+                    stratification_values = []
+                    for stratification in [
+                        s
+                        for s in self._results_context.stratifications
+                        if s.name in stratification_names
+                    ]:
+                        stratification_values.append(
+                            (stratification.name, stratification.categories)
+                        )
+                    index_names = [item[0] for item in stratification_values]
+                    # Get the complete cartesian product of stratifications
+                    index_values = list(
+                        itertools.product(*[item[1] for item in stratification_values])
+                    )
+                    self._metrics[measure] = pd.DataFrame(
+                        data=0.0,  # Initialize to 0
+                        columns=["value"],
+                        index=pd.MultiIndex.from_tuples(
+                            index_values,
+                            names=index_names,
+                        ),
+                    )
 
     def on_time_step_prepare(self, event: Event):
         self.gather_results("time_step__prepare", event)
@@ -116,6 +115,7 @@ class ResultsManager(Manager):
 
     def gather_results(self, event_name: str, event: Event):
         population = self._prepare_population(event)
+        # TODO [MIC-4993]: update dataframes
         for results_group in self._results_context.gather_results(population, event_name):
             self._metrics.update(results_group)
 
@@ -261,6 +261,7 @@ class ResultsManager(Manager):
 
     def get_results(self, index, metrics):
         # Shim for now to allow incremental transition to new results system.
+        # TODO [MIC-4994] Update for new results processing w/ dataframes
         metrics.update(self.metrics)
         return metrics
 
