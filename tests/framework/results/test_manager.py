@@ -1,10 +1,17 @@
 from types import MethodType
 
+import pandas as pd
 import pytest
 from loguru import logger
 
 from vivarium.framework.results.manager import ResultsManager
+from vivarium.interface.interactive import InteractiveContext
 
+from ...helper_components import (
+    MeasureOneObserver,
+    MeasureTwoObserver,
+    YearSexResultsStratifier,
+)
 from .mocks import (
     BIN_BINNED_COLUMN,
     BIN_LABELS,
@@ -238,3 +245,45 @@ def test_setting_default_stratifications_at_setup(mocker):
     mgr._results_context.set_default_stratifications.assert_called_once_with(
         builder.configuration.stratification.default
     )
+
+
+def test_metrics_initialized_as_empty_dict(mocker):
+    """Test that metrics are initialized as an empty dictionary"""
+    mgr = ResultsManager()
+    builder = mocker.Mock()
+    mgr.setup(builder)
+    assert mgr.metrics == {}
+
+
+def test_stratified_metrics_initialized_as_zeros_dataframes():
+    """Test that matrics are being initialized correctly. We expect a dictionary
+    of pd.DataFrames. Each key of the dictionary is an observed measure name and
+    the corresponding value is a pd.DataFrame with a multi-index of that observer's
+    stratifications and an all-zeros 'value' column
+    """
+
+    components = [
+        MeasureOneObserver(),
+        MeasureTwoObserver(),
+        YearSexResultsStratifier(),
+    ]
+    config = {
+        "stratification": {
+            "default": ["sex", "current_year"],
+        },
+    }
+    sim = InteractiveContext(configuration=config, components=components)
+    metrics = sim._results.metrics
+    assert isinstance(metrics, dict)
+    assert set(metrics) == set(["measure_one", "measure_two"])
+    for metric in metrics:
+        result = metrics[metric]
+        assert isinstance(result, pd.DataFrame)
+        assert result.index.equals(
+            pd.MultiIndex.from_product(
+                [["2024", "2025", "2026", "2027"], ["Female", "Male"]],
+                names=["current_year", "sex"],
+            )
+        )
+        assert result.columns == ["value"]
+        assert result["value"].unique() == [0.0]
