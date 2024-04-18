@@ -40,7 +40,7 @@ class Stratification:
         if self.mapper is None:
             if len(self.sources) != 1:
                 raise ValueError(
-                    f"No mapper provided for stratification {self.name} with"
+                    f"No mapper provided for stratification {self.name} with "
                     f"{len(self.sources)} stratification sources."
                 )
             self.mapper = self._default_mapper

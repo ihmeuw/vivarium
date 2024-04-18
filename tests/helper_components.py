@@ -25,11 +25,11 @@ class CatActivityObserver(Component):
 class CatResultsStratifier(Component):
     def setup(self, builder: Builder) -> None:
         builder.results.register_stratification(
-            "personality", ["psycopath", "cantankerous"], requires_columns=["personality"]
+            "personality", ["psycopath", "cantankerous"], requires_columns=["foo"]
         )
         builder.results.register_stratification(
-            "favorite_toy", ["string", "human_face"], requires_columns=["favority_toy"]
+            "favorite_toy", ["string", "human_face"], requires_columns=["foo"]
         )
         builder.results.register_stratification(
-            "favorite_activity", ["sleep", "eat"], requires_columns=["favority_activity"]
+            "favorite_activity", ["sleep", "eat"], requires_columns=["foo"]
         )
