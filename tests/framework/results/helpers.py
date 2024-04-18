@@ -3,9 +3,9 @@ import itertools
 import numpy as np
 import pandas as pd
 
-##########################
-# Mock data and fixtures #
-##########################
+from vivarium.framework.components.manager import Component
+from vivarium.framework.engine import Builder
+
 NAME = "hogwarts_house"
 SOURCES = ["first_name", "last_name"]
 CATEGORIES = ["hufflepuff", "ravenclaw", "slytherin", "gryffindor"]
@@ -31,6 +31,42 @@ RECORDS = [
     )
 ]
 BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
+
+CONFIG = {
+    "stratification": {
+        "default": ["student_house", "power_level"],
+    },
+}
+
+
+##################
+# Helper classes #
+##################
+class StudentHouseObserver(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.results.register_observation(name="student_house")
+
+
+class FamiliarObserver(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.results.register_observation(
+            name="familiar",
+            additional_stratifications=["familiar"],
+            excluded_stratifications=["student_house"],
+        )
+
+
+class HogwartsResultsStratifier(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.results.register_stratification(
+            "student_house", list(STUDENT_HOUSES), requires_columns=["foo"]
+        )
+        builder.results.register_stratification(
+            "familiar", FAMILIARS, requires_columns=["foo"]
+        )
+        builder.results.register_stratification(
+            "power_level", [str(lvl) for lvl in POWER_LEVELS], requires_columns=["foo"]
+        )
 
 
 ##################

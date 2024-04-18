@@ -6,9 +6,9 @@ import pytest
 
 from vivarium.framework.results import ResultsInterface, ResultsManager
 
-from .mocks import BASE_POPULATION
-from .mocks import CATEGORIES as HOUSES
-from .mocks import FAMILIARS, mock_get_value
+from .helpers import BASE_POPULATION
+from .helpers import CATEGORIES as HOUSES
+from .helpers import FAMILIARS, mock_get_value
 
 
 def _silly_aggregator(_: pd.DataFrame) -> float:
