@@ -8,7 +8,7 @@ from vivarium.framework.plugins import (
 )
 from vivarium.framework.time import DateTimeClock, TimeInterface
 
-from .components.mocks import MockComponentA
+from ..helper_components import MockComponentA
 
 plugin_config = {"george": {"controller": "big_brother", "builder_interface": "minipax"}}
 

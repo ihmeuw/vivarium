@@ -9,7 +9,7 @@ from vivarium.framework.components.manager import (
 )
 from vivarium.framework.configuration import build_simulation_configuration
 
-from .mocks import MockComponentA, MockComponentB, MockGenericComponent
+from ...helper_components import MockComponentA, MockComponentB, MockGenericComponent
 
 
 def test_component_set_add():
