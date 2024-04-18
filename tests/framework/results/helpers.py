@@ -24,12 +24,7 @@ COL_NAMES = ["house", "familiar", "power_level", "tracked"]
 FAMILIARS = ["owl", "cat", "gecko", "banana_slug", "unladen_swallow"]
 POWER_LEVELS = [i * 10 for i in range(5, 9)]
 TRACKED_STATUSES = [True, False]
-RECORDS = [
-    (house, familiar, power_level, ts)
-    for house, familiar, power_level, ts in itertools.product(
-        CATEGORIES, FAMILIARS, POWER_LEVELS, TRACKED_STATUSES
-    )
-]
+RECORDS = list(itertools.product(CATEGORIES, FAMILIARS, POWER_LEVELS, TRACKED_STATUSES))
 BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
 
 CONFIG = {
@@ -42,17 +37,19 @@ CONFIG = {
 ##################
 # Helper classes #
 ##################
-class StudentHouseObserver(Component):
+
+
+class HousePointsObserver(Component):
     def setup(self, builder: Builder) -> None:
-        builder.results.register_observation(name="student_house")
+        builder.results.register_observation(name="house_points")
 
 
-class FamiliarObserver(Component):
+class QuidditchWinsObserver(Component):
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
-            name="familiar",
-            additional_stratifications=["familiar"],
+            name="quidditch_wins",
             excluded_stratifications=["student_house"],
+            additional_stratifications=["familiar"],
         )
 
 

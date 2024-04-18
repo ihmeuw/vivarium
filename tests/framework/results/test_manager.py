@@ -19,9 +19,9 @@ from .helpers import (
     POWER_LEVELS,
     SOURCES,
     STUDENT_HOUSES,
-    FamiliarObserver,
     HogwartsResultsStratifier,
-    StudentHouseObserver,
+    HousePointsObserver,
+    QuidditchWinsObserver,
     mock_get_value,
     sorting_hat_serial,
     sorting_hat_vector,
@@ -249,6 +249,11 @@ def test_setting_default_stratifications_at_setup(mocker):
     )
 
 
+################################
+# Tests for results processing #
+################################
+
+
 def test_metrics_initialized_as_empty_dict(mocker):
     """Test that metrics are initialized as an empty dictionary"""
     mgr = ResultsManager()
@@ -265,15 +270,15 @@ def test_stratified_metrics_initialized_as_zeros_dataframes():
     """
 
     components = [
-        StudentHouseObserver(),
-        FamiliarObserver(),
+        HousePointsObserver(),
+        QuidditchWinsObserver(),
         HogwartsResultsStratifier(),
     ]
 
     sim = InteractiveContext(configuration=CONFIG, components=components)
     metrics = sim._results.metrics
     assert isinstance(metrics, dict)
-    assert set(metrics) == set(["student_house", "familiar"])
+    assert set(metrics) == set(["house_points", "quidditch_wins"])
     for metric in metrics:
         result = metrics[metric]
         assert isinstance(result, pd.DataFrame)
@@ -281,13 +286,13 @@ def test_stratified_metrics_initialized_as_zeros_dataframes():
         assert result["value"].unique() == [0.0]
     STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
     POWER_LEVELS_STR = [str(lvl) for lvl in POWER_LEVELS]
-    assert metrics["student_house"].index.equals(
+    assert metrics["house_points"].index.equals(
         pd.MultiIndex.from_product(
             [STUDENT_HOUSES_LIST, POWER_LEVELS_STR],
             names=["student_house", "power_level"],
         )
     )
-    assert metrics["familiar"].index.equals(
+    assert metrics["quidditch_wins"].index.equals(
         pd.MultiIndex.from_product(
             [FAMILIARS, POWER_LEVELS_STR],
             names=["familiar", "power_level"],
