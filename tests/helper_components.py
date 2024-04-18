@@ -8,32 +8,28 @@ from vivarium.framework.components.manager import Component
 from vivarium.framework.engine import Builder
 
 
-class MeasureOneObserver(Component):
+class CatToyObserver(Component):
     def setup(self, builder: Builder) -> None:
-        builder.results.register_observation(name="measure_one")
+        builder.results.register_observation(name="cat_toy")
 
 
-class MeasureTwoObserver(Component):
+class CatActivityObserver(Component):
     def setup(self, builder: Builder) -> None:
-        builder.results.register_observation(name="measure_two")
-
-
-class YearSexResultsStratifier(Component):
-    def setup(self, builder: Builder) -> None:
-        self.start_year = 2024
-        self.end_year = 2027
-
-        builder.results.register_stratification(
-            "current_year",
-            [str(year) for year in range(self.start_year, self.end_year + 1)],
-            self.map_year,
-            is_vectorized=True,
-            requires_columns=["current_time"],
-        )
-        builder.results.register_stratification(
-            "sex", ["Female", "Male"], requires_columns=["sex"]
+        builder.results.register_observation(
+            name="cat_activity",
+            additional_stratifications=["favorite_activity"],
+            excluded_stratifications=["favorite_toy"],
         )
 
-    @staticmethod
-    def map_year(pop: pd.DataFrame) -> pd.Series:
-        return pop.squeeze(axis=1).dt.year.apply(str)
+
+class CatResultsStratifier(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.results.register_stratification(
+            "personality", ["psycopath", "cantankerous"], requires_columns=["personality"]
+        )
+        builder.results.register_stratification(
+            "favorite_toy", ["string", "human_face"], requires_columns=["favority_toy"]
+        )
+        builder.results.register_stratification(
+            "favorite_activity", ["sleep", "eat"], requires_columns=["favority_activity"]
+        )
