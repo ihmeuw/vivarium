@@ -6,7 +6,7 @@ import pytest
 
 from vivarium.framework.results.context import ResultsContext
 
-from .mocks import (
+from .helpers import (
     BASE_POPULATION,
     CATEGORIES,
     FAMILIARS,

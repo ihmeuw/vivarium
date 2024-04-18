@@ -3,7 +3,7 @@ import pytest
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.results.stratification import Stratification
 
-from .mocks import (
+from .helpers import (
     CATEGORIES,
     NAME,
     SOURCES,
