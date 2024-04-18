@@ -2,15 +2,15 @@ from unittest.mock import call
 
 import pytest
 import yaml
-from layered_config_tree import LayeredConfigTree
 
+from layered_config_tree import LayeredConfigTree
 from vivarium.framework.components.parser import (
     ComponentConfigurationParser,
     ParsingError,
 )
 from vivarium.framework.configuration import build_simulation_configuration
 
-from .mocks import MockComponentA, MockComponentB
+from ...helper_components import MockComponentA, MockComponentB
 
 TEST_COMPONENTS_NESTED = """
 components:
