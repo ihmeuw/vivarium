@@ -24,7 +24,7 @@ from vivarium.framework.results import ResultsInterface, ResultsManager
 from vivarium.framework.time import DateTimeClock, TimeInterface
 from vivarium.framework.values import ValuesInterface, ValuesManager
 
-from .components.mocks import Listener, MockComponentA, MockComponentB
+from ..helper_components import Listener, MockComponentA, MockComponentB
 
 
 def is_same_object_method(m1, m2):

@@ -15,7 +15,7 @@ from vivarium.framework.values import (
     rescale_post_processor,
 )
 
-from .components.mocks import (
+from ..helper_components import (
     Listener,
     MockComponentA,
     MockComponentB,
