@@ -8,9 +8,9 @@ from vivarium.framework.results.manager import ResultsManager
 from vivarium.interface.interactive import InteractiveContext
 
 from ...helper_components import (
-    MeasureOneObserver,
-    MeasureTwoObserver,
-    YearSexResultsStratifier,
+    CatActivityObserver,
+    CatResultsStratifier,
+    CatToyObserver,
 )
 from .mocks import (
     BIN_BINNED_COLUMN,
@@ -263,27 +263,33 @@ def test_stratified_metrics_initialized_as_zeros_dataframes():
     """
 
     components = [
-        MeasureOneObserver(),
-        MeasureTwoObserver(),
-        YearSexResultsStratifier(),
+        CatToyObserver(),
+        CatActivityObserver(),
+        CatResultsStratifier(),
     ]
     config = {
         "stratification": {
-            "default": ["sex", "current_year"],
+            "default": ["personality", "favorite_toy"],
         },
     }
     sim = InteractiveContext(configuration=config, components=components)
     metrics = sim._results.metrics
     assert isinstance(metrics, dict)
-    assert set(metrics) == set(["measure_one", "measure_two"])
+    assert set(metrics) == set(["cat_toy", "cat_activity"])
     for metric in metrics:
         result = metrics[metric]
         assert isinstance(result, pd.DataFrame)
-        assert result.index.equals(
-            pd.MultiIndex.from_product(
-                [["2024", "2025", "2026", "2027"], ["Female", "Male"]],
-                names=["current_year", "sex"],
-            )
-        )
         assert result.columns == ["value"]
         assert result["value"].unique() == [0.0]
+    assert metrics["cat_toy"].index.equals(
+        pd.MultiIndex.from_product(
+            [["psycopath", "cantankerous"], ["string", "human_face"]],
+            names=["personality", "favorite_toy"],
+        )
+    )
+    assert metrics["cat_activity"].index.equals(
+        pd.MultiIndex.from_product(
+            [["psycopath", "cantankerous"], ["sleep", "eat"]],
+            names=["personality", "favorite_activity"],
+        )
+    )
