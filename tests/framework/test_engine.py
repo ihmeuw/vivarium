@@ -245,6 +245,7 @@ def test_SimulationContext_finalize(SimulationContext, base_config, components):
 
 
 def test_SimulationContext_report(SimulationContext, base_config, components):
+    # TODO [MIC-4994] Update with new results processing
     sim = SimulationContext(base_config, components)
     sim.setup()
     sim.initialize_simulants()
