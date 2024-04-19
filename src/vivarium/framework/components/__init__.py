@@ -1,7 +1,7 @@
-from .manager import (
+from vivarium.framework.components.manager import (
     ComponentConfigError,
     ComponentInterface,
     ComponentManager,
     OrderedComponentSet,
 )
-from .parser import ComponentConfigurationParser
+from vivarium.framework.components.parser import ComponentConfigurationParser
