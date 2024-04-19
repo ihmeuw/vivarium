@@ -1,9 +1,6 @@
 import pytest
 
-from vivarium.framework.results.manager import ResultsManager
-from vivarium.framework.results.stratification import Stratification
-
-from .helpers import (
+from tests.framework.results.helpers import (
     CATEGORIES,
     NAME,
     SOURCES,
@@ -13,6 +10,8 @@ from .helpers import (
     sorting_hat_serial,
     sorting_hat_vector,
 )
+from vivarium.framework.results.manager import ResultsManager
+from vivarium.framework.results.stratification import Stratification
 
 
 #########

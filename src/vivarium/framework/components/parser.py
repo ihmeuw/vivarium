@@ -25,10 +25,8 @@ from typing import Dict, List, Tuple, Union
 
 from layered_config_tree import LayeredConfigTree
 
+from vivarium.framework.components.manager import Component, ComponentConfigError
 from vivarium.framework.utilities import import_by_path
-
-from ... import Component
-from .manager import ComponentConfigError
 
 
 class ParsingError(ComponentConfigError):

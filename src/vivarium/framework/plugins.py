@@ -12,9 +12,8 @@ The Plugin Management System
 from layered_config_tree import LayeredConfigTree
 
 from vivarium.exceptions import VivariumError
-
-from ..manager import Manager
-from .utilities import import_by_path
+from vivarium.framework.utilities import import_by_path
+from vivarium.manager import Manager
 
 _MANAGERS = {
     "logging": {
