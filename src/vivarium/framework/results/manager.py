@@ -1,6 +1,6 @@
 import itertools
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, List, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 import pandas as pd
 
@@ -124,10 +124,10 @@ class ResultsManager(Manager):
         self,
         name: str,
         categories: List[str],
-        mapper: Callable,
+        mapper: Optional[Callable],
         is_vectorized: bool,
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
+        requires_columns: List[str] = [],
+        requires_values: List[str] = [],
     ) -> None:
         """Manager-level stratification registration, including resources and the stratification itself.
 
@@ -204,6 +204,7 @@ class ResultsManager(Manager):
             )
         target_arg = "required_columns" if target_type == "column" else "required_values"
         target_kwargs = {target_arg: [target]}
+        # FIXME [MIC-5000]: bins should not be passed into register_stratificaton as categories
         self.register_stratification(
             binned_column, bins, _bin_data, is_vectorized=True, **target_kwargs
         )
@@ -212,12 +213,12 @@ class ResultsManager(Manager):
         self,
         name: str,
         pop_filter: str,
-        aggregator_sources: List[str],
+        aggregator_sources: Optional[List[str]],
         aggregator: Callable,
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
-        additional_stratifications: List[str] = (),
-        excluded_stratifications: List[str] = (),
+        requires_columns: List[str] = [],
+        requires_values: List[str] = [],
+        additional_stratifications: List[str] = [],
+        excluded_stratifications: List[str] = [],
         when: str = "collect_metrics",
     ) -> None:
         self.logger.debug(f"Registering observation {name}")
