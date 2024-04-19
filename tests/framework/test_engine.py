@@ -2,6 +2,7 @@ from typing import List
 
 import pytest
 
+from tests.helper_components import Listener, MockComponentA, MockComponentB
 from vivarium import Component
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
 from vivarium.framework.components import (
@@ -23,8 +24,6 @@ from vivarium.framework.resource import ResourceInterface, ResourceManager
 from vivarium.framework.results import ResultsInterface, ResultsManager
 from vivarium.framework.time import DateTimeClock, TimeInterface
 from vivarium.framework.values import ValuesInterface, ValuesManager
-
-from ..helper_components import Listener, MockComponentA, MockComponentB
 
 
 def is_same_object_method(m1, m2):
