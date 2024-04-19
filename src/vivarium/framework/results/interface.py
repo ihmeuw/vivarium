@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, List
+from typing import TYPE_CHECKING, Callable, List, Optional
 
 import pandas as pd
 
@@ -57,10 +57,10 @@ class ResultsInterface:
         self,
         name: str,
         categories: List[str],
-        mapper: Callable = None,
+        mapper: Optional[Callable] = None,
         is_vectorized: bool = False,
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
+        requires_columns: List[str] = [],
+        requires_values: List[str] = [],
     ) -> None:
         """Register quantities to observe.
 
@@ -101,8 +101,8 @@ class ResultsInterface:
         self,
         target: str,
         binned_column: str,
-        bins: List = (),
-        labels: List[str] = (),
+        bins: List = [],
+        labels: List[str] = [],
         target_type: str = "column",
         **cut_kwargs,
     ) -> None:
@@ -136,12 +136,12 @@ class ResultsInterface:
         self,
         name: str,
         pop_filter: str = "tracked==True",
-        aggregator_sources: List[str] = None,
+        aggregator_sources: Optional[List[str]] = None,
         aggregator: Callable[[pd.DataFrame], float] = len,
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
-        additional_stratifications: List[str] = (),
-        excluded_stratifications: List[str] = (),
+        requires_columns: List[str] = [],
+        requires_values: List[str] = [],
+        additional_stratifications: List[str] = [],
+        excluded_stratifications: List[str] = [],
         when: str = "collect_metrics",
     ) -> None:
         """Provide the results system all the information it needs to perform the observation.
