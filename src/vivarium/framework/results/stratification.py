@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, List, Union
+from typing import Callable, List, Optional, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -33,7 +33,7 @@ class Stratification:
     name: str
     sources: List[str]
     categories: List[str]
-    mapper: Callable[[Union[pd.Series, pd.DataFrame]], Union[str, pd.Series]] = None
+    mapper: Optional[Callable[[Union[pd.Series, pd.DataFrame]], Union[str, pd.Series]]] = None
     is_vectorized: bool = False
 
     def __post_init__(self):
