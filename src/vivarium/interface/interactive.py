@@ -21,8 +21,7 @@ import pandas as pd
 from vivarium.framework.engine import SimulationContext
 from vivarium.framework.time import Time, Timedelta
 from vivarium.framework.values import Pipeline
-
-from .utilities import log_progress, run_from_ipython
+from vivarium.interface.utilities import log_progress, run_from_ipython
 
 
 class InteractiveContext(SimulationContext):
