@@ -78,26 +78,23 @@ class ResultsManager(Manager):
                 stratification_names,
             ), observations in self._results_context.observations[event_name].items():
                 for measure, *_ in observations:
-                    stratification_values = []
-                    for stratification in [
-                        s
-                        for s in self._results_context.stratifications
-                        if s.name in stratification_names
-                    ]:
-                        stratification_values.append(
-                            (stratification.name, stratification.categories)
-                        )
-                    index_names = [item[0] for item in stratification_values]
+                    observation_stratifications = [
+                        stratification
+                        for stratification in self._results_context.stratifications
+                        if stratification.name in stratification_names
+                    ]
+                    stratification_values = {
+                        stratification.name: stratification.categories
+                        for stratification in observation_stratifications
+                    }
                     # Get the complete cartesian product of stratifications
-                    index_values = list(
-                        itertools.product(*[item[1] for item in stratification_values])
-                    )
+                    index_values = list(itertools.product(*stratification_values.values()))
                     self._metrics[measure] = pd.DataFrame(
                         data=0.0,  # Initialize to 0
                         columns=["value"],
                         index=pd.MultiIndex.from_tuples(
                             index_values,
-                            names=index_names,
+                            names=stratification_values.keys(),
                         ),
                     )
 
