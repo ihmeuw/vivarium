@@ -4,11 +4,10 @@ from types import MethodType
 import pandas as pd
 import pytest
 
+from tests.framework.results.helpers import BASE_POPULATION
+from tests.framework.results.helpers import CATEGORIES as HOUSES
+from tests.framework.results.helpers import FAMILIARS, mock_get_value
 from vivarium.framework.results import ResultsInterface, ResultsManager
-
-from .mocks import BASE_POPULATION
-from .mocks import CATEGORIES as HOUSES
-from .mocks import FAMILIARS, mock_get_value
 
 
 def _silly_aggregator(_: pd.DataFrame) -> float:

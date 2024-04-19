@@ -1,6 +1,5 @@
-import warnings
 from collections import defaultdict
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -52,7 +51,7 @@ class ResultsContext:
         name: str,
         sources: List[str],
         categories: List[str],
-        mapper: Callable,
+        mapper: Optional[Callable],
         is_vectorized: bool,
     ):
         """Add a stratification to the context.
@@ -88,10 +87,10 @@ class ResultsContext:
         self,
         name: str,
         pop_filter: str,
-        aggregator_sources: List[str],
+        aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], float],
-        additional_stratifications: List[str] = (),
-        excluded_stratifications: List[str] = (),
+        additional_stratifications: List[str] = [],
+        excluded_stratifications: List[str] = [],
         when: str = "collect_metrics",
         **additional_keys: str,
     ):
@@ -102,7 +101,9 @@ class ResultsContext:
             (name, aggregator_sources, aggregator, additional_keys)
         )
 
-    def gather_results(self, population: pd.DataFrame, event_name: str) -> Dict[str, float]:
+    def gather_results(
+        self, population: pd.DataFrame, event_name: str
+    ) -> Generator[Dict[str, float], None, None]:
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         for stratification in self.stratifications:
@@ -120,7 +121,7 @@ class ResultsContext:
             if filtered_pop.empty:
                 yield {}
             else:
-                if not len(list(stratifications)):  # Handle situation of no stratifications
+                if not list(stratifications):  # Handle situation of no stratifications
                     pop_groups = filtered_pop.groupby(lambda _: True)
                 else:
                     pop_groups = filtered_pop.groupby(list(stratifications), observed=False)
@@ -146,14 +147,14 @@ class ResultsContext:
                     yield self._format_results(
                         measure,
                         aggregates,
-                        bool(len(list(stratifications))),
+                        bool(list(stratifications)),
                         **additional_keys,
                     )
 
     def _get_stratifications(
         self,
-        additional_stratifications: List[str] = (),
-        excluded_stratifications: List[str] = (),
+        additional_stratifications: List[str] = [],
+        excluded_stratifications: List[str] = [],
     ) -> Tuple[str, ...]:
         stratifications = list(
             set(self.default_stratifications) - set(excluded_stratifications)
@@ -172,7 +173,7 @@ class ResultsContext:
         results = {}
         # Simpler formatting if we don't have stratifications
         if not has_stratifications:
-            return {measure: aggregates.squeeze()}
+            return {measure: aggregates.squeeze().astype(float)}
 
         # First we expand the categorical index over unobserved pairs.
         # This ensures that the produced results are always the same length.

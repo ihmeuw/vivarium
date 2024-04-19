@@ -1,26 +1,21 @@
 import math
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 import pandas as pd
 import pytest
 
-from vivarium.framework.engine import SimulationContext as SimulationContext_
-from vivarium.framework.event import Event
-from vivarium.framework.time import SimulationClock, get_time_stamp
-from vivarium.framework.utilities import from_yearly
-from vivarium.framework.values import (
-    ValuesManager,
-    list_combiner,
-    rescale_post_processor,
-)
-
-from .components.mocks import (
+from tests.helper_components import (
     Listener,
     MockComponentA,
     MockComponentB,
     MockGenericComponent,
 )
+from vivarium.framework.engine import SimulationContext as SimulationContext_
+from vivarium.framework.event import Event
+from vivarium.framework.time import SimulationClock, get_time_stamp
+from vivarium.framework.utilities import from_yearly
+from vivarium.framework.values import ValuesManager, rescale_post_processor
 
 
 @pytest.fixture

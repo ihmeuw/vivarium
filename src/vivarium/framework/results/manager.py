@@ -1,7 +1,6 @@
 import itertools
-from collections import Counter
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, List, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 import pandas as pd
 
@@ -37,7 +36,7 @@ class ResultsManager(Manager):
     }
 
     def __init__(self):
-        self._metrics = Counter()
+        self._metrics = {}
         self._results_context = ResultsContext()
         self._required_columns = {"tracked"}
         self._required_values = set()
@@ -71,36 +70,33 @@ class ResultsManager(Manager):
 
         builder.value.register_value_modifier("metrics", self.get_results)
 
-    def on_post_setup(self, event: Event):
-        # update self._metrics to have all output keys
-        def create_measure_specific_keys(measure: str, stratifications: List[str]) -> None:
-            measure_str = f"MEASURE_{measure}"
-            individual_stratification_strings = [
-                [
-                    f"{stratification.name.upper()}_{category}"
-                    for category in stratification.categories
-                ]
-                for stratification in sorted(
-                    self._results_context.stratifications, key=lambda x: x.name
-                )
-                if stratification.name in stratifications
-            ]
-            for complete_stratifications in itertools.product(
-                *individual_stratification_strings
-            ):
-                key = (
-                    measure_str + "_" + "_".join(complete_stratifications)
-                    if complete_stratifications
-                    else measure_str
-                )
-                self._metrics[key] = 0
-
-        for event in self._results_context.observations:
-            for (_, stratifications), observations in self._results_context.observations[
-                event
-            ].items():
+    def on_post_setup(self, _: Event):
+        """Initialize self._metrics with 0s dataframe for each measure and all stratifications"""
+        for event_name in self._results_context.observations:
+            for (
+                _pop_filter,
+                stratification_names,
+            ), observations in self._results_context.observations[event_name].items():
                 for measure, *_ in observations:
-                    create_measure_specific_keys(measure, stratifications)
+                    observation_stratifications = [
+                        stratification
+                        for stratification in self._results_context.stratifications
+                        if stratification.name in stratification_names
+                    ]
+                    stratification_values = {
+                        stratification.name: stratification.categories
+                        for stratification in observation_stratifications
+                    }
+                    # Get the complete cartesian product of stratifications
+                    index_values = list(itertools.product(*stratification_values.values()))
+                    self._metrics[measure] = pd.DataFrame(
+                        data=0.0,  # Initialize to 0
+                        columns=["value"],
+                        index=pd.MultiIndex.from_tuples(
+                            index_values,
+                            names=stratification_values.keys(),
+                        ),
+                    )
 
     def on_time_step_prepare(self, event: Event):
         self.gather_results("time_step__prepare", event)
@@ -116,6 +112,7 @@ class ResultsManager(Manager):
 
     def gather_results(self, event_name: str, event: Event):
         population = self._prepare_population(event)
+        # TODO [MIC-4993]: update dataframes
         for results_group in self._results_context.gather_results(population, event_name):
             self._metrics.update(results_group)
 
@@ -127,10 +124,10 @@ class ResultsManager(Manager):
         self,
         name: str,
         categories: List[str],
-        mapper: Callable,
+        mapper: Optional[Callable],
         is_vectorized: bool,
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
+        requires_columns: List[str] = [],
+        requires_values: List[str] = [],
     ) -> None:
         """Manager-level stratification registration, including resources and the stratification itself.
 
@@ -207,6 +204,7 @@ class ResultsManager(Manager):
             )
         target_arg = "required_columns" if target_type == "column" else "required_values"
         target_kwargs = {target_arg: [target]}
+        # FIXME [MIC-5000]: bins should not be passed into register_stratificaton as categories
         self.register_stratification(
             binned_column, bins, _bin_data, is_vectorized=True, **target_kwargs
         )
@@ -215,12 +213,12 @@ class ResultsManager(Manager):
         self,
         name: str,
         pop_filter: str,
-        aggregator_sources: List[str],
+        aggregator_sources: Optional[List[str]],
         aggregator: Callable,
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
-        additional_stratifications: List[str] = (),
-        excluded_stratifications: List[str] = (),
+        requires_columns: List[str] = [],
+        requires_values: List[str] = [],
+        additional_stratifications: List[str] = [],
+        excluded_stratifications: List[str] = [],
         when: str = "collect_metrics",
     ) -> None:
         self.logger.debug(f"Registering observation {name}")
@@ -261,6 +259,7 @@ class ResultsManager(Manager):
 
     def get_results(self, index, metrics):
         # Shim for now to allow incremental transition to new results system.
+        # TODO [MIC-4994] Update for new results processing w/ dataframes
         metrics.update(self.metrics)
         return metrics
 

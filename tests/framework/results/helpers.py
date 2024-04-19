@@ -1,12 +1,11 @@
 import itertools
-import math
 
 import numpy as np
 import pandas as pd
 
-##########################
-# Mock data and fixtures #
-##########################
+from vivarium.framework.components.manager import Component
+from vivarium.framework.engine import Builder
+
 NAME = "hogwarts_house"
 SOURCES = ["first_name", "last_name"]
 CATEGORIES = ["hufflepuff", "ravenclaw", "slytherin", "gryffindor"]
@@ -25,13 +24,46 @@ COL_NAMES = ["house", "familiar", "power_level", "tracked"]
 FAMILIARS = ["owl", "cat", "gecko", "banana_slug", "unladen_swallow"]
 POWER_LEVELS = [i * 10 for i in range(5, 9)]
 TRACKED_STATUSES = [True, False]
-RECORDS = [
-    (house, familiar, power_level, ts)
-    for house, familiar, power_level, ts in itertools.product(
-        CATEGORIES, FAMILIARS, POWER_LEVELS, TRACKED_STATUSES
-    )
-]
+RECORDS = list(itertools.product(CATEGORIES, FAMILIARS, POWER_LEVELS, TRACKED_STATUSES))
 BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
+
+CONFIG = {
+    "stratification": {
+        "default": ["student_house", "power_level"],
+    },
+}
+
+
+##################
+# Helper classes #
+##################
+
+
+class HousePointsObserver(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.results.register_observation(name="house_points")
+
+
+class QuidditchWinsObserver(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.results.register_observation(
+            name="quidditch_wins",
+            excluded_stratifications=["student_house"],
+            additional_stratifications=["familiar"],
+        )
+
+
+class HogwartsResultsStratifier(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.results.register_stratification(
+            "student_house", list(STUDENT_HOUSES), requires_columns=["foo"]
+        )
+        builder.results.register_stratification(
+            "familiar", FAMILIARS, requires_columns=["foo"]
+        )
+        builder.results.register_stratification(
+            "power_level", [str(lvl) for lvl in POWER_LEVELS], requires_columns=["foo"]
+        )
 
 
 ##################

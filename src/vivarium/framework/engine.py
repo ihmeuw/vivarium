@@ -27,24 +27,23 @@ import numpy as np
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
 
+from vivarium import Component
 from vivarium.exceptions import VivariumError
+from vivarium.framework.artifact import ArtifactInterface
+from vivarium.framework.components import ComponentConfigError, ComponentInterface
 from vivarium.framework.configuration import build_model_specification
-
-from .. import Component
-from .artifact import ArtifactInterface
-from .components import ComponentConfigError, ComponentInterface
-from .event import EventInterface
-from .lifecycle import LifeCycleInterface
-from .logging import LoggingInterface
-from .lookup import LookupTableInterface
-from .metrics import Metrics
-from .plugins import PluginManager
-from .population import PopulationInterface
-from .randomness import RandomnessInterface
-from .resource import ResourceInterface
-from .results import ResultsInterface
-from .time import TimeInterface
-from .values import ValuesInterface
+from vivarium.framework.event import EventInterface
+from vivarium.framework.lifecycle import LifeCycleInterface
+from vivarium.framework.logging import LoggingInterface
+from vivarium.framework.lookup import LookupTableInterface
+from vivarium.framework.metrics import Metrics
+from vivarium.framework.plugins import PluginManager
+from vivarium.framework.population import PopulationInterface
+from vivarium.framework.randomness import RandomnessInterface
+from vivarium.framework.resource import ResourceInterface
+from vivarium.framework.results import ResultsInterface
+from vivarium.framework.time import TimeInterface
+from vivarium.framework.values import ValuesInterface
 
 
 class SimulationContext:
@@ -263,6 +262,10 @@ class SimulationContext:
     def report(self, print_results: bool = True) -> Dict[str, Any]:
         self._lifecycle.set_state("report")
         metrics = self._values.get_value("metrics")(self.get_population().index)
+
+        # TODO [MIC-4994] - update with new results processing, e.g.
+        #   for measure, dataframe in self._results.metrics.items():
+        #       dataframe.to_csv(f"{results}/{measure}.csv")
         if print_results:
             self._logger.info("\n" + pformat(metrics))
             performance_metrics = self.get_performance_metrics()

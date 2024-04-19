@@ -48,8 +48,7 @@ from vivarium.framework.logging import (
     configure_logging_to_terminal,
 )
 from vivarium.framework.utilities import handle_exceptions
-
-from .utilities import get_output_root
+from vivarium.interface.utilities import get_output_root
 
 
 @click.group()
@@ -145,6 +144,7 @@ def run(
     main = handle_exceptions(run_simulation, logger, with_debugger)
     finished_sim = main(model_specification, configuration=override_configuration)
 
+    # TODO [MIC-4994] finished_sim.report(results_root)
     metrics = pd.DataFrame(finished_sim.report(), index=[0])
     metrics["simulation_run_time"] = time() - start
     metrics["random_seed"] = finished_sim.configuration.randomness.random_seed

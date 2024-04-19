@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, List, Union
+from typing import Callable, List, Optional, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -33,14 +33,14 @@ class Stratification:
     name: str
     sources: List[str]
     categories: List[str]
-    mapper: Callable[[Union[pd.Series, pd.DataFrame]], Union[str, pd.Series]] = None
+    mapper: Optional[Callable[[Union[pd.Series, pd.DataFrame]], Union[str, pd.Series]]] = None
     is_vectorized: bool = False
 
     def __post_init__(self):
         if self.mapper is None:
             if len(self.sources) != 1:
                 raise ValueError(
-                    f"No mapper provided for stratification {self.name} with"
+                    f"No mapper provided for stratification {self.name} with "
                     f"{len(self.sources)} stratification sources."
                 )
             self.mapper = self._default_mapper

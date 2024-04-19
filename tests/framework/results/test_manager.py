@@ -1,23 +1,31 @@
 from types import MethodType
 
+import pandas as pd
 import pytest
 from loguru import logger
 
-from vivarium.framework.results.manager import ResultsManager
-
-from .mocks import (
+from tests.framework.results.helpers import (
     BIN_BINNED_COLUMN,
     BIN_LABELS,
     BIN_SILLY_BINS,
     BIN_SOURCE,
     CATEGORIES,
+    CONFIG,
+    FAMILIARS,
     NAME,
+    POWER_LEVELS,
     SOURCES,
+    STUDENT_HOUSES,
+    HogwartsResultsStratifier,
+    HousePointsObserver,
+    QuidditchWinsObserver,
     mock_get_value,
     sorting_hat_serial,
     sorting_hat_vector,
     verify_stratification_added,
 )
+from vivarium.framework.results.manager import ResultsManager
+from vivarium.interface.interactive import InteractiveContext
 
 #######################################
 # Tests for `register_stratification` #
@@ -237,4 +245,55 @@ def test_setting_default_stratifications_at_setup(mocker):
 
     mgr._results_context.set_default_stratifications.assert_called_once_with(
         builder.configuration.stratification.default
+    )
+
+
+################################
+# Tests for results processing #
+################################
+
+
+def test_metrics_initialized_as_empty_dict(mocker):
+    """Test that metrics are initialized as an empty dictionary"""
+    mgr = ResultsManager()
+    builder = mocker.Mock()
+    mgr.setup(builder)
+    assert mgr.metrics == {}
+
+
+def test_stratified_metrics_initialized_as_zeros_dataframes():
+    """Test that matrics are being initialized correctly. We expect a dictionary
+    of pd.DataFrames. Each key of the dictionary is an observed measure name and
+    the corresponding value is a pd.DataFrame with a multi-index of that observer's
+    stratifications and an all-zeros 'value' column
+    """
+
+    components = [
+        HousePointsObserver(),
+        QuidditchWinsObserver(),
+        HogwartsResultsStratifier(),
+    ]
+
+    sim = InteractiveContext(configuration=CONFIG, components=components)
+    metrics = sim._results.metrics
+    assert isinstance(metrics, dict)
+    assert set(metrics) == set(["house_points", "quidditch_wins"])
+    for metric in metrics:
+        result = metrics[metric]
+        assert isinstance(result, pd.DataFrame)
+        assert result.columns == ["value"]
+        assert result["value"].unique() == [0.0]
+    STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
+    POWER_LEVELS_STR = [str(lvl) for lvl in POWER_LEVELS]
+    assert metrics["house_points"].index.equals(
+        pd.MultiIndex.from_product(
+            [STUDENT_HOUSES_LIST, POWER_LEVELS_STR],
+            names=["student_house", "power_level"],
+        )
+    )
+    assert metrics["quidditch_wins"].index.equals(
+        pd.MultiIndex.from_product(
+            [FAMILIARS, POWER_LEVELS_STR],
+            names=["familiar", "power_level"],
+        )
     )

@@ -1,11 +1,6 @@
-import numpy as np
-import pandas as pd
 import pytest
 
-from vivarium.framework.results.manager import ResultsManager
-from vivarium.framework.results.stratification import Stratification
-
-from .mocks import (
+from tests.framework.results.helpers import (
     CATEGORIES,
     NAME,
     SOURCES,
@@ -15,6 +10,8 @@ from .mocks import (
     sorting_hat_serial,
     sorting_hat_vector,
 )
+from vivarium.framework.results.manager import ResultsManager
+from vivarium.framework.results.stratification import Stratification
 
 
 #########
