@@ -4,10 +4,7 @@ import pandas as pd
 import pytest
 from loguru import logger
 
-from vivarium.framework.results.manager import ResultsManager
-from vivarium.interface.interactive import InteractiveContext
-
-from .helpers import (
+from tests.framework.results.helpers import (
     BIN_BINNED_COLUMN,
     BIN_LABELS,
     BIN_SILLY_BINS,
@@ -27,6 +24,8 @@ from .helpers import (
     sorting_hat_vector,
     verify_stratification_added,
 )
+from vivarium.framework.results.manager import ResultsManager
+from vivarium.interface.interactive import InteractiveContext
 
 #######################################
 # Tests for `register_stratification` #
