@@ -3,7 +3,6 @@ import textwrap
 
 import pytest
 import yaml
-
 from layered_config_tree import (
     ConfigNode,
     ConfigurationError,

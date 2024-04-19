@@ -1,9 +1,14 @@
-from .disease import DiseaseModel, DiseaseState, DiseaseTransition, SISDiseaseModel
-from .intervention import TreatmentIntervention
-from .mortality import Mortality
-from .observer import Observer
-from .population import BasePopulation
-from .risk import Risk, RiskEffect
+from vivarium.examples.disease_model.disease import (
+    DiseaseModel,
+    DiseaseState,
+    DiseaseTransition,
+    SISDiseaseModel,
+)
+from vivarium.examples.disease_model.intervention import TreatmentIntervention
+from vivarium.examples.disease_model.mortality import Mortality
+from vivarium.examples.disease_model.observer import Observer
+from vivarium.examples.disease_model.population import BasePopulation
+from vivarium.examples.disease_model.risk import Risk, RiskEffect
 
 
 def get_model_specification_path():

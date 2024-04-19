@@ -4,9 +4,7 @@ from datetime import timedelta
 import pandas as pd
 import pytest
 
-from vivarium.framework.results.context import ResultsContext
-
-from .helpers import (
+from tests.framework.results.helpers import (
     BASE_POPULATION,
     CATEGORIES,
     FAMILIARS,
@@ -16,6 +14,7 @@ from .helpers import (
     sorting_hat_vector,
     verify_stratification_added,
 )
+from vivarium.framework.results.context import ResultsContext
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,6 @@
 import pytest
 
+from tests.helper_components import MockComponentA
 from vivarium.framework.components import ComponentConfigurationParser
 from vivarium.framework.plugins import (
     DEFAULT_PLUGINS,
@@ -7,8 +8,6 @@ from vivarium.framework.plugins import (
     PluginManager,
 )
 from vivarium.framework.time import DateTimeClock, TimeInterface
-
-from ..helper_components import MockComponentA
 
 plugin_config = {"george": {"controller": "big_brother", "builder_interface": "minipax"}}
 

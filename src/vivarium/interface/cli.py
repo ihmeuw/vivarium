@@ -48,8 +48,7 @@ from vivarium.framework.logging import (
     configure_logging_to_terminal,
 )
 from vivarium.framework.utilities import handle_exceptions
-
-from .utilities import get_output_root
+from vivarium.interface.utilities import get_output_root
 
 
 @click.group()
