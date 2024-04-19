@@ -27,10 +27,10 @@ import numpy as np
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
 
+from vivarium import Component
 from vivarium.exceptions import VivariumError
 from vivarium.framework.artifact import ArtifactInterface
 from vivarium.framework.components import ComponentConfigError, ComponentInterface
-from vivarium.framework.components.manager import Component
 from vivarium.framework.configuration import build_model_specification
 from vivarium.framework.event import EventInterface
 from vivarium.framework.lifecycle import LifeCycleInterface
