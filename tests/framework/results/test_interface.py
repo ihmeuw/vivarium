@@ -173,7 +173,7 @@ def mock__prepare_population(self, event):
     return population
 
 
-def test_integration_full_observation(mocker):
+def test_interface_full_observation(mocker):
     """Test the full interface lifecycle of adding an observation and simulate a `collect_metrics` event."""
     # Create interface
     mgr = ResultsManager()
@@ -188,8 +188,8 @@ def test_integration_full_observation(mocker):
         "familiar", FAMILIARS, None, True, ["familiar"], []
     )
 
-    mock_aggregator = mocker.Mock()
-    another_mock_aggregator = mocker.Mock()
+    mock_aggregator = mocker.Mock(side_effect=lambda x: 1.0)
+    another_mock_aggregator = mocker.Mock(side_effect=lambda x: 1.0)
 
     results_interface.register_observation(
         "a_measure",
@@ -224,6 +224,8 @@ def test_integration_full_observation(mocker):
 
     # Fake a timestep
     mock_event = mocker.Mock()
+    # Run on_post_setup to initialize the metrics attribute with 0s
+    mgr.on_post_setup(mock_event)
     mgr.gather_results("collect_metrics", mock_event)
 
     mock_aggregator.assert_called()  # Observation aggregator that should have been called
