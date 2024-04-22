@@ -266,7 +266,7 @@ def test_gather_results(
     i = 0
     for r in ctx.gather_results(population, event_name):
         assert all(
-            math.isclose(result, expected_result, rel_tol=0.0001) for result in r.values()
+            math.isclose(result, expected_result, rel_tol=0.0001) for result in r.values
         )
         i += 1
     assert i == 1
@@ -383,22 +383,6 @@ def test_gather_results_with_no_stratifications():
 
     assert len(ctx.stratifications) == 0
     assert len(list(ctx.gather_results(population, event_name))) == 1
-
-
-def test__format_results():
-    """Test that format results produces the expected number of keys and a specific expected key"""
-    ctx = ResultsContext()
-    aggregates = BASE_POPULATION.groupby(["house", "familiar"]).apply(len)
-    measure = "wizard_count"
-    rv = ctx._format_results(measure, aggregates, has_stratifications=True)
-
-    # Check that the number of expected data column names are there
-    expected_keys_len = len(CATEGORIES) * len(FAMILIARS)
-    assert len(rv.keys()) == expected_keys_len
-
-    # Check that an example data column name is there
-    expected_key = "MEASURE_wizard_count_HOUSE_slytherin_FAMILIAR_cat"
-    assert expected_key in rv.keys()
 
 
 def test__bad_aggregator_return():
