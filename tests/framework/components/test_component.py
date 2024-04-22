@@ -1,10 +1,7 @@
 import pandas as pd
 import pytest
 
-from vivarium import Artifact, Component, InteractiveContext
-from vivarium.framework.artifact import ArtifactException
-
-from ...helper_components import (
+from tests.helper_components import (
     AllColumnsRequirer,
     ColumnCreator,
     ColumnCreatorAndRequirer,
@@ -18,6 +15,8 @@ from ...helper_components import (
     ParameterizedByComponent,
     SingleLookupCreator,
 )
+from vivarium import Artifact, Component, InteractiveContext
+from vivarium.framework.artifact import ArtifactException
 
 
 def test_unique_component_has_correct_repr():
