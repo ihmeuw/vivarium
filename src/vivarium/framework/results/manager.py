@@ -89,12 +89,11 @@ class ResultsManager(Manager):
                     }
                     # Get the complete cartesian product of stratifications
                     index_values = list(itertools.product(*stratification_values.values()))
-                    self._metrics[measure] = pd.DataFrame(
-                        data=0.0,  # Initialize to 0
-                        columns=["value"],
+                    self._metrics[measure] = pd.Series(
+                        data=0.0,
+                        name=measure,
                         index=pd.MultiIndex.from_tuples(
-                            index_values,
-                            names=stratification_values.keys(),
+                            index_values, names=stratification_values.keys()
                         ),
                     )
 
@@ -112,9 +111,8 @@ class ResultsManager(Manager):
 
     def gather_results(self, event_name: str, event: Event):
         population = self._prepare_population(event)
-        # TODO [MIC-4993]: update dataframes
         for results_group in self._results_context.gather_results(population, event_name):
-            self._metrics.update(results_group)
+            self._metrics[results_group.name] += results_group
 
     def set_default_stratifications(self, builder):
         default_stratifications = builder.configuration.stratification.default
