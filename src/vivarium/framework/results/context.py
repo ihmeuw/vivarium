@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Callable, Dict, Generator, List, Optional, Tuple, Union
+from typing import Callable, Generator, List, Optional, Tuple
 
 import pandas as pd
 
@@ -103,7 +103,7 @@ class ResultsContext:
 
     def gather_results(
         self, population: pd.DataFrame, event_name: str
-    ) -> Generator[Dict[str, float], None, None]:
+    ) -> Generator[pd.Series, None, None]:
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         for stratification in self.stratifications:
@@ -119,14 +119,14 @@ class ResultsContext:
             else:
                 filtered_pop = population
             if filtered_pop.empty:
-                yield {}
+                yield pd.Series()
             else:
                 if not list(stratifications):  # Handle situation of no stratifications
                     pop_groups = filtered_pop.groupby(lambda _: True)
                 else:
                     pop_groups = filtered_pop.groupby(list(stratifications), observed=False)
 
-                for measure, aggregator_sources, aggregator, additional_keys in observations:
+                for measure, aggregator_sources, aggregator, _additional_keys in observations:
                     if aggregator_sources:
                         aggregates = (
                             pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
@@ -143,13 +143,15 @@ class ResultsContext:
                             "made into a pandas.Series. This is probably not correct."
                         )
 
-                    # Keep formatting all in one place.
-                    yield self._format_results(
-                        measure,
-                        aggregates,
-                        bool(list(stratifications)),
-                        **additional_keys,
-                    )
+                    # fill missing index levels with 0s
+                    if isinstance(aggregates.index, pd.MultiIndex):
+                        full_idx = pd.MultiIndex.from_product(aggregates.index.levels)
+                    else:
+                        full_idx = aggregates.index
+                    aggregates = aggregates.reindex(full_idx).fillna(0.0)
+
+                    aggregates.name = measure
+                    yield aggregates
 
     def _get_stratifications(
         self,
@@ -162,48 +164,3 @@ class ResultsContext:
         )
         # Makes sure measure identifiers have fields in the same relative order.
         return tuple(sorted(stratifications))
-
-    @staticmethod
-    def _format_results(
-        measure: str,
-        aggregates: pd.Series,
-        has_stratifications: bool,
-        **additional_keys: str,
-    ) -> Dict[str, float]:
-        results = {}
-        # Simpler formatting if we don't have stratifications
-        if not has_stratifications:
-            return {measure: aggregates.squeeze().astype(float)}
-
-        # First we expand the categorical index over unobserved pairs.
-        # This ensures that the produced results are always the same length.
-        if isinstance(aggregates.index, pd.MultiIndex):
-            idx = pd.MultiIndex.from_product(
-                aggregates.index.levels, names=aggregates.index.names
-            )
-        else:
-            idx = aggregates.index
-        data = pd.Series(data=0.0, index=idx)
-        data.loc[aggregates.index] = aggregates
-
-        def _format(field, param):
-            """Format of the measure identifier tokens into FIELD_param."""
-            return f"{str(field).upper()}_{param}"
-
-        for categories, val in data.items():
-            if isinstance(categories, str):  # handle single stratification case
-                categories = [categories]
-            key = "_".join(
-                [_format("measure", measure)]
-                + [
-                    _format(field, category)
-                    for field, category in zip(data.index.names, categories)
-                ]
-                # Sorts additional_keys by the field name.
-                + [
-                    _format(field, category)
-                    for field, category in sorted(additional_keys.items())
-                ]
-            )
-            results[key] = val
-        return results

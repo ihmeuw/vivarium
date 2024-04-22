@@ -1,10 +1,12 @@
 import itertools
+from typing import List
 
 import numpy as np
 import pandas as pd
 
 from vivarium.framework.components.manager import Component
 from vivarium.framework.engine import Builder
+from vivarium.framework.population import SimulantData
 
 NAME = "hogwarts_house"
 SOURCES = ["first_name", "last_name"]
@@ -39,30 +41,75 @@ CONFIG = {
 ##################
 
 
+class Hogwarts(Component):
+    @property
+    def columns_created(self) -> List[str]:
+        return ["student_house", "familiar", "power_level", "quidditch_wins", "house_points"]
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        size = len(pop_data.index)
+        rng = np.random.default_rng(42)
+        initialization_data = pd.DataFrame(
+            {
+                "student_house": rng.choice(STUDENT_HOUSES, size=size),
+                "familiar": rng.choice(FAMILIARS, size=size),
+                "power_level": rng.choice([str(lvl) for lvl in POWER_LEVELS], size=size),
+                "quidditch_wins": 0,
+                "house_points": 0,
+            },
+            index=pop_data.index,
+        )
+        self.population_view.update(initialization_data)
+
+    def on_time_step(self, pop_data: SimulantData) -> None:
+        update = self.population_view.get(pop_data.index)
+        # House points are stratified by 'student_house' and 'power_level'.
+        # Let's have each wizard of gryffindor and of level 50 and 80 gain a point
+        update.loc[
+            (update["student_house"] == "gryffindor")
+            & (update["power_level"].isin(["50", "80"])),
+            "house_points",
+        ] += 1
+        # Quidditch wins are stratified by 'familiar' and 'power level'.
+        # Let's have each wizard with a banana slug familiar gain a point.
+        update.loc[update["familiar"] == "banana_slug", "quidditch_wins"] += 1
+        self.population_view.update(update)
+
+
 class HousePointsObserver(Component):
     def setup(self, builder: Builder) -> None:
-        builder.results.register_observation(name="house_points")
+        builder.results.register_observation(
+            name="house_points",
+            aggregator_sources=["house_points"],
+            aggregator=sum,
+            requires_columns=["house_points", "student_house", "power_level"],
+        )
 
 
 class QuidditchWinsObserver(Component):
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="quidditch_wins",
+            aggregator_sources=["quidditch_wins"],
+            aggregator=sum,
             excluded_stratifications=["student_house"],
             additional_stratifications=["familiar"],
+            requires_columns=["quidditch_wins", "familiar", "power_level"],
         )
 
 
 class HogwartsResultsStratifier(Component):
     def setup(self, builder: Builder) -> None:
         builder.results.register_stratification(
-            "student_house", list(STUDENT_HOUSES), requires_columns=["foo"]
+            "student_house", list(STUDENT_HOUSES), requires_columns=["student_house"]
         )
         builder.results.register_stratification(
-            "familiar", FAMILIARS, requires_columns=["foo"]
+            "familiar", FAMILIARS, requires_columns=["familiar"]
         )
         builder.results.register_stratification(
-            "power_level", [str(lvl) for lvl in POWER_LEVELS], requires_columns=["foo"]
+            "power_level",
+            [str(lvl) for lvl in POWER_LEVELS],
+            requires_columns=["power_level"],
         )
 
 
