@@ -264,9 +264,9 @@ def test_metrics_initialized_as_empty_dict(mocker):
 
 def test_stratified_metrics_initialized_as_zeros_dataframes():
     """Test that matrics are being initialized correctly. We expect a dictionary
-    of pd.DataFrames. Each key of the dictionary is an observed measure name and
-    the corresponding value is a pd.DataFrame with a multi-index of that observer's
-    stratifications and an all-zeros 'value' column
+    of pd.Series'. Each key of the dictionary is an observed measure name and
+    the corresponding value is a zeroed-out multiindex pd.Series of that observer's
+    stratifications.
     """
 
     components = [
@@ -281,9 +281,9 @@ def test_stratified_metrics_initialized_as_zeros_dataframes():
     assert set(metrics) == set(["house_points", "quidditch_wins"])
     for metric in metrics:
         result = metrics[metric]
-        assert isinstance(result, pd.DataFrame)
-        assert result.columns == ["value"]
-        assert result["value"].unique() == [0.0]
+        assert isinstance(result, pd.Series)
+        assert result.name == metric
+        assert (result == 0).all()
     STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
     POWER_LEVELS_STR = [str(lvl) for lvl in POWER_LEVELS]
     assert metrics["house_points"].index.equals(
