@@ -71,7 +71,7 @@ class ResultsManager(Manager):
         builder.value.register_value_modifier("metrics", self.get_results)
 
     def on_post_setup(self, _: Event):
-        """Initialize self._metrics with 0s dataframe for each measure and all stratifications"""
+        """Initialize self._metrics with 0s Series' for each measure and all stratifications"""
         for event_name in self._results_context.observations:
             for (
                 _pop_filter,
