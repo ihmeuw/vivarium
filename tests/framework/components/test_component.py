@@ -5,7 +5,8 @@ from layered_config_tree.exceptions import ConfigurationError
 from vivarium import Artifact, InteractiveContext
 from vivarium.framework.engine import Builder
 from vivarium.framework.lookup.table import ScalarTable
-from ...helper_components import (
+
+from tests.helper_components import (
     AllColumnsRequirer,
     ColumnCreator,
     ColumnCreatorAndRequirer,
@@ -19,6 +20,8 @@ from ...helper_components import (
     ParameterizedByComponent,
     SingleLookupCreator,
 )
+from vivarium import Artifact, Component, InteractiveContext
+from vivarium.framework.artifact import ArtifactException
 
 
 def load_cooling_time(builder: Builder) -> pd.DataFrame:
