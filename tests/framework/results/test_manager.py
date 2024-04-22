@@ -303,6 +303,31 @@ def test_stratified_metrics_initialized_as_zeros_dataframes():
 def test_update_monotonically_increasing_metrics():
     """Test that (monotonically increasing) metrics are being updated correctly."""
 
+    def _check_house_points(pop: pd.DataFrame, step_number: int) -> None:
+        """We know that house points are stratified by 'student_house' and 'power_level'.
+        and that each wizard of gryffindor and of level 50 and 80 gains a point
+        """
+        assert set(pop["house_points"]) == set([0, step_number])
+        assert (pop.loc[pop["house_points"] != 0, "student_house"] == "gryffindor").all()
+        assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set(["50", "80"])
+        group_sizes = pop.groupby(["student_house", "power_level"]).size().astype("float")
+        metrics = sim._results.metrics["house_points"]
+        assert metrics[metrics != 0].equals(
+            group_sizes.loc["gryffindor", ["50", "80"]] * step_number
+        )
+
+    def _check_quidditch_wins(pop: pd.DataFrame, step_number: int) -> None:
+        """We know that quidditch wins are stratified by 'familiar' and 'power_level'.
+        and that each wizard with a banana slug familiar gains a point
+        """
+        assert set(pop["quidditch_wins"]) == set([0, step_number])
+        assert (pop.loc[pop["quidditch_wins"] != 0, "familiar"] == "banana_slug").all()
+        group_sizes = pop.groupby(["familiar", "power_level"]).size().astype("float")
+        metrics = sim._results.metrics["quidditch_wins"]
+        assert metrics[metrics != 0].equals(
+            group_sizes[group_sizes.index.get_level_values(0) == "banana_slug"] * step_number
+        )
+
     components = [
         Hogwarts(),
         HousePointsObserver(),
@@ -312,21 +337,10 @@ def test_update_monotonically_increasing_metrics():
     sim = InteractiveContext(configuration=CONFIG, components=components)
     sim.step()
     pop = sim.get_population()
-    # We know that house points are stratified by 'student_house' and 'power_level'.
-    # and that each wizard of gryffindor and of level 50 and 80 gains a point
-    assert set(pop["house_points"]) == set([0, 1])
-    assert (pop.loc[pop["house_points"] != 0, "student_house"] == "gryffindor").all()
-    assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set(["50", "80"])
-    group_sizes = pop.groupby(["student_house", "power_level"]).size().astype("float")
-    metrics = sim._results.metrics["house_points"]
-    assert metrics[metrics != 0].equals(group_sizes.loc["gryffindor", ["50", "80"]])
+    _check_house_points(pop, step_number=1)
+    _check_quidditch_wins(pop, step_number=1)
 
-    # We know that quidditch wins are stratified by 'familiar' and 'power_level'.
-    # and that each wizard with a banana slug familiar gains a point
-    assert set(pop["quidditch_wins"]) == set([0, 1])
-    assert (pop.loc[pop["quidditch_wins"] != 0, "familiar"] == "banana_slug").all()
-    group_sizes = pop.groupby(["familiar", "power_level"]).size().astype("float")
-    metrics = sim._results.metrics["quidditch_wins"]
-    assert metrics[metrics != 0].equals(
-        group_sizes[group_sizes.index.get_level_values(0) == "banana_slug"]
-    )
+    sim.step()
+    pop = sim.get_population()
+    _check_house_points(pop, step_number=2)
+    _check_quidditch_wins(pop, step_number=2)
