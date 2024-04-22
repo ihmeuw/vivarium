@@ -386,7 +386,7 @@ class Component(ABC):
         None
         """
         self.logger = builder.logging.get_logger(self.name)
-        self.create_lookup_tables(builder)
+        self.build_lookup_tables(builder)
         self.setup(builder)
         self._set_population_view(builder)
         self._register_post_setup_listener(builder)
@@ -579,7 +579,7 @@ class Component(ABC):
             if hasattr(self, parameter_name)
         }
 
-    def create_lookup_tables(self, builder: "Builder") -> None:
+    def build_lookup_tables(self, builder: "Builder") -> None:
         """
         Method to create standard lookup tables for the component. This will create a
         lookup table for each lookup key in self.standard_lookup_tables property. If
