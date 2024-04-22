@@ -259,13 +259,9 @@ class SimulationContext:
                 f"Some configuration keys not used during run: {unused_config_keys}."
             )
 
-    def report(self, print_results: bool = True) -> Dict[str, Any]:
+    def report(self, results: Path, print_results: bool = True):
         self._lifecycle.set_state("report")
         metrics = self._values.get_value("metrics")(self.get_population().index)
-
-        # TODO [MIC-4994] - update with new results processing, e.g.
-        #   for measure, dataframe in self._results.metrics.items():
-        #       dataframe.to_csv(f"{results}/{measure}.csv")
         if print_results:
             self._logger.info("\n" + pformat(metrics))
             performance_metrics = self.get_performance_metrics()
@@ -274,8 +270,8 @@ class SimulationContext:
                 float_format=lambda x: f"{x:.2f}",
             )
             self._logger.info("\n" + performance_metrics)
-
-        return metrics
+        for measure, series in metrics.items():
+            series.to_csv(results / f"{measure}.csv")
 
     def get_performance_metrics(self) -> pd.DataFrame:
         timing_dict = self._lifecycle.timings

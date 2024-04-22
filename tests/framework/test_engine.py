@@ -1,5 +1,6 @@
 from typing import List
 
+import pandas as pd
 import pytest
 
 from tests.helpers import Listener, MockComponentA, MockComponentB
@@ -243,14 +244,16 @@ def test_SimulationContext_finalize(SimulationContext, base_config, components):
     assert listener.simulation_end_called
 
 
-def test_SimulationContext_report(SimulationContext, base_config, components):
-    # TODO [MIC-4994] Update with new results processing
+def test_SimulationContext_report(SimulationContext, base_config, components, tmpdir):
     sim = SimulationContext(base_config, components)
     sim.setup()
     sim.initialize_simulants()
     sim.run()
     sim.finalize()
-    metrics = sim.report()
-    assert metrics["test"] == len(
+    sim.report(tmpdir)
+
+    metrics = pd.read_csv(tmpdir / "test.csv")
+    assert len(metrics["test"].unique())
+    assert metrics["test"].iat[0] == len(
         [c for c in sim._component_manager._components if isinstance(c, MockComponentB)]
     )

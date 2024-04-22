@@ -47,11 +47,11 @@ class MockComponentB(Component):
     def create_lookup_tables(self, builder):
         return {}
 
-    def metrics(self, _, metrics):
+    def metrics(self, _, metrics) -> pd.Series:
         if "test" in metrics:
             metrics["test"] += 1
         else:
-            metrics["test"] = 1
+            metrics["test"] = pd.Series(1, name="test")
         return metrics
 
     def __eq__(self, other: Any) -> bool:
