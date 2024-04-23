@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from tests.helper_components import (
+from tests.helpers import (
     AllColumnsRequirer,
     ColumnCreator,
     ColumnCreatorAndRequirer,

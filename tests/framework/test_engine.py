@@ -2,7 +2,7 @@ from typing import List
 
 import pytest
 
-from tests.helper_components import Listener, MockComponentA, MockComponentB
+from tests.helpers import Listener, MockComponentA, MockComponentB
 from vivarium import Component
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
 from vivarium.framework.components import (
