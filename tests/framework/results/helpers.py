@@ -100,6 +100,21 @@ class HousePointsObserver(Component):
         )
 
 
+class FullyFilteredHousePointsObserver(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.results.register_observation(
+            name="house_points",
+            pop_filter="tracked==True & power_level=='one billion'",
+            aggregator_sources=["house_points"],
+            aggregator=sum,
+            requires_columns=[
+                "house_points",
+                "student_house",
+                "power_level",
+            ],
+        )
+
+
 class QuidditchWinsObserver(Component):
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
