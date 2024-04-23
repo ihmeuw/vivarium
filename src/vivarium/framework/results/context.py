@@ -103,7 +103,7 @@ class ResultsContext:
 
     def gather_results(
         self, population: pd.DataFrame, event_name: str
-    ) -> Generator[pd.DataFrame, None, None]:
+    ) -> Generator[Optional[pd.DataFrame], None, None]:
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         for stratification in self.stratifications:
@@ -119,7 +119,7 @@ class ResultsContext:
             else:
                 filtered_pop = population
             if filtered_pop.empty:
-                yield pd.DataFrame()
+                yield None
             else:
                 if not list(stratifications):  # Handle situation of no stratifications
                     pop_groups = filtered_pop.groupby(lambda _: True)

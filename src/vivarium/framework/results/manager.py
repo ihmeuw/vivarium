@@ -113,7 +113,8 @@ class ResultsManager(Manager):
     def gather_results(self, event_name: str, event: Event):
         population = self._prepare_population(event)
         for results_group in self._results_context.gather_results(population, event_name):
-            self._metrics[results_group.name] += results_group
+            if results_group is not None:
+                self._metrics[results_group.name] += results_group
 
     def set_default_stratifications(self, builder):
         default_stratifications = builder.configuration.stratification.default
