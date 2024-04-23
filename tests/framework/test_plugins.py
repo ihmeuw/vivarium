@@ -1,6 +1,6 @@
 import pytest
 
-from tests.helper_components import MockComponentA
+from tests.helpers import MockComponentA
 from vivarium.framework.components import ComponentConfigurationParser
 from vivarium.framework.plugins import (
     DEFAULT_PLUGINS,
