@@ -16,6 +16,7 @@ from tests.framework.results.helpers import (
     POWER_LEVELS,
     SOURCES,
     STUDENT_HOUSES,
+    FullyFilteredHousePointsObserver,
     Hogwarts,
     HogwartsResultsStratifier,
     HousePointsObserver,
@@ -349,3 +350,16 @@ def test_update_monotonically_increasing_metrics():
     pop = sim.get_population()
     _check_house_points(pop, step_number=2)
     _check_quidditch_wins(pop, step_number=2)
+
+
+def test_update_metrics_fully_filtered_pop():
+    components = [
+        Hogwarts(),
+        FullyFilteredHousePointsObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    sim = InteractiveContext(configuration=CONFIG, components=components)
+    sim.step()
+    # The FullyFilteredHousePointsObserver filters the population to a bogus
+    # power level and so we should not be observing anything
+    assert (sim._results.metrics["house_points"]["value"] == 0).all()

@@ -346,7 +346,9 @@ def test_gather_results_partial_stratifications_in_results(
 
 
 def test_gather_results_with_empty_pop_filter():
-    """Test case where pop_filter filters to an empty population. gather_results should return an empty dict"""
+    """Test case where pop_filter filters to an empty population. gather_results
+    should return None.
+    """
     ctx = ResultsContext()
 
     # Generate population DataFrame
@@ -362,7 +364,7 @@ def test_gather_results_with_empty_pop_filter():
     )
 
     for result in ctx.gather_results(population, event_name):
-        assert len(result) == 0
+        assert not result
 
 
 def test_gather_results_with_no_stratifications():
