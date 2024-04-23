@@ -270,8 +270,22 @@ class SimulationContext:
                 float_format=lambda x: f"{x:.2f}",
             )
             self._logger.info("\n" + performance_metrics)
-        for measure, series in metrics.items():
-            series.to_csv(results / f"{measure}.csv")
+        for measure, df in metrics.items():
+            stratifications = list(df.index.names)
+            df = df.reset_index()
+            # Add extra cols
+            df[["measure"]] = measure
+            df["random_seed"] = self.configuration.randomness.random_seed
+            df["input_draw"] = self.configuration.input_data.input_draw_number
+            # Sort the columns
+            other_cols = [c for c in df.columns if c not in stratifications and c != "value"]
+            df = (
+                df[stratifications + other_cols + ["value"]]
+                .sort_values(stratifications)
+                .reset_index(drop=True)
+            )
+
+            df.to_csv(results / f"{measure}.csv", index=False)
 
     def get_performance_metrics(self) -> pd.DataFrame:
         timing_dict = self._lifecycle.timings

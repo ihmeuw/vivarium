@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from vivarium.framework.components.manager import Component
-from vivarium.framework.engine import Builder
+from vivarium.framework.engine import Builder, SimulationContext
 from vivarium.framework.population import SimulantData
 
 NAME = "hogwarts_house"
@@ -30,6 +30,11 @@ RECORDS = list(itertools.product(CATEGORIES, FAMILIARS, POWER_LEVELS, TRACKED_ST
 BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
 
 CONFIG = {
+    "time": {
+        "start": {"year": 2024, "month": 4, "day": 22},
+        "end": {"year": 2029, "month": 4, "day": 22},
+        "step_size": 365,  # Days
+    },
     "stratification": {
         "default": ["student_house", "power_level"],
     },

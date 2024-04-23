@@ -1,8 +1,20 @@
-from typing import List
+from itertools import product
+from pathlib import Path
+from typing import Dict, List
 
 import pandas as pd
 import pytest
 
+from tests.framework.results.helpers import (
+    CONFIG,
+    FAMILIARS,
+    POWER_LEVELS,
+    STUDENT_HOUSES,
+    Hogwarts,
+    HogwartsResultsStratifier,
+    HousePointsObserver,
+    QuidditchWinsObserver,
+)
 from tests.helpers import Listener, MockComponentA, MockComponentB
 from vivarium import Component
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
@@ -14,6 +26,7 @@ from vivarium.framework.components import (
 )
 from vivarium.framework.engine import Builder
 from vivarium.framework.engine import SimulationContext as SimulationContext_
+from vivarium.framework.engine import run_simulation
 from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
 from vivarium.framework.logging import LoggingInterface, LoggingManager
@@ -253,7 +266,96 @@ def test_SimulationContext_report(SimulationContext, base_config, components, tm
     sim.report(tmpdir)
 
     metrics = pd.read_csv(tmpdir / "test.csv")
-    assert len(metrics["test"].unique())
-    assert metrics["test"].iat[0] == len(
+    assert len(metrics["value"].unique()) == 1
+    assert metrics["value"].iat[0] == len(
         [c for c in sim._component_manager._components if isinstance(c, MockComponentB)]
+    )
+
+
+def test_SimulationContext_report_output_format(tmpdir):
+    """Test report output is as expected"""
+    results_root = Path(tmpdir)
+    components = [
+        Hogwarts(),
+        HousePointsObserver(),
+        QuidditchWinsObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    finished_sim = run_simulation(components=components, configuration=CONFIG)
+    finished_sim.report(results_root)
+
+    # The observers are based on number of steps - extract how many steps were run
+    time_dict = finished_sim.configuration.time.to_dict()
+    end_date = _convert_to_datetime(time_dict["end"])
+    start_date = _convert_to_datetime(time_dict["start"])
+    num_steps_float = (end_date - start_date).days / time_dict["step_size"]
+    # round up
+    num_steps = int(num_steps_float) + 1 if num_steps_float % 1 else num_steps_float
+
+    # Check for expected results and confirm format
+    results_list = [file for file in results_root.rglob("*")]
+    assert len(results_list) == 2
+    assert set([file.name for file in results_list]) == set(
+        ["house_points.csv", "quidditch_wins.csv"]
+    )
+
+    house_points = pd.read_csv(results_root / "house_points.csv")
+    quidditch_wins = pd.read_csv(results_root / "quidditch_wins.csv")
+
+    # Check that metrics col matches name of dataset
+    assert (house_points["measure"] == "house_points").all()
+    assert (quidditch_wins["measure"] == "quidditch_wins").all()
+
+    # Check that each dataset includes the entire cartesian product of stratifications
+    assert set(zip(house_points["student_house"], house_points["power_level"])) == set(
+        product(STUDENT_HOUSES, POWER_LEVELS)
+    )
+    assert set(zip(quidditch_wins["familiar"], quidditch_wins["power_level"])) == set(
+        product(FAMILIARS, POWER_LEVELS)
+    )
+
+    # Check that all values are 0 except for expected groups
+    assert (
+        house_points.loc[
+            ~(
+                (house_points["student_house"] == "gryffindor")
+                & (house_points["power_level"].isin([50, 80]))
+            ),
+            "value",
+        ]
+        == 0
+    ).all()
+    assert (
+        quidditch_wins.loc[(quidditch_wins["familiar"] != "banana_slug"), "value"] == 0
+    ).all()
+
+    # Check that expected groups' values are a multiple of the number of steps
+    assert (
+        house_points.loc[
+            (house_points["student_house"] == "gryffindor")
+            & (house_points["power_level"].isin([50, 80])),
+            "value",
+        ]
+        % num_steps
+        == 0
+    ).all()
+    assert (
+        quidditch_wins.loc[quidditch_wins["familiar"] == "banana_slug", "value"] % num_steps
+        == 0
+    ).all()
+
+    # Check for other cols
+    assert "random_seed" in house_points.columns
+    assert "input_draw" in house_points.columns
+    assert "random_seed" in quidditch_wins.columns
+    assert "input_draw" in quidditch_wins.columns
+
+    # We do enforce a col order, but most importantly ensure "value" is at the end
+    assert house_points.columns[-1] == "value"
+    assert quidditch_wins.columns[-1] == "value"
+
+
+def _convert_to_datetime(date_dict: Dict[str, int]) -> pd.Timestamp:
+    return pd.to_datetime(
+        "-".join([str(val) for val in date_dict.values()]), format="%Y-%m-%d"
     )
