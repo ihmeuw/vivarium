@@ -71,7 +71,7 @@ class ResultsManager(Manager):
         builder.value.register_value_modifier("metrics", self.get_results)
 
     def on_post_setup(self, _: Event):
-        """Initialize self._metrics with 0s Series' for each measure and all stratifications"""
+        """Initialize self._metrics with 0s DataFrame' for each measure and all stratifications"""
         for event_name in self._results_context.observations:
             for (
                 _pop_filter,
@@ -89,13 +89,14 @@ class ResultsManager(Manager):
                     }
                     # Get the complete cartesian product of stratifications
                     index_values = list(itertools.product(*stratification_values.values()))
-                    self._metrics[measure] = pd.Series(
+                    self._metrics[measure] = pd.DataFrame(
                         data=0.0,
-                        name=measure,
+                        columns=["value"],
                         index=pd.MultiIndex.from_tuples(
                             index_values, names=stratification_values.keys()
                         ),
                     )
+                    self._metrics[measure].name = measure
 
     def on_time_step_prepare(self, event: Event):
         self.gather_results("time_step__prepare", event)
