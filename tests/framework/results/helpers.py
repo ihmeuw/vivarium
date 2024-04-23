@@ -48,9 +48,7 @@ class Hogwarts(Component):
             "student_house",
             "familiar",
             "power_level",
-            "previous_house_points",
             "house_points",
-            "previous_quidditch_wins",
             "quidditch_wins",
         ]
 
@@ -62,9 +60,7 @@ class Hogwarts(Component):
                 "student_house": rng.choice(STUDENT_HOUSES, size=size),
                 "familiar": rng.choice(FAMILIARS, size=size),
                 "power_level": rng.choice([str(lvl) for lvl in POWER_LEVELS], size=size),
-                "previous_house_points": 0,
                 "house_points": 0,
-                "previous_quidditch_wins": 0,
                 "quidditch_wins": 0,
             },
             index=pop_data.index,
@@ -73,18 +69,20 @@ class Hogwarts(Component):
 
     def on_time_step(self, pop_data: SimulantData) -> None:
         update = self.population_view.get(pop_data.index)
-        update["previous_house_points"] = update["house_points"]
-        update["previous_quidditch_wins"] = update["quidditch_wins"]
+        update["house_points"] = 0
+        update["quidditch_wins"] = 0
         # House points are stratified by 'student_house' and 'power_level'.
         # Let's have each wizard of gryffindor and of level 50 and 80 gain a point
+        # on each time step.
         update.loc[
             (update["student_house"] == "gryffindor")
             & (update["power_level"].isin(["50", "80"])),
             "house_points",
-        ] += 1
+        ] = 1
         # Quidditch wins are stratified by 'familiar' and 'power level'.
-        # Let's have each wizard with a banana slug familiar gain a point.
-        update.loc[update["familiar"] == "banana_slug", "quidditch_wins"] += 1
+        # Let's have each wizard with a banana slug familiar gain a point
+        # on each time step.
+        update.loc[update["familiar"] == "banana_slug", "quidditch_wins"] = 1
         self.population_view.update(update)
 
 
@@ -92,38 +90,30 @@ class HousePointsObserver(Component):
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="house_points",
-            aggregator_sources=["previous_house_points", "house_points"],
-            aggregator=self.count,
+            aggregator_sources=["house_points"],
+            aggregator=sum,
             requires_columns=[
-                "previous_house_points",
                 "house_points",
                 "student_house",
                 "power_level",
             ],
         )
 
-    def count(self, x: pd.DataFrame) -> int:
-        return (x["house_points"] - x["previous_house_points"]).sum()
-
 
 class QuidditchWinsObserver(Component):
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="quidditch_wins",
-            aggregator_sources=["previous_quidditch_wins", "quidditch_wins"],
-            aggregator=self.count,
+            aggregator_sources=["quidditch_wins"],
+            aggregator=sum,
             excluded_stratifications=["student_house"],
             additional_stratifications=["familiar"],
             requires_columns=[
-                "previous_quidditch_wins",
                 "quidditch_wins",
                 "familiar",
                 "power_level",
             ],
         )
-
-    def count(self, x: pd.DataFrame) -> int:
-        return (x["quidditch_wins"] - x["previous_quidditch_wins"]).sum()
 
 
 class HogwartsResultsStratifier(Component):
