@@ -281,9 +281,9 @@ def test_stratified_metrics_initialized_as_zeros_dataframes():
     assert set(metrics) == set(["house_points", "quidditch_wins"])
     for metric in metrics:
         result = metrics[metric]
-        assert isinstance(result, pd.Series)
+        assert isinstance(result, pd.DataFrame)
         assert result.name == metric
-        assert (result == 0).all()
+        assert (result["value"] == 0).all()
     STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
     POWER_LEVELS_STR = [str(lvl) for lvl in POWER_LEVELS]
     assert metrics["house_points"].index.equals(
@@ -310,10 +310,13 @@ def test_update_monotonically_increasing_metrics():
         assert set(pop["house_points"]) == set([0, step_number])
         assert (pop.loc[pop["house_points"] != 0, "student_house"] == "gryffindor").all()
         assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set(["50", "80"])
-        group_sizes = pop.groupby(["student_house", "power_level"]).size().astype("float")
+        group_sizes = pd.DataFrame(
+            pop.groupby(["student_house", "power_level"]).size().astype("float"),
+            columns=["value"],
+        )
         metrics = sim._results.metrics["house_points"]
-        assert metrics[metrics != 0].equals(
-            group_sizes.loc["gryffindor", ["50", "80"]] * step_number
+        assert metrics[metrics["value"] != 0].equals(
+            group_sizes.loc(axis=0)["gryffindor", ["50", "80"]] * step_number
         )
 
     def _check_quidditch_wins(pop: pd.DataFrame, step_number: int) -> None:
@@ -322,9 +325,11 @@ def test_update_monotonically_increasing_metrics():
         """
         assert set(pop["quidditch_wins"]) == set([0, step_number])
         assert (pop.loc[pop["quidditch_wins"] != 0, "familiar"] == "banana_slug").all()
-        group_sizes = pop.groupby(["familiar", "power_level"]).size().astype("float")
+        group_sizes = pd.DataFrame(
+            pop.groupby(["familiar", "power_level"]).size().astype("float"), columns=["value"]
+        )
         metrics = sim._results.metrics["quidditch_wins"]
-        assert metrics[metrics != 0].equals(
+        assert metrics[metrics["value"] != 0].equals(
             group_sizes[group_sizes.index.get_level_values(0) == "banana_slug"] * step_number
         )
 
