@@ -339,10 +339,10 @@ def test_gather_results_partial_stratifications_in_results(
         event_name,
     )
 
-    for r in ctx.gather_results(population, event_name):
-        unladen_results = {k: v for (k, v) in r.items() if "unladen_swallow" in k}
-        assert len(unladen_results.items()) > 0
-        assert all(v == 0 for v in unladen_results.values())
+    for results in ctx.gather_results(population, event_name):
+        unladen_results = results.loc["unladen_swallow"]
+        assert len(unladen_results) > 0
+        assert (unladen_results["value"] == 0).all()
 
 
 def test_gather_results_with_empty_pop_filter():

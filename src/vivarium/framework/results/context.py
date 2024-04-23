@@ -103,7 +103,7 @@ class ResultsContext:
 
     def gather_results(
         self, population: pd.DataFrame, event_name: str
-    ) -> Generator[pd.Series, None, None]:
+    ) -> Generator[pd.DataFrame, None, None]:
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         for stratification in self.stratifications:
@@ -119,7 +119,7 @@ class ResultsContext:
             else:
                 filtered_pop = population
             if filtered_pop.empty:
-                yield pd.Series()
+                yield pd.DataFrame()
             else:
                 if not list(stratifications):  # Handle situation of no stratifications
                     pop_groups = filtered_pop.groupby(lambda _: True)
@@ -135,12 +135,12 @@ class ResultsContext:
                         aggregates = pop_groups.apply(aggregator)
 
                     # Ensure we are dealing with a single column of formattable results
-                    if isinstance(aggregates, pd.DataFrame):
-                        aggregates = aggregates.squeeze(axis=1)
-                    if not isinstance(aggregates, pd.Series):
+                    if isinstance(aggregates, pd.Series):
+                        aggregates = pd.DataFrame(aggregates)
+                    if aggregates.shape[1] != 1:
                         raise TypeError(
-                            f"The aggregator return value is a {type(aggregates)} and could not be "
-                            "made into a pandas.Series. This is probably not correct."
+                            f"The aggregator return value has {aggregates.shape[1]} columns "
+                            "while a single column is expected."
                         )
 
                     # fill missing index levels with 0s
@@ -150,6 +150,7 @@ class ResultsContext:
                         full_idx = aggregates.index
                     aggregates = aggregates.reindex(full_idx).fillna(0.0)
 
+                    aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)
                     aggregates.name = measure
                     yield aggregates
 
