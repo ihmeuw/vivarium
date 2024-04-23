@@ -264,8 +264,8 @@ def test_metrics_initialized_as_empty_dict(mocker):
 
 def test_stratified_metrics_initialized_as_zeros_dataframes():
     """Test that matrics are being initialized correctly. We expect a dictionary
-    of pd.Series'. Each key of the dictionary is an observed measure name and
-    the corresponding value is a zeroed-out multiindex pd.Series of that observer's
+    of pd.DataFrames. Each key of the dictionary is an observed measure name and
+    the corresponding value is a zeroed-out multiindex pd.DataFrame of that observer's
     stratifications.
     """
 
@@ -307,7 +307,7 @@ def test_update_monotonically_increasing_metrics():
         """We know that house points are stratified by 'student_house' and 'power_level'.
         and that each wizard of gryffindor and of level 50 and 80 gains a point
         """
-        assert set(pop["house_points"]) == set([0, step_number])
+        assert set(pop["house_points"]) == set([0, 1])
         assert (pop.loc[pop["house_points"] != 0, "student_house"] == "gryffindor").all()
         assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set(["50", "80"])
         group_sizes = pd.DataFrame(
@@ -323,7 +323,7 @@ def test_update_monotonically_increasing_metrics():
         """We know that quidditch wins are stratified by 'familiar' and 'power_level'.
         and that each wizard with a banana slug familiar gains a point
         """
-        assert set(pop["quidditch_wins"]) == set([0, step_number])
+        assert set(pop["quidditch_wins"]) == set([0, 1])
         assert (pop.loc[pop["quidditch_wins"] != 0, "familiar"] == "banana_slug").all()
         group_sizes = pd.DataFrame(
             pop.groupby(["familiar", "power_level"]).size().astype("float"), columns=["value"]
