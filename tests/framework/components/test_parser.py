@@ -4,7 +4,7 @@ import pytest
 import yaml
 from layered_config_tree import LayeredConfigTree
 
-from tests.helper_components import MockComponentA, MockComponentB
+from tests.helpers import MockComponentA, MockComponentB
 from vivarium.framework.components.parser import (
     ComponentConfigurationParser,
     ParsingError,

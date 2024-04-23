@@ -6,7 +6,7 @@ from vivarium import Artifact, InteractiveContext
 from vivarium.framework.engine import Builder
 from vivarium.framework.lookup.table import ScalarTable
 
-from tests.helper_components import (
+from tests.helpers import (
     AllColumnsRequirer,
     ColumnCreator,
     ColumnCreatorAndRequirer,
