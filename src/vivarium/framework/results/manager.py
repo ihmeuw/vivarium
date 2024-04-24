@@ -77,7 +77,7 @@ class ResultsManager(Manager):
                 _pop_filter,
                 stratification_names,
             ), observations in self._results_context.observations[event_name].items():
-                for measure, *_ in observations:
+                for measure, aggregator_sources, *_ in observations:
                     observation_stratifications = [
                         stratification
                         for stratification in self._results_context.stratifications
