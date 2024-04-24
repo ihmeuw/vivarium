@@ -266,7 +266,7 @@ def test_gather_results(
     i = 0
     for r in ctx.gather_results(population, event_name):
         assert all(
-            math.isclose(result, expected_result, rel_tol=0.0001) for result in r.values()
+            math.isclose(result, expected_result, rel_tol=0.0001) for result in r.values
         )
         i += 1
     assert i == 1
@@ -339,14 +339,16 @@ def test_gather_results_partial_stratifications_in_results(
         event_name,
     )
 
-    for r in ctx.gather_results(population, event_name):
-        unladen_results = {k: v for (k, v) in r.items() if "unladen_swallow" in k}
-        assert len(unladen_results.items()) > 0
-        assert all(v == 0 for v in unladen_results.values())
+    for results in ctx.gather_results(population, event_name):
+        unladen_results = results.loc["unladen_swallow"]
+        assert len(unladen_results) > 0
+        assert (unladen_results["value"] == 0).all()
 
 
 def test_gather_results_with_empty_pop_filter():
-    """Test case where pop_filter filters to an empty population. gather_results should return an empty dict"""
+    """Test case where pop_filter filters to an empty population. gather_results
+    should return None.
+    """
     ctx = ResultsContext()
 
     # Generate population DataFrame
@@ -362,7 +364,7 @@ def test_gather_results_with_empty_pop_filter():
     )
 
     for result in ctx.gather_results(population, event_name):
-        assert len(result) == 0
+        assert not result
 
 
 def test_gather_results_with_no_stratifications():
@@ -383,22 +385,6 @@ def test_gather_results_with_no_stratifications():
 
     assert len(ctx.stratifications) == 0
     assert len(list(ctx.gather_results(population, event_name))) == 1
-
-
-def test__format_results():
-    """Test that format results produces the expected number of keys and a specific expected key"""
-    ctx = ResultsContext()
-    aggregates = BASE_POPULATION.groupby(["house", "familiar"]).apply(len)
-    measure = "wizard_count"
-    rv = ctx._format_results(measure, aggregates, has_stratifications=True)
-
-    # Check that the number of expected data column names are there
-    expected_keys_len = len(CATEGORIES) * len(FAMILIARS)
-    assert len(rv.keys()) == expected_keys_len
-
-    # Check that an example data column name is there
-    expected_key = "MEASURE_wizard_count_HOUSE_slytherin_FAMILIAR_cat"
-    assert expected_key in rv.keys()
 
 
 def test__bad_aggregator_return():

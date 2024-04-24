@@ -173,8 +173,12 @@ def mock__prepare_population(self, event):
     return population
 
 
-def test_integration_full_observation(mocker):
-    """Test the full interface lifecycle of adding an observation and simulate a `collect_metrics` event."""
+@pytest.mark.parametrize(
+    "when",
+    ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"],
+)
+def test_register_observation_when_options(when, mocker):
+    """Test the full interface lifecycle of adding an observation and simulatean event."""
     # Create interface
     mgr = ResultsManager()
     results_interface = ResultsInterface(mgr)
@@ -188,43 +192,80 @@ def test_integration_full_observation(mocker):
         "familiar", FAMILIARS, None, True, ["familiar"], []
     )
 
-    mock_aggregator = mocker.Mock()
-    another_mock_aggregator = mocker.Mock()
+    time_step__prepare_mock_aggregator = mocker.Mock(side_effect=lambda x: 1.0)
+    time_step_mock_aggregator = mocker.Mock(side_effect=lambda x: 1.0)
+    time_step__cleanup_mock_aggregator = mocker.Mock(side_effect=lambda x: 1.0)
+    collect_metrics_mock_aggregator = mocker.Mock(side_effect=lambda x: 1.0)
+    aggregator_map = {
+        "time_step__prepare": time_step__prepare_mock_aggregator,
+        "time_step": time_step_mock_aggregator,
+        "time_step__cleanup": time_step__cleanup_mock_aggregator,
+        "collect_metrics": collect_metrics_mock_aggregator,
+    }
 
+    # Register observations to all four phases
     results_interface.register_observation(
-        "a_measure",
+        "time_step__prepare_measure",
         "tracked==True",
         None,
-        mock_aggregator,
-        ["house", "familiar"],
-        [],
-        ["house", "familiar"],
-        [],
-        "collect_metrics",
-    )
-    # register observation
-    results_interface.register_observation(
-        "another_measure",
-        "tracked==True",
-        None,
-        another_mock_aggregator,
+        time_step__prepare_mock_aggregator,
         ["house", "familiar"],
         [],
         ["house", "familiar"],
         [],
         "time_step__prepare",
     )
+    results_interface.register_observation(
+        "time_step_measure",
+        "tracked==True",
+        None,
+        time_step_mock_aggregator,
+        ["house", "familiar"],
+        [],
+        ["house", "familiar"],
+        [],
+        "time_step",
+    )
+    results_interface.register_observation(
+        "time_step__cleanup_measure",
+        "tracked==True",
+        None,
+        time_step__cleanup_mock_aggregator,
+        ["house", "familiar"],
+        [],
+        ["house", "familiar"],
+        [],
+        "time_step__cleanup",
+    )
+    results_interface.register_observation(
+        "collect_metrics_measure",
+        "tracked==True",
+        None,
+        collect_metrics_mock_aggregator,
+        ["house", "familiar"],
+        [],
+        ["house", "familiar"],
+        [],
+        "collect_metrics",
+    )
 
     # Mock in mgr._prepare_population to return population table, event
     mocker.patch.object(mgr, "_prepare_population")
     mgr._prepare_population = MethodType(mock__prepare_population, mgr)
 
-    mock_aggregator.assert_not_called()
-    another_mock_aggregator.assert_not_called()
+    time_step__prepare_mock_aggregator.assert_not_called()
+    time_step_mock_aggregator.assert_not_called()
+    time_step__cleanup_mock_aggregator.assert_not_called()
+    collect_metrics_mock_aggregator.assert_not_called()
 
     # Fake a timestep
     mock_event = mocker.Mock()
-    mgr.gather_results("collect_metrics", mock_event)
+    # Run on_post_setup to initialize the metrics attribute with 0s
+    mgr.on_post_setup(mock_event)
+    mgr.gather_results(when, mock_event)
 
-    mock_aggregator.assert_called()  # Observation aggregator that should have been called
-    another_mock_aggregator.assert_not_called()  # Observation aggregator that should not
+    for phase, aggregator in aggregator_map.items():
+        if phase == when:
+            aggregator.assert_called()
+        else:
+            aggregator.assert_not_called()

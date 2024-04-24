@@ -16,6 +16,8 @@ from tests.framework.results.helpers import (
     POWER_LEVELS,
     SOURCES,
     STUDENT_HOUSES,
+    FullyFilteredHousePointsObserver,
+    Hogwarts,
     HogwartsResultsStratifier,
     HousePointsObserver,
     QuidditchWinsObserver,
@@ -264,8 +266,8 @@ def test_metrics_initialized_as_empty_dict(mocker):
 def test_stratified_metrics_initialized_as_zeros_dataframes():
     """Test that matrics are being initialized correctly. We expect a dictionary
     of pd.DataFrames. Each key of the dictionary is an observed measure name and
-    the corresponding value is a pd.DataFrame with a multi-index of that observer's
-    stratifications and an all-zeros 'value' column
+    the corresponding value is a zeroed-out multiindex pd.DataFrame of that observer's
+    stratifications.
     """
 
     components = [
@@ -281,8 +283,8 @@ def test_stratified_metrics_initialized_as_zeros_dataframes():
     for metric in metrics:
         result = metrics[metric]
         assert isinstance(result, pd.DataFrame)
-        assert result.columns == ["value"]
-        assert result["value"].unique() == [0.0]
+        assert result.name == metric
+        assert (result["value"] == 0).all()
     STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
     POWER_LEVELS_STR = [str(lvl) for lvl in POWER_LEVELS]
     assert metrics["house_points"].index.equals(
@@ -297,3 +299,67 @@ def test_stratified_metrics_initialized_as_zeros_dataframes():
             names=["familiar", "power_level"],
         )
     )
+
+
+def test_update_monotonically_increasing_metrics():
+    """Test that (monotonically increasing) metrics are being updated correctly."""
+
+    def _check_house_points(pop: pd.DataFrame, step_number: int) -> None:
+        """We know that house points are stratified by 'student_house' and 'power_level'.
+        and that each wizard of gryffindor and of level 50 and 80 gains a point
+        """
+        assert set(pop["house_points"]) == set([0, 1])
+        assert (pop.loc[pop["house_points"] != 0, "student_house"] == "gryffindor").all()
+        assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set(["50", "80"])
+        group_sizes = pd.DataFrame(
+            pop.groupby(["student_house", "power_level"]).size().astype("float"),
+            columns=["value"],
+        )
+        metrics = sim._results.metrics["house_points"]
+        assert metrics[metrics["value"] != 0].equals(
+            group_sizes.loc(axis=0)["gryffindor", ["50", "80"]] * step_number
+        )
+
+    def _check_quidditch_wins(pop: pd.DataFrame, step_number: int) -> None:
+        """We know that quidditch wins are stratified by 'familiar' and 'power_level'.
+        and that each wizard with a banana slug familiar gains a point
+        """
+        assert set(pop["quidditch_wins"]) == set([0, 1])
+        assert (pop.loc[pop["quidditch_wins"] != 0, "familiar"] == "banana_slug").all()
+        group_sizes = pd.DataFrame(
+            pop.groupby(["familiar", "power_level"]).size().astype("float"), columns=["value"]
+        )
+        metrics = sim._results.metrics["quidditch_wins"]
+        assert metrics[metrics["value"] != 0].equals(
+            group_sizes[group_sizes.index.get_level_values(0) == "banana_slug"] * step_number
+        )
+
+    components = [
+        Hogwarts(),
+        HousePointsObserver(),
+        QuidditchWinsObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    sim = InteractiveContext(configuration=CONFIG, components=components)
+    sim.step()
+    pop = sim.get_population()
+    _check_house_points(pop, step_number=1)
+    _check_quidditch_wins(pop, step_number=1)
+
+    sim.step()
+    pop = sim.get_population()
+    _check_house_points(pop, step_number=2)
+    _check_quidditch_wins(pop, step_number=2)
+
+
+def test_update_metrics_fully_filtered_pop():
+    components = [
+        Hogwarts(),
+        FullyFilteredHousePointsObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    sim = InteractiveContext(configuration=CONFIG, components=components)
+    sim.step()
+    # The FullyFilteredHousePointsObserver filters the population to a bogus
+    # power level and so we should not be observing anything
+    assert (sim._results.metrics["house_points"]["value"] == 0).all()

@@ -71,7 +71,7 @@ class ResultsManager(Manager):
         builder.value.register_value_modifier("metrics", self.get_results)
 
     def on_post_setup(self, _: Event):
-        """Initialize self._metrics with 0s dataframe for each measure and all stratifications"""
+        """Initialize self._metrics with 0s DataFrame' for each measure and all stratifications"""
         for event_name in self._results_context.observations:
             for (
                 _pop_filter,
@@ -90,13 +90,13 @@ class ResultsManager(Manager):
                     # Get the complete cartesian product of stratifications
                     index_values = list(itertools.product(*stratification_values.values()))
                     self._metrics[measure] = pd.DataFrame(
-                        data=0.0,  # Initialize to 0
+                        data=0.0,
                         columns=["value"],
                         index=pd.MultiIndex.from_tuples(
-                            index_values,
-                            names=stratification_values.keys(),
+                            index_values, names=stratification_values.keys()
                         ),
                     )
+                    self._metrics[measure].name = measure
 
     def on_time_step_prepare(self, event: Event):
         self.gather_results("time_step__prepare", event)
@@ -112,9 +112,9 @@ class ResultsManager(Manager):
 
     def gather_results(self, event_name: str, event: Event):
         population = self._prepare_population(event)
-        # TODO [MIC-4993]: update dataframes
         for results_group in self._results_context.gather_results(population, event_name):
-            self._metrics.update(results_group)
+            if results_group is not None:
+                self._metrics[results_group.name] += results_group
 
     def set_default_stratifications(self, builder):
         default_stratifications = builder.configuration.stratification.default
