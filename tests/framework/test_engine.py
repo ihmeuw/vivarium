@@ -13,6 +13,7 @@ from tests.framework.results.helpers import (
     Hogwarts,
     HogwartsResultsStratifier,
     HousePointsObserver,
+    NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
 )
 from tests.helpers import Listener, MockComponentA, MockComponentB
@@ -278,6 +279,7 @@ def test_SimulationContext_report_output_format(tmpdir):
     components = [
         Hogwarts(),
         HousePointsObserver(),
+        NoStratificationsQuidditchWinsObserver(),
         QuidditchWinsObserver(),
         HogwartsResultsStratifier(),
     ]
@@ -294,19 +296,24 @@ def test_SimulationContext_report_output_format(tmpdir):
 
     # Check for expected results and confirm format
     results_list = [file for file in results_root.rglob("*")]
-    assert len(results_list) == 2
+    assert len(results_list) == 3
     assert set([file.name for file in results_list]) == set(
-        ["house_points.csv", "quidditch_wins.csv"]
+        ["house_points.csv", "quidditch_wins.csv", "no_stratifications_quidditch_wins.csv"]
     )
 
     house_points = pd.read_csv(results_root / "house_points.csv")
     quidditch_wins = pd.read_csv(results_root / "quidditch_wins.csv")
+    no_strats_quidditch_wins = pd.read_csv(
+        results_root / "no_stratifications_quidditch_wins.csv"
+    )
 
     # Check that metrics col matches name of dataset
     assert (house_points["measure"] == "house_points").all()
     assert (quidditch_wins["measure"] == "quidditch_wins").all()
+    assert (no_strats_quidditch_wins["measure"] == "no_stratifications_quidditch_wins").all()
 
     # Check that each dataset includes the entire cartesian product of stratifications
+    # (or, when no stratifications, just a single "all" row)
     assert set(zip(house_points["student_house"], house_points["power_level"])) == set(
         product(STUDENT_HOUSES, POWER_LEVELS)
     )
@@ -349,10 +356,13 @@ def test_SimulationContext_report_output_format(tmpdir):
     assert "input_draw" in house_points.columns
     assert "random_seed" in quidditch_wins.columns
     assert "input_draw" in quidditch_wins.columns
+    assert "random_seed" in no_strats_quidditch_wins.columns
+    assert "input_draw" in no_strats_quidditch_wins.columns
 
     # We do enforce a col order, but most importantly ensure "value" is at the end
     assert house_points.columns[-1] == "value"
     assert quidditch_wins.columns[-1] == "value"
+    assert no_strats_quidditch_wins.columns[-1] == "value"
 
 
 def _convert_to_datetime(date_dict: Dict[str, int]) -> pd.Timestamp:
