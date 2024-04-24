@@ -136,6 +136,21 @@ class QuidditchWinsObserver(Component):
         )
 
 
+class NoStratificationsQuidditchWinsObserver(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.results.register_observation(
+            name="no_stratifications_quidditch_wins",
+            aggregator_sources=["quidditch_wins"],
+            aggregator=sum,
+            excluded_stratifications=["student_house", "power_level"],
+            requires_columns=[
+                "quidditch_wins",
+                "familiar",
+                "power_level",
+            ],
+        )
+
+
 class HogwartsResultsStratifier(Component):
     def setup(self, builder: Builder) -> None:
         builder.results.register_stratification(
