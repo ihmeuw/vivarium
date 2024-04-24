@@ -123,7 +123,13 @@ class ResultsContext:
 
                 for measure, aggregator_sources, aggregator, _additional_keys in observations:
                     aggregates = self._aggregate(pop_groups, aggregator_sources, aggregator)
+                    # NOTE: We only support metrics of type pd.DataFrame w/ a single column
                     aggregates = self._coerce_to_dataframe(aggregates)
+                    if aggregates.shape[1] != 1:
+                        raise TypeError(
+                            f"The aggregator return value has {aggregates.shape[1]} columns "
+                            "while a single column is expected."
+                        )
                     aggregates = self._expand_index(aggregates)
                     aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)
                     # When no stratifications, ensure the index name is the measure
@@ -145,6 +151,10 @@ class ResultsContext:
         return tuple(sorted(stratifications))
 
     @staticmethod
+    def _filter_population(population: pd.DataFrame, pop_filter: str) -> pd.DataFrame:
+        return population.query(pop_filter) if pop_filter else population
+
+    @staticmethod
     def _get_groups(
         stratifications: Tuple[Optional[str]], filtered_pop: pd.DataFrame
     ) -> Union[DataFrameGroupBy, pd.DataFrame]:
@@ -154,14 +164,6 @@ class ResultsContext:
         else:
             pop_groups = filtered_pop.groupby(list(stratifications), observed=False)
         return pop_groups
-
-    @staticmethod
-    def _filter_population(population: pd.DataFrame, pop_filter: str) -> pd.DataFrame:
-        if pop_filter:
-            filtered_pop = population.query(pop_filter)
-        else:
-            filtered_pop = population
-        return filtered_pop
 
     @staticmethod
     def _aggregate(
@@ -184,14 +186,7 @@ class ResultsContext:
 
     @staticmethod
     def _coerce_to_dataframe(aggregates: Union[pd.Series, pd.DataFrame]) -> pd.DataFrame:
-        if isinstance(aggregates, pd.Series):
-            aggregates = aggregates.to_frame()
-        if aggregates.shape[1] != 1:
-            raise TypeError(
-                f"The aggregator return value has {aggregates.shape[1]} columns "
-                "while a single column is expected."
-            )
-        return aggregates
+        return aggregates.to_frame() if isinstance(aggregates, pd.Series) else aggregates
 
     @staticmethod
     def _expand_index(aggregates: pd.DataFrame) -> pd.DataFrame:
