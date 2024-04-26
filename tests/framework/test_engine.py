@@ -296,21 +296,15 @@ def test_SimulationContext_report_output_format(tmpdir):
 
     # Check for expected results and confirm format
     results_list = [file for file in results_root.rglob("*")]
-    assert len(results_list) == 3
     assert set([file.name for file in results_list]) == set(
         ["house_points.csv", "quidditch_wins.csv", "no_stratifications_quidditch_wins.csv"]
     )
 
     house_points = pd.read_csv(results_root / "house_points.csv")
     quidditch_wins = pd.read_csv(results_root / "quidditch_wins.csv")
-    no_strats_quidditch_wins = pd.read_csv(
+    no_stratifications_quidditch_wins = pd.read_csv(
         results_root / "no_stratifications_quidditch_wins.csv"
     )
-
-    # Check that metrics col matches name of dataset
-    assert (house_points["measure"] == "house_points").all()
-    assert (quidditch_wins["measure"] == "quidditch_wins").all()
-    assert (no_strats_quidditch_wins["measure"] == "no_stratifications_quidditch_wins").all()
 
     # Check that each dataset includes the entire cartesian product of stratifications
     # (or, when no stratifications, just a single "all" row)
@@ -320,49 +314,39 @@ def test_SimulationContext_report_output_format(tmpdir):
     assert set(zip(quidditch_wins["familiar"], quidditch_wins["power_level"])) == set(
         product(FAMILIARS, POWER_LEVELS)
     )
+    assert no_stratifications_quidditch_wins.shape[0] == 1
+    assert (no_stratifications_quidditch_wins["index"] == "all").all()
+    assert set(quidditch_wins.columns).difference(
+        set(no_stratifications_quidditch_wins.columns)
+    ) == set(["familiar", "power_level"])
 
-    # Check that all values are 0 except for expected groups
-    assert (
-        house_points.loc[
-            ~(
-                (house_points["student_house"] == "gryffindor")
-                & (house_points["power_level"].isin([50, 80]))
-            ),
-            "value",
-        ]
-        == 0
-    ).all()
-    assert (
-        quidditch_wins.loc[(quidditch_wins["familiar"] != "banana_slug"), "value"] == 0
-    ).all()
+    # Set up filters for groups that scored points
+    house_points_filter = (house_points["student_house"] == "gryffindor") & (
+        house_points["power_level"].isin([50, 80])
+    )
+    quidditch_wins_filter = quidditch_wins["familiar"] == "banana_slug"
+    no_strats_quidditch_wins_filter = no_stratifications_quidditch_wins["index"] == "all"
 
-    # Check that expected groups' values are a multiple of the number of steps
-    assert (
-        house_points.loc[
-            (house_points["student_house"] == "gryffindor")
-            & (house_points["power_level"].isin([50, 80])),
-            "value",
-        ]
-        % num_steps
-        == 0
-    ).all()
-    assert (
-        quidditch_wins.loc[quidditch_wins["familiar"] == "banana_slug", "value"] % num_steps
-        == 0
-    ).all()
-
-    # Check for other cols
-    assert "random_seed" in house_points.columns
-    assert "input_draw" in house_points.columns
-    assert "random_seed" in quidditch_wins.columns
-    assert "input_draw" in quidditch_wins.columns
-    assert "random_seed" in no_strats_quidditch_wins.columns
-    assert "input_draw" in no_strats_quidditch_wins.columns
-
-    # We do enforce a col order, but most importantly ensure "value" is at the end
-    assert house_points.columns[-1] == "value"
-    assert quidditch_wins.columns[-1] == "value"
-    assert no_strats_quidditch_wins.columns[-1] == "value"
+    for measure, filter in [
+        ("house_points", house_points_filter),
+        ("quidditch_wins", quidditch_wins_filter),
+        ("no_stratifications_quidditch_wins", no_strats_quidditch_wins_filter),
+    ]:
+        # Check columns
+        df = eval(measure)
+        # Check that metrics col matches name of dataset
+        assert (df["measure"] == measure).all()
+        # Check for other cols
+        assert "random_seed" in df.columns
+        assert "input_draw" in df.columns
+        # We do enforce a col order, but most importantly ensure "value" is at the end
+        assert df.columns[-1] == "value"
+        # Check values
+        # Check that all values are 0 except for expected groups
+        assert (df.loc[filter, "value"] != 0).all()
+        assert (df.loc[~filter, "value"] == 0).all()
+        # Check that expected groups' values are a multiple of the number of steps
+        assert (df.loc[filter, "value"] % num_steps == 0).all()
 
 
 def _convert_to_datetime(date_dict: Dict[str, int]) -> pd.Timestamp:
