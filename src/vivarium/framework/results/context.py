@@ -155,10 +155,8 @@ class ResultsContext:
                         full_idx = aggregates.index
                     aggregates = aggregates.reindex(full_idx).fillna(0.0)
 
-                    # When no stratifications, ensure the index name is the measure
-                    # and not just the aggregator_sources
                     if not list(stratifications):
-                        aggregates.index.name = measure
+                        aggregates.index.name = "stratification"
 
                     yield aggregates, measure
 

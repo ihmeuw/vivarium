@@ -95,7 +95,7 @@ class ResultsManager(Manager):
                         )
                     else:
                         # We are aggregating the entire population so create a single-row index
-                        idx = pd.Index(["all"])
+                        idx = pd.Index(["all"], name="stratification")
                     # Initialize a zeros dataframe
                     self._metrics[measure] = pd.DataFrame(
                         data=0.0,

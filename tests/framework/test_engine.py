@@ -315,7 +315,7 @@ def test_SimulationContext_report_output_format(tmpdir):
         product(FAMILIARS, POWER_LEVELS)
     )
     assert no_stratifications_quidditch_wins.shape[0] == 1
-    assert (no_stratifications_quidditch_wins["index"] == "all").all()
+    assert (no_stratifications_quidditch_wins["stratification"] == "all").all()
     assert set(quidditch_wins.columns).difference(
         set(no_stratifications_quidditch_wins.columns)
     ) == set(["familiar", "power_level"])
@@ -325,8 +325,9 @@ def test_SimulationContext_report_output_format(tmpdir):
         house_points["power_level"].isin([50, 80])
     )
     quidditch_wins_filter = quidditch_wins["familiar"] == "banana_slug"
-    no_strats_quidditch_wins_filter = no_stratifications_quidditch_wins["index"] == "all"
-
+    no_strats_quidditch_wins_filter = (
+        no_stratifications_quidditch_wins["stratification"] == "all"
+    )
     for measure, filter in [
         ("house_points", house_points_filter),
         ("quidditch_wins", quidditch_wins_filter),
