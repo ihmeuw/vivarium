@@ -462,18 +462,23 @@ def test__filter_population(pop_filter):
 
 @pytest.mark.parametrize("stratifications", [("familiar",), ()])
 def test__get_groups(stratifications):
-    """Test that we handle stratified groups correctly. If no stratifications are
-    provided, then we should just return the entire population.
-    """
     groups = ResultsContext()._get_groups(
         stratifications=stratifications, filtered_pop=BASE_POPULATION
     )
+    assert isinstance(groups, DataFrameGroupBy)
     if stratifications:
-        assert isinstance(groups, DataFrameGroupBy)
+        # Check that all familiars exist
         assert set(groups.groups.keys()) == set(FAMILIARS)
+        # Check that the entire population is included
+        assert sum([len(value) for value in groups.groups.values()]) == len(BASE_POPULATION)
     else:
-        assert isinstance(groups, pd.DataFrame)
-        assert groups.equals(BASE_POPULATION)
+        item = groups.groups.popitem()
+        # Check that there are no other groups
+        assert not groups.groups
+        # Check that the group is 'all' and includes the entire population
+        key, val = item
+        assert key == "all"
+        assert val.equals(BASE_POPULATION.index)
 
 
 @pytest.mark.parametrize(

@@ -119,43 +119,20 @@ class ResultsContext:
             if filtered_pop.empty:
                 yield None, None
             else:
-                if list(stratifications):
-                    pop_groups = filtered_pop.groupby(list(stratifications), observed=False)
-                else:
-                    # We do not want to stratify, i.e. aggregate the entire population.
-                    # This is a bit hacky. The alternative is to use the entire population
-                    # instead of a groupby object, but then we would need to handle
-                    # the different ways the aggregator can behave.
-                    pop_groups = filtered_pop.groupby(lambda _: "all")
-
+                pop_groups = self._get_groups(stratifications, filtered_pop)
                 for measure, aggregator_sources, aggregator, _additional_keys in observations:
-                    if aggregator_sources:
-                        aggregates = (
-                            pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
-                        )
-                    else:
-                        aggregates = pop_groups.apply(aggregator)
-
-                    # Ensure we are dealing with a single column of formattable results):
-                    if isinstance(aggregates, pd.Series):
-                        aggregates = pd.DataFrame(aggregates)
+                    aggregates = self._aggregate(pop_groups, aggregator_sources, aggregator)
+                    # NOTE: We only support metrics of type pd.DataFrame with a single column
+                    aggregates = self._coerce_to_dataframe(aggregates)
                     if aggregates.shape[1] != 1:
                         raise TypeError(
                             f"The aggregator return value has {aggregates.shape[1]} columns "
                             "while a single column is expected."
                         )
                     aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)
-
-                    # fill missing index levels with 0s
-                    if isinstance(aggregates.index, pd.MultiIndex):
-                        full_idx = pd.MultiIndex.from_product(aggregates.index.levels)
-                    else:
-                        full_idx = aggregates.index
-                    aggregates = aggregates.reindex(full_idx).fillna(0.0)
-
+                    aggregates = self._expand_index(aggregates)
                     if not list(stratifications):
                         aggregates.index.name = "stratification"
-
                     yield aggregates, measure
 
     def _get_stratifications(
@@ -178,12 +155,15 @@ class ResultsContext:
     def _get_groups(
         stratifications: Tuple[Optional[str]], filtered_pop: pd.DataFrame
     ) -> Union[DataFrameGroupBy, pd.DataFrame]:
-        if not list(stratifications):
-            # We do not want to stratify, i.e. aggregate the entire population
-            pop_groups = filtered_pop
-        else:
-            pop_groups = filtered_pop.groupby(list(stratifications), observed=False)
-        return pop_groups
+        # NOTE: It's a bit hacky how we are handling the groupby object if there
+        # are no stratifications. The alternative is to use the entire population
+        # instead of a groupby object, but then we would need to handle
+        # the different ways the aggregator can behave.
+        return (
+            filtered_pop.groupby(list(stratifications), observed=False)
+            if list(stratifications)
+            else filtered_pop.groupby(lambda _: "all")
+        )
 
     @staticmethod
     def _aggregate(
@@ -191,22 +171,15 @@ class ResultsContext:
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], float],
     ) -> Union[pd.Series, pd.DataFrame]:
-        if aggregator_sources:
-            aggregates = pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
-        else:
-            # aggregate all columns
-            if isinstance(pop_groups, pd.DataFrame) and len(pop_groups.columns) > 1:
-                # Apply the aggregator to the entire group
-                aggregates = aggregator(pop_groups)
-                # convert the result to a DataFrame
-                aggregates = pd.DataFrame(data=[aggregates])
-            else:
-                aggregates = pop_groups.apply(aggregator)
-        return aggregates
+        return (
+            pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
+            if aggregator_sources
+            else pop_groups.apply(aggregator)
+        )
 
     @staticmethod
     def _coerce_to_dataframe(aggregates: Union[pd.Series, pd.DataFrame]) -> pd.DataFrame:
-        return aggregates.to_frame() if isinstance(aggregates, pd.Series) else aggregates
+        return pd.DataFrame(aggregates) if isinstance(aggregates, pd.Series) else aggregates
 
     @staticmethod
     def _expand_index(aggregates: pd.DataFrame) -> pd.DataFrame:
