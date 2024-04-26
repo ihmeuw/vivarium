@@ -121,11 +121,14 @@ class ResultsContext:
             if filtered_pop.empty:
                 yield None, None
             else:
-                if not list(stratifications):
-                    # We do not want to stratify, i.e. aggregate the entire population
-                    pop_groups = filtered_pop
-                else:
+                if list(stratifications):
                     pop_groups = filtered_pop.groupby(list(stratifications), observed=False)
+                else:
+                    # We do not want to stratify, i.e. aggregate the entire population.
+                    # This is a bit hacky. The alternative is to use the entire population
+                    # instead of a groupby object, but then we would need to handle
+                    # the different ways the aggregator can behave.
+                    pop_groups = filtered_pop.groupby(lambda _: "all")
 
                 for measure, aggregator_sources, aggregator, _additional_keys in observations:
                     if aggregator_sources:
@@ -133,17 +136,7 @@ class ResultsContext:
                             pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
                         )
                     else:
-                        # aggregate all columns
-                        if (
-                            isinstance(pop_groups, pd.DataFrame)
-                            and len(pop_groups.columns) > 1
-                        ):
-                            # Apply the aggregator to the entire group
-                            aggregates = aggregator(pop_groups)
-                            # convert the result to a DataFrame
-                            aggregates = pd.DataFrame(data=[aggregates])
-                        else:
-                            aggregates = pop_groups.apply(aggregator)
+                        aggregates = pop_groups.apply(aggregator)
 
                     # Ensure we are dealing with a single column of formattable results):
                     if isinstance(aggregates, pd.Series):
@@ -153,6 +146,7 @@ class ResultsContext:
                             f"The aggregator return value has {aggregates.shape[1]} columns "
                             "while a single column is expected."
                         )
+                    aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)
 
                     # fill missing index levels with 0s
                     if isinstance(aggregates.index, pd.MultiIndex):
@@ -161,12 +155,11 @@ class ResultsContext:
                         full_idx = aggregates.index
                     aggregates = aggregates.reindex(full_idx).fillna(0.0)
 
-                    aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)
-
                     # When no stratifications, ensure the index name is the measure
                     # and not just the aggregator_sources
                     if not list(stratifications):
                         aggregates.index.name = measure
+
                     yield aggregates, measure
 
     def _get_stratifications(

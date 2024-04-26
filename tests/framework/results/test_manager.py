@@ -313,7 +313,7 @@ def test_no_stratified_metrics_initialization():
         assert isinstance(result, pd.DataFrame)
         assert result.shape == (1, 1)
         assert result["value"].iat[0] == 0
-        assert result.index.equals(pd.Index([metric]))
+        assert result.index.equals(pd.Index(["all"]))
 
 
 def test_update_monotonically_increasing_metrics():
@@ -388,8 +388,8 @@ def test_update_metrics_no_stratifications():
     sim.step()
     pop = sim.get_population()
     results = sim._results.metrics["no_stratifications_quidditch_wins"]
-    assert results.loc["quidditch_wins"]["value"] == pop["quidditch_wins"].sum()
+    assert results.loc["all"]["value"] == pop["quidditch_wins"].sum()
     sim.step()
     pop = sim.get_population()
     results = sim._results.metrics["no_stratifications_quidditch_wins"]
-    assert results.loc["quidditch_wins"]["value"] == pop["quidditch_wins"].sum() * 2
+    assert results.loc["all"]["value"] == pop["quidditch_wins"].sum() * 2

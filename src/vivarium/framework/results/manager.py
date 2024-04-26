@@ -77,7 +77,7 @@ class ResultsManager(Manager):
                 _pop_filter,
                 stratification_names,
             ), observations in self._results_context.observations[event_name].items():
-                for measure, aggregator_sources, *_ in observations:
+                for measure, *_ in observations:
                     observation_stratifications = [
                         stratification
                         for stratification in self._results_context.stratifications
@@ -94,7 +94,8 @@ class ResultsManager(Manager):
                             names=stratification_values.keys(),
                         )
                     else:
-                        idx = pd.Index(aggregator_sources, name=measure)
+                        # We are aggregating the entire population so create a single-row index
+                        idx = pd.Index(["all"])
                     # Initialize a zeros dataframe
                     self._metrics[measure] = pd.DataFrame(
                         data=0.0,
