@@ -124,11 +124,6 @@ class ResultsContext:
                     aggregates = self._aggregate(pop_groups, aggregator_sources, aggregator)
                     # NOTE: We only support metrics of type pd.DataFrame with a single column
                     aggregates = self._coerce_to_dataframe(aggregates)
-                    if aggregates.shape[1] != 1:
-                        raise TypeError(
-                            f"The aggregator return value has {aggregates.shape[1]} columns "
-                            "while a single column is expected."
-                        )
                     aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)
                     aggregates = self._expand_index(aggregates)
                     if not list(stratifications):
@@ -179,7 +174,13 @@ class ResultsContext:
 
     @staticmethod
     def _coerce_to_dataframe(aggregates: Union[pd.Series, pd.DataFrame]) -> pd.DataFrame:
-        return pd.DataFrame(aggregates) if isinstance(aggregates, pd.Series) else aggregates
+        df = pd.DataFrame(aggregates) if isinstance(aggregates, pd.Series) else aggregates
+        if df.shape[1] != 1:
+            raise TypeError(
+                f"The aggregator return value has {df.shape[1]} columns "
+                "while a single column is expected."
+            )
+        return df
 
     @staticmethod
     def _expand_index(aggregates: pd.DataFrame) -> pd.DataFrame:
