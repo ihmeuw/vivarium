@@ -138,7 +138,7 @@ class ResultsContext:
                     else:
                         aggregates = pop_groups.apply(aggregator)
 
-                    # Ensure we are dealing with a single column of formattable results):
+                    # Ensure we are dealing with a single column of formattable results
                     if isinstance(aggregates, pd.Series):
                         aggregates = pd.DataFrame(aggregates)
                     if aggregates.shape[1] != 1:
