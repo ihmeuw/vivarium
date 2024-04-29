@@ -264,9 +264,10 @@ def test_gather_results(
     )
 
     i = 0
-    for r in ctx.gather_results(population, event_name):
+    for result, _measure in ctx.gather_results(population, event_name):
         assert all(
-            math.isclose(result, expected_result, rel_tol=0.0001) for result in r.values
+            math.isclose(actual_result, expected_result, rel_tol=0.0001)
+            for actual_result in result.values
         )
         i += 1
     assert i == 1
@@ -339,7 +340,7 @@ def test_gather_results_partial_stratifications_in_results(
         event_name,
     )
 
-    for results in ctx.gather_results(population, event_name):
+    for results, _measure in ctx.gather_results(population, event_name):
         unladen_results = results.loc["unladen_swallow"]
         assert len(unladen_results) > 0
         assert (unladen_results["value"] == 0).all()
@@ -363,7 +364,7 @@ def test_gather_results_with_empty_pop_filter():
         event_name=event_name,
     )
 
-    for result in ctx.gather_results(population, event_name):
+    for result, _measure in ctx.gather_results(population, event_name):
         assert not result
 
 
@@ -384,7 +385,10 @@ def test_gather_results_with_no_stratifications():
     )
 
     assert len(ctx.stratifications) == 0
-    assert len(list(ctx.gather_results(population, event_name))) == 1
+    assert (
+        len(list(result for result, _measure in ctx.gather_results(population, event_name)))
+        == 1
+    )
 
 
 def test__bad_aggregator_return():
@@ -410,8 +414,8 @@ def test__bad_aggregator_return():
     )
 
     with pytest.raises(TypeError):
-        for r in ctx.gather_results(population, event_name):
-            print(r)
+        for result, _measure in ctx.gather_results(population, event_name):
+            print(result)
 
 
 def test__bad_aggregator_stratification():
@@ -437,5 +441,5 @@ def test__bad_aggregator_stratification():
     )
 
     with pytest.raises(KeyError, match="height"):
-        for r in ctx.gather_results(population, event_name):
-            print(r)
+        for result, _measure in ctx.gather_results(population, event_name):
+            print(result)
