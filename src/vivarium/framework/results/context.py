@@ -103,7 +103,7 @@ class ResultsContext:
 
     def gather_results(
         self, population: pd.DataFrame, event_name: str
-    ) -> Generator[Optional[pd.DataFrame], None, None]:
+    ) -> Generator[Tuple[Optional[pd.DataFrame], Optional[str]], None, None]:
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         for stratification in self.stratifications:
@@ -119,12 +119,16 @@ class ResultsContext:
             else:
                 filtered_pop = population
             if filtered_pop.empty:
-                yield None
+                yield None, None
             else:
-                if not list(stratifications):  # Handle situation of no stratifications
-                    pop_groups = filtered_pop.groupby(lambda _: True)
-                else:
+                if list(stratifications):
                     pop_groups = filtered_pop.groupby(list(stratifications), observed=False)
+                else:
+                    # We do not want to stratify, i.e. aggregate the entire population.
+                    # This is a bit hacky. The alternative is to use the entire population
+                    # instead of a groupby object, but then we would need to handle
+                    # the different ways the aggregator can behave.
+                    pop_groups = filtered_pop.groupby(lambda _: "all")
 
                 for measure, aggregator_sources, aggregator, _additional_keys in observations:
                     if aggregator_sources:
@@ -142,6 +146,7 @@ class ResultsContext:
                             f"The aggregator return value has {aggregates.shape[1]} columns "
                             "while a single column is expected."
                         )
+                    aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)
 
                     # fill missing index levels with 0s
                     if isinstance(aggregates.index, pd.MultiIndex):
@@ -150,9 +155,10 @@ class ResultsContext:
                         full_idx = aggregates.index
                     aggregates = aggregates.reindex(full_idx).fillna(0.0)
 
-                    aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)
-                    aggregates.name = measure
-                    yield aggregates
+                    if not list(stratifications):
+                        aggregates.index.name = "stratification"
+
+                    yield aggregates, measure
 
     def _get_stratifications(
         self,
