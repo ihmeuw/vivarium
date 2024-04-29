@@ -87,16 +87,21 @@ class ResultsManager(Manager):
                         stratification.name: stratification.categories
                         for stratification in observation_stratifications
                     }
-                    # Get the complete cartesian product of stratifications
-                    index_values = list(itertools.product(*stratification_values.values()))
+                    if stratification_values:
+                        # Create index of the complete stratifications
+                        idx = pd.MultiIndex.from_tuples(
+                            list(itertools.product(*stratification_values.values())),
+                            names=stratification_values.keys(),
+                        )
+                    else:
+                        # We are aggregating the entire population so create a single-row index
+                        idx = pd.Index(["all"], name="stratification")
+                    # Initialize a zeros dataframe
                     self._metrics[measure] = pd.DataFrame(
                         data=0.0,
                         columns=["value"],
-                        index=pd.MultiIndex.from_tuples(
-                            index_values, names=stratification_values.keys()
-                        ),
+                        index=idx,
                     )
-                    self._metrics[measure].name = measure
 
     def on_time_step_prepare(self, event: Event):
         self.gather_results("time_step__prepare", event)
@@ -112,9 +117,11 @@ class ResultsManager(Manager):
 
     def gather_results(self, event_name: str, event: Event):
         population = self._prepare_population(event)
-        for results_group in self._results_context.gather_results(population, event_name):
+        for results_group, measure in self._results_context.gather_results(
+            population, event_name
+        ):
             if results_group is not None:
-                self._metrics[results_group.name] += results_group
+                self._metrics[measure] += results_group
 
     def set_default_stratifications(self, builder):
         default_stratifications = builder.configuration.stratification.default
@@ -257,9 +264,8 @@ class ResultsManager(Manager):
             population[pipeline.name] = pipeline(event.index)
         return population
 
-    def get_results(self, index, metrics):
+    def get_results(self, _index, metrics):
         # Shim for now to allow incremental transition to new results system.
-        # TODO [MIC-4994] Update for new results processing w/ dataframes
         metrics.update(self.metrics)
         return metrics
 
