@@ -178,7 +178,7 @@ def mock__prepare_population(self, event):
     ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"],
 )
 def test_register_observation_when_options(when, mocker):
-    """Test the full interface lifecycle of adding an observation and simulatean event."""
+    """Test the full interface lifecycle of adding an observation and simulation event."""
     # Create interface
     mgr = ResultsManager()
     results_interface = ResultsInterface(mgr)
