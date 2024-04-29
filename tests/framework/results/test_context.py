@@ -521,12 +521,12 @@ def test__aggregate(stratifications, aggregator_sources):
         aggregator=len,
     )
     if stratifications:
-        full_idx = (
+        stratification_idx = (
             set(itertools.product(*(FAMILIARS, CATEGORIES)))
             if "house" in stratifications
             else set(FAMILIARS)
         )
-        assert set(aggregates.index) == full_idx
+        assert set(aggregates.index) == stratification_idx
         group_lengths = BASE_POPULATION.groupby(list(stratifications)).apply(len)
         assert (aggregates == group_lengths).all()
     else:
