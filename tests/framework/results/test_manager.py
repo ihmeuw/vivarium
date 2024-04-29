@@ -301,19 +301,28 @@ def test_stratified_metrics_initialization():
     )
 
 
-def test_no_stratified_metrics_initialization():
-    """Test that if no stratifications are registered then we initialize a
+def test_metrics_initialized_from_no_stratifications_observer():
+    """Test that Observers requesting no stratifications result in a
     single-row DataFrame with 'value' of zero and index labeled 'all'
     """
-    components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
+    components = [Hogwarts(), NoStratificationsQuidditchWinsObserver()]
     sim = InteractiveContext(configuration=CONFIG, components=components)
-    metrics = sim._results.metrics
-    for metric in metrics:
-        result = metrics[metric]
-        assert isinstance(result, pd.DataFrame)
-        assert result.shape == (1, 1)
-        assert result["value"].iat[0] == 0
-        assert result.index.equals(pd.Index(["all"]))
+    results = sim._results.metrics["no_stratifications_quidditch_wins"]
+    assert isinstance(results, pd.DataFrame)
+    assert results.shape == (1, 1)
+    assert results["value"].iat[0] == 0
+    assert results.index.equals(pd.Index(["all"]))
+
+
+def test_observers_with_missing_stratifications_fail():
+    """Test that an error is raise if an Observer requests a stratification
+    that never actually gets registered.
+    """
+    components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
+    with pytest.raises(
+        ValueError, match=f"requires the following stratifications that are not registered:"
+    ):
+        InteractiveContext(configuration=CONFIG, components=components)
 
 
 def test_update_monotonically_increasing_metrics():

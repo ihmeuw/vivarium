@@ -83,6 +83,14 @@ class ResultsManager(Manager):
                         for stratification in self._results_context.stratifications
                         if stratification.name in stratification_names
                     ]
+                    missing_stratifications = set(stratification_names).difference(
+                        set(obs.name for obs in observation_stratifications)
+                    )
+                    if missing_stratifications:
+                        raise ValueError(
+                            f"Observation {measure} requires the following stratifications "
+                            f"that are not registered: {missing_stratifications}"
+                        )
                     stratification_values = {
                         stratification.name: stratification.categories
                         for stratification in observation_stratifications
