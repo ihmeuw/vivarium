@@ -448,7 +448,12 @@ def test__bad_aggregator_stratification():
 
 
 @pytest.mark.parametrize(
-    "pop_filter", ['familiar=="spaghetti_yeti"', 'familiar=="hufflepuff"', ""]
+    "pop_filter",
+    [
+        'familiar=="spaghetti_yeti"',
+        'familiar=="cat"',
+        "",
+    ],
 )
 def test__filter_population(pop_filter):
     filtered_pop = ResultsContext()._filter_population(
@@ -456,7 +461,9 @@ def test__filter_population(pop_filter):
     )
     if pop_filter:
         familiar = pop_filter.split("==")[1].strip('"')
-        assert (filtered_pop["familiar"] == familiar).all()
+        assert filtered_pop.equals(BASE_POPULATION[BASE_POPULATION["familiar"] == familiar])
+        if not familiar in filtered_pop["familiar"].values:
+            assert filtered_pop.empty
     else:
         # An empty pop filter should return the entire population
         assert filtered_pop.equals(BASE_POPULATION)
