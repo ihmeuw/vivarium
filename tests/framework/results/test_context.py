@@ -462,15 +462,26 @@ def test__filter_population(pop_filter):
         assert filtered_pop.equals(BASE_POPULATION)
 
 
-@pytest.mark.parametrize("stratifications", [("familiar",), ()])
-def test__get_groups(stratifications):
+@pytest.mark.parametrize(
+    "stratifications, values",
+    [
+        (("familiar",), [FAMILIARS]),
+        (("familiar", "house"), [FAMILIARS, CATEGORIES]),
+        ((), ["all"]),
+    ],
+)
+def test__get_groups(stratifications, values):
     groups = ResultsContext()._get_groups(
         stratifications=stratifications, filtered_pop=BASE_POPULATION
     )
+    combinations = set(itertools.product(*values))
+    if len(values) == 1:
+        # convert from set of tuples to set of strings
+        combinations = set([comb[0] for comb in combinations])
     assert isinstance(groups, DataFrameGroupBy)
     if stratifications:
         # Check that all familiars exist
-        assert set(groups.groups.keys()) == set(FAMILIARS)
+        assert set(groups.groups.keys()) == combinations
         # Check that the entire population is included
         assert sum([len(value) for value in groups.groups.values()]) == len(BASE_POPULATION)
     else:
