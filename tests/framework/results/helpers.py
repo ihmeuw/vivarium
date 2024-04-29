@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from vivarium.framework.components.manager import Component
-from vivarium.framework.engine import Builder
+from vivarium.framework.engine import Builder, SimulationContext
 from vivarium.framework.population import SimulantData
 
 NAME = "hogwarts_house"
