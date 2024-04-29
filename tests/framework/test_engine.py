@@ -1,3 +1,4 @@
+import math
 from itertools import product
 from pathlib import Path
 from typing import Dict, List
@@ -290,9 +291,7 @@ def test_SimulationContext_report_output_format(tmpdir):
     time_dict = finished_sim.configuration.time.to_dict()
     end_date = _convert_to_datetime(time_dict["end"])
     start_date = _convert_to_datetime(time_dict["start"])
-    num_steps_float = (end_date - start_date).days / time_dict["step_size"]
-    # round up
-    num_steps = int(num_steps_float) + 1 if num_steps_float % 1 else num_steps_float
+    num_steps = math.ceil((end_date - start_date).days / time_dict["step_size"])
 
     # Check for expected results and confirm format
     results_list = [file for file in results_root.rglob("*")]
