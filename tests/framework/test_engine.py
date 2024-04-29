@@ -1,7 +1,22 @@
-from typing import List
+import math
+from itertools import product
+from pathlib import Path
+from typing import Dict, List
 
+import pandas as pd
 import pytest
 
+from tests.framework.results.helpers import (
+    CONFIG,
+    FAMILIARS,
+    POWER_LEVELS,
+    STUDENT_HOUSES,
+    Hogwarts,
+    HogwartsResultsStratifier,
+    HousePointsObserver,
+    NoStratificationsQuidditchWinsObserver,
+    QuidditchWinsObserver,
+)
 from tests.helpers import Listener, MockComponentA, MockComponentB
 from vivarium import Component
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
@@ -13,6 +28,7 @@ from vivarium.framework.components import (
 )
 from vivarium.framework.engine import Builder
 from vivarium.framework.engine import SimulationContext as SimulationContext_
+from vivarium.framework.engine import run_simulation
 from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
 from vivarium.framework.logging import LoggingInterface, LoggingManager
@@ -243,14 +259,97 @@ def test_SimulationContext_finalize(SimulationContext, base_config, components):
     assert listener.simulation_end_called
 
 
-def test_SimulationContext_report(SimulationContext, base_config, components):
-    # TODO [MIC-4994] Update with new results processing
+def test_SimulationContext_report(SimulationContext, base_config, components, tmpdir):
     sim = SimulationContext(base_config, components)
     sim.setup()
     sim.initialize_simulants()
     sim.run()
     sim.finalize()
-    metrics = sim.report()
-    assert metrics["test"] == len(
+    sim.report(tmpdir)
+
+    metrics = pd.read_csv(tmpdir / "test.csv")
+    assert len(metrics["value"].unique()) == 1
+    assert metrics["value"].iat[0] == len(
         [c for c in sim._component_manager._components if isinstance(c, MockComponentB)]
+    )
+
+
+def test_SimulationContext_report_output_format(tmpdir):
+    """Test report output is as expected"""
+    results_root = Path(tmpdir)
+    components = [
+        Hogwarts(),
+        HousePointsObserver(),
+        NoStratificationsQuidditchWinsObserver(),
+        QuidditchWinsObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    finished_sim = run_simulation(components=components, configuration=CONFIG)
+    finished_sim.report(results_root)
+
+    # The observers are based on number of steps - extract how many steps were run
+    time_dict = finished_sim.configuration.time.to_dict()
+    end_date = _convert_to_datetime(time_dict["end"])
+    start_date = _convert_to_datetime(time_dict["start"])
+    num_steps = math.ceil((end_date - start_date).days / time_dict["step_size"])
+
+    # Check for expected results and confirm format
+    results_list = [file for file in results_root.rglob("*")]
+    assert set([file.name for file in results_list]) == set(
+        ["house_points.csv", "quidditch_wins.csv", "no_stratifications_quidditch_wins.csv"]
+    )
+
+    house_points = pd.read_csv(results_root / "house_points.csv")
+    quidditch_wins = pd.read_csv(results_root / "quidditch_wins.csv")
+    no_stratifications_quidditch_wins = pd.read_csv(
+        results_root / "no_stratifications_quidditch_wins.csv"
+    )
+
+    # Check that each dataset includes the entire cartesian product of stratifications
+    # (or, when no stratifications, just a single "all" row)
+    assert set(zip(house_points["student_house"], house_points["power_level"])) == set(
+        product(STUDENT_HOUSES, POWER_LEVELS)
+    )
+    assert set(zip(quidditch_wins["familiar"], quidditch_wins["power_level"])) == set(
+        product(FAMILIARS, POWER_LEVELS)
+    )
+    assert no_stratifications_quidditch_wins.shape[0] == 1
+    assert (no_stratifications_quidditch_wins["stratification"] == "all").all()
+    assert set(quidditch_wins.columns).difference(
+        set(no_stratifications_quidditch_wins.columns)
+    ) == set(["familiar", "power_level"])
+
+    # Set up filters for groups that scored points
+    house_points_filter = (house_points["student_house"] == "gryffindor") & (
+        house_points["power_level"].isin([50, 80])
+    )
+    quidditch_wins_filter = quidditch_wins["familiar"] == "banana_slug"
+    no_strats_quidditch_wins_filter = (
+        no_stratifications_quidditch_wins["stratification"] == "all"
+    )
+    for measure, filter in [
+        ("house_points", house_points_filter),
+        ("quidditch_wins", quidditch_wins_filter),
+        ("no_stratifications_quidditch_wins", no_strats_quidditch_wins_filter),
+    ]:
+        # Check columns
+        df = eval(measure)
+        # Check that metrics col matches name of dataset
+        assert (df["measure"] == measure).all()
+        # Check for other cols
+        assert "random_seed" in df.columns
+        assert "input_draw" in df.columns
+        # We do enforce a col order, but most importantly ensure "value" is at the end
+        assert df.columns[-1] == "value"
+        # Check values
+        # Check that all values are 0 except for expected groups
+        assert (df.loc[filter, "value"] != 0).all()
+        assert (df.loc[~filter, "value"] == 0).all()
+        # Check that expected groups' values are a multiple of the number of steps
+        assert (df.loc[filter, "value"] % num_steps == 0).all()
+
+
+def _convert_to_datetime(date_dict: Dict[str, int]) -> pd.Timestamp:
+    return pd.to_datetime(
+        "-".join([str(val) for val in date_dict.values()]), format="%Y-%m-%d"
     )

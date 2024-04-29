@@ -261,7 +261,7 @@ class DateTimeClock(SimulationClock):
                 "month": 7,
                 "day": 2,
             },
-            "step_size": 1,
+            "step_size": 1,  # Days
             "standard_step_size": None,  # Days
         }
     }

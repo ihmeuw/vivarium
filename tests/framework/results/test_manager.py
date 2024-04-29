@@ -20,6 +20,7 @@ from tests.framework.results.helpers import (
     Hogwarts,
     HogwartsResultsStratifier,
     HousePointsObserver,
+    NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
     mock_get_value,
     sorting_hat_serial,
@@ -263,7 +264,7 @@ def test_metrics_initialized_as_empty_dict(mocker):
     assert mgr.metrics == {}
 
 
-def test_stratified_metrics_initialized_as_zeros_dataframes():
+def test_stratified_metrics_initialization():
     """Test that matrics are being initialized correctly. We expect a dictionary
     of pd.DataFrames. Each key of the dictionary is an observed measure name and
     the corresponding value is a zeroed-out multiindex pd.DataFrame of that observer's
@@ -283,7 +284,6 @@ def test_stratified_metrics_initialized_as_zeros_dataframes():
     for metric in metrics:
         result = metrics[metric]
         assert isinstance(result, pd.DataFrame)
-        assert result.name == metric
         assert (result["value"] == 0).all()
     STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
     POWER_LEVELS_STR = [str(lvl) for lvl in POWER_LEVELS]
@@ -299,6 +299,21 @@ def test_stratified_metrics_initialized_as_zeros_dataframes():
             names=["familiar", "power_level"],
         )
     )
+
+
+def test_no_stratified_metrics_initialization():
+    """Test that if no stratifications are registered then we initialize a
+    single-row DataFrame with 'value' of zero and index labeled 'all'
+    """
+    components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
+    sim = InteractiveContext(configuration=CONFIG, components=components)
+    metrics = sim._results.metrics
+    for metric in metrics:
+        result = metrics[metric]
+        assert isinstance(result, pd.DataFrame)
+        assert result.shape == (1, 1)
+        assert result["value"].iat[0] == 0
+        assert result.index.equals(pd.Index(["all"]))
 
 
 def test_update_monotonically_increasing_metrics():
@@ -363,3 +378,18 @@ def test_update_metrics_fully_filtered_pop():
     # The FullyFilteredHousePointsObserver filters the population to a bogus
     # power level and so we should not be observing anything
     assert (sim._results.metrics["house_points"]["value"] == 0).all()
+    sim.step()
+    assert (sim._results.metrics["house_points"]["value"] == 0).all()
+
+
+def test_update_metrics_no_stratifications():
+    components = [Hogwarts(), NoStratificationsQuidditchWinsObserver()]
+    sim = InteractiveContext(configuration=CONFIG, components=components)
+    sim.step()
+    pop = sim.get_population()
+    results = sim._results.metrics["no_stratifications_quidditch_wins"]
+    assert results.loc["all"]["value"] == pop["quidditch_wins"].sum()
+    sim.step()
+    pop = sim.get_population()
+    results = sim._results.metrics["no_stratifications_quidditch_wins"]
+    assert results.loc["all"]["value"] == pop["quidditch_wins"].sum() * 2
