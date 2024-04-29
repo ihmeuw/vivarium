@@ -1,7 +1,6 @@
 import itertools
 from enum import Enum
 from pathlib import Path
-from pprint import pformat
 from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 import pandas as pd
