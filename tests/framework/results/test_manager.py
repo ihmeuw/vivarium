@@ -315,7 +315,7 @@ def test_metrics_initialized_from_no_stratifications_observer():
 
 
 def test_observers_with_missing_stratifications_fail():
-    """Test that an error is raise if an Observer requests a stratification
+    """Test that an error is raised if an Observer requests a stratification
     that never actually gets registered.
     """
     components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
