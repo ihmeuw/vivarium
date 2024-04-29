@@ -538,7 +538,9 @@ def test__aggregate(stratifications, aggregator_sources):
     "aggregates",
     [
         pd.Series(data=[1, 2, 3], index=pd.Index(["a", "b", "c"], name="index")),
-        pd.DataFrame(data=[[1, 2, 3], [4, 5, 6]], index=pd.Index(["a", "b"], name="index")),
+        pd.DataFrame({"col1": [1, 2], "strat1": [1, 1], "strat2": ["cat", "dog"]}).set_index(
+            ["strat1", "strat2"]
+        ),
     ],
 )
 def test__coerce_to_dataframe(aggregates):
@@ -548,6 +550,22 @@ def test__coerce_to_dataframe(aggregates):
         assert new_aggregates.equals(aggregates.to_frame())
     else:
         assert new_aggregates.equals(aggregates)
+
+
+@pytest.mark.parametrize(
+    "aggregates, xfail_match",
+    [
+        # Expected failure if pd.DataFrame has more than one column
+        (pd.DataFrame({"col1": [1, 2], "col2": [10, 20]}), "a single column is expected."),
+        # Expected failure if pd.DataFrame has less than one column
+        (pd.DataFrame(index=["strat1", "strat2"]), "a single column is expected."),
+        # Expected failure if not pd.Series or pd.DataFrame
+        (1, "a pd.Series or pd.DataFrame is expected."),
+    ],
+)
+def test__coerce_to_dataframe_failures(aggregates, xfail_match):
+    with pytest.raises(TypeError, match=xfail_match):
+        ResultsContext()._coerce_to_dataframe(aggregates=aggregates)
 
 
 @pytest.mark.parametrize(
