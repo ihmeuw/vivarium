@@ -1,4 +1,5 @@
 import itertools
+from collections import defaultdict
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, Optional, Union
@@ -37,7 +38,7 @@ class ResultsManager(Manager):
     }
 
     def __init__(self):
-        self._metrics = {}
+        self._metrics = defaultdict(defaultdict)
         self._results_context = ResultsContext()
         self._required_columns = {"tracked"}
         self._required_values = set()
@@ -79,7 +80,8 @@ class ResultsManager(Manager):
                 _pop_filter,
                 stratification_names,
             ), observations in self._results_context.observations[event_name].items():
-                for measure, *_ in observations:
+                for observation in observations:
+                    measure = observation.name
                     observation_stratifications = [
                         stratification
                         for stratification in self._results_context.stratifications
@@ -124,17 +126,15 @@ class ResultsManager(Manager):
         input_draw = event.user_data["input_draw"]
         observation_details = self._results_context.observations
         # Access each observation and the associated report function
-        for _event_name in observation_details:
-            for (_pop_filter, _stratification), observation in observation_details[
-                _event_name
-            ].items():
-                for measure, _aggregator_sources, _aggregator, report in observation:
-                    report(
-                        results_dir,
-                        measure,
-                        metrics[measure],
-                        random_seed,
-                        input_draw,
+        for event_name in observation_details:
+            for observations in observation_details[event_name].values():
+                for observation in observations:
+                    observation.report(
+                        results_dir=results_dir,
+                        measure=observation.name,
+                        results=metrics[observation.name],
+                        random_seed=random_seed,
+                        input_draw=input_draw,
                     )
 
     def gather_results(self, event_name: str, event: Event):
