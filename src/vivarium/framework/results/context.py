@@ -1,4 +1,5 @@
 from collections import defaultdict
+from pathlib import Path
 from typing import Callable, Generator, List, Optional, Tuple, Union
 
 import pandas as pd
@@ -90,16 +91,16 @@ class ResultsContext:
         pop_filter: str,
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], float],
-        additional_stratifications: List[str] = [],
-        excluded_stratifications: List[str] = [],
-        when: str = "collect_metrics",
-        **additional_keys: str,
+        additional_stratifications: List[str],
+        excluded_stratifications: List[str],
+        when: str,
+        report: Callable[[Path, str, pd.DataFrame, str, str], None],
     ):
         stratifications = self._get_stratifications(
             additional_stratifications, excluded_stratifications
         )
         self.observations[when][(pop_filter, stratifications)].append(
-            (name, aggregator_sources, aggregator, additional_keys)
+            (name, aggregator_sources, aggregator, report)
         )
 
     def gather_results(
@@ -120,7 +121,7 @@ class ResultsContext:
                 yield None, None
             else:
                 pop_groups = self._get_groups(stratifications, filtered_pop)
-                for measure, aggregator_sources, aggregator, _additional_keys in observations:
+                for measure, aggregator_sources, aggregator, _report in observations:
                     aggregates = self._aggregate(pop_groups, aggregator_sources, aggregator)
                     aggregates = self._coerce_to_dataframe(aggregates)
                     aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)
