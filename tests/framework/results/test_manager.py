@@ -333,6 +333,26 @@ def test_observers_with_missing_stratifications_fail():
         InteractiveContext(configuration=CONFIG, components=components)
 
 
+def test_unused_stratifications_are_logged(caplog):
+    """Test that we issue a logger.info warning if Stratifications are registered
+    but never actually used by an Observer
+
+    The HogwartsResultsStratifier registers "student_house", "familiar", and
+    "power_level" stratifiers. However, we will only use the HousePointsObserver
+    component which only requests to be stratified by "student_house" and "power_level"
+    """
+    components = [HousePointsObserver(), Hogwarts(), HogwartsResultsStratifier()]
+    InteractiveContext(configuration=CONFIG, components=components)
+
+    log_split = caplog.text.split(
+        "The following Stratifications are registered but not used by any Observers: \n"
+    )
+    # Check that the log message is present and only exists one time
+    assert len(log_split) == 2
+    # Check that the log message contains the expected Stratifications
+    assert "{'familiar'}" in log_split[1]
+
+
 def test_update_monotonically_increasing_metrics():
     """Test that (monotonically increasing) metrics are being updated correctly."""
 
