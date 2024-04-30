@@ -1,10 +1,12 @@
 from collections import defaultdict
+from pathlib import Path
 from typing import Callable, Generator, List, Optional, Tuple, Union
 
 import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
 
 from vivarium.framework.results.exceptions import ResultsConfigurationError
+from vivarium.framework.results.observation import Observation
 from vivarium.framework.results.stratification import Stratification
 
 
@@ -28,7 +30,7 @@ class ResultsContext:
         # ]
         # values are dicts with
         #     key (filter, grouper)
-        #     value (measure, aggregator_sources, aggregator, additional_keys)
+        #     value Observation
         self.observations = defaultdict(lambda: defaultdict(list))
 
     @property
@@ -90,17 +92,24 @@ class ResultsContext:
         pop_filter: str,
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], float],
-        additional_stratifications: List[str] = [],
-        excluded_stratifications: List[str] = [],
-        when: str = "collect_metrics",
-        **additional_keys: str,
-    ):
+        additional_stratifications: List[str],
+        excluded_stratifications: List[str],
+        when: str,
+        report: Callable[[Path, str, pd.DataFrame, str, str], None],
+    ) -> None:
         stratifications = self._get_stratifications(
             additional_stratifications, excluded_stratifications
         )
-        self.observations[when][(pop_filter, stratifications)].append(
-            (name, aggregator_sources, aggregator, additional_keys)
+        observation = Observation(
+            name=name,
+            pop_filter=pop_filter,
+            stratifications=stratifications,
+            aggregator_sources=aggregator_sources,
+            aggregator=aggregator,
+            when=when,
+            report=report,
         )
+        self.observations[when][(pop_filter, stratifications)].append(observation)
 
     def gather_results(
         self, population: pd.DataFrame, event_name: str
@@ -120,7 +129,10 @@ class ResultsContext:
                 yield None, None
             else:
                 pop_groups = self._get_groups(stratifications, filtered_pop)
-                for measure, aggregator_sources, aggregator, _additional_keys in observations:
+                for observation in observations:
+                    measure = observation.name
+                    aggregator_sources = observation.aggregator_sources
+                    aggregator = observation.aggregator
                     aggregates = self._aggregate(pop_groups, aggregator_sources, aggregator)
                     aggregates = self._coerce_to_dataframe(aggregates)
                     aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)

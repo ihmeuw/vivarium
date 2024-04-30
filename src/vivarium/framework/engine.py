@@ -21,7 +21,7 @@ tools to easily setup and run a simulation.
 
 from pathlib import Path
 from pprint import pformat
-from typing import Any, Dict, List, Set, Union
+from typing import Dict, List, Set, Union
 
 import numpy as np
 import pandas as pd
@@ -219,6 +219,7 @@ class SimulationContext:
             k: self._builder.event.get_emitter(k) for k in self.time_step_events
         }
         self.end_emitter = self._builder.event.get_emitter("simulation_end")
+        self.report_emitter = self._builder.event.get_emitter("report")
 
         post_setup = self._builder.event.get_emitter("post_setup")
         self._lifecycle.set_state("post_setup")
@@ -270,16 +271,18 @@ class SimulationContext:
                 float_format=lambda x: f"{x:.2f}",
             )
             self._logger.info("\n" + performance_metrics)
-        for measure, df in metrics.items():
-            # Add extra cols
-            df[["measure"]] = measure
-            df["random_seed"] = self.configuration.randomness.random_seed
-            df["input_draw"] = self.configuration.input_data.input_draw_number
-            # Sort the columns such that the stratifications (index) are first
-            # and "value" is last and sort the rows by the stratifications.
-            other_cols = [c for c in df.columns if c != "value"]
-            df = df[other_cols + ["value"]].sort_index().reset_index()
-            df.to_csv(results / f"{measure}.csv", index=False)
+
+        random_seed = self.configuration.randomness.random_seed
+        input_draw = self.configuration.input_data.input_draw_number
+        self.report_emitter(
+            self.get_population().index,
+            {
+                "results_dir": results,
+                "metrics": metrics,
+                "random_seed": random_seed,
+                "input_draw": input_draw,
+            },
+        )
 
     def get_performance_metrics(self) -> pd.DataFrame:
         timing_dict = self._lifecycle.timings
