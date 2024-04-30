@@ -124,10 +124,8 @@ class ResultsManager(Manager):
         metrics = event.user_data["metrics"]
         random_seed = event.user_data["random_seed"]
         input_draw = event.user_data["input_draw"]
-        observation_details = self._results_context.observations
-        # Access each observation and the associated report function
-        for event_name in observation_details:
-            for observations in observation_details[event_name].values():
+        for observation_details in self._results_context.observations.values():
+            for observations in observation_details.values():
                 for observation in observations:
                     observation.report(
                         results_dir=results_dir,
