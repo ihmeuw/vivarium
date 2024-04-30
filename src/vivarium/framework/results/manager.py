@@ -75,21 +75,48 @@ class ResultsManager(Manager):
 
     def on_post_setup(self, _: Event):
         """Initialize self._metrics with 0s DataFrame' for each measure and all stratifications"""
+        registered_stratifications = self._results_context.stratifications
+        registered_stratification_names = set(
+            stratification.name for stratification in registered_stratifications
+        )
+
+        missing_stratifications = {}
+        unused_stratifications = registered_stratification_names.copy()
+
         for event_name in self._results_context.observations:
             for (
                 _pop_filter,
-                stratification_names,
+                all_requested_stratification_names,
             ), observations in self._results_context.observations[event_name].items():
                 for observation in observations:
                     measure = observation.name
-                    observation_stratifications = [
+                    all_requested_stratification_names = set(
+                        all_requested_stratification_names
+                    )
+
+                    # Batch missing stratifications
+                    observer_missing_stratifications = (
+                        all_requested_stratification_names.difference(
+                            registered_stratification_names
+                        )
+                    )
+                    if observer_missing_stratifications:
+                        missing_stratifications[measure] = observer_missing_stratifications
+
+                    # Remove stratifications from the running list of unused stratifications
+                    unused_stratifications = unused_stratifications.difference(
+                        all_requested_stratification_names
+                    )
+
+                    # Set up the complete index of all used stratifications
+                    requested_and_registered_stratifications = [
                         stratification
-                        for stratification in self._results_context.stratifications
-                        if stratification.name in stratification_names
+                        for stratification in registered_stratifications
+                        if stratification.name in all_requested_stratification_names
                     ]
                     stratification_values = {
                         stratification.name: stratification.categories
-                        for stratification in observation_stratifications
+                        for stratification in requested_and_registered_stratifications
                     }
                     if stratification_values:
                         # Create index of the complete stratifications
@@ -100,12 +127,29 @@ class ResultsManager(Manager):
                     else:
                         # We are aggregating the entire population so create a single-row index
                         idx = pd.Index(["all"], name="stratification")
+
                     # Initialize a zeros dataframe
                     self._metrics[measure] = pd.DataFrame(
                         data=0.0,
                         columns=["value"],
                         index=idx,
                     )
+
+        if unused_stratifications:
+            self.logger.info(
+                "The following stratifications are registered but not used by any "
+                f"observers: \n{sorted(list(unused_stratifications))}"
+            )
+        if missing_stratifications:
+            # Sort by observer/measure and then by missing stratifiction
+            sorted_missing = {
+                key: sorted(list(missing_stratifications[key]))
+                for key in sorted(missing_stratifications)
+            }
+            raise ValueError(
+                "The following observers are requested to be stratified by "
+                f"stratifications that are not registered: \n{sorted_missing}"
+            )
 
     def on_time_step_prepare(self, event: Event):
         self.gather_results("time_step__prepare", event)
