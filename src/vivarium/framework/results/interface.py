@@ -1,6 +1,9 @@
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, Optional
 
 import pandas as pd
+
+from vivarium.framework.results.reporters import dataframe_to_csv
 
 if TYPE_CHECKING:
     # cyclic import
@@ -143,6 +146,7 @@ class ResultsInterface:
         additional_stratifications: List[str] = [],
         excluded_stratifications: List[str] = [],
         when: str = "collect_metrics",
+        report: Callable[[Path, str, pd.DataFrame, str, str], None] = dataframe_to_csv,
     ) -> None:
         """Provide the results system all the information it needs to perform the observation.
 
@@ -170,6 +174,8 @@ class ResultsInterface:
         when
             String name of the phase of a time-step the observation should happen. Valid values are:
             `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
+        report
+            A function that handles reporting of the final observations at the end of the simulation.
 
         Returns
         ------
@@ -185,4 +191,5 @@ class ResultsInterface:
             additional_stratifications,
             excluded_stratifications,
             when,
+            report,
         )
