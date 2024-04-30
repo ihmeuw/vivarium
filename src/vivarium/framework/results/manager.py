@@ -90,7 +90,7 @@ class ResultsManager(Manager):
             ), observations in self._results_context.observations[event_name].items():
                 for observation in observations:
                     measure = observation.name
-                    
+
                     # Batch missing stratifications
                     missing_stratifications = set(
                         all_requested_stratification_names
@@ -102,6 +102,7 @@ class ResultsManager(Manager):
                     unused_stratifications = unused_stratifications.difference(
                         set(all_requested_stratification_names)
                     )
+
                     # Set up the complete index of all used stratifications
                     requested_and_registered_stratifications = [
                         stratification
@@ -128,6 +129,7 @@ class ResultsManager(Manager):
                         columns=["value"],
                         index=idx,
                     )
+
         if unused_stratifications:
             self.logger.info(
                 "The following Stratifications are registered but not used by any "
