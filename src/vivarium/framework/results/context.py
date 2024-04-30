@@ -6,6 +6,7 @@ import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
 
 from vivarium.framework.results.exceptions import ResultsConfigurationError
+from vivarium.framework.results.observation import Observation
 from vivarium.framework.results.stratification import Stratification
 
 
@@ -29,7 +30,7 @@ class ResultsContext:
         # ]
         # values are dicts with
         #     key (filter, grouper)
-        #     value (measure, aggregator_sources, aggregator, additional_keys)
+        #     value Observation
         self.observations = defaultdict(lambda: defaultdict(list))
 
     @property
@@ -95,13 +96,20 @@ class ResultsContext:
         excluded_stratifications: List[str],
         when: str,
         report: Callable[[Path, str, pd.DataFrame, str, str], None],
-    ):
+    ) -> None:
         stratifications = self._get_stratifications(
             additional_stratifications, excluded_stratifications
         )
-        self.observations[when][(pop_filter, stratifications)].append(
-            (name, aggregator_sources, aggregator, report)
+        observation = Observation(
+            name=name,
+            pop_filter=pop_filter,
+            stratifications=stratifications,
+            aggregator_sources=aggregator_sources,
+            aggregator=aggregator,
+            when=when,
+            report=report,
         )
+        self.observations[when][(pop_filter, stratifications)].append(observation)
 
     def gather_results(
         self, population: pd.DataFrame, event_name: str
@@ -121,7 +129,10 @@ class ResultsContext:
                 yield None, None
             else:
                 pop_groups = self._get_groups(stratifications, filtered_pop)
-                for measure, aggregator_sources, aggregator, _report in observations:
+                for observation in observations:
+                    measure = observation.name
+                    aggregator_sources = observation.aggregator_sources
+                    aggregator = observation.aggregator
                     aggregates = self._aggregate(pop_groups, aggregator_sources, aggregator)
                     aggregates = self._coerce_to_dataframe(aggregates)
                     aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)
