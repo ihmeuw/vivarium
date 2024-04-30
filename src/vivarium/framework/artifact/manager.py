@@ -10,7 +10,7 @@ for handling complex data bound up in a data artifact.
 
 import re
 from pathlib import Path
-from typing import Any, List, Sequence, Union
+from typing import Any, Callable, List, Sequence, Union
 
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
@@ -103,12 +103,22 @@ class ArtifactManager(Manager):
             else data
         )
 
-    def get_value_columns(self, entity_key: str) -> List[str]:
+    def value_columns(self) -> Callable[[Union[str, pd.DataFrame]], List[str]]:
         """
-        Returns the value columns for the given entity key.
-        # todo improve docstring
+        Returns a function that returns the value columns for the given input.
+
+        The function can be called with either a string or a pandas DataFrame.
+        If a string is provided, it is interpreted as an artifact key, and the
+        value columns for the data stored at that key are returned.
+
+        Currently, the returned function will always return ["value"].
+
+        Returns
+        -------
+        Callable[[Union[str, pandas.core.generic.PandasObject]], List[str]]
+            A function that returns the value columns for the given input.
         """
-        return [self._default_value_column]
+        return lambda _: [self._default_value_column]
 
     def __repr__(self):
         return "ArtifactManager()"
@@ -153,11 +163,20 @@ class ArtifactInterface:
         """
         return self._manager.load(entity_key, **column_filters)
 
-    def get_value_columns(self, entity_key: str) -> List[str]:
+    def value_columns(self) -> Callable[[Union[str, pd.DataFrame]], List[str]]:
         """
-        # todo add docstring
+        Returns a function that returns the value columns for the given input.
+
+        The function can be called with either a string or a pandas DataFrame.
+        If a string is provided, it is interpreted as an artifact key, and the
+        value columns for the data stored at that key are returned.
+
+        Returns
+        -------
+        Callable[[Union[str, pandas.core.generic.PandasObject]], List[str]]
+            A function that returns the value columns for the given input.
         """
-        return self._manager.get_value_columns(entity_key)
+        return self._manager.value_columns()
 
     def __repr__(self):
         return "ArtifactManagerInterface()"

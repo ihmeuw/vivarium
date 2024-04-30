@@ -579,6 +579,7 @@ class Component(ABC):
         -------
         None
         """
+        self.get_value_columns = builder.data.value_columns()
         if (
             self.name in builder.configuration
             and "data_sources" in builder.configuration[self.name]
@@ -597,8 +598,9 @@ class Component(ABC):
     def build_lookup_table(
         self,
         builder: "Builder",
-        # TODO: replace with LookupTableData
+        # todo: replace with LookupTableData
         data_source: Union[str, float, int, pd.DataFrame],
+        # todo: MIC-5029 remove argument when this is implemented
         value_columns: Optional[Iterable[str]] = None,
     ) -> LookupTable:
         """
@@ -634,7 +636,7 @@ class Component(ABC):
         if isinstance(data, pd.DataFrame):
             all_columns = set(data.columns)
             if value_columns is None:
-                value_columns = set(builder.data.get_value_columns(data_source))
+                value_columns = set(self.get_value_columns(data))
             else:
                 value_columns = set(value_columns)
 
