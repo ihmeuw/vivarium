@@ -451,23 +451,27 @@ def test_component_lookup_table_configuration(hdf_file_path):
     [
         (
             {"favorite_color": "key.not.in.artifact"},
+            "Error building lookup table 'favorite_color'. "
             "Failed to find key 'key.not.in.artifact' in artifact.",
             ConfigurationError,
         ),
         (
             {"favorite_color": "not.a.real.module::load_color"},
+            "Error building lookup table 'favorite_color'. "
             "Unable to find module 'not.a.real.module'",
             ConfigurationError,
         ),
         (
             {"favorite_color": "self::non_existent_loader_function"},
-            "There is no method 'non_existent_loader_function' for the component "
+            "Error building lookup table 'favorite_color'. There is no method "
+            "'non_existent_loader_function' for the component "
             "single_lookup_creator.",
             ConfigurationError,
         ),
         (
-            {"favorite_color": "pandas::non_existent_loader_function"},
-            "There is no method 'non_existent_loader_function' for the module 'pandas'.",
+            {"favorite_color": "vivarium::non_existent_loader_function"},
+            "Error building lookup table 'favorite_color'. There is no method "
+            "'non_existent_loader_function' for the module 'vivarium'.",
             ConfigurationError,
         ),
     ],

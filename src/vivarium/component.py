@@ -585,16 +585,21 @@ class Component(ABC):
         ):
             data_source_configs = builder.configuration[self.name].data_sources
             for table_name in data_source_configs.keys():
-                self.lookup_tables[table_name] = self.build_lookup_table(
-                    builder, data_source_configs[table_name]
-                )
+                try:
+                    self.lookup_tables[table_name] = self.build_lookup_table(
+                        builder, data_source_configs[table_name]
+                    )
+                except ConfigurationError as e:
+                    raise ConfigurationError(
+                        f"Error building lookup table '{table_name}': {e}"
+                    )
 
     def build_lookup_table(
         self,
         builder: "Builder",
         # TODO: replace with LookupTableData
         data_source: Union[str, float, int, pd.DataFrame],
-        value_columns: Iterable[str] = None,
+        value_columns: Optional[Iterable[str]] = None,
     ) -> LookupTable:
         """
         Builds a LookupTable from a data source.
@@ -609,15 +614,20 @@ class Component(ABC):
         ----------
         builder : Builder
             The builder object used to set up the component.
-        data_source : Union[str, float, pd.DataFrame]
+        data_source : Union[str, float, pandas.core.generic.PandasObject]
             The data source to build the LookupTable from.
-        value_columns : List[str], optional
+        value_columns : Optional[Iterable[str]]
             The columns to include in the LookupTable.
 
         Returns
         -------
         LookupTable
             The LookupTable built from the data source.
+
+        Raises
+        ------
+        layered_config_tree.exceptions.ConfigurationError
+            If the data source is invalid.
         """
         data = self.get_data(builder, data_source)
         kwargs = {}
@@ -668,17 +678,17 @@ class Component(ABC):
         ----------
         builder : Builder
             The builder object used to set up the component.
-        data_source : Union[str, float, pd.DataFrame]
+        data_source : Union[str, float, pandas.core.generic.PandasObject]
             The data source to retrieve data from.
 
         Returns
         -------
-        Union[float, pd.DataFrame]
+        Union[float, pandas.core.generic.PandasObject]
             The data retrieved from the data source.
 
         Raises
         ------
-        ConfigurationError
+        layered_config_tree.exceptions.ConfigurationError
             If the data source is invalid.
         """
         if isinstance(data_source, (float, pd.DataFrame)):
