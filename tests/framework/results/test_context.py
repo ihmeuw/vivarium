@@ -109,13 +109,14 @@ def test_add_observation(
     ctx._default_stratifications = ["age", "sex"]
     assert len(ctx.observations) == 0
     ctx.add_observation(
-        name,
-        pop_filter,
-        [],
-        aggregator,
-        additional_stratifications,
-        excluded_stratifications,
-        when,
+        name=name,
+        pop_filter=pop_filter,
+        aggregator_sources=[],
+        aggregator=aggregator,
+        additional_stratifications=additional_stratifications,
+        excluded_stratifications=excluded_stratifications,
+        when=when,
+        report=lambda: None,
     )
     assert len(ctx.observations) == 1
 
@@ -143,22 +144,24 @@ def test_double_add_observation(
     ctx._default_stratifications = ["age", "sex"]
     assert len(ctx.observations) == 0
     ctx.add_observation(
-        name,
-        pop_filter,
-        [],
-        aggregator,
-        additional_stratifications,
-        excluded_stratifications,
-        when,
+        name=name,
+        pop_filter=pop_filter,
+        aggregator_sources=[],
+        aggregator=aggregator,
+        additional_stratifications=additional_stratifications,
+        excluded_stratifications=excluded_stratifications,
+        when=when,
+        report=lambda: None,
     )
     ctx.add_observation(
-        name,
-        pop_filter,
-        [],
-        aggregator,
-        additional_stratifications,
-        excluded_stratifications,
-        when,
+        name=name,
+        pop_filter=pop_filter,
+        aggregator_sources=[],
+        aggregator=aggregator,
+        additional_stratifications=additional_stratifications,
+        excluded_stratifications=excluded_stratifications,
+        when=when,
+        report=lambda: None,
     )
     assert len(ctx.observations) == 1
 
@@ -256,13 +259,14 @@ def test_gather_results(
     if "familiar" in stratifications:
         ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
     ctx.add_observation(
-        name,
-        pop_filter,
-        aggregator_sources,
-        aggregator,
-        stratifications,
-        [],
-        event_name,
+        name=name,
+        pop_filter=pop_filter,
+        aggregator_sources=aggregator_sources,
+        aggregator=aggregator,
+        additional_stratifications=stratifications,
+        excluded_stratifications=[],
+        when=event_name,
+        report=lambda: None,
     )
 
     i = 0
@@ -333,13 +337,14 @@ def test_gather_results_partial_stratifications_in_results(
     if "familiar" in stratifications:
         ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
     ctx.add_observation(
-        name,
-        pop_filter,
-        aggregator_sources,
-        aggregator,
-        stratifications,
-        [],
-        event_name,
+        name=name,
+        pop_filter=pop_filter,
+        aggregator_sources=aggregator_sources,
+        aggregator=aggregator,
+        additional_stratifications=stratifications,
+        excluded_stratifications=[],
+        when=event_name,
+        report=lambda: None,
     )
 
     for results, _measure in ctx.gather_results(population, event_name):
@@ -361,9 +366,12 @@ def test_gather_results_with_empty_pop_filter():
     ctx.add_observation(
         name="wizard_count",
         pop_filter="house == 'durmstrang'",
-        aggregator_sources=None,
+        aggregator_sources=[],
         aggregator=len,
-        event_name=event_name,
+        additional_stratifications=[],
+        excluded_stratifications=[],
+        when=event_name,
+        report=lambda: None,
     )
 
     for result, _measure in ctx.gather_results(population, event_name):
@@ -383,7 +391,10 @@ def test_gather_results_with_no_stratifications():
         pop_filter="",
         aggregator_sources=None,
         aggregator=len,
-        event_name=event_name,
+        additional_stratifications=[],
+        excluded_stratifications=[],
+        when=event_name,
+        report=lambda: None,
     )
 
     assert len(ctx.stratifications) == 0
@@ -406,13 +417,14 @@ def test__bad_aggregator_return():
     ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
     ctx.add_observation(
-        "this_shouldnt_work",
-        "",
-        ["tracked", "power_level"],
-        sum,
-        ["house", "familiar"],
-        [],
-        event_name,
+        name="this_shouldnt_work",
+        pop_filter="",
+        aggregator_sources=["tracked", "power_level"],
+        aggregator=sum,
+        additional_stratifications=["house", "familiar"],
+        excluded_stratifications=[],
+        when=event_name,
+        report=lambda: None,
     )
 
     with pytest.raises(TypeError):
@@ -433,13 +445,14 @@ def test__bad_aggregator_stratification():
     ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
     ctx.add_observation(
-        "this_shouldnt_work",
-        "",
-        [],
-        sum,
-        ["house", "height"],  # `height` is not a stratification
-        [],
-        event_name,
+        name="this_shouldnt_work",
+        pop_filter="",
+        aggregator_sources=[],
+        aggregator=sum,
+        additional_stratifications=["house", "height"],  # `height` is not a stratification
+        excluded_stratifications=[],
+        when=event_name,
+        report=lambda: None,
     )
 
     with pytest.raises(KeyError, match="height"):
