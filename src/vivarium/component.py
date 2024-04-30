@@ -9,12 +9,17 @@ simulations.
 
 import re
 from abc import ABC
+from importlib import import_module
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Union
 
+import pandas as pd
+from layered_config_tree import ConfigurationError
 from loguru._logger import Logger
 
+from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.event import Event
+from vivarium.framework.lookup import LookupTable
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -72,24 +77,6 @@ class Component(ABC):
     - `on_collect_metrics`
     - `on_simulation_end`
     """
-
-    @staticmethod
-    def build_lookup_table_config(
-        value: str,
-        continuous_columns: List[str] = [],
-        categorical_columns: List[str] = [],
-        key_name: str = None,
-        **kwargs: Dict[str, Any],
-    ) -> dict:
-        config = {
-            "value": value,
-            "continuous_columns": continuous_columns,
-            "categorical_columns": categorical_columns,
-        }
-        if key_name:
-            config["key_name"] = key_name
-        config.update(kwargs)
-        return config
 
     CONFIGURATION_DEFAULTS: Dict[str, Any] = {}
     """
@@ -225,13 +212,6 @@ class Component(ABC):
             additional columns are necessary.
         """
         return None
-
-    @property
-    def standard_lookup_tables(self) -> List[str]:
-        """
-        Returns a list of keys that are used to create standard lookup tables in a component.
-        """
-        return []
 
     @property
     def initialization_requirements(self) -> Dict[str, List[str]]:
@@ -581,25 +561,152 @@ class Component(ABC):
 
     def build_lookup_tables(self, builder: "Builder") -> None:
         """
-        Method to create standard lookup tables for the component. This will create a
-        lookup table for each lookup key in self.standard_lookup_tables property. If
-        additional lookup tables are desired, users have, users have two options: (1)
-        override this method by calling the super method and adding them, or
-        (2) overriding the standard 'lookup_tables' property.
+        Builds lookup tables for this component.
+
+        This method builds lookup tables for this component based on the data
+        sources specified in the configuration. If no data sources are specified,
+        no lookup tables are built.
+
+        The created lookup tables are stored in the lookup_tables dictionary of
+        the component, with the table name as the key.
+
+        Parameters
+        ----------
+        builder : Builder
+            The builder object used to set up the component.
+
+        Returns
+        -------
+        None
         """
-        for lookup_table_name in self.standard_lookup_tables:
-            lookup_table_config = builder.configuration[self.name][lookup_table_name]
-            # TODO: make path to configuration the data key when we align artifact
-            # keys with configuration path
-            if lookup_table_config["value"] == "data":
-                table = builder.lookup.build_table(
-                    data=builder.data.load(lookup_table_config["key_name"]),
-                    key_columns=lookup_table_config["categorical_columns"],
-                    parameter_columns=lookup_table_config["continuous_columns"],
+        if (
+            self.name in builder.configuration
+            and "data_sources" in builder.configuration[self.name]
+        ):
+            data_source_configs = builder.configuration[self.name].data_sources
+            for table_name in data_source_configs.keys():
+                self.lookup_tables[table_name] = self.build_lookup_table(
+                    builder, data_source_configs[table_name]
                 )
+
+    def build_lookup_table(
+        self,
+        builder: "Builder",
+        # TODO: replace with LookupTableData
+        data_source: Union[str, float, int, pd.DataFrame],
+        value_columns: Iterable[str] = None,
+    ) -> LookupTable:
+        """
+        Builds a LookupTable from a data source.
+
+        Uses `get_data` to parse the data source and retrieve the lookup table
+        data. The LookupTable is built from the data source, with the value
+        columns specified in the value_columns parameter. If value_columns is
+        None and the data is a DataFrame, the ArtifactManager will determine
+        the value columns.
+
+        Parameters
+        ----------
+        builder : Builder
+            The builder object used to set up the component.
+        data_source : Union[str, float, pd.DataFrame]
+            The data source to build the LookupTable from.
+        value_columns : List[str], optional
+            The columns to include in the LookupTable.
+
+        Returns
+        -------
+        LookupTable
+            The LookupTable built from the data source.
+        """
+        data = self.get_data(builder, data_source)
+        kwargs = {}
+        if isinstance(data, pd.DataFrame):
+            all_columns = set(data.columns)
+            if value_columns is None:
+                value_columns = set(builder.data.get_value_columns(data_source))
             else:
-                table = builder.lookup.build_table(lookup_table_config["value"])
-            self.lookup_tables[lookup_table_name] = table
+                value_columns = set(value_columns)
+
+            potential_parameter_columns = [
+                col.removesuffix("_start") for col in all_columns if col.endswith("_start")
+            ]
+            parameter_columns = set()
+            bin_edge_columns = set()
+            for column in potential_parameter_columns:
+                if f"{column}_end" in all_columns:
+                    parameter_columns.add(column)
+                    bin_edge_columns.update([f"{column}_start", f"{column}_end"])
+
+            key_columns = all_columns - value_columns - bin_edge_columns
+            kwargs = {
+                "key_columns": list(key_columns),
+                "parameter_columns": list(parameter_columns),
+                "value_columns": list(value_columns),
+            }
+
+        return builder.lookup.build_table(data=data, **kwargs)
+
+    def get_data(
+        # TODO: replace with LookupTableData
+        self,
+        builder: "Builder",
+        data_source: Union[str, float, pd.DataFrame],
+    ) -> Union[float, pd.DataFrame]:
+        """
+        Retrieves data from a data source.
+
+        If the data source is a float or a DataFrame, it is treated as the data
+        itself. If the data source is a string, containing the substring '::',
+        it is treated as a function to call to retrieve the data. The string to
+        the left of '::' is the module to import, and the string to the right is
+        the function to call. 'self' can be provided to the left of '::' to call
+        a method on the component itself. If the data source is a string without
+        the substring '::', it is treated as a key in the artifact.
+
+        Parameters
+        ----------
+        builder : Builder
+            The builder object used to set up the component.
+        data_source : Union[str, float, pd.DataFrame]
+            The data source to retrieve data from.
+
+        Returns
+        -------
+        Union[float, pd.DataFrame]
+            The data retrieved from the data source.
+
+        Raises
+        ------
+        ConfigurationError
+            If the data source is invalid.
+        """
+        if isinstance(data_source, (float, pd.DataFrame)):
+            return data_source
+
+        if "::" in data_source:
+            module, method = data_source.split("::")
+            try:
+                if module == "self":
+                    data_getter = getattr(self, method)
+                else:
+                    data_getter = getattr(import_module(module), method)
+            except ModuleNotFoundError:
+                raise ConfigurationError(f"Unable to find module '{module}'.")
+            except AttributeError:
+                module_string = (
+                    f"component {self.name}." if module == "self" else f"module '{module}'."
+                )
+                raise ConfigurationError(
+                    f"There is no method '{method}' for the {module_string}."
+                )
+
+            return data_getter(builder)
+
+        try:
+            return builder.data.load(data_source)
+        except ArtifactException:
+            raise ConfigurationError(f"Failed to find key '{data_source}' in artifact.")
 
     def _set_population_view(self, builder: "Builder") -> None:
         """

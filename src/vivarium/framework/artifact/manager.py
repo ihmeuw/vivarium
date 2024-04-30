@@ -10,7 +10,7 @@ for handling complex data bound up in a data artifact.
 
 import re
 from pathlib import Path
-from typing import Any, Sequence, Union
+from typing import Any, List, Sequence, Union
 
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
@@ -31,6 +31,9 @@ class ArtifactManager(Manager):
             "input_draw_number": None,
         }
     }
+
+    def __init__(self):
+        self._default_value_column = "value"
 
     @property
     def name(self):
@@ -93,12 +96,19 @@ class ArtifactManager(Manager):
             data = data.reset_index()
             draw_col = [c for c in data if "draw" in c]
             if draw_col:
-                data = data.rename(columns={draw_col[0]: "value"})
+                data = data.rename(columns={draw_col[0]: self._default_value_column})
         return (
             filter_data(data, self.config_filter_term, **column_filters)
             if isinstance(data, pd.DataFrame)
             else data
         )
+
+    def get_value_columns(self, entity_key: str) -> List[str]:
+        """
+        Returns the value columns for the given entity key.
+        # todo improve docstring
+        """
+        return [self._default_value_column]
 
     def __repr__(self):
         return "ArtifactManager()"
@@ -142,6 +152,12 @@ class ArtifactInterface:
             The data associated with the given key filtered down to the requested subset.
         """
         return self._manager.load(entity_key, **column_filters)
+
+    def get_value_columns(self, entity_key: str) -> List[str]:
+        """
+        # todo add docstring
+        """
+        return self._manager.get_value_columns(entity_key)
 
     def __repr__(self):
         return "ArtifactManagerInterface()"
