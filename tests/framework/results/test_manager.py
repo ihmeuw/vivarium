@@ -319,8 +319,16 @@ def test_observers_with_missing_stratifications_fail():
     that never actually gets registered.
     """
     components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
+    missing_strats = {
+        "quidditch_wins": set(["power_level", "familiar"]),
+        "house_points": set(["power_level", "student_house"]),
+    }
     with pytest.raises(
-        ValueError, match=f"requires the following stratifications that are not registered:"
+        ValueError,
+        match=(
+            f"The following Observers are requested to be stratified by Stratifications "
+            f"that are not registered: \n{missing_strats}"
+        ),
     ):
         InteractiveContext(configuration=CONFIG, components=components)
 

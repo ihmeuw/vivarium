@@ -72,6 +72,7 @@ class ResultsManager(Manager):
 
     def on_post_setup(self, _: Event):
         """Initialize self._metrics with 0s DataFrame' for each measure and all stratifications"""
+        all_missing_stratifications = {}
         for event_name in self._results_context.observations:
             for (
                 _pop_filter,
@@ -87,10 +88,7 @@ class ResultsManager(Manager):
                         set(obs.name for obs in observation_stratifications)
                     )
                     if missing_stratifications:
-                        raise ValueError(
-                            f"Observation {measure} requires the following stratifications "
-                            f"that are not registered: {missing_stratifications}"
-                        )
+                        all_missing_stratifications[measure] = missing_stratifications
                     stratification_values = {
                         stratification.name: stratification.categories
                         for stratification in observation_stratifications
@@ -110,6 +108,11 @@ class ResultsManager(Manager):
                         columns=["value"],
                         index=idx,
                     )
+        if all_missing_stratifications:
+            raise ValueError(
+                "The following Observers are requested to be stratified by Stratifications "
+                f"that are not registered: \n{all_missing_stratifications}"
+            )
 
     def on_time_step_prepare(self, event: Event):
         self.gather_results("time_step__prepare", event)
