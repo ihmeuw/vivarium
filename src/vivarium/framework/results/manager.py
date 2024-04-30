@@ -133,12 +133,16 @@ class ResultsManager(Manager):
         if unused_stratifications:
             self.logger.info(
                 "The following Stratifications are registered but not used by any "
-                f"Observers: \n{unused_stratifications}"
+                f"Observers: \n{sorted(list(unused_stratifications))}"
             )
         if all_missing_stratifications:
+            # Sort by observer/measure and then by missing stratifiction
+            sorted_missing = {
+                key: sorted(list(all_missing_stratifications[key]))
+                for key in sorted(all_missing_stratifications)
+            }
             raise ValueError(
-                "The following Observers are requested to be stratified by Stratifications "
-                f"that are not registered: \n{all_missing_stratifications}"
+                f"The following Observers are requested to be stratified by Stratifications that are not registered: {sorted_missing}"
             )
 
     def on_time_step_prepare(self, event: Event):

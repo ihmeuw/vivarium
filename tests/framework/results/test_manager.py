@@ -1,3 +1,4 @@
+import re
 from types import MethodType
 
 import pandas as pd
@@ -322,17 +323,17 @@ def test_observers_with_missing_stratifications_fail():
     that never actually gets registered.
     """
     components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
-    missing_strats = {
-        "quidditch_wins": set(["power_level", "familiar"]),
-        "house_points": set(["power_level", "student_house"]),
+
+    expected_missing = {  # NOTE: keep in alphabetical order
+        "house_points": ["power_level", "student_house"],
+        "quidditch_wins": ["familiar", "power_level"],
     }
-    with pytest.raises(
-        ValueError,
-        match=(
-            f"The following Observers are requested to be stratified by Stratifications "
-            f"that are not registered: \n{missing_strats}"
-        ),
-    ):
+    expected_log_msg = re.escape(
+        "The following Observers are requested to be stratified by Stratifications "
+        f"that are not registered: {expected_missing}"
+    )
+
+    with pytest.raises(ValueError, match=expected_log_msg):
         InteractiveContext(configuration=CONFIG, components=components)
 
 
@@ -353,7 +354,7 @@ def test_unused_stratifications_are_logged(caplog):
     # Check that the log message is present and only exists one time
     assert len(log_split) == 2
     # Check that the log message contains the expected Stratifications
-    assert "{'familiar'}" in log_split[1]
+    assert "['familiar']" in log_split[1]
 
 
 def test_update_monotonically_increasing_metrics():
