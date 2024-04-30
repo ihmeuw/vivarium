@@ -1,3 +1,4 @@
+import re
 from types import MethodType
 
 import pandas as pd
@@ -304,19 +305,56 @@ def test_stratified_metrics_initialization():
     )
 
 
-def test_no_stratified_metrics_initialization():
-    """Test that if no stratifications are registered then we initialize a
+def test_metrics_initialized_from_no_stratifications_observer():
+    """Test that Observers requesting no stratifications result in a
     single-row DataFrame with 'value' of zero and index labeled 'all'
     """
-    components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
+    components = [Hogwarts(), NoStratificationsQuidditchWinsObserver()]
     sim = InteractiveContext(configuration=CONFIG, components=components)
-    metrics = sim._results.metrics
-    for metric in metrics:
-        result = metrics[metric]
-        assert isinstance(result, pd.DataFrame)
-        assert result.shape == (1, 1)
-        assert result["value"].iat[0] == 0
-        assert result.index.equals(pd.Index(["all"]))
+    results = sim._results.metrics["no_stratifications_quidditch_wins"]
+    assert isinstance(results, pd.DataFrame)
+    assert results.shape == (1, 1)
+    assert results["value"].iat[0] == 0
+    assert results.index.equals(pd.Index(["all"]))
+
+
+def test_observers_with_missing_stratifications_fail():
+    """Test that an error is raised if an Observer requests a stratification
+    that never actually gets registered.
+    """
+    components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
+
+    expected_missing = {  # NOTE: keep in alphabetical order
+        "house_points": ["power_level", "student_house"],
+        "quidditch_wins": ["familiar", "power_level"],
+    }
+    expected_log_msg = re.escape(
+        "The following observers are requested to be stratified by stratifications "
+        f"that are not registered: \n{expected_missing}"
+    )
+
+    with pytest.raises(ValueError, match=expected_log_msg):
+        InteractiveContext(configuration=CONFIG, components=components)
+
+
+def test_unused_stratifications_are_logged(caplog):
+    """Test that we issue a logger.info warning if Stratifications are registered
+    but never actually used by an Observer
+
+    The HogwartsResultsStratifier registers "student_house", "familiar", and
+    "power_level" stratifiers. However, we will only use the HousePointsObserver
+    component which only requests to be stratified by "student_house" and "power_level"
+    """
+    components = [HousePointsObserver(), Hogwarts(), HogwartsResultsStratifier()]
+    InteractiveContext(configuration=CONFIG, components=components)
+
+    log_split = caplog.text.split(
+        "The following stratifications are registered but not used by any observers: \n"
+    )
+    # Check that the log message is present and only exists one time
+    assert len(log_split) == 2
+    # Check that the log message contains the expected Stratifications
+    assert "['familiar']" in log_split[1]
 
 
 def test_update_monotonically_increasing_metrics():
