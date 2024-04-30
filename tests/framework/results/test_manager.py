@@ -329,8 +329,8 @@ def test_observers_with_missing_stratifications_fail():
         "quidditch_wins": ["familiar", "power_level"],
     }
     expected_log_msg = re.escape(
-        "The following Observers are requested to be stratified by Stratifications "
-        f"that are not registered: {expected_missing}"
+        "The following observers are requested to be stratified by stratifications "
+        f"that are not registered: \n{expected_missing}"
     )
 
     with pytest.raises(ValueError, match=expected_log_msg):
@@ -349,7 +349,7 @@ def test_unused_stratifications_are_logged(caplog):
     InteractiveContext(configuration=CONFIG, components=components)
 
     log_split = caplog.text.split(
-        "The following Stratifications are registered but not used by any Observers: \n"
+        "The following stratifications are registered but not used by any observers: \n"
     )
     # Check that the log message is present and only exists one time
     assert len(log_split) == 2

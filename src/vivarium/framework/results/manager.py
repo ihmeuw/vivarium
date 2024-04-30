@@ -80,7 +80,7 @@ class ResultsManager(Manager):
             stratification.name for stratification in registered_stratifications
         )
 
-        all_missing_stratifications = {}
+        missing_stratifications = {}
         unused_stratifications = registered_stratification_names.copy()
 
         for event_name in self._results_context.observations:
@@ -90,17 +90,22 @@ class ResultsManager(Manager):
             ), observations in self._results_context.observations[event_name].items():
                 for observation in observations:
                     measure = observation.name
+                    all_requested_stratification_names = set(
+                        all_requested_stratification_names
+                    )
 
                     # Batch missing stratifications
-                    missing_stratifications = set(
-                        all_requested_stratification_names
-                    ).difference(registered_stratification_names)
-                    if missing_stratifications:
-                        all_missing_stratifications[measure] = missing_stratifications
+                    observer_missing_stratifications = (
+                        all_requested_stratification_names.difference(
+                            registered_stratification_names
+                        )
+                    )
+                    if observer_missing_stratifications:
+                        missing_stratifications[measure] = observer_missing_stratifications
 
                     # Remove stratifications from the running list of unused stratifications
                     unused_stratifications = unused_stratifications.difference(
-                        set(all_requested_stratification_names)
+                        all_requested_stratification_names
                     )
 
                     # Set up the complete index of all used stratifications
@@ -132,17 +137,18 @@ class ResultsManager(Manager):
 
         if unused_stratifications:
             self.logger.info(
-                "The following Stratifications are registered but not used by any "
-                f"Observers: \n{sorted(list(unused_stratifications))}"
+                "The following stratifications are registered but not used by any "
+                f"observers: \n{sorted(list(unused_stratifications))}"
             )
-        if all_missing_stratifications:
+        if missing_stratifications:
             # Sort by observer/measure and then by missing stratifiction
             sorted_missing = {
-                key: sorted(list(all_missing_stratifications[key]))
-                for key in sorted(all_missing_stratifications)
+                key: sorted(list(missing_stratifications[key]))
+                for key in sorted(missing_stratifications)
             }
             raise ValueError(
-                f"The following Observers are requested to be stratified by Stratifications that are not registered: {sorted_missing}"
+                "The following observers are requested to be stratified by "
+                f"stratifications that are not registered: \n{sorted_missing}"
             )
 
     def on_time_step_prepare(self, event: Event):
