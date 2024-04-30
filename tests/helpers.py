@@ -43,17 +43,13 @@ class MockComponentB(Component):
     def setup(self, builder: Builder) -> None:
         self.builder_used_for_setup = builder
         builder.value.register_value_modifier("metrics", self.metrics)
+        builder.results.register_observation("test")
 
     def create_lookup_tables(self, builder):
         return {}
 
     def metrics(self, _, metrics) -> pd.DataFrame:
-        if "test" in metrics:
-            metrics["test"]["value"] += 1
-        else:
-            metrics["test"] = pd.DataFrame(
-                {"value": [1], "stratification_1": ["one"], "stratification_2": ["two"]}
-            ).set_index(["stratification_1", "stratification_2"])
+        metrics["test"]["value"] += 1
         return metrics
 
     def __eq__(self, other: Any) -> bool:

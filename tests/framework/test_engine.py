@@ -259,13 +259,16 @@ def test_SimulationContext_finalize(SimulationContext, base_config, components):
     assert listener.simulation_end_called
 
 
-def test_SimulationContext_report(SimulationContext, base_config, components, tmpdir):
+def test_SimulationContext_report(SimulationContext, base_config, components, tmpdir, mocker):
+    # Mock out 'gather_results' and instead rely on the MockComponentB 'metrics'
+    # pipeline (which is effectively just a counter)
+    mocker.patch("vivarium.framework.results.context.ResultsContext.gather_results")
     sim = SimulationContext(base_config, components)
     sim.setup()
     sim.initialize_simulants()
     sim.run()
     sim.finalize()
-    sim.report(tmpdir)
+    sim.report(Path(tmpdir))
 
     metrics = pd.read_csv(tmpdir / "test.csv")
     assert len(metrics["value"].unique()) == 1
