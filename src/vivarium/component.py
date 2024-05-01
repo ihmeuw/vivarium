@@ -366,7 +366,7 @@ class Component(ABC):
         None
         """
         self.logger = builder.logging.get_logger(self.name)
-        self.build_lookup_tables(builder)
+        self.build_all_lookup_tables(builder)
         self.setup(builder)
         self._set_population_view(builder)
         self._register_post_setup_listener(builder)
@@ -559,9 +559,9 @@ class Component(ABC):
             if hasattr(self, parameter_name)
         }
 
-    def build_lookup_tables(self, builder: "Builder") -> None:
+    def build_all_lookup_tables(self, builder: "Builder") -> None:
         """
-        Builds lookup tables for this component.
+        Builds all lookup tables for this component.
 
         This method builds lookup tables for this component based on the data
         sources specified in the configuration. If no data sources are specified,
