@@ -2,11 +2,12 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 import pytest
+from layered_config_tree.exceptions import ConfigurationError
 
 from vivarium import Artifact, Component, InteractiveContext
-from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
+from vivarium.framework.lookup.table import ScalarTable
 from vivarium.framework.population import SimulantData
 
 
@@ -29,41 +30,24 @@ class ColumnCreator(Component):
 class LookupCreator(ColumnCreator):
     CONFIGURATION_DEFAULTS = {
         "lookup_creator": {
-            "favorite_team": Component.build_lookup_table_config(
-                value="data",
-                categorical_columns=["test_column_1"],
-                continuous_columns=[],
-                key_name="simulants.favorite_team",
-            ),
-            "favorite_scalar": Component.build_lookup_table_config(
-                value=0.4,
-            ),
-            "favorite_color": Component.build_lookup_table_config(
-                value="data",
-                categorical_columns=["test_column_2"],
-                continuous_columns=["test_column_3"],
-                key_name="simulants.favorite_color",
-            ),
-            "favorite_number": Component.build_lookup_table_config(
-                value="data",
-                categorical_columns=[],
-                continuous_columns=["test_column_3"],
-                key_name="simulants.favorite_number",
-            ),
-            # This is not in the class property so will not get created automatically
-            "baking_time": Component.build_lookup_table_config(
-                value="data",
-                categorical_columns=["test_column_1", "test_column_2"],
-                continuous_columns=["test_column_3"],
-                key_name="simulants.baking_time",
-                build_lookup_table=False,
-            ),
-        },
+            "data_sources": {
+                "favorite_team": "simulants.favorite_team",
+                "favorite_scalar": 0.4,
+                "favorite_color": "simulants.favorite_color",
+                "favorite_number": "simulants.favorite_number",
+                "baking_time": "self::load_baking_time",
+                "cooling_time": "tests.framework.components.test_component::load_cooling_time",
+            },
+        }
     }
 
-    @property
-    def standard_lookup_tables(self) -> List[str]:
-        return ["favorite_team", "favorite_color", "favorite_number", "favorite_scalar"]
+    @staticmethod
+    def load_baking_time(_builder: Builder) -> float:
+        return 0.5
+
+
+def load_cooling_time(builder: Builder) -> pd.DataFrame:
+    return builder.data.load("cooling.time")
 
 
 class SingleLookupCreator(ColumnCreator):
@@ -411,10 +395,14 @@ def test_component_lookup_table_configuration(hdf_file_path):
             "test_column_3_end": [1, 2, 3],
         }
     ).set_index(["test_column_2", "test_column_3_start", "test_column_3_end"])
+    cooling_time = pd.DataFrame(
+        {"value": [0.1, 0.9, 0.2], "test_column_1": [1, 2, 3]}
+    ).set_index("test_column_1")
     artifact_data = {
         "simulants.favorite_team": favorite_team,
         "simulants.favorite_color": favorite_color,
         "simulants.favorite_number": favorite_number,
+        "cooling.time": cooling_time,
     }
     artifact = Artifact(hdf_file_path)
     for key, data in artifact_data.items():
@@ -430,82 +418,72 @@ def test_component_lookup_table_configuration(hdf_file_path):
     sim.setup()
 
     # Assertions for specific lookup tables
+    expected_tables = {
+        "favorite_team",
+        "favorite_color",
+        "favorite_number",
+        "favorite_scalar",
+        "baking_time",
+        "cooling_time",
+    }
+    assert expected_tables == set(component.lookup_tables.keys())
+
+    # Check for correct columns in lookup tables
     assert component.lookup_tables["favorite_team"].key_columns == ["test_column_1"]
     assert not component.lookup_tables["favorite_team"].parameter_columns
     assert component.lookup_tables["favorite_color"].key_columns == ["test_column_2"]
     assert component.lookup_tables["favorite_color"].parameter_columns == ["test_column_3"]
-    assert (
-        not component.lookup_tables["favorite_scalar"].key_columns
-        and not component.lookup_tables["favorite_scalar"].parameter_columns
-    )
-    assert component.lookup_tables["favorite_scalar"].data == 0.4
+    assert isinstance(component.lookup_tables["favorite_scalar"], ScalarTable)
+    assert isinstance(component.lookup_tables["baking_time"], ScalarTable)
+    assert component.lookup_tables["cooling_time"].key_columns == ["test_column_1"]
+    assert not component.lookup_tables["cooling_time"].parameter_columns
 
-    # Component level asswertions for lookup tables
-    assert "baking_time" not in component.lookup_tables.keys()
-    assert set(
-        ["favorite_team", "favorite_color", "favorite_number", "favorite_scalar"]
-    ) == set(component.lookup_tables.keys())
+    # Check for correct data in lookup tables
+    assert component.lookup_tables["favorite_team"].data.equals(favorite_team.reset_index())
+    assert component.lookup_tables["favorite_color"].data.equals(favorite_color.reset_index())
+    assert component.lookup_tables["favorite_scalar"].data == 0.4
+    assert component.lookup_tables["baking_time"].data == 0.5
+    assert component.lookup_tables["cooling_time"].data.equals(cooling_time.reset_index())
 
 
 @pytest.mark.parametrize(
     "configuration, match, error_type",
     [
         (
-            # Overlapping columns
-            {
-                "favorite_color": Component.build_lookup_table_config(
-                    value="data",
-                    categorical_columns=["test_column_2"],
-                    continuous_columns=["test_column_2", "test_column_3"],
-                    key_name="simulants.favorite_color",
-                ),
-            },
-            "There should be no overlap between",
-            ValueError,
+            {"favorite_color": "key.not.in.artifact"},
+            "Error building lookup table 'favorite_color'. "
+            "Failed to find key 'key.not.in.artifact' in artifact.",
+            ConfigurationError,
         ),
         (
-            # Wrong key for artifact
-            {
-                "favorite_color": Component.build_lookup_table_config(
-                    value="data",
-                    categorical_columns=["test_column_1"],
-                    continuous_columns=[],
-                    key_name="simulants.favorite_team",
-                ),
-            },
-            "simulants.favorite_team should be in",
-            ArtifactException,
+            {"favorite_color": "not.a.real.module::load_color"},
+            "Error building lookup table 'favorite_color'. "
+            "Unable to find module 'not.a.real.module'",
+            ConfigurationError,
         ),
         (
-            # Columns not in artifact data
-            {
-                "favorite_color": Component.build_lookup_table_config(
-                    value="data",
-                    categorical_columns=["test_column_1"],
-                    continuous_columns=["test_column_3"],
-                    key_name="simulants.favorite_color",
-                ),
-            },
-            "The columns supplied",
-            ValueError,
+            {"favorite_color": "self::non_existent_loader_function"},
+            "Error building lookup table 'favorite_color'. There is no method "
+            "'non_existent_loader_function' for the component "
+            "single_lookup_creator.",
+            ConfigurationError,
+        ),
+        (
+            {"favorite_color": "vivarium::non_existent_loader_function"},
+            "Error building lookup table 'favorite_color'. There is no method "
+            "'non_existent_loader_function' for the module 'vivarium'.",
+            ConfigurationError,
         ),
     ],
 )
 def test_failing_component_lookup_table_configurations(
     configuration, match, error_type, hdf_file_path
 ):
-
-    data = pd.DataFrame(
-        {"value": ["color_1", "color_2", "color_3"], "test_column_1": [1, 2, 3]}
-    ).set_index("test_column_1")
-    artifact = Artifact(hdf_file_path)
-    artifact.write("simulants.favorite_color", data)
-
     component = SingleLookupCreator()
     sim = InteractiveContext(components=[component], setup=False)
     override_config = {
         "input_data": {"artifact_path": hdf_file_path},
-        component.name: configuration,
+        component.name: {"data_sources": configuration},
     }
     sim.configuration.update(override_config)
     with pytest.raises(error_type, match=match):
