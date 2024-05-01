@@ -352,9 +352,8 @@ def _write_pandas_data(path: Path, entity_key: EntityKey, data: Union[PandasObj]
 
     with pd.HDFStore(str(path), complevel=9) as store:
         store.put(entity_key.path, data, format="table", data_columns=data_columns)
-        store.get_storer(
-            entity_key.path
-        ).attrs.metadata = metadata  # NOTE: must use attrs. write this up
+        # NOTE: must use attrs. write this up
+        store.get_storer(entity_key.path).attrs.metadata = metadata
 
 
 def _write_json_blob(path: Path, entity_key: EntityKey, data: Any):

@@ -174,6 +174,7 @@ def test_flatten_with_nested_sub_components():
 
 def test_setup_components(mocker):
     builder = mocker.Mock()
+    builder.configuration = {}
     mock_a = MockComponentA("test_a")
     mock_b = MockComponentB("test_b")
     components = OrderedComponentSet(mock_a, mock_b)
