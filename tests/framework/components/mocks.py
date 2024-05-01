@@ -16,9 +16,6 @@ class MockComponentA(Component):
         self.args = args
         self.builder_used_for_setup = None
 
-    def create_lookup_tables(self, builder):
-        return {}
-
     def __eq__(self, other: Any) -> bool:
         return type(self) == type(other) and self.name == other.name
 
@@ -40,9 +37,6 @@ class MockComponentB(Component):
     def setup(self, builder: Builder) -> None:
         self.builder_used_for_setup = builder
         builder.value.register_value_modifier("metrics", self.metrics)
-
-    def create_lookup_tables(self, builder):
-        return {}
 
     def metrics(self, _, metrics):
         if "test" in metrics:
