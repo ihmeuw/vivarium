@@ -92,6 +92,10 @@ class Hogwarts(Component):
 
 
 class HousePointsObserver(Component):
+    """Observer that is stratified by multiple columns (the defaults,
+    'student_house' and 'power_level')
+    """
+
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="house_points",
@@ -99,44 +103,50 @@ class HousePointsObserver(Component):
             aggregator=sum,
             requires_columns=[
                 "house_points",
-                "student_house",
-                "power_level",
+                # "student_house",
+                # "power_level",
             ],
         )
 
 
 class FullyFilteredHousePointsObserver(Component):
+    """Same as `HousePointsObserver but with a filter that leaves no simulants"""
+
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="house_points",
             pop_filter="tracked==True & power_level=='one billion'",
             aggregator_sources=["house_points"],
             aggregator=sum,
-            requires_columns=[
-                "house_points",
-                "student_house",
-                "power_level",
-            ],
+            # requires_columns=[
+            #     "house_points",
+            #     "student_house",
+            #     "power_level",
+            # ],
         )
 
 
 class QuidditchWinsObserver(Component):
+    """Observer that is stratified by a single column ('familiar')"""
+
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="quidditch_wins",
             aggregator_sources=["quidditch_wins"],
             aggregator=sum,
-            excluded_stratifications=["student_house"],
+            excluded_stratifications=["student_house", "power_level"],
             additional_stratifications=["familiar"],
             requires_columns=[
                 "quidditch_wins",
-                "familiar",
-                "power_level",
+                # "familiar",
+                # "power_level",
             ],
         )
 
 
 class NoStratificationsQuidditchWinsObserver(Component):
+    """Same as above but no stratifications at all"""
+
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="no_stratifications_quidditch_wins",
@@ -145,9 +155,24 @@ class NoStratificationsQuidditchWinsObserver(Component):
             excluded_stratifications=["student_house", "power_level"],
             requires_columns=[
                 "quidditch_wins",
-                "familiar",
-                "power_level",
+                # "familiar",
+                # "power_level",
             ],
+        )
+
+
+class SingleStratificationQuidditchWinsObserver(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.results.register_observation(
+            name="single_stratification_quidditch_wins",
+            aggregator_sources=["quidditch_wins"],
+            aggregator=sum,
+            excluded_stratifications=["power_level"],
+            # requires_columns=[
+            #     "quidditch_wins",
+            #     "familiar",
+            #     "power_level",
+            # ],
         )
 
 

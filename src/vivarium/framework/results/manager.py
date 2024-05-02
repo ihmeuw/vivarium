@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, Optional, Union
 
 import pandas as pd
+from pandas.api.types import CategoricalDtype
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.context import ResultsContext
@@ -119,21 +120,22 @@ class ResultsManager(Manager):
                         for stratification in requested_and_registered_stratifications
                     }
                     if stratification_values:
-                        # Create index of the complete stratifications
-                        idx = pd.MultiIndex.from_tuples(
+                        stratification_names = list(stratification_values.keys())
+                        df = pd.DataFrame(
                             list(itertools.product(*stratification_values.values())),
-                            names=stratification_values.keys(),
-                        )
+                            columns=stratification_names,
+                        ).astype(CategoricalDtype)
                     else:
                         # We are aggregating the entire population so create a single-row index
-                        idx = pd.Index(["all"], name="stratification")
+                        stratification_names = ["stratification"]
+                        df = pd.DataFrame(["all"], columns=stratification_names).astype(
+                            CategoricalDtype
+                        )
 
                     # Initialize a zeros dataframe
-                    self._metrics[measure] = pd.DataFrame(
-                        data=0.0,
-                        columns=["value"],
-                        index=idx,
-                    )
+                    df["value"] = 0.0
+                    df = df.set_index(stratification_names)
+                    self._metrics[measure] = df
 
         if unused_stratifications:
             self.logger.info(
