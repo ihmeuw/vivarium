@@ -342,7 +342,7 @@ class Component(ABC):
         self._sub_components: List["Component"] = []
         self.logger: Optional[Logger] = None
         self.population_view: Optional[PopulationView] = None
-        self.lookup_tables = {}
+        self.lookup_tables: Dict[str, LookupTable] = {}
 
     def setup_component(self, builder: "Builder") -> None:
         """
