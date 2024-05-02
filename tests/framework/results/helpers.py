@@ -84,7 +84,7 @@ class Hogwarts(Component):
             & (update["power_level"].isin(["50", "80"])),
             "house_points",
         ] = 1
-        # Quidditch wins are stratified by 'familiar' and 'power level'.
+        # Quidditch wins are stratified by 'familiar'.
         # Let's have each wizard with a banana slug familiar gain a point
         # on each time step.
         update.loc[update["familiar"] == "banana_slug", "quidditch_wins"] = 1
@@ -92,6 +92,10 @@ class Hogwarts(Component):
 
 
 class HousePointsObserver(Component):
+    """Observer that is stratified by multiple columns (the defaults,
+    'student_house' and 'power_level')
+    """
+
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="house_points",
@@ -99,13 +103,13 @@ class HousePointsObserver(Component):
             aggregator=sum,
             requires_columns=[
                 "house_points",
-                "student_house",
-                "power_level",
             ],
         )
 
 
 class FullyFilteredHousePointsObserver(Component):
+    """Same as `HousePointsObserver but with a filter that leaves no simulants"""
+
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="house_points",
@@ -114,29 +118,29 @@ class FullyFilteredHousePointsObserver(Component):
             aggregator=sum,
             requires_columns=[
                 "house_points",
-                "student_house",
-                "power_level",
             ],
         )
 
 
 class QuidditchWinsObserver(Component):
+    """Observer that is stratified by a single column ('familiar')"""
+
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="quidditch_wins",
             aggregator_sources=["quidditch_wins"],
             aggregator=sum,
-            excluded_stratifications=["student_house"],
+            excluded_stratifications=["student_house", "power_level"],
             additional_stratifications=["familiar"],
             requires_columns=[
                 "quidditch_wins",
-                "familiar",
-                "power_level",
             ],
         )
 
 
 class NoStratificationsQuidditchWinsObserver(Component):
+    """Same as above but no stratifications at all"""
+
     def setup(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="no_stratifications_quidditch_wins",
@@ -145,8 +149,6 @@ class NoStratificationsQuidditchWinsObserver(Component):
             excluded_stratifications=["student_house", "power_level"],
             requires_columns=[
                 "quidditch_wins",
-                "familiar",
-                "power_level",
             ],
         )
 
