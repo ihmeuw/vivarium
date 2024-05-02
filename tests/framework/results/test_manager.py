@@ -1,9 +1,11 @@
+import itertools
 import re
 from types import MethodType
 
 import pandas as pd
 import pytest
 from loguru import logger
+from pandas.api.types import CategoricalDtype
 
 from tests.framework.results.helpers import (
     BIN_BINNED_COLUMN,
@@ -291,21 +293,30 @@ def test_stratified_metrics_initialization():
         assert (result["value"] == 0).all()
     STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
     POWER_LEVELS_STR = [str(lvl) for lvl in POWER_LEVELS]
-    assert metrics["house_points"].index.equals(
-        pd.MultiIndex.from_product(
-            [STUDENT_HOUSES_LIST, POWER_LEVELS_STR],
-            names=["student_house", "power_level"],
-        )
+
+    # Check that indexes are as expected
+
+    # Multi-stratification index is type MultiIndex where each layer dtype is Category
+    expected_house_points_idx = pd.MultiIndex.from_product(
+        [STUDENT_HOUSES_LIST, POWER_LEVELS_STR], names=["student_house", "power_level"]
     )
-    assert metrics["quidditch_wins"].index.equals(
-        pd.MultiIndex.from_product(
-            [FAMILIARS, POWER_LEVELS_STR],
-            names=["familiar", "power_level"],
-        )
+    # HACK: We need to set the levels to be CategoricalDtype but you can't set that
+    # directly on the MultiIndex. Convert to df, set type, convert back
+    expected_house_points_idx = (
+        pd.DataFrame(index=expected_house_points_idx)
+        .reset_index()
+        .astype(CategoricalDtype)
+        .set_index(["student_house", "power_level"])
+        .index
     )
+    assert metrics["house_points"].index.equals(expected_house_points_idx)
+
+    # Single-stratification index is type CategoricalIndex
+    expected_quidditch_idx = pd.CategoricalIndex(FAMILIARS, name="familiar")
+    assert metrics["quidditch_wins"].index.equals(expected_quidditch_idx)
 
 
-def test_metrics_initialized_from_no_stratifications_observer():
+def test_no_stratifications_metrics_initialization():
     """Test that Observers requesting no stratifications result in a
     single-row DataFrame with 'value' of zero and index labeled 'all'
     """
@@ -326,7 +337,7 @@ def test_observers_with_missing_stratifications_fail():
 
     expected_missing = {  # NOTE: keep in alphabetical order
         "house_points": ["power_level", "student_house"],
-        "quidditch_wins": ["familiar", "power_level"],
+        "quidditch_wins": ["familiar"],
     }
     expected_log_msg = re.escape(
         "The following observers are requested to be stratified by stratifications "
@@ -372,23 +383,29 @@ def test_update_monotonically_increasing_metrics():
             columns=["value"],
         )
         metrics = sim._results.metrics["house_points"]
-        assert metrics[metrics["value"] != 0].equals(
-            group_sizes.loc(axis=0)["gryffindor", ["50", "80"]] * step_number
-        )
+        # We cannot use `equals` here because metrics has a MultiIndex where
+        # each layer is a Category dtype but pop has object dtype for the relevant columns
+        assert (
+            metrics[metrics["value"] != 0].values
+            == (group_sizes.loc(axis=0)["gryffindor", ["50", "80"]] * step_number).values
+        ).all()
 
     def _check_quidditch_wins(pop: pd.DataFrame, step_number: int) -> None:
-        """We know that quidditch wins are stratified by 'familiar' and 'power_level'.
+        """We know that quidditch wins are stratified by 'familiar'
         and that each wizard with a banana slug familiar gains a point
         """
         assert set(pop["quidditch_wins"]) == set([0, 1])
         assert (pop.loc[pop["quidditch_wins"] != 0, "familiar"] == "banana_slug").all()
         group_sizes = pd.DataFrame(
-            pop.groupby(["familiar", "power_level"]).size().astype("float"), columns=["value"]
+            pop.groupby(["familiar"]).size().astype("float"), columns=["value"]
         )
         metrics = sim._results.metrics["quidditch_wins"]
-        assert metrics[metrics["value"] != 0].equals(
-            group_sizes[group_sizes.index.get_level_values(0) == "banana_slug"] * step_number
-        )
+        # We cannot use `equals` here because metrics has a MultiIndex where
+        # each layer is a Category dtype but pop has object dtype for the relevant columns
+        assert (
+            metrics[metrics["value"] != 0].values
+            == (group_sizes[group_sizes.index == "banana_slug"] * step_number).values
+        ).all()
 
     components = [
         Hogwarts(),
