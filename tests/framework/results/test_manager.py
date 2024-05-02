@@ -6,7 +6,6 @@ import pandas as pd
 import pytest
 from loguru import logger
 from pandas.api.types import CategoricalDtype
-
 from tests.framework.results.helpers import (
     BIN_BINNED_COLUMN,
     BIN_LABELS,
@@ -30,6 +29,7 @@ from tests.framework.results.helpers import (
     sorting_hat_vector,
     verify_stratification_added,
 )
+
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.interface.interactive import InteractiveContext
 
@@ -270,7 +270,7 @@ def test_metrics_initialized_as_empty_dict(mocker):
     assert mgr.metrics == {}
 
 
-def test_metrics_initialization_multiple_stratifications():
+def test_stratified_metrics_initialization():
     """Test that matrics are being initialized correctly. We expect a dictionary
     of pd.DataFrames. Each key of the dictionary is an observed measure name and
     the corresponding value is a zeroed-out multiindex pd.DataFrame of that observer's
@@ -293,17 +293,30 @@ def test_metrics_initialization_multiple_stratifications():
         assert (result["value"] == 0).all()
     STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
     POWER_LEVELS_STR = [str(lvl) for lvl in POWER_LEVELS]
-    assert metrics["house_points"].index.equals(
-        _get_expected_idx(
-            [STUDENT_HOUSES_LIST, POWER_LEVELS_STR], ["student_house", "power_level"]
-        )
+
+    # Check that indexes are as expected
+
+    # Multi-stratification index is type MultiIndex where each layer dtype is Category
+    expected_house_points_idx = pd.MultiIndex.from_product(
+        [STUDENT_HOUSES_LIST, POWER_LEVELS_STR], names=["student_house", "power_level"]
     )
-    assert metrics["quidditch_wins"].index.equals(
-        _get_expected_idx([FAMILIARS], ["familiar"])
+    # HACK: We need to set the levels to be CategoricalDtype but you can't set that
+    # directly on the MultiIndex. Convert to df, set type, convert back
+    expected_house_points_idx = (
+        pd.DataFrame(index=expected_house_points_idx)
+        .reset_index()
+        .astype(CategoricalDtype)
+        .set_index(["student_house", "power_level"])
+        .index
     )
+    assert metrics["house_points"].index.equals(expected_house_points_idx)
+
+    # Single-stratification index is type CategoricalIndex
+    expected_quidditch_idx = pd.CategoricalIndex(FAMILIARS, name="familiar")
+    assert metrics["quidditch_wins"].index.equals(expected_quidditch_idx)
 
 
-def test_metrics_initialization_no_stratifications():
+def test_no_stratifications_metrics_initialization():
     """Test that Observers requesting no stratifications result in a
     single-row DataFrame with 'value' of zero and index labeled 'all'
     """
@@ -440,24 +453,3 @@ def test_update_metrics_no_stratifications():
     pop = sim.get_population()
     results = sim._results.metrics["no_stratifications_quidditch_wins"]
     assert results.loc["all"]["value"] == pop["quidditch_wins"].sum() * 2
-
-
-####################
-# HELPER FUNCTIONS #
-####################
-
-
-def _get_expected_idx(stratifications, columns):
-    """This is hacky. We need the dtypes of each level of the MultiIndex to be
-    CategoricalDType. This enforces that by first creating a pd.DataFrame,
-    setting the dtypes, and then reseting the index.
-    """
-    return (
-        pd.DataFrame(
-            list(itertools.product(*stratifications)),
-            columns=columns,
-        )
-        .astype(CategoricalDtype)
-        .set_index(columns)
-        .index
-    )
