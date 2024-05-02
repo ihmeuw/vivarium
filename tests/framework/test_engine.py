@@ -313,14 +313,12 @@ def test_SimulationContext_report_output_format(tmpdir):
     assert set(zip(house_points["student_house"], house_points["power_level"])) == set(
         product(STUDENT_HOUSES, POWER_LEVELS)
     )
-    assert set(zip(quidditch_wins["familiar"], quidditch_wins["power_level"])) == set(
-        product(FAMILIARS, POWER_LEVELS)
-    )
+    assert set(quidditch_wins["familiar"]) == set(FAMILIARS)
     assert no_stratifications_quidditch_wins.shape[0] == 1
     assert (no_stratifications_quidditch_wins["stratification"] == "all").all()
     assert set(quidditch_wins.columns).difference(
         set(no_stratifications_quidditch_wins.columns)
-    ) == set(["familiar", "power_level"])
+    ) == set(["familiar"])
 
     # Set up filters for groups that scored points
     house_points_filter = (house_points["student_house"] == "gryffindor") & (
