@@ -375,10 +375,6 @@ def test_update_monotonically_increasing_metrics():
         """We know that house points are stratified by 'student_house' and 'power_level'.
         and that each wizard of gryffindor and of level 50 and 80 gains a point
         """
-        # Need the stratification columns to be Categorical
-        pop[["familiar", "power_level", "student_house"]] = pop[
-            ["familiar", "power_level", "student_house"]
-        ].astype(CategoricalDtype)
         assert set(pop["house_points"]) == set([0, 1])
         assert (pop.loc[pop["house_points"] != 0, "student_house"] == "gryffindor").all()
         assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set(["50", "80"])
@@ -387,27 +383,29 @@ def test_update_monotonically_increasing_metrics():
             columns=["value"],
         )
         metrics = sim._results.metrics["house_points"]
-        assert metrics[metrics["value"] != 0].equals(
-            group_sizes.loc(axis=0)["gryffindor", ["50", "80"]] * step_number
-        )
+        # We cannot use `equals` here because metrics has a MultiIndex where
+        # each layer is a Category dtype but pop has object dtype for the relevant columns
+        assert (
+            metrics[metrics["value"] != 0].values
+            == (group_sizes.loc(axis=0)["gryffindor", ["50", "80"]] * step_number).values
+        ).all()
 
     def _check_quidditch_wins(pop: pd.DataFrame, step_number: int) -> None:
         """We know that quidditch wins are stratified by 'familiar'
         and that each wizard with a banana slug familiar gains a point
         """
-        # Need the stratification columns to be Categorical
-        pop[["familiar", "power_level", "student_house"]] = pop[
-            ["familiar", "power_level", "student_house"]
-        ].astype(CategoricalDtype)
         assert set(pop["quidditch_wins"]) == set([0, 1])
         assert (pop.loc[pop["quidditch_wins"] != 0, "familiar"] == "banana_slug").all()
         group_sizes = pd.DataFrame(
             pop.groupby(["familiar"]).size().astype("float"), columns=["value"]
         )
         metrics = sim._results.metrics["quidditch_wins"]
-        assert metrics[metrics["value"] != 0].equals(
-            group_sizes[group_sizes.index == "banana_slug"] * step_number
-        )
+        # We cannot use `equals` here because metrics has a MultiIndex where
+        # each layer is a Category dtype but pop has object dtype for the relevant columns
+        assert (
+            metrics[metrics["value"] != 0].values
+            == (group_sizes[group_sizes.index == "banana_slug"] * step_number).values
+        ).all()
 
     components = [
         Hogwarts(),
