@@ -84,7 +84,7 @@ class Hogwarts(Component):
             & (update["power_level"].isin(["50", "80"])),
             "house_points",
         ] = 1
-        # Quidditch wins are stratified by 'familiar' and 'power level'.
+        # Quidditch wins are stratified by 'familiar'.
         # Let's have each wizard with a banana slug familiar gain a point
         # on each time step.
         update.loc[update["familiar"] == "banana_slug", "quidditch_wins"] = 1
@@ -103,8 +103,6 @@ class HousePointsObserver(Component):
             aggregator=sum,
             requires_columns=[
                 "house_points",
-                # "student_house",
-                # "power_level",
             ],
         )
 
@@ -118,11 +116,9 @@ class FullyFilteredHousePointsObserver(Component):
             pop_filter="tracked==True & power_level=='one billion'",
             aggregator_sources=["house_points"],
             aggregator=sum,
-            # requires_columns=[
-            #     "house_points",
-            #     "student_house",
-            #     "power_level",
-            # ],
+            requires_columns=[
+                "house_points",
+            ],
         )
 
 
@@ -138,8 +134,6 @@ class QuidditchWinsObserver(Component):
             additional_stratifications=["familiar"],
             requires_columns=[
                 "quidditch_wins",
-                # "familiar",
-                # "power_level",
             ],
         )
 
@@ -155,24 +149,7 @@ class NoStratificationsQuidditchWinsObserver(Component):
             excluded_stratifications=["student_house", "power_level"],
             requires_columns=[
                 "quidditch_wins",
-                # "familiar",
-                # "power_level",
             ],
-        )
-
-
-class SingleStratificationQuidditchWinsObserver(Component):
-    def setup(self, builder: Builder) -> None:
-        builder.results.register_observation(
-            name="single_stratification_quidditch_wins",
-            aggregator_sources=["quidditch_wins"],
-            aggregator=sum,
-            excluded_stratifications=["power_level"],
-            # requires_columns=[
-            #     "quidditch_wins",
-            #     "familiar",
-            #     "power_level",
-            # ],
         )
 
 
