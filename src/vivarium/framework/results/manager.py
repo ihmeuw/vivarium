@@ -134,8 +134,7 @@ class ResultsManager(Manager):
 
                     # Initialize a zeros dataframe
                     df["value"] = 0.0
-                    df = df.set_index(stratification_names)
-                    self._metrics[measure] = df
+                    self._metrics[measure] = df.set_index(stratification_names)
 
         if unused_stratifications:
             self.logger.info(
