@@ -50,6 +50,9 @@ def base_config():
                 "step_size": 30.5,
             },
             "randomness": {"key_columns": ["entrance_time", "age"]},
+            # "configuration": {
+            #     "output_data": {"results_directory": "/some/results/directory"},
+            # },
         },
         **metadata(__file__, layer="model_override"),
     )

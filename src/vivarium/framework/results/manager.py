@@ -165,20 +165,12 @@ class ResultsManager(Manager):
         self.gather_results("collect_metrics", event)
 
     def on_report(self, event: Event):
-        results_dir = event.user_data["results_dir"]
         metrics = event.user_data["metrics"]
-        random_seed = event.user_data["random_seed"]
-        input_draw = event.user_data["input_draw"]
         for observation_details in self._results_context.observations.values():
             for observations in observation_details.values():
                 for observation in observations:
-                    observation.report(
-                        results_dir=results_dir,
-                        measure=observation.name,
-                        results=metrics[observation.name],
-                        random_seed=random_seed,
-                        input_draw=input_draw,
-                    )
+                    measure = observation.name
+                    observation.report(measure, metrics[measure])
 
     def gather_results(self, event_name: str, event: Event):
         population = self._prepare_population(event)
@@ -292,7 +284,7 @@ class ResultsManager(Manager):
         additional_stratifications: List[str],
         excluded_stratifications: List[str],
         when: str,
-        report: Callable[[Path, str, pd.DataFrame, str, str], None],
+        report: Callable[..., None],
     ) -> None:
         self.logger.debug(f"Registering observation {name}")
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)

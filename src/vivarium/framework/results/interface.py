@@ -1,9 +1,6 @@
-from pathlib import Path
 from typing import TYPE_CHECKING, Callable, List, Optional
 
 import pandas as pd
-
-from vivarium.framework.results.reporters import dataframe_to_csv
 
 if TYPE_CHECKING:
     # cyclic import
@@ -146,7 +143,7 @@ class ResultsInterface:
         additional_stratifications: List[str] = [],
         excluded_stratifications: List[str] = [],
         when: str = "collect_metrics",
-        report: Callable[[Path, str, pd.DataFrame, str, str], None] = dataframe_to_csv,
+        report: Callable[..., None] = lambda *_: None,
     ) -> None:
         """Provide the results system all the information it needs to perform the observation.
 

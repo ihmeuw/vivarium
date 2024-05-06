@@ -7,8 +7,8 @@ import pandas as pd
 import pytest
 
 from tests.framework.results.helpers import (
-    CONFIG,
     FAMILIARS,
+    HARRY_POTTER_CONFIG,
     POWER_LEVELS,
     STUDENT_HOUSES,
     Hogwarts,
@@ -263,12 +263,13 @@ def test_SimulationContext_report(SimulationContext, base_config, components, tm
     # Mock out 'gather_results' and instead rely on the MockComponentB 'metrics'
     # pipeline (which is effectively just a counter)
     mocker.patch("vivarium.framework.results.context.ResultsContext.gather_results")
-    sim = SimulationContext(base_config, components)
+    configuration = {"output_data": {"results_directory": str(tmpdir)}}
+    sim = SimulationContext(base_config, components, configuration)
     sim.setup()
     sim.initialize_simulants()
     sim.run()
     sim.finalize()
-    sim.report(Path(tmpdir))
+    sim.report()
 
     metrics = pd.read_csv(tmpdir / "test.csv")
     assert len(metrics["value"].unique()) == 1
@@ -277,9 +278,11 @@ def test_SimulationContext_report(SimulationContext, base_config, components, tm
     )
 
 
-def test_SimulationContext_report_output_format(tmpdir):
+def test_SimulationContext_report_output_format(base_config, tmpdir):
     """Test report output is as expected"""
     results_root = Path(tmpdir)
+    configuration = {"output_data": {"results_directory": str(tmpdir)}}
+    configuration.update(HARRY_POTTER_CONFIG)
     components = [
         Hogwarts(),
         HousePointsObserver(),
@@ -287,8 +290,7 @@ def test_SimulationContext_report_output_format(tmpdir):
         QuidditchWinsObserver(),
         HogwartsResultsStratifier(),
     ]
-    finished_sim = run_simulation(components=components, configuration=CONFIG)
-    finished_sim.report(results_root)
+    finished_sim = run_simulation(base_config, components, configuration)
 
     # The observers are based on number of steps - extract how many steps were run
     time_dict = finished_sim.configuration.time.to_dict()

@@ -21,7 +21,7 @@ tools to easily setup and run a simulation.
 
 from pathlib import Path
 from pprint import pformat
-from typing import Dict, List, Set, Union
+from typing import Any, Dict, List, Set, Union
 
 import numpy as np
 import pandas as pd
@@ -207,6 +207,11 @@ class SimulationContext:
     def name(self) -> str:
         return self._name
 
+    # TODO: add test to check that this property is working
+    @property
+    def results(self) -> Dict[str, Any]:
+        return self._results.metrics
+
     def setup(self) -> None:
         self._lifecycle.set_state("setup")
         self.configuration.freeze()
@@ -260,7 +265,7 @@ class SimulationContext:
                 f"Some configuration keys not used during run: {unused_config_keys}."
             )
 
-    def report(self, results: Path, print_results: bool = True):
+    def report(self, print_results: bool = True):
         self._lifecycle.set_state("report")
         metrics = self._values.get_value("metrics")(self.get_population().index)
         if print_results:
@@ -272,17 +277,7 @@ class SimulationContext:
             )
             self._logger.info("\n" + performance_metrics)
 
-        random_seed = self.configuration.randomness.random_seed
-        input_draw = self.configuration.input_data.input_draw_number
-        self.report_emitter(
-            self.get_population().index,
-            {
-                "results_dir": results,
-                "metrics": metrics,
-                "random_seed": random_seed,
-                "input_draw": input_draw,
-            },
-        )
+        self.report_emitter(self.get_population().index, user_data={"metrics": metrics})
 
     def get_performance_metrics(self) -> pd.DataFrame:
         timing_dict = self._lifecycle.timings
@@ -410,4 +405,5 @@ def run_simulation(
     simulation.initialize_simulants()
     simulation.run()
     simulation.finalize()
+    simulation.report()
     return simulation
