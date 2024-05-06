@@ -283,7 +283,7 @@ class ResultsManager(Manager):
         additional_stratifications: List[str],
         excluded_stratifications: List[str],
         when: str,
-        report: Callable[..., None],
+        report: Callable[[str, pd.DataFrame], None],
     ) -> None:
         self.logger.debug(f"Registering observation {name}")
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)

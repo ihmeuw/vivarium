@@ -23,4 +23,4 @@ class Observation:
     aggregator_sources: Optional[List[str]]
     aggregator: Callable[[pd.DataFrame], float]
     when: str
-    report: Callable[..., None]
+    report: Callable[[str, pd.DataFrame], None]
