@@ -168,8 +168,7 @@ class ResultsManager(Manager):
         for observation_details in self._results_context.observations.values():
             for observations in observation_details.values():
                 for observation in observations:
-                    measure = observation.name
-                    observation.report(measure, metrics[measure])
+                    observation.report(observation.name, metrics[observation.name])
 
     def gather_results(self, event_name: str, event: Event):
         population = self._prepare_population(event)
