@@ -41,7 +41,7 @@ class Observer(Component, ABC):
 
     def dataframe_to_csv(self, measure: str, results: pd.DataFrame) -> None:
         # Add extra cols
-        results[["measure"]] = measure
+        results["measure"] = measure
         results["random_seed"] = self.random_seed
         results["input_draw"] = self.input_draw
         # Sort the columns such that the stratifications (index) are first
