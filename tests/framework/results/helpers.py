@@ -7,7 +7,7 @@ import pandas as pd
 from vivarium.framework.components.manager import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
-from vivarium.framework.results.observer import Observer
+from vivarium.framework.results.observer import StratifiedObserver
 
 NAME = "hogwarts_house"
 SOURCES = ["first_name", "last_name"]
@@ -92,7 +92,7 @@ class Hogwarts(Component):
         self.population_view.update(update)
 
 
-class HousePointsObserver(Observer):
+class HousePointsObserver(StratifiedObserver):
     """Observer that is stratified by multiple columns (the defaults,
     'student_house' and 'power_level')
     """
@@ -127,7 +127,7 @@ class FullyFilteredHousePointsObserver(Component):
         )
 
 
-class QuidditchWinsObserver(Observer):
+class QuidditchWinsObserver(StratifiedObserver):
     """Observer that is stratified by a single column ('familiar')"""
 
     def register_observations(self, builder: Builder) -> None:
@@ -147,7 +147,7 @@ class QuidditchWinsObserver(Observer):
         self.dataframe_to_csv(measure, results)
 
 
-class NoStratificationsQuidditchWinsObserver(Observer):
+class NoStratificationsQuidditchWinsObserver(StratifiedObserver):
     """Same as above but no stratifications at all"""
 
     def register_observations(self, builder: Builder) -> None:

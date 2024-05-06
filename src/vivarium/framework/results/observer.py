@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any, Dict
 
 import pandas as pd
 
@@ -50,17 +51,15 @@ class Observer(Component, ABC):
         results.to_csv(Path(self.results_dir) / f"{measure}.csv", index=False)
 
 
-# class StratifiedObserver(Observer):
-#     """An observer component that has the configuration defaults property defined."""
+class StratifiedObserver(Observer):
 
-#     # TODO: add test for this
-#     @property
-#     def configuration_defaults(self):
-#         return {
-#             "stratification": {
-#                 self.name.split("_observer")[0]: {
-#                     "exclude": [],
-#                     "include": [],
-#                 }
-#             }
-#         }
+    @property
+    def configuration_defaults(self) -> Dict[str, Any]:
+        return {
+            "stratification": {
+                self.name.split("_observer")[0]: {
+                    "exclude": [],
+                    "include": [],
+                },
+            },
+        }

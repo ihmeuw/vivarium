@@ -4,8 +4,8 @@ from typing import List
 import numpy as np
 import pandas as pd
 import pytest
-
 from tests.helpers import Listener, MockComponentA, MockComponentB, MockGenericComponent
+
 from vivarium.framework.engine import SimulationContext as SimulationContext_
 from vivarium.framework.event import Event
 from vivarium.framework.time import SimulationClock, get_time_stamp
@@ -34,7 +34,7 @@ def components():
     return [
         MockComponentA("gretchen", "whimsy"),
         Listener("listener"),
-        MockComponentB("spoon", "antelope", 23),
+        MockComponentB("spoon", "antelope", "23"),
     ]
 
 
