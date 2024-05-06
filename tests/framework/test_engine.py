@@ -5,6 +5,7 @@ from typing import Dict, List
 
 import pandas as pd
 import pytest
+
 from tests.framework.results.helpers import (
     FAMILIARS,
     HARRY_POTTER_CONFIG,
@@ -17,7 +18,6 @@ from tests.framework.results.helpers import (
     QuidditchWinsObserver,
 )
 from tests.helpers import Listener, MockComponentA, MockComponentB
-
 from vivarium import Component
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
 from vivarium.framework.components import (

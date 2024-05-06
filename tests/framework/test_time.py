@@ -4,8 +4,8 @@ from typing import List
 import numpy as np
 import pandas as pd
 import pytest
-from tests.helpers import Listener, MockComponentA, MockComponentB, MockGenericComponent
 
+from tests.helpers import Listener, MockComponentA, MockComponentB, MockGenericComponent
 from vivarium.framework.engine import SimulationContext as SimulationContext_
 from vivarium.framework.event import Event
 from vivarium.framework.time import SimulationClock, get_time_stamp

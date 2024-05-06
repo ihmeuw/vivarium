@@ -1,8 +1,8 @@
 from typing import Any, Dict
 
 import pytest
-from tests.helpers import MockComponentA, MockComponentB, MockGenericComponent
 
+from tests.helpers import MockComponentA, MockComponentB, MockGenericComponent
 from vivarium.framework.components.manager import (
     ComponentConfigError,
     ComponentManager,
