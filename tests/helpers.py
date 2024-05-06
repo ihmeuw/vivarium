@@ -48,10 +48,7 @@ class MockComponentB(Observer):
         builder.value.register_value_modifier("metrics", self.metrics)
 
     def register_observations(self, builder):
-        builder.results.register_observation("test", report=self.report)
-
-    def report(self, measure: str, results: pd.DataFrame) -> None:
-        self.dataframe_to_csv(measure, results)
+        builder.results.register_observation("test")
 
     def create_lookup_tables(self, builder):
         return {}

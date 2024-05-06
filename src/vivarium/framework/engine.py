@@ -207,7 +207,6 @@ class SimulationContext:
     def name(self) -> str:
         return self._name
 
-    # TODO: add test to check that this property is working
     @property
     def results(self) -> Dict[str, Any]:
         return self._results.metrics
