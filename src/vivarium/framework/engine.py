@@ -207,8 +207,7 @@ class SimulationContext:
     def name(self) -> str:
         return self._name
 
-    @property
-    def results(self) -> Dict[str, Any]:
+    def get_results(self) -> Dict[str, Any]:
         return self._results.metrics
 
     def setup(self) -> None:

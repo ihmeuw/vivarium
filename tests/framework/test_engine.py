@@ -5,7 +5,6 @@ from typing import Dict, List
 
 import pandas as pd
 import pytest
-
 from tests.framework.results.helpers import (
     FAMILIARS,
     HARRY_POTTER_CONFIG,
@@ -18,6 +17,7 @@ from tests.framework.results.helpers import (
     QuidditchWinsObserver,
 )
 from tests.helpers import Listener, MockComponentA, MockComponentB
+
 from vivarium import Component
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
 from vivarium.framework.components import (
@@ -270,7 +270,7 @@ def test_SimulationContext_report(SimulationContext, base_config, components, tm
     sim.run()
     sim.finalize()
     sim.report()
-    metrics = sim.results
+    metrics = sim.get_results()
     assert set(metrics) == set(["test"])
     results = metrics["test"]
     assert len(results["value"].unique()) == 1
