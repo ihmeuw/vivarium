@@ -8,17 +8,17 @@ from vivarium.framework.results.observer import Observer, StratifiedObserver
 
 
 class TestObserver(Observer):
-    def register_observations():
+    def register_observations(self, builder):
         pass
 
 
 class TestDefaultStratifiedObserver(StratifiedObserver):
-    def register_observations():
+    def register_observations(self, builder):
         pass
 
 
 class TestStratifiedObserver(StratifiedObserver):
-    def register_observations():
+    def register_observations(self, builder):
         pass
 
     @property
@@ -73,7 +73,7 @@ def test_dataframe_to_csv(tmpdir, mocker):
     )
 
     observer = TestObserver()
-    observer.get_report_attributes(builder)
+    observer.setup_component(builder)
 
     cats = pd.DataFrame(
         {
