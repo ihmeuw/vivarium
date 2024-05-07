@@ -8,7 +8,6 @@ from tests.framework.results.helpers import BASE_POPULATION
 from tests.framework.results.helpers import CATEGORIES as HOUSES
 from tests.framework.results.helpers import FAMILIARS, mock_get_value
 from vivarium.framework.results import ResultsInterface, ResultsManager
-from vivarium.framework.results.reporters import dataframe_to_csv
 
 
 def _silly_aggregator(_: pd.DataFrame) -> float:

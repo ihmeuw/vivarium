@@ -13,8 +13,8 @@ from tests.framework.results.helpers import (
     BIN_SILLY_BINS,
     BIN_SOURCE,
     CATEGORIES,
-    CONFIG,
     FAMILIARS,
+    HARRY_POTTER_CONFIG,
     NAME,
     POWER_LEVELS,
     SOURCES,
@@ -283,7 +283,7 @@ def test_stratified_metrics_initialization():
         HogwartsResultsStratifier(),
     ]
 
-    sim = InteractiveContext(configuration=CONFIG, components=components)
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     metrics = sim._results.metrics
     assert isinstance(metrics, dict)
     assert set(metrics) == set(["house_points", "quidditch_wins"])
@@ -321,7 +321,7 @@ def test_no_stratifications_metrics_initialization():
     single-row DataFrame with 'value' of zero and index labeled 'all'
     """
     components = [Hogwarts(), NoStratificationsQuidditchWinsObserver()]
-    sim = InteractiveContext(configuration=CONFIG, components=components)
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     results = sim._results.metrics["no_stratifications_quidditch_wins"]
     assert isinstance(results, pd.DataFrame)
     assert results.shape == (1, 1)
@@ -345,7 +345,7 @@ def test_observers_with_missing_stratifications_fail():
     )
 
     with pytest.raises(ValueError, match=expected_log_msg):
-        InteractiveContext(configuration=CONFIG, components=components)
+        InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
 
 
 def test_unused_stratifications_are_logged(caplog):
@@ -357,7 +357,7 @@ def test_unused_stratifications_are_logged(caplog):
     component which only requests to be stratified by "student_house" and "power_level"
     """
     components = [HousePointsObserver(), Hogwarts(), HogwartsResultsStratifier()]
-    InteractiveContext(configuration=CONFIG, components=components)
+    InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
 
     log_split = caplog.text.split(
         "The following stratifications are registered but not used by any observers: \n"
@@ -413,7 +413,7 @@ def test_update_monotonically_increasing_metrics():
         QuidditchWinsObserver(),
         HogwartsResultsStratifier(),
     ]
-    sim = InteractiveContext(configuration=CONFIG, components=components)
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     sim.step()
     pop = sim.get_population()
     _check_house_points(pop, step_number=1)
@@ -431,7 +431,7 @@ def test_update_metrics_fully_filtered_pop():
         FullyFilteredHousePointsObserver(),
         HogwartsResultsStratifier(),
     ]
-    sim = InteractiveContext(configuration=CONFIG, components=components)
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     sim.step()
     # The FullyFilteredHousePointsObserver filters the population to a bogus
     # power level and so we should not be observing anything
@@ -442,7 +442,7 @@ def test_update_metrics_fully_filtered_pop():
 
 def test_update_metrics_no_stratifications():
     components = [Hogwarts(), NoStratificationsQuidditchWinsObserver()]
-    sim = InteractiveContext(configuration=CONFIG, components=components)
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     sim.step()
     pop = sim.get_population()
     results = sim._results.metrics["no_stratifications_quidditch_wins"]
