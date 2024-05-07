@@ -15,4 +15,5 @@ from vivarium._version import __version__
 from vivarium.component import Component
 from vivarium.framework.artifact import Artifact
 from vivarium.framework.configuration import build_model_specification
+from vivarium.framework.results.observer import Observer, StratifiedObserver
 from vivarium.interface import InteractiveContext
