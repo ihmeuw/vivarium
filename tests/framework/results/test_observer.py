@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from layered_config_tree import LayeredConfigTree
 
 from vivarium.framework.results.observer import Observer, StratifiedObserver
 
@@ -30,18 +31,32 @@ def test_observer_instantiation():
     assert observer.name == "test_observer"
 
 
-def test_get_report_attributes(mocker):
+@pytest.mark.parametrize(
+    "is_interactive, results_dir, draw, seed",
+    [
+        (False, "/some/results/dir", 111, 222),
+        (True, None, None, None),
+    ],
+)
+def test_get_report_attributes(is_interactive, results_dir, draw, seed, mocker):
     builder = mocker.Mock()
-    builder.configuration.output_data.results_directory = "/some/results/dir"
-    builder.configuration.input_data.input_draw_number = 111
-    builder.configuration.randomness.random_seed = 222
+    if is_interactive:
+        builder.configuration = LayeredConfigTree()
+    else:
+        builder.configuration = LayeredConfigTree(
+            {
+                "output_data": {"results_directory": results_dir},
+                "input_data": {"input_draw_number": draw},
+                "randomness": {"random_seed": seed},
+            }
+        )
 
     observer = TestObserver()
     observer.get_report_attributes(builder)
 
-    assert observer.results_dir == "/some/results/dir"
-    assert observer.input_draw == 111
-    assert observer.random_seed == 222
+    assert observer.results_dir == results_dir
+    assert observer.input_draw == draw
+    assert observer.random_seed == seed
 
 
 def test_dataframe_to_csv(tmpdir, mocker):
@@ -49,9 +64,13 @@ def test_dataframe_to_csv(tmpdir, mocker):
     input_draw = 111
     random_seed = 222
     builder = mocker.Mock()
-    builder.configuration.output_data.results_directory = str(results_dir)
-    builder.configuration.input_data.input_draw_number = input_draw
-    builder.configuration.randomness.random_seed = random_seed
+    builder.configuration = LayeredConfigTree(
+        {
+            "output_data": {"results_directory": results_dir},
+            "input_data": {"input_draw_number": input_draw},
+            "randomness": {"random_seed": random_seed},
+        }
+    )
 
     observer = TestObserver()
     observer.get_report_attributes(builder)

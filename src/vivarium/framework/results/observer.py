@@ -16,6 +16,12 @@ class Observer(Component, ABC):
     Note that a `register_observation` method must be defined in the subclass.
     """
 
+    def __init__(self):
+        super().__init__()
+        self.results_dir = None
+        self.input_draw = None
+        self.random_seed = None
+
     @abstractmethod
     def register_observations(self, builder: Builder) -> None:
         """(Required). Register observations with within each observer."""
@@ -28,12 +34,19 @@ class Observer(Component, ABC):
 
     def get_report_attributes(self, builder: Builder) -> None:
         """Define commonly-used attributes for reporting."""
-        try:
-            self.results_dir = builder.configuration.output_data.results_directory
-        except KeyError:
-            self.results_dir = None
-        self.input_draw = builder.configuration.input_data.input_draw_number
-        self.random_seed = builder.configuration.randomness.random_seed
+        self.results_dir = (
+            builder.configuration.to_dict()
+            .get("output_data", {})
+            .get("results_directory", None)
+        )
+        self.input_draw = (
+            builder.configuration.to_dict()
+            .get("input_data", {})
+            .get("input_draw_number", None)
+        )
+        self.random_seed = (
+            builder.configuration.to_dict().get("randomness", {}).get("random_seed", None)
+        )
 
     ##################
     # Report methods #
