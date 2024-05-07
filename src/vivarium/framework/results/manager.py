@@ -323,7 +323,7 @@ class ResultsManager(Manager):
 
     def get_results(self, _index, metrics):
         # Shim for now to allow incremental transition to new results system.
-        metrics.update(self.metrics)
+        metrics.update(self._metrics)
         return metrics
 
     def _warn_check_stratifications(
