@@ -95,7 +95,7 @@ class ResultsContext:
         additional_stratifications: List[str],
         excluded_stratifications: List[str],
         when: str,
-        report: Callable[[Path, str, pd.DataFrame, str, str], None],
+        report: Callable[[str, pd.DataFrame], None],
     ) -> None:
         stratifications = self._get_stratifications(
             additional_stratifications, excluded_stratifications
