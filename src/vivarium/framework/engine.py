@@ -208,7 +208,7 @@ class SimulationContext:
         return self._name
 
     def get_results(self) -> Dict[str, Any]:
-        return self._results.metrics
+        return self._values.get_value("metrics")(self.get_population().index)
 
     def setup(self) -> None:
         self._lifecycle.set_state("setup")

@@ -259,6 +259,20 @@ def test_SimulationContext_finalize(SimulationContext, base_config, components):
     assert listener.simulation_end_called
 
 
+def test_get_results(base_config, tmpdir):
+    configuration = {"output_data": {"results_directory": str(tmpdir)}}
+    configuration.update(HARRY_POTTER_CONFIG)
+    components = [
+        Hogwarts(),
+        HousePointsObserver(),
+        NoStratificationsQuidditchWinsObserver(),
+        QuidditchWinsObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    finished_sim = run_simulation(base_config, components, configuration)
+    assert finished_sim.get_results() == finished_sim._results.metrics
+
+
 def test_SimulationContext_report(SimulationContext, base_config, components, tmpdir, mocker):
     # Mock out 'gather_results' and instead rely on the MockComponentB 'metrics'
     # pipeline (which is effectively just a counter)
@@ -270,7 +284,10 @@ def test_SimulationContext_report(SimulationContext, base_config, components, tm
     sim.run()
     sim.finalize()
     sim.report()
-    metrics = sim.get_results()
+    # Cannot use the sim.get_results() property because that calls the "metrics"
+    # pipeline which has been set up as a counter for this test and we do not want
+    # to trigger it again.
+    metrics = sim._results.metrics
     assert set(metrics) == set(["test"])
     results = metrics["test"]
     assert len(results["value"].unique()) == 1
@@ -282,7 +299,7 @@ def test_SimulationContext_report(SimulationContext, base_config, components, tm
 def test_SimulationContext_report_output_format(base_config, tmpdir):
     """Test report output is as expected"""
     results_root = Path(tmpdir)
-    configuration = {"output_data": {"results_directory": str(tmpdir)}}
+    configuration = {"output_data": {"results_directory": str(results_root)}}
     configuration.update(HARRY_POTTER_CONFIG)
     components = [
         Hogwarts(),
@@ -353,6 +370,9 @@ def test_SimulationContext_report_output_format(base_config, tmpdir):
         assert (df.loc[filter, "value"] % num_steps == 0).all()
 
 
+####################
+# HELPER FUNCTIONS #
+####################
 def _convert_to_datetime(date_dict: Dict[str, int]) -> pd.Timestamp:
     return pd.to_datetime(
         "-".join([str(val) for val in date_dict.values()]), format="%Y-%m-%d"
