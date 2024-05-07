@@ -174,6 +174,7 @@ def test_flatten_with_nested_sub_components():
 def test_setup_components(mocker):
     builder = mocker.Mock()
     builder.configuration = {}
+    mocker.patch("vivarium.framework.results.observer.Observer.get_report_attributes")
     mock_a = MockComponentA("test_a")
     mock_b = MockComponentB("test_b")
     components = OrderedComponentSet(mock_a, mock_b)

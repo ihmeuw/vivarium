@@ -143,7 +143,6 @@ def run(
 
     main = handle_exceptions(run_simulation, logger, with_debugger)
     finished_sim = main(model_specification, configuration=override_configuration)
-    finished_sim.report(results_root)
 
     # TODO [MIC-4982]: Save out required metrics for VCT to work
     # metrics = pd.DataFrame(finished_sim.report(), index=[0])

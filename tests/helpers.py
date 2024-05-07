@@ -2,13 +2,13 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from vivarium import Component
+from vivarium import Component, Observer, StratifiedObserver
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 
 
-class MockComponentA(Component):
+class MockComponentA(Observer):
     @property
     def name(self) -> str:
         return self._name
@@ -22,11 +22,14 @@ class MockComponentA(Component):
     def create_lookup_tables(self, builder):
         return {}
 
+    def register_observations(self, builder):
+        pass
+
     def __eq__(self, other: Any) -> bool:
         return type(self) == type(other) and self.name == other.name
 
 
-class MockComponentB(Component):
+class MockComponentB(StratifiedObserver):
     @property
     def name(self) -> str:
         return self._name
@@ -43,12 +46,15 @@ class MockComponentB(Component):
     def setup(self, builder: Builder) -> None:
         self.builder_used_for_setup = builder
         builder.value.register_value_modifier("metrics", self.metrics)
+
+    def register_observations(self, builder):
         builder.results.register_observation("test")
 
     def create_lookup_tables(self, builder):
         return {}
 
     def metrics(self, _, metrics) -> pd.DataFrame:
+        # Modify the metrics pipeline so that it behaves like a Counter every time it's called
         metrics["test"]["value"] += 1
         return metrics
 

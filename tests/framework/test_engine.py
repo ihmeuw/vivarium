@@ -7,8 +7,8 @@ import pandas as pd
 import pytest
 
 from tests.framework.results.helpers import (
-    CONFIG,
     FAMILIARS,
+    HARRY_POTTER_CONFIG,
     POWER_LEVELS,
     STUDENT_HOUSES,
     Hogwarts,
@@ -57,7 +57,7 @@ def components():
     return [
         MockComponentA("gretchen", "whimsy"),
         Listener("listener"),
-        MockComponentB("spoon", "antelope", 23),
+        MockComponentB("spoon", "antelope", "23"),
     ]
 
 
@@ -259,27 +259,9 @@ def test_SimulationContext_finalize(SimulationContext, base_config, components):
     assert listener.simulation_end_called
 
 
-def test_SimulationContext_report(SimulationContext, base_config, components, tmpdir, mocker):
-    # Mock out 'gather_results' and instead rely on the MockComponentB 'metrics'
-    # pipeline (which is effectively just a counter)
-    mocker.patch("vivarium.framework.results.context.ResultsContext.gather_results")
-    sim = SimulationContext(base_config, components)
-    sim.setup()
-    sim.initialize_simulants()
-    sim.run()
-    sim.finalize()
-    sim.report(Path(tmpdir))
-
-    metrics = pd.read_csv(tmpdir / "test.csv")
-    assert len(metrics["value"].unique()) == 1
-    assert metrics["value"].iat[0] == len(
-        [c for c in sim._component_manager._components if isinstance(c, MockComponentB)]
-    )
-
-
-def test_SimulationContext_report_output_format(tmpdir):
-    """Test report output is as expected"""
-    results_root = Path(tmpdir)
+def test_get_results(base_config, tmpdir):
+    configuration = {"output_data": {"results_directory": str(tmpdir)}}
+    configuration.update(HARRY_POTTER_CONFIG)
     components = [
         Hogwarts(),
         HousePointsObserver(),
@@ -287,8 +269,46 @@ def test_SimulationContext_report_output_format(tmpdir):
         QuidditchWinsObserver(),
         HogwartsResultsStratifier(),
     ]
-    finished_sim = run_simulation(components=components, configuration=CONFIG)
-    finished_sim.report(results_root)
+    finished_sim = run_simulation(base_config, components, configuration)
+    assert finished_sim.get_results() == finished_sim._results.metrics
+
+
+def test_SimulationContext_report(SimulationContext, base_config, components, tmpdir, mocker):
+    # Mock out 'gather_results' and instead rely on the MockComponentB 'metrics'
+    # pipeline (which is effectively just a counter)
+    mocker.patch("vivarium.framework.results.context.ResultsContext.gather_results")
+    configuration = {"output_data": {"results_directory": str(tmpdir)}}
+    sim = SimulationContext(base_config, components, configuration)
+    sim.setup()
+    sim.initialize_simulants()
+    sim.run()
+    sim.finalize()
+    sim.report()
+    # Cannot use the sim.get_results() property because that calls the "metrics"
+    # pipeline which has been set up as a counter for this test and we do not want
+    # to trigger it again.
+    metrics = sim._results.metrics
+    assert set(metrics) == set(["test"])
+    results = metrics["test"]
+    assert len(results["value"].unique()) == 1
+    assert results["value"].iat[0] == len(
+        [c for c in sim._component_manager._components if isinstance(c, MockComponentB)]
+    )
+
+
+def test_SimulationContext_report_output_format(base_config, tmpdir):
+    """Test report output is as expected"""
+    results_root = Path(tmpdir)
+    configuration = {"output_data": {"results_directory": str(results_root)}}
+    configuration.update(HARRY_POTTER_CONFIG)
+    components = [
+        Hogwarts(),
+        HousePointsObserver(),
+        NoStratificationsQuidditchWinsObserver(),
+        QuidditchWinsObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    finished_sim = run_simulation(base_config, components, configuration)
 
     # The observers are based on number of steps - extract how many steps were run
     time_dict = finished_sim.configuration.time.to_dict()
@@ -350,6 +370,9 @@ def test_SimulationContext_report_output_format(tmpdir):
         assert (df.loc[filter, "value"] % num_steps == 0).all()
 
 
+####################
+# HELPER FUNCTIONS #
+####################
 def _convert_to_datetime(date_dict: Dict[str, int]) -> pd.Timestamp:
     return pd.to_datetime(
         "-".join([str(val) for val in date_dict.values()]), format="%Y-%m-%d"

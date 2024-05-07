@@ -7,6 +7,7 @@ import pandas as pd
 from vivarium.framework.components.manager import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
+from vivarium.framework.results.observer import StratifiedObserver
 
 NAME = "hogwarts_house"
 SOURCES = ["first_name", "last_name"]
@@ -29,7 +30,7 @@ TRACKED_STATUSES = [True, False]
 RECORDS = list(itertools.product(CATEGORIES, FAMILIARS, POWER_LEVELS, TRACKED_STATUSES))
 BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
 
-CONFIG = {
+HARRY_POTTER_CONFIG = {
     "time": {
         "start": {"year": 2024, "month": 4, "day": 22},
         "end": {"year": 2029, "month": 4, "day": 22},
@@ -91,12 +92,12 @@ class Hogwarts(Component):
         self.population_view.update(update)
 
 
-class HousePointsObserver(Component):
+class HousePointsObserver(StratifiedObserver):
     """Observer that is stratified by multiple columns (the defaults,
     'student_house' and 'power_level')
     """
 
-    def setup(self, builder: Builder) -> None:
+    def register_observations(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="house_points",
             aggregator_sources=["house_points"],
@@ -104,7 +105,11 @@ class HousePointsObserver(Component):
             requires_columns=[
                 "house_points",
             ],
+            report=self.report,
         )
+
+    def report(self, measure: str, results: pd.DataFrame) -> None:
+        self.dataframe_to_csv(measure, results)
 
 
 class FullyFilteredHousePointsObserver(Component):
@@ -122,10 +127,10 @@ class FullyFilteredHousePointsObserver(Component):
         )
 
 
-class QuidditchWinsObserver(Component):
+class QuidditchWinsObserver(StratifiedObserver):
     """Observer that is stratified by a single column ('familiar')"""
 
-    def setup(self, builder: Builder) -> None:
+    def register_observations(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="quidditch_wins",
             aggregator_sources=["quidditch_wins"],
@@ -135,13 +140,17 @@ class QuidditchWinsObserver(Component):
             requires_columns=[
                 "quidditch_wins",
             ],
+            report=self.report,
         )
 
+    def report(self, measure: str, results: pd.DataFrame) -> None:
+        self.dataframe_to_csv(measure, results)
 
-class NoStratificationsQuidditchWinsObserver(Component):
+
+class NoStratificationsQuidditchWinsObserver(StratifiedObserver):
     """Same as above but no stratifications at all"""
 
-    def setup(self, builder: Builder) -> None:
+    def register_observations(self, builder: Builder) -> None:
         builder.results.register_observation(
             name="no_stratifications_quidditch_wins",
             aggregator_sources=["quidditch_wins"],
@@ -150,7 +159,11 @@ class NoStratificationsQuidditchWinsObserver(Component):
             requires_columns=[
                 "quidditch_wins",
             ],
+            report=self.report,
         )
+
+    def report(self, measure: str, results: pd.DataFrame) -> None:
+        self.dataframe_to_csv(measure, results)
 
 
 class HogwartsResultsStratifier(Component):
