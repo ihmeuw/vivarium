@@ -34,7 +34,7 @@ def components():
     return [
         MockComponentA("gretchen", "whimsy"),
         Listener("listener"),
-        MockComponentB("spoon", "antelope", 23),
+        MockComponentB("spoon", "antelope", "23"),
     ]
 
 
