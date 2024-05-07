@@ -54,6 +54,7 @@ class MockComponentB(StratifiedObserver):
         return {}
 
     def metrics(self, _, metrics) -> pd.DataFrame:
+        # Modify the metrics pipeline so that it behaves like a Counter every time it's called
         metrics["test"]["value"] += 1
         return metrics
 
