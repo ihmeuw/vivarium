@@ -1,4 +1,3 @@
-import itertools
 import re
 from types import MethodType
 
@@ -6,7 +5,6 @@ import pandas as pd
 import pytest
 from loguru import logger
 from pandas.api.types import CategoricalDtype
-
 from tests.framework.results.helpers import (
     BIN_BINNED_COLUMN,
     BIN_LABELS,
@@ -30,6 +28,8 @@ from tests.framework.results.helpers import (
     sorting_hat_vector,
     verify_stratification_added,
 )
+
+from vivarium.framework.results import METRICS_COLUMN
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.interface.interactive import InteractiveContext
 
@@ -290,7 +290,7 @@ def test_stratified_metrics_initialization():
     for metric in metrics:
         result = metrics[metric]
         assert isinstance(result, pd.DataFrame)
-        assert (result["value"] == 0).all()
+        assert (result[METRICS_COLUMN] == 0).all()
     STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
     POWER_LEVELS_STR = [str(lvl) for lvl in POWER_LEVELS]
 
@@ -325,7 +325,7 @@ def test_no_stratifications_metrics_initialization():
     results = sim._results.metrics["no_stratifications_quidditch_wins"]
     assert isinstance(results, pd.DataFrame)
     assert results.shape == (1, 1)
-    assert results["value"].iat[0] == 0
+    assert results[METRICS_COLUMN].iat[0] == 0
     assert results.index.equals(pd.Index(["all"]))
 
 
@@ -380,13 +380,13 @@ def test_update_monotonically_increasing_metrics():
         assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set(["50", "80"])
         group_sizes = pd.DataFrame(
             pop.groupby(["student_house", "power_level"]).size().astype("float"),
-            columns=["value"],
+            columns=[METRICS_COLUMN],
         )
         metrics = sim._results.metrics["house_points"]
         # We cannot use `equals` here because metrics has a MultiIndex where
         # each layer is a Category dtype but pop has object dtype for the relevant columns
         assert (
-            metrics[metrics["value"] != 0].values
+            metrics[metrics[METRICS_COLUMN] != 0].values
             == (group_sizes.loc(axis=0)["gryffindor", ["50", "80"]] * step_number).values
         ).all()
 
@@ -397,13 +397,13 @@ def test_update_monotonically_increasing_metrics():
         assert set(pop["quidditch_wins"]) == set([0, 1])
         assert (pop.loc[pop["quidditch_wins"] != 0, "familiar"] == "banana_slug").all()
         group_sizes = pd.DataFrame(
-            pop.groupby(["familiar"]).size().astype("float"), columns=["value"]
+            pop.groupby(["familiar"]).size().astype("float"), columns=[METRICS_COLUMN]
         )
         metrics = sim._results.metrics["quidditch_wins"]
         # We cannot use `equals` here because metrics has a MultiIndex where
         # each layer is a Category dtype but pop has object dtype for the relevant columns
         assert (
-            metrics[metrics["value"] != 0].values
+            metrics[metrics[METRICS_COLUMN] != 0].values
             == (group_sizes[group_sizes.index == "banana_slug"] * step_number).values
         ).all()
 
@@ -435,9 +435,9 @@ def test_update_metrics_fully_filtered_pop():
     sim.step()
     # The FullyFilteredHousePointsObserver filters the population to a bogus
     # power level and so we should not be observing anything
-    assert (sim._results.metrics["house_points"]["value"] == 0).all()
+    assert (sim._results.metrics["house_points"][METRICS_COLUMN] == 0).all()
     sim.step()
-    assert (sim._results.metrics["house_points"]["value"] == 0).all()
+    assert (sim._results.metrics["house_points"][METRICS_COLUMN] == 0).all()
 
 
 def test_update_metrics_no_stratifications():
@@ -446,8 +446,8 @@ def test_update_metrics_no_stratifications():
     sim.step()
     pop = sim.get_population()
     results = sim._results.metrics["no_stratifications_quidditch_wins"]
-    assert results.loc["all"]["value"] == pop["quidditch_wins"].sum()
+    assert results.loc["all"][METRICS_COLUMN] == pop["quidditch_wins"].sum()
     sim.step()
     pop = sim.get_population()
     results = sim._results.metrics["no_stratifications_quidditch_wins"]
-    assert results.loc["all"]["value"] == pop["quidditch_wins"].sum() * 2
+    assert results.loc["all"][METRICS_COLUMN] == pop["quidditch_wins"].sum() * 2
