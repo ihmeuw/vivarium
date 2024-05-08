@@ -16,6 +16,7 @@ from tests.framework.results.helpers import (
     sorting_hat_vector,
     verify_stratification_added,
 )
+from vivarium.framework.results import METRICS_COLUMN
 from vivarium.framework.results.context import ResultsContext
 
 
@@ -350,7 +351,7 @@ def test_gather_results_partial_stratifications_in_results(
     for results, _measure in ctx.gather_results(population, event_name):
         unladen_results = results.loc["unladen_swallow"]
         assert len(unladen_results) > 0
-        assert (unladen_results["value"] == 0).all()
+        assert (unladen_results[METRICS_COLUMN] == 0).all()
 
 
 def test_gather_results_with_empty_pop_filter():
@@ -592,11 +593,11 @@ def test__coerce_to_dataframe_failures(aggregates, xfail_match):
     "aggregates",
     [
         pd.DataFrame(
-            {"value": [1.0, 2.0, 10.0, 20.0]},
+            {METRICS_COLUMN: [1.0, 2.0, 10.0, 20.0]},
             index=pd.Index(["ones"] * 2 + ["tens"] * 2),
         ),
         pd.DataFrame(
-            {"value": [1.0, 2.0, 10.0, 20.0, "bad", "bad"]},
+            {METRICS_COLUMN: [1.0, 2.0, 10.0, 20.0, "bad", "bad"]},
             index=pd.MultiIndex.from_arrays(
                 [
                     ["foo", "bar", "foo", "bar", "foo", "bar"],
@@ -617,9 +618,10 @@ def test__expand_index(aggregates):
         )
         # Check that existing values did not change
         assert (
-            full_idx_aggregates.loc[aggregates.index, "value"] == aggregates["value"]
+            full_idx_aggregates.loc[aggregates.index, METRICS_COLUMN]
+            == aggregates[METRICS_COLUMN]
         ).all()
         # Check that missingness was filled in with zeros
-        assert (full_idx_aggregates.query('type=="zeros"')["value"] == 0).all()
+        assert (full_idx_aggregates.query('type=="zeros"')[METRICS_COLUMN] == 0).all()
     else:
         assert aggregates.equals(full_idx_aggregates)

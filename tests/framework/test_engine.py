@@ -37,7 +37,7 @@ from vivarium.framework.metrics import Metrics
 from vivarium.framework.population import PopulationInterface, PopulationManager
 from vivarium.framework.randomness import RandomnessInterface, RandomnessManager
 from vivarium.framework.resource import ResourceInterface, ResourceManager
-from vivarium.framework.results import ResultsInterface, ResultsManager
+from vivarium.framework.results import METRICS_COLUMN, ResultsInterface, ResultsManager
 from vivarium.framework.time import DateTimeClock, TimeInterface
 from vivarium.framework.values import ValuesInterface, ValuesManager
 
@@ -290,8 +290,8 @@ def test_SimulationContext_report(SimulationContext, base_config, components, tm
     metrics = sim._results.metrics
     assert set(metrics) == set(["test"])
     results = metrics["test"]
-    assert len(results["value"].unique()) == 1
-    assert results["value"].iat[0] == len(
+    assert len(results[METRICS_COLUMN].unique()) == 1
+    assert results[METRICS_COLUMN].iat[0] == len(
         [c for c in sim._component_manager._components if isinstance(c, MockComponentB)]
     )
 
@@ -360,14 +360,14 @@ def test_SimulationContext_report_output_format(base_config, tmpdir):
         # Check for other cols
         assert "random_seed" in df.columns
         assert "input_draw" in df.columns
-        # We do enforce a col order, but most importantly ensure "value" is at the end
-        assert df.columns[-1] == "value"
+        # We do enforce a col order, but most importantly ensure METRICS_COLUMN is at the end
+        assert df.columns[-1] == METRICS_COLUMN
         # Check values
         # Check that all values are 0 except for expected groups
-        assert (df.loc[filter, "value"] != 0).all()
-        assert (df.loc[~filter, "value"] == 0).all()
+        assert (df.loc[filter, METRICS_COLUMN] != 0).all()
+        assert (df.loc[~filter, METRICS_COLUMN] == 0).all()
         # Check that expected groups' values are a multiple of the number of steps
-        assert (df.loc[filter, "value"] % num_steps == 0).all()
+        assert (df.loc[filter, METRICS_COLUMN] % num_steps == 0).all()
 
 
 ####################
