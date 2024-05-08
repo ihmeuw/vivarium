@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 from loguru import logger
 from pandas.api.types import CategoricalDtype
+
 from tests.framework.results.helpers import (
     BIN_BINNED_COLUMN,
     BIN_LABELS,
@@ -28,7 +29,6 @@ from tests.framework.results.helpers import (
     sorting_hat_vector,
     verify_stratification_added,
 )
-
 from vivarium.framework.results import METRICS_COLUMN
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.interface.interactive import InteractiveContext

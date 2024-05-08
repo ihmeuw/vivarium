@@ -5,6 +5,7 @@ from datetime import timedelta
 import pandas as pd
 import pytest
 from pandas.core.groupby import DataFrameGroupBy
+
 from tests.framework.results.helpers import (
     BASE_POPULATION,
     CATEGORIES,
@@ -15,7 +16,6 @@ from tests.framework.results.helpers import (
     sorting_hat_vector,
     verify_stratification_added,
 )
-
 from vivarium.framework.results import METRICS_COLUMN
 from vivarium.framework.results.context import ResultsContext
 
