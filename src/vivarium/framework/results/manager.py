@@ -14,6 +14,9 @@ if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
 
+METRICS_COLUMN = "value"
+
+
 class SourceType(Enum):
     COLUMN = 0
     VALUE = 1
@@ -132,7 +135,7 @@ class ResultsManager(Manager):
                         )
 
                     # Initialize a zeros dataframe
-                    df["value"] = 0.0
+                    df[METRICS_COLUMN] = 0.0
                     self._metrics[measure] = df.set_index(stratification_names)
 
         if unused_stratifications:
