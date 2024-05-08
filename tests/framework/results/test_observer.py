@@ -4,6 +4,7 @@ import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
 
+from vivarium.framework.results import METRICS_COLUMN
 from vivarium.framework.results.observer import Observer, StratifiedObserver
 
 
@@ -77,7 +78,7 @@ def test_dataframe_to_csv(tmpdir, mocker):
 
     cats = pd.DataFrame(
         {
-            "value": ["Whipper", "Burt Macklin"],
+            METRICS_COLUMN: ["Whipper", "Burt Macklin"],
             "color": ["gray", "black"],
             "size": ["small", "large"],
         }
