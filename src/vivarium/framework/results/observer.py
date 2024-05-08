@@ -22,7 +22,6 @@ class Observer(Component, ABC):
         self.results_dir = None
         self.input_draw = None
         self.random_seed = None
-        self.scenario = None
 
     @abstractmethod
     def register_observations(self, builder: Builder) -> None:
@@ -49,7 +48,6 @@ class Observer(Component, ABC):
         self.random_seed = (
             builder.configuration.to_dict().get("randomness", {}).get("random_seed", None)
         )
-        self.scenario = builder.configuration.to_dict().get("scenario", None)
 
     ##################
     # Report methods #
