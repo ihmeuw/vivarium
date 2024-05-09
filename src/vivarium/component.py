@@ -641,7 +641,7 @@ class Component(ABC):
                 value_columns = set(value_columns)
 
             potential_parameter_columns = [
-                col.removesuffix("_start") for col in all_columns if col.endswith("_start")
+                str(col).removesuffix("_start") for col in all_columns if str(col).endswith("_start")
             ]
             parameter_columns = set()
             bin_edge_columns = set()
