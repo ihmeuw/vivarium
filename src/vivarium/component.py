@@ -695,7 +695,7 @@ class Component(ABC):
         layered_config_tree.exceptions.ConfigurationError
             If the data source is invalid.
         """
-        if isinstance(data_source, (float, pd.DataFrame)):
+        if isinstance(data_source, (float, int, pd.DataFrame)):
             return data_source
 
         if "::" in data_source:
