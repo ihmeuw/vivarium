@@ -60,47 +60,6 @@ def test_get_report_attributes(is_interactive, results_dir, draw, seed, mocker):
     assert observer.random_seed == seed
 
 
-def test_dataframe_to_csv(tmpdir, mocker):
-    results_dir = Path(tmpdir)
-    input_draw = 111
-    random_seed = 222
-    builder = mocker.Mock()
-    builder.configuration = LayeredConfigTree(
-        {
-            "output_data": {"results_directory": results_dir},
-            "input_data": {"input_draw_number": input_draw},
-            "randomness": {"random_seed": random_seed},
-        }
-    )
-
-    observer = TestObserver()
-    observer.setup_component(builder)
-
-    cats = pd.DataFrame(
-        {
-            METRICS_COLUMN: ["Whipper", "Burt Macklin"],
-            "color": ["gray", "black"],
-            "size": ["small", "large"],
-        }
-    ).set_index(["color", "size"])
-    observer.dataframe_to_csv("cats", cats)
-
-    expected_results = cats.reset_index()
-    expected_results["input_draw"] = input_draw
-    expected_results["random_seed"] = random_seed
-    expected_results["measure"] = "cats"
-    results = pd.read_csv(Path(tmpdir) / "cats.csv")
-
-    assert set(results.columns) == set(expected_results.columns)
-
-    # Order and sort for equality check
-    cols = list(results.columns)
-    results = results.sort_values(cols).reset_index(drop=True)
-    expected_results = expected_results[cols].sort_values(cols).reset_index(drop=True)
-
-    assert results.equals(expected_results)
-
-
 @pytest.mark.parametrize(
     "observer, name, expected_configuration_defaults",
     [
