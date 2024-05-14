@@ -10,7 +10,7 @@ simulations.
 import re
 from abc import ABC
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 from loguru._logger import Logger
 
@@ -78,9 +78,9 @@ class Component(ABC):
         value: str,
         continuous_columns: List[str] = [],
         categorical_columns: List[str] = [],
-        key_name: str = None,
+        key_name: Optional[str] = None,
         **kwargs: Dict[str, Any],
-    ) -> dict:
+    ) -> Dict[str, Union[str, List[Optional[str]]]]:
         config = {
             "value": value,
             "continuous_columns": continuous_columns,
@@ -348,7 +348,7 @@ class Component(ABC):
     # Lifecycle methods #
     #####################
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes a new instance of the Component class.
 
