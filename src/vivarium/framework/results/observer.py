@@ -47,6 +47,7 @@ class Observer(Component, ABC):
 
 
 class StratifiedObserver(Observer):
+
     @property
     def configuration_defaults(self) -> Dict[str, Any]:
         return {
