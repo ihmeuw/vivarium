@@ -269,11 +269,15 @@ class ResultsManager(Manager):
             raise ValueError(
                 f"Bin length ({len(bins)}) does not match labels length ({len(labels)})"
             )
-        target_arg = "required_columns" if target_type == "column" else "required_values"
+        target_arg = "requires_columns" if target_type == "column" else "required_values"
         target_kwargs = {target_arg: [target]}
-        # FIXME [MIC-5000]: bins should not be passed into register_stratificaton as categories
+
         self.register_stratification(
-            binned_column, bins, _bin_data, is_vectorized=True, **target_kwargs
+            name=binned_column,
+            categories=labels,
+            mapper=_bin_data,
+            is_vectorized=True,
+            **target_kwargs,
         )
 
     def register_observation(

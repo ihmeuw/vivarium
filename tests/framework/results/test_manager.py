@@ -183,13 +183,22 @@ def test_duplicate_name_register_stratification(mocker):
 
 def test_register_binned_stratification(mocker):
     mgr = ResultsManager()
-    mock_register_stratification = mocker.patch(
-        "vivarium.framework.results.manager.ResultsManager.register_stratification"
-    )
+    mgr.logger = logger
+    assert len(mgr._results_context.stratifications) == 0
     mgr.register_binned_stratification(
-        BIN_SOURCE, "column", BIN_BINNED_COLUMN, BIN_SILLY_BINS, BIN_LABELS
+        target=BIN_SOURCE,
+        target_type="column",
+        binned_column=BIN_BINNED_COLUMN,
+        bins=BIN_SILLY_BINS,
+        labels=BIN_LABELS,
     )
-    mock_register_stratification.assert_called_once()
+    assert len(mgr._results_context.stratifications) == 1
+    strat = mgr._results_context.stratifications[0]
+    assert strat.name == BIN_BINNED_COLUMN
+    assert strat.sources == [BIN_SOURCE]
+    assert strat.categories == BIN_LABELS
+    # Cannot access the mapper because it's in local scope, so just check something is there
+    assert strat.mapper is not None
 
 
 @pytest.mark.parametrize(
@@ -197,11 +206,18 @@ def test_register_binned_stratification(mocker):
     [(BIN_SILLY_BINS, BIN_LABELS[2:]), (BIN_SILLY_BINS[2:], BIN_LABELS)],
     ids=["more_bins_than_labels", "more_labels_than_bins"],
 )
-def test_register_binned_stratification_raises(bins, labels):
+def test_register_binned_stratification_raises_bins_labels_mismatch(bins, labels):
     mgr = ResultsManager()
-    with pytest.raises(ValueError):
-        raise mgr.register_binned_stratification(
-            BIN_SOURCE, "column", BIN_BINNED_COLUMN, bins, labels
+    with pytest.raises(
+        ValueError,
+        match=r"Bin length \(\d+\) does not match labels length \(\d+\)",
+    ):
+        mgr.register_binned_stratification(
+            target=BIN_SOURCE,
+            target_type="column",
+            binned_column=BIN_BINNED_COLUMN,
+            bins=bins,
+            labels=labels,
         )
 
 
