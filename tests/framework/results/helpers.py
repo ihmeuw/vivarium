@@ -22,8 +22,8 @@ STUDENT_HOUSES = pd.Series(["gryffindor", "slytherin", "ravenclaw"])
 
 BIN_BINNED_COLUMN = "silly_bin"
 BIN_SOURCE = "silly_level"
-BIN_LABELS = ["not", "meh", "somewhat", "very", "extra"]
-BIN_SILLY_BINS = [0, 20, 40, 60, 90]
+BIN_LABELS = ["meh", "somewhat", "very", "extra"]
+BIN_SILLY_BIN_EDGES = [0, 20, 40, 60, 90]
 
 COL_NAMES = ["house", "familiar", "power_level", "tracked"]
 FAMILIARS = ["owl", "cat", "gecko", "banana_slug", "unladen_swallow"]
@@ -187,6 +187,7 @@ class HogwartsResultsStratifier(Component):
             [str(lvl) for lvl in POWER_LEVELS],
             requires_columns=["power_level"],
         )
+        builder.results.register_binned_stratification("age", "age_group", bin_edges=[12])
 
 
 ##################

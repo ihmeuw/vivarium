@@ -101,7 +101,7 @@ class ResultsInterface:
         self,
         target: str,
         binned_column: str,
-        bins: List = [],
+        bin_edges: List = [],
         labels: List[str] = [],
         target_type: str = "column",
         **cut_kwargs,
@@ -114,11 +114,12 @@ class ResultsInterface:
             String name of the state table column or value pipeline used to stratify.
         binned_column
             String name of the column for the binned quantities.
-        bins
-            List of scalars defining the bin edges, passed to :meth: pandas.cut. Lists
-            `bins` and `labels` must be of equal length.
+        bin_edges
+            List of scalars defining the bin edges, passed to :meth: pandas.cut.
+            The length must be equal to the length of `labels` plus 1.
         labels
-            List of string labels for bins. Lists `bins` and `labels` must be of equal length.
+            List of string labels for bins. The length must be equal to the length
+            of `bin_edges` minus 1.
         target_type
             "column" or "value"
         **cut_kwargs
@@ -129,7 +130,7 @@ class ResultsInterface:
         None
         """
         self._manager.register_binned_stratification(
-            target, target_type, binned_column, bins, labels, **cut_kwargs
+            target, target_type, binned_column, bin_edges, labels, **cut_kwargs
         )
 
     def register_observation(

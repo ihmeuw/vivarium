@@ -9,7 +9,7 @@ from pandas.api.types import CategoricalDtype
 from tests.framework.results.helpers import (
     BIN_BINNED_COLUMN,
     BIN_LABELS,
-    BIN_SILLY_BINS,
+    BIN_SILLY_BIN_EDGES,
     BIN_SOURCE,
     CATEGORIES,
     FAMILIARS,
@@ -181,7 +181,7 @@ def test_duplicate_name_register_stratification(mocker):
 ##############################################
 
 
-def test_register_binned_stratification(mocker):
+def test_register_binned_stratification():
     mgr = ResultsManager()
     mgr.logger = logger
     assert len(mgr._results_context.stratifications) == 0
@@ -189,7 +189,7 @@ def test_register_binned_stratification(mocker):
         target=BIN_SOURCE,
         target_type="column",
         binned_column=BIN_BINNED_COLUMN,
-        bins=BIN_SILLY_BINS,
+        bin_edges=BIN_SILLY_BIN_EDGES,
         labels=BIN_LABELS,
     )
     assert len(mgr._results_context.stratifications) == 1
@@ -203,20 +203,20 @@ def test_register_binned_stratification(mocker):
 
 @pytest.mark.parametrize(
     "bins, labels",
-    [(BIN_SILLY_BINS, BIN_LABELS[2:]), (BIN_SILLY_BINS[2:], BIN_LABELS)],
-    ids=["more_bins_than_labels", "more_labels_than_bins"],
+    [(BIN_SILLY_BIN_EDGES, BIN_LABELS[1:]), (BIN_SILLY_BIN_EDGES[1:], BIN_LABELS)],
+    ids=["too_many_bins", "too_many_labels"],
 )
 def test_register_binned_stratification_raises_bins_labels_mismatch(bins, labels):
     mgr = ResultsManager()
     with pytest.raises(
         ValueError,
-        match=r"Bin length \(\d+\) does not match labels length \(\d+\)",
+        match=r"The number of bin edges plus 1 \(\d+\) does not match the number of labels \(\d+\)",
     ):
         mgr.register_binned_stratification(
             target=BIN_SOURCE,
             target_type="column",
             binned_column=BIN_BINNED_COLUMN,
-            bins=bins,
+            bin_edges=bins,
             labels=labels,
         )
 
