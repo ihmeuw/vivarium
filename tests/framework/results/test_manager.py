@@ -199,9 +199,8 @@ def test_register_binned_stratification():
     assert strat.sources == [BIN_SOURCE]
     assert strat.categories == BIN_LABELS
     # Cannot access the mapper because it's in local scope, so check __repr__
-    assert (
-        "function ResultsManager.register_binned_stratification.<locals>._bin_data"
-        in strat.mapper.__repr__()
+    assert "function ResultsManager.register_binned_stratification.<locals>._bin_data" in str(
+        strat.mapper
     )
 
 
