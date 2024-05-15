@@ -9,7 +9,7 @@ import pytest
 from tests.framework.results.helpers import (
     FAMILIARS,
     HARRY_POTTER_CONFIG,
-    POWER_LEVELS,
+    POWER_LEVEL_GROUP_LABELS,
     STUDENT_HOUSES,
     Hogwarts,
     HogwartsResultsStratifier,
@@ -330,8 +330,8 @@ def test_SimulationContext_report_output_format(base_config, tmpdir):
 
     # Check that each dataset includes the entire cartesian product of stratifications
     # (or, when no stratifications, just a single "all" row)
-    assert set(zip(house_points["student_house"], house_points["power_level"])) == set(
-        product(STUDENT_HOUSES, POWER_LEVELS)
+    assert set(zip(house_points["student_house"], house_points["power_level_group"])) == set(
+        product(STUDENT_HOUSES, POWER_LEVEL_GROUP_LABELS)
     )
     assert set(quidditch_wins["familiar"]) == set(FAMILIARS)
     assert no_stratifications_quidditch_wins.shape[0] == 1
@@ -342,7 +342,7 @@ def test_SimulationContext_report_output_format(base_config, tmpdir):
 
     # Set up filters for groups that scored points
     house_points_filter = (house_points["student_house"] == "gryffindor") & (
-        house_points["power_level"].isin([50, 80])
+        house_points["power_level_group"].isin(["low", "very high"])
     )
     quidditch_wins_filter = quidditch_wins["familiar"] == "banana_slug"
     no_strats_quidditch_wins_filter = (

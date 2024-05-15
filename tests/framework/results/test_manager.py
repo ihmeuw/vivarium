@@ -16,7 +16,7 @@ from tests.framework.results.helpers import (
     FAMILIARS,
     HARRY_POTTER_CONFIG,
     NAME,
-    POWER_LEVELS,
+    POWER_LEVEL_GROUP_LABELS,
     SOURCES,
     STUDENT_HOUSES,
     FullyFilteredHousePointsObserver,
@@ -327,13 +327,13 @@ def test_stratified_metrics_initialization():
         assert isinstance(result, pd.DataFrame)
         assert (result[METRICS_COLUMN] == 0).all()
     STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
-    POWER_LEVELS_STR = [str(lvl) for lvl in POWER_LEVELS]
 
     # Check that indexes are as expected
 
     # Multi-stratification index is type MultiIndex where each layer dtype is Category
     expected_house_points_idx = pd.MultiIndex.from_product(
-        [STUDENT_HOUSES_LIST, POWER_LEVELS_STR], names=["student_house", "power_level"]
+        [STUDENT_HOUSES_LIST, POWER_LEVEL_GROUP_LABELS],
+        names=["student_house", "power_level"],
     )
     # HACK: We need to set the levels to be CategoricalDtype but you can't set that
     # directly on the MultiIndex. Convert to df, set type, convert back
@@ -371,7 +371,7 @@ def test_observers_with_missing_stratifications_fail():
     components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
 
     expected_missing = {  # NOTE: keep in alphabetical order
-        "house_points": ["power_level", "student_house"],
+        "house_points": ["power_level_group", "student_house"],
         "quidditch_wins": ["familiar"],
     }
     expected_log_msg = re.escape(
@@ -407,12 +407,13 @@ def test_update_monotonically_increasing_metrics():
     """Test that (monotonically increasing) metrics are being updated correctly."""
 
     def _check_house_points(pop: pd.DataFrame, step_number: int) -> None:
-        """We know that house points are stratified by 'student_house' and 'power_level'.
-        and that each wizard of gryffindor and of level 50 and 80 gains a point
+        """We know that house points are stratified by 'student_house' and 'power_level_group'.
+        and that each wizard of gryffindor and of level 20 or 80 (which correspond
+        to 'low' and 'very high' power level groups) gains a point
         """
         assert set(pop["house_points"]) == set([0, 1])
         assert (pop.loc[pop["house_points"] != 0, "student_house"] == "gryffindor").all()
-        assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set(["50", "80"])
+        assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set([20, 80])
         group_sizes = pd.DataFrame(
             pop.groupby(["student_house", "power_level"]).size().astype("float"),
             columns=[METRICS_COLUMN],
@@ -421,8 +422,8 @@ def test_update_monotonically_increasing_metrics():
         # We cannot use `equals` here because metrics has a MultiIndex where
         # each layer is a Category dtype but pop has object dtype for the relevant columns
         assert (
-            metrics[metrics[METRICS_COLUMN] != 0].values
-            == (group_sizes.loc(axis=0)["gryffindor", ["50", "80"]] * step_number).values
+            metrics.loc[("gryffindor", ["low", "very high"]), "value"].values
+            == (group_sizes.loc[("gryffindor", [20, 80]), "value"] * step_number).values
         ).all()
 
     def _check_quidditch_wins(pop: pd.DataFrame, step_number: int) -> None:

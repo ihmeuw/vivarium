@@ -207,7 +207,7 @@ def test__get_stratifications(
             ["power_level"],
             sum,
             ["house", "familiar"],
-            260,
+            200,
         ),
         (
             "wizard_time",
@@ -218,7 +218,7 @@ def test__get_stratifications(
             0.306555,
         ),
         ("wizard_count", "tracked==True", None, len, ["house"], 20),
-        ("power_level_total", "tracked==True", ["power_level"], sum, ["house"], 1300),
+        ("power_level_total", "tracked==True", ["power_level"], sum, ["house"], 1000),
         (
             "wizard_time",
             "tracked==True",

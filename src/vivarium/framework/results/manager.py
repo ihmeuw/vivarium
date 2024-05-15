@@ -265,7 +265,10 @@ class ResultsManager(Manager):
         None
         """
 
-        def _bin_data(data: pd.Series) -> pd.Series:
+        def _bin_data(data: Union[pd.Series, pd.DataFrame]) -> pd.Series:
+            data = data.squeeze()
+            if not isinstance(data, pd.Series):
+                raise ValueError(f"Expected a Series, but got type {type(data)}.")
             return pd.cut(
                 data, bin_edges, labels=labels, right=False, include_lowest=True, **cut_kwargs
             )
