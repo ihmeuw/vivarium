@@ -252,8 +252,8 @@ class ResultsManager(Manager):
         bin_edges
             List of scalars defining the bin edges, passed to :meth: pandas.cut.
             The length must equal the length of `labels` plus one.
-            Note that the bins are right edge inclusive and include the lowest,
-            e.g. bin edges [1, 2, 3] indicate groups [1, 2] and (2, 3].
+            Note that the bins are left edge inclusive, e.g. bin edges [1, 2, 3]
+            indicate groups [1, 2) and [2, 3).
         labels
             List of string labels for bins. The length must equal to the length
             of `bin_edges` minus one.
@@ -266,7 +266,9 @@ class ResultsManager(Manager):
         """
 
         def _bin_data(data: pd.Series) -> pd.Series:
-            return pd.cut(data, bin_edges, labels=labels, include_lowest=True, **cut_kwargs)
+            return pd.cut(
+                data, bin_edges, labels=labels, right=False, include_lowest=True, **cut_kwargs
+            )
 
         if len(bin_edges) != len(labels) + 1:
             raise ValueError(

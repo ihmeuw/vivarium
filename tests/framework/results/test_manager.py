@@ -1,6 +1,7 @@
 import re
 from types import MethodType
 
+import numpy as np
 import pandas as pd
 import pytest
 from loguru import logger
@@ -219,6 +220,24 @@ def test_register_binned_stratification_raises_bins_labels_mismatch(bins, labels
             bin_edges=bins,
             labels=labels,
         )
+
+
+def test_binned_stratification_mapper():
+    mgr = ResultsManager()
+    mgr.logger = logger
+    mgr.register_binned_stratification(
+        target=BIN_SOURCE,
+        target_type="column",
+        binned_column=BIN_BINNED_COLUMN,
+        bin_edges=BIN_SILLY_BIN_EDGES,
+        labels=BIN_LABELS,
+    )
+    strat = mgr._results_context.stratifications[0]
+    data = pd.Series([-np.inf] + BIN_SILLY_BIN_EDGES + [np.inf])
+    groups = strat.mapper(data)
+    expected_groups = pd.Series([np.nan] + BIN_LABELS + [np.nan] * 2)
+    assert (groups.isna() == expected_groups.isna()).all()
+    assert (groups[groups.notna()] == expected_groups[expected_groups.notna()]).all()
 
 
 @pytest.mark.parametrize(
