@@ -187,7 +187,6 @@ class HogwartsResultsStratifier(Component):
             [str(lvl) for lvl in POWER_LEVELS],
             requires_columns=["power_level"],
         )
-        builder.results.register_binned_stratification("age", "age_group", bin_edges=[12])
 
 
 ##################
