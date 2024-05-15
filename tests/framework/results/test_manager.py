@@ -198,8 +198,11 @@ def test_register_binned_stratification():
     assert strat.name == BIN_BINNED_COLUMN
     assert strat.sources == [BIN_SOURCE]
     assert strat.categories == BIN_LABELS
-    # Cannot access the mapper because it's in local scope, so just check something is there
-    assert strat.mapper is not None
+    # Cannot access the mapper because it's in local scope, so check __repr__
+    assert (
+        "function ResultsManager.register_binned_stratification.<locals>._bin_data"
+        in strat.mapper.__repr__()
+    )
 
 
 @pytest.mark.parametrize(
