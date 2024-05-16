@@ -242,7 +242,7 @@ class ResultsManager(Manager):
         target: str,
         target_type: str,
         binned_column: str,
-        bins: List[Union[int, float]],
+        bin_edges: List[Union[int, float]],
         labels: List[str],
         **cut_kwargs,
     ) -> None:
@@ -256,11 +256,14 @@ class ResultsManager(Manager):
             "column" or "value"
         binned_column
             String name of the column for the binned quantities.
-        bins
-            List of scalars defining the bin edges, passed to :meth: pandas.cut. Lists
-            `bins` and `labels` must be of equal length.
+        bin_edges
+            List of scalars defining the bin edges, passed to :meth: pandas.cut.
+            The length must equal the length of `labels` plus one.
+            Note that the bins are left edge inclusive, e.g. bin edges [1, 2, 3]
+            indicate groups [1, 2) and [2, 3).
         labels
-            List of string labels for bins. Lists `bins` and `labels` must be of equal length.
+            List of string labels for bins. The length must equal to the length
+            of `bin_edges` minus one.
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
 
@@ -269,18 +272,29 @@ class ResultsManager(Manager):
         None
         """
 
-        def _bin_data(data: pd.Series) -> pd.Series:
-            return pd.cut(data, bins, labels=labels, **cut_kwargs)
-
-        if len(bins) != len(labels):
-            raise ValueError(
-                f"Bin length ({len(bins)}) does not match labels length ({len(labels)})"
+        def _bin_data(data: Union[pd.Series, pd.DataFrame]) -> pd.Series:
+            data = data.squeeze()
+            if not isinstance(data, pd.Series):
+                raise ValueError(f"Expected a Series, but got type {type(data)}.")
+            return pd.cut(
+                data, bin_edges, labels=labels, right=False, include_lowest=True, **cut_kwargs
             )
-        target_arg = "required_columns" if target_type == "column" else "required_values"
+
+        if len(bin_edges) != len(labels) + 1:
+            raise ValueError(
+                f"The number of bin edges plus 1 ({len(bin_edges)+1}) does not "
+                f"match the number of labels ({len(labels)})"
+            )
+
+        target_arg = "requires_columns" if target_type == "column" else "required_values"
         target_kwargs = {target_arg: [target]}
-        # FIXME [MIC-5000]: bins should not be passed into register_stratificaton as categories
+
         self.register_stratification(
-            binned_column, bins, _bin_data, is_vectorized=True, **target_kwargs
+            name=binned_column,
+            categories=labels,
+            mapper=_bin_data,
+            is_vectorized=True,
+            **target_kwargs,
         )
 
     def register_observation(
