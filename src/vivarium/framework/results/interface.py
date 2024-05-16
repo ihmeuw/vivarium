@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, List, Optional
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 
@@ -47,9 +47,6 @@ class ResultsInterface:
     def name(self) -> str:
         """The name of this ResultsInterface."""
         return self._name
-
-    def set_default_stratifications(self, default_stratifications: List[str]):
-        self._manager.set_default_stratifications(default_stratifications)
 
     # TODO: It is not reflected in the sample code here, but the “when” parameter should be added
     #  to the stratification registration calls, probably as a List. Consider this after observer implementation
@@ -101,10 +98,10 @@ class ResultsInterface:
         self,
         target: str,
         binned_column: str,
-        bin_edges: List = [],
+        bins: List[Union[int, float]] = [],
         labels: List[str] = [],
         target_type: str = "column",
-        **cut_kwargs,
+        **cut_kwargs: Dict,
     ) -> None:
         """Register a continuous `target` quantity to observe into bins in a `binned_column`.
 

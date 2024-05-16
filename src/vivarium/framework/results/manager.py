@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 import itertools
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.context import ResultsContext
+from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
@@ -40,11 +43,11 @@ class ResultsManager(Manager):
         }
     }
 
-    def __init__(self):
-        self._metrics = defaultdict(defaultdict)
+    def __init__(self) -> None:
+        self._metrics: defaultdict[str, pd.DataFrame] = defaultdict()
         self._results_context = ResultsContext()
         self._required_columns = {"tracked"}
-        self._required_values = set()
+        self._required_values: set[Pipeline] = set()
         self._name = "results_manager"
 
     @property
@@ -53,11 +56,11 @@ class ResultsManager(Manager):
         return self._name
 
     @property
-    def metrics(self):
+    def metrics(self) -> defaultdict[str, pd.DataFrame]:
         return self._metrics.copy()
 
     # noinspection PyAttributeOutsideInit
-    def setup(self, builder: "Builder"):
+    def setup(self, builder: "Builder") -> None:
         self.logger = builder.logging.get_logger(self.name)
         self.population_view = builder.population.get_view([])
         self.clock = builder.time.clock()
@@ -76,7 +79,7 @@ class ResultsManager(Manager):
 
         builder.value.register_value_modifier("metrics", self.get_results)
 
-    def on_post_setup(self, _: Event):
+    def on_post_setup(self, _: Event) -> None:
         """Initialize self._metrics with 0s DataFrame' for each measure and all stratifications"""
         registered_stratifications = self._results_context.stratifications
         registered_stratification_names = set(
@@ -154,19 +157,19 @@ class ResultsManager(Manager):
                 f"stratifications that are not registered: \n{sorted_missing}"
             )
 
-    def on_time_step_prepare(self, event: Event):
+    def on_time_step_prepare(self, event: Event) -> None:
         self.gather_results("time_step__prepare", event)
 
-    def on_time_step(self, event: Event):
+    def on_time_step(self, event: Event) -> None:
         self.gather_results("time_step", event)
 
-    def on_time_step_cleanup(self, event: Event):
+    def on_time_step_cleanup(self, event: Event) -> None:
         self.gather_results("time_step__cleanup", event)
 
-    def on_collect_metrics(self, event: Event):
+    def on_collect_metrics(self, event: Event) -> None:
         self.gather_results("collect_metrics", event)
 
-    def on_report(self, event: Event):
+    def on_report(self, event: Event) -> None:
         metrics = event.user_data["metrics"]
         for observation_details in self._results_context.observations.values():
             for observations in observation_details.values():
@@ -175,15 +178,19 @@ class ResultsManager(Manager):
                         measure=observation.name, results=metrics[observation.name]
                     )
 
-    def gather_results(self, event_name: str, event: Event):
+    def gather_results(self, event_name: str, event: Event) -> None:
         population = self._prepare_population(event)
         for results_group, measure in self._results_context.gather_results(
             population, event_name
         ):
             if results_group is not None:
+                if measure is None:
+                    raise ValueError(
+                        f"There is a results group {results_group} but no corresponding measure"
+                    )
                 self._metrics[measure] += results_group
 
-    def set_default_stratifications(self, builder):
+    def set_default_stratifications(self, builder: Builder) -> None:
         default_stratifications = builder.configuration.stratification.default
         self._results_context.set_default_stratifications(default_stratifications)
 
@@ -191,7 +198,7 @@ class ResultsManager(Manager):
         self,
         name: str,
         categories: List[str],
-        mapper: Optional[Callable],
+        mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]],
         is_vectorized: bool,
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
@@ -295,7 +302,7 @@ class ResultsManager(Manager):
         name: str,
         pop_filter: str,
         aggregator_sources: Optional[List[str]],
-        aggregator: Callable,
+        aggregator: Callable[[pd.DataFrame], float],
         requires_columns: List[str],
         requires_values: List[str],
         additional_stratifications: List[str],
@@ -318,16 +325,16 @@ class ResultsManager(Manager):
         self._add_resources(requires_columns, SourceType.COLUMN)
         self._add_resources(requires_values, SourceType.VALUE)
 
-    def _add_resources(self, target: List[str], target_type: SourceType):
-        if not len(target):
+    def _add_resources(self, target: List[str], target_type: SourceType) -> None:
+        if len(target) == 0:
             return  # do nothing on empty lists
-        target = set(target) - {"event_time", "current_time", "event_step_size"}
+        target_set = set(target) - {"event_time", "current_time", "event_step_size"}
         if target_type == SourceType.COLUMN:
-            self._required_columns.update(target)
+            self._required_columns.update(target_set)
         elif target_type == SourceType.VALUE:
-            self._required_values.update([self.get_value(t) for t in target])
+            self._required_values.update([self.get_value(target) for target in target_set])
 
-    def _prepare_population(self, event: Event):
+    def _prepare_population(self, event: Event) -> pd.DataFrame:
         population = self.population_view.subview(list(self._required_columns)).get(
             event.index
         )
@@ -340,14 +347,16 @@ class ResultsManager(Manager):
             population[pipeline.name] = pipeline(event.index)
         return population
 
-    def get_results(self, _index, metrics):
+    def get_results(
+        self, _index: pd.Index[Any], metrics: Dict[Optional[str], Optional[pd.DataFrame]]
+    ) -> Dict[str, pd.DataFrame]:
         # Shim for now to allow incremental transition to new results system.
         metrics.update(self._metrics)
         return metrics
 
     def _warn_check_stratifications(
-        self, additional_stratifications, excluded_stratifications
-    ):
+        self, additional_stratifications: List[str], excluded_stratifications: List[str]
+    ) -> None:
         """Check additional and excluded stratifications if they'd not affect
         stratifications (i.e., would be NOP), and emit warning."""
         nop_additional = [
