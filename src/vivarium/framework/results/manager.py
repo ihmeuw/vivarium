@@ -282,7 +282,7 @@ class ResultsManager(Manager):
 
         if len(bin_edges) != len(labels) + 1:
             raise ValueError(
-                f"The number of bin edges plus 1 ({len(bin_edges) +1}) does not "
+                f"The number of bin edges plus 1 ({len(bin_edges)+1}) does not "
                 f"match the number of labels ({len(labels)})"
             )
 
