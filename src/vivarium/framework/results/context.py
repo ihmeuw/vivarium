@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 from collections import defaultdict
-from pathlib import Path
 from typing import Callable, Generator, List, Optional, Tuple, Union
 
 import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
 
+from vivarium.framework.engine import Builder
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import Observation
 from vivarium.framework.results.stratification import Stratification
@@ -19,7 +21,7 @@ class ResultsContext:
     :meth:`vivarium.framework.results.context.ResultsContext.add_observation` method.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.default_stratifications: List[str] = []
         self.stratifications: List[Stratification] = []
         # keys are event names: [
@@ -31,17 +33,17 @@ class ResultsContext:
         # values are dicts with
         #     key (filter, grouper)
         #     value Observation
-        self.observations = defaultdict(lambda: defaultdict(list))
+        self.observations: defaultdict = defaultdict(lambda: defaultdict(list))
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "results_context"
 
-    def setup(self, builder):
+    def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
 
     # noinspection PyAttributeOutsideInit
-    def set_default_stratifications(self, default_grouping_columns: List[str]):
+    def set_default_stratifications(self, default_grouping_columns: List[str]) -> None:
         if self.default_stratifications:
             raise ResultsConfigurationError(
                 "Multiple calls are being made to set default grouping columns "
@@ -54,9 +56,9 @@ class ResultsContext:
         name: str,
         sources: List[str],
         categories: List[str],
-        mapper: Optional[Callable],
+        mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]],
         is_vectorized: bool,
-    ):
+    ) -> None:
         """Add a stratification to the context.
 
         Parameters
@@ -176,7 +178,7 @@ class ResultsContext:
         pop_groups: Union[DataFrameGroupBy, pd.DataFrame],
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], float],
-    ) -> Union[pd.Series, pd.DataFrame]:
+    ) -> Union[pd.Series[float], pd.DataFrame]:
         return (
             pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
             if aggregator_sources
@@ -184,7 +186,9 @@ class ResultsContext:
         )
 
     @staticmethod
-    def _coerce_to_dataframe(aggregates: Union[pd.Series, pd.DataFrame]) -> pd.DataFrame:
+    def _coerce_to_dataframe(
+        aggregates: Union[pd.Series[float], pd.DataFrame]
+    ) -> pd.DataFrame:
         if not isinstance(aggregates, (pd.Series, pd.DataFrame)):
             raise TypeError(
                 f"The aggregator return value is of type {type(aggregates)} "

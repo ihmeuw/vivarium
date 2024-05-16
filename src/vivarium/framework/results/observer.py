@@ -13,7 +13,7 @@ class Observer(Component, ABC):
     Note that a `register_observation` method must be defined in the subclass.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.results_dir = None
         self.input_draw = None
