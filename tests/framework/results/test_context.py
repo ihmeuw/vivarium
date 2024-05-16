@@ -11,6 +11,7 @@ from tests.framework.results.helpers import (
     CATEGORIES,
     FAMILIARS,
     NAME,
+    POWER_LEVELS,
     SOURCES,
     sorting_hat_serial,
     sorting_hat_vector,
@@ -78,7 +79,7 @@ def test_add_stratification_raises(
 
 def _aggregate_state_person_time(x: pd.DataFrame) -> float:
     """Helper aggregator function for observation testing"""
-    return len(x) * (28 / 365.35)
+    return len(x) * (28 / 365.25)
 
 
 @pytest.mark.parametrize(
@@ -198,34 +199,28 @@ def test__get_stratifications(
 
 
 @pytest.mark.parametrize(
-    "name, pop_filter, aggregator_sources, aggregator, stratifications, expected_result",
+    "pop_filter, aggregator_sources, aggregator, stratifications",
     [
-        ("wizard_count", "tracked==True", None, len, ["house", "familiar"], 4),
+        ("tracked==True", None, len, ["house", "familiar"]),
         (
-            "power_level_total",
             "tracked==True",
             ["power_level"],
             sum,
             ["house", "familiar"],
-            260,
         ),
         (
-            "wizard_time",
             "tracked==True",
             [],
             _aggregate_state_person_time,
             ["house", "familiar"],
-            0.306555,
         ),
-        ("wizard_count", "tracked==True", None, len, ["house"], 20),
-        ("power_level_total", "tracked==True", ["power_level"], sum, ["house"], 1300),
+        ("tracked==True", None, len, ["house"]),
+        ("tracked==True", ["power_level"], sum, ["house"]),
         (
-            "wizard_time",
             "tracked==True",
             [],
             _aggregate_state_person_time,
             ["house"],
-            1.53277,
         ),
     ],
     ids=[
@@ -237,11 +232,9 @@ def test__get_stratifications(
         "custom_aggregator_one_stratification",
     ],
 )
-def test_gather_results(
-    name, pop_filter, aggregator_sources, aggregator, stratifications, expected_result
-):
-    """Test cases where every stratification is in gather_results. Checks for existence and correctness
-    of results"""
+def test_gather_results(pop_filter, aggregator_sources, aggregator, stratifications):
+    """Test cases where every stratification is in gather_results. Checks for
+    existence and correctness of results"""
     ctx = ResultsContext()
 
     # Generate population DataFrame
@@ -260,7 +253,7 @@ def test_gather_results(
     if "familiar" in stratifications:
         ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
     ctx.add_observation(
-        name=name,
+        name="foo",
         pop_filter=pop_filter,
         aggregator_sources=aggregator_sources,
         aggregator=aggregator,
@@ -269,6 +262,20 @@ def test_gather_results(
         when=event_name,
         report=lambda: None,
     )
+
+    filtered_pop = population.query(pop_filter)
+    groups = filtered_pop.groupby(stratifications)
+    if aggregator == sum:
+        power_level_sums = groups[aggregator_sources].sum().squeeze()
+        assert len(power_level_sums.unique()) == 1
+        expected_result = power_level_sums.iat[0]
+    else:
+        group_sizes = groups.size()
+        assert len(group_sizes.unique()) == 1
+        num_stratifications = group_sizes.iat[0]
+        expected_result = (
+            num_stratifications if aggregator == len else num_stratifications * 28 / 365.25
+        )
 
     i = 0
     for result, _measure in ctx.gather_results(population, event_name):

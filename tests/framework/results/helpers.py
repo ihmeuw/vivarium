@@ -22,12 +22,14 @@ STUDENT_HOUSES = pd.Series(["gryffindor", "slytherin", "ravenclaw"])
 
 BIN_BINNED_COLUMN = "silly_bin"
 BIN_SOURCE = "silly_level"
-BIN_LABELS = ["not", "meh", "somewhat", "very", "extra"]
-BIN_SILLY_BINS = [0, 20, 40, 60, 90]
+BIN_LABELS = ["meh", "somewhat", "very", "extra"]
+BIN_SILLY_BIN_EDGES = [0, 20, 40, 60, 90]
 
 COL_NAMES = ["house", "familiar", "power_level", "tracked"]
 FAMILIARS = ["owl", "cat", "gecko", "banana_slug", "unladen_swallow"]
-POWER_LEVELS = [i * 10 for i in range(5, 9)]
+POWER_LEVELS = [20, 40, 60, 80]
+POWER_LEVEL_BIN_EDGES = [0, 25, 50, 75, 100]
+POWER_LEVEL_GROUP_LABELS = ["low", "medium", "high", "very high"]
 TRACKED_STATUSES = [True, False]
 RECORDS = list(itertools.product(CATEGORIES, FAMILIARS, POWER_LEVELS, TRACKED_STATUSES))
 BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
@@ -39,7 +41,7 @@ HARRY_POTTER_CONFIG = {
         "step_size": 365,  # Days
     },
     "stratification": {
-        "default": ["student_house", "power_level"],
+        "default": ["student_house", "power_level_group"],
     },
 }
 
@@ -67,7 +69,7 @@ class Hogwarts(Component):
             {
                 "student_house": rng.choice(STUDENT_HOUSES, size=size),
                 "familiar": rng.choice(FAMILIARS, size=size),
-                "power_level": rng.choice([str(lvl) for lvl in POWER_LEVELS], size=size),
+                "power_level": rng.choice([lvl for lvl in POWER_LEVELS], size=size),
                 "house_points": 0,
                 "quidditch_wins": 0,
             },
@@ -79,12 +81,12 @@ class Hogwarts(Component):
         update = self.population_view.get(pop_data.index)
         update["house_points"] = 0
         update["quidditch_wins"] = 0
-        # House points are stratified by 'student_house' and 'power_level'.
-        # Let's have each wizard of gryffindor and of level 50 and 80 gain a point
-        # on each time step.
+        # House points are stratified by 'student_house' and 'power_level_group'.
+        # Let's have each wizard of gryffindor and of power level 20 or 80
+        # gain a point on each time step.
         update.loc[
             (update["student_house"] == "gryffindor")
-            & (update["power_level"].isin(["50", "80"])),
+            & (update["power_level"].isin([20, 80])),
             "house_points",
         ] = 1
         # Quidditch wins are stratified by 'familiar'.
@@ -96,7 +98,7 @@ class Hogwarts(Component):
 
 class HousePointsObserver(StratifiedObserver):
     """Observer that is stratified by multiple columns (the defaults,
-    'student_house' and 'power_level')
+    'student_house' and 'power_level_group')
     """
 
     def register_observations(self, builder: Builder) -> None:
@@ -139,7 +141,7 @@ class QuidditchWinsObserver(StratifiedObserver):
             name="quidditch_wins",
             aggregator_sources=["quidditch_wins"],
             aggregator=sum,
-            excluded_stratifications=["student_house", "power_level"],
+            excluded_stratifications=["student_house", "power_level_group"],
             additional_stratifications=["familiar"],
             requires_columns=[
                 "quidditch_wins",
@@ -161,7 +163,7 @@ class NoStratificationsQuidditchWinsObserver(StratifiedObserver):
             name="no_stratifications_quidditch_wins",
             aggregator_sources=["quidditch_wins"],
             aggregator=sum,
-            excluded_stratifications=["student_house", "power_level"],
+            excluded_stratifications=["student_house", "power_level_group"],
             requires_columns=[
                 "quidditch_wins",
             ],
@@ -182,10 +184,12 @@ class HogwartsResultsStratifier(Component):
         builder.results.register_stratification(
             "familiar", FAMILIARS, requires_columns=["familiar"]
         )
-        builder.results.register_stratification(
+        builder.results.register_binned_stratification(
             "power_level",
-            [str(lvl) for lvl in POWER_LEVELS],
-            requires_columns=["power_level"],
+            "power_level_group",
+            POWER_LEVEL_BIN_EDGES,
+            POWER_LEVEL_GROUP_LABELS,
+            "column",
         )
 
 
