@@ -98,7 +98,7 @@ class ResultsInterface:
         self,
         target: str,
         binned_column: str,
-        bins: List[Union[int, float]] = [],
+        bin_edges: List[Union[int, float]] = [],
         labels: List[str] = [],
         target_type: str = "column",
         **cut_kwargs: Dict,
