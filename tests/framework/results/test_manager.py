@@ -1,6 +1,7 @@
 import re
 from types import MethodType
 
+import numpy as np
 import pandas as pd
 import pytest
 from loguru import logger
@@ -9,13 +10,13 @@ from pandas.api.types import CategoricalDtype
 from tests.framework.results.helpers import (
     BIN_BINNED_COLUMN,
     BIN_LABELS,
-    BIN_SILLY_BINS,
+    BIN_SILLY_BIN_EDGES,
     BIN_SOURCE,
     CATEGORIES,
     FAMILIARS,
     HARRY_POTTER_CONFIG,
     NAME,
-    POWER_LEVELS,
+    POWER_LEVEL_GROUP_LABELS,
     SOURCES,
     STUDENT_HOUSES,
     FullyFilteredHousePointsObserver,
@@ -181,28 +182,64 @@ def test_duplicate_name_register_stratification(mocker):
 ##############################################
 
 
-def test_register_binned_stratification(mocker):
+def test_register_binned_stratification():
     mgr = ResultsManager()
-    mock_register_stratification = mocker.patch(
-        "vivarium.framework.results.manager.ResultsManager.register_stratification"
-    )
+    mgr.logger = logger
+    assert len(mgr._results_context.stratifications) == 0
     mgr.register_binned_stratification(
-        BIN_SOURCE, "column", BIN_BINNED_COLUMN, BIN_SILLY_BINS, BIN_LABELS
+        target=BIN_SOURCE,
+        target_type="column",
+        binned_column=BIN_BINNED_COLUMN,
+        bin_edges=BIN_SILLY_BIN_EDGES,
+        labels=BIN_LABELS,
     )
-    mock_register_stratification.assert_called_once()
+    assert len(mgr._results_context.stratifications) == 1
+    strat = mgr._results_context.stratifications[0]
+    assert strat.name == BIN_BINNED_COLUMN
+    assert strat.sources == [BIN_SOURCE]
+    assert strat.categories == BIN_LABELS
+    # Cannot access the mapper because it's in local scope, so check __repr__
+    assert "function ResultsManager.register_binned_stratification.<locals>._bin_data" in str(
+        strat.mapper
+    )
 
 
 @pytest.mark.parametrize(
     "bins, labels",
-    [(BIN_SILLY_BINS, BIN_LABELS[2:]), (BIN_SILLY_BINS[2:], BIN_LABELS)],
-    ids=["more_bins_than_labels", "more_labels_than_bins"],
+    [(BIN_SILLY_BIN_EDGES, BIN_LABELS[1:]), (BIN_SILLY_BIN_EDGES[1:], BIN_LABELS)],
+    ids=["too_many_bins", "too_many_labels"],
 )
-def test_register_binned_stratification_raises(bins, labels):
+def test_register_binned_stratification_raises_bins_labels_mismatch(bins, labels):
     mgr = ResultsManager()
-    with pytest.raises(ValueError):
-        raise mgr.register_binned_stratification(
-            BIN_SOURCE, "column", BIN_BINNED_COLUMN, bins, labels
+    with pytest.raises(
+        ValueError,
+        match=r"The number of bin edges plus 1 \(\d+\) does not match the number of labels \(\d+\)",
+    ):
+        mgr.register_binned_stratification(
+            target=BIN_SOURCE,
+            target_type="column",
+            binned_column=BIN_BINNED_COLUMN,
+            bin_edges=bins,
+            labels=labels,
         )
+
+
+def test_binned_stratification_mapper():
+    mgr = ResultsManager()
+    mgr.logger = logger
+    mgr.register_binned_stratification(
+        target=BIN_SOURCE,
+        target_type="column",
+        binned_column=BIN_BINNED_COLUMN,
+        bin_edges=BIN_SILLY_BIN_EDGES,
+        labels=BIN_LABELS,
+    )
+    strat = mgr._results_context.stratifications[0]
+    data = pd.Series([-np.inf] + BIN_SILLY_BIN_EDGES + [np.inf])
+    groups = strat.mapper(data)
+    expected_groups = pd.Series([np.nan] + BIN_LABELS + [np.nan] * 2)
+    assert (groups.isna() == expected_groups.isna()).all()
+    assert (groups[groups.notna()] == expected_groups[expected_groups.notna()]).all()
 
 
 @pytest.mark.parametrize(
@@ -292,13 +329,13 @@ def test_stratified_metrics_initialization():
         assert isinstance(result, pd.DataFrame)
         assert (result[METRICS_COLUMN] == 0).all()
     STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
-    POWER_LEVELS_STR = [str(lvl) for lvl in POWER_LEVELS]
 
     # Check that indexes are as expected
 
     # Multi-stratification index is type MultiIndex where each layer dtype is Category
     expected_house_points_idx = pd.MultiIndex.from_product(
-        [STUDENT_HOUSES_LIST, POWER_LEVELS_STR], names=["student_house", "power_level"]
+        [STUDENT_HOUSES_LIST, POWER_LEVEL_GROUP_LABELS],
+        names=["student_house", "power_level"],
     )
     # HACK: We need to set the levels to be CategoricalDtype but you can't set that
     # directly on the MultiIndex. Convert to df, set type, convert back
@@ -336,7 +373,7 @@ def test_observers_with_missing_stratifications_fail():
     components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
 
     expected_missing = {  # NOTE: keep in alphabetical order
-        "house_points": ["power_level", "student_house"],
+        "house_points": ["power_level_group", "student_house"],
         "quidditch_wins": ["familiar"],
     }
     expected_log_msg = re.escape(
@@ -372,12 +409,13 @@ def test_update_monotonically_increasing_metrics():
     """Test that (monotonically increasing) metrics are being updated correctly."""
 
     def _check_house_points(pop: pd.DataFrame, step_number: int) -> None:
-        """We know that house points are stratified by 'student_house' and 'power_level'.
-        and that each wizard of gryffindor and of level 50 and 80 gains a point
+        """We know that house points are stratified by 'student_house' and 'power_level_group'.
+        and that each wizard of gryffindor and of level 20 or 80 (which correspond
+        to 'low' and 'very high' power level groups) gains a point
         """
         assert set(pop["house_points"]) == set([0, 1])
         assert (pop.loc[pop["house_points"] != 0, "student_house"] == "gryffindor").all()
-        assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set(["50", "80"])
+        assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set([20, 80])
         group_sizes = pd.DataFrame(
             pop.groupby(["student_house", "power_level"]).size().astype("float"),
             columns=[METRICS_COLUMN],
@@ -386,8 +424,8 @@ def test_update_monotonically_increasing_metrics():
         # We cannot use `equals` here because metrics has a MultiIndex where
         # each layer is a Category dtype but pop has object dtype for the relevant columns
         assert (
-            metrics[metrics[METRICS_COLUMN] != 0].values
-            == (group_sizes.loc(axis=0)["gryffindor", ["50", "80"]] * step_number).values
+            metrics.loc[("gryffindor", ["low", "very high"]), "value"].values
+            == (group_sizes.loc[("gryffindor", [20, 80]), "value"] * step_number).values
         ).all()
 
     def _check_quidditch_wins(pop: pd.DataFrame, step_number: int) -> None:
