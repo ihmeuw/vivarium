@@ -328,7 +328,7 @@ class Component(ABC):
     # Lifecycle methods #
     #####################
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes a new instance of the Component class.
 
