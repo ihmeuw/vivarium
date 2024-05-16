@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, Union, cast
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -12,9 +14,9 @@ class Stratification:
     Each Stratification represents a set of mutually exclusive and collectively
     exhaustive categories into which simulants can be assigned.
 
-    The `Stratification` class has five fields: `name`, `source`, `mapper`,
+    The `Stratification` class has five fields: `name`, `sources`, `mapper`,
     `categories`, and `is_vectorized`. The `name` is the name of the column
-    created by the mapper. The `source` is a list of columns in the extended
+    created by the mapper. The `sources` is a list of columns in the extended
     state table that are the inputs to the mapper function.  Simulants will
     later be grouped by this column (or these columns) during stratification.
     `categories` is a set of values that the mapper is allowed to output. The
@@ -33,10 +35,10 @@ class Stratification:
     name: str
     sources: List[str]
     categories: List[str]
-    mapper: Optional[Callable[[Union[pd.Series, pd.DataFrame]], Union[str, pd.Series]]] = None
+    mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]] = None
     is_vectorized: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.mapper is None:
             if len(self.sources) != 1:
                 raise ValueError(
@@ -45,9 +47,9 @@ class Stratification:
                 )
             self.mapper = self._default_mapper
             self.is_vectorized = True
-        if not len(self.categories):
+        if not self.categories:
             raise ValueError("The categories argument must be non-empty.")
-        if not len(self.sources):
+        if not self.sources:
             raise ValueError("The sources argument must be non-empty.")
 
     def __call__(self, population: pd.DataFrame) -> pd.DataFrame:
@@ -66,5 +68,5 @@ class Stratification:
         return population
 
     @staticmethod
-    def _default_mapper(pop: pd.DataFrame) -> pd.Series:
+    def _default_mapper(pop: pd.DataFrame) -> pd.Series[str]:
         return pop.squeeze(axis=1)
