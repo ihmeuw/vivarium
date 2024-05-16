@@ -47,9 +47,9 @@ class Stratification:
                 )
             self.mapper = self._default_mapper
             self.is_vectorized = True
-        if len(self.categories) == 0:
+        if not self.categories:
             raise ValueError("The categories argument must be non-empty.")
-        if len(self.sources) == 0:
+        if not self.sources:
             raise ValueError("The sources argument must be non-empty.")
 
     def __call__(self, population: pd.DataFrame) -> pd.DataFrame:
