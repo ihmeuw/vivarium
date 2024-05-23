@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Union, cast
+from typing import Callable, List, Optional, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -37,6 +37,13 @@ class Stratification:
     categories: List[str]
     mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]] = None
     is_vectorized: bool = False
+
+    def __str__(self) -> str:
+        return (
+            f"Stratification '{self.name}' with sources {self.sources}, "
+            f"categories {self.categories}, mapper {self.mapper.__name__}, "
+            f"and is_vectorized {self.is_vectorized}"
+        )
 
     def __post_init__(self) -> None:
         if self.mapper is None:
