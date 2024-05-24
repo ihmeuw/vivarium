@@ -41,8 +41,7 @@ class Stratification:
     def __str__(self) -> str:
         return (
             f"Stratification '{self.name}' with sources {self.sources}, "
-            f"categories {self.categories}, mapper {self.mapper.__name__}, "
-            f"and is_vectorized {self.is_vectorized}"
+            f"categories {self.categories}, and mapper {self.mapper.__name__}"
         )
 
     def __post_init__(self) -> None:
