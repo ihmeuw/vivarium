@@ -512,9 +512,9 @@ def test__get_groups(stratifications, values):
         ((), ["power_level"], len),
         ((), [], len),
         # Multiple-column dataframe return
-        (("familiar",), [], sum),
-        (("familiar", "house"), [], sum),
-        ((), [], sum),
+        (("familiar",), ["power_level", "tracked"], sum),
+        (("familiar", "house"), ["power_level", "tracked"], sum),
+        ((), ["power_level", "tracked"], sum),
     ],
 )
 def test__aggregate(stratifications, aggregator_sources, aggregator):
@@ -546,12 +546,8 @@ def test__aggregate(stratifications, aggregator_sources, aggregator):
             assert len(aggregates.values) == 1
             assert aggregates.values[0] == len(BASE_POPULATION)
     else:  # sum aggregator
-        # NOTE: the sum aggregator is applied here to all columns which returns
-        # some nonsense ones that are sums of strings; it's still useful to ensure
-        # that we can indeed handle a dataframe with more than one column. For
-        # accuracy checking below, we focus on the 'power_level' column which is
-        # numeric and sensible to sum.
-        assert aggregates.shape[1] == 4
+        assert aggregates.shape[1] == 2
+        expected = BASE_POPULATION[["power_level", "tracked"]].sum() / groups.ngroups
         if stratifications:
             stratification_idx = (
                 set(itertools.product(*(FAMILIARS, CATEGORIES)))
@@ -559,10 +555,11 @@ def test__aggregate(stratifications, aggregator_sources, aggregator):
                 else set(FAMILIARS)
             )
             assert set(aggregates.index) == stratification_idx
-            assert aggregates["power_level"].sum() / groups.ngroups
+            assert (aggregates.sum() / groups.ngroups).equals(expected)
         else:
             assert len(aggregates.values) == 1
-            assert aggregates["power_level"].values[0] == BASE_POPULATION["power_level"].sum()
+            for col in ["power_level", "tracked"]:
+                assert aggregates.loc["all", col] == expected[col]
 
 
 @pytest.mark.parametrize(
