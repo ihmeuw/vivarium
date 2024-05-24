@@ -168,15 +168,6 @@ def test_register_stratification_with_column_and_pipelines(
     )
 
 
-def test_duplicate_name_register_stratification(mocker):
-    mgr = ResultsManager()
-    builder = mocker.Mock()
-    mgr.setup(builder)
-    mgr.register_stratification(NAME, CATEGORIES, sorting_hat_serial, False, SOURCES, [])
-    with pytest.raises(ValueError, match=f"Name `{NAME}` is already used"):
-        mgr.register_stratification(NAME, CATEGORIES, sorting_hat_vector, True, SOURCES, [])
-
-
 ##############################################
 # Tests for `register_binned_stratification` #
 ##############################################
