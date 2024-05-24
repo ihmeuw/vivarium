@@ -77,6 +77,14 @@ def test_add_stratification_raises(
         raise ctx.add_stratification(name, sources, categories, mapper, is_vectorized)
 
 
+def test_add_stratifcation_duplicate_name_raises():
+    ctx = ResultsContext()
+    ctx.add_stratification(NAME, SOURCES, CATEGORIES, sorting_hat_vector, True)
+    with pytest.raises(ValueError, match=f"Stratification name '{NAME}' is already used: "):
+        # register a different stratification but w/ the same name
+        ctx.add_stratification(NAME, [], [], None, False)
+
+
 def _aggregate_state_person_time(x: pd.DataFrame) -> float:
     """Helper aggregator function for observation testing"""
     return len(x) * (28 / 365.25)
@@ -140,8 +148,8 @@ def test_add_observation(
 def test_double_add_observation(
     name, pop_filter, aggregator, additional_stratifications, excluded_stratifications, when
 ):
-    """Tests a double add of the same stratification, this should result in one additional observation being added to
-    the context."""
+    """Tests a double add of the same stratification, this should result in one
+    additional observation being added to the context."""
     ctx = ResultsContext()
     ctx._default_stratifications = ["age", "sex"]
     assert len(ctx.observations) == 0
