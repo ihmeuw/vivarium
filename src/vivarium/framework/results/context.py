@@ -100,7 +100,7 @@ class ResultsContext:
         name: str,
         pop_filter: str,
         aggregator_sources: Optional[List[str]],
-        aggregator: Callable[[pd.DataFrame], float],
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
         additional_stratifications: List[str],
         excluded_stratifications: List[str],
         when: str,
@@ -144,7 +144,10 @@ class ResultsContext:
                     aggregator = observation.aggregator
                     aggregates = self._aggregate(pop_groups, aggregator_sources, aggregator)
                     aggregates = self._coerce_to_dataframe(aggregates)
-                    aggregates.rename(columns={aggregates.columns[0]: "value"}, inplace=True)
+                    if aggregates.shape[1] == 1:
+                        aggregates.rename(
+                            columns={aggregates.columns[0]: "value"}, inplace=True
+                        )
                     aggregates = self._expand_index(aggregates)
                     if not list(stratifications):
                         aggregates.index.name = "stratification"
@@ -184,7 +187,7 @@ class ResultsContext:
     def _aggregate(
         pop_groups: Union[DataFrameGroupBy, pd.DataFrame],
         aggregator_sources: Optional[List[str]],
-        aggregator: Callable[[pd.DataFrame], float],
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
     ) -> Union[pd.Series[float], pd.DataFrame]:
         return (
             pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
@@ -202,12 +205,6 @@ class ResultsContext:
                 "while a pd.Series or pd.DataFrame is expected."
             )
         df = pd.DataFrame(aggregates) if isinstance(aggregates, pd.Series) else aggregates
-        # NOTE: We only support metrics of type pd.DataFrame with a single column
-        if df.shape[1] != 1:
-            raise TypeError(
-                f"The aggregator return value has {df.shape[1]} columns "
-                "while a single column is expected."
-            )
         return df
 
     @staticmethod

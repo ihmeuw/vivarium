@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -21,6 +23,6 @@ class Observation:
     pop_filter: str
     stratifications: Tuple[str, ...]
     aggregator_sources: Optional[List[str]]
-    aggregator: Callable[[pd.DataFrame], float]
+    aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]]
     when: str
     report: Callable[[str, pd.DataFrame], None]
