@@ -139,19 +139,14 @@ class ResultsContext:
             else:
                 pop_groups = self._get_groups(stratifications, filtered_pop)
                 for observation in observations:
-                    measure = observation.name
-                    aggregator_sources = observation.aggregator_sources
-                    aggregator = observation.aggregator
-                    aggregates = self._aggregate(pop_groups, aggregator_sources, aggregator)
-                    aggregates = self._coerce_to_dataframe(aggregates)
-                    if aggregates.shape[1] == 1:
-                        aggregates.rename(
-                            columns={aggregates.columns[0]: "value"}, inplace=True
-                        )
+                    aggregates = self._aggregate(
+                        pop_groups, observation.aggregator_sources, observation.aggregator
+                    )
+                    aggregates = self._format(aggregates)
                     aggregates = self._expand_index(aggregates)
                     if not list(stratifications):
                         aggregates.index.name = "stratification"
-                    yield aggregates, measure
+                    yield aggregates, observation.name
 
     def _get_stratifications(
         self,
@@ -172,7 +167,7 @@ class ResultsContext:
     @staticmethod
     def _get_groups(
         stratifications: Tuple[Optional[str]], filtered_pop: pd.DataFrame
-    ) -> Union[DataFrameGroupBy, pd.DataFrame]:
+    ) -> DataFrameGroupBy:
         # NOTE: It's a bit hacky how we are handling the groupby object if there
         # are no stratifications. The alternative is to use the entire population
         # instead of a groupby object, but then we would need to handle
@@ -189,22 +184,18 @@ class ResultsContext:
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
     ) -> Union[pd.Series[float], pd.DataFrame]:
-        return (
+        aggregates = (
             pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
             if aggregator_sources
             else pop_groups.apply(aggregator)
         )
+        return aggregates
 
     @staticmethod
-    def _coerce_to_dataframe(
-        aggregates: Union[pd.Series[float], pd.DataFrame]
-    ) -> pd.DataFrame:
-        if not isinstance(aggregates, (pd.Series, pd.DataFrame)):
-            raise TypeError(
-                f"The aggregator return value is of type {type(aggregates)} "
-                "while a pd.Series or pd.DataFrame is expected."
-            )
+    def _format(aggregates: Union[pd.Series[float], pd.DataFrame]) -> pd.DataFrame:
         df = pd.DataFrame(aggregates) if isinstance(aggregates, pd.Series) else aggregates
+        if df.shape[1] == 1:
+            df.rename(columns={df.columns[0]: "value"}, inplace=True)
         return df
 
     @staticmethod

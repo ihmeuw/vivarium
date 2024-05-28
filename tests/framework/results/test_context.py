@@ -419,7 +419,7 @@ def test_gather_results_with_no_stratifications():
     )
 
 
-def test__bad_aggregator_stratification():
+def test_bad_aggregator_stratification():
     """Test if an exception gets raised when a stratification that doesn't
     exist is attempted to be used, as expected."""
     ctx = ResultsContext()
@@ -517,7 +517,7 @@ def test__get_groups(stratifications, values):
         ((), ["power_level", "tracked"], sum),
     ],
 )
-def test__aggregate(stratifications, aggregator_sources, aggregator):
+def test__format(stratifications, aggregator_sources, aggregator):
     """Test that we are aggregating correctly. There are some nuances here:
       - If aggregator_resources is provided, then simply .apply it to the groups passed in.
       - If no aggregator_resources are provided, then we want a full aggregation of the groups.
@@ -571,24 +571,13 @@ def test__aggregate(stratifications, aggregator_sources, aggregator):
         ),
     ],
 )
-def test__coerce_to_dataframe(aggregates):
-    new_aggregates = ResultsContext()._coerce_to_dataframe(aggregates=aggregates)
+def test__format(aggregates):
+    new_aggregates = ResultsContext()._format(aggregates=aggregates)
     assert isinstance(new_aggregates, pd.DataFrame)
     if isinstance(aggregates, pd.Series):
-        assert new_aggregates.equals(aggregates.to_frame())
+        assert new_aggregates.equals(aggregates.to_frame("value"))
     else:
         assert new_aggregates.equals(aggregates)
-
-
-def test__coerce_to_dataframe_raises():
-    with pytest.raises(
-        TypeError,
-        match=(
-            f"The aggregator return value is of type {type(1)} while a pd.Series "
-            "or pd.DataFrame is expected."
-        ),
-    ):
-        ResultsContext()._coerce_to_dataframe(aggregates=1)
 
 
 @pytest.mark.parametrize(

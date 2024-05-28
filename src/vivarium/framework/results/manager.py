@@ -179,11 +179,9 @@ class ResultsManager(Manager):
                     )
 
     def gather_results(self, event_name: str, event: Event) -> None:
-        """Update the existing metrics with new results. Typically, a results
-        group has a single column (i.e. the values of some stratified measure);
-        the metrics are initialized as such. It is possible, however, to return a
-        DataFrame with multiple columns, in which case we special-case and initialize
-        with 0 and update with the results group.
+        """Update the existing metrics with new results. Any columns in the
+        results group that are not already in the metrics are initialized
+        with 0.0.
         """
         population = self._prepare_population(event)
         for results_group, measure in self._results_context.gather_results(
@@ -195,7 +193,9 @@ class ResultsManager(Manager):
                         f"There is a results group {results_group} but no corresponding measure"
                     )
                 # Look for extra columns in the results_group and initialize with 0.
-                extra_cols = list(set(results_group.columns) - {METRICS_COLUMN})
+                extra_cols = list(
+                    set(results_group.columns) - set(self._metrics[measure].columns)
+                )
                 if extra_cols:
                     self._metrics[measure][extra_cols] = 0.0
                 for col in results_group.columns:
