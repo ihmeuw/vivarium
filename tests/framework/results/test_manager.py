@@ -23,6 +23,7 @@ from tests.framework.results.helpers import (
     Hogwarts,
     HogwartsResultsStratifier,
     HousePointsObserver,
+    MagicalAttributesObserver,
     NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
     mock_get_value,
@@ -480,3 +481,17 @@ def test_update_metrics_no_stratifications():
     pop = sim.get_population()
     results = sim._results.metrics["no_stratifications_quidditch_wins"]
     assert results.loc["all"][METRICS_COLUMN] == pop["quidditch_wins"].sum() * 2
+
+
+def test_update_metrics_extra_columns():
+    """Test that metrics are updated correctly when the aggregator return
+    contains multiple columns (i.e. not just a single 'value' column)
+    """
+    components = [Hogwarts(), HogwartsResultsStratifier(), MagicalAttributesObserver()]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    sim.step()
+    results = sim._results.metrics["magical_attributes"]
+    assert (results[["spell_power", "potion_power"]].values == [1, 1]).all()
+    sim.step()
+    results = sim._results.metrics["magical_attributes"]
+    assert (results[["spell_power", "potion_power"]].values == [2, 2]).all()
