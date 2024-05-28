@@ -60,6 +60,8 @@ class Hogwarts(Component):
             "power_level",
             "house_points",
             "quidditch_wins",
+            "spell_power",
+            "potion_power",
         ]
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -75,6 +77,9 @@ class Hogwarts(Component):
             },
             index=pop_data.index,
         )
+        # Assume power level components are evenly split
+        initialization_data["spell_power"] = initialization_data["power_level"] / 2
+        initialization_data["potion_power"] = initialization_data["power_level"] / 2
         self.population_view.update(initialization_data)
 
     def on_time_step(self, pop_data: SimulantData) -> None:
@@ -174,6 +179,25 @@ class NoStratificationsQuidditchWinsObserver(StratifiedObserver):
         dataframe_to_csv(
             measure, results, Path(self.results_dir), self.random_seed, self.input_draw
         )
+
+
+class MagicalAttributesObserver(StratifiedObserver):
+    """Observer whose aggregator returns a pd.Series instead of a float (which in
+    turn results in metrics dataframe with multiple columns instead of just one
+    'value' column)
+    """
+
+    def register_observations(self, builder: Builder) -> None:
+        builder.results.register_observation(
+            name="magical_attributes",
+            aggregator=self._get_magical_attributes,
+            excluded_stratifications=["student_house"],
+            report=lambda *_: None,
+        )
+
+    def _get_magical_attributes(self, _: pd.DataFrame) -> pd.Series:
+        """Increase each level by one per time step"""
+        return pd.Series([1.0, 1.0], ["spell_power", "potion_power"])
 
 
 class HogwartsResultsStratifier(Component):

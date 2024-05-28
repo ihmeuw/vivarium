@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import pandas as pd
@@ -135,7 +137,7 @@ class ResultsInterface:
         name: str,
         pop_filter: str = "tracked==True",
         aggregator_sources: Optional[List[str]] = None,
-        aggregator: Callable[[pd.DataFrame], float] = len,
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]] = len,
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
         additional_stratifications: List[str] = [],
