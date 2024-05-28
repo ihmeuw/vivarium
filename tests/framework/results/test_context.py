@@ -11,7 +11,6 @@ from tests.framework.results.helpers import (
     CATEGORIES,
     FAMILIARS,
     NAME,
-    POWER_LEVELS,
     SOURCES,
     sorting_hat_serial,
     sorting_hat_vector,
@@ -420,35 +419,7 @@ def test_gather_results_with_no_stratifications():
     )
 
 
-def test__bad_aggregator_return():
-    """Test that an exception is raised, as expected, when an aggregator
-    produces something other than a pd.DataFrame with a single column or a pd.Series"""
-    ctx = ResultsContext()
-
-    # Generate population DataFrame
-    population = BASE_POPULATION.copy()
-    event_name = "collect_metrics"
-
-    # Set up stratifications
-    ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
-    ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
-    ctx.add_observation(
-        name="this_shouldnt_work",
-        pop_filter="",
-        aggregator_sources=["tracked", "power_level"],
-        aggregator=sum,
-        additional_stratifications=["house", "familiar"],
-        excluded_stratifications=[],
-        when=event_name,
-        report=lambda: None,
-    )
-
-    with pytest.raises(TypeError):
-        for result, _measure in ctx.gather_results(population, event_name):
-            print(result)
-
-
-def test__bad_aggregator_stratification():
+def test_bad_aggregator_stratification():
     """Test if an exception gets raised when a stratification that doesn't
     exist is attempted to be used, as expected."""
     ctx = ResultsContext()
@@ -531,22 +502,26 @@ def test__get_groups(stratifications, values):
 
 
 @pytest.mark.parametrize(
-    "stratifications, aggregator_sources",
+    "stratifications, aggregator_sources, aggregator",
     [
-        (("familiar",), ["power_level"]),
-        (("familiar",), []),
-        (("familiar", "house"), ["power_level"]),
-        (("familiar", "house"), []),
-        ((), ["power_level"]),
-        ((), []),
+        # Series or single-column dataframe return
+        (("familiar",), ["power_level"], len),
+        (("familiar",), [], len),
+        (("familiar", "house"), ["power_level"], len),
+        (("familiar", "house"), [], len),
+        ((), ["power_level"], len),
+        ((), [], len),
+        # Multiple-column dataframe return
+        (("familiar",), ["power_level", "tracked"], sum),
+        (("familiar", "house"), ["power_level", "tracked"], sum),
+        ((), ["power_level", "tracked"], sum),
     ],
 )
-def test__aggregate(stratifications, aggregator_sources):
+def test__aggregate(stratifications, aggregator_sources, aggregator):
     """Test that we are aggregating correctly. There are some nuances here:
-      - If aggregator_resources is provided, then simply .apply it to the groups passed in.
-      - If no aggregator_resources are provided, then we want a full aggregatio of the groups.
-
-    Note that the groups can be either a pandas DataFrame or a DataFrameGroupBy.
+    - If aggregator_resources is provided, then simply .apply it to the groups passed in.
+    - If no aggregator_resources are provided, then we want a full aggregation of the groups.
+    - _aggregate can return either a pd.Series or a pd.DataFrame of any number of columns
     """
     groups = ResultsContext()._get_groups(
         stratifications=stratifications, filtered_pop=BASE_POPULATION
@@ -554,20 +529,35 @@ def test__aggregate(stratifications, aggregator_sources):
     aggregates = ResultsContext()._aggregate(
         pop_groups=groups,
         aggregator_sources=aggregator_sources,
-        aggregator=len,
+        aggregator=aggregator,
     )
-    if stratifications:
-        stratification_idx = (
-            set(itertools.product(*(FAMILIARS, CATEGORIES)))
-            if "house" in stratifications
-            else set(FAMILIARS)
-        )
-        assert set(aggregates.index) == stratification_idx
-        group_lengths = BASE_POPULATION.groupby(list(stratifications)).apply(len)
-        assert (aggregates == group_lengths).all()
-    else:
-        assert len(aggregates.values) == 1
-        assert aggregates.values[0] == len(BASE_POPULATION)
+    if aggregator == len:
+        if stratifications:
+            stratification_idx = (
+                set(itertools.product(*(FAMILIARS, CATEGORIES)))
+                if "house" in stratifications
+                else set(FAMILIARS)
+            )
+            assert set(aggregates.index) == stratification_idx
+            assert (aggregates.values == len(BASE_POPULATION) / groups.ngroups).all()
+        else:
+            assert len(aggregates.values) == 1
+            assert aggregates.values[0] == len(BASE_POPULATION)
+    else:  # sum aggregator
+        assert aggregates.shape[1] == 2
+        expected = BASE_POPULATION[["power_level", "tracked"]].sum() / groups.ngroups
+        if stratifications:
+            stratification_idx = (
+                set(itertools.product(*(FAMILIARS, CATEGORIES)))
+                if "house" in stratifications
+                else set(FAMILIARS)
+            )
+            assert set(aggregates.index) == stratification_idx
+            assert (aggregates.sum() / groups.ngroups).equals(expected)
+        else:
+            assert len(aggregates.values) == 1
+            for col in ["power_level", "tracked"]:
+                assert aggregates.loc["all", col] == expected[col]
 
 
 @pytest.mark.parametrize(
@@ -579,29 +569,13 @@ def test__aggregate(stratifications, aggregator_sources):
         ),
     ],
 )
-def test__coerce_to_dataframe(aggregates):
-    new_aggregates = ResultsContext()._coerce_to_dataframe(aggregates=aggregates)
+def test__format(aggregates):
+    new_aggregates = ResultsContext()._format(aggregates=aggregates)
     assert isinstance(new_aggregates, pd.DataFrame)
     if isinstance(aggregates, pd.Series):
-        assert new_aggregates.equals(aggregates.to_frame())
+        assert new_aggregates.equals(aggregates.to_frame("value"))
     else:
         assert new_aggregates.equals(aggregates)
-
-
-@pytest.mark.parametrize(
-    "aggregates, xfail_match",
-    [
-        # Expected failure if pd.DataFrame has more than one column
-        (pd.DataFrame({"col1": [1, 2], "col2": [10, 20]}), "a single column is expected."),
-        # Expected failure if pd.DataFrame has less than one column
-        (pd.DataFrame(index=["strat1", "strat2"]), "a single column is expected."),
-        # Expected failure if not pd.Series or pd.DataFrame
-        (1, "a pd.Series or pd.DataFrame is expected."),
-    ],
-)
-def test__coerce_to_dataframe_failures(aggregates, xfail_match):
-    with pytest.raises(TypeError, match=xfail_match):
-        ResultsContext()._coerce_to_dataframe(aggregates=aggregates)
 
 
 @pytest.mark.parametrize(
