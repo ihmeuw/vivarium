@@ -179,6 +179,10 @@ class ResultsManager(Manager):
                     )
 
     def gather_results(self, event_name: str, event: Event) -> None:
+        """Update the existing metrics with new results. Any columns in the
+        results group that are not already in the metrics are initialized
+        with 0.0.
+        """
         population = self._prepare_population(event)
         for results_group, measure in self._results_context.gather_results(
             population, event_name
@@ -188,7 +192,14 @@ class ResultsManager(Manager):
                     raise ValueError(
                         f"There is a results group {results_group} but no corresponding measure"
                     )
-                self._metrics[measure] += results_group
+                # Look for extra columns in the results_group and initialize with 0.
+                extra_cols = list(
+                    set(results_group.columns) - set(self._metrics[measure].columns)
+                )
+                if extra_cols:
+                    self._metrics[measure][extra_cols] = 0.0
+                for col in results_group.columns:
+                    self._metrics[measure][col] += results_group[col]
 
     def set_default_stratifications(self, builder: Builder) -> None:
         default_stratifications = builder.configuration.stratification.default
@@ -302,7 +313,7 @@ class ResultsManager(Manager):
         name: str,
         pop_filter: str,
         aggregator_sources: Optional[List[str]],
-        aggregator: Callable[[pd.DataFrame], float],
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
         requires_columns: List[str],
         requires_values: List[str],
         additional_stratifications: List[str],
