@@ -517,13 +517,11 @@ def test__get_groups(stratifications, values):
         ((), ["power_level", "tracked"], sum),
     ],
 )
-def test__format(stratifications, aggregator_sources, aggregator):
+def test__aggregate(stratifications, aggregator_sources, aggregator):
     """Test that we are aggregating correctly. There are some nuances here:
-      - If aggregator_resources is provided, then simply .apply it to the groups passed in.
-      - If no aggregator_resources are provided, then we want a full aggregation of the groups.
-      - _aggregate can return either a pd.Series or a pd.DataFrame of any number of columns
-
-    Note that the groups can be either a pandas DataFrame or a DataFrameGroupBy.
+    - If aggregator_resources is provided, then simply .apply it to the groups passed in.
+    - If no aggregator_resources are provided, then we want a full aggregation of the groups.
+    - _aggregate can return either a pd.Series or a pd.DataFrame of any number of columns
     """
     groups = ResultsContext()._get_groups(
         stratifications=stratifications, filtered_pop=BASE_POPULATION
