@@ -172,6 +172,39 @@ def test_SimulationContext_name_management(SimulationContext):
     }
 
 
+def test_SimulationContext_run(SimulationContext, mocker):
+    sim = SimulationContext()
+
+    # Mock the methods called by sim.run()
+    sim.setup = mocker.Mock()
+    sim.initialize_simulants = mocker.Mock()
+    sim.run = mocker.Mock()
+    sim.finalize = mocker.Mock()
+    sim.report = mocker.Mock()
+
+    sim.run_simulation()
+
+    # Assert each mocked method was called as expected
+    sim.setup.assert_has_calls([mocker.call()], any_order=True)
+    sim.initialize_simulants.assert_has_calls([mocker.call()], any_order=True)
+    sim.run.assert_has_calls([mocker.call()], any_order=True)
+    sim.finalize.assert_has_calls([mocker.call()], any_order=True)
+    sim.report.assert_has_calls([mocker.call()], any_order=True)
+
+    # Assert that the total number of calls matches the expected number
+    calls_made = sum(
+        len(mock.mock_calls)
+        for mock in [
+            sim.setup,
+            sim.initialize_simulants,
+            sim.run,
+            sim.finalize,
+            sim.report,
+        ]
+    )
+    assert calls_made == 5
+
+
 def test_SimulationContext_setup_default(SimulationContext, base_config, components):
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if "listener" in c.args][0]
