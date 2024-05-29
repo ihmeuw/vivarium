@@ -56,7 +56,7 @@ class ResultsInterface:
         self,
         name: str,
         categories: List[str],
-        mapper: Optional[Callable] = None,
+        mapper: Optional[Callable[[pd.DataFrame], pd.Series[str]]] = None,
         is_vectorized: bool = False,
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
