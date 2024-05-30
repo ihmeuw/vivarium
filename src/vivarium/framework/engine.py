@@ -36,7 +36,6 @@ from vivarium.framework.event import EventInterface
 from vivarium.framework.lifecycle import LifeCycleInterface
 from vivarium.framework.logging import LoggingInterface
 from vivarium.framework.lookup import LookupTableInterface
-from vivarium.framework.metrics import Metrics
 from vivarium.framework.plugins import PluginManager
 from vivarium.framework.population import PopulationInterface
 from vivarium.framework.randomness import RandomnessInterface
@@ -184,7 +183,6 @@ class SimulationContext:
         components = (
             component_config_parser.get_components(self._component_configuration)
             + self._additional_components
-            + [Metrics()]
         )
 
         non_components = [obj for obj in components if not isinstance(obj, Component)]
@@ -208,7 +206,7 @@ class SimulationContext:
         return self._name
 
     def get_results(self) -> Dict[str, Any]:
-        return self._values.get_value("metrics")(self.get_population().index)
+        return self._results.metrics
 
     def run_simulation(self) -> None:
         """A wrapper method to run all steps of a simulation"""
@@ -273,7 +271,7 @@ class SimulationContext:
 
     def report(self, print_results: bool = True):
         self._lifecycle.set_state("report")
-        metrics = self._values.get_value("metrics")(self.get_population().index)
+        metrics = self.get_results()
         if print_results:
             self._logger.info("\n" + pformat(metrics))
             performance_metrics = self.get_performance_metrics()

@@ -183,8 +183,6 @@ def test_setup_components(mocker):
     assert mock_a.builder_used_for_setup is None  # class has no setup method
     assert mock_b.builder_used_for_setup is builder
 
-    builder.value.register_value_modifier.assert_called_once_with("metrics", mock_b.metrics)
-
 
 def test_apply_configuration_defaults():
     config = build_simulation_configuration()
