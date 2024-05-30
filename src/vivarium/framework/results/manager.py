@@ -77,8 +77,6 @@ class ResultsManager(Manager):
 
         self.set_default_stratifications(builder)
 
-        builder.value.register_value_modifier("metrics", self.get_results)
-
     def on_post_setup(self, _: Event) -> None:
         """Initialize self._metrics with 0s DataFrame' for each measure and all stratifications"""
         registered_stratifications = self._results_context.stratifications
@@ -357,13 +355,6 @@ class ResultsManager(Manager):
         for pipeline in self._required_values:
             population[pipeline.name] = pipeline(event.index)
         return population
-
-    def get_results(
-        self, _index: pd.Index[Any], metrics: Dict[Optional[str], Optional[pd.DataFrame]]
-    ) -> Dict[str, pd.DataFrame]:
-        # Shim for now to allow incremental transition to new results system.
-        metrics.update(self._metrics)
-        return metrics
 
     def _warn_check_stratifications(
         self, additional_stratifications: List[str], excluded_stratifications: List[str]
