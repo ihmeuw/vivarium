@@ -33,7 +33,6 @@ from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
 from vivarium.framework.logging import LoggingInterface, LoggingManager
 from vivarium.framework.lookup import LookupTableInterface, LookupTableManager
-from vivarium.framework.metrics import Metrics
 from vivarium.framework.population import PopulationInterface, PopulationManager
 from vivarium.framework.randomness import RandomnessInterface, RandomnessManager
 from vivarium.framework.resource import ResourceInterface, ResourceManager
@@ -148,8 +147,7 @@ def test_SimulationContext_init_default(SimulationContext, components):
         unpacked_components.append(c)
         if hasattr(c, "sub_components"):
             unpacked_components.extend(c.sub_components)
-    assert list(sim._component_manager._components)[:-1] == unpacked_components
-    assert isinstance(list(sim._component_manager._components)[-1], Metrics)
+    assert list(sim._component_manager._components) == unpacked_components
 
 
 def test_SimulationContext_name_management(SimulationContext):
@@ -209,7 +207,6 @@ def test_SimulationContext_setup_default(SimulationContext, base_config, compone
         unpacked_components.append(c)
         if hasattr(c, "sub_components"):
             unpacked_components.extend(c.sub_components)
-    unpacked_components.append(Metrics())
 
     for a, b in zip(sim._component_manager._components, unpacked_components):
         assert type(a) == type(b)
@@ -299,10 +296,7 @@ def test_get_results(base_config, tmpdir):
     assert finished_sim.get_results() == finished_sim._results.metrics
 
 
-def test_SimulationContext_report(SimulationContext, base_config, components, tmpdir, mocker):
-    # Mock out 'gather_results' and instead rely on the MockComponentB 'metrics'
-    # pipeline (which is effectively just a counter)
-    mocker.patch("vivarium.framework.results.context.ResultsContext.gather_results")
+def test_SimulationContext_report(SimulationContext, base_config, components, tmpdir):
     configuration = {"output_data": {"results_directory": str(tmpdir)}}
     sim = SimulationContext(base_config, components, configuration)
     sim.setup()
@@ -310,16 +304,18 @@ def test_SimulationContext_report(SimulationContext, base_config, components, tm
     sim.run()
     sim.finalize()
     sim.report()
-    # Cannot use the sim.get_results() property because that calls the "metrics"
-    # pipeline which has been set up as a counter for this test and we do not want
-    # to trigger it again.
-    metrics = sim._results.metrics
+
+    metrics = sim.get_results()
+
     assert set(metrics) == set(["test"])
     results = metrics["test"]
     assert len(results[METRICS_COLUMN].unique()) == 1
+    # We expect the results to have counted each time step for each of the
+    # MockComponentB instances.
+    # NOTE: MockComponentA does not register any observations
     assert results[METRICS_COLUMN].iat[0] == len(
         [c for c in sim._component_manager._components if isinstance(c, MockComponentB)]
-    )
+    ) * _get_num_steps(sim)
 
 
 def test_SimulationContext_report_output_format(base_config, tmpdir):
@@ -335,12 +331,7 @@ def test_SimulationContext_report_output_format(base_config, tmpdir):
         HogwartsResultsStratifier(),
     ]
     finished_sim = run_simulation(base_config, components, configuration)
-
-    # The observers are based on number of steps - extract how many steps were run
-    time_dict = finished_sim.configuration.time.to_dict()
-    end_date = _convert_to_datetime(time_dict["end"])
-    start_date = _convert_to_datetime(time_dict["start"])
-    num_steps = math.ceil((end_date - start_date).days / time_dict["step_size"])
+    num_steps = _get_num_steps(finished_sim)
 
     # Check for expected results and confirm format
     results_list = [file for file in results_root.rglob("*")]
@@ -403,3 +394,11 @@ def _convert_to_datetime(date_dict: Dict[str, int]) -> pd.Timestamp:
     return pd.to_datetime(
         "-".join([str(val) for val in date_dict.values()]), format="%Y-%m-%d"
     )
+
+
+def _get_num_steps(sim: SimulationContext) -> int:
+    time_dict = sim.configuration.time.to_dict()
+    end_date = _convert_to_datetime(time_dict["end"])
+    start_date = _convert_to_datetime(time_dict["start"])
+    num_steps = math.ceil((end_date - start_date).days / time_dict["step_size"])
+    return num_steps
