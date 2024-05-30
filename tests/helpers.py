@@ -46,18 +46,15 @@ class MockComponentB(StratifiedObserver):
 
     def setup(self, builder: Builder) -> None:
         self.builder_used_for_setup = builder
-        builder.value.register_value_modifier("metrics", self.metrics)
 
     def register_observations(self, builder):
-        builder.results.register_observation("test")
+        builder.results.register_observation("test", aggregator=self.counter)
 
     def create_lookup_tables(self, builder):
         return {}
 
-    def metrics(self, _, metrics) -> pd.DataFrame:
-        # Modify the metrics pipeline so that it behaves like a Counter every time it's called
-        metrics["test"][METRICS_COLUMN] += 1
-        return metrics
+    def counter(self, _):
+        return 1.0
 
     def __eq__(self, other: Any) -> bool:
         return type(self) == type(other) and self.name == other.name
