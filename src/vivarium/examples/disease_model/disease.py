@@ -186,7 +186,6 @@ class DiseaseModel(Machine):
         builder.value.register_value_modifier(
             "mortality_rate", modifier=self.delete_cause_specific_mortality
         )
-        builder.value.register_value_modifier("metrics", modifier=self.metrics)
 
     ########################
     # Event-driven methods #

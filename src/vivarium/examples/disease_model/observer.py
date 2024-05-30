@@ -30,7 +30,6 @@ class Observer(Component):
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
         self.life_expectancy = builder.configuration.mortality.life_expectancy
-        builder.value.register_value_modifier("metrics", self.metrics)
 
     ##################################
     # Pipeline sources and modifiers #
