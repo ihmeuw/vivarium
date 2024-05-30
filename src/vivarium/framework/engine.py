@@ -210,6 +210,14 @@ class SimulationContext:
     def get_results(self) -> Dict[str, Any]:
         return self._values.get_value("metrics")(self.get_population().index)
 
+    def run_simulation(self) -> None:
+        """A wrapper method to run all steps of a simulation"""
+        self.setup()
+        self.initialize_simulants()
+        self.run()
+        self.finalize()
+        self.report()
+
     def setup(self) -> None:
         self._lifecycle.set_state("setup")
         self.configuration.freeze()
@@ -399,9 +407,5 @@ def run_simulation(
     simulation = SimulationContext(
         model_specification, components, configuration, plugin_configuration
     )
-    simulation.setup()
-    simulation.initialize_simulants()
-    simulation.run()
-    simulation.finalize()
-    simulation.report()
+    simulation.run_simulation()
     return simulation
