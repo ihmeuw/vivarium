@@ -172,37 +172,30 @@ def test_SimulationContext_name_management(SimulationContext):
     }
 
 
-def test_SimulationContext_run(SimulationContext, mocker):
+def test_SimulationContext_run_simulation(SimulationContext, mocker):
     sim = SimulationContext()
 
+    expected_calls = [
+        "setup",
+        "initialize_simulants",
+        "run",
+        "finalize",
+        "report",
+    ]
+
     # Mock the methods called by sim.run()
-    sim.setup = mocker.Mock()
-    sim.initialize_simulants = mocker.Mock()
-    sim.run = mocker.Mock()
-    sim.finalize = mocker.Mock()
-    sim.report = mocker.Mock()
+    mock = mocker.MagicMock()
+    for call in expected_calls:
+        mock.attach_mock(
+            mocker.patch(f"vivarium.framework.engine.SimulationContext.{call}"), call
+        )
 
     sim.run_simulation()
 
-    # Assert each mocked method was called as expected
-    sim.setup.assert_has_calls([mocker.call()], any_order=True)
-    sim.initialize_simulants.assert_has_calls([mocker.call()], any_order=True)
-    sim.run.assert_has_calls([mocker.call()], any_order=True)
-    sim.finalize.assert_has_calls([mocker.call()], any_order=True)
-    sim.report.assert_has_calls([mocker.call()], any_order=True)
-
-    # Assert that the total number of calls matches the expected number
-    calls_made = sum(
-        len(mock.mock_calls)
-        for mock in [
-            sim.setup,
-            sim.initialize_simulants,
-            sim.run,
-            sim.finalize,
-            sim.report,
-        ]
-    )
-    assert calls_made == 5
+    # Assert the calls are each made exactly once and in the correct order
+    # NOTE: mock.mock_calls is a list like [call.setup(), call.initialize_simulants(), ...]
+    actual_calls = [str(call).split("call.")[1].split("()")[0] for call in mock.mock_calls]
+    assert actual_calls == expected_calls
 
 
 def test_SimulationContext_setup_default(SimulationContext, base_config, components):
