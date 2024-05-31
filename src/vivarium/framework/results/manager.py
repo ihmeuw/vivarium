@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
 
-METRICS_COLUMN = "value"
+VALUE_COLUMN = "value"
 
 
 class SourceType(Enum):
@@ -44,7 +44,7 @@ class ResultsManager(Manager):
     }
 
     def __init__(self) -> None:
-        self._metrics: defaultdict[str, pd.DataFrame] = defaultdict()
+        self._raw_results: defaultdict[str, pd.DataFrame] = defaultdict()
         self._results_context = ResultsContext()
         self._required_columns = {"tracked"}
         self._required_values: set[Pipeline] = set()
@@ -55,9 +55,17 @@ class ResultsManager(Manager):
         """The name of this ResultsManager."""
         return self._name
 
-    @property
-    def metrics(self) -> defaultdict[str, pd.DataFrame]:
-        return self._metrics.copy()
+    def get_results(self) -> Dict[str, pd.DataFrame]:
+        formatted = {}
+        for observation_details in self._results_context.observations.values():
+            for observations in observation_details.values():
+                for observation in observations:
+                    measure = observation.name
+                    results = self._raw_results[measure].copy()
+                    formatted[measure] = observation.formatter(
+                        measure=measure, results=results
+                    )
+        return formatted
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: "Builder") -> None:
@@ -71,14 +79,13 @@ class ResultsManager(Manager):
         builder.event.register_listener("time_step", self.on_time_step)
         builder.event.register_listener("time_step__cleanup", self.on_time_step_cleanup)
         builder.event.register_listener("collect_metrics", self.on_collect_metrics)
-        builder.event.register_listener("report", self.on_report)
 
         self.get_value = builder.value.get_value
 
         self.set_default_stratifications(builder)
 
     def on_post_setup(self, _: Event) -> None:
-        """Initialize self._metrics with 0s DataFrame' for each measure and all stratifications"""
+        """Initialize results with 0s DataFrame' for each measure and all stratifications"""
         registered_stratifications = self._results_context.stratifications
         registered_stratification_names = set(
             stratification.name for stratification in registered_stratifications
@@ -136,8 +143,8 @@ class ResultsManager(Manager):
                         )
 
                     # Initialize a zeros dataframe
-                    df[METRICS_COLUMN] = 0.0
-                    self._metrics[measure] = df.set_index(stratification_names)
+                    df[VALUE_COLUMN] = 0.0
+                    self._raw_results[measure] = df.set_index(stratification_names)
 
         if unused_stratifications:
             self.logger.info(
@@ -167,18 +174,9 @@ class ResultsManager(Manager):
     def on_collect_metrics(self, event: Event) -> None:
         self.gather_results("collect_metrics", event)
 
-    def on_report(self, event: Event) -> None:
-        metrics = event.user_data["metrics"]
-        for observation_details in self._results_context.observations.values():
-            for observations in observation_details.values():
-                for observation in observations:
-                    observation.report(
-                        measure=observation.name, results=metrics[observation.name]
-                    )
-
     def gather_results(self, event_name: str, event: Event) -> None:
-        """Update the existing metrics with new results. Any columns in the
-        results group that are not already in the metrics are initialized
+        """Update the existing results with new results. Any columns in the
+        results group that are not already in the existing results are initialized
         with 0.0.
         """
         population = self._prepare_population(event)
@@ -192,12 +190,12 @@ class ResultsManager(Manager):
                     )
                 # Look for extra columns in the results_group and initialize with 0.
                 extra_cols = list(
-                    set(results_group.columns) - set(self._metrics[measure].columns)
+                    set(results_group.columns) - set(self._raw_results[measure].columns)
                 )
                 if extra_cols:
-                    self._metrics[measure][extra_cols] = 0.0
+                    self._raw_results[measure][extra_cols] = 0.0
                 for col in results_group.columns:
-                    self._metrics[measure][col] += results_group[col]
+                    self._raw_results[measure][col] += results_group[col]
 
     def set_default_stratifications(self, builder: Builder) -> None:
         default_stratifications = builder.configuration.stratification.default
@@ -317,7 +315,7 @@ class ResultsManager(Manager):
         additional_stratifications: List[str],
         excluded_stratifications: List[str],
         when: str,
-        report: Callable[[str, pd.DataFrame], None],
+        formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
     ) -> None:
         self.logger.debug(f"Registering observation {name}")
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
@@ -329,7 +327,7 @@ class ResultsManager(Manager):
             additional_stratifications,
             excluded_stratifications,
             when,
-            report,
+            formatter,
         )
         self._add_resources(requires_columns, SourceType.COLUMN)
         self._add_resources(requires_values, SourceType.VALUE)
