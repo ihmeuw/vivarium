@@ -40,6 +40,7 @@ if __name__ == "__main__":
         "tables",
         "networkx",
         "loguru",
+        "pyarrow",
         # Type stubs
         "pandas-stubs",
     ]
