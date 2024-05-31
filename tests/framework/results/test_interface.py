@@ -260,7 +260,7 @@ def test_register_observation_when_options(when, mocker):
 
     # Fake a timestep
     mock_event = mocker.Mock()
-    # Run on_post_setup to initialize the metrics attribute with 0s
+    # Run on_post_setup to initialize the raw_results attribute with 0s
     mgr.on_post_setup(mock_event)
     mgr.gather_results(when, mock_event)
 
