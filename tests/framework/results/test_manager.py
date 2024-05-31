@@ -31,7 +31,7 @@ from tests.framework.results.helpers import (
     sorting_hat_vector,
     verify_stratification_added,
 )
-from vivarium.framework.results import METRICS_COLUMN
+from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.interface.interactive import InteractiveContext
 
@@ -266,7 +266,7 @@ def test_add_observation_nop_stratifications(
         additional_stratifications=additional,
         excluded_stratifications=excluded,
         when="collect_metrics",
-        report=lambda: None,
+        formatter=lambda: None,
     )
     for m in match:
         assert m in caplog.text
@@ -291,16 +291,16 @@ def test_setting_default_stratifications_at_setup(mocker):
 ################################
 
 
-def test_metrics_initialized_as_empty_dict(mocker):
-    """Test that metrics are initialized as an empty dictionary"""
+def test__raw_results_initialized_as_empty_dict(mocker):
+    """Test that raw results are initialized as an empty dictionary"""
     mgr = ResultsManager()
     builder = mocker.Mock()
     mgr.setup(builder)
-    assert mgr.metrics == {}
+    assert mgr._raw_results == {}
 
 
-def test_stratified_metrics_initialization():
-    """Test that matrics are being initialized correctly. We expect a dictionary
+def test_stratified__raw_results_initialization():
+    """Test that raw results are being initialized correctly. We expect a dictionary
     of pd.DataFrames. Each key of the dictionary is an observed measure name and
     the corresponding value is a zeroed-out multiindex pd.DataFrame of that observer's
     stratifications.
@@ -313,13 +313,13 @@ def test_stratified_metrics_initialization():
     ]
 
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
-    metrics = sim._results.metrics
-    assert isinstance(metrics, dict)
-    assert set(metrics) == set(["house_points", "quidditch_wins"])
-    for metric in metrics:
-        result = metrics[metric]
+    raw_results = sim._results._raw_results
+    assert isinstance(raw_results, dict)
+    assert set(raw_results) == set(["house_points", "quidditch_wins"])
+    for measure in raw_results:
+        result = raw_results[measure]
         assert isinstance(result, pd.DataFrame)
-        assert (result[METRICS_COLUMN] == 0).all()
+        assert (result[VALUE_COLUMN] == 0).all()
     STUDENT_HOUSES_LIST = list(STUDENT_HOUSES)
 
     # Check that indexes are as expected
@@ -338,24 +338,24 @@ def test_stratified_metrics_initialization():
         .set_index(["student_house", "power_level"])
         .index
     )
-    assert metrics["house_points"].index.equals(expected_house_points_idx)
+    assert raw_results["house_points"].index.equals(expected_house_points_idx)
 
     # Single-stratification index is type CategoricalIndex
     expected_quidditch_idx = pd.CategoricalIndex(FAMILIARS, name="familiar")
-    assert metrics["quidditch_wins"].index.equals(expected_quidditch_idx)
+    assert raw_results["quidditch_wins"].index.equals(expected_quidditch_idx)
 
 
-def test_no_stratifications_metrics_initialization():
+def test_no_stratifications__raw_results_initialization():
     """Test that Observers requesting no stratifications result in a
     single-row DataFrame with 'value' of zero and index labeled 'all'
     """
     components = [Hogwarts(), NoStratificationsQuidditchWinsObserver()]
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
-    results = sim._results.metrics["no_stratifications_quidditch_wins"]
-    assert isinstance(results, pd.DataFrame)
-    assert results.shape == (1, 1)
-    assert results[METRICS_COLUMN].iat[0] == 0
-    assert results.index.equals(pd.Index(["all"]))
+    raw_results = sim._results._raw_results["no_stratifications_quidditch_wins"]
+    assert isinstance(raw_results, pd.DataFrame)
+    assert raw_results.shape == (1, 1)
+    assert raw_results[VALUE_COLUMN].iat[0] == 0
+    assert raw_results.index.equals(pd.Index(["all"]))
 
 
 def test_observers_with_missing_stratifications_fail():
@@ -397,8 +397,8 @@ def test_unused_stratifications_are_logged(caplog):
     assert "['familiar']" in log_split[1]
 
 
-def test_update_monotonically_increasing_metrics():
-    """Test that (monotonically increasing) metrics are being updated correctly."""
+def test_update_monotonically_increasing__raw_results():
+    """Test that (monotonically increasing) raw results are being updated correctly."""
 
     def _check_house_points(pop: pd.DataFrame, step_number: int) -> None:
         """We know that house points are stratified by 'student_house' and 'power_level_group'.
@@ -410,13 +410,13 @@ def test_update_monotonically_increasing_metrics():
         assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set([20, 80])
         group_sizes = pd.DataFrame(
             pop.groupby(["student_house", "power_level"]).size().astype("float"),
-            columns=[METRICS_COLUMN],
+            columns=[VALUE_COLUMN],
         )
-        metrics = sim._results.metrics["house_points"]
-        # We cannot use `equals` here because metrics has a MultiIndex where
+        raw_results = sim._results._raw_results["house_points"]
+        # We cannot use `equals` here because raw results have a MultiIndex where
         # each layer is a Category dtype but pop has object dtype for the relevant columns
         assert (
-            metrics.loc[("gryffindor", ["low", "very high"]), "value"].values
+            raw_results.loc[("gryffindor", ["low", "very high"]), "value"].values
             == (group_sizes.loc[("gryffindor", [20, 80]), "value"] * step_number).values
         ).all()
 
@@ -427,13 +427,13 @@ def test_update_monotonically_increasing_metrics():
         assert set(pop["quidditch_wins"]) == set([0, 1])
         assert (pop.loc[pop["quidditch_wins"] != 0, "familiar"] == "banana_slug").all()
         group_sizes = pd.DataFrame(
-            pop.groupby(["familiar"]).size().astype("float"), columns=[METRICS_COLUMN]
+            pop.groupby(["familiar"]).size().astype("float"), columns=[VALUE_COLUMN]
         )
-        metrics = sim._results.metrics["quidditch_wins"]
-        # We cannot use `equals` here because metrics has a MultiIndex where
+        raw_results = sim._results._raw_results["quidditch_wins"]
+        # We cannot use `equals` here because raw results have a MultiIndex where
         # each layer is a Category dtype but pop has object dtype for the relevant columns
         assert (
-            metrics[metrics[METRICS_COLUMN] != 0].values
+            raw_results[raw_results[VALUE_COLUMN] != 0].values
             == (group_sizes[group_sizes.index == "banana_slug"] * step_number).values
         ).all()
 
@@ -455,7 +455,7 @@ def test_update_monotonically_increasing_metrics():
     _check_quidditch_wins(pop, step_number=2)
 
 
-def test_update_metrics_fully_filtered_pop():
+def test_update__raw_results_fully_filtered_pop():
     components = [
         Hogwarts(),
         FullyFilteredHousePointsObserver(),
@@ -465,33 +465,33 @@ def test_update_metrics_fully_filtered_pop():
     sim.step()
     # The FullyFilteredHousePointsObserver filters the population to a bogus
     # power level and so we should not be observing anything
-    assert (sim._results.metrics["house_points"][METRICS_COLUMN] == 0).all()
+    assert (sim._results._raw_results["house_points"][VALUE_COLUMN] == 0).all()
     sim.step()
-    assert (sim._results.metrics["house_points"][METRICS_COLUMN] == 0).all()
+    assert (sim._results._raw_results["house_points"][VALUE_COLUMN] == 0).all()
 
 
-def test_update_metrics_no_stratifications():
+def test_update__raw_results_no_stratifications():
     components = [Hogwarts(), NoStratificationsQuidditchWinsObserver()]
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     sim.step()
     pop = sim.get_population()
-    results = sim._results.metrics["no_stratifications_quidditch_wins"]
-    assert results.loc["all"][METRICS_COLUMN] == pop["quidditch_wins"].sum()
+    raw_results = sim._results._raw_results["no_stratifications_quidditch_wins"]
+    assert raw_results.loc["all"][VALUE_COLUMN] == pop["quidditch_wins"].sum()
     sim.step()
     pop = sim.get_population()
-    results = sim._results.metrics["no_stratifications_quidditch_wins"]
-    assert results.loc["all"][METRICS_COLUMN] == pop["quidditch_wins"].sum() * 2
+    raw_results = sim._results._raw_results["no_stratifications_quidditch_wins"]
+    assert raw_results.loc["all"][VALUE_COLUMN] == pop["quidditch_wins"].sum() * 2
 
 
-def test_update_metrics_extra_columns():
-    """Test that metrics are updated correctly when the aggregator return
+def test_update__raw_results_extra_columns():
+    """Test that raw results are updated correctly when the aggregator return
     contains multiple columns (i.e. not just a single 'value' column)
     """
     components = [Hogwarts(), HogwartsResultsStratifier(), MagicalAttributesObserver()]
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     sim.step()
-    results = sim._results.metrics["magical_attributes"]
-    assert (results[["spell_power", "potion_power"]].values == [1, 1]).all()
+    raw_results = sim._results._raw_results["magical_attributes"]
+    assert (raw_results[["spell_power", "potion_power"]].values == [1, 1]).all()
     sim.step()
-    results = sim._results.metrics["magical_attributes"]
-    assert (results[["spell_power", "potion_power"]].values == [2, 2]).all()
+    raw_results = sim._results._raw_results["magical_attributes"]
+    assert (raw_results[["spell_power", "potion_power"]].values == [2, 2]).all()

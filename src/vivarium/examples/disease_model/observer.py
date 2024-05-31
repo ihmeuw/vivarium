@@ -30,18 +30,3 @@ class Observer(Component):
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
         self.life_expectancy = builder.configuration.mortality.life_expectancy
-
-    ##################################
-    # Pipeline sources and modifiers #
-    ##################################
-
-    def metrics(self, index: pd.Index, metrics: Dict) -> Dict:
-        pop = self.population_view.get(index)
-        metrics["total_population_alive"] = len(pop[pop.alive == "alive"])
-        metrics["total_population_dead"] = len(pop[pop.alive == "dead"])
-
-        metrics["years_of_life_lost"] = (
-            self.life_expectancy - pop.age[pop.alive == "dead"]
-        ).sum()
-
-        return metrics
