@@ -62,7 +62,7 @@ class ResultsManager(Manager):
                 for observation in observations:
                     measure = observation.name
                     results = self._raw_results[measure].copy()
-                    formatted[measure] = observation.format_results(
+                    formatted[measure] = observation.formatter(
                         measure=measure, results=results
                     )
         return formatted
@@ -315,7 +315,7 @@ class ResultsManager(Manager):
         additional_stratifications: List[str],
         excluded_stratifications: List[str],
         when: str,
-        format_results: Callable[[str, pd.DataFrame], pd.DataFrame],
+        formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
     ) -> None:
         self.logger.debug(f"Registering observation {name}")
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
@@ -327,7 +327,7 @@ class ResultsManager(Manager):
             additional_stratifications,
             excluded_stratifications,
             when,
-            format_results,
+            formatter,
         )
         self._add_resources(requires_columns, SourceType.COLUMN)
         self._add_resources(requires_values, SourceType.VALUE)

@@ -114,7 +114,7 @@ class HousePointsObserver(StratifiedObserver):
             requires_columns=[
                 "house_points",
             ],
-            format_results=partial(format_results, self.random_seed, self.input_draw),
+            formatter=partial(formatter, self.random_seed, self.input_draw),
         )
 
 
@@ -146,7 +146,7 @@ class QuidditchWinsObserver(StratifiedObserver):
             requires_columns=[
                 "quidditch_wins",
             ],
-            format_results=partial(format_results, self.random_seed, self.input_draw),
+            formatter=partial(formatter, self.random_seed, self.input_draw),
         )
 
 
@@ -162,7 +162,7 @@ class NoStratificationsQuidditchWinsObserver(StratifiedObserver):
             requires_columns=[
                 "quidditch_wins",
             ],
-            format_results=partial(format_results, self.random_seed, self.input_draw),
+            formatter=partial(formatter, self.random_seed, self.input_draw),
         )
 
 
@@ -177,7 +177,7 @@ class MagicalAttributesObserver(StratifiedObserver):
             name="magical_attributes",
             aggregator=self._get_magical_attributes,
             excluded_stratifications=["student_house"],
-            format_results=lambda *_: None,
+            formatter=lambda *_: None,
         )
 
     def _get_magical_attributes(self, _: pd.DataFrame) -> pd.Series:
@@ -207,7 +207,7 @@ class HogwartsResultsStratifier(Component):
 ##################
 
 
-def format_results(
+def formatter(
     random_seed: str,
     input_draw: str,
     measure: str,

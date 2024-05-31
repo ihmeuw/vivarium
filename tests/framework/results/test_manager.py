@@ -266,7 +266,7 @@ def test_add_observation_nop_stratifications(
         additional_stratifications=additional,
         excluded_stratifications=excluded,
         when="collect_metrics",
-        format_results=lambda: None,
+        formatter=lambda: None,
     )
     for m in match:
         assert m in caplog.text

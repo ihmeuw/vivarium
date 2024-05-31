@@ -125,7 +125,7 @@ def test_add_observation(
         additional_stratifications=additional_stratifications,
         excluded_stratifications=excluded_stratifications,
         when=when,
-        format_results=lambda: None,
+        formatter=lambda: None,
     )
     assert len(ctx.observations) == 1
 
@@ -160,7 +160,7 @@ def test_double_add_observation(
         additional_stratifications=additional_stratifications,
         excluded_stratifications=excluded_stratifications,
         when=when,
-        format_results=lambda: None,
+        formatter=lambda: None,
     )
     ctx.add_observation(
         name=name,
@@ -170,7 +170,7 @@ def test_double_add_observation(
         additional_stratifications=additional_stratifications,
         excluded_stratifications=excluded_stratifications,
         when=when,
-        format_results=lambda: None,
+        formatter=lambda: None,
     )
     assert len(ctx.observations) == 1
 
@@ -267,7 +267,7 @@ def test_gather_results(pop_filter, aggregator_sources, aggregator, stratificati
         additional_stratifications=stratifications,
         excluded_stratifications=[],
         when=event_name,
-        format_results=lambda: None,
+        formatter=lambda: None,
     )
 
     filtered_pop = population.query(pop_filter)
@@ -359,7 +359,7 @@ def test_gather_results_partial_stratifications_in_results(
         additional_stratifications=stratifications,
         excluded_stratifications=[],
         when=event_name,
-        format_results=lambda: None,
+        formatter=lambda: None,
     )
 
     for results, _measure in ctx.gather_results(population, event_name):
@@ -386,7 +386,7 @@ def test_gather_results_with_empty_pop_filter():
         additional_stratifications=[],
         excluded_stratifications=[],
         when=event_name,
-        format_results=lambda: None,
+        formatter=lambda: None,
     )
 
     for result, _measure in ctx.gather_results(population, event_name):
@@ -409,7 +409,7 @@ def test_gather_results_with_no_stratifications():
         additional_stratifications=[],
         excluded_stratifications=[],
         when=event_name,
-        format_results=lambda: None,
+        formatter=lambda: None,
     )
 
     assert len(ctx.stratifications) == 0
@@ -439,7 +439,7 @@ def test_bad_aggregator_stratification():
         additional_stratifications=["house", "height"],  # `height` is not a stratification
         excluded_stratifications=[],
         when=event_name,
-        format_results=lambda: None,
+        formatter=lambda: None,
     )
 
     with pytest.raises(KeyError, match="height"):

@@ -104,7 +104,7 @@ class ResultsContext:
         additional_stratifications: List[str],
         excluded_stratifications: List[str],
         when: str,
-        format_results: Callable[[str, pd.DataFrame], pd.DataFrame],
+        formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
     ) -> None:
         stratifications = self._get_stratifications(
             additional_stratifications, excluded_stratifications
@@ -116,7 +116,7 @@ class ResultsContext:
             aggregator_sources=aggregator_sources,
             aggregator=aggregator,
             when=when,
-            format_results=format_results,
+            formatter=formatter,
         )
         self.observations[when][(pop_filter, stratifications)].append(observation)
 

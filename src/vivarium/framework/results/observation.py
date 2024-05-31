@@ -16,7 +16,7 @@ class Observation:
     - `aggregator_sources`: a list of the columns to observe
     - `aggregator`: a method that aggregates the `aggregator_sources`
     - `when`: the phase that the `Observation` is registered to
-    - `format_results`: the method that reports formats the `Observation` results
+    - `formatter`: the method that reports formats the `Observation` results
     """
 
     name: str
@@ -25,4 +25,4 @@ class Observation:
     aggregator_sources: Optional[List[str]]
     aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]]
     when: str
-    format_results: Callable[[str, pd.DataFrame], pd.DataFrame]
+    formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
