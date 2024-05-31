@@ -207,13 +207,6 @@ class DiseaseModel(Machine):
     def delete_cause_specific_mortality(self, index: pd.Index, rates: pd.Series) -> pd.Series:
         return rates - self.cause_specific_mortality_rate(index)
 
-    def metrics(self, index: pd.Index, metrics: Dict[str, Any]):
-        pop = self.population_view.get(index, query="alive == 'alive'")
-        metrics[self.state_column + "_prevalent_cases"] = len(
-            pop[pop[self.state_column] != self.initial_state]
-        )
-        return metrics
-
 
 class SISDiseaseModel(Component):
     configuration_defaults = {

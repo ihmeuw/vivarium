@@ -1,5 +1,5 @@
 import itertools
-from pathlib import Path
+from functools import partial
 from typing import List
 
 import numpy as np
@@ -8,7 +8,7 @@ import pandas as pd
 from vivarium.framework.components.manager import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
-from vivarium.framework.results import METRICS_COLUMN
+from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.observer import StratifiedObserver
 
 NAME = "hogwarts_house"
@@ -114,12 +114,7 @@ class HousePointsObserver(StratifiedObserver):
             requires_columns=[
                 "house_points",
             ],
-            report=self.write_results,
-        )
-
-    def write_results(self, measure: str, results: pd.DataFrame) -> None:
-        dataframe_to_csv(
-            measure, results, Path(self.results_dir), self.random_seed, self.input_draw
+            formatter=partial(formatter, self.random_seed, self.input_draw),
         )
 
 
@@ -151,12 +146,7 @@ class QuidditchWinsObserver(StratifiedObserver):
             requires_columns=[
                 "quidditch_wins",
             ],
-            report=self.write_results,
-        )
-
-    def write_results(self, measure: str, results: pd.DataFrame) -> None:
-        dataframe_to_csv(
-            measure, results, Path(self.results_dir), self.random_seed, self.input_draw
+            formatter=partial(formatter, self.random_seed, self.input_draw),
         )
 
 
@@ -172,18 +162,13 @@ class NoStratificationsQuidditchWinsObserver(StratifiedObserver):
             requires_columns=[
                 "quidditch_wins",
             ],
-            report=self.write_results,
-        )
-
-    def write_results(self, measure: str, results: pd.DataFrame) -> None:
-        dataframe_to_csv(
-            measure, results, Path(self.results_dir), self.random_seed, self.input_draw
+            formatter=partial(formatter, self.random_seed, self.input_draw),
         )
 
 
 class MagicalAttributesObserver(StratifiedObserver):
     """Observer whose aggregator returns a pd.Series instead of a float (which in
-    turn results in metrics dataframe with multiple columns instead of just one
+    turn results in a dataframe with multiple columns instead of just one
     'value' column)
     """
 
@@ -192,7 +177,7 @@ class MagicalAttributesObserver(StratifiedObserver):
             name="magical_attributes",
             aggregator=self._get_magical_attributes,
             excluded_stratifications=["student_house"],
-            report=lambda *_: None,
+            formatter=lambda *_: None,
         )
 
     def _get_magical_attributes(self, _: pd.DataFrame) -> pd.Series:
@@ -222,23 +207,21 @@ class HogwartsResultsStratifier(Component):
 ##################
 
 
-def dataframe_to_csv(
-    measure: str,
-    results: pd.DataFrame,
-    results_dir: Path,
+def formatter(
     random_seed: str,
     input_draw: str,
-) -> None:
+    measure: str,
+    results: pd.DataFrame,
+) -> pd.DataFrame:
     """An test use case of an observer's report method that writes a DataFrame to a CSV file."""
     # Add extra cols
     results["measure"] = measure
     results["random_seed"] = random_seed
     results["input_draw"] = input_draw
     # Sort the columns such that the stratifications (index) are first
-    # and METRICS_COLUMN is last and sort the rows by the stratifications.
-    other_cols = [c for c in results.columns if c != METRICS_COLUMN]
-    results = results[other_cols + [METRICS_COLUMN]].sort_index().reset_index()
-    results.to_csv(results_dir / f"{measure}.csv", index=False)
+    # and VALUE_COLUMN is last and sort the rows by the stratifications.
+    other_cols = [c for c in results.columns if c != VALUE_COLUMN]
+    return results[other_cols + [VALUE_COLUMN]].sort_index().reset_index()
 
 
 def sorting_hat_vector(state_table: pd.DataFrame) -> pd.Series:

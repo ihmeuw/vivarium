@@ -35,10 +35,8 @@ import os
 import pstats
 import shutil
 from pathlib import Path
-from time import time
 
 import click
-import pandas as pd
 from loguru import logger
 
 from vivarium.examples import disease_model
@@ -123,8 +121,6 @@ def run(
     verbosity = 1 + int(verbose) - int(quiet)
     configure_logging_to_terminal(verbosity=verbosity, long_format=False)
 
-    start = time()
-
     results_root = get_output_root(results_directory, model_specification, artifact_path)
     # Update permissions mask (assign to variable to avoid printing previous value)
     _ = os.umask(0o002)
@@ -143,12 +139,6 @@ def run(
 
     main = handle_exceptions(run_simulation, logger, with_debugger)
     finished_sim = main(model_specification, configuration=override_configuration)
-
-    # TODO [MIC-4982]: Save out required metrics for VCT to work
-    # metrics = pd.DataFrame(finished_sim.report(), index=[0])
-    # metrics["simulation_run_time"] = time() - start
-    # metrics["random_seed"] = finished_sim.configuration.randomness.random_seed
-    # metrics["input_draw"] = finished_sim.configuration.input_data.input_draw_number
 
 
 @simulate.command()
