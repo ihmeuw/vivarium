@@ -44,10 +44,6 @@ _MANAGERS = {
         "controller": "vivarium.framework.resource.ResourceManager",
         "builder_interface": "vivarium.framework.resource.ResourceInterface",
     },
-    "results": {
-        "controller": "vivarium.framework.results.ResultsManager",
-        "builder_interface": "vivarium.framework.results.ResultsInterface",
-    },
 }
 
 DEFAULT_PLUGINS = {
@@ -72,6 +68,10 @@ DEFAULT_PLUGINS = {
             "data": {
                 "controller": "vivarium.framework.artifact.ArtifactManager",
                 "builder_interface": "vivarium.framework.artifact.ArtifactInterface",
+            },
+            "results": {
+                "controller": "vivarium.framework.results.ResultsManager",
+                "builder_interface": "vivarium.framework.results.ResultsInterface",
             },
         },
         "optional": {},
