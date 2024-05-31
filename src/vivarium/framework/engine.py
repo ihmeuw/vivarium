@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Set, Union
 
 import numpy as np
 import pandas as pd
-from layered_config_tree import LayeredConfigTree
+from layered_config_tree import ConfigurationKeyError, LayeredConfigTree
 
 from vivarium import Component
 from vivarium.exceptions import VivariumError
@@ -206,7 +206,8 @@ class SimulationContext:
         return self._name
 
     def get_results(self) -> Dict[str, Any]:
-        return self._results.metrics
+        """Return the formatted results."""
+        return self._results.get_results()
 
     def run_simulation(self) -> None:
         """A wrapper method to run all steps of a simulation"""
@@ -269,19 +270,31 @@ class SimulationContext:
                 f"Some configuration keys not used during run: {unused_config_keys}."
             )
 
-    def report(self, print_results: bool = True):
+    def report(self, print_results: bool = True) -> None:
         self._lifecycle.set_state("report")
-        metrics = self.get_results()
+        self.report_emitter(self.get_population().index)
+
         if print_results:
-            self._logger.info("\n" + pformat(metrics))
+            results = self.get_results()
+            for measure, df in results.items():
+                self._logger.info(f"\n{measure}:\n{pformat(df)}")
             performance_metrics = self.get_performance_metrics()
             performance_metrics = performance_metrics.to_string(
                 index=False,
                 float_format=lambda x: f"{x:.2f}",
             )
             self._logger.info("\n" + performance_metrics)
+        self._write_results()
 
-        self.report_emitter(self.get_population().index, user_data={"metrics": metrics})
+    def _write_results(self) -> None:
+        """Iterate through the measures and write out the formatted results"""
+        try:
+            results_dir = self.configuration.output_data.results_directory
+            for measure, results in self.get_results().items():
+                output_file = Path(results_dir) / f"{measure}.parquet"
+                results.to_parquet(output_file, index=False)
+        except ConfigurationKeyError:
+            self._logger.info("No results directory set; results are not written to disk.")
 
     def get_performance_metrics(self) -> pd.DataFrame:
         timing_dict = self._lifecycle.timings
@@ -401,7 +414,7 @@ def run_simulation(
     components: Union[List, Dict, LayeredConfigTree] = None,
     configuration: Union[Dict, LayeredConfigTree] = None,
     plugin_configuration: Union[Dict, LayeredConfigTree] = None,
-):
+) -> SimulationContext:
     simulation = SimulationContext(
         model_specification, components, configuration, plugin_configuration
     )

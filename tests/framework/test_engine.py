@@ -36,7 +36,7 @@ from vivarium.framework.lookup import LookupTableInterface, LookupTableManager
 from vivarium.framework.population import PopulationInterface, PopulationManager
 from vivarium.framework.randomness import RandomnessInterface, RandomnessManager
 from vivarium.framework.resource import ResourceInterface, ResourceManager
-from vivarium.framework.results import METRICS_COLUMN, ResultsInterface, ResultsManager
+from vivarium.framework.results import VALUE_COLUMN, ResultsInterface, ResultsManager
 from vivarium.framework.time import DateTimeClock, TimeInterface
 from vivarium.framework.values import ValuesInterface, ValuesManager
 
@@ -260,7 +260,6 @@ def test_SimulationContext_step(SimulationContext, log, base_config, components)
     assert not listener.collect_metrics_called
 
     sim.step()
-    pop = sim._population.get_population(True)
 
     assert log.debug.called_once_with(current_time)
     assert listener.time_step_prepare_called
@@ -282,9 +281,11 @@ def test_SimulationContext_finalize(SimulationContext, base_config, components):
     assert listener.simulation_end_called
 
 
-def test_get_results(base_config, tmpdir):
-    configuration = {"output_data": {"results_directory": str(tmpdir)}}
-    configuration.update(HARRY_POTTER_CONFIG)
+def test_get_results(base_config):
+    """Test that get_results returns expected values. This does NOT test for
+    correct formatting.
+    """
+    base_config.update(HARRY_POTTER_CONFIG)
     components = [
         Hogwarts(),
         HousePointsObserver(),
@@ -292,34 +293,32 @@ def test_get_results(base_config, tmpdir):
         QuidditchWinsObserver(),
         HogwartsResultsStratifier(),
     ]
-    finished_sim = run_simulation(base_config, components, configuration)
-    assert finished_sim.get_results() == finished_sim._results.metrics
+    finished_sim = run_simulation(base_config, components)
+    for measure, results in finished_sim.get_results().items():
+        raw_results = finished_sim._results._raw_results[measure].sort_index()
+        assert results.set_index(raw_results.index.names)[[VALUE_COLUMN]].equals(raw_results)
 
 
-def test_SimulationContext_report(SimulationContext, base_config, components, tmpdir):
-    configuration = {"output_data": {"results_directory": str(tmpdir)}}
-    sim = SimulationContext(base_config, components, configuration)
-    sim.setup()
-    sim.initialize_simulants()
-    sim.run()
-    sim.finalize()
-    sim.report()
-
-    metrics = sim.get_results()
-
-    assert set(metrics) == set(["test"])
-    results = metrics["test"]
-    assert len(results[METRICS_COLUMN].unique()) == 1
-    # We expect the results to have counted each time step for each of the
-    # MockComponentB instances.
-    # NOTE: MockComponentA does not register any observations
-    assert results[METRICS_COLUMN].iat[0] == len(
-        [c for c in sim._component_manager._components if isinstance(c, MockComponentB)]
-    ) * _get_num_steps(sim)
+def test_SimulationContext_report_no_write_warning(base_config, caplog):
+    base_config.update(HARRY_POTTER_CONFIG)
+    components = [
+        Hogwarts(),
+        HousePointsObserver(),
+        NoStratificationsQuidditchWinsObserver(),
+        QuidditchWinsObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    finished_sim = run_simulation(base_config, components)
+    assert "No results directory set; results are not written to disk." in caplog.text
+    results = finished_sim.get_results()
+    assert set(results) == set(
+        ["house_points", "quidditch_wins", "no_stratifications_quidditch_wins"]
+    )
+    assert all([isinstance(df, pd.DataFrame) for df in results.values()])
 
 
-def test_SimulationContext_report_output_format(base_config, tmpdir):
-    """Test report output is as expected"""
+def test_SimulationContext_report_write(base_config, components, tmpdir):
+    """Test that the written results match get_results"""
     results_root = Path(tmpdir)
     configuration = {"output_data": {"results_directory": str(results_root)}}
     configuration.update(HARRY_POTTER_CONFIG)
@@ -331,19 +330,40 @@ def test_SimulationContext_report_output_format(base_config, tmpdir):
         HogwartsResultsStratifier(),
     ]
     finished_sim = run_simulation(base_config, components, configuration)
-    num_steps = _get_num_steps(finished_sim)
-
-    # Check for expected results and confirm format
+    # Check for expected results written
     results_list = [file for file in results_root.rglob("*")]
     assert set([file.name for file in results_list]) == set(
-        ["house_points.csv", "quidditch_wins.csv", "no_stratifications_quidditch_wins.csv"]
+        [
+            "house_points.parquet",
+            "quidditch_wins.parquet",
+            "no_stratifications_quidditch_wins.parquet",
+        ]
     )
 
-    house_points = pd.read_csv(results_root / "house_points.csv")
-    quidditch_wins = pd.read_csv(results_root / "quidditch_wins.csv")
-    no_stratifications_quidditch_wins = pd.read_csv(
-        results_root / "no_stratifications_quidditch_wins.csv"
-    )
+    # Check that written results match get_results method
+    for measure in ["house_points", "quidditch_wins", "no_stratifications_quidditch_wins"]:
+        results = finished_sim.get_results()[measure]
+        written_results = pd.read_parquet(results_root / f"{measure}.parquet")
+        assert results.equals(written_results)
+
+
+def test_get_results_formatting(base_config):
+    """Test formatted results are as expected"""
+    components = [
+        Hogwarts(),
+        HousePointsObserver(),
+        NoStratificationsQuidditchWinsObserver(),
+        QuidditchWinsObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    finished_sim = run_simulation(base_config, components, configuration=HARRY_POTTER_CONFIG)
+    num_steps = _get_num_steps(finished_sim)
+
+    house_points = finished_sim.get_results()["house_points"]
+    quidditch_wins = finished_sim.get_results()["quidditch_wins"]
+    no_stratifications_quidditch_wins = finished_sim.get_results()[
+        "no_stratifications_quidditch_wins"
+    ]
 
     # Check that each dataset includes the entire cartesian product of stratifications
     # (or, when no stratifications, just a single "all" row)
@@ -378,13 +398,13 @@ def test_SimulationContext_report_output_format(base_config, tmpdir):
         assert "random_seed" in df.columns
         assert "input_draw" in df.columns
         # We do enforce a col order, but most importantly ensure METRICS_COLUMN is at the end
-        assert df.columns[-1] == METRICS_COLUMN
+        assert df.columns[-1] == VALUE_COLUMN
         # Check values
         # Check that all values are 0 except for expected groups
-        assert (df.loc[filter, METRICS_COLUMN] != 0).all()
-        assert (df.loc[~filter, METRICS_COLUMN] == 0).all()
+        assert (df.loc[filter, VALUE_COLUMN] != 0).all()
+        assert (df.loc[~filter, VALUE_COLUMN] == 0).all()
         # Check that expected groups' values are a multiple of the number of steps
-        assert (df.loc[filter, METRICS_COLUMN] % num_steps == 0).all()
+        assert (df.loc[filter, VALUE_COLUMN] % num_steps == 0).all()
 
 
 ####################

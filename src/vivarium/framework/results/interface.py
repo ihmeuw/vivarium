@@ -143,7 +143,9 @@ class ResultsInterface:
         additional_stratifications: List[str] = [],
         excluded_stratifications: List[str] = [],
         when: str = "collect_metrics",
-        report: Callable[[str, pd.DataFrame], None] = lambda measure, results: None,
+        format_results: Callable[
+            [str, pd.DataFrame], pd.DataFrame
+        ] = lambda measure, results: results,
     ) -> None:
         """Provide the results system all the information it needs to perform the observation.
 
@@ -171,8 +173,8 @@ class ResultsInterface:
         when
             String name of the phase of a time-step the observation should happen. Valid values are:
             `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
-        report
-            A function that handles reporting of the final observations at the end of the simulation.
+        format_results
+            A function that handles formatting of the final observations at the end of the simulation.
 
         Returns
         ------
@@ -188,5 +190,5 @@ class ResultsInterface:
             additional_stratifications,
             excluded_stratifications,
             when,
-            report,
+            format_results,
         )
