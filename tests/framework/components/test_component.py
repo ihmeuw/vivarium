@@ -2,10 +2,6 @@ import pandas as pd
 import pytest
 from layered_config_tree.exceptions import ConfigurationError
 
-from vivarium import Artifact, InteractiveContext
-from vivarium.framework.engine import Builder
-from vivarium.framework.lookup.table import ScalarTable
-
 from tests.helpers import (
     AllColumnsRequirer,
     ColumnCreator,
@@ -22,6 +18,8 @@ from tests.helpers import (
 )
 from vivarium import Artifact, Component, InteractiveContext
 from vivarium.framework.artifact import ArtifactException
+from vivarium.framework.engine import Builder
+from vivarium.framework.lookup.table import ScalarTable
 
 
 def load_cooling_time(builder: Builder) -> pd.DataFrame:
