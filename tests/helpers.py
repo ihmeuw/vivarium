@@ -6,7 +6,6 @@ from vivarium import Component, Observer, StratifiedObserver
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
-from vivarium.framework.results import VALUE_COLUMN
 
 
 class MockComponentA(Observer):

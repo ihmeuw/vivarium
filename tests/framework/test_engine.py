@@ -397,7 +397,7 @@ def test_get_results_formatting(base_config):
         # Check for other cols
         assert "random_seed" in df.columns
         assert "input_draw" in df.columns
-        # We do enforce a col order, but most importantly ensure METRICS_COLUMN is at the end
+        # We do enforce a col order, but most importantly ensure VALUE_COLUMN is at the end
         assert df.columns[-1] == VALUE_COLUMN
         # Check values
         # Check that all values are 0 except for expected groups
