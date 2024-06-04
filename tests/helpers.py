@@ -6,6 +6,7 @@ from vivarium import Component, Observer, StratifiedObserver
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
+from vivarium.framework.results import VALUE_COLUMN
 
 
 class MockComponentA(Observer):
@@ -151,41 +152,20 @@ class ColumnCreator(Component):
 class LookupCreator(ColumnCreator):
     CONFIGURATION_DEFAULTS = {
         "lookup_creator": {
-            "favorite_team": Component.build_lookup_table_config(
-                value="data",
-                categorical_columns=["test_column_1"],
-                continuous_columns=[],
-                key_name="simulants.favorite_team",
-            ),
-            "favorite_scalar": Component.build_lookup_table_config(
-                value=0.4,
-            ),
-            "favorite_color": Component.build_lookup_table_config(
-                value="data",
-                categorical_columns=["test_column_2"],
-                continuous_columns=["test_column_3"],
-                key_name="simulants.favorite_color",
-            ),
-            "favorite_number": Component.build_lookup_table_config(
-                value="data",
-                categorical_columns=[],
-                continuous_columns=["test_column_3"],
-                key_name="simulants.favorite_number",
-            ),
-            # This is not in the class property so will not get created automatically
-            "baking_time": Component.build_lookup_table_config(
-                value="data",
-                categorical_columns=["test_column_1", "test_column_2"],
-                continuous_columns=["test_column_3"],
-                key_name="simulants.baking_time",
-                build_lookup_table=False,
-            ),
+            "data_sources": {
+                "favorite_team": "simulants.favorite_team",
+                "favorite_scalar": 0.4,
+                "favorite_color": "simulants.favorite_color",
+                "favorite_number": "simulants.favorite_number",
+                "baking_time": "self::load_baking_time",
+                "cooling_time": "tests.framework.components.test_component::load_cooling_time",
+            },
         },
     }
 
-    @property
-    def standard_lookup_tables(self) -> List[str]:
-        return ["favorite_team", "favorite_color", "favorite_number", "favorite_scalar"]
+    @staticmethod
+    def load_baking_time(_builder: Builder) -> float:
+        return 0.5
 
 
 class SingleLookupCreator(ColumnCreator):
