@@ -144,10 +144,13 @@ def run(
     main = handle_exceptions(run_simulation, logger, with_debugger)
     finished_sim = main(model_specification, configuration=override_configuration)
 
+    # Save out simulation metadata
     metadata = {}
     metadata["random_seed"] = finished_sim.configuration.randomness.random_seed
     metadata["input_draw"] = finished_sim.configuration.input_data.input_draw_number
     metadata["simulation_run_time"] = time() - start
+    metadata["artifact_path"] = artifact_path
+    metadata["location"] = location
     with open(results_root / "metadata.yaml", "w") as f:
         yaml.dump(metadata, f, default_flow_style=False)
 
