@@ -374,6 +374,27 @@ def test_listeners_are_registered_at_custom_priorities():
     assert component.on_simulation_end in set(simulation_end_methods.get(1, []))
 
 
+def test_component_configuration_gets_set(base_config):
+    without_config = ColumnCreator()
+    with_config = ColumnRequirer()
+
+    column_requirer_config = {
+        "column_requirer": {"test_configuration": "some_config_value"},
+    }
+
+    sim = InteractiveContext(components=[with_config, without_config], setup=False)
+    sim.configuration.update(column_requirer_config)
+
+    assert without_config.configuration is None
+    assert with_config.configuration is None
+
+    sim.setup()
+
+    assert without_config.configuration is None
+    assert with_config.configuration is not None
+    assert with_config.configuration.to_dict() == column_requirer_config["column_requirer"]
+
+
 def test_component_lookup_table_configuration(hdf_file_path):
     # Tests that lookup tables are created correctly based on their configuration
 
