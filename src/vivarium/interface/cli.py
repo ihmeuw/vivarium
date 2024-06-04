@@ -66,7 +66,6 @@ def simulate():
 @click.argument(
     "model_specification", type=click.Path(exists=True, dir_okay=False, resolve_path=True)
 )
-@click.option("--location", "-l", help="Location to run the simulation in.")
 @click.option(
     "--artifact_path",
     "-i",
@@ -101,7 +100,6 @@ def simulate():
 )
 def run(
     model_specification: Path,
-    location: str,
     artifact_path: Path,
     results_directory: Path,
     verbose: bool,
@@ -135,8 +133,6 @@ def run(
 
     output_data = {"results_directory": str(results_root)}
     input_data = {}
-    if location:
-        input_data["location"] = location
     if artifact_path:
         input_data["artifact_path"] = artifact_path
     override_configuration = {"output_data": output_data, "input_data": input_data}
@@ -150,7 +146,6 @@ def run(
     metadata["input_draw"] = finished_sim.configuration.input_data.input_draw_number
     metadata["simulation_run_time"] = time() - start
     metadata["artifact_path"] = artifact_path
-    metadata["location"] = location
     with open(results_root / "metadata.yaml", "w") as f:
         yaml.dump(metadata, f, default_flow_style=False)
 

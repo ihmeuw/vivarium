@@ -25,6 +25,7 @@ from typing import Any, Dict, List, Set, Union
 
 import numpy as np
 import pandas as pd
+import yaml
 from layered_config_tree import ConfigurationKeyError, LayeredConfigTree
 
 from vivarium import Component
@@ -112,6 +113,15 @@ class SimulationContext:
         model_specification = build_model_specification(
             model_specification, component_configuration, configuration, plugin_configuration
         )
+        results_dir = (
+            model_specification.to_dict()
+            .get("configuration", {})
+            .get("output_data", {})
+            .get("results_directory")
+        )
+        if results_dir:
+            with open(f"{results_dir}/complete_model_specification.yaml", "w") as f:
+                yaml.dump(model_specification.to_dict(), f)
 
         self._plugin_configuration = model_specification.plugins
         self._component_configuration = model_specification.components

@@ -331,7 +331,7 @@ def test_SimulationContext_report_write(base_config, components, tmpdir):
     ]
     finished_sim = run_simulation(base_config, components, configuration)
     # Check for expected results written
-    results_list = [file for file in results_root.rglob("*")]
+    results_list = [file for file in results_root.rglob("*.parquet")]
     assert set([file.name for file in results_list]) == set(
         [
             "house_points.parquet",
@@ -405,6 +405,13 @@ def test_get_results_formatting(base_config):
         assert (df.loc[~filter, VALUE_COLUMN] == 0).all()
         # Check that expected groups' values are a multiple of the number of steps
         assert (df.loc[filter, VALUE_COLUMN] % num_steps == 0).all()
+
+
+def test_save_out_complete_model_spec(SimulationContext, base_config, components, tmpdir):
+    results_root = Path(tmpdir)
+    configuration = {"output_data": {"results_directory": str(results_root)}}
+    _ = SimulationContext(base_config, components, configuration)
+    assert results_root / "complete_model_specification.yaml" in results_root.iterdir()
 
 
 ####################
