@@ -576,7 +576,7 @@ class Component(ABC):
 
         Returns
         -------
-        Optional[LayeredConfigTree]
+        Optional[layered_config_tree.main.LayeredConfigTree]
             The configuration for this component, or `None` if the component has
             no configuration.
         """
