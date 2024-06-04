@@ -14,7 +14,7 @@ from inspect import signature
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
-from layered_config_tree import ConfigurationError
+from layered_config_tree import ConfigurationError, LayeredConfigTree
 from loguru._logger import Logger
 
 from vivarium.framework.artifact import ArtifactException
@@ -341,6 +341,7 @@ class Component(ABC):
         self._name: str = ""
         self._sub_components: List["Component"] = []
         self.logger: Optional[Logger] = None
+        self.configuration: Optional[LayeredConfigTree] = None
         self.population_view: Optional[PopulationView] = None
         self.lookup_tables: Dict[str, LookupTable] = {}
 
@@ -366,6 +367,7 @@ class Component(ABC):
         None
         """
         self.logger = builder.logging.get_logger(self.name)
+        self.configuration = self.get_configuration(builder)
         self.build_all_lookup_tables(builder)
         self.setup(builder)
         self._set_population_view(builder)
@@ -559,6 +561,30 @@ class Component(ABC):
             if hasattr(self, parameter_name)
         }
 
+    def get_configuration(self, builder: "Builder") -> Optional[LayeredConfigTree]:
+        """
+        Retrieves the configuration for this component from the builder.
+
+        This method retrieves the configuration for this component from the
+        simulation's overall configuration. The configuration is retrieved using
+        the name of the component as the key.
+
+        Parameters
+        ----------
+        builder : Builder
+            The simulation's builder object.
+
+        Returns
+        -------
+        Optional[layered_config_tree.main.LayeredConfigTree]
+            The configuration for this component, or `None` if the component has
+            no configuration.
+        """
+
+        if self.name in builder.configuration:
+            return builder.configuration[self.name]
+        return None
+
     def build_all_lookup_tables(self, builder: "Builder") -> None:
         """
         Builds all lookup tables for this component.
@@ -580,15 +606,11 @@ class Component(ABC):
         None
         """
         self.get_value_columns = builder.data.value_columns()
-        if (
-            self.name in builder.configuration
-            and "data_sources" in builder.configuration[self.name]
-        ):
-            data_source_configs = builder.configuration[self.name].data_sources
-            for table_name in data_source_configs.keys():
+        if self.configuration and "data_sources" in self.configuration:
+            for table_name in self.configuration.data_sources.keys():
                 try:
                     self.lookup_tables[table_name] = self.build_lookup_table(
-                        builder, data_source_configs[table_name]
+                        builder, self.configuration.data_sources[table_name]
                     )
                 except ConfigurationError as e:
                     raise ConfigurationError(
