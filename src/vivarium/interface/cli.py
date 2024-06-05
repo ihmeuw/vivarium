@@ -141,7 +141,8 @@ def run(
     with open(f"{results_directory}/model_specification.yaml", "w") as f:
         yaml.dump(sim.model_specification.to_dict(), f)
 
-    handle_exceptions(sim.run_simulation, logger, with_debugger)()
+    main = handle_exceptions(sim.run_simulation, logger, with_debugger)
+    sim = main()
 
     # Save out simulation metadata
     metadata = {}
