@@ -162,9 +162,11 @@ def test():
     configure_logging_to_terminal(verbosity=2, long_format=False)
     model_specification = disease_model.get_model_specification_path()
 
-    main = handle_exceptions(run_simulation, logger, with_debugger=False)
+    sim = SimulationContext(model_specification)
 
-    main(model_specification)
+    main = handle_exceptions(sim.run_simulation, logger, with_debugger=False)
+    sim = main()
+
     click.echo()
     click.secho("Installation test successful!", fg="green")
 
@@ -200,7 +202,8 @@ def profile(model_specification, results_directory, process):
     out_stats_file = results_directory / f"{model_specification.name}".replace(
         "yaml", "stats"
     )
-    command = f'run_simulation("{model_specification}")'
+    sim = SimulationContext(model_specification)
+    command = f"sim.run_simulation()"
     cProfile.runctx(command, globals=globals(), locals=locals(), filename=str(out_stats_file))
 
     if process:
