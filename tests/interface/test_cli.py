@@ -27,10 +27,11 @@ def model_spec(base_config, tmp_path) -> str:
             "HogwartsResultsStratifier()",
         ],
     }
-    filepath = f"{tmp_path}/model_spec.yaml"
+    (tmp_path / "model_spec").mkdir()
+    filepath = tmp_path / "model_spec" / "model_spec.yaml"
     with open(filepath, "w") as f:
         yaml.dump(model_spec, f)
-    return filepath
+    return str(filepath)
 
 
 def test_simulate_run(runner, model_spec, hdf_file_path):
@@ -49,7 +50,7 @@ def test_simulate_run(runner, model_spec, hdf_file_path):
         raise ValueError(
             f"Missing or unexpected parameters in simulate run: {different_params}"
         )
-    output_dir = "/".join(model_spec.split("/")[:-1])
+    output_dir = "/".join(model_spec.split("/")[:-2])
     args = ["run", model_spec, "-o", output_dir, "-i", hdf_file_path]
     sim = runner.invoke(simulate, args)
     assert sim.exit_code == 0
@@ -67,6 +68,6 @@ def test_simulate_run(runner, model_spec, hdf_file_path):
     )
     assert metadata["simulation_run_time"] > 0.0
     # Ensure '-i' worked
-    with open(results_dir / "complete_model_specification.yaml") as f:
+    with open(f"{output_dir}/model_specification.yaml") as f:
         ms = yaml.safe_load(f)
     assert ms["configuration"]["input_data"]["artifact_path"] == str(hdf_file_path)

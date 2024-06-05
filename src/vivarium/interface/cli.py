@@ -33,7 +33,6 @@ simulations from the command line.
 import cProfile
 import os
 import pstats
-import shutil
 from pathlib import Path
 from time import time
 
@@ -42,7 +41,7 @@ import yaml
 from loguru import logger
 
 from vivarium.examples import disease_model
-from vivarium.framework.engine import run_simulation
+from vivarium.framework.engine import SimulationContext
 from vivarium.framework.logging import (
     configure_logging_to_file,
     configure_logging_to_terminal,
@@ -129,7 +128,6 @@ def run(
     results_root.mkdir(parents=True, exist_ok=False)
 
     configure_logging_to_file(output_directory=results_root)
-    shutil.copy(model_specification, results_root / "model_specification.yaml")
 
     output_data = {"results_directory": str(results_root)}
     input_data = {}
@@ -137,13 +135,18 @@ def run(
         input_data["artifact_path"] = artifact_path
     override_configuration = {"output_data": output_data, "input_data": input_data}
 
-    main = handle_exceptions(run_simulation, logger, with_debugger)
-    finished_sim = main(model_specification, configuration=override_configuration)
+    sim = SimulationContext(
+        model_specification=model_specification, configuration=override_configuration
+    )
+    with open(f"{results_directory}/model_specification.yaml", "w") as f:
+        yaml.dump(sim.model_specification.to_dict(), f)
+
+    handle_exceptions(sim.run_simulation, logger, with_debugger)()
 
     # Save out simulation metadata
     metadata = {}
-    metadata["random_seed"] = finished_sim.configuration.randomness.random_seed
-    metadata["input_draw"] = finished_sim.configuration.input_data.input_draw_number
+    metadata["random_seed"] = sim.configuration.randomness.random_seed
+    metadata["input_draw"] = sim.configuration.input_data.input_draw_number
     metadata["simulation_run_time"] = time() - start
     metadata["artifact_path"] = artifact_path
     with open(results_root / "metadata.yaml", "w") as f:
