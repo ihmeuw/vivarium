@@ -142,7 +142,7 @@ def run(
         yaml.dump(sim.model_specification.to_dict(), f)
 
     main = handle_exceptions(sim.run_simulation, logger, with_debugger)
-    sim = main()
+    main()
 
     # Save out simulation metadata
     metadata = {}
