@@ -165,7 +165,7 @@ def test():
     sim = SimulationContext(model_specification)
 
     main = handle_exceptions(sim.run_simulation, logger, with_debugger=False)
-    sim = main()
+    main()
 
     click.echo()
     click.secho("Installation test successful!", fg="green")
