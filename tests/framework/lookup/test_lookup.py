@@ -119,7 +119,14 @@ def test_interpolated_tables_without_uninterpolated_columns(base_config):
 def test_interpolated_tables__exact_values_at_input_points(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
-    years = build_table(lambda age, sex, year: year, year_start, year_end)
+    # years = build_table(lambda age, sex, year: year, year_start, year_end)
+    years = build_table(
+        year,
+        parameter_columns={
+            "year": (year_start, year_end),
+            "age": (0, 125),
+        }
+    )
     input_years = years.year_start.unique()
     base_config.update({"population": {"population_size": 10000}})
 
