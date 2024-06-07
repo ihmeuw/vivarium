@@ -11,7 +11,7 @@ import re
 from abc import ABC
 from importlib import import_module
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
@@ -341,6 +341,9 @@ class Component(ABC):
         self._name: str = ""
         self._sub_components: List["Component"] = []
         self.logger: Optional[Logger] = None
+        self.get_value_columns: Optional[Callable[[Union[str, pd.DataFrame]], List[str]]] = (
+            None
+        )
         self.configuration: Optional[LayeredConfigTree] = None
         self.population_view: Optional[PopulationView] = None
         self.lookup_tables: Dict[str, LookupTable] = {}
@@ -367,6 +370,7 @@ class Component(ABC):
         None
         """
         self.logger = builder.logging.get_logger(self.name)
+        self.get_value_columns = builder.data.value_columns()
         self.configuration = self.get_configuration(builder)
         self.build_all_lookup_tables(builder)
         self.setup(builder)
@@ -605,7 +609,6 @@ class Component(ABC):
         -------
         None
         """
-        self.get_value_columns = builder.data.value_columns()
         if self.configuration and "data_sources" in self.configuration:
             for table_name in self.configuration.data_sources.keys():
                 try:
@@ -621,8 +624,7 @@ class Component(ABC):
         self,
         builder: "Builder",
         # todo: replace with LookupTableData
-        data_source: Union[str, float, int, pd.DataFrame],
-        # todo: MIC-5029 remove argument when this is implemented
+        data_source: Union[str, float, int, list, pd.DataFrame],
         value_columns: Optional[Iterable[str]] = None,
     ) -> LookupTable:
         """
@@ -654,7 +656,9 @@ class Component(ABC):
             If the data source is invalid.
         """
         data = self.get_data(builder, data_source)
-        kwargs = {}
+
+        if isinstance(data, list):
+            return builder.lookup.build_table(data, value_columns=list(value_columns))
         if isinstance(data, pd.DataFrame):
             all_columns = set(data.columns)
             if value_columns is None:
@@ -675,13 +679,15 @@ class Component(ABC):
                     bin_edge_columns.update([f"{column}_start", f"{column}_end"])
 
             key_columns = all_columns - value_columns - bin_edge_columns
-            kwargs = {
-                "key_columns": list(key_columns),
-                "parameter_columns": list(parameter_columns),
-                "value_columns": list(value_columns),
-            }
 
-        return builder.lookup.build_table(data=data, **kwargs)
+            return builder.lookup.build_table(
+                data=data,
+                key_columns=list(key_columns),
+                parameter_columns=list(parameter_columns),
+                value_columns=list(value_columns),
+            )
+
+        return builder.lookup.build_table(data)
 
     def get_data(
         # TODO: replace with LookupTableData
@@ -717,7 +723,7 @@ class Component(ABC):
         layered_config_tree.exceptions.ConfigurationError
             If the data source is invalid.
         """
-        if isinstance(data_source, (float, int, pd.DataFrame)):
+        if isinstance(data_source, (float, int, list, pd.DataFrame)):
             return data_source
 
         if "::" in data_source:
