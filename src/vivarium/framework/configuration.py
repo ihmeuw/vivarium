@@ -10,7 +10,7 @@ representations of :term:`model specifications <Model Specification>` and
 """
 
 from pathlib import Path
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import yaml
 from layered_config_tree import ConfigurationError, LayeredConfigTree
@@ -19,10 +19,10 @@ from vivarium.framework.plugins import DEFAULT_PLUGINS
 
 
 def build_model_specification(
-    model_specification: Union[str, Path, LayeredConfigTree] = None,
-    component_configuration: Union[Dict, LayeredConfigTree] = None,
-    configuration: Union[Dict, LayeredConfigTree] = None,
-    plugin_configuration: Union[Dict, LayeredConfigTree] = None,
+    model_specification: Optional[Union[str, Path, LayeredConfigTree]] = None,
+    component_configuration: Optional[Union[Dict, LayeredConfigTree]] = None,
+    configuration: Optional[Union[Dict, LayeredConfigTree]] = None,
+    plugin_configuration: Optional[Union[Dict, LayeredConfigTree]] = None,
 ) -> LayeredConfigTree:
     if isinstance(model_specification, (str, Path)):
         validate_model_specification_file(model_specification)
