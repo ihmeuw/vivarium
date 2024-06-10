@@ -7,10 +7,10 @@ Utility functions and classes to make testing ``vivarium`` components easier.
 
 """
 
+from itertools import product
 from pathlib import Path
 from typing import List
 
-from itertools import product
 import numpy as np
 import pandas as pd
 
