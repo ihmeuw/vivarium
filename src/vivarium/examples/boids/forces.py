@@ -80,7 +80,7 @@ class Force(Component, ABC):
         )
         pairs["distance_x"] = pairs.x_other - pairs.x_self
         pairs["distance_y"] = pairs.y_other - pairs.y_self
-        pairs["distance"] = np.sqrt(pairs.distance_x ** 2 + pairs.distance_y ** 2)
+        pairs["distance"] = np.sqrt(pairs.distance_x**2 + pairs.distance_y**2)
 
         return pairs
 

@@ -20,7 +20,7 @@ COL_NAMES = ["color", "count", "pie", "pi", "tracked"]
 COLORS = ["red", "green", "yellow"]
 COUNTS = [10, 20, 30]
 PIES = ["apple", "chocolate", "pecan"]
-PIS = [math.pi ** i for i in range(1, 4)]
+PIS = [math.pi**i for i in range(1, 4)]
 TRACKED_STATUSES = [True, False]
 RECORDS = [
     (color, count, pie, pi, ts)
@@ -31,8 +31,8 @@ RECORDS = [
 BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
 
 NEW_COL_NAMES = ["cube", "cube_string"]
-CUBE = [i ** 3 for i in range(len(RECORDS))]
-CUBE_STRING = [str(i ** 3) for i in range(len(RECORDS))]
+CUBE = [i**3 for i in range(len(RECORDS))]
+CUBE_STRING = [str(i**3) for i in range(len(RECORDS))]
 NEW_ATTRIBUTES = pd.DataFrame(
     zip(CUBE, CUBE_STRING),
     columns=NEW_COL_NAMES,
