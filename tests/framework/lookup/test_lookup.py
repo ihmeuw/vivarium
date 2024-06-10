@@ -148,7 +148,7 @@ def test_interpolated_tables__only_categorical_parameters(base_config):
     locations = ["USA", "Canada", "Mexico"]
     combinations = enumerate(itertools.product(sexes, locations))
     input_data = [
-        {"sex": sex, "location": location, "some_value": i**2}
+        {"sex": sex, "location": location, "some_value": i ** 2}
         for i, (sex, location) in combinations
     ]
     input_data = pd.DataFrame(input_data)
@@ -166,7 +166,7 @@ def test_interpolated_tables__only_categorical_parameters(base_config):
 
     for i, (sex, location) in combinations:
         sub_table_mask = (output_data["sex"] == sex) & output_data["location"] == location
-        assert (output_data.loc[sub_table_mask, "some_value"] == i**2).all()
+        assert (output_data.loc[sub_table_mask, "some_value"] == i ** 2).all()
 
 
 def test_lookup_table_scalar_from_list(base_config):

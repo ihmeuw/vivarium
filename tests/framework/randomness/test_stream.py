@@ -183,13 +183,13 @@ def test_sample_from_distribution_using_scipy(
 
 def test_sample_from_distribution_using_ppf(index: pd.Index):
     def silly_ppf(x, add, mult):
-        return mult * (x**2) + add
+        return mult * (x ** 2) + add
 
     randomness_stream = RandomnessStream(
         "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()
     )
     draws = randomness_stream.get_draw(index, "some_key")
-    expected = 2 * (draws**2) + 1
+    expected = 2 * (draws ** 2) + 1
 
     sample = randomness_stream.sample_from_distribution(
         index=index, ppf=silly_ppf, additional_key="some_key", add=1, mult=2

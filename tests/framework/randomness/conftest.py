@@ -4,7 +4,7 @@ import pytest
 from vivarium.framework.randomness import RESIDUAL_CHOICE
 
 
-@pytest.fixture(params=[10**4, 10**5])
+@pytest.fixture(params=[10 ** 4, 10 ** 5])
 def index(request):
     return pd.Index(range(request.param)) if request.param else None
 

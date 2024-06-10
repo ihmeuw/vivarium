@@ -234,7 +234,7 @@ class IndexMap:
     @staticmethod
     def _digit(m: Union[int, pd.Series], n: int) -> Union[int, pd.Series]:
         """Returns the nth digit of each number in m."""
-        return (m // (10**n)) % 10
+        return (m // (10 ** n)) % 10
 
     @staticmethod
     def _clip_to_seconds(m: Union[int, pd.Series]) -> Union[int, pd.Series]:
