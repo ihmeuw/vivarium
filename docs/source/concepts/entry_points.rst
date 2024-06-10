@@ -88,10 +88,10 @@ modification of a simulation defined in a model specification file.
    intended use case, so tread cautiously.
 
 By intention, the context exposes a very simple interface for managing the
-:ref:`simulation lifecycle <lifecycle_concept>`.  The combination of
-initializing and running the simulation is encapsulated in the
-:func:`run_simulation <vivarium.framework.engine.run_simulation>` command
-also available in the :mod:`engine <vivarium.framework.engine>`.
+:ref:`simulation lifecycle <lifecycle_concept>`.  Once a context is instantiated,
+all steps of running a simulation are encapsulated in the
+:func:`run_simulation <vivarium.framework.engine.SimulationContext.run_simulation>`
+method.
 
 The simulation :class:`Builder <vivarium.framework.engine.Builder>` is also
 part of the engine. It is the main interface that components use to interact

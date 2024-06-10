@@ -28,7 +28,6 @@ from vivarium.framework.components import (
 )
 from vivarium.framework.engine import Builder
 from vivarium.framework.engine import SimulationContext as SimulationContext_
-from vivarium.framework.engine import run_simulation
 from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
 from vivarium.framework.logging import LoggingInterface, LoggingManager
@@ -281,11 +280,10 @@ def test_SimulationContext_finalize(SimulationContext, base_config, components):
     assert listener.simulation_end_called
 
 
-def test_get_results(base_config):
+def test_get_results(SimulationContext, base_config):
     """Test that get_results returns expected values. This does NOT test for
     correct formatting.
     """
-    base_config.update(HARRY_POTTER_CONFIG)
     components = [
         Hogwarts(),
         HousePointsObserver(),
@@ -293,14 +291,14 @@ def test_get_results(base_config):
         QuidditchWinsObserver(),
         HogwartsResultsStratifier(),
     ]
-    finished_sim = run_simulation(base_config, components)
-    for measure, results in finished_sim.get_results().items():
-        raw_results = finished_sim._results._raw_results[measure].sort_index()
+    sim = SimulationContext(base_config, components, configuration=HARRY_POTTER_CONFIG)
+    sim.run_simulation()
+    for measure, results in sim.get_results().items():
+        raw_results = sim._results._raw_results[measure].sort_index()
         assert results.set_index(raw_results.index.names)[[VALUE_COLUMN]].equals(raw_results)
 
 
-def test_SimulationContext_report_no_write_warning(base_config, caplog):
-    base_config.update(HARRY_POTTER_CONFIG)
+def test_SimulationContext_report_no_write_warning(SimulationContext, base_config, caplog):
     components = [
         Hogwarts(),
         HousePointsObserver(),
@@ -308,16 +306,17 @@ def test_SimulationContext_report_no_write_warning(base_config, caplog):
         QuidditchWinsObserver(),
         HogwartsResultsStratifier(),
     ]
-    finished_sim = run_simulation(base_config, components)
+    sim = SimulationContext(base_config, components, configuration=HARRY_POTTER_CONFIG)
+    sim.run_simulation()
     assert "No results directory set; results are not written to disk." in caplog.text
-    results = finished_sim.get_results()
+    results = sim.get_results()
     assert set(results) == set(
         ["house_points", "quidditch_wins", "no_stratifications_quidditch_wins"]
     )
     assert all([isinstance(df, pd.DataFrame) for df in results.values()])
 
 
-def test_SimulationContext_report_write(base_config, components, tmpdir):
+def test_SimulationContext_report_write(SimulationContext, base_config, components, tmpdir):
     """Test that the written results match get_results"""
     results_root = Path(tmpdir)
     configuration = {"output_data": {"results_directory": str(results_root)}}
@@ -329,9 +328,10 @@ def test_SimulationContext_report_write(base_config, components, tmpdir):
         QuidditchWinsObserver(),
         HogwartsResultsStratifier(),
     ]
-    finished_sim = run_simulation(base_config, components, configuration)
+    sim = SimulationContext(base_config, components, configuration)
+    sim.run_simulation()
     # Check for expected results written
-    results_list = [file for file in results_root.rglob("*")]
+    results_list = [file for file in results_root.rglob("*.parquet")]
     assert set([file.name for file in results_list]) == set(
         [
             "house_points.parquet",
@@ -342,12 +342,12 @@ def test_SimulationContext_report_write(base_config, components, tmpdir):
 
     # Check that written results match get_results method
     for measure in ["house_points", "quidditch_wins", "no_stratifications_quidditch_wins"]:
-        results = finished_sim.get_results()[measure]
+        results = sim.get_results()[measure]
         written_results = pd.read_parquet(results_root / f"{measure}.parquet")
         assert results.equals(written_results)
 
 
-def test_get_results_formatting(base_config):
+def test_get_results_formatting(SimulationContext, base_config):
     """Test formatted results are as expected"""
     components = [
         Hogwarts(),
@@ -356,14 +356,13 @@ def test_get_results_formatting(base_config):
         QuidditchWinsObserver(),
         HogwartsResultsStratifier(),
     ]
-    finished_sim = run_simulation(base_config, components, configuration=HARRY_POTTER_CONFIG)
-    num_steps = _get_num_steps(finished_sim)
+    sim = SimulationContext(base_config, components, configuration=HARRY_POTTER_CONFIG)
+    sim.run_simulation()
+    num_steps = _get_num_steps(sim)
 
-    house_points = finished_sim.get_results()["house_points"]
-    quidditch_wins = finished_sim.get_results()["quidditch_wins"]
-    no_stratifications_quidditch_wins = finished_sim.get_results()[
-        "no_stratifications_quidditch_wins"
-    ]
+    house_points = sim.get_results()["house_points"]
+    quidditch_wins = sim.get_results()["quidditch_wins"]
+    no_stratifications_quidditch_wins = sim.get_results()["no_stratifications_quidditch_wins"]
 
     # Check that each dataset includes the entire cartesian product of stratifications
     # (or, when no stratifications, just a single "all" row)

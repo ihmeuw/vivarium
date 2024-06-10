@@ -21,10 +21,11 @@ tools to easily setup and run a simulation.
 
 from pathlib import Path
 from pprint import pformat
-from typing import Any, Dict, List, Set, Union
+from typing import Any, Dict, List, Optional, Set, Union
 
 import numpy as np
 import pandas as pd
+import yaml
 from layered_config_tree import ConfigurationKeyError, LayeredConfigTree
 
 from vivarium import Component
@@ -95,11 +96,11 @@ class SimulationContext:
 
     def __init__(
         self,
-        model_specification: Union[str, Path, LayeredConfigTree] = None,
-        components: Union[List[Component], Dict, LayeredConfigTree] = None,
-        configuration: Union[Dict, LayeredConfigTree] = None,
-        plugin_configuration: Union[Dict, LayeredConfigTree] = None,
-        sim_name: str = None,
+        model_specification: Optional[Union[str, Path, LayeredConfigTree]] = None,
+        components: Optional[Union[List[Component], Dict, LayeredConfigTree]] = None,
+        configuration: Optional[Union[Dict, LayeredConfigTree]] = None,
+        plugin_configuration: Optional[Union[Dict, LayeredConfigTree]] = None,
+        sim_name: Optional[str] = None,
         logging_verbosity: int = 1,
     ):
         self._name = self._get_context_name(sim_name)
@@ -109,15 +110,15 @@ class SimulationContext:
             components if isinstance(components, (dict, LayeredConfigTree)) else None
         )
         self._additional_components = components if isinstance(components, List) else []
-        model_specification = build_model_specification(
+        self.model_specification = build_model_specification(
             model_specification, component_configuration, configuration, plugin_configuration
         )
 
-        self._plugin_configuration = model_specification.plugins
-        self._component_configuration = model_specification.components
-        self.configuration = model_specification.configuration
+        self._plugin_configuration = self.model_specification.plugins
+        self._component_configuration = self.model_specification.components
+        self.configuration = self.model_specification.configuration
 
-        self._plugin_manager = PluginManager(model_specification.plugins)
+        self._plugin_manager = PluginManager(self.model_specification.plugins)
 
         self._logging = self._plugin_manager.get_plugin("logging")
         self._logging.configure_logging(
@@ -407,16 +408,3 @@ class Builder:
 
     def __repr__(self):
         return "Builder()"
-
-
-def run_simulation(
-    model_specification: Union[str, Path, LayeredConfigTree] = None,
-    components: Union[List, Dict, LayeredConfigTree] = None,
-    configuration: Union[Dict, LayeredConfigTree] = None,
-    plugin_configuration: Union[Dict, LayeredConfigTree] = None,
-) -> SimulationContext:
-    simulation = SimulationContext(
-        model_specification, components, configuration, plugin_configuration
-    )
-    simulation.run_simulation()
-    return simulation

@@ -27,21 +27,31 @@ def model_spec(base_config, tmp_path) -> str:
             "HogwartsResultsStratifier()",
         ],
     }
-    filepath = f"{tmp_path}/model_spec.yaml"
+    (tmp_path / "model_spec").mkdir()
+    filepath = tmp_path / "model_spec" / "model_spec.yaml"
     with open(filepath, "w") as f:
         yaml.dump(model_spec, f)
-    return filepath
+    return str(filepath)
 
 
-@pytest.mark.parametrize("cli_args", [(), ("-i",), ("-l",), ("-i", "-l")])
-def test_simulate_run(runner, model_spec, hdf_file_path, cli_args):
-    output_dir = "/".join(model_spec.split("/")[:-1])
-    extra_args = []
-    if "-i" in cli_args:
-        extra_args.extend(["-i", hdf_file_path])
-    if "-l" in cli_args:
-        extra_args.extend(["-l", "Hogwarts"])
-    args = ["run", model_spec, "-o", output_dir] + extra_args
+def test_simulate_run(runner, model_spec, hdf_file_path):
+
+    run_parameters = {param.name for param in simulate.commands["run"].params}
+    expected_parameters = {
+        "model_specification",
+        "artifact_path",
+        "results_directory",
+        "verbose",
+        "quiet",
+        "with_debugger",
+    }
+    different_params = run_parameters.symmetric_difference(expected_parameters)
+    if run_parameters.symmetric_difference(expected_parameters):
+        raise ValueError(
+            f"Missing or unexpected parameters in simulate run: {different_params}"
+        )
+    output_dir = "/".join(model_spec.split("/")[:-2])
+    args = ["run", model_spec, "-o", output_dir, "-i", hdf_file_path]
     sim = runner.invoke(simulate, args)
     assert sim.exit_code == 0
     results_dir = list(Path(output_dir).rglob("*/simulation.log"))[0].parent
@@ -54,14 +64,10 @@ def test_simulate_run(runner, model_spec, hdf_file_path, cli_args):
         metadata = yaml.safe_load(f)
 
     assert set(metadata) == set(
-        ["input_draw", "random_seed", "simulation_run_time", "artifact_path", "location"]
+        ["input_draw", "random_seed", "simulation_run_time", "artifact_path"]
     )
     assert metadata["simulation_run_time"] > 0.0
-    if "-i" in cli_args:
-        assert metadata["artifact_path"] == hdf_file_path
-    else:
-        assert metadata["artifact_path"] is None
-    if "-l" in cli_args:
-        assert metadata["location"] == "Hogwarts"
-    else:
-        assert metadata["location"] is None
+    # Ensure '-i' worked
+    with open(f"{output_dir}/model_specification.yaml") as f:
+        ms = yaml.safe_load(f)
+    assert ms["configuration"]["input_data"]["artifact_path"] == str(hdf_file_path)
