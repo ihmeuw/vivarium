@@ -151,7 +151,8 @@ def _non_crn_build_population(
 
 def build_table(
     value,
-    parameter_columns={"age": (0, 125),
+    parameter_columns={
+        "age": (0, 125),
         "year": (1990, 2020),
     },
     key_columns={"sex": ("Female", "Male")},
@@ -164,12 +165,14 @@ def build_table(
         raise ValueError("Number of values must match number of value columns")
 
     # Get product of parameter columns
-    range_parameter_product = {key: list(range(value[0], value[1])) for key, value in parameter_columns.items()}
+    range_parameter_product = {
+        key: list(range(value[0], value[1])) for key, value in parameter_columns.items()
+    }
     # Build out dict of items we will need cartesian product of to make dataframe
     product_dict = dict(range_parameter_product)
     product_dict.update(key_columns)
     products = product(*product_dict.values())
-    
+
     rows = []
     for p in products:
         # Note: p is going to be a tuple of the cartesian product of the key column values and parameter column
@@ -182,22 +185,26 @@ def build_table(
                 r_values.append(v(p))
             else:
                 r_values.append(v)
-        
+
         # Get list of values for rows (index values)
-        key_columns_index_values = p[len(parameter_columns):]
+        key_columns_index_values = p[len(parameter_columns) :]
         key_columns_index_values = [val for val in key_columns_index_values]
-        # Trasnform parameter column values 
-        parameter_columns_index_values = p[:len(parameter_columns)]
+        # Trasnform parameter column values
+        parameter_columns_index_values = p[: len(parameter_columns)]
         # Create intervals for parameter columns. Example year, year+1 for year_start and year_end
-        parameter_columns_index_values = [v for val in parameter_columns_index_values for val in (val, val+1)]
+        parameter_columns_index_values = [
+            v for val in parameter_columns_index_values for v in (val, val + 1)
+        ]
         rows.append(parameter_columns_index_values + key_columns_index_values + r_values)
 
     # Make list of parameter column names
-    parameter_column_names = [col_name for col in parameter_columns for col_name in (f"{col}_start", f"{col}_end")]
+    parameter_column_names = [
+        col_name for col in parameter_columns for col_name in (f"{col}_start", f"{col}_end")
+    ]
 
     return pd.DataFrame(
         rows,
-        columns=parameter_column_names + list(key_columns) + value_columns,
+        columns=parameter_column_names + list(key_columns.keys()) + value_columns,
     )
 
 

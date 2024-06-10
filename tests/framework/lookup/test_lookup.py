@@ -119,14 +119,14 @@ def test_interpolated_tables_without_uninterpolated_columns(base_config):
 def test_interpolated_tables__exact_values_at_input_points(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
-    # years = build_table(lambda age, sex, year: year, year_start, year_end)
     years = build_table(
-        year,
+        lambda x: x[0],
         parameter_columns={
             "year": (year_start, year_end),
             "age": (0, 125),
-        }
+        },
     )
+
     input_years = years.year_start.unique()
     base_config.update({"population": {"population_size": 10000}})
 
@@ -202,7 +202,13 @@ def test_invalid_data_type_build_table(base_config):
 def test_lookup_table_interpolated_return_types(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
-    data = build_table(lambda age, sex, year: year, year_start, year_end)
+    data = build_table(
+        lambda x: x[0],
+        parameter_columns={
+            "year": (year_start, year_end),
+            "age": (0, 125),
+        },
+    )
 
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
