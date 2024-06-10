@@ -33,7 +33,6 @@ simulations from the command line.
 import cProfile
 import os
 import pstats
-import shutil
 from pathlib import Path
 from time import time
 
@@ -42,7 +41,7 @@ import yaml
 from loguru import logger
 
 from vivarium.examples import disease_model
-from vivarium.framework.engine import run_simulation
+from vivarium.framework.engine import SimulationContext
 from vivarium.framework.logging import (
     configure_logging_to_file,
     configure_logging_to_terminal,
@@ -66,7 +65,6 @@ def simulate():
 @click.argument(
     "model_specification", type=click.Path(exists=True, dir_okay=False, resolve_path=True)
 )
-@click.option("--location", "-l", help="Location to run the simulation in.")
 @click.option(
     "--artifact_path",
     "-i",
@@ -101,7 +99,6 @@ def simulate():
 )
 def run(
     model_specification: Path,
-    location: str,
     artifact_path: Path,
     results_directory: Path,
     verbose: bool,
@@ -131,26 +128,28 @@ def run(
     results_root.mkdir(parents=True, exist_ok=False)
 
     configure_logging_to_file(output_directory=results_root)
-    shutil.copy(model_specification, results_root / "model_specification.yaml")
 
     output_data = {"results_directory": str(results_root)}
     input_data = {}
-    if location:
-        input_data["location"] = location
     if artifact_path:
         input_data["artifact_path"] = artifact_path
     override_configuration = {"output_data": output_data, "input_data": input_data}
 
-    main = handle_exceptions(run_simulation, logger, with_debugger)
-    finished_sim = main(model_specification, configuration=override_configuration)
+    sim = SimulationContext(
+        model_specification=model_specification, configuration=override_configuration
+    )
+    with open(f"{results_directory}/model_specification.yaml", "w") as f:
+        yaml.dump(sim.model_specification.to_dict(), f)
+
+    main = handle_exceptions(sim.run_simulation, logger, with_debugger)
+    main()
 
     # Save out simulation metadata
     metadata = {}
-    metadata["random_seed"] = finished_sim.configuration.randomness.random_seed
-    metadata["input_draw"] = finished_sim.configuration.input_data.input_draw_number
+    metadata["random_seed"] = sim.configuration.randomness.random_seed
+    metadata["input_draw"] = sim.configuration.input_data.input_draw_number
     metadata["simulation_run_time"] = time() - start
     metadata["artifact_path"] = artifact_path
-    metadata["location"] = location
     with open(results_root / "metadata.yaml", "w") as f:
         yaml.dump(metadata, f, default_flow_style=False)
 
@@ -163,9 +162,11 @@ def test():
     configure_logging_to_terminal(verbosity=2, long_format=False)
     model_specification = disease_model.get_model_specification_path()
 
-    main = handle_exceptions(run_simulation, logger, with_debugger=False)
+    sim = SimulationContext(model_specification)
 
-    main(model_specification)
+    main = handle_exceptions(sim.run_simulation, logger, with_debugger=False)
+    main()
+
     click.echo()
     click.secho("Installation test successful!", fg="green")
 
@@ -201,7 +202,8 @@ def profile(model_specification, results_directory, process):
     out_stats_file = results_directory / f"{model_specification.name}".replace(
         "yaml", "stats"
     )
-    command = f'run_simulation("{model_specification}")'
+    sim = SimulationContext(model_specification)
+    command = f"sim.run_simulation()"
     cProfile.runctx(command, globals=globals(), locals=locals(), filename=str(out_stats_file))
 
     if process:
