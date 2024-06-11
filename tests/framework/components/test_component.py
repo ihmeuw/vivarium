@@ -38,8 +38,19 @@ class LookupCreator(ColumnCreator):
                 "baking_time": "self::load_baking_time",
                 "cooling_time": "tests.framework.components.test_component::load_cooling_time",
             },
+            "alternate_data_sources": {
+                "favorite_list": [9, 4],
+            },
         }
     }
+
+    def build_all_lookup_tables(self, builder: "Builder") -> None:
+        super().build_all_lookup_tables(builder)
+        self.lookup_tables["favorite_list"] = self.build_lookup_table(
+            builder,
+            self.configuration["alternate_data_sources"]["favorite_list"],
+            ["column_1", "column_2"],
+        )
 
     @staticmethod
     def load_baking_time(_builder: Builder) -> float:
@@ -444,6 +455,7 @@ def test_component_lookup_table_configuration(hdf_file_path):
         "favorite_color",
         "favorite_number",
         "favorite_scalar",
+        "favorite_list",
         "baking_time",
         "cooling_time",
     }
@@ -455,6 +467,8 @@ def test_component_lookup_table_configuration(hdf_file_path):
     assert component.lookup_tables["favorite_color"].key_columns == ["test_column_2"]
     assert component.lookup_tables["favorite_color"].parameter_columns == ["test_column_3"]
     assert isinstance(component.lookup_tables["favorite_scalar"], ScalarTable)
+    assert isinstance(component.lookup_tables["favorite_list"], ScalarTable)
+    assert component.lookup_tables["favorite_list"].value_columns == ["column_1", "column_2"]
     assert isinstance(component.lookup_tables["baking_time"], ScalarTable)
     assert component.lookup_tables["cooling_time"].key_columns == ["test_column_1"]
     assert not component.lookup_tables["cooling_time"].parameter_columns
@@ -463,6 +477,7 @@ def test_component_lookup_table_configuration(hdf_file_path):
     assert component.lookup_tables["favorite_team"].data.equals(favorite_team.reset_index())
     assert component.lookup_tables["favorite_color"].data.equals(favorite_color.reset_index())
     assert component.lookup_tables["favorite_scalar"].data == 0.4
+    assert component.lookup_tables["favorite_list"].data == [9, 4]
     assert component.lookup_tables["baking_time"].data == 0.5
     assert component.lookup_tables["cooling_time"].data.equals(cooling_time.reset_index())
 
