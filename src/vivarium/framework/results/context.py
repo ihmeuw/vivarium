@@ -120,7 +120,9 @@ class ResultsContext:
         )
         self.observations[when][(pop_filter, stratifications)].append(observation)
 
-    def gather_results(self, population: pd.DataFrame, event_name: str) -> Generator[
+    def gather_results(
+        self, population: pd.DataFrame, event_name: str
+    ) -> Generator[
         Tuple[
             Optional[pd.DataFrame],
             Optional[str],
