@@ -9,7 +9,7 @@ Utility functions and classes to make testing ``vivarium`` components easier.
 
 from itertools import product
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -150,14 +150,32 @@ def _non_crn_build_population(
 
 
 def build_table(
-    value,
-    parameter_columns={
+    value: Any,
+    parameter_columns: Dict = {
         "age": (0, 125),
         "year": (1990, 2020),
     },
-    key_columns={"sex": ("Female", "Male")},
-    value_columns=["value"],
-):
+    key_columns: Dict = {"sex": ("Female", "Male")},
+    value_columns: List = ["value"],
+) -> pd.DataFrame:
+    """
+    Parameters
+    ----------
+    value
+        Value(s) to put in the value columns of a lookup table.
+    parameter_columns
+        A dictionary where the keys are parameter (continuous) columns of a lookup table
+        and the values are tuple of the range (inclusive) for that column.
+    key_columns
+        A dictionary where the keys are key (categorical) columns of a lookup table
+        and the values are a tuple of the categories for that column
+    value_columns
+        A list of value columns that will appear in the returned lookup table
+
+    Returns
+        A pandas dataframe that has the cartesian product of the range of all parameter columns
+        and the values of the key columns.
+    """
     if not isinstance(value, list):
         value = [value] * len(value_columns)
 
@@ -174,23 +192,22 @@ def build_table(
     products = product(*product_dict.values())
 
     rows = []
-    for p in products:
-        # Note: p is going to be a tuple of the cartesian product of the key column values and parameter column
+    for item in products:
+        # Note: item is going to be a tuple of the cartesian product of the key column values and parameter column
         # values and will be ordered in the order of the parameter then key dict keys
         r_values = []
-        for v in value:
-            if v is None:
+        for val in value:
+            if val is None:
                 r_values.append(np.random.random())
-            elif callable(v):
-                r_values.append(v(p))
+            elif callable(val):
+                r_values.append(val(item))
             else:
-                r_values.append(v)
+                r_values.append(val)
 
         # Get list of values for rows (index values)
-        key_columns_index_values = p[len(parameter_columns) :]
-        key_columns_index_values = [val for val in key_columns_index_values]
-        # Trasnform parameter column values
-        parameter_columns_index_values = p[: len(parameter_columns)]
+        key_columns_index_values = list(item[len(parameter_columns) :])
+        # Transform parameter column values
+        parameter_columns_index_values = item[: len(parameter_columns)]
         # Create intervals for parameter columns. Example year, year+1 for year_start and year_end
         parameter_columns_index_values = [
             v for val in parameter_columns_index_values for v in (val, val + 1)

@@ -17,8 +17,20 @@ from vivarium.testing_utilities import TestPopulation, build_table
 def test_interpolated_tables(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
-    years = build_table(lambda age, sex, year: year, year_start, year_end)
-    ages = build_table(lambda age, sex, year: age, year_start, year_end)
+    years = build_table(
+        lambda x: x[0],
+        parameter_columns={
+            "year": (year_start, year_end),
+            "age": (0, 125),
+        },
+    )
+    ages = build_table(
+        lambda x: x[0],
+        parameter_columns={
+            "year": (year_start, year_end),
+            "age": (0, 125),
+        },
+    )
     one_d_age = ages.copy()
     one_d_age = one_d_age.drop_duplicates()
     base_config.update(
@@ -80,7 +92,13 @@ def test_interpolated_tables(base_config):
 def test_interpolated_tables_without_uninterpolated_columns(base_config):
     year_start = base_config.time.start.year
     year_end = base_config.time.end.year
-    years = build_table(lambda age, sex, year: year, year_start, year_end)
+    years = build_table(
+        lambda x: x[0],
+        parameter_columns={
+            "year": (year_start, year_end),
+            "age": (0, 125),
+        },
+    )
     del years["sex"]
     years = years.drop_duplicates()
     base_config.update(
