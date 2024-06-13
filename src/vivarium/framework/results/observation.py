@@ -143,9 +143,11 @@ class SummingObservation(StratifiedObservation):
     def add_results(
         existing_results: pd.DataFrame, new_observations: pd.DataFrame
     ) -> pd.DataFrame:
-        updated_results = existing_results
+        updated_results = existing_results.copy()
         # Look for extra columns in the new_observations and initialize with 0.
-        extra_cols = list(set(new_observations.columns) - set(existing_results.columns))
+        extra_cols = [
+            c for c in new_observations.columns if c not in existing_results.columns
+        ]
         if extra_cols:
             updated_results[extra_cols] = 0.0
         for col in new_observations.columns:
