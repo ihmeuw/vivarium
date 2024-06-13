@@ -256,7 +256,7 @@ def test_add_observation_nop_stratifications(
     mgr.logger = logger
 
     mgr._results_context.default_stratifications = default
-    mgr.register_observation(
+    mgr.register_summing_observation(
         name="name",
         pop_filter='alive == "alive"',
         aggregator_sources=[],

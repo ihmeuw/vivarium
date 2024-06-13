@@ -8,7 +8,7 @@ from pandas.core.groupby import DataFrameGroupBy
 
 from vivarium.framework.engine import Builder
 from vivarium.framework.results.exceptions import ResultsConfigurationError
-from vivarium.framework.results.observation import Observation
+from vivarium.framework.results.observation import SummingObservation
 from vivarium.framework.results.stratification import Stratification
 
 
@@ -95,34 +95,40 @@ class ResultsContext:
         stratification = Stratification(name, sources, categories, mapper, is_vectorized)
         self.stratifications.append(stratification)
 
-    def add_observation(
+    def add_summing_observation(
         self,
         name: str,
         pop_filter: str,
-        aggregator_sources: Optional[List[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
-        additional_stratifications: List[str],
-        excluded_stratifications: List[str],
         when: str,
         formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        additional_stratifications: List[str],
+        excluded_stratifications: List[str],
+        aggregator_sources: Optional[List[str]],
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
     ) -> None:
         stratifications = self._get_stratifications(
             additional_stratifications, excluded_stratifications
         )
-        observation = Observation(
+        observation = SummingObservation(
             name=name,
             pop_filter=pop_filter,
+            when=when,
+            formatter=formatter,
             stratifications=stratifications,
             aggregator_sources=aggregator_sources,
             aggregator=aggregator,
-            when=when,
-            formatter=formatter,
         )
         self.observations[when][(pop_filter, stratifications)].append(observation)
 
-    def gather_results(
-        self, population: pd.DataFrame, event_name: str
-    ) -> Generator[Tuple[Optional[pd.DataFrame], Optional[str]], None, None]:
+    def gather_results(self, population: pd.DataFrame, event_name: str) -> Generator[
+        Tuple[
+            Optional[pd.DataFrame],
+            Optional[str],
+            Optional[Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]],
+        ],
+        None,
+        None,
+    ]:
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         for stratification in self.stratifications:
@@ -135,18 +141,12 @@ class ResultsContext:
             # filter -> groupby -> aggregate in all situations we've seen.
             filtered_pop = self._filter_population(population, pop_filter)
             if filtered_pop.empty:
-                yield None, None
+                yield None, None, None
             else:
                 pop_groups = self._get_groups(stratifications, filtered_pop)
                 for observation in observations:
-                    aggregates = self._aggregate(
-                        pop_groups, observation.aggregator_sources, observation.aggregator
-                    )
-                    aggregates = self._format(aggregates)
-                    aggregates = self._expand_index(aggregates)
-                    if not list(stratifications):
-                        aggregates.index.name = "stratification"
-                    yield aggregates, observation.name
+                    aggregates = observation.creator(pop_groups, stratifications)
+                    yield aggregates, observation.name, observation.updater
 
     def _get_stratifications(
         self,
@@ -166,43 +166,16 @@ class ResultsContext:
 
     @staticmethod
     def _get_groups(
-        stratifications: Tuple[Optional[str]], filtered_pop: pd.DataFrame
-    ) -> DataFrameGroupBy:
+        stratifications: Optional[Tuple[str, ...]], filtered_pop: pd.DataFrame
+    ) -> Union[DataFrameGroupBy, pd.DataFrame]:
         # NOTE: It's a bit hacky how we are handling the groupby object if there
         # are no stratifications. The alternative is to use the entire population
         # instead of a groupby object, but then we would need to handle
         # the different ways the aggregator can behave.
+        if stratifications is None:
+            return filtered_pop
         return (
             filtered_pop.groupby(list(stratifications), observed=False)
             if list(stratifications)
             else filtered_pop.groupby(lambda _: "all")
         )
-
-    @staticmethod
-    def _aggregate(
-        pop_groups: Union[DataFrameGroupBy, pd.DataFrame],
-        aggregator_sources: Optional[List[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
-    ) -> Union[pd.Series[float], pd.DataFrame]:
-        aggregates = (
-            pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
-            if aggregator_sources
-            else pop_groups.apply(aggregator)
-        )
-        return aggregates
-
-    @staticmethod
-    def _format(aggregates: Union[pd.Series[float], pd.DataFrame]) -> pd.DataFrame:
-        df = pd.DataFrame(aggregates) if isinstance(aggregates, pd.Series) else aggregates
-        if df.shape[1] == 1:
-            df.rename(columns={df.columns[0]: "value"}, inplace=True)
-        return df
-
-    @staticmethod
-    def _expand_index(aggregates: pd.DataFrame) -> pd.DataFrame:
-        if isinstance(aggregates.index, pd.MultiIndex):
-            full_idx = pd.MultiIndex.from_product(aggregates.index.levels)
-        else:
-            full_idx = aggregates.index
-        aggregates = aggregates.reindex(full_idx).fillna(0.0)
-        return aggregates

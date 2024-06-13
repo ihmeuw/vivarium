@@ -107,7 +107,7 @@ class HousePointsObserver(StratifiedObserver):
     """
 
     def register_observations(self, builder: Builder) -> None:
-        builder.results.register_observation(
+        builder.results.register_summing_observation(
             name="house_points",
             aggregator_sources=["house_points"],
             aggregator=sum,
@@ -122,7 +122,7 @@ class FullyFilteredHousePointsObserver(Component):
     """Same as `HousePointsObserver but with a filter that leaves no simulants"""
 
     def setup(self, builder: Builder) -> None:
-        builder.results.register_observation(
+        builder.results.register_summing_observation(
             name="house_points",
             pop_filter="tracked==True & power_level=='one billion'",
             aggregator_sources=["house_points"],
@@ -137,7 +137,7 @@ class QuidditchWinsObserver(StratifiedObserver):
     """Observer that is stratified by a single column ('familiar')"""
 
     def register_observations(self, builder: Builder) -> None:
-        builder.results.register_observation(
+        builder.results.register_summing_observation(
             name="quidditch_wins",
             aggregator_sources=["quidditch_wins"],
             aggregator=sum,
@@ -154,7 +154,7 @@ class NoStratificationsQuidditchWinsObserver(StratifiedObserver):
     """Same as above but no stratifications at all"""
 
     def register_observations(self, builder: Builder) -> None:
-        builder.results.register_observation(
+        builder.results.register_summing_observation(
             name="no_stratifications_quidditch_wins",
             aggregator_sources=["quidditch_wins"],
             aggregator=sum,
@@ -173,7 +173,7 @@ class MagicalAttributesObserver(StratifiedObserver):
     """
 
     def register_observations(self, builder: Builder) -> None:
-        builder.results.register_observation(
+        builder.results.register_summing_observation(
             name="magical_attributes",
             aggregator=self._get_magical_attributes,
             excluded_stratifications=["student_house"],

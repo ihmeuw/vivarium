@@ -117,7 +117,7 @@ def test_add_observation(
     ctx = ResultsContext()
     ctx._default_stratifications = ["age", "sex"]
     assert len(ctx.observations) == 0
-    ctx.add_observation(
+    ctx.add_summing_observation(
         name=name,
         pop_filter=pop_filter,
         aggregator_sources=[],
@@ -152,7 +152,7 @@ def test_double_add_observation(
     ctx = ResultsContext()
     ctx._default_stratifications = ["age", "sex"]
     assert len(ctx.observations) == 0
-    ctx.add_observation(
+    ctx.add_summing_observation(
         name=name,
         pop_filter=pop_filter,
         aggregator_sources=[],
@@ -162,7 +162,7 @@ def test_double_add_observation(
         when=when,
         formatter=lambda: None,
     )
-    ctx.add_observation(
+    ctx.add_summing_observation(
         name=name,
         pop_filter=pop_filter,
         aggregator_sources=[],
@@ -259,7 +259,7 @@ def test_gather_results(pop_filter, aggregator_sources, aggregator, stratificati
         ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     if "familiar" in stratifications:
         ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
-    ctx.add_observation(
+    ctx.add_summing_observation(
         name="foo",
         pop_filter=pop_filter,
         aggregator_sources=aggregator_sources,
@@ -285,7 +285,7 @@ def test_gather_results(pop_filter, aggregator_sources, aggregator, stratificati
         )
 
     i = 0
-    for result, _measure in ctx.gather_results(population, event_name):
+    for result, _measure, _formatter in ctx.gather_results(population, event_name):
         assert all(
             math.isclose(actual_result, expected_result, rel_tol=0.0001)
             for actual_result in result.values
@@ -351,7 +351,7 @@ def test_gather_results_partial_stratifications_in_results(
         ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     if "familiar" in stratifications:
         ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
-    ctx.add_observation(
+    ctx.add_summing_observation(
         name=name,
         pop_filter=pop_filter,
         aggregator_sources=aggregator_sources,
@@ -362,7 +362,7 @@ def test_gather_results_partial_stratifications_in_results(
         formatter=lambda: None,
     )
 
-    for results, _measure in ctx.gather_results(population, event_name):
+    for results, _measure, _formatter in ctx.gather_results(population, event_name):
         unladen_results = results.loc["unladen_swallow"]
         assert len(unladen_results) > 0
         assert (unladen_results[VALUE_COLUMN] == 0).all()
@@ -378,7 +378,7 @@ def test_gather_results_with_empty_pop_filter():
     population = BASE_POPULATION.copy()
 
     event_name = "collect_metrics"
-    ctx.add_observation(
+    ctx.add_summing_observation(
         name="wizard_count",
         pop_filter="house == 'durmstrang'",
         aggregator_sources=[],
@@ -389,7 +389,7 @@ def test_gather_results_with_empty_pop_filter():
         formatter=lambda: None,
     )
 
-    for result, _measure in ctx.gather_results(population, event_name):
+    for result, _measure, _formatter in ctx.gather_results(population, event_name):
         assert not result
 
 
@@ -401,7 +401,7 @@ def test_gather_results_with_no_stratifications():
     population = BASE_POPULATION.copy()
 
     event_name = "collect_metrics"
-    ctx.add_observation(
+    ctx.add_summing_observation(
         name="wizard_count",
         pop_filter="",
         aggregator_sources=None,
@@ -414,7 +414,12 @@ def test_gather_results_with_no_stratifications():
 
     assert len(ctx.stratifications) == 0
     assert (
-        len(list(result for result, _measure in ctx.gather_results(population, event_name)))
+        len(
+            list(
+                result
+                for result, _measure, _formatter in ctx.gather_results(population, event_name)
+            )
+        )
         == 1
     )
 
@@ -431,7 +436,7 @@ def test_bad_aggregator_stratification():
     # Set up stratifications
     ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
-    ctx.add_observation(
+    ctx.add_summing_observation(
         name="this_shouldnt_work",
         pop_filter="",
         aggregator_sources=[],
@@ -443,7 +448,7 @@ def test_bad_aggregator_stratification():
     )
 
     with pytest.raises(KeyError, match="height"):
-        for result, _measure in ctx.gather_results(population, event_name):
+        for result, _measure, _formatter in ctx.gather_results(population, event_name):
             print(result)
 
 
@@ -499,118 +504,3 @@ def test__get_groups(stratifications, values):
         key, val = item
         assert key == "all"
         assert val.equals(BASE_POPULATION.index)
-
-
-@pytest.mark.parametrize(
-    "stratifications, aggregator_sources, aggregator",
-    [
-        # Series or single-column dataframe return
-        (("familiar",), ["power_level"], len),
-        (("familiar",), [], len),
-        (("familiar", "house"), ["power_level"], len),
-        (("familiar", "house"), [], len),
-        ((), ["power_level"], len),
-        ((), [], len),
-        # Multiple-column dataframe return
-        (("familiar",), ["power_level", "tracked"], sum),
-        (("familiar", "house"), ["power_level", "tracked"], sum),
-        ((), ["power_level", "tracked"], sum),
-    ],
-)
-def test__aggregate(stratifications, aggregator_sources, aggregator):
-    """Test that we are aggregating correctly. There are some nuances here:
-    - If aggregator_resources is provided, then simply .apply it to the groups passed in.
-    - If no aggregator_resources are provided, then we want a full aggregation of the groups.
-    - _aggregate can return either a pd.Series or a pd.DataFrame of any number of columns
-    """
-    groups = ResultsContext()._get_groups(
-        stratifications=stratifications, filtered_pop=BASE_POPULATION
-    )
-    aggregates = ResultsContext()._aggregate(
-        pop_groups=groups,
-        aggregator_sources=aggregator_sources,
-        aggregator=aggregator,
-    )
-    if aggregator == len:
-        if stratifications:
-            stratification_idx = (
-                set(itertools.product(*(FAMILIARS, CATEGORIES)))
-                if "house" in stratifications
-                else set(FAMILIARS)
-            )
-            assert set(aggregates.index) == stratification_idx
-            assert (aggregates.values == len(BASE_POPULATION) / groups.ngroups).all()
-        else:
-            assert len(aggregates.values) == 1
-            assert aggregates.values[0] == len(BASE_POPULATION)
-    else:  # sum aggregator
-        assert aggregates.shape[1] == 2
-        expected = BASE_POPULATION[["power_level", "tracked"]].sum() / groups.ngroups
-        if stratifications:
-            stratification_idx = (
-                set(itertools.product(*(FAMILIARS, CATEGORIES)))
-                if "house" in stratifications
-                else set(FAMILIARS)
-            )
-            assert set(aggregates.index) == stratification_idx
-            assert (aggregates.sum() / groups.ngroups).equals(expected)
-        else:
-            assert len(aggregates.values) == 1
-            for col in ["power_level", "tracked"]:
-                assert aggregates.loc["all", col] == expected[col]
-
-
-@pytest.mark.parametrize(
-    "aggregates",
-    [
-        pd.Series(data=[1, 2, 3], index=pd.Index(["a", "b", "c"], name="index")),
-        pd.DataFrame({"col1": [1, 2], "strat1": [1, 1], "strat2": ["cat", "dog"]}).set_index(
-            ["strat1", "strat2"]
-        ),
-    ],
-)
-def test__format(aggregates):
-    new_aggregates = ResultsContext()._format(aggregates=aggregates)
-    assert isinstance(new_aggregates, pd.DataFrame)
-    if isinstance(aggregates, pd.Series):
-        assert new_aggregates.equals(aggregates.to_frame("value"))
-    else:
-        assert new_aggregates.equals(aggregates)
-
-
-@pytest.mark.parametrize(
-    "aggregates",
-    [
-        pd.DataFrame(
-            {VALUE_COLUMN: [1.0, 2.0, 10.0, 20.0]},
-            index=pd.Index(["ones"] * 2 + ["tens"] * 2),
-        ),
-        pd.DataFrame(
-            {VALUE_COLUMN: [1.0, 2.0, 10.0, 20.0, "bad", "bad"]},
-            index=pd.MultiIndex.from_arrays(
-                [
-                    ["foo", "bar", "foo", "bar", "foo", "bar"],
-                    ["ones", "ones", "tens", "tens", "zeros", "zeros"],
-                ],
-                names=["nonsense", "type"],
-            ),
-        ).query('type!="zeros"'),
-    ],
-)
-def test__expand_index(aggregates):
-    full_idx_aggregates = ResultsContext()._expand_index(aggregates=aggregates)
-    # NOTE: pd.MultiIndex is a subclass of pd.Index, i.e. check for this first!
-    if isinstance(aggregates.index, pd.MultiIndex):
-        # Check that index is cartesian product of the original index levels
-        assert full_idx_aggregates.index.equals(
-            pd.MultiIndex.from_product(aggregates.index.levels)
-        )
-        # Check that existing values did not change
-        assert (
-            full_idx_aggregates.loc[aggregates.index, VALUE_COLUMN]
-            == aggregates[VALUE_COLUMN]
-        ).all()
-        # Check that missingness was filled in with zeros
-        assert (full_idx_aggregates.query('type=="zeros"')[VALUE_COLUMN] == 0).all()
-    else:
-        assert aggregates.equals(full_idx_aggregates)
