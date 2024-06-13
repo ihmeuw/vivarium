@@ -7,8 +7,8 @@ from tests.framework.results.helpers import BASE_POPULATION, CATEGORIES, FAMILIA
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import (
-    StratifiedObservation,
     AddingObservation,
+    StratifiedObservation,
 )
 
 
