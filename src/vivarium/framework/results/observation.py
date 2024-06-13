@@ -31,7 +31,6 @@ class StratifiedObservation(Observation):
     - `name`: name of the `StratifiedObservation` and is the measure it is observing
     - `pop_filter`: a filter that is applied to the population before the observation is made
     - `when`: the phase that the `StratifiedObservation` is registered to
-    - `creator`: method that creates the results
     - `updater`: method that updates the results with new observations
     - `formatter`: method that formats the results
     - `stratifications`: a tuple of columns for the `StratifiedObservation` to stratify by
@@ -44,7 +43,6 @@ class StratifiedObservation(Observation):
         name: str,
         pop_filter: str,
         when: str,
-        creator: Callable,
         updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
         formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         stratifications: Tuple[str, ...],
@@ -55,48 +53,13 @@ class StratifiedObservation(Observation):
             name,
             pop_filter,
             when,
-            creator,
+            self.create_results,
             updater,
             formatter,
         )
         self.stratifications = stratifications
         self.aggregator_sources = aggregator_sources
         self.aggregator = aggregator
-
-
-class SummingObservation(StratifiedObservation):
-    """Specific container class for managing stratified observations and adds
-    new ones at each phase the class is registered to. Includes the following attributes:
-    - `name`: name of the `AddingObservation` and is the measure it is observing
-    - `pop_filter`: a filter that is applied to the population before the observation is made
-    - `when`: the phase that the `AddingObservation` is registered to
-    - `formatter`: method that formats the results
-    - `stratifications`: a tuple of columns for the `AddingObservation` to stratify by
-    - `aggregator_sources`: a list of the columns to observe
-    - `aggregator`: a method that aggregates the `aggregator_sources`
-    """
-
-    def __init__(
-        self,
-        name: str,
-        pop_filter: str,
-        when: str,
-        formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-        stratifications: Tuple[str, ...],
-        aggregator_sources: Optional[List[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
-    ):
-        super().__init__(
-            name,
-            pop_filter,
-            when,
-            self.create_results,
-            self.add_results,
-            formatter,
-            stratifications,
-            aggregator_sources,
-            aggregator,
-        )
 
     def create_results(
         self,
@@ -138,6 +101,40 @@ class SummingObservation(StratifiedObservation):
             full_idx = aggregates.index
         aggregates = aggregates.reindex(full_idx).fillna(0.0)
         return aggregates
+
+
+class SummingObservation(StratifiedObservation):
+    """Specific container class for managing stratified observations and adds
+    new ones at each phase the class is registered to. Includes the following attributes:
+    - `name`: name of the `AddingObservation` and is the measure it is observing
+    - `pop_filter`: a filter that is applied to the population before the observation is made
+    - `when`: the phase that the `AddingObservation` is registered to
+    - `formatter`: method that formats the results
+    - `stratifications`: a tuple of columns for the `AddingObservation` to stratify by
+    - `aggregator_sources`: a list of the columns to observe
+    - `aggregator`: a method that aggregates the `aggregator_sources`
+    """
+
+    def __init__(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        stratifications: Tuple[str, ...],
+        aggregator_sources: Optional[List[str]],
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
+    ):
+        super().__init__(
+            name,
+            pop_filter,
+            when,
+            self.add_results,
+            formatter,
+            stratifications,
+            aggregator_sources,
+            aggregator,
+        )
 
     @staticmethod
     def add_results(

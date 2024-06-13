@@ -5,7 +5,25 @@ import pytest
 
 from tests.framework.results.helpers import BASE_POPULATION, CATEGORIES, FAMILIARS
 from vivarium.framework.results import VALUE_COLUMN
-from vivarium.framework.results.context import ResultsContext, SummingObservation
+from vivarium.framework.results.context import ResultsContext
+from vivarium.framework.results.observation import (
+    StratifiedObservation,
+    SummingObservation,
+)
+
+
+@pytest.fixture
+def stratified_observation():
+    return StratifiedObservation(
+        name="stratified_observation_name",
+        pop_filter="",
+        when="whenevs",
+        updater=lambda _, __: pd.DataFrame(),
+        formatter=lambda _, __: pd.DataFrame(),
+        stratifications=(),
+        aggregator_sources=None,
+        aggregator=lambda _: 0.0,
+    )
 
 
 @pytest.fixture
@@ -37,8 +55,8 @@ def summing_observation():
         ((), ["power_level", "tracked"], sum),
     ],
 )
-def test_summing_observation__aggregate(
-    stratifications, aggregator_sources, aggregator, summing_observation
+def test_stratified_observation__aggregate(
+    stratifications, aggregator_sources, aggregator, stratified_observation
 ):
     """Test that we are aggregating correctly. There are some nuances here:
     - If aggregator_resources is provided, then simply .apply it to the groups passed in.
@@ -48,7 +66,7 @@ def test_summing_observation__aggregate(
     groups = ResultsContext()._get_groups(
         stratifications=stratifications, filtered_pop=BASE_POPULATION
     )
-    aggregates = summing_observation._aggregate(
+    aggregates = stratified_observation._aggregate(
         pop_groups=groups,
         aggregator_sources=aggregator_sources,
         aggregator=aggregator,
@@ -91,8 +109,8 @@ def test_summing_observation__aggregate(
         ),
     ],
 )
-def test_summing_observation__format(aggregates, summing_observation):
-    new_aggregates = summing_observation._format(aggregates=aggregates)
+def test_stratified_observation__format(aggregates, stratified_observation):
+    new_aggregates = stratified_observation._format(aggregates=aggregates)
     assert isinstance(new_aggregates, pd.DataFrame)
     if isinstance(aggregates, pd.Series):
         assert new_aggregates.equals(aggregates.to_frame("value"))
@@ -119,8 +137,8 @@ def test_summing_observation__format(aggregates, summing_observation):
         ).query('type!="zeros"'),
     ],
 )
-def test_summing_observation__expand_index(aggregates, summing_observation):
-    full_idx_aggregates = summing_observation._expand_index(aggregates=aggregates)
+def test_stratified_observation__expand_index(aggregates, stratified_observation):
+    full_idx_aggregates = stratified_observation._expand_index(aggregates=aggregates)
     # NOTE: pd.MultiIndex is a subclass of pd.Index, i.e. check for this first!
     if isinstance(aggregates.index, pd.MultiIndex):
         # Check that index is cartesian product of the original index levels
@@ -146,12 +164,12 @@ def test_summing_observation__expand_index(aggregates, summing_observation):
         (),
     ],
 )
-def test_summing_observation_creator(stratifications, summing_observation):
+def test_stratified_observation_creator(stratifications, stratified_observation):
     ctx = ResultsContext()
     pop_groups = ctx._get_groups(
         stratifications=stratifications, filtered_pop=BASE_POPULATION
     )
-    df = summing_observation.creator(pop_groups, stratifications)
+    df = stratified_observation.creator(pop_groups, stratifications)
     assert set(df.columns) == set(["value"])
     expected_idx_names = (
         list(stratifications) if len(stratifications) > 0 else ["stratification"]
