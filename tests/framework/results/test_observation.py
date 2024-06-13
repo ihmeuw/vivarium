@@ -8,7 +8,7 @@ from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import (
     StratifiedObservation,
-    SummingObservation,
+    AddingObservation,
 )
 
 
@@ -27,9 +27,9 @@ def stratified_observation():
 
 
 @pytest.fixture
-def summing_observation():
-    return SummingObservation(
-        name="summing_observation_name",
+def adding_observation():
+    return AddingObservation(
+        name="adding_observation_name",
         pop_filter="",
         when="whenevs",
         formatter=lambda _, __: pd.DataFrame(),
@@ -191,9 +191,9 @@ def test_stratified_observation_creator(stratifications, stratified_observation)
         pd.DataFrame({"another_value": [3.0, 4.0], "yet_another_value": [5.0, 6.0]}),
     ],
 )
-def test_summing_observation_updater(new_observations, summing_observation):
+def test_adding_observation_updater(new_observations, adding_observation):
     existing_results = pd.DataFrame({"value": [0.0, 0.0]})
-    updated_results = summing_observation.updater(existing_results, new_observations)
+    updated_results = adding_observation.updater(existing_results, new_observations)
     if "value" in new_observations.columns:
         assert updated_results.equals(new_observations)
     else:

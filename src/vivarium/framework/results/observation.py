@@ -103,7 +103,7 @@ class StratifiedObservation(Observation):
         return aggregates
 
 
-class SummingObservation(StratifiedObservation):
+class AddingObservation(StratifiedObservation):
     """Specific container class for managing stratified observations and adds
     new ones at each phase the class is registered to. Includes the following attributes:
     - `name`: name of the `AddingObservation` and is the measure it is observing

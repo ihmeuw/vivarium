@@ -303,7 +303,7 @@ class ResultsManager(Manager):
             **target_kwargs,
         )
 
-    def register_summing_observation(
+    def register_adding_observation(
         self,
         name: str,
         pop_filter: str,
@@ -318,7 +318,7 @@ class ResultsManager(Manager):
     ) -> None:
         self.logger.debug(f"Registering observation {name}")
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
-        self._results_context.add_summing_observation(
+        self._results_context.register_adding_observation(
             name,
             pop_filter,
             when,

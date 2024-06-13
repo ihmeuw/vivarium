@@ -144,7 +144,7 @@ class ResultsInterface:
     # def register_observation(self, ...):
     #     pass
 
-    def register_summing_observation(
+    def register_adding_observation(
         self,
         name: str,
         pop_filter: str = "tracked==True",
@@ -192,7 +192,7 @@ class ResultsInterface:
         ------
         None
         """
-        self._manager.register_summing_observation(
+        self._manager.register_adding_observation(
             name,
             pop_filter,
             when,

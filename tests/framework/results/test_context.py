@@ -117,7 +117,7 @@ def test_add_observation(
     ctx = ResultsContext()
     ctx._default_stratifications = ["age", "sex"]
     assert len(ctx.observations) == 0
-    ctx.add_summing_observation(
+    ctx.register_adding_observation(
         name=name,
         pop_filter=pop_filter,
         aggregator_sources=[],
@@ -152,7 +152,7 @@ def test_double_add_observation(
     ctx = ResultsContext()
     ctx._default_stratifications = ["age", "sex"]
     assert len(ctx.observations) == 0
-    ctx.add_summing_observation(
+    ctx.register_adding_observation(
         name=name,
         pop_filter=pop_filter,
         aggregator_sources=[],
@@ -162,7 +162,7 @@ def test_double_add_observation(
         when=when,
         formatter=lambda: None,
     )
-    ctx.add_summing_observation(
+    ctx.register_adding_observation(
         name=name,
         pop_filter=pop_filter,
         aggregator_sources=[],
@@ -259,7 +259,7 @@ def test_gather_results(pop_filter, aggregator_sources, aggregator, stratificati
         ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     if "familiar" in stratifications:
         ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
-    ctx.add_summing_observation(
+    ctx.register_adding_observation(
         name="foo",
         pop_filter=pop_filter,
         aggregator_sources=aggregator_sources,
@@ -351,7 +351,7 @@ def test_gather_results_partial_stratifications_in_results(
         ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     if "familiar" in stratifications:
         ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
-    ctx.add_summing_observation(
+    ctx.register_adding_observation(
         name=name,
         pop_filter=pop_filter,
         aggregator_sources=aggregator_sources,
@@ -378,7 +378,7 @@ def test_gather_results_with_empty_pop_filter():
     population = BASE_POPULATION.copy()
 
     event_name = "collect_metrics"
-    ctx.add_summing_observation(
+    ctx.register_adding_observation(
         name="wizard_count",
         pop_filter="house == 'durmstrang'",
         aggregator_sources=[],
@@ -401,7 +401,7 @@ def test_gather_results_with_no_stratifications():
     population = BASE_POPULATION.copy()
 
     event_name = "collect_metrics"
-    ctx.add_summing_observation(
+    ctx.register_adding_observation(
         name="wizard_count",
         pop_filter="",
         aggregator_sources=None,
@@ -436,7 +436,7 @@ def test_bad_aggregator_stratification():
     # Set up stratifications
     ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
-    ctx.add_summing_observation(
+    ctx.register_adding_observation(
         name="this_shouldnt_work",
         pop_filter="",
         aggregator_sources=[],

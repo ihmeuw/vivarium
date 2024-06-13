@@ -48,7 +48,7 @@ class MockComponentB(StratifiedObserver):
         self.builder_used_for_setup = builder
 
     def register_observations(self, builder):
-        builder.results.register_summing_observation("test", aggregator=self.counter)
+        builder.results.register_adding_observation("test", aggregator=self.counter)
 
     def create_lookup_tables(self, builder):
         return {}

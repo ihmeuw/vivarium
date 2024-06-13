@@ -56,7 +56,7 @@ def _silly_aggregator(_: pd.DataFrame) -> float:
     ],
     ids=["valid_on_collect_metrics", "valid_on_time_step__prepare", "valid_pipelines"],
 )
-def test_register_summing_observation(
+def test_register_adding_observation(
     mocker,
     name,
     pop_filter,
@@ -77,7 +77,7 @@ def test_register_summing_observation(
     builder.value.get_value = MethodType(mock_get_value, builder)
     mgr.setup(builder)
     assert len(interface._manager._results_context.observations) == 0
-    interface.register_summing_observation(
+    interface.register_adding_observation(
         name=name,
         pop_filter=pop_filter,
         when=when,
@@ -91,7 +91,7 @@ def test_register_summing_observation(
     assert len(interface._manager._results_context.observations) == 1
 
 
-def test_register_multiple_summing_observations(mocker):
+def test_register_multiple_adding_observations(mocker):
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
@@ -99,7 +99,7 @@ def test_register_multiple_summing_observations(mocker):
     mgr.setup(builder)
 
     assert len(interface._manager._results_context.observations) == 0
-    interface.register_summing_observation(
+    interface.register_adding_observation(
         name="living_person_time",
         when="collect_metrics",
         aggregator=_silly_aggregator,
@@ -110,7 +110,7 @@ def test_register_multiple_summing_observations(mocker):
     assert ("tracked==True", ()) in interface._manager._results_context.observations[
         "collect_metrics"
     ]
-    interface.register_summing_observation(
+    interface.register_adding_observation(
         name="undead_person_time",
         pop_filter="undead == True",
         when="time_step__prepare",
@@ -137,7 +137,7 @@ def test_unhashable_pipeline(mocker):
 
     assert len(interface._manager._results_context.observations) == 0
     with pytest.raises(TypeError, match="unhashable"):
-        interface.register_summing_observation(
+        interface.register_adding_observation(
             "living_person_time",
             'alive == "alive" and undead == False',
             [],
@@ -168,7 +168,7 @@ def mock__prepare_population(self, event):
     "when",
     ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"],
 )
-def test_register_summing_observation_when_options(when, mocker):
+def test_register_adding_observation_when_options(when, mocker):
     """Test the full interface lifecycle of adding an observation and simulation event."""
     # Create interface
     mgr = ResultsManager()
@@ -196,7 +196,7 @@ def test_register_summing_observation_when_options(when, mocker):
 
     # Register observations to all four phases
     for phase, aggregator in aggregator_map.items():
-        results_interface.register_summing_observation(
+        results_interface.register_adding_observation(
             name=f"{phase}_measure",
             when=phase,
             additional_stratifications=["house", "familiar"],

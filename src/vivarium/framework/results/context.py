@@ -8,7 +8,7 @@ from pandas.core.groupby import DataFrameGroupBy
 
 from vivarium.framework.engine import Builder
 from vivarium.framework.results.exceptions import ResultsConfigurationError
-from vivarium.framework.results.observation import SummingObservation
+from vivarium.framework.results.observation import AddingObservation
 from vivarium.framework.results.stratification import Stratification
 
 
@@ -95,7 +95,7 @@ class ResultsContext:
         stratification = Stratification(name, sources, categories, mapper, is_vectorized)
         self.stratifications.append(stratification)
 
-    def add_summing_observation(
+    def register_adding_observation(
         self,
         name: str,
         pop_filter: str,
@@ -109,7 +109,7 @@ class ResultsContext:
         stratifications = self._get_stratifications(
             additional_stratifications, excluded_stratifications
         )
-        observation = SummingObservation(
+        observation = AddingObservation(
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -120,9 +120,7 @@ class ResultsContext:
         )
         self.observations[when][(pop_filter, stratifications)].append(observation)
 
-    def gather_results(
-        self, population: pd.DataFrame, event_name: str
-    ) -> Generator[
+    def gather_results(self, population: pd.DataFrame, event_name: str) -> Generator[
         Tuple[
             Optional[pd.DataFrame],
             Optional[str],
