@@ -31,7 +31,7 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
-        "numpy",
+        "numpy<2.0.0",
         "pandas",
         "pyyaml>=5.1",
         "scipy",

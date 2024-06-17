@@ -1,3 +1,7 @@
+**2.3.8 - 06/17/24**
+
+ - Hotfix pin numpy below 2.0
+
 **2.3.7 - 03/21/24**
   
   - Add deprecation warning to import ConfigTree from the config_tree package
