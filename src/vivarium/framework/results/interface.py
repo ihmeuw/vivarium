@@ -50,6 +50,10 @@ class ResultsInterface:
         """The name of this ResultsInterface."""
         return self._name
 
+    ##################################
+    # Stratification-related methods #
+    ##################################
+
     # TODO: It is not reflected in the sample code here, but the “when” parameter should be added
     #  to the stratification registration calls, probably as a List. Consider this after observer implementation
     def register_stratification(
@@ -132,20 +136,28 @@ class ResultsInterface:
             target, target_type, binned_column, bin_edges, labels, **cut_kwargs
         )
 
-    def register_observation(
+    ###############################
+    # Observation-related methods #
+    ###############################
+
+    # TODO: This should implement the most basic Observation registration
+    # def register_observation(self, ...):
+    #     pass
+
+    def register_adding_observation(
         self,
         name: str,
         pop_filter: str = "tracked==True",
-        aggregator_sources: Optional[List[str]] = None,
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]] = len,
-        requires_columns: List[str] = [],
-        requires_values: List[str] = [],
-        additional_stratifications: List[str] = [],
-        excluded_stratifications: List[str] = [],
         when: str = "collect_metrics",
         formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
+        additional_stratifications: List[str] = [],
+        excluded_stratifications: List[str] = [],
+        aggregator_sources: Optional[List[str]] = None,
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]] = len,
+        requires_columns: List[str] = [],
+        requires_values: List[str] = [],
     ) -> None:
         """Provide the results system all the information it needs to perform the observation.
 
@@ -156,6 +168,17 @@ class ResultsInterface:
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
+        when
+            String name of the phase of a time-step the observation should happen. Valid values are:
+            `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
+        formatter
+            A function that handles formatting of the raw observations.
+        additional_stratifications
+            A list of additional :class:`stratification <vivarium.framework.results.stratification.Stratification>`
+            names by which to stratify.
+        excluded_stratifications
+            A list of default :class:`stratification <vivarium.framework.results.stratification.Stratification>`
+            names to remove from the observation.
         aggregator_sources
             A list of population view columns to be used in the aggregator.
         aggregator
@@ -164,31 +187,27 @@ class ResultsInterface:
             A list of the state table columns that are required by either the pop_filter or the aggregator.
         requires_values
             A list of the value pipelines that are required by either the pop_filter or the aggregator.
-        additional_stratifications
-            A list of additional :class:`stratification <vivarium.framework.results.stratification.Stratification>`
-            names by which to stratify.
-        excluded_stratifications
-            A list of default :class:`stratification <vivarium.framework.results.stratification.Stratification>`
-            names to remove from the observation.
-        when
-            String name of the phase of a time-step the observation should happen. Valid values are:
-            `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
-        formatter
-            A function that handles formatting of the final observations at the end of the simulation.
 
         Returns
         ------
         None
         """
-        self._manager.register_observation(
+        self._manager.register_adding_observation(
             name,
             pop_filter,
+            when,
+            formatter,
+            additional_stratifications,
+            excluded_stratifications,
             aggregator_sources,
             aggregator,
             requires_columns,
             requires_values,
-            additional_stratifications,
-            excluded_stratifications,
-            when,
-            formatter,
         )
+
+    # TODO
+    # def register_addition_observation(...):
+    #     pass
+
+    # def register_concatenation_observation(...):
+    #     pass

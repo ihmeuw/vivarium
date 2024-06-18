@@ -180,7 +180,7 @@ class ResultsManager(Manager):
         with 0.0.
         """
         population = self._prepare_population(event)
-        for results_group, measure in self._results_context.gather_results(
+        for results_group, measure, updater in self._results_context.gather_results(
             population, event_name
         ):
             if results_group is not None:
@@ -188,14 +188,13 @@ class ResultsManager(Manager):
                     raise ValueError(
                         f"There is a results group {results_group} but no corresponding measure"
                     )
-                # Look for extra columns in the results_group and initialize with 0.
-                extra_cols = list(
-                    set(results_group.columns) - set(self._raw_results[measure].columns)
+                if updater is None:
+                    raise ValueError(
+                        f"There is a results group {results_group} but no corresponding updater"
+                    )
+                self._raw_results[measure] = updater(
+                    self._raw_results[measure], results_group
                 )
-                if extra_cols:
-                    self._raw_results[measure][extra_cols] = 0.0
-                for col in results_group.columns:
-                    self._raw_results[measure][col] += results_group[col]
 
     def set_default_stratifications(self, builder: Builder) -> None:
         default_stratifications = builder.configuration.stratification.default
@@ -304,30 +303,30 @@ class ResultsManager(Manager):
             **target_kwargs,
         )
 
-    def register_observation(
+    def register_adding_observation(
         self,
         name: str,
         pop_filter: str,
+        when: str,
+        formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        additional_stratifications: List[str],
+        excluded_stratifications: List[str],
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
         requires_columns: List[str],
         requires_values: List[str],
-        additional_stratifications: List[str],
-        excluded_stratifications: List[str],
-        when: str,
-        formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
     ) -> None:
         self.logger.debug(f"Registering observation {name}")
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
-        self._results_context.add_observation(
+        self._results_context.register_adding_observation(
             name,
             pop_filter,
-            aggregator_sources,
-            aggregator,
-            additional_stratifications,
-            excluded_stratifications,
             when,
             formatter,
+            additional_stratifications,
+            excluded_stratifications,
+            aggregator_sources,
+            aggregator,
         )
         self._add_resources(requires_columns, SourceType.COLUMN)
         self._add_resources(requires_values, SourceType.VALUE)

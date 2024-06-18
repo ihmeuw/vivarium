@@ -206,7 +206,7 @@ class SimulationContext:
     def name(self) -> str:
         return self._name
 
-    def get_results(self) -> Dict[str, Any]:
+    def get_results(self) -> Dict[str, pd.DataFrame]:
         """Return the formatted results."""
         return self._results.get_results()
 
