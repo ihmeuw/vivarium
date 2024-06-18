@@ -27,9 +27,9 @@ class Observer(Component, ABC):
     def setup_component(self, builder: Builder) -> None:
         super().setup_component(builder)
         self.register_observations(builder)
-        self.get_report_attributes(builder)
+        self.get_formatter_attributes(builder)
 
-    def get_report_attributes(self, builder: Builder) -> None:
+    def get_formatter_attributes(self, builder: Builder) -> None:
         """Define commonly-used attributes for reporting."""
         self.results_dir = (
             builder.configuration.to_dict()

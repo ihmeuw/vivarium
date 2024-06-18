@@ -88,7 +88,7 @@ def test_clip_to_seconds_series():
     k = (
         pd.date_range(pd.to_datetime(stamp, unit="s"), periods=10000, freq="ns")
         .to_series()
-        .view(np.int64)
+        .astype(np.int64)
     )
     assert len(m._clip_to_seconds(k).unique()) == 1
     assert m._clip_to_seconds(k).unique()[0] == stamp
