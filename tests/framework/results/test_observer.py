@@ -33,13 +33,13 @@ def test_observer_instantiation():
 
 
 @pytest.mark.parametrize(
-    "is_interactive, results_dir, draw, seed",
+    "is_interactive, results_dir",
     [
-        (False, "/some/results/dir", 111, 222),
-        (True, None, None, None),
+        (False, "/some/results/dir"),
+        (True, None),
     ],
 )
-def test_get_formatter_attributes(is_interactive, results_dir, draw, seed, mocker):
+def test_get_formatter_attributes(is_interactive, results_dir, mocker):
     builder = mocker.Mock()
     if is_interactive:
         builder.configuration = LayeredConfigTree()
@@ -47,8 +47,6 @@ def test_get_formatter_attributes(is_interactive, results_dir, draw, seed, mocke
         builder.configuration = LayeredConfigTree(
             {
                 "output_data": {"results_directory": results_dir},
-                "input_data": {"input_draw_number": draw},
-                "randomness": {"random_seed": seed},
             }
         )
 
@@ -56,8 +54,6 @@ def test_get_formatter_attributes(is_interactive, results_dir, draw, seed, mocke
     observer.get_formatter_attributes(builder)
 
     assert observer.results_dir == results_dir
-    assert observer.input_draw == draw
-    assert observer.random_seed == seed
 
 
 @pytest.mark.parametrize(
