@@ -287,7 +287,7 @@ def test_adding_observation_gather_results(
         )
 
     i = 0
-    for result, _measure, _formatter in ctx.gather_results(population, event_name):
+    for result, _measure, _updater in ctx.gather_results(population, event_name):
         assert all(
             math.isclose(actual_result, expected_result, rel_tol=0.0001)
             for actual_result in result.values
@@ -323,7 +323,7 @@ def test_concatenating_observation_gather_results():
     filtered_pop = population.query(pop_filter)
 
     i = 0
-    for result, _measure, _formatter in ctx.gather_results(population, event_name):
+    for result, _measure, _updater in ctx.gather_results(population, event_name):
         assert result.equals(filtered_pop[included_cols])
         i += 1
     assert i == 1
@@ -424,7 +424,7 @@ def test_gather_results_with_empty_pop_filter():
         results_formatter=lambda: None,
     )
 
-    for result, _measure, _formatter in ctx.gather_results(population, event_name):
+    for result, _measure, _updater in ctx.gather_results(population, event_name):
         assert not result
 
 
@@ -452,7 +452,7 @@ def test_gather_results_with_no_stratifications():
         len(
             list(
                 result
-                for result, _measure, _formatter in ctx.gather_results(population, event_name)
+                for result, _measure, _updater in ctx.gather_results(population, event_name)
             )
         )
         == 1
@@ -483,7 +483,7 @@ def test_bad_aggregator_stratification():
     )
 
     with pytest.raises(KeyError, match="height"):
-        for result, _measure, _formatter in ctx.gather_results(population, event_name):
+        for result, _measure, _updater in ctx.gather_results(population, event_name):
             print(result)
 
 

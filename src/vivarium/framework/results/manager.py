@@ -153,15 +153,7 @@ class ResultsManager(Manager):
         for results_group, measure, updater in self._results_context.gather_results(
             population, event_name
         ):
-            if results_group is not None:
-                if measure is None:
-                    raise ValueError(
-                        f"There is a results group {results_group} but no corresponding measure"
-                    )
-                if updater is None:
-                    raise ValueError(
-                        f"There is a results group {results_group} but no corresponding updater"
-                    )
+            if results_group is not None and measure is not None and updater is not None:
                 self._raw_results[measure] = updater(
                     self._raw_results[measure], results_group
                 )
