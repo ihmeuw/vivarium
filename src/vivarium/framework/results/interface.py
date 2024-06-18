@@ -9,6 +9,19 @@ if TYPE_CHECKING:
     from vivarium.framework.results.manager import ResultsManager
 
 
+def _raise_missing_concatenating_observation_results_gatherer(
+    *args, **kwargs
+) -> pd.DataFrame:
+    """A placerholder functioin that raises when the user does not provide a
+    `results_gatherer` function for a `ConcatenatingObservation`.
+    """
+
+    raise RuntimeError(
+        "A ConcatenatingObservation has been registered without a `results_gatherer "
+        "Callable which is required."
+    )
+
+
 class ResultsInterface:
     """Builder interface for the results management system.
 
@@ -140,8 +153,8 @@ class ResultsInterface:
     # Observation-related methods #
     ###############################
 
-    # TODO: This should implement the most basic Observation registration
-    # def register_observation(self, ...):
+    # TODO: This should implement the most basic SimpleObservation registration
+    # def register_unstratified_observation(self, ...):
     #     pass
 
     def register_adding_observation(
@@ -149,15 +162,15 @@ class ResultsInterface:
         name: str,
         pop_filter: str = "tracked==True",
         when: str = "collect_metrics",
-        formatter: Callable[
+        requires_columns: List[str] = [],
+        requires_values: List[str] = [],
+        results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
         additional_stratifications: List[str] = [],
         excluded_stratifications: List[str] = [],
         aggregator_sources: Optional[List[str]] = None,
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]] = len,
-        requires_columns: List[str] = [],
-        requires_values: List[str] = [],
     ) -> None:
         """Provide the results system all the information it needs to perform the observation.
 
@@ -171,8 +184,12 @@ class ResultsInterface:
         when
             String name of the phase of a time-step the observation should happen. Valid values are:
             `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
-        formatter
-            A function that handles formatting of the raw observations.
+        requires_columns
+            A list of the state table columns that are required by either the pop_filter or the aggregator.
+        requires_values
+            A list of the value pipelines that are required by either the pop_filter or the aggregator.
+        results_formatter
+            A function that formats the observation results.
         additional_stratifications
             A list of additional :class:`stratification <vivarium.framework.results.stratification.Stratification>`
             names by which to stratify.
@@ -183,31 +200,63 @@ class ResultsInterface:
             A list of population view columns to be used in the aggregator.
         aggregator
             A function that computes the quantity for the observation.
-        requires_columns
-            A list of the state table columns that are required by either the pop_filter or the aggregator.
-        requires_values
-            A list of the value pipelines that are required by either the pop_filter or the aggregator.
 
         Returns
         ------
         None
         """
         self._manager.register_adding_observation(
-            name,
-            pop_filter,
-            when,
-            formatter,
-            additional_stratifications,
-            excluded_stratifications,
-            aggregator_sources,
-            aggregator,
-            requires_columns,
-            requires_values,
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            requires_columns=requires_columns,
+            requires_values=requires_values,
+            results_formatter=results_formatter,
+            additional_stratifications=additional_stratifications,
+            excluded_stratifications=excluded_stratifications,
+            aggregator_sources=aggregator_sources,
+            aggregator=aggregator,
         )
 
-    # TODO
-    # def register_addition_observation(...):
-    #     pass
+    def register_concatenating_observation(
+        self,
+        name: str,
+        pop_filter: str = "tracked==True",
+        when: str = "collect_metrics",
+        requires_columns: List[str] = [],
+        requires_values: List[str] = [],
+        results_formatter: Callable[
+            [str, pd.DataFrame], pd.DataFrame
+        ] = lambda measure, results: results,
+    ) -> None:
+        """Provide the results system all the information it needs to perform the observation.
 
-    # def register_concatenation_observation(...):
-    #     pass
+        Parameters
+        ----------
+        name
+            String name for the observation.
+        pop_filter
+            A Pandas query filter string to filter the population down to the simulants who should
+            be considered for the observation.
+        when
+            String name of the phase of a time-step the observation should happen. Valid values are:
+            `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
+        requires_columns
+            A list of the state table columns that are required by either the pop_filter or the aggregator.
+        requires_values
+            A list of the value pipelines that are required by either the pop_filter or the aggregator.
+        results_formatter
+            A function that formats the observation results.
+
+        Returns
+        ------
+        None
+        """
+        self._manager.register_concatenating_observation(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            requires_columns=requires_columns,
+            requires_values=requires_values,
+            results_formatter=results_formatter,
+        )

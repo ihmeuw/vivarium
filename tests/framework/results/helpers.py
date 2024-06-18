@@ -9,7 +9,7 @@ from vivarium.framework.components.manager import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
 from vivarium.framework.results import VALUE_COLUMN
-from vivarium.framework.results.observer import StratifiedObserver
+from vivarium.framework.results.observer import Observer, StratifiedObserver
 
 NAME = "hogwarts_house"
 SOURCES = ["first_name", "last_name"]
@@ -55,11 +55,13 @@ class Hogwarts(Component):
     @property
     def columns_created(self) -> List[str]:
         return [
+            "student_id",
             "student_house",
             "familiar",
             "power_level",
             "house_points",
             "quidditch_wins",
+            "exam_score",
             "spell_power",
             "potion_power",
         ]
@@ -69,11 +71,13 @@ class Hogwarts(Component):
         rng = np.random.default_rng(42)
         initialization_data = pd.DataFrame(
             {
+                "student_id": list(range(size)),
                 "student_house": rng.choice(STUDENT_HOUSES, size=size),
                 "familiar": rng.choice(FAMILIARS, size=size),
                 "power_level": rng.choice([lvl for lvl in POWER_LEVELS], size=size),
                 "house_points": 0,
                 "quidditch_wins": 0,
+                "exam_score": 0.0,
             },
             index=pop_data.index,
         )
@@ -98,6 +102,9 @@ class Hogwarts(Component):
         # Let's have each wizard with a banana slug familiar gain a point
         # on each time step.
         update.loc[update["familiar"] == "banana_slug", "quidditch_wins"] = 1
+        # Update everyones test score to increase by 10 points per time step
+        update["exam_score"] += 10.0
+
         self.population_view.update(update)
 
 
@@ -114,14 +121,14 @@ class HousePointsObserver(StratifiedObserver):
             requires_columns=[
                 "house_points",
             ],
-            formatter=partial(formatter, self.random_seed, self.input_draw),
+            results_formatter=partial(formatter, self.random_seed, self.input_draw),
         )
 
 
-class FullyFilteredHousePointsObserver(Component):
+class FullyFilteredHousePointsObserver(StratifiedObserver):
     """Same as `HousePointsObserver but with a filter that leaves no simulants"""
 
-    def setup(self, builder: Builder) -> None:
+    def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(
             name="house_points",
             pop_filter="tracked==True & power_level=='one billion'",
@@ -146,7 +153,7 @@ class QuidditchWinsObserver(StratifiedObserver):
             requires_columns=[
                 "quidditch_wins",
             ],
-            formatter=partial(formatter, self.random_seed, self.input_draw),
+            results_formatter=partial(formatter, self.random_seed, self.input_draw),
         )
 
 
@@ -162,7 +169,7 @@ class NoStratificationsQuidditchWinsObserver(StratifiedObserver):
             requires_columns=[
                 "quidditch_wins",
             ],
-            formatter=partial(formatter, self.random_seed, self.input_draw),
+            results_formatter=partial(formatter, self.random_seed, self.input_draw),
         )
 
 
@@ -177,12 +184,22 @@ class MagicalAttributesObserver(StratifiedObserver):
             name="magical_attributes",
             aggregator=self._get_magical_attributes,
             excluded_stratifications=["student_house"],
-            formatter=lambda *_: None,
+            results_formatter=lambda *_: None,
         )
 
     def _get_magical_attributes(self, _: pd.DataFrame) -> pd.Series:
         """Increase each level by one per time step"""
         return pd.Series([1.0, 1.0], ["spell_power", "potion_power"])
+
+
+class ExamScoreObserver(Observer):
+    """Observer that is not stratified and exam scores"""
+
+    def register_observations(self, builder: Builder) -> None:
+        builder.results.register_concatenating_observation(
+            name="exam_score",
+            requires_columns=["student_id", "student_house", "exam_score"],
+        )
 
 
 class HogwartsResultsStratifier(Component):

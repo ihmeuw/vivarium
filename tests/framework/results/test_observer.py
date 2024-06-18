@@ -1,10 +1,6 @@
-from pathlib import Path
-
-import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
 
-from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.observer import Observer, StratifiedObserver
 
 

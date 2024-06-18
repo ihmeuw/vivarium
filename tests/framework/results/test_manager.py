@@ -19,6 +19,7 @@ from tests.framework.results.helpers import (
     POWER_LEVEL_GROUP_LABELS,
     SOURCES,
     STUDENT_HOUSES,
+    ExamScoreObserver,
     FullyFilteredHousePointsObserver,
     Hogwarts,
     HogwartsResultsStratifier,
@@ -266,7 +267,7 @@ def test_add_observation_nop_stratifications(
         additional_stratifications=additional,
         excluded_stratifications=excluded,
         when="collect_metrics",
-        formatter=lambda: None,
+        results_formatter=lambda: None,
     )
     for m in match:
         assert m in caplog.text
@@ -453,6 +454,27 @@ def test_update_monotonically_increasing__raw_results():
     pop = sim.get_population()
     _check_house_points(pop, step_number=2)
     _check_quidditch_wins(pop, step_number=2)
+
+
+def test_concatenating_observation_updates():
+    """Test that concatenating observation raw results are being updated correctly."""
+    components = [
+        Hogwarts(),
+        ExamScoreObserver(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    sim.step()
+    results_one_step = sim.get_results()["exam_score"]
+    assert (results_one_step["exam_score"] == 10.0).all()
+    sim.step()
+    expected_two_steps = results_one_step.copy()
+    expected_two_steps["exam_score"] = 20.0
+    expected_two_steps["event_time"] = results_one_step["event_time"] + pd.Timedelta(
+        days=sim.configuration.time.step_size
+    )
+    assert sim.get_results()["exam_score"].equals(
+        pd.concat([results_one_step, expected_two_steps], axis=0).reset_index(drop=True)
+    )
 
 
 def test_update__raw_results_fully_filtered_pop():

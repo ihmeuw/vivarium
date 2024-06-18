@@ -125,7 +125,7 @@ def test_add_observation(
         additional_stratifications=additional_stratifications,
         excluded_stratifications=excluded_stratifications,
         when=when,
-        formatter=lambda: None,
+        results_formatter=lambda: None,
     )
     assert len(ctx.observations) == 1
 
@@ -160,7 +160,7 @@ def test_double_add_observation(
         additional_stratifications=additional_stratifications,
         excluded_stratifications=excluded_stratifications,
         when=when,
-        formatter=lambda: None,
+        results_formatter=lambda: None,
     )
     ctx.register_adding_observation(
         name=name,
@@ -170,7 +170,7 @@ def test_double_add_observation(
         additional_stratifications=additional_stratifications,
         excluded_stratifications=excluded_stratifications,
         when=when,
-        formatter=lambda: None,
+        results_formatter=lambda: None,
     )
     assert len(ctx.observations) == 1
 
@@ -239,7 +239,9 @@ def test__get_stratifications(
         "custom_aggregator_one_stratification",
     ],
 )
-def test_gather_results(pop_filter, aggregator_sources, aggregator, stratifications):
+def test_adding_observation_gather_results(
+    pop_filter, aggregator_sources, aggregator, stratifications
+):
     """Test cases where every stratification is in gather_results. Checks for
     existence and correctness of results"""
     ctx = ResultsContext()
@@ -267,7 +269,7 @@ def test_gather_results(pop_filter, aggregator_sources, aggregator, stratificati
         additional_stratifications=stratifications,
         excluded_stratifications=[],
         when=event_name,
-        formatter=lambda: None,
+        results_formatter=lambda: None,
     )
 
     filtered_pop = population.query(pop_filter)
@@ -290,6 +292,39 @@ def test_gather_results(pop_filter, aggregator_sources, aggregator, stratificati
             math.isclose(actual_result, expected_result, rel_tol=0.0001)
             for actual_result in result.values
         )
+        i += 1
+    assert i == 1
+
+
+def test_concatenating_observation_gather_results():
+
+    ctx = ResultsContext()
+
+    # Generate population DataFrame
+    population = BASE_POPULATION.copy()
+    # Mock out some extra columns that would be produced by the manager's _prepare_population() method
+    population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
+    population["event_step_size"] = timedelta(days=28)
+    population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
+        days=28
+    )
+
+    event_name = "collect_metrics"
+    pop_filter = "house=='hufflepuff'"
+    included_cols = ["event_time", "familiar", "house"]
+    ctx.register_concatenating_observation(
+        name="foo",
+        pop_filter=pop_filter,
+        when=event_name,
+        included_columns=included_cols,
+        results_formatter=lambda _, __: pd.DataFrame(),
+    )
+
+    filtered_pop = population.query(pop_filter)
+
+    i = 0
+    for result, _measure, _formatter in ctx.gather_results(population, event_name):
+        assert result.equals(filtered_pop[included_cols])
         i += 1
     assert i == 1
 
@@ -359,7 +394,7 @@ def test_gather_results_partial_stratifications_in_results(
         additional_stratifications=stratifications,
         excluded_stratifications=[],
         when=event_name,
-        formatter=lambda: None,
+        results_formatter=lambda: None,
     )
 
     for results, _measure, _formatter in ctx.gather_results(population, event_name):
@@ -386,7 +421,7 @@ def test_gather_results_with_empty_pop_filter():
         additional_stratifications=[],
         excluded_stratifications=[],
         when=event_name,
-        formatter=lambda: None,
+        results_formatter=lambda: None,
     )
 
     for result, _measure, _formatter in ctx.gather_results(population, event_name):
@@ -409,7 +444,7 @@ def test_gather_results_with_no_stratifications():
         additional_stratifications=[],
         excluded_stratifications=[],
         when=event_name,
-        formatter=lambda: None,
+        results_formatter=lambda: None,
     )
 
     assert len(ctx.stratifications) == 0
@@ -444,7 +479,7 @@ def test_bad_aggregator_stratification():
         additional_stratifications=["house", "height"],  # `height` is not a stratification
         excluded_stratifications=[],
         when=event_name,
-        formatter=lambda: None,
+        results_formatter=lambda: None,
     )
 
     with pytest.raises(KeyError, match="height"):
@@ -479,19 +514,19 @@ def test__filter_population(pop_filter):
     [
         (("familiar",), [FAMILIARS]),
         (("familiar", "house"), [FAMILIARS, CATEGORIES]),
-        ((), ["all"]),
+        ((), "foo"),
     ],
 )
 def test__get_groups(stratifications, values):
     groups = ResultsContext()._get_groups(
         stratifications=stratifications, filtered_pop=BASE_POPULATION
     )
-    combinations = set(itertools.product(*values))
-    if len(values) == 1:
-        # convert from set of tuples to set of strings
-        combinations = set([comb[0] for comb in combinations])
     assert isinstance(groups, DataFrameGroupBy)
-    if stratifications:
+    if len(stratifications) > 0:
+        combinations = set(itertools.product(*values))
+        if len(values) == 1:
+            # convert from set of tuples to set of strings
+            combinations = set(comb[0] for comb in combinations)
         # Check that all familiars exist
         assert set(groups.groups.keys()) == combinations
         # Check that the entire population is included

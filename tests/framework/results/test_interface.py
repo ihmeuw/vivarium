@@ -224,3 +224,43 @@ def test_register_adding_observation_when_options(when, mocker):
             aggregator.assert_called()
         else:
             aggregator.assert_not_called()
+
+
+def test_register_concatenating_observation(mocker):
+    mgr = ResultsManager()
+    interface = ResultsInterface(mgr)
+    builder = mocker.Mock()
+    builder.configuration.stratification.default = []
+    # Set up mock builder with mocked get_value call for Pipelines
+    mocker.patch.object(builder, "value.get_value")
+    builder.value.get_value = MethodType(mock_get_value, builder)
+    mgr.setup(builder)
+    assert len(interface._manager._results_context.observations) == 0
+    interface.register_concatenating_observation(
+        name="some-name",
+        pop_filter="some-filter",
+        when="some-when",
+        requires_columns=["some-column", "some-other-column"],
+        requires_values=["some-value", "some-other-value"],
+        results_formatter=lambda _, __: pd.DataFrame(),
+    )
+    observations = interface._manager._results_context.observations
+    assert len(observations) == 1
+    ((filter, stratification), observation) = list(observations["some-when"].items())[0]
+    assert filter == "some-filter"
+    assert stratification is None
+    assert len(observation) == 1
+    obs = observation[0]
+    assert obs.name == "some-name"
+    assert obs.pop_filter == "some-filter"
+    assert obs.when == "some-when"
+    assert obs.included_columns == [
+        "event_time",
+        "some-column",
+        "some-other-column",
+        "some-value",
+        "some-other-value",
+    ]
+    assert obs.results_updater is not None
+    assert obs.results_updater is not None
+    assert obs.results_formatter is not None
