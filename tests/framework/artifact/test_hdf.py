@@ -198,10 +198,8 @@ def test_write_load_empty_data_frame_index(hdf_file_path):
 def test_write_data_frame(hdf_file_path):
     key = hdf.EntityKey("cause.test.prevalence")
     data = build_table(
-        [lambda *args, **kwargs: random.choice([0, 1]), "Kenya", 1],
-        2005,
-        2010,
-        columns=("age", "year", "sex", "draw", "location", "value"),
+        lambda x: random.choice([0, 1]),
+        key_columns={"draw": [0, 1], "location": ["Kenya"]},
     )
 
     non_val_columns = data.columns.difference({"value"})
