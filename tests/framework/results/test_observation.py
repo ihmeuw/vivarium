@@ -11,7 +11,6 @@ from vivarium.framework.results.observation import (
     AddingObservation,
     ConcatenatingObservation,
     StratifiedObservation,
-    UnstratifiedObservation,
 )
 
 

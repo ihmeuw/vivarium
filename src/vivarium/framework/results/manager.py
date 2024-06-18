@@ -311,6 +311,29 @@ class ResultsManager(Manager):
         self._add_resources(requires_columns, SourceType.COLUMN)
         self._add_resources(requires_values, SourceType.VALUE)
 
+    def register_unstratified_observation(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        requires_columns: List[str],
+        requires_values: List[str],
+        results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+    ) -> None:
+        self.logger.debug(f"Registering observation {name}")
+        self._results_context.register_unstratified_observation(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_gatherer=results_gatherer,
+            results_updater=results_updater,
+            results_formatter=results_formatter,
+        )
+        self._add_resources(["event_time"] + requires_columns, SourceType.COLUMN)
+        self._add_resources(requires_values, SourceType.VALUE)
+
     def register_adding_observation(
         self,
         name: str,

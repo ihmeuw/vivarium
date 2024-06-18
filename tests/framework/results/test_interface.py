@@ -76,6 +76,39 @@ def test_register_stratified_observation_raises(mocker):
         obs.results_updater()
 
 
+def test_register_unstratified_observation(mocker):
+    mgr = ResultsManager()
+    interface = ResultsInterface(mgr)
+    builder = mocker.Mock()
+    # Set up mock builder with mocked get_value call for Pipelines
+    mocker.patch.object(builder, "value.get_value")
+    builder.value.get_value = MethodType(mock_get_value, builder)
+    mgr.setup(builder)
+    assert len(interface._manager._results_context.observations) == 0
+    interface.register_unstratified_observation(
+        name="some-name",
+        pop_filter="some-filter",
+        when="some-when",
+        requires_columns=["some-column", "some-other-column"],
+        requires_values=["some-value", "some-other-value"],
+        results_gatherer=lambda _: pd.DataFrame(),
+        results_formatter=lambda _, __: pd.DataFrame(),
+    )
+    observations = interface._manager._results_context.observations
+    assert len(observations) == 1
+    ((filter, stratification), observation) = list(observations["some-when"].items())[0]
+    assert filter == "some-filter"
+    assert stratification is None
+    assert len(observation) == 1
+    obs = observation[0]
+    assert obs.name == "some-name"
+    assert obs.pop_filter == "some-filter"
+    assert obs.when == "some-when"
+    assert obs.results_gatherer is not None
+    assert obs.results_updater is not None
+    assert obs.results_formatter is not None
+
+
 @pytest.mark.parametrize(
     (
         "name, pop_filter, aggregator_columns, aggregator, requires_columns, requires_values,"

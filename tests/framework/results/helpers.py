@@ -45,6 +45,8 @@ HARRY_POTTER_CONFIG = {
     },
 }
 
+RNG = np.random.default_rng(42)
+
 
 ##################
 # Helper classes #
@@ -68,13 +70,12 @@ class Hogwarts(Component):
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         size = len(pop_data.index)
-        rng = np.random.default_rng(42)
         initialization_data = pd.DataFrame(
             {
                 "student_id": list(range(size)),
-                "student_house": rng.choice(STUDENT_HOUSES, size=size),
-                "familiar": rng.choice(FAMILIARS, size=size),
-                "power_level": rng.choice([lvl for lvl in POWER_LEVELS], size=size),
+                "student_house": RNG.choice(STUDENT_HOUSES, size=size),
+                "familiar": RNG.choice(FAMILIARS, size=size),
+                "power_level": RNG.choice([lvl for lvl in POWER_LEVELS], size=size),
                 "house_points": 0,
                 "quidditch_wins": 0,
                 "exam_score": 0.0,
@@ -202,7 +203,7 @@ class ExamScoreObserver(Observer):
         )
 
 
-class HouseCatObserver(StratifiedObserver):
+class CatLivesObserver(StratifiedObserver):
     """Observer that counts the number of cat lives per house"""
 
     def register_observations(self, builder: Builder) -> None:
@@ -218,6 +219,29 @@ class HouseCatObserver(StratifiedObserver):
     @staticmethod
     def count_lives(group):
         return len(group) * 9
+
+
+class ValedictorianObserver(Observer):
+    """Observer that records the valedictorian at each time step. All students
+    have the same exam scores and so the valecdictorian is chosen randomly.
+    """
+
+    def register_observations(self, builder: Builder) -> None:
+        builder.results.register_unstratified_observation(
+            name="valedictorian",
+            requires_columns=["event_time", "student_id", "exam_score"],
+            results_gatherer=self.choose_valedictorian,
+            results_updater=self.update_valedictorian,
+        )
+
+    @staticmethod
+    def choose_valedictorian(df):
+        valedictorian = RNG.choice(df["student_id"])
+        return df[df["student_id"] == valedictorian]
+
+    @staticmethod
+    def update_valedictorian(_existing_df, new_df):
+        return new_df
 
 
 class HogwartsResultsStratifier(Component):

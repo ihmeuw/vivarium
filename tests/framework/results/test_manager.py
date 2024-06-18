@@ -19,15 +19,16 @@ from tests.framework.results.helpers import (
     POWER_LEVEL_GROUP_LABELS,
     SOURCES,
     STUDENT_HOUSES,
+    CatLivesObserver,
     ExamScoreObserver,
     FullyFilteredHousePointsObserver,
     Hogwarts,
     HogwartsResultsStratifier,
-    HouseCatObserver,
     HousePointsObserver,
     MagicalAttributesObserver,
     NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
+    ValedictorianObserver,
     mock_get_value,
     sorting_hat_serial,
     sorting_hat_vector,
@@ -402,7 +403,7 @@ def test_unused_stratifications_are_logged(caplog):
 def test_stratified_observation_results():
     components = [
         Hogwarts(),
-        HouseCatObserver(),
+        CatLivesObserver(),
         HogwartsResultsStratifier(),
     ]
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
@@ -413,6 +414,23 @@ def test_stratified_observation_results():
     expected.name = "value"
     assert expected.sort_values().equals(
         sim.get_results()["cat_lives"]["value"].sort_values()
+    )
+
+
+def test_unstratified_observation_results():
+    components = [
+        Hogwarts(),
+        ValedictorianObserver(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    sim.step()
+    first_valedictorian = sim.get_results()["valedictorian"]
+    assert len(first_valedictorian) == 1
+    sim.step()
+    second_valedictorian = sim.get_results()["valedictorian"]
+    assert len(second_valedictorian) == 1
+    assert (
+        first_valedictorian["student_id"].iat[0] != second_valedictorian["student_id"].iat[0]
     )
 
 

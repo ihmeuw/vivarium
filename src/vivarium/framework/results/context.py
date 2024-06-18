@@ -12,6 +12,7 @@ from vivarium.framework.results.observation import (
     AddingObservation,
     ConcatenatingObservation,
     StratifiedObservation,
+    UnstratifiedObservation,
 )
 from vivarium.framework.results.stratification import Stratification
 
@@ -125,6 +126,25 @@ class ResultsContext:
             aggregator=aggregator,
         )
         self.observations[when][(pop_filter, stratifications)].append(observation)
+
+    def register_unstratified_observation(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+    ) -> None:
+        observation = UnstratifiedObservation(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_gatherer=results_gatherer,
+            results_updater=results_updater,
+            results_formatter=results_formatter,
+        )
+        self.observations[when][(pop_filter, None)].append(observation)
 
     def register_adding_observation(
         self,
