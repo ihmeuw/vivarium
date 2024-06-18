@@ -7,8 +7,9 @@ Utility functions and classes to make testing ``vivarium`` components easier.
 
 """
 
+from itertools import product
 from pathlib import Path
-from typing import List
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
@@ -148,31 +149,79 @@ def _non_crn_build_population(
     return population
 
 
-def build_table(value, year_start, year_end, columns=("age", "year", "sex", "value")):
-    value_columns = columns[3:]
+def build_table(
+    value: Any,
+    parameter_columns: Dict = {
+        "age": (0, 125),
+        "year": (1990, 2020),
+    },
+    key_columns: Dict = {"sex": ("Female", "Male")},
+    value_columns: List = ["value"],
+) -> pd.DataFrame:
+    """
+    Parameters
+    ----------
+    value
+        Value(s) to put in the value columns of a lookup table.
+    parameter_columns
+        A dictionary where the keys are parameter (continuous) columns of a lookup table
+        and the values are tuple of the range (inclusive) for that column.
+    key_columns
+        A dictionary where the keys are key (categorical) columns of a lookup table
+        and the values are a tuple of the categories for that column
+    value_columns
+        A list of value columns that will appear in the returned lookup table
+
+    Returns
+        A pandas dataframe that has the cartesian product of the range of all parameter columns
+        and the values of the key columns.
+    """
     if not isinstance(value, list):
         value = [value] * len(value_columns)
 
     if len(value) != len(value_columns):
         raise ValueError("Number of values must match number of value columns")
 
+    # Get product of parameter columns
+    range_parameter_product = {
+        key: list(range(value[0], value[1])) for key, value in parameter_columns.items()
+    }
+    # Build out dict of items we will need cartesian product of to make dataframe
+    product_dict = dict(range_parameter_product)
+    product_dict.update(key_columns)
+    products = product(*product_dict.values())
+
     rows = []
-    for age in range(0, 140):
-        for year in range(year_start, year_end + 1):
-            for sex in ["Male", "Female"]:
-                r_values = []
-                for v in value:
-                    if v is None:
-                        r_values.append(np.random.random())
-                    elif callable(v):
-                        r_values.append(v(age, sex, year))
-                    else:
-                        r_values.append(v)
-                rows.append([age, age + 1, year, year + 1, sex] + r_values)
+    for item in products:
+        # Note: item is going to be a tuple of the cartesian product of the key column values and parameter column
+        # values and will be ordered in the order of the parameter then key dict keys
+        r_values = []
+        for val in value:
+            if val is None:
+                r_values.append(np.random.random())
+            elif callable(val):
+                r_values.append(val(item))
+            else:
+                r_values.append(val)
+
+        # Get list of values for rows (index values)
+        key_columns_index_values = list(item[len(parameter_columns) :])
+        # Transform parameter column values
+        parameter_columns_index_values = item[: len(parameter_columns)]
+        # Create intervals for parameter columns. Example year, year+1 for year_start and year_end
+        parameter_columns_index_values = [
+            v for val in parameter_columns_index_values for v in (val, val + 1)
+        ]
+        rows.append(parameter_columns_index_values + key_columns_index_values + r_values)
+
+    # Make list of parameter column names
+    parameter_column_names = [
+        col_name for col in parameter_columns for col_name in (f"{col}_start", f"{col}_end")
+    ]
+
     return pd.DataFrame(
         rows,
-        columns=["age_start", "age_end", "year_start", "year_end", "sex"]
-        + list(value_columns),
+        columns=parameter_column_names + list(key_columns.keys()) + value_columns,
     )
 
 
