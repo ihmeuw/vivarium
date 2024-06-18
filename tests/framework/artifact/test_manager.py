@@ -33,7 +33,7 @@ def artifact_mock(mocker):
 
 
 def test_subset_rows_extra_filters():
-    data = build_table(1, 1990, 2010)
+    data = build_table(1)
     with pytest.raises(ValueError):
         _subset_rows(data, missing_thing=12)
 
@@ -43,8 +43,10 @@ def test_subset_rows():
         lambda *args, **kwargs: random.choice(["red", "blue"]),
         lambda *args, **kwargs: random.choice([1, 2, 3]),
     ]
-    data = build_table(values, 1990, 2010, columns=("age", "year", "sex", "color", "number"))
-
+    data = build_table(
+        value=values,
+        value_columns=["color", "number"],
+    )
     filtered_data = _subset_rows(data, color="red", number=3)
     assert filtered_data.equals(data[(data.color == "red") & (data.number == 3)])
 
@@ -57,7 +59,12 @@ def test_subset_rows():
 def test_subset_columns():
     values = [0, "red", 100]
     data = build_table(
-        values, 1990, 2010, columns=("age", "year", "sex", "draw", "color", "value")
+        values,
+        parameter_columns={
+            "age": (0, 99),
+            "year": (1990, 2010),
+        },
+        value_columns=["draw", "color", "value"],
     )
 
     filtered_data = _subset_columns(data)
