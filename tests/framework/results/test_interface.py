@@ -56,7 +56,7 @@ def _silly_aggregator(_: pd.DataFrame) -> float:
     ],
     ids=["valid_on_collect_metrics", "valid_on_time_step__prepare", "valid_pipelines"],
 )
-def test_register_observation(
+def test_register_adding_observation(
     mocker,
     name,
     pop_filter,
@@ -77,20 +77,21 @@ def test_register_observation(
     builder.value.get_value = MethodType(mock_get_value, builder)
     mgr.setup(builder)
     assert len(interface._manager._results_context.observations) == 0
-    interface.register_observation(
-        name,
-        pop_filter,
-        aggregator_columns,
-        aggregator,
-        requires_columns,
-        requires_values,
-        additional_stratifications,
-        excluded_stratifications,
+    interface.register_adding_observation(
+        name=name,
+        pop_filter=pop_filter,
+        when=when,
+        additional_stratifications=additional_stratifications,
+        excluded_stratifications=excluded_stratifications,
+        aggregator_sources=aggregator_columns,
+        aggregator=aggregator,
+        requires_columns=requires_columns,
+        requires_values=requires_values,
     )
     assert len(interface._manager._results_context.observations) == 1
 
 
-def test_register_observations(mocker):
+def test_register_multiple_adding_observations(mocker):
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
@@ -98,15 +99,10 @@ def test_register_observations(mocker):
     mgr.setup(builder)
 
     assert len(interface._manager._results_context.observations) == 0
-    interface.register_observation(
-        "living_person_time",
-        aggregator_sources=[],
-        aggregator=_silly_aggregator,
-        requires_columns=[],
-        requires_values=[],
-        additional_stratifications=[],
-        excluded_stratifications=[],
+    interface.register_adding_observation(
+        name="living_person_time",
         when="collect_metrics",
+        aggregator=_silly_aggregator,
     )
     # Test observation gets added
     assert len(interface._manager._results_context.observations) == 1
@@ -114,16 +110,11 @@ def test_register_observations(mocker):
     assert ("tracked==True", ()) in interface._manager._results_context.observations[
         "collect_metrics"
     ]
-    interface.register_observation(
-        "undead_person_time",
-        "undead == True",
-        [],
-        _silly_aggregator,
-        [],
-        [],
-        [],
-        [],
-        "time_step__prepare",
+    interface.register_adding_observation(
+        name="undead_person_time",
+        pop_filter="undead == True",
+        when="time_step__prepare",
+        aggregator=_silly_aggregator,
     )
     # Test new observation gets added
     assert len(interface._manager._results_context.observations) == 2
@@ -146,7 +137,7 @@ def test_unhashable_pipeline(mocker):
 
     assert len(interface._manager._results_context.observations) == 0
     with pytest.raises(TypeError, match="unhashable"):
-        interface.register_observation(
+        interface.register_adding_observation(
             "living_person_time",
             'alive == "alive" and undead == False',
             [],
@@ -177,7 +168,7 @@ def mock__prepare_population(self, event):
     "when",
     ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"],
 )
-def test_register_observation_when_options(when, mocker):
+def test_register_adding_observation_when_options(when, mocker):
     """Test the full interface lifecycle of adding an observation and simulation event."""
     # Create interface
     mgr = ResultsManager()
@@ -204,50 +195,14 @@ def test_register_observation_when_options(when, mocker):
     }
 
     # Register observations to all four phases
-    results_interface.register_observation(
-        "time_step__prepare_measure",
-        "tracked==True",
-        None,
-        time_step__prepare_mock_aggregator,
-        ["house", "familiar"],
-        [],
-        ["house", "familiar"],
-        [],
-        "time_step__prepare",
-    )
-    results_interface.register_observation(
-        "time_step_measure",
-        "tracked==True",
-        None,
-        time_step_mock_aggregator,
-        ["house", "familiar"],
-        [],
-        ["house", "familiar"],
-        [],
-        "time_step",
-    )
-    results_interface.register_observation(
-        "time_step__cleanup_measure",
-        "tracked==True",
-        None,
-        time_step__cleanup_mock_aggregator,
-        ["house", "familiar"],
-        [],
-        ["house", "familiar"],
-        [],
-        "time_step__cleanup",
-    )
-    results_interface.register_observation(
-        "collect_metrics_measure",
-        "tracked==True",
-        None,
-        collect_metrics_mock_aggregator,
-        ["house", "familiar"],
-        [],
-        ["house", "familiar"],
-        [],
-        "collect_metrics",
-    )
+    for phase, aggregator in aggregator_map.items():
+        results_interface.register_adding_observation(
+            name=f"{phase}_measure",
+            when=phase,
+            additional_stratifications=["house", "familiar"],
+            aggregator=aggregator,
+            requires_columns=["house", "familiar"],
+        )
 
     # Mock in mgr._prepare_population to return population table, event
     mocker.patch.object(mgr, "_prepare_population")
