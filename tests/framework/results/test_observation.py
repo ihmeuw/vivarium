@@ -11,6 +11,7 @@ from vivarium.framework.results.observation import (
     AddingObservation,
     ConcatenatingObservation,
     StratifiedObservation,
+    UnstratifiedObservation,
 )
 
 
@@ -21,19 +22,6 @@ def stratified_observation():
         pop_filter="",
         when="whenevs",
         results_updater=lambda _, __: pd.DataFrame(),
-        results_formatter=lambda _, __: pd.DataFrame(),
-        stratifications=(),
-        aggregator_sources=None,
-        aggregator=lambda _: 0.0,
-    )
-
-
-@pytest.fixture
-def adding_observation():
-    return AddingObservation(
-        name="adding_observation_name",
-        pop_filter="",
-        when="whenevs",
         results_formatter=lambda _, __: pd.DataFrame(),
         stratifications=(),
         aggregator_sources=None,
@@ -204,9 +192,18 @@ def test_stratified_observation_results_gatherer(stratifications, stratified_obs
         pd.DataFrame({"another_value": [3.0, 4.0], "yet_another_value": [5.0, 6.0]}),
     ],
 )
-def test_adding_observation_results_updater(new_observations, adding_observation):
+def test_adding_observation_results_updater(new_observations):
     existing_results = pd.DataFrame({"value": [0.0, 0.0]})
-    updated_results = adding_observation.results_updater(existing_results, new_observations)
+    obs = AddingObservation(
+        name="adding_observation_name",
+        pop_filter="",
+        when="whenevs",
+        results_formatter=lambda _, __: pd.DataFrame(),
+        stratifications=(),
+        aggregator_sources=None,
+        aggregator=lambda _: 0.0,
+    )
+    updated_results = obs.results_updater(existing_results, new_observations)
     if "value" in new_observations.columns:
         assert updated_results.equals(new_observations)
     else:

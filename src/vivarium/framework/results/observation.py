@@ -86,7 +86,7 @@ class StratifiedObservation(BaseObservation):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            results_gatherer=self.create_results,
+            results_gatherer=self.gather_results,
             results_updater=results_updater,
             results_formatter=results_formatter,
         )
@@ -94,7 +94,7 @@ class StratifiedObservation(BaseObservation):
         self.aggregator_sources = aggregator_sources
         self.aggregator = aggregator
 
-    def create_results(
+    def gather_results(
         self,
         pop_groups: DataFrameGroupBy,
         stratifications: Tuple[str, ...],

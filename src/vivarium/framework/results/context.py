@@ -11,6 +11,7 @@ from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import (
     AddingObservation,
     ConcatenatingObservation,
+    StratifiedObservation,
 )
 from vivarium.framework.results.stratification import Stratification
 
@@ -97,6 +98,33 @@ class ResultsContext:
             )
         stratification = Stratification(name, sources, categories, mapper, is_vectorized)
         self.stratifications.append(stratification)
+
+    def register_stratified_observation(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        additional_stratifications: List[str],
+        excluded_stratifications: List[str],
+        aggregator_sources: Optional[List[str]],
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
+    ) -> None:
+        stratifications = self._get_stratifications(
+            additional_stratifications, excluded_stratifications
+        )
+        observation = StratifiedObservation(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_updater=results_updater,
+            results_formatter=results_formatter,
+            stratifications=stratifications,
+            aggregator_sources=aggregator_sources,
+            aggregator=aggregator,
+        )
+        self.observations[when][(pop_filter, stratifications)].append(observation)
 
     def register_adding_observation(
         self,

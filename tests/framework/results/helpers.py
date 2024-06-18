@@ -202,6 +202,24 @@ class ExamScoreObserver(Observer):
         )
 
 
+class HouseCatObserver(StratifiedObserver):
+    """Observer that counts the number of cat lives per house"""
+
+    def register_observations(self, builder: Builder) -> None:
+        builder.results.register_adding_observation(
+            name="cat_lives",
+            pop_filter="familiar=='cat' and tracked==True",
+            requires_columns=["familiar"],
+            excluded_stratifications=["power_level_group"],
+            aggregator_sources=["student_house"],
+            aggregator=self.count_lives,
+        )
+
+    @staticmethod
+    def count_lives(group):
+        return len(group) * 9
+
+
 class HogwartsResultsStratifier(Component):
     def setup(self, builder: Builder) -> None:
         builder.results.register_stratification(

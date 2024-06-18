@@ -23,6 +23,7 @@ from tests.framework.results.helpers import (
     FullyFilteredHousePointsObserver,
     Hogwarts,
     HogwartsResultsStratifier,
+    HouseCatObserver,
     HousePointsObserver,
     MagicalAttributesObserver,
     NoStratificationsQuidditchWinsObserver,
@@ -398,8 +399,45 @@ def test_unused_stratifications_are_logged(caplog):
     assert "['familiar']" in log_split[1]
 
 
-def test_update_monotonically_increasing__raw_results():
-    """Test that (monotonically increasing) raw results are being updated correctly."""
+def test_stratified_observation_results():
+    components = [
+        Hogwarts(),
+        HouseCatObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    assert (sim.get_results()["cat_lives"]["value"] == 0.0).all()
+    sim.step()
+    num_familiars = sim.get_population().groupby(["familiar", "student_house"]).apply(len)
+    expected = num_familiars.loc["cat"] * 9.0
+    expected.name = "value"
+    assert expected.sort_values().equals(
+        sim.get_results()["cat_lives"]["value"].sort_values()
+    )
+
+
+def test_concatenating_observation_results():
+    components = [
+        Hogwarts(),
+        ExamScoreObserver(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    sim.step()
+    results_one_step = sim.get_results()["exam_score"]
+    assert (results_one_step["exam_score"] == 10.0).all()
+    sim.step()
+    expected_two_steps = results_one_step.copy()
+    expected_two_steps["exam_score"] = 20.0
+    expected_two_steps["event_time"] = results_one_step["event_time"] + pd.Timedelta(
+        days=sim.configuration.time.step_size
+    )
+    assert sim.get_results()["exam_score"].equals(
+        pd.concat([results_one_step, expected_two_steps], axis=0).reset_index(drop=True)
+    )
+
+
+def test_adding_observation_results():
+    """Test that adding observation results are being updated correctly."""
 
     def _check_house_points(pop: pd.DataFrame, step_number: int) -> None:
         """We know that house points are stratified by 'student_house' and 'power_level_group'.

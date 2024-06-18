@@ -281,6 +281,36 @@ class ResultsManager(Manager):
     # Observation methods #
     #######################
 
+    def register_stratified_observation(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        requires_columns: List[str],
+        requires_values: List[str],
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        additional_stratifications: List[str],
+        excluded_stratifications: List[str],
+        aggregator_sources: Optional[List[str]],
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
+    ) -> None:
+        self.logger.debug(f"Registering observation {name}")
+        self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
+        self._results_context.register_stratified_observation(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_updater=results_updater,
+            results_formatter=results_formatter,
+            additional_stratifications=additional_stratifications,
+            excluded_stratifications=excluded_stratifications,
+            aggregator_sources=aggregator_sources,
+            aggregator=aggregator,
+        )
+        self._add_resources(requires_columns, SourceType.COLUMN)
+        self._add_resources(requires_values, SourceType.VALUE)
+
     def register_adding_observation(
         self,
         name: str,
