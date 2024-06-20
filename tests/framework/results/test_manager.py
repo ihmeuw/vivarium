@@ -19,6 +19,8 @@ from tests.framework.results.helpers import (
     POWER_LEVEL_GROUP_LABELS,
     SOURCES,
     STUDENT_HOUSES,
+    CatLivesObserver,
+    ExamScoreObserver,
     FullyFilteredHousePointsObserver,
     Hogwarts,
     HogwartsResultsStratifier,
@@ -26,6 +28,7 @@ from tests.framework.results.helpers import (
     MagicalAttributesObserver,
     NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
+    ValedictorianObserver,
     mock_get_value,
     sorting_hat_serial,
     sorting_hat_vector,
@@ -266,7 +269,7 @@ def test_add_observation_nop_stratifications(
         additional_stratifications=additional,
         excluded_stratifications=excluded,
         when="collect_metrics",
-        formatter=lambda: None,
+        results_formatter=lambda: None,
     )
     for m in match:
         assert m in caplog.text
@@ -397,8 +400,62 @@ def test_unused_stratifications_are_logged(caplog):
     assert "['familiar']" in log_split[1]
 
 
-def test_update_monotonically_increasing__raw_results():
-    """Test that (monotonically increasing) raw results are being updated correctly."""
+def test_stratified_observation_results():
+    components = [
+        Hogwarts(),
+        CatLivesObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    assert (sim.get_results()["cat_lives"]["value"] == 0.0).all()
+    sim.step()
+    num_familiars = sim.get_population().groupby(["familiar", "student_house"]).apply(len)
+    expected = num_familiars.loc["cat"] * 9.0
+    expected.name = "value"
+    assert expected.sort_values().equals(
+        sim.get_results()["cat_lives"]["value"].sort_values()
+    )
+
+
+def test_unstratified_observation_results():
+    components = [
+        Hogwarts(),
+        ValedictorianObserver(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    sim.step()
+    first_valedictorian = sim.get_results()["valedictorian"]
+    assert len(first_valedictorian) == 1
+    sim.step()
+    second_valedictorian = sim.get_results()["valedictorian"]
+    assert len(second_valedictorian) == 1
+    assert (
+        first_valedictorian["student_id"].iat[0] != second_valedictorian["student_id"].iat[0]
+    )
+
+
+def test_concatenating_observation_results():
+    components = [
+        Hogwarts(),
+        ExamScoreObserver(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    sim.step()
+    results_one_step = sim.get_results()["exam_score"]
+    assert (results_one_step["exam_score"] == 10.0).all()
+    sim.step()
+    expected_two_steps = results_one_step.copy()
+    expected_two_steps["exam_score"] = 20.0
+    expected_two_steps["event_time"] = results_one_step["event_time"] + pd.Timedelta(
+        days=sim.configuration.time.step_size
+    )
+    assert sim.get_results()["exam_score"].equals(
+        pd.concat([results_one_step, expected_two_steps], axis=0).reset_index(drop=True)
+    )
+
+
+def test_adding_observation_results():
+    """Test that adding observation results are being updated correctly."""
 
     def _check_house_points(pop: pd.DataFrame, step_number: int) -> None:
         """We know that house points are stratified by 'student_house' and 'power_level_group'.
@@ -453,6 +510,27 @@ def test_update_monotonically_increasing__raw_results():
     pop = sim.get_population()
     _check_house_points(pop, step_number=2)
     _check_quidditch_wins(pop, step_number=2)
+
+
+def test_concatenating_observation_updates():
+    """Test that concatenating observation raw results are being updated correctly."""
+    components = [
+        Hogwarts(),
+        ExamScoreObserver(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+    sim.step()
+    results_one_step = sim.get_results()["exam_score"]
+    assert (results_one_step["exam_score"] == 10.0).all()
+    sim.step()
+    expected_two_steps = results_one_step.copy()
+    expected_two_steps["exam_score"] = 20.0
+    expected_two_steps["event_time"] = results_one_step["event_time"] + pd.Timedelta(
+        days=sim.configuration.time.step_size
+    )
+    assert sim.get_results()["exam_score"].equals(
+        pd.concat([results_one_step, expected_two_steps], axis=0).reset_index(drop=True)
+    )
 
 
 def test_update__raw_results_fully_filtered_pop():

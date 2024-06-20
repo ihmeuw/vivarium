@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     install_requirements = [
         "layered_config_tree>=1.0.2",
-        "numpy",
+        "numpy<2.0.0",
         "pandas",
         "pyyaml>=5.1",
         "scipy",
