@@ -286,11 +286,17 @@ def test_component_manager_add_components_duplicated(components):
     config = build_simulation_configuration()
     cm = ComponentManager()
     cm.configuration = config
-    with pytest.raises(ComponentConfigError, match="duplicate name"):
+    with pytest.raises(
+        ComponentConfigError,
+        match=f"Attempting to add a component with duplicate name: {MockComponentA()}",
+    ):
         cm.add_managers(components)
 
     config = build_simulation_configuration()
     cm = ComponentManager()
     cm.configuration = config
-    with pytest.raises(ComponentConfigError, match="duplicate name"):
+    with pytest.raises(
+        ComponentConfigError,
+        match=f"Attempting to add a component with duplicate name: {MockComponentA()}",
+    ):
         cm.add_components(components)
