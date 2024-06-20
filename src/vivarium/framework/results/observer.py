@@ -16,8 +16,6 @@ class Observer(Component, ABC):
     def __init__(self) -> None:
         super().__init__()
         self.results_dir = None
-        self.input_draw = None
-        self.random_seed = None
 
     @abstractmethod
     def register_observations(self, builder: Builder) -> None:
@@ -35,14 +33,6 @@ class Observer(Component, ABC):
             builder.configuration.to_dict()
             .get("output_data", {})
             .get("results_directory", None)
-        )
-        self.input_draw = (
-            builder.configuration.to_dict()
-            .get("input_data", {})
-            .get("input_draw_number", None)
-        )
-        self.random_seed = (
-            builder.configuration.to_dict().get("randomness", {}).get("random_seed", None)
         )
 
 
