@@ -14,6 +14,39 @@ def _silly_aggregator(_: pd.DataFrame) -> float:
     return 1.0
 
 
+@pytest.mark.parametrize(
+    ("obs_type", "missing_arg"),
+    [
+        ("StratifiedObservation", "results_updater"),
+        ("UnstratifiedObservation", "results_gatherer"),
+        ("UnstratifiedObservation", "results_updater"),
+    ],
+)
+def test_register_observation_raises(obs_type, missing_arg, mocker):
+    builder = mocker.Mock()
+    builder.configuration.stratification.default = []
+    mgr = ResultsManager()
+    mgr.setup(builder)
+    interface = ResultsInterface(mgr)
+    with pytest.raises(
+        ValueError,
+        match=(
+            rf"A\/an {obs_type} has been registered without a '{missing_arg}' "
+            r"Callable which is required for this observation type\."
+        ),
+    ):
+        if obs_type == "StratifiedObservation":
+            interface.register_stratified_observation(name="some-name")
+        if obs_type == "UnstratifiedObservation":
+            interface.register_unstratified_observation(name="some-name")
+        observations = interface._manager._results_context.observations
+        ((_filter, _stratifications), observation) = list(
+            observations["collect_metrics"].items()
+        )[0]
+        obs = observation[0]
+        eval(f"obs.{missing_arg}")()
+
+
 def test_register_stratified_observation(mocker):
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
@@ -52,28 +85,6 @@ def test_register_stratified_observation(mocker):
     assert obs.stratifications == stratifications
     assert obs.aggregator is not None
     assert obs.aggregator_sources is None
-
-
-def test_register_stratified_observation_raises(mocker):
-    builder = mocker.Mock()
-    builder.configuration.stratification.default = []
-    mgr = ResultsManager()
-    mgr.setup(builder)
-    interface = ResultsInterface(mgr)
-    with pytest.raises(
-        RuntimeError,
-        match=(
-            "A StratifiedObservation has been registered without a `results_updater` "
-            "Callable which is required."
-        ),
-    ):
-        interface.register_stratified_observation(name="some-name")
-        observations = interface._manager._results_context.observations
-        ((_filter, _stratifications), observation) = list(
-            observations["collect_metrics"].items()
-        )[0]
-        obs = observation[0]
-        obs.results_updater()
 
 
 def test_register_unstratified_observation(mocker):

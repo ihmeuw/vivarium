@@ -1,26 +1,18 @@
 from __future__ import annotations
 
+from functools import partial
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 
+from vivarium.framework.results.observation import (
+    StratifiedObservation,
+    UnstratifiedObservation,
+)
+
 if TYPE_CHECKING:
     # cyclic import
     from vivarium.framework.results.manager import ResultsManager
-
-
-def _raise_missing_unstratified_observation_results_gatherer(*args, **kwargs) -> pd.DataFrame:
-    raise RuntimeError(
-        "An UnstratifiedObservation has been registered without a `results_gatherer` "
-        "Callable which is required."
-    )
-
-
-def _raise_missing_unstratified_observation_results_updater(*args, **kwargs) -> pd.DataFrame:
-    raise RuntimeError(
-        "An UnstratifiedObservation has been registered without a `results_updater` "
-        "Callable which is required."
-    )
 
 
 def _raise_missing_stratified_observation_results_updater(*args, **kwargs) -> pd.DataFrame:
@@ -168,9 +160,9 @@ class ResultsInterface:
         when: str = "collect_metrics",
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
-        results_updater: Callable[
-            [pd.DataFrame, pd.DataFrame], pd.DataFrame
-        ] = _raise_missing_stratified_observation_results_updater,
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame] = partial(
+            StratifiedObservation._raise_missing, "results_updater"
+        ),
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
@@ -236,12 +228,12 @@ class ResultsInterface:
         when: str = "collect_metrics",
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
-        results_gatherer: Callable[
-            [pd.DataFrame], pd.DataFrame
-        ] = _raise_missing_unstratified_observation_results_gatherer,
-        results_updater: Callable[
-            [pd.DataFrame, pd.DataFrame], pd.DataFrame
-        ] = _raise_missing_unstratified_observation_results_updater,
+        results_gatherer: Callable[[pd.DataFrame], pd.DataFrame] = partial(
+            UnstratifiedObservation._raise_missing, "results_gatherer"
+        ),
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame] = partial(
+            UnstratifiedObservation._raise_missing, "results_updater"
+        ),
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
