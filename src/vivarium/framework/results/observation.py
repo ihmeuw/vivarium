@@ -64,6 +64,10 @@ class UnstratifiedObservation(BaseObservation):
             results_formatter=results_formatter,
         )
 
+    @property
+    def stratifications(self) -> None:
+        return None
+
 
 class StratifiedObservation(BaseObservation):
     """Container class for managing stratified observations.
