@@ -8,7 +8,12 @@ from pandas.core.groupby import DataFrameGroupBy
 
 from vivarium.framework.engine import Builder
 from vivarium.framework.results.exceptions import ResultsConfigurationError
-from vivarium.framework.results.observation import AddingObservation
+from vivarium.framework.results.observation import (
+    AddingObservation,
+    ConcatenatingObservation,
+    StratifiedObservation,
+    UnstratifiedObservation,
+)
 from vivarium.framework.results.stratification import Stratification
 
 
@@ -95,12 +100,58 @@ class ResultsContext:
         stratification = Stratification(name, sources, categories, mapper, is_vectorized)
         self.stratifications.append(stratification)
 
+    def register_stratified_observation(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        additional_stratifications: List[str],
+        excluded_stratifications: List[str],
+        aggregator_sources: Optional[List[str]],
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
+    ) -> None:
+        stratifications = self._get_stratifications(
+            additional_stratifications, excluded_stratifications
+        )
+        observation = StratifiedObservation(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_updater=results_updater,
+            results_formatter=results_formatter,
+            stratifications=stratifications,
+            aggregator_sources=aggregator_sources,
+            aggregator=aggregator,
+        )
+        self.observations[when][(pop_filter, stratifications)].append(observation)
+
+    def register_unstratified_observation(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+    ) -> None:
+        observation = UnstratifiedObservation(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_gatherer=results_gatherer,
+            results_updater=results_updater,
+            results_formatter=results_formatter,
+        )
+        self.observations[when][(pop_filter, None)].append(observation)
+
     def register_adding_observation(
         self,
         name: str,
         pop_filter: str,
         when: str,
-        formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         additional_stratifications: List[str],
         excluded_stratifications: List[str],
         aggregator_sources: Optional[List[str]],
@@ -113,12 +164,29 @@ class ResultsContext:
             name=name,
             pop_filter=pop_filter,
             when=when,
-            formatter=formatter,
+            results_formatter=results_formatter,
             stratifications=stratifications,
             aggregator_sources=aggregator_sources,
             aggregator=aggregator,
         )
         self.observations[when][(pop_filter, stratifications)].append(observation)
+
+    def register_concatenating_observation(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        included_columns: List[str],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+    ) -> None:
+        observation = ConcatenatingObservation(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            included_columns=included_columns,
+            results_formatter=results_formatter,
+        )
+        self.observations[when][(pop_filter, None)].append(observation)
 
     def gather_results(
         self, population: pd.DataFrame, event_name: str
@@ -145,10 +213,15 @@ class ResultsContext:
             if filtered_pop.empty:
                 yield None, None, None
             else:
-                pop_groups = self._get_groups(stratifications, filtered_pop)
-                for observation in observations:
-                    aggregates = observation.creator(pop_groups, stratifications)
-                    yield aggregates, observation.name, observation.updater
+                if stratifications is None:
+                    for observation in observations:
+                        df = observation.results_gatherer(filtered_pop)
+                        yield df, observation.name, observation.results_updater
+                else:
+                    pop_groups = self._get_groups(stratifications, filtered_pop)
+                    for observation in observations:
+                        aggregates = observation.results_gatherer(pop_groups, stratifications)
+                        yield aggregates, observation.name, observation.results_updater
 
     def _get_stratifications(
         self,
@@ -168,14 +241,13 @@ class ResultsContext:
 
     @staticmethod
     def _get_groups(
-        stratifications: Optional[Tuple[str, ...]], filtered_pop: pd.DataFrame
-    ) -> Union[DataFrameGroupBy, pd.DataFrame]:
+        stratifications: Tuple[str, ...], filtered_pop: pd.DataFrame
+    ) -> DataFrameGroupBy:
         # NOTE: It's a bit hacky how we are handling the groupby object if there
         # are no stratifications. The alternative is to use the entire population
         # instead of a groupby object, but then we would need to handle
         # the different ways the aggregator can behave.
-        if stratifications is None:
-            return filtered_pop
+
         return (
             filtered_pop.groupby(list(stratifications), observed=False)
             if list(stratifications)
