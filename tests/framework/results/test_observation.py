@@ -1,5 +1,6 @@
 import itertools
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -8,6 +9,7 @@ from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import (
     AddingObservation,
+    ConcatenatingObservation,
     StratifiedObservation,
 )
 
@@ -18,8 +20,8 @@ def stratified_observation():
         name="stratified_observation_name",
         pop_filter="",
         when="whenevs",
-        updater=lambda _, __: pd.DataFrame(),
-        formatter=lambda _, __: pd.DataFrame(),
+        results_updater=lambda _, __: pd.DataFrame(),
+        results_formatter=lambda _, __: pd.DataFrame(),
         stratifications=(),
         aggregator_sources=None,
         aggregator=lambda _: 0.0,
@@ -27,15 +29,13 @@ def stratified_observation():
 
 
 @pytest.fixture
-def adding_observation():
-    return AddingObservation(
-        name="adding_observation_name",
+def concatenating_observation():
+    return ConcatenatingObservation(
+        name="concatenating_observation_name",
         pop_filter="",
         when="whenevs",
-        formatter=lambda _, __: pd.DataFrame(),
-        stratifications=(),
-        aggregator_sources=None,
-        aggregator=lambda _: 0.0,
+        included_columns=["some-col", "some-other-col"],
+        results_formatter=lambda _, __: pd.DataFrame(),
     )
 
 
@@ -164,12 +164,12 @@ def test_stratified_observation__expand_index(aggregates, stratified_observation
         (),
     ],
 )
-def test_stratified_observation_creator(stratifications, stratified_observation):
+def test_stratified_observation_results_gatherer(stratifications, stratified_observation):
     ctx = ResultsContext()
     pop_groups = ctx._get_groups(
         stratifications=stratifications, filtered_pop=BASE_POPULATION
     )
-    df = stratified_observation.creator(pop_groups, stratifications)
+    df = stratified_observation.results_gatherer(pop_groups, stratifications)
     assert set(df.columns) == set(["value"])
     expected_idx_names = (
         list(stratifications) if len(stratifications) > 0 else ["stratification"]
@@ -191,10 +191,53 @@ def test_stratified_observation_creator(stratifications, stratified_observation)
         pd.DataFrame({"another_value": [3.0, 4.0], "yet_another_value": [5.0, 6.0]}),
     ],
 )
-def test_adding_observation_updater(new_observations, adding_observation):
+def test_adding_observation_results_updater(new_observations):
     existing_results = pd.DataFrame({"value": [0.0, 0.0]})
-    updated_results = adding_observation.updater(existing_results, new_observations)
+    obs = AddingObservation(
+        name="adding_observation_name",
+        pop_filter="",
+        when="whenevs",
+        results_formatter=lambda _, __: pd.DataFrame(),
+        stratifications=(),
+        aggregator_sources=None,
+        aggregator=lambda _: 0.0,
+    )
+    updated_results = obs.results_updater(existing_results, new_observations)
     if "value" in new_observations.columns:
         assert updated_results.equals(new_observations)
     else:
         assert updated_results.equals(pd.concat([existing_results, new_observations], axis=1))
+
+
+@pytest.mark.parametrize(
+    "new_observations, expected_results",
+    [
+        (
+            pd.DataFrame({"value": ["two", "three"]}),
+            pd.DataFrame({"value": ["zero", "one", "two", "three"]}),
+        ),
+        (
+            pd.DataFrame(
+                {
+                    "another_value": ["foo", "bar"],
+                    "yet_another_value": ["cat", "dog"],
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "value": ["zero", "one", np.nan, np.nan],
+                    "another_value": [np.nan, np.nan, "foo", "bar"],
+                    "yet_another_value": [np.nan, np.nan, "cat", "dog"],
+                }
+            ),
+        ),
+    ],
+)
+def test_concatenating_observation_results_updater(
+    new_observations, expected_results, concatenating_observation
+):
+    existing_results = pd.DataFrame({"value": ["zero", "one"]})
+    updated_results = concatenating_observation.results_updater(
+        existing_results, new_observations
+    )
+    assert updated_results.equals(expected_results)

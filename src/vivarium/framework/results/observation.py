@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple, Union
 
@@ -8,32 +9,64 @@ from pandas.core.groupby import DataFrameGroupBy
 
 
 @dataclass
-class Observation:
-    """The most basic container class for managing observations with the following attributes:
-    - `name`: name of the `Observation` and is the measure it is observing
+class BaseObservation(ABC):
+    """An abstract base dataclass to be inherited by concrete observations.
+    This class includes the following attributes:
+    - `name`: name of the observation and is the measure it is observing
     - `pop_filter`: a filter that is applied to the population before the observation is made
-    - `when`: the phase that the `Observation` is registered to
-    - `creator`: method that creates the results
-    - `updater`: method that updates the results with new observations
-    - `formatter`: method that formats the results
+    - `when`: the phase that the observation is registered to
+    - `results_gatherer`: method that gathers the new observation results
+    - `results_updater`: method that updates the results with new observations
+    - `results_formatter`: method that formats the results
     """
 
     name: str
     pop_filter: str
     when: str
-    creator: Callable
-    updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
-    formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
+    results_gatherer: Callable[..., pd.DataFrame]
+    results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
+    results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
 
 
-class StratifiedObservation(Observation):
-    """Container class for managing stratified observations. Includes the following attributes:
-    - `name`: name of the `StratifiedObservation` and is the measure it is observing
+class UnstratifiedObservation(BaseObservation):
+    """Container class for managing unstratified observations.
+    This class includes the following attributes:
+    - `name`: name of the observation and is the measure it is observing
     - `pop_filter`: a filter that is applied to the population before the observation is made
-    - `when`: the phase that the `StratifiedObservation` is registered to
-    - `updater`: method that updates the results with new observations
-    - `formatter`: method that formats the results
-    - `stratifications`: a tuple of columns for the `StratifiedObservation` to stratify by
+    - `when`: the phase that the observation is registered to
+    - `results_gatherer`: method that gathers the new observation results
+    - `results_updater`: method that updates the results with new observations
+    - `results_formatter`: method that formats the results
+    """
+
+    def __init__(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+    ):
+        super().__init__(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_gatherer=results_gatherer,
+            results_updater=results_updater,
+            results_formatter=results_formatter,
+        )
+
+
+class StratifiedObservation(BaseObservation):
+    """Container class for managing stratified observations.
+    This class includes the following attributes:
+    - `name`: name of the observation and is the measure it is observing
+    - `pop_filter`: a filter that is applied to the population before the observation is made
+    - `when`: the phase that the observation is registered to
+    - `results_updater`: method that updates the results with new observations
+    - `results_formatter`: method that formats the results
+    - `stratifications`: a tuple of columns for the observation to stratify by
     - `aggregator_sources`: a list of the columns to observe
     - `aggregator`: a method that aggregates the `aggregator_sources`
     """
@@ -43,27 +76,27 @@ class StratifiedObservation(Observation):
         name: str,
         pop_filter: str,
         when: str,
-        updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
-        formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         stratifications: Tuple[str, ...],
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
     ):
         super().__init__(
-            name,
-            pop_filter,
-            when,
-            self.create_results,
-            updater,
-            formatter,
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_gatherer=self.gather_results,
+            results_updater=results_updater,
+            results_formatter=results_formatter,
         )
         self.stratifications = stratifications
         self.aggregator_sources = aggregator_sources
         self.aggregator = aggregator
 
-    def create_results(
+    def gather_results(
         self,
-        pop_groups: Union[DataFrameGroupBy, pd.DataFrame],
+        pop_groups: DataFrameGroupBy,
         stratifications: Tuple[str, ...],
     ) -> pd.DataFrame:
         df = self._aggregate(pop_groups, self.aggregator_sources, self.aggregator)
@@ -75,7 +108,7 @@ class StratifiedObservation(Observation):
 
     @staticmethod
     def _aggregate(
-        pop_groups: Union[DataFrameGroupBy, pd.DataFrame],
+        pop_groups: DataFrameGroupBy,
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
     ) -> Union[pd.Series[float], pd.DataFrame]:
@@ -104,13 +137,14 @@ class StratifiedObservation(Observation):
 
 
 class AddingObservation(StratifiedObservation):
-    """Specific container class for managing stratified observations and adds
-    new ones at each phase the class is registered to. Includes the following attributes:
-    - `name`: name of the `AddingObservation` and is the measure it is observing
+    """Specific container class for managing stratified observations that add
+    new results to previous ones at each phase the class is registered to.
+    This class includes the following attributes:
+    - `name`: name of the observation and is the measure it is observing
     - `pop_filter`: a filter that is applied to the population before the observation is made
-    - `when`: the phase that the `AddingObservation` is registered to
-    - `formatter`: method that formats the results
-    - `stratifications`: a tuple of columns for the `AddingObservation` to stratify by
+    - `when`: the phase that the observation is registered to
+    - `results_formatter`: method that formats the results
+    - `stratifications`: a tuple of columns for the observation to stratify by
     - `aggregator_sources`: a list of the columns to observe
     - `aggregator`: a method that aggregates the `aggregator_sources`
     """
@@ -120,20 +154,20 @@ class AddingObservation(StratifiedObservation):
         name: str,
         pop_filter: str,
         when: str,
-        formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         stratifications: Tuple[str, ...],
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
     ):
         super().__init__(
-            name,
-            pop_filter,
-            when,
-            self.add_results,
-            formatter,
-            stratifications,
-            aggregator_sources,
-            aggregator,
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_updater=self.add_results,
+            results_formatter=results_formatter,
+            stratifications=stratifications,
+            aggregator_sources=aggregator_sources,
+            aggregator=aggregator,
         )
 
     @staticmethod
@@ -152,29 +186,43 @@ class AddingObservation(StratifiedObservation):
         return updated_results
 
 
-# TODO [MIC-4985]
-# class ConcatenatorObservation(Observation):
-#     def __init__(
-#         self,
-#         name: str,
-#         pop_filter: str,
-#         when: str,
-#         formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-#         creator: Callable,
-#     ):
-#         super().__init__(
-#             name,
-#             pop_filter,
-#             when,
-#             formatter,
-#             self.concatenate_results,
-#             creator,
-#         )
+class ConcatenatingObservation(UnstratifiedObservation):
+    """Specific container class for managing observations that concatenate
+    new results to previous ones at each phase the class is registered to.
+    Note that this class does not support stratifications.
+    This class includes the following attributes:
+    - `name`: name of the observation and is the measure it is observing
+    - `pop_filter`: a filter that is applied to the population before the observation is made
+    - `when`: the phase that the observation is registered to
+    - `included_columns`: the columns to include in the observation
+    - `results_formatter`: method that formats the results
+    """
 
-#     @staticmethod
-#     def concatenate_results(
-#         existing_results: pd.DataFrame, new_observations: pd.DataFrame
-#     ) -> pd.DataFrame:
-#         if existing_results.empty:
-#             return new_observations
-#         return pd.concat([existing_results, new_observations], axis=1)
+    def __init__(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        included_columns: List[str],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+    ):
+        super().__init__(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_gatherer=self.gather_results,
+            results_updater=self.concatenate_results,
+            results_formatter=results_formatter,
+        )
+        self.included_columns = included_columns
+
+    @staticmethod
+    def concatenate_results(
+        existing_results: pd.DataFrame, new_observations: pd.DataFrame
+    ) -> pd.DataFrame:
+        if existing_results.empty:
+            return new_observations
+        return pd.concat([existing_results, new_observations], axis=0).reset_index(drop=True)
+
+    def gather_results(self, pop: pd.DataFrame) -> pd.DataFrame:
+        return pop[self.included_columns]

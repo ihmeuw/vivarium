@@ -3,13 +3,14 @@ from __future__ import annotations
 import itertools
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.context import ResultsContext
+from vivarium.framework.results.stratification import Stratification
 from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
 
@@ -62,7 +63,7 @@ class ResultsManager(Manager):
                 for observation in observations:
                     measure = observation.name
                     results = self._raw_results[measure].copy()
-                    formatted[measure] = observation.formatter(
+                    formatted[measure] = observation.results_formatter(
                         measure=measure, results=results
                     )
         return formatted
@@ -101,50 +102,19 @@ class ResultsManager(Manager):
             ), observations in self._results_context.observations[event_name].items():
                 for observation in observations:
                     measure = observation.name
-                    all_requested_stratification_names = set(
-                        all_requested_stratification_names
-                    )
-
-                    # Batch missing stratifications
-                    observer_missing_stratifications = (
-                        all_requested_stratification_names.difference(
-                            registered_stratification_names
+                    if all_requested_stratification_names is not None:
+                        df, unused_stratifications = self._initialize_stratified_results(
+                            measure,
+                            all_requested_stratification_names,
+                            registered_stratifications,
+                            registered_stratification_names,
+                            missing_stratifications,
+                            unused_stratifications,
                         )
-                    )
-                    if observer_missing_stratifications:
-                        missing_stratifications[measure] = observer_missing_stratifications
-
-                    # Remove stratifications from the running list of unused stratifications
-                    unused_stratifications = unused_stratifications.difference(
-                        all_requested_stratification_names
-                    )
-
-                    # Set up the complete index of all used stratifications
-                    requested_and_registered_stratifications = [
-                        stratification
-                        for stratification in registered_stratifications
-                        if stratification.name in all_requested_stratification_names
-                    ]
-                    stratification_values = {
-                        stratification.name: stratification.categories
-                        for stratification in requested_and_registered_stratifications
-                    }
-                    if stratification_values:
-                        stratification_names = list(stratification_values.keys())
-                        df = pd.DataFrame(
-                            list(itertools.product(*stratification_values.values())),
-                            columns=stratification_names,
-                        ).astype(CategoricalDtype)
                     else:
-                        # We are aggregating the entire population so create a single-row index
-                        stratification_names = ["stratification"]
-                        df = pd.DataFrame(["all"], columns=stratification_names).astype(
-                            CategoricalDtype
-                        )
-
-                    # Initialize a zeros dataframe
-                    df[VALUE_COLUMN] = 0.0
-                    self._raw_results[measure] = df.set_index(stratification_names)
+                        # Initialize a completely empty dataframe
+                        df = pd.DataFrame()
+                    self._raw_results[measure] = df
 
         if unused_stratifications:
             self.logger.info(
@@ -183,18 +153,14 @@ class ResultsManager(Manager):
         for results_group, measure, updater in self._results_context.gather_results(
             population, event_name
         ):
-            if results_group is not None:
-                if measure is None:
-                    raise ValueError(
-                        f"There is a results group {results_group} but no corresponding measure"
-                    )
-                if updater is None:
-                    raise ValueError(
-                        f"There is a results group {results_group} but no corresponding updater"
-                    )
+            if results_group is not None and measure is not None and updater is not None:
                 self._raw_results[measure] = updater(
                     self._raw_results[measure], results_group
                 )
+
+    ##########################
+    # Stratification methods #
+    ##########################
 
     def set_default_stratifications(self, builder: Builder) -> None:
         default_stratifications = builder.configuration.stratification.default
@@ -303,33 +269,164 @@ class ResultsManager(Manager):
             **target_kwargs,
         )
 
+    #######################
+    # Observation methods #
+    #######################
+
+    def register_stratified_observation(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        requires_columns: List[str],
+        requires_values: List[str],
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        additional_stratifications: List[str],
+        excluded_stratifications: List[str],
+        aggregator_sources: Optional[List[str]],
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
+    ) -> None:
+        self.logger.debug(f"Registering observation {name}")
+        self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
+        self._results_context.register_stratified_observation(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_updater=results_updater,
+            results_formatter=results_formatter,
+            additional_stratifications=additional_stratifications,
+            excluded_stratifications=excluded_stratifications,
+            aggregator_sources=aggregator_sources,
+            aggregator=aggregator,
+        )
+        self._add_resources(requires_columns, SourceType.COLUMN)
+        self._add_resources(requires_values, SourceType.VALUE)
+
+    def register_unstratified_observation(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        requires_columns: List[str],
+        requires_values: List[str],
+        results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
+        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+    ) -> None:
+        self.logger.debug(f"Registering observation {name}")
+        self._results_context.register_unstratified_observation(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_gatherer=results_gatherer,
+            results_updater=results_updater,
+            results_formatter=results_formatter,
+        )
+        self._add_resources(["event_time"] + requires_columns, SourceType.COLUMN)
+        self._add_resources(requires_values, SourceType.VALUE)
+
     def register_adding_observation(
         self,
         name: str,
         pop_filter: str,
         when: str,
-        formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        requires_columns: List[str],
+        requires_values: List[str],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         additional_stratifications: List[str],
         excluded_stratifications: List[str],
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
-        requires_columns: List[str],
-        requires_values: List[str],
     ) -> None:
         self.logger.debug(f"Registering observation {name}")
         self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
         self._results_context.register_adding_observation(
-            name,
-            pop_filter,
-            when,
-            formatter,
-            additional_stratifications,
-            excluded_stratifications,
-            aggregator_sources,
-            aggregator,
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            results_formatter=results_formatter,
+            additional_stratifications=additional_stratifications,
+            excluded_stratifications=excluded_stratifications,
+            aggregator_sources=aggregator_sources,
+            aggregator=aggregator,
         )
         self._add_resources(requires_columns, SourceType.COLUMN)
         self._add_resources(requires_values, SourceType.VALUE)
+
+    def register_concatenating_observation(
+        self,
+        name: str,
+        pop_filter: str,
+        when: str,
+        requires_columns: List[str],
+        requires_values: List[str],
+        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+    ) -> None:
+        self.logger.debug(f"Registering observation {name}")
+        self._results_context.register_concatenating_observation(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            included_columns=["event_time"] + requires_columns + requires_values,
+            results_formatter=results_formatter,
+        )
+        self._add_resources(["event_time"] + requires_columns, SourceType.COLUMN)
+        self._add_resources(requires_values, SourceType.VALUE)
+
+    ##################
+    # Helper methods #
+    ##################
+
+    @staticmethod
+    def _initialize_stratified_results(
+        measure: str,
+        all_requested_stratification_names: List[str],
+        registered_stratifications: List[Stratification],
+        registered_stratification_names: Set[str],
+        missing_stratifications: Dict[str, Set[str]],
+        unused_stratifications: Set[str],
+    ) -> Tuple[pd.DataFrame, Set[str]]:
+        all_requested_stratification_names = set(all_requested_stratification_names)
+
+        # Batch missing stratifications
+        observer_missing_stratifications = all_requested_stratification_names.difference(
+            registered_stratification_names
+        )
+        if observer_missing_stratifications:
+            missing_stratifications[measure] = observer_missing_stratifications
+
+            # Remove stratifications from the running list of unused stratifications
+        unused_stratifications = unused_stratifications.difference(
+            all_requested_stratification_names
+        )
+
+        # Set up the complete index of all used stratifications
+        requested_and_registered_stratifications = [
+            stratification
+            for stratification in registered_stratifications
+            if stratification.name in all_requested_stratification_names
+        ]
+        stratification_values = {
+            stratification.name: stratification.categories
+            for stratification in requested_and_registered_stratifications
+        }
+        if stratification_values:
+            stratification_names = list(stratification_values.keys())
+            df = pd.DataFrame(
+                list(itertools.product(*stratification_values.values())),
+                columns=stratification_names,
+            ).astype(CategoricalDtype)
+        else:
+            # We are aggregating the entire population so create a single-row index
+            stratification_names = ["stratification"]
+            df = pd.DataFrame(["all"], columns=stratification_names).astype(CategoricalDtype)
+
+            # Initialize a zeros dataframe
+        df[VALUE_COLUMN] = 0.0
+        df = df.set_index(stratification_names)
+
+        return df, unused_stratifications
 
     def _add_resources(self, target: List[str], target_type: SourceType) -> None:
         if len(target) == 0:
