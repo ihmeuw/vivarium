@@ -227,8 +227,12 @@ class CatBombObserver(StratifiedObserver):
 
 class ValedictorianObserver(Observer):
     """Observer that records the valedictorian at each time step. All students
-    have the same exam scores and so the valecdictorian is chosen randomly.
+    have the same exam scores and so the valedictorian is chosen randomly.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.valedictorians = []
 
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_unstratified_observation(
@@ -238,9 +242,10 @@ class ValedictorianObserver(Observer):
             results_updater=self.update_valedictorian,
         )
 
-    @staticmethod
-    def choose_valedictorian(df):
-        valedictorian = RNG.choice(df["student_id"])
+    def choose_valedictorian(self, df):
+        eligible_students = df.loc[~df["student_id"].isin(self.valedictorians), "student_id"]
+        valedictorian = RNG.choice(eligible_students)
+        self.valedictorians.append(valedictorian)
         return df[df["student_id"] == valedictorian]
 
     @staticmethod
