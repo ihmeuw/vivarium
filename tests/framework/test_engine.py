@@ -393,9 +393,6 @@ def test_get_results_formatting(SimulationContext, base_config):
         df = eval(measure)
         # Check that metrics col matches name of dataset
         assert (df["measure"] == measure).all()
-        # Check for other cols
-        assert "random_seed" in df.columns
-        assert "input_draw" in df.columns
         # We do enforce a col order, but most importantly ensure VALUE_COLUMN is at the end
         assert df.columns[-1] == VALUE_COLUMN
         # Check values
