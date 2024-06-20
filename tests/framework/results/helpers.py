@@ -202,22 +202,27 @@ class ExamScoreObserver(Observer):
         )
 
 
-class CatLivesObserver(StratifiedObserver):
-    """Observer that counts the number of cat lives per house"""
+class CatBombObserver(StratifiedObserver):
+    """Observer that counts the number of feral cats per house"""
 
     def register_observations(self, builder: Builder) -> None:
-        builder.results.register_adding_observation(
-            name="cat_lives",
+        builder.results.register_stratified_observation(
+            name="cat_bomb",
             pop_filter="familiar=='cat' and tracked==True",
             requires_columns=["familiar"],
+            results_updater=self.update_cats,
             excluded_stratifications=["power_level_group"],
             aggregator_sources=["student_house"],
-            aggregator=self.count_lives,
+            aggregator=len,
         )
 
     @staticmethod
-    def count_lives(group):
-        return len(group) * 9
+    def update_cats(existing_df, new_df):
+        no_cats_mask = existing_df["value"] == 0
+        updated_df = existing_df
+        updated_df.loc[no_cats_mask, "value"] = new_df["value"]
+        updated_df.loc[~no_cats_mask, "value"] *= new_df["value"]
+        return updated_df
 
 
 class ValedictorianObserver(Observer):

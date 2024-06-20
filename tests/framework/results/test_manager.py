@@ -19,7 +19,7 @@ from tests.framework.results.helpers import (
     POWER_LEVEL_GROUP_LABELS,
     SOURCES,
     STUDENT_HOUSES,
-    CatLivesObserver,
+    CatBombObserver,
     ExamScoreObserver,
     FullyFilteredHousePointsObserver,
     Hogwarts,
@@ -450,18 +450,21 @@ def test_unused_stratifications_are_logged(caplog):
 def test_stratified_observation_results():
     components = [
         Hogwarts(),
-        CatLivesObserver(),
+        CatBombObserver(),
         HogwartsResultsStratifier(),
     ]
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
-    assert (sim.get_results()["cat_lives"]["value"] == 0.0).all()
+    assert (sim.get_results()["cat_bomb"]["value"] == 0.0).all()
     sim.step()
     num_familiars = sim.get_population().groupby(["familiar", "student_house"]).apply(len)
-    expected = num_familiars.loc["cat"] * 9.0
+    expected = num_familiars.loc["cat"] ** 1.0
     expected.name = "value"
-    assert expected.sort_values().equals(
-        sim.get_results()["cat_lives"]["value"].sort_values()
-    )
+    assert expected.sort_values().equals(sim.get_results()["cat_bomb"]["value"].sort_values())
+    sim.step()
+    num_familiars = sim.get_population().groupby(["familiar", "student_house"]).apply(len)
+    expected = num_familiars.loc["cat"] ** 2.0
+    expected.name = "value"
+    assert expected.sort_values().equals(sim.get_results()["cat_bomb"]["value"].sort_values())
 
 
 def test_unstratified_observation_results():
