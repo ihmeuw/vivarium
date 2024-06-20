@@ -46,6 +46,7 @@ class Observer(Component, ABC):
         )
 
 
+# TODO: Move this property into Observer and get rid of StratifiedObserver
 class StratifiedObserver(Observer):
     @property
     def configuration_defaults(self) -> Dict[str, Any]:

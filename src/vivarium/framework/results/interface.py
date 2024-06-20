@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 import pandas as pd
 
 from vivarium.framework.results.observation import (
+    AddingObservation,
+    ConcatenatingObservation,
     StratifiedObservation,
     UnstratifiedObservation,
 )
@@ -13,13 +15,6 @@ from vivarium.framework.results.observation import (
 if TYPE_CHECKING:
     # cyclic import
     from vivarium.framework.results.manager import ResultsManager
-
-
-def _raise_missing_stratified_observation_results_updater(*args, **kwargs) -> pd.DataFrame:
-    raise RuntimeError(
-        "A StratifiedObservation has been registered without a `results_updater` "
-        "Callable which is required."
-    )
 
 
 class ResultsInterface:
@@ -207,7 +202,9 @@ class ResultsInterface:
         ------
         None
         """
-        self._manager.register_stratified_observation(
+        self._manager.register_observation(
+            observation_type=StratifiedObservation,
+            is_stratified=True,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -276,7 +273,9 @@ class ResultsInterface:
         ------
         None
         """
-        self._manager.register_unstratified_observation(
+        self._manager.register_observation(
+            observation_type=UnstratifiedObservation,
+            is_stratified=False,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -335,7 +334,10 @@ class ResultsInterface:
         ------
         None
         """
-        self._manager.register_adding_observation(
+
+        self._manager.register_observation(
+            observation_type=AddingObservation,
+            is_stratified=True,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -382,7 +384,9 @@ class ResultsInterface:
         ------
         None
         """
-        self._manager.register_concatenating_observation(
+        self._manager.register_observation(
+            observation_type=ConcatenatingObservation,
+            is_stratified=False,
             name=name,
             pop_filter=pop_filter,
             when=when,

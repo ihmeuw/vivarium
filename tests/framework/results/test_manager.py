@@ -35,8 +35,53 @@ from tests.framework.results.helpers import (
     verify_stratification_added,
 )
 from vivarium.framework.results import VALUE_COLUMN
+from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.manager import ResultsManager
+from vivarium.framework.results.observation import AddingObservation
 from vivarium.interface.interactive import InteractiveContext
+
+
+@pytest.mark.parametrize(
+    "stratifications, default_stratifications, additional_stratifications, excluded_stratifications, expected_stratifications",
+    [
+        ([], [], [], [], ()),
+        (
+            [],
+            ["age", "sex"],
+            ["handedness"],
+            ["age"],
+            ("sex", "handedness"),
+        ),
+        ([], ["age", "sex"], [], ["age", "sex"], ()),
+        ([], ["age"], [], ["bogus_exclude_column"], ("age",)),
+        (["custom"], ["age", "sex"], [], [], ("custom", "age", "sex")),
+    ],
+    ids=[
+        "empty_add_empty_exclude",
+        "one_add_one_exclude",
+        "all_defaults_excluded",
+        "bogus_exclude",
+        "custom_stratification",
+    ],
+)
+def test__get_stratifications(
+    stratifications,
+    default_stratifications,
+    additional_stratifications,
+    excluded_stratifications,
+    expected_stratifications,
+    mocker,
+):
+    ctx = ResultsContext()
+    ctx.default_stratifications = default_stratifications
+    mgr = ResultsManager()
+    mocker.patch.object(mgr, "_results_context", ctx)
+    # default_stratifications would normally be set via ResultsInterface.set_default_stratifications()
+    stratifications = mgr._get_stratifications(
+        stratifications, additional_stratifications, excluded_stratifications
+    )
+    assert sorted(stratifications) == sorted(expected_stratifications)
+
 
 #######################################
 # Tests for `register_stratification` #
@@ -259,7 +304,9 @@ def test_add_observation_nop_stratifications(
     mgr.logger = logger
 
     mgr._results_context.default_stratifications = default
-    mgr.register_adding_observation(
+    mgr.register_observation(
+        observation_type=AddingObservation,
+        is_stratified=True,
         name="name",
         pop_filter='alive == "alive"',
         aggregator_sources=[],

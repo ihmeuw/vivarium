@@ -244,15 +244,15 @@ def test_unhashable_pipeline(mocker):
     assert len(interface._manager._results_context.observations) == 0
     with pytest.raises(TypeError, match="unhashable"):
         interface.register_adding_observation(
-            "living_person_time",
-            'alive == "alive" and undead == False',
-            [],
-            _silly_aggregator,
-            [],
-            [["bad", "unhashable", "thing"]],  # unhashable first element
-            [],
-            [],
-            "collect_metrics",
+            name="living_person_time",
+            pop_filter='alive == "alive" and undead == False',
+            when="collect_metrics",
+            requires_columns=[],
+            requires_values=[["bad", "unhashable", "thing"]],  # unhashable first element
+            additional_stratifications=[],
+            excluded_stratifications=[],
+            aggregator_sources=[],
+            aggregator=_silly_aggregator,
         )
 
 
