@@ -1,5 +1,4 @@
 import itertools
-from functools import partial
 from typing import List
 
 import numpy as np
@@ -122,7 +121,7 @@ class HousePointsObserver(StratifiedObserver):
             requires_columns=[
                 "house_points",
             ],
-            results_formatter=partial(formatter, self.random_seed, self.input_draw),
+            results_formatter=results_formatter,
         )
 
 
@@ -154,7 +153,7 @@ class QuidditchWinsObserver(StratifiedObserver):
             requires_columns=[
                 "quidditch_wins",
             ],
-            results_formatter=partial(formatter, self.random_seed, self.input_draw),
+            results_formatter=results_formatter,
         )
 
 
@@ -170,7 +169,7 @@ class NoStratificationsQuidditchWinsObserver(StratifiedObserver):
             requires_columns=[
                 "quidditch_wins",
             ],
-            results_formatter=partial(formatter, self.random_seed, self.input_draw),
+            results_formatter=results_formatter,
         )
 
 
@@ -266,17 +265,13 @@ class HogwartsResultsStratifier(Component):
 ##################
 
 
-def formatter(
-    random_seed: str,
-    input_draw: str,
+def results_formatter(
     measure: str,
     results: pd.DataFrame,
 ) -> pd.DataFrame:
     """An test use case of an observer's report method that writes a DataFrame to a CSV file."""
     # Add extra cols
     results["measure"] = measure
-    results["random_seed"] = random_seed
-    results["input_draw"] = input_draw
     # Sort the columns such that the stratifications (index) are first
     # and VALUE_COLUMN is last and sort the rows by the stratifications.
     other_cols = [c for c in results.columns if c != VALUE_COLUMN]
