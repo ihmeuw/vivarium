@@ -277,7 +277,7 @@ class ResultsManager(Manager):
         **kwargs,
     ):
         self.logger.debug(f"Registering observation {kwargs['name']}")
-        # Are we stratified or not?
+
         if is_stratified:
             additional_stratifications = kwargs.get("additional_stratifications", [])
             excluded_stratifications = kwargs.get("excluded_stratifications", [])
