@@ -26,6 +26,7 @@ class BaseObservation(ABC):
     results_gatherer: Callable[..., pd.DataFrame]
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
+    stratifications: Optional[Tuple[str]]
 
 
 class UnstratifiedObservation(BaseObservation):
@@ -55,6 +56,7 @@ class UnstratifiedObservation(BaseObservation):
             results_gatherer=results_gatherer,
             results_updater=results_updater,
             results_formatter=results_formatter,
+            stratifications=None,
         )
 
 
@@ -89,8 +91,8 @@ class StratifiedObservation(BaseObservation):
             results_gatherer=self.gather_results,
             results_updater=results_updater,
             results_formatter=results_formatter,
+            stratifications=stratifications,
         )
-        self.stratifications = stratifications
         self.aggregator_sources = aggregator_sources
         self.aggregator = aggregator
 

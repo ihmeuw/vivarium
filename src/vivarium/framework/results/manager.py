@@ -10,6 +10,7 @@ from pandas.api.types import CategoricalDtype
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.context import ResultsContext
+from vivarium.framework.results.observation import ConcatenatingObservation
 from vivarium.framework.results.stratification import Stratification
 from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
@@ -269,114 +270,65 @@ class ResultsManager(Manager):
             **target_kwargs,
         )
 
-    #######################
-    # Observation methods #
-    #######################
-
-    def register_stratified_observation(
+    def register_observation(
         self,
+        observation_type,
+        is_stratified: bool,
         name: str,
         pop_filter: str,
         when: str,
         requires_columns: List[str],
         requires_values: List[str],
-        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
-        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-        additional_stratifications: List[str],
-        excluded_stratifications: List[str],
-        aggregator_sources: Optional[List[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
-    ) -> None:
+        **kwargs,
+    ):
         self.logger.debug(f"Registering observation {name}")
-        self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
-        self._results_context.register_stratified_observation(
-            name=name,
-            pop_filter=pop_filter,
-            when=when,
-            results_updater=results_updater,
-            results_formatter=results_formatter,
-            additional_stratifications=additional_stratifications,
-            excluded_stratifications=excluded_stratifications,
-            aggregator_sources=aggregator_sources,
-            aggregator=aggregator,
-        )
+
+        if is_stratified:
+            additional_stratifications = kwargs.get("additional_stratifications", [])
+            excluded_stratifications = kwargs.get("excluded_stratifications", [])
+            self._warn_check_stratifications(
+                additional_stratifications, excluded_stratifications
+            )
+            stratifications = self._get_stratifications(
+                kwargs.get("stratifications", []),
+                additional_stratifications,
+                excluded_stratifications,
+            )
+            kwargs["stratifications"] = stratifications
+            del kwargs["additional_stratifications"]
+            del kwargs["excluded_stratifications"]
+
         self._add_resources(requires_columns, SourceType.COLUMN)
         self._add_resources(requires_values, SourceType.VALUE)
 
-    def register_unstratified_observation(
-        self,
-        name: str,
-        pop_filter: str,
-        when: str,
-        requires_columns: List[str],
-        requires_values: List[str],
-        results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
-        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
-        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-    ) -> None:
-        self.logger.debug(f"Registering observation {name}")
-        self._results_context.register_unstratified_observation(
+        self._results_context.register_observation(
+            observation_type=observation_type,
             name=name,
             pop_filter=pop_filter,
             when=when,
-            results_gatherer=results_gatherer,
-            results_updater=results_updater,
-            results_formatter=results_formatter,
+            **kwargs,
         )
-        self._add_resources(["event_time"] + requires_columns, SourceType.COLUMN)
-        self._add_resources(requires_values, SourceType.VALUE)
-
-    def register_adding_observation(
-        self,
-        name: str,
-        pop_filter: str,
-        when: str,
-        requires_columns: List[str],
-        requires_values: List[str],
-        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-        additional_stratifications: List[str],
-        excluded_stratifications: List[str],
-        aggregator_sources: Optional[List[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
-    ) -> None:
-        self.logger.debug(f"Registering observation {name}")
-        self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
-        self._results_context.register_adding_observation(
-            name=name,
-            pop_filter=pop_filter,
-            when=when,
-            results_formatter=results_formatter,
-            additional_stratifications=additional_stratifications,
-            excluded_stratifications=excluded_stratifications,
-            aggregator_sources=aggregator_sources,
-            aggregator=aggregator,
-        )
-        self._add_resources(requires_columns, SourceType.COLUMN)
-        self._add_resources(requires_values, SourceType.VALUE)
-
-    def register_concatenating_observation(
-        self,
-        name: str,
-        pop_filter: str,
-        when: str,
-        requires_columns: List[str],
-        requires_values: List[str],
-        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-    ) -> None:
-        self.logger.debug(f"Registering observation {name}")
-        self._results_context.register_concatenating_observation(
-            name=name,
-            pop_filter=pop_filter,
-            when=when,
-            included_columns=["event_time"] + requires_columns + requires_values,
-            results_formatter=results_formatter,
-        )
-        self._add_resources(["event_time"] + requires_columns, SourceType.COLUMN)
-        self._add_resources(requires_values, SourceType.VALUE)
 
     ##################
     # Helper methods #
     ##################
+
+    def _get_stratifications(
+        self,
+        stratifications: List[str] = [],
+        additional_stratifications: List[str] = [],
+        excluded_stratifications: List[str] = [],
+    ) -> Tuple[str, ...]:
+        stratifications = list(
+            set(
+                self._results_context.default_stratifications
+                + stratifications
+                + additional_stratifications
+            )
+            - set(excluded_stratifications)
+        )
+        # Makes sure measure identifiers have fields in the same relative order.
+        return tuple(sorted(stratifications))
 
     @staticmethod
     def _initialize_stratified_results(
