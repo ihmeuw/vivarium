@@ -18,6 +18,10 @@ from tests.framework.results.helpers import (
 )
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
+from vivarium.framework.results.observation import (
+    AddingObservation,
+    ConcatenatingObservation,
+)
 
 
 @pytest.mark.parametrize(
@@ -90,119 +94,58 @@ def _aggregate_state_person_time(x: pd.DataFrame) -> float:
 
 
 @pytest.mark.parametrize(
-    "name, pop_filter, aggregator, additional_stratifications, excluded_stratifications, when",
+    "kwargs",
     [
-        (
-            "living_person_time",
-            'alive == "alive" and undead == False',
-            _aggregate_state_person_time,
-            [],
-            [],
-            "collect_metrics",
-        ),
-        (
-            "undead_person_time",
-            "undead == True",
-            _aggregate_state_person_time,
-            [],
-            [],
-            "time_step__prepare",
-        ),
+        {
+            "name": "living_person_time",
+            "pop_filter": 'alive == "alive" and undead == False',
+            "when": "collect_metrics",
+        },
+        {
+            "name": "undead_person_time",
+            "pop_filter": "undead == True",
+            "when": "time_step__prepare",
+        },
     ],
     ids=["valid_on_collect_metrics", "valid_on_time_step__prepare"],
 )
-def test_add_observation(
-    name, pop_filter, aggregator, additional_stratifications, excluded_stratifications, when
-):
+def test_add_observation(kwargs):
     ctx = ResultsContext()
-    ctx._default_stratifications = ["age", "sex"]
     assert len(ctx.observations) == 0
-    ctx.register_adding_observation(
-        name=name,
-        pop_filter=pop_filter,
-        aggregator_sources=[],
-        aggregator=aggregator,
-        additional_stratifications=additional_stratifications,
-        excluded_stratifications=excluded_stratifications,
-        when=when,
-        results_formatter=lambda: None,
+    kwargs["results_formatter"] = lambda: None
+    kwargs["stratifications"] = tuple()
+    kwargs["aggregator_sources"] = []
+    kwargs["aggregator"] = len
+    ctx.register_observation(
+        observation_type=AddingObservation,
+        **kwargs,
     )
     assert len(ctx.observations) == 1
 
 
-@pytest.mark.parametrize(
-    "name, pop_filter, aggregator, additional_stratifications, excluded_stratifications, when",
-    [
-        (
-            "living_person_time",
-            'alive == "alive" and undead == False',
-            _aggregate_state_person_time,
-            [],
-            [],
-            "collect_metrics",
-        ),
-    ],
-    ids=["valid_on_collect_metrics"],
-)
-def test_double_add_observation(
-    name, pop_filter, aggregator, additional_stratifications, excluded_stratifications, when
-):
+def test_double_add_observation():
     """Tests a double add of the same stratification, this should result in one
     additional observation being added to the context."""
     ctx = ResultsContext()
-    ctx._default_stratifications = ["age", "sex"]
     assert len(ctx.observations) == 0
-    ctx.register_adding_observation(
-        name=name,
-        pop_filter=pop_filter,
-        aggregator_sources=[],
-        aggregator=aggregator,
-        additional_stratifications=additional_stratifications,
-        excluded_stratifications=excluded_stratifications,
-        when=when,
-        results_formatter=lambda: None,
+    kwargs = {
+        "name": "living_person_time",
+        "pop_filter": 'alive == "alive" and undead == False',
+        "when": "collect_metrics",
+        "results_formatter": lambda: None,
+        "stratifications": tuple(),
+        "aggregator_sources": [],
+        "aggregator": len,
+    }
+    ctx.register_observation(
+        observation_type=AddingObservation,
+        **kwargs,
     )
-    ctx.register_adding_observation(
-        name=name,
-        pop_filter=pop_filter,
-        aggregator_sources=[],
-        aggregator=aggregator,
-        additional_stratifications=additional_stratifications,
-        excluded_stratifications=excluded_stratifications,
-        when=when,
-        results_formatter=lambda: None,
+    ctx.register_observation(
+        observation_type=AddingObservation,
+        **kwargs,
     )
     assert len(ctx.observations) == 1
-
-
-@pytest.mark.parametrize(
-    "default_stratifications, additional_stratifications, excluded_stratifications, expected_stratifications",
-    [
-        ([], [], [], ()),
-        (["age", "sex"], ["handedness"], ["age"], ("sex", "handedness")),
-        (["age", "sex"], [], ["age", "sex"], ()),
-        (["age"], [], ["bogus_exclude_column"], ("age",)),
-    ],
-    ids=[
-        "empty_add_empty_exclude",
-        "one_add_one_exclude",
-        "all_defaults_excluded",
-        "bogus_exclude",
-    ],
-)
-def test__get_stratifications(
-    default_stratifications,
-    additional_stratifications,
-    excluded_stratifications,
-    expected_stratifications,
-):
-    ctx = ResultsContext()
-    # default_stratifications would normally be set via ResultsInterface.set_default_stratifications()
-    ctx.default_stratifications = default_stratifications
-    stratifications = ctx._get_stratifications(
-        additional_stratifications, excluded_stratifications
-    )
-    assert sorted(stratifications) == sorted(expected_stratifications)
 
 
 @pytest.mark.parametrize(
@@ -261,13 +204,13 @@ def test_adding_observation_gather_results(
         ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     if "familiar" in stratifications:
         ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
-    ctx.register_adding_observation(
+    ctx.register_observation(
+        observation_type=AddingObservation,
         name="foo",
         pop_filter=pop_filter,
         aggregator_sources=aggregator_sources,
         aggregator=aggregator,
-        additional_stratifications=stratifications,
-        excluded_stratifications=[],
+        stratifications=tuple(stratifications),
         when=event_name,
         results_formatter=lambda: None,
     )
@@ -312,7 +255,8 @@ def test_concatenating_observation_gather_results():
     event_name = "collect_metrics"
     pop_filter = "house=='hufflepuff'"
     included_cols = ["event_time", "familiar", "house"]
-    ctx.register_concatenating_observation(
+    ctx.register_observation(
+        observation_type=ConcatenatingObservation,
         name="foo",
         pop_filter=pop_filter,
         when=event_name,
@@ -386,19 +330,20 @@ def test_gather_results_partial_stratifications_in_results(
         ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     if "familiar" in stratifications:
         ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
-    ctx.register_adding_observation(
+
+    ctx.register_observation(
+        observation_type=AddingObservation,
         name=name,
         pop_filter=pop_filter,
         aggregator_sources=aggregator_sources,
         aggregator=aggregator,
-        additional_stratifications=stratifications,
-        excluded_stratifications=[],
+        stratifications=tuple(stratifications),
         when=event_name,
         results_formatter=lambda: None,
     )
 
     for results, _measure, _formatter in ctx.gather_results(population, event_name):
-        unladen_results = results.loc["unladen_swallow"]
+        unladen_results = results.reset_index().query('familiar=="unladen_swallow"')
         assert len(unladen_results) > 0
         assert (unladen_results[VALUE_COLUMN] == 0).all()
 
@@ -413,13 +358,13 @@ def test_gather_results_with_empty_pop_filter():
     population = BASE_POPULATION.copy()
 
     event_name = "collect_metrics"
-    ctx.register_adding_observation(
+    ctx.register_observation(
+        observation_type=AddingObservation,
         name="wizard_count",
         pop_filter="house == 'durmstrang'",
         aggregator_sources=[],
         aggregator=len,
-        additional_stratifications=[],
-        excluded_stratifications=[],
+        stratifications=tuple(),
         when=event_name,
         results_formatter=lambda: None,
     )
@@ -436,13 +381,13 @@ def test_gather_results_with_no_stratifications():
     population = BASE_POPULATION.copy()
 
     event_name = "collect_metrics"
-    ctx.register_adding_observation(
+    ctx.register_observation(
+        observation_type=AddingObservation,
         name="wizard_count",
         pop_filter="",
         aggregator_sources=None,
         aggregator=len,
-        additional_stratifications=[],
-        excluded_stratifications=[],
+        stratifications=tuple(),
         when=event_name,
         results_formatter=lambda: None,
     )
@@ -471,13 +416,13 @@ def test_bad_aggregator_stratification():
     # Set up stratifications
     ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
     ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
-    ctx.register_adding_observation(
+    ctx.register_observation(
+        observation_type=AddingObservation,
         name="this_shouldnt_work",
         pop_filter="",
         aggregator_sources=[],
         aggregator=sum,
-        additional_stratifications=["house", "height"],  # `height` is not a stratification
-        excluded_stratifications=[],
+        stratifications=("house", "height"),  # `height` is not a stratification
         when=event_name,
         results_formatter=lambda: None,
     )
