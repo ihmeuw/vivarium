@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 from types import MethodType
 
@@ -15,36 +16,26 @@ def _silly_aggregator(_: pd.DataFrame) -> float:
 
 
 @pytest.mark.parametrize(
-    ("obs_type", "missing_arg"),
+    ("obs_type", "missing_args"),
     [
-        ("StratifiedObservation", "results_updater"),
-        ("UnstratifiedObservation", "results_gatherer"),
-        ("UnstratifiedObservation", "results_updater"),
+        ("StratifiedObservation", ["results_updater"]),
+        ("UnstratifiedObservation", ["results_gatherer", "results_updater"]),
     ],
 )
-def test_register_observation_raises(obs_type, missing_arg, mocker):
+def test_register_observation_raises(obs_type, missing_args, mocker):
     builder = mocker.Mock()
     builder.configuration.stratification.default = []
     mgr = ResultsManager()
     mgr.setup(builder)
     interface = ResultsInterface(mgr)
-    with pytest.raises(
-        ValueError,
-        match=(
-            rf"A\/an {obs_type} has been registered without a '{missing_arg}' "
-            r"Callable which is required for this observation type\."
-        ),
-    ):
+    match = re.escape(
+        f"Observation 'some-name' is missing required callable(s): {missing_args}",
+    )
+    with pytest.raises(ValueError, match=match):
         if obs_type == "StratifiedObservation":
             interface.register_stratified_observation(name="some-name")
         if obs_type == "UnstratifiedObservation":
             interface.register_unstratified_observation(name="some-name")
-        observations = interface._manager._results_context.observations
-        ((_filter, _stratifications), observation) = list(
-            observations["collect_metrics"].items()
-        )[0]
-        obs = observation[0]
-        eval(f"obs.{missing_arg}")()
 
 
 def test_register_stratified_observation(mocker):

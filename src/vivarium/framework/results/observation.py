@@ -28,11 +28,8 @@ class BaseObservation(ABC):
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
 
     @classmethod
-    def _raise_missing(cls, missing_arg: str, *args, **kwargs) -> pd.DataFrame:
-        raise ValueError(
-            f"A/an {cls.__name__} has been registered without a '{missing_arg}' "
-            "Callable which is required for this observation type."
-        )
+    def _raise_missing(cls, *args, **kwargs) -> pd.DataFrame:
+        return pd.DataFrame()
 
 
 class UnstratifiedObservation(BaseObservation):

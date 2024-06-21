@@ -7,6 +7,7 @@ import pandas as pd
 
 from vivarium.framework.results.observation import (
     AddingObservation,
+    BaseObservation,
     ConcatenatingObservation,
     StratifiedObservation,
     UnstratifiedObservation,
@@ -155,9 +156,9 @@ class ResultsInterface:
         when: str = "collect_metrics",
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
-        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame] = partial(
-            StratifiedObservation._raise_missing, "results_updater"
-        ),
+        results_updater: Callable[
+            [pd.DataFrame, pd.DataFrame], pd.DataFrame
+        ] = StratifiedObservation._raise_missing,
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
@@ -202,6 +203,7 @@ class ResultsInterface:
         ------
         None
         """
+        self._check_for_required_callables(name, {"results_updater": results_updater})
         self._manager.register_observation(
             observation_type=StratifiedObservation,
             is_stratified=True,
@@ -218,6 +220,20 @@ class ResultsInterface:
             aggregator=aggregator,
         )
 
+    @staticmethod
+    def _check_for_required_callables(
+        observation_name: str, required_callables: Dict[str, Callable]
+    ) -> None:
+        breakpoint()
+        missing = []
+        for arg_name, callable in required_callables.items():
+            if callable.__func__ == BaseObservation._raise_missing.__func__:
+                missing.append(arg_name)
+        if len(missing) > 0:
+            raise ValueError(
+                f"Observation '{observation_name}' is missing required callable(s): {missing}"
+            )
+
     def register_unstratified_observation(
         self,
         name: str,
@@ -225,12 +241,12 @@ class ResultsInterface:
         when: str = "collect_metrics",
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
-        results_gatherer: Callable[[pd.DataFrame], pd.DataFrame] = partial(
-            UnstratifiedObservation._raise_missing, "results_gatherer"
-        ),
-        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame] = partial(
-            UnstratifiedObservation._raise_missing, "results_updater"
-        ),
+        results_gatherer: Callable[
+            [pd.DataFrame], pd.DataFrame
+        ] = UnstratifiedObservation._raise_missing,
+        results_updater: Callable[
+            [pd.DataFrame, pd.DataFrame], pd.DataFrame
+        ] = UnstratifiedObservation._raise_missing,
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
@@ -273,6 +289,11 @@ class ResultsInterface:
         ------
         None
         """
+        required_callables = {
+            "results_gatherer": results_gatherer,
+            "results_updater": results_updater,
+        }
+        self._check_for_required_callables(name, required_callables)
         self._manager.register_observation(
             observation_type=UnstratifiedObservation,
             is_stratified=False,
