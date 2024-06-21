@@ -1,7 +1,7 @@
 import pytest
 from layered_config_tree import LayeredConfigTree
 
-from vivarium.framework.results.observer import Observer, StratifiedObserver
+from vivarium.framework.results.observer import Observer
 
 
 class TestObserver(Observer):
@@ -9,12 +9,12 @@ class TestObserver(Observer):
         pass
 
 
-class TestDefaultStratifiedObserver(StratifiedObserver):
+class TestDefaultObserverStratifications(Observer):
     def register_observations(self, builder):
         pass
 
 
-class TestStratifiedObserver(StratifiedObserver):
+class TestObserverStratifications(Observer):
     def register_observations(self, builder):
         pass
 
@@ -50,20 +50,3 @@ def test_get_formatter_attributes(is_interactive, results_dir, mocker):
     observer.get_formatter_attributes(builder)
 
     assert observer.results_dir == results_dir
-
-
-@pytest.mark.parametrize(
-    "observer, name, expected_configuration_defaults",
-    [
-        (
-            TestDefaultStratifiedObserver(),
-            "test_default_stratified_observer",
-            {"stratification": {"test_default_stratified": {"exclude": [], "include": []}}},
-        ),
-        (TestStratifiedObserver(), "test_stratified_observer", {"foo": "bar"}),
-    ],
-)
-def test_stratified_observer_instantiation(observer, name, expected_configuration_defaults):
-    obs = observer
-    assert obs.name == name
-    assert obs.configuration_defaults == expected_configuration_defaults
