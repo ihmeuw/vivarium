@@ -432,10 +432,18 @@ def test_unused_stratifications_are_logged(caplog):
     but never actually used by an Observer
 
     The HogwartsResultsStratifier registers "student_house", "familiar", and
-    "power_level" stratifiers. However, we will only use the HousePointsObserver
-    component which only requests to be stratified by "student_house" and "power_level"
+    "power_level_group" stratifiers. However, we will only use the QuidditchWinsObserver
+    which only uses "familiar" and the MagicalAttributesObserver which only uses
+    "power_level_group". We would thus expect only "student_house" to be logged
+    as an unused stratification.
+
     """
-    components = [HousePointsObserver(), Hogwarts(), HogwartsResultsStratifier()]
+    components = [
+        Hogwarts(),
+        HogwartsResultsStratifier(),
+        QuidditchWinsObserver(),
+        MagicalAttributesObserver(),
+    ]
     InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
 
     log_split = caplog.text.split(
@@ -444,7 +452,7 @@ def test_unused_stratifications_are_logged(caplog):
     # Check that the log message is present and only exists one time
     assert len(log_split) == 2
     # Check that the log message contains the expected Stratifications
-    assert "['familiar']" in log_split[1]
+    assert "['student_house']" in log_split[1]
 
 
 def test_stratified_observation_results():

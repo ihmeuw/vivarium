@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import itertools
 from abc import ABC
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Set, Tuple, Union
 
 import pandas as pd
+from pandas.api.types import CategoricalDtype
 from pandas.core.groupby import DataFrameGroupBy
+
+from vivarium.framework.results.stratification import Stratification
+
+VALUE_COLUMN = "value"
 
 
 @dataclass
@@ -15,6 +21,7 @@ class BaseObservation(ABC):
     - `name`: name of the observation and is the measure it is observing
     - `pop_filter`: a filter that is applied to the population before the observation is made
     - `when`: the phase that the observation is registered to
+    - `results_initializer`: method that initializes the results
     - `results_gatherer`: method that gathers the new observation results
     - `results_updater`: method that updates the results with new observations
     - `results_formatter`: method that formats the results
@@ -23,6 +30,7 @@ class BaseObservation(ABC):
     name: str
     pop_filter: str
     when: str
+    results_initializer: Callable[..., pd.DataFrame]
     results_gatherer: Callable[..., pd.DataFrame]
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
@@ -53,11 +61,19 @@ class UnstratifiedObservation(BaseObservation):
             name=name,
             pop_filter=pop_filter,
             when=when,
+            results_initializer=self.initialize_results,
             results_gatherer=results_gatherer,
             results_updater=results_updater,
             results_formatter=results_formatter,
             stratifications=None,
         )
+
+    @staticmethod
+    def initialize_results(measure: str, **_kwargs) -> Tuple[pd.DataFrame, Set[str]]:
+        """Initialize an empty dataframe and return it along with an empty set
+        of missing stratifications.
+        """
+        return pd.DataFrame(), set()
 
 
 class StratifiedObservation(BaseObservation):
@@ -88,6 +104,7 @@ class StratifiedObservation(BaseObservation):
             name=name,
             pop_filter=pop_filter,
             when=when,
+            results_initializer=self.initialize_results,
             results_gatherer=self.gather_results,
             results_updater=results_updater,
             results_formatter=results_formatter,
@@ -95,6 +112,59 @@ class StratifiedObservation(BaseObservation):
         )
         self.aggregator_sources = aggregator_sources
         self.aggregator = aggregator
+
+    @staticmethod
+    def initialize_results(
+        measure: str,
+        requested_stratification_names: List[str],
+        registered_stratifications: List[Stratification],
+        registered_stratification_names: Set[str],
+        missing_stratifications: Dict[str, Set[str]],
+        unused_stratifications: Set[str],
+    ) -> Tuple[pd.DataFrame, Set[str]]:
+        """Initialize a dataframe of 0s with complete set of stratifications as the
+        index and return it along with any registered but unused stratifications
+        """
+        requested_stratification_names = set(requested_stratification_names)
+
+        # Batch missing stratifications
+        observer_missing_stratifications = requested_stratification_names.difference(
+            registered_stratification_names
+        )
+        if observer_missing_stratifications:
+            missing_stratifications[measure] = observer_missing_stratifications
+
+        # Remove stratifications from the running list of unused stratifications
+        unused_stratifications = unused_stratifications.difference(
+            requested_stratification_names
+        )
+
+        # Set up the complete index of all used stratifications
+        requested_and_registered_stratifications = [
+            stratification
+            for stratification in registered_stratifications
+            if stratification.name in requested_stratification_names
+        ]
+        stratification_values = {
+            stratification.name: stratification.categories
+            for stratification in requested_and_registered_stratifications
+        }
+        if stratification_values:
+            stratification_names = list(stratification_values.keys())
+            df = pd.DataFrame(
+                list(itertools.product(*stratification_values.values())),
+                columns=stratification_names,
+            ).astype(CategoricalDtype)
+        else:
+            # We are aggregating the entire population so create a single-row index
+            stratification_names = ["stratification"]
+            df = pd.DataFrame(["all"], columns=stratification_names).astype(CategoricalDtype)
+
+        # Initialize a zeros dataframe
+        df[VALUE_COLUMN] = 0.0
+        df = df.set_index(stratification_names)
+
+        return df, unused_stratifications
 
     def gather_results(
         self,
