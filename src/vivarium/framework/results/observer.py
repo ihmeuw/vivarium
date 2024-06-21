@@ -17,6 +17,17 @@ class Observer(Component, ABC):
         super().__init__()
         self.results_dir = None
 
+    @property
+    def configuration_defaults(self) -> Dict[str, Any]:
+        return {
+            "stratification": {
+                self.name.split("_observer")[0]: {
+                    "exclude": [],
+                    "include": [],
+                },
+            },
+        }
+
     @abstractmethod
     def register_observations(self, builder: Builder) -> None:
         """(Required). Register observations with within each observer."""
@@ -34,17 +45,3 @@ class Observer(Component, ABC):
             .get("output_data", {})
             .get("results_directory", None)
         )
-
-
-# TODO: Move this property into Observer and get rid of StratifiedObserver
-class StratifiedObserver(Observer):
-    @property
-    def configuration_defaults(self) -> Dict[str, Any]:
-        return {
-            "stratification": {
-                self.name.split("_observer")[0]: {
-                    "exclude": [],
-                    "include": [],
-                },
-            },
-        }
