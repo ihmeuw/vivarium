@@ -1,3 +1,4 @@
+import re
 from datetime import timedelta
 from types import MethodType
 
@@ -12,6 +13,29 @@ from vivarium.framework.results import ResultsInterface, ResultsManager
 
 def _silly_aggregator(_: pd.DataFrame) -> float:
     return 1.0
+
+
+@pytest.mark.parametrize(
+    ("obs_type", "missing_args"),
+    [
+        ("StratifiedObservation", ["results_updater"]),
+        ("UnstratifiedObservation", ["results_gatherer", "results_updater"]),
+    ],
+)
+def test_register_observation_raises(obs_type, missing_args, mocker):
+    builder = mocker.Mock()
+    builder.configuration.stratification.default = []
+    mgr = ResultsManager()
+    mgr.setup(builder)
+    interface = ResultsInterface(mgr)
+    match = re.escape(
+        f"Observation 'some-name' is missing required callable(s): {missing_args}",
+    )
+    with pytest.raises(ValueError, match=match):
+        if obs_type == "StratifiedObservation":
+            interface.register_stratified_observation(name="some-name")
+        if obs_type == "UnstratifiedObservation":
+            interface.register_unstratified_observation(name="some-name")
 
 
 def test_register_stratified_observation(mocker):
@@ -54,28 +78,6 @@ def test_register_stratified_observation(mocker):
     assert obs.aggregator_sources is None
 
 
-def test_register_stratified_observation_raises(mocker):
-    builder = mocker.Mock()
-    builder.configuration.stratification.default = []
-    mgr = ResultsManager()
-    mgr.setup(builder)
-    interface = ResultsInterface(mgr)
-    with pytest.raises(
-        RuntimeError,
-        match=(
-            "A StratifiedObservation has been registered without a `results_updater` "
-            "Callable which is required."
-        ),
-    ):
-        interface.register_stratified_observation(name="some-name")
-        observations = interface._manager._results_context.observations
-        ((_filter, _stratifications), observation) = list(
-            observations["collect_metrics"].items()
-        )[0]
-        obs = observation[0]
-        obs.results_updater()
-
-
 def test_register_unstratified_observation(mocker):
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
@@ -92,7 +94,7 @@ def test_register_unstratified_observation(mocker):
         requires_columns=["some-column", "some-other-column"],
         requires_values=["some-value", "some-other-value"],
         results_gatherer=lambda _: pd.DataFrame(),
-        results_formatter=lambda _, __: pd.DataFrame(),
+        results_updater=lambda _, __: pd.DataFrame(),
     )
     observations = interface._manager._results_context.observations
     assert len(observations) == 1
@@ -233,15 +235,15 @@ def test_unhashable_pipeline(mocker):
     assert len(interface._manager._results_context.observations) == 0
     with pytest.raises(TypeError, match="unhashable"):
         interface.register_adding_observation(
-            "living_person_time",
-            'alive == "alive" and undead == False',
-            [],
-            _silly_aggregator,
-            [],
-            [["bad", "unhashable", "thing"]],  # unhashable first element
-            [],
-            [],
-            "collect_metrics",
+            name="living_person_time",
+            pop_filter='alive == "alive" and undead == False',
+            when="collect_metrics",
+            requires_columns=[],
+            requires_values=[["bad", "unhashable", "thing"]],  # unhashable first element
+            additional_stratifications=[],
+            excluded_stratifications=[],
+            aggregator_sources=[],
+            aggregator=_silly_aggregator,
         )
 
 
