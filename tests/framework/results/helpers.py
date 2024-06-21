@@ -202,28 +202,36 @@ class ExamScoreObserver(Observer):
         )
 
 
-class CatLivesObserver(StratifiedObserver):
-    """Observer that counts the number of cat lives per house"""
+class CatBombObserver(StratifiedObserver):
+    """Observer that counts the number of feral cats per house"""
 
     def register_observations(self, builder: Builder) -> None:
-        builder.results.register_adding_observation(
-            name="cat_lives",
+        builder.results.register_stratified_observation(
+            name="cat_bomb",
             pop_filter="familiar=='cat' and tracked==True",
             requires_columns=["familiar"],
+            results_updater=self.update_cats,
             excluded_stratifications=["power_level_group"],
             aggregator_sources=["student_house"],
-            aggregator=self.count_lives,
+            aggregator=len,
         )
 
-    @staticmethod
-    def count_lives(group):
-        return len(group) * 9
+    def update_cats(self, existing_df, new_df):
+        no_cats_mask = existing_df["value"] == 0
+        updated_df = existing_df
+        updated_df.loc[no_cats_mask, "value"] = new_df["value"]
+        updated_df.loc[~no_cats_mask, "value"] *= new_df["value"]
+        return updated_df
 
 
 class ValedictorianObserver(Observer):
     """Observer that records the valedictorian at each time step. All students
-    have the same exam scores and so the valecdictorian is chosen randomly.
+    have the same exam scores and so the valedictorian is chosen randomly.
     """
+
+    def __init__(self):
+        super().__init__()
+        self.valedictorians = []
 
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_unstratified_observation(
@@ -233,13 +241,13 @@ class ValedictorianObserver(Observer):
             results_updater=self.update_valedictorian,
         )
 
-    @staticmethod
-    def choose_valedictorian(df):
-        valedictorian = RNG.choice(df["student_id"])
+    def choose_valedictorian(self, df):
+        eligible_students = df.loc[~df["student_id"].isin(self.valedictorians), "student_id"]
+        valedictorian = RNG.choice(eligible_students)
+        self.valedictorians.append(valedictorian)
         return df[df["student_id"] == valedictorian]
 
-    @staticmethod
-    def update_valedictorian(_existing_df, new_df):
+    def update_valedictorian(self, _existing_df, new_df):
         return new_df
 
 

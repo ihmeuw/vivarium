@@ -4,30 +4,22 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 
+from vivarium.framework.results.observation import (
+    AddingObservation,
+    BaseObservation,
+    ConcatenatingObservation,
+    StratifiedObservation,
+    UnstratifiedObservation,
+)
+
 if TYPE_CHECKING:
     # cyclic import
     from vivarium.framework.results.manager import ResultsManager
 
 
-def _raise_missing_unstratified_observation_results_gatherer(*args, **kwargs) -> pd.DataFrame:
-    raise RuntimeError(
-        "An UnstratifiedObservation has been registered without a `results_gatherer` "
-        "Callable which is required."
-    )
-
-
-def _raise_missing_unstratified_observation_results_updater(*args, **kwargs) -> pd.DataFrame:
-    raise RuntimeError(
-        "An UnstratifiedObservation has been registered without a `results_updater` "
-        "Callable which is required."
-    )
-
-
-def _raise_missing_stratified_observation_results_updater(*args, **kwargs) -> pd.DataFrame:
-    raise RuntimeError(
-        "A StratifiedObservation has been registered without a `results_updater` "
-        "Callable which is required."
-    )
+def _required_function_placeholder(*args, **kwargs) -> pd.DataFrame:
+    """Placeholder function to indicate that a required function is missing."""
+    return pd.DataFrame()
 
 
 class ResultsInterface:
@@ -170,7 +162,7 @@ class ResultsInterface:
         requires_values: List[str] = [],
         results_updater: Callable[
             [pd.DataFrame, pd.DataFrame], pd.DataFrame
-        ] = _raise_missing_stratified_observation_results_updater,
+        ] = _required_function_placeholder,
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
@@ -215,7 +207,10 @@ class ResultsInterface:
         ------
         None
         """
-        self._manager.register_stratified_observation(
+        self._check_for_required_callables(name, {"results_updater": results_updater})
+        self._manager.register_observation(
+            observation_type=StratifiedObservation,
+            is_stratified=True,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -229,6 +224,19 @@ class ResultsInterface:
             aggregator=aggregator,
         )
 
+    @staticmethod
+    def _check_for_required_callables(
+        observation_name: str, required_callables: Dict[str, Callable]
+    ) -> None:
+        missing = []
+        for arg_name, callable in required_callables.items():
+            if callable == _required_function_placeholder:
+                missing.append(arg_name)
+        if len(missing) > 0:
+            raise ValueError(
+                f"Observation '{observation_name}' is missing required callable(s): {missing}"
+            )
+
     def register_unstratified_observation(
         self,
         name: str,
@@ -238,10 +246,10 @@ class ResultsInterface:
         requires_values: List[str] = [],
         results_gatherer: Callable[
             [pd.DataFrame], pd.DataFrame
-        ] = _raise_missing_unstratified_observation_results_gatherer,
+        ] = _required_function_placeholder,
         results_updater: Callable[
             [pd.DataFrame, pd.DataFrame], pd.DataFrame
-        ] = _raise_missing_unstratified_observation_results_updater,
+        ] = _required_function_placeholder,
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
@@ -284,7 +292,14 @@ class ResultsInterface:
         ------
         None
         """
-        self._manager.register_unstratified_observation(
+        required_callables = {
+            "results_gatherer": results_gatherer,
+            "results_updater": results_updater,
+        }
+        self._check_for_required_callables(name, required_callables)
+        self._manager.register_observation(
+            observation_type=UnstratifiedObservation,
+            is_stratified=False,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -343,7 +358,10 @@ class ResultsInterface:
         ------
         None
         """
-        self._manager.register_adding_observation(
+
+        self._manager.register_observation(
+            observation_type=AddingObservation,
+            is_stratified=True,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -390,11 +408,15 @@ class ResultsInterface:
         ------
         None
         """
-        self._manager.register_concatenating_observation(
+        included_columns = ["event_time"] + requires_columns + requires_values
+        self._manager.register_observation(
+            observation_type=ConcatenatingObservation,
+            is_stratified=False,
             name=name,
             pop_filter=pop_filter,
             when=when,
             requires_columns=requires_columns,
             requires_values=requires_values,
             results_formatter=results_formatter,
+            included_columns=included_columns,
         )
