@@ -8,7 +8,7 @@ from vivarium.framework.components.manager import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
 from vivarium.framework.results import VALUE_COLUMN
-from vivarium.framework.results.observer import Observer, StratifiedObserver
+from vivarium.framework.results.observer import Observer
 
 NAME = "hogwarts_house"
 SOURCES = ["first_name", "last_name"]
@@ -108,7 +108,7 @@ class Hogwarts(Component):
         self.population_view.update(update)
 
 
-class HousePointsObserver(StratifiedObserver):
+class HousePointsObserver(Observer):
     """Observer that is stratified by multiple columns (the defaults,
     'student_house' and 'power_level_group')
     """
@@ -125,7 +125,7 @@ class HousePointsObserver(StratifiedObserver):
         )
 
 
-class FullyFilteredHousePointsObserver(StratifiedObserver):
+class FullyFilteredHousePointsObserver(Observer):
     """Same as `HousePointsObserver but with a filter that leaves no simulants"""
 
     def register_observations(self, builder: Builder) -> None:
@@ -140,7 +140,7 @@ class FullyFilteredHousePointsObserver(StratifiedObserver):
         )
 
 
-class QuidditchWinsObserver(StratifiedObserver):
+class QuidditchWinsObserver(Observer):
     """Observer that is stratified by a single column ('familiar')"""
 
     def register_observations(self, builder: Builder) -> None:
@@ -157,7 +157,7 @@ class QuidditchWinsObserver(StratifiedObserver):
         )
 
 
-class NoStratificationsQuidditchWinsObserver(StratifiedObserver):
+class NoStratificationsQuidditchWinsObserver(Observer):
     """Same as above but no stratifications at all"""
 
     def register_observations(self, builder: Builder) -> None:
@@ -173,7 +173,7 @@ class NoStratificationsQuidditchWinsObserver(StratifiedObserver):
         )
 
 
-class MagicalAttributesObserver(StratifiedObserver):
+class MagicalAttributesObserver(Observer):
     """Observer whose aggregator returns a pd.Series instead of a float (which in
     turn results in a dataframe with multiple columns instead of just one
     'value' column)
@@ -202,7 +202,7 @@ class ExamScoreObserver(Observer):
         )
 
 
-class CatBombObserver(StratifiedObserver):
+class CatBombObserver(Observer):
     """Observer that counts the number of feral cats per house"""
 
     def register_observations(self, builder: Builder) -> None:
