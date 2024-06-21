@@ -94,7 +94,7 @@ def test_register_unstratified_observation(mocker):
         requires_columns=["some-column", "some-other-column"],
         requires_values=["some-value", "some-other-value"],
         results_gatherer=lambda _: pd.DataFrame(),
-        results_formatter=lambda _, __: pd.DataFrame(),
+        results_updater=lambda _, __: pd.DataFrame(),
     )
     observations = interface._manager._results_context.observations
     assert len(observations) == 1

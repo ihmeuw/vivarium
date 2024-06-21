@@ -98,16 +98,17 @@ class ResultsContext:
     def register_observation(
         self,
         observation_type: Type[BaseObservation],
+        name: str,
+        pop_filter: str,
+        when: str,
         **kwargs,
     ) -> None:
-        observation = observation_type(**kwargs)
+        observation = observation_type(name=name, pop_filter=pop_filter, when=when, **kwargs)
         self.observations[observation.when][
             (observation.pop_filter, observation.stratifications)
         ].append(observation)
 
-    def gather_results(
-        self, population: pd.DataFrame, event_name: str
-    ) -> Generator[
+    def gather_results(self, population: pd.DataFrame, event_name: str) -> Generator[
         Tuple[
             Optional[pd.DataFrame],
             Optional[str],

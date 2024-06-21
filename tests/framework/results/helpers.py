@@ -216,8 +216,7 @@ class CatBombObserver(StratifiedObserver):
             aggregator=len,
         )
 
-    @staticmethod
-    def update_cats(existing_df, new_df):
+    def update_cats(self, existing_df, new_df):
         no_cats_mask = existing_df["value"] == 0
         updated_df = existing_df
         updated_df.loc[no_cats_mask, "value"] = new_df["value"]
@@ -248,8 +247,7 @@ class ValedictorianObserver(Observer):
         self.valedictorians.append(valedictorian)
         return df[df["student_id"] == valedictorian]
 
-    @staticmethod
-    def update_valedictorian(_existing_df, new_df):
+    def update_valedictorian(self, _existing_df, new_df):
         return new_df
 
 

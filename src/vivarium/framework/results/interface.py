@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from functools import partial
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import pandas as pd
@@ -16,6 +15,11 @@ from vivarium.framework.results.observation import (
 if TYPE_CHECKING:
     # cyclic import
     from vivarium.framework.results.manager import ResultsManager
+
+
+def _required_function_placeholder(*args, **kwargs) -> pd.DataFrame:
+    """Placeholder function to indicate that a required function is missing."""
+    return pd.DataFrame()
 
 
 class ResultsInterface:
@@ -158,7 +162,7 @@ class ResultsInterface:
         requires_values: List[str] = [],
         results_updater: Callable[
             [pd.DataFrame, pd.DataFrame], pd.DataFrame
-        ] = StratifiedObservation._raise_missing,
+        ] = _required_function_placeholder,
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
@@ -224,10 +228,9 @@ class ResultsInterface:
     def _check_for_required_callables(
         observation_name: str, required_callables: Dict[str, Callable]
     ) -> None:
-        breakpoint()
         missing = []
         for arg_name, callable in required_callables.items():
-            if callable.__func__ == BaseObservation._raise_missing.__func__:
+            if callable == _required_function_placeholder:
                 missing.append(arg_name)
         if len(missing) > 0:
             raise ValueError(
@@ -243,10 +246,10 @@ class ResultsInterface:
         requires_values: List[str] = [],
         results_gatherer: Callable[
             [pd.DataFrame], pd.DataFrame
-        ] = UnstratifiedObservation._raise_missing,
+        ] = _required_function_placeholder,
         results_updater: Callable[
             [pd.DataFrame, pd.DataFrame], pd.DataFrame
-        ] = UnstratifiedObservation._raise_missing,
+        ] = _required_function_placeholder,
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
@@ -405,6 +408,7 @@ class ResultsInterface:
         ------
         None
         """
+        included_columns = ["event_time"] + requires_columns + requires_values
         self._manager.register_observation(
             observation_type=ConcatenatingObservation,
             is_stratified=False,
@@ -414,4 +418,5 @@ class ResultsInterface:
             requires_columns=requires_columns,
             requires_values=requires_values,
             results_formatter=results_formatter,
+            included_columns=included_columns,
         )

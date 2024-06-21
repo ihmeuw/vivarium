@@ -274,9 +274,14 @@ class ResultsManager(Manager):
         self,
         observation_type,
         is_stratified: bool,
+        name: str,
+        pop_filter: str,
+        when: str,
+        requires_columns: List[str],
+        requires_values: List[str],
         **kwargs,
     ):
-        self.logger.debug(f"Registering observation {kwargs['name']}")
+        self.logger.debug(f"Registering observation {name}")
 
         if is_stratified:
             additional_stratifications = kwargs.get("additional_stratifications", [])
@@ -293,18 +298,14 @@ class ResultsManager(Manager):
             del kwargs["additional_stratifications"]
             del kwargs["excluded_stratifications"]
 
-        requires_columns = kwargs.get("requires_columns", [])
-        requires_values = kwargs.get("requires_values", [])
         self._add_resources(requires_columns, SourceType.COLUMN)
         self._add_resources(requires_values, SourceType.VALUE)
-        del kwargs["requires_columns"]
-        del kwargs["requires_values"]
-
-        if observation_type == ConcatenatingObservation:
-            kwargs["included_columns"] = ["event_time"] + requires_columns + requires_values
 
         self._results_context.register_observation(
             observation_type=observation_type,
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
             **kwargs,
         )
 

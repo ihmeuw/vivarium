@@ -27,10 +27,6 @@ class BaseObservation(ABC):
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
 
-    @classmethod
-    def _raise_missing(cls, *args, **kwargs) -> pd.DataFrame:
-        return pd.DataFrame()
-
 
 class UnstratifiedObservation(BaseObservation):
     """Container class for managing unstratified observations.
