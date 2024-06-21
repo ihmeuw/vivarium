@@ -2,17 +2,20 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from vivarium import Component, Observer, StratifiedObserver
+from vivarium import Component, Observer
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
-from vivarium.framework.results import VALUE_COLUMN
 
 
 class MockComponentA(Observer):
     @property
     def name(self) -> str:
         return self._name
+
+    @property
+    def configuration_defaults(self):
+        return {}
 
     def __init__(self, *args, name="mock_component_a"):
         super().__init__()
@@ -30,7 +33,7 @@ class MockComponentA(Observer):
         return type(self) == type(other) and self.name == other.name
 
 
-class MockComponentB(StratifiedObserver):
+class MockComponentB(Observer):
     @property
     def name(self) -> str:
         return self._name
