@@ -1,19 +1,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Callable, Generator, List, Optional, Tuple, Union
+from typing import Callable, Generator, List, Optional, Tuple, Type, Union
 
 import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
 
 from vivarium.framework.engine import Builder
 from vivarium.framework.results.exceptions import ResultsConfigurationError
-from vivarium.framework.results.observation import (
-    AddingObservation,
-    ConcatenatingObservation,
-    StratifiedObservation,
-    UnstratifiedObservation,
-)
+from vivarium.framework.results.observation import BaseObservation
 from vivarium.framework.results.stratification import Stratification
 
 
@@ -100,93 +95,18 @@ class ResultsContext:
         stratification = Stratification(name, sources, categories, mapper, is_vectorized)
         self.stratifications.append(stratification)
 
-    def register_stratified_observation(
+    def register_observation(
         self,
+        observation_type: Type[BaseObservation],
         name: str,
         pop_filter: str,
         when: str,
-        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
-        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-        additional_stratifications: List[str],
-        excluded_stratifications: List[str],
-        aggregator_sources: Optional[List[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
+        **kwargs,
     ) -> None:
-        stratifications = self._get_stratifications(
-            additional_stratifications, excluded_stratifications
-        )
-        observation = StratifiedObservation(
-            name=name,
-            pop_filter=pop_filter,
-            when=when,
-            results_updater=results_updater,
-            results_formatter=results_formatter,
-            stratifications=stratifications,
-            aggregator_sources=aggregator_sources,
-            aggregator=aggregator,
-        )
-        self.observations[when][(pop_filter, stratifications)].append(observation)
-
-    def register_unstratified_observation(
-        self,
-        name: str,
-        pop_filter: str,
-        when: str,
-        results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
-        results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
-        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-    ) -> None:
-        observation = UnstratifiedObservation(
-            name=name,
-            pop_filter=pop_filter,
-            when=when,
-            results_gatherer=results_gatherer,
-            results_updater=results_updater,
-            results_formatter=results_formatter,
-        )
-        self.observations[when][(pop_filter, None)].append(observation)
-
-    def register_adding_observation(
-        self,
-        name: str,
-        pop_filter: str,
-        when: str,
-        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-        additional_stratifications: List[str],
-        excluded_stratifications: List[str],
-        aggregator_sources: Optional[List[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
-    ) -> None:
-        stratifications = self._get_stratifications(
-            additional_stratifications, excluded_stratifications
-        )
-        observation = AddingObservation(
-            name=name,
-            pop_filter=pop_filter,
-            when=when,
-            results_formatter=results_formatter,
-            stratifications=stratifications,
-            aggregator_sources=aggregator_sources,
-            aggregator=aggregator,
-        )
-        self.observations[when][(pop_filter, stratifications)].append(observation)
-
-    def register_concatenating_observation(
-        self,
-        name: str,
-        pop_filter: str,
-        when: str,
-        included_columns: List[str],
-        results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-    ) -> None:
-        observation = ConcatenatingObservation(
-            name=name,
-            pop_filter=pop_filter,
-            when=when,
-            included_columns=included_columns,
-            results_formatter=results_formatter,
-        )
-        self.observations[when][(pop_filter, None)].append(observation)
+        observation = observation_type(name=name, pop_filter=pop_filter, when=when, **kwargs)
+        self.observations[observation.when][
+            (observation.pop_filter, observation.stratifications)
+        ].append(observation)
 
     def gather_results(
         self, population: pd.DataFrame, event_name: str
@@ -222,18 +142,6 @@ class ResultsContext:
                     for observation in observations:
                         aggregates = observation.results_gatherer(pop_groups, stratifications)
                         yield aggregates, observation.name, observation.results_updater
-
-    def _get_stratifications(
-        self,
-        additional_stratifications: List[str] = [],
-        excluded_stratifications: List[str] = [],
-    ) -> Tuple[str, ...]:
-        stratifications = list(
-            set(self.default_stratifications) - set(excluded_stratifications)
-            | set(additional_stratifications)
-        )
-        # Makes sure measure identifiers have fields in the same relative order.
-        return tuple(sorted(stratifications))
 
     @staticmethod
     def _filter_population(population: pd.DataFrame, pop_filter: str) -> pd.DataFrame:
