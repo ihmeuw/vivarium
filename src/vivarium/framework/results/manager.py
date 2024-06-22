@@ -79,6 +79,30 @@ class ResultsManager(Manager):
 
         self.set_default_stratifications(builder)
 
+    @staticmethod
+    def _track_stratifications(
+        measure: str,
+        event_requested_stratification_names: set[str],
+        registered_stratification_names: set[str],
+        missing_stratifications: Dict[str, set[str]],
+        unused_stratifications: set[str],
+    ) -> set[str]:
+        """Track stratifications for batch-logging"""
+
+        # Batch missing stratifications
+        observer_missing_stratifications = event_requested_stratification_names.difference(
+            registered_stratification_names
+        )
+        if observer_missing_stratifications:
+            missing_stratifications[measure] = observer_missing_stratifications
+
+        # Remove stratifications from the running list of unused stratifications
+        unused_stratifications = unused_stratifications.difference(
+            event_requested_stratification_names
+        )
+
+        return unused_stratifications
+
     def on_post_setup(self, _: Event) -> None:
         """Initialize results with 0s DataFrame' for each measure and all stratifications"""
         registered_stratifications = self._results_context.stratifications
@@ -90,34 +114,37 @@ class ResultsManager(Manager):
         missing_stratifications = {}
         unused_stratifications = registered_stratification_names.copy()
 
-        kwargs = {
-            "registered_stratifications": registered_stratifications,
-            "registered_stratification_names": registered_stratification_names,
-            "missing_stratifications": missing_stratifications,
-            "unused_stratifications": unused_stratifications,
-        }
-
         for event_name in self._results_context.observations:
             for (
                 _pop_filter,
-                requested_stratification_names,
+                event_requested_stratification_names,
             ), observations in self._results_context.observations[event_name].items():
+                event_requested_stratification_names = (
+                    set(event_requested_stratification_names)
+                    if event_requested_stratification_names
+                    else set()
+                )
                 for observation in observations:
                     measure = observation.name
-                    kwargs["requested_stratification_names"] = requested_stratification_names
-
-                    df, unused_stratifications = observation.results_initializer(
-                        measure, **kwargs
+                    df = observation.results_initializer(
+                        event_requested_stratification_names, registered_stratifications
                     )
-                    kwargs["unused_stratifications"] = unused_stratifications
                     self._raw_results[measure] = df
+                    if observation.stratifications is not None:
+                        unused_stratifications = self._track_stratifications(
+                            measure,
+                            event_requested_stratification_names,
+                            registered_stratification_names,
+                            missing_stratifications,
+                            unused_stratifications,
+                        )
 
-        if len(unused_stratifications) > 0:
+        if unused_stratifications:
             self.logger.info(
                 "The following stratifications are registered but not used by any "
                 f"observers: \n{sorted(list(unused_stratifications))}"
             )
-        if len(missing_stratifications) > 0:
+        if missing_stratifications:
             # Sort by observer/measure and then by missing stratifiction
             sorted_missing = {
                 key: sorted(list(missing_stratifications[key]))

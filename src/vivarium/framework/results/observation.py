@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 from abc import ABC
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -69,11 +69,12 @@ class UnstratifiedObservation(BaseObservation):
         )
 
     @staticmethod
-    def initialize_results(measure: str, **_kwargs) -> Tuple[pd.DataFrame, Set[str]]:
-        """Initialize an empty dataframe and return it along with an empty set
-        of missing stratifications.
-        """
-        return pd.DataFrame(), set()
+    def initialize_results(
+        requested_stratification_names: set[str],
+        registered_stratifications: List[Stratification],
+    ) -> pd.DataFrame:
+        """Initialize an empty dataframe."""
+        return pd.DataFrame()
 
 
 class StratifiedObservation(BaseObservation):
@@ -115,29 +116,10 @@ class StratifiedObservation(BaseObservation):
 
     @staticmethod
     def initialize_results(
-        measure: str,
-        requested_stratification_names: List[str],
+        requested_stratification_names: set[str],
         registered_stratifications: List[Stratification],
-        registered_stratification_names: Set[str],
-        missing_stratifications: Dict[str, Set[str]],
-        unused_stratifications: Set[str],
-    ) -> Tuple[pd.DataFrame, Set[str]]:
-        """Initialize a dataframe of 0s with complete set of stratifications as the
-        index and return it along with any registered but unused stratifications
-        """
-        requested_stratification_names = set(requested_stratification_names)
-
-        # Batch missing stratifications
-        observer_missing_stratifications = requested_stratification_names.difference(
-            registered_stratification_names
-        )
-        if observer_missing_stratifications:
-            missing_stratifications[measure] = observer_missing_stratifications
-
-        # Remove stratifications from the running list of unused stratifications
-        unused_stratifications = unused_stratifications.difference(
-            requested_stratification_names
-        )
+    ) -> pd.DataFrame:
+        """Initialize a dataframe of 0s with complete set of stratifications as the index."""
 
         # Set up the complete index of all used stratifications
         requested_and_registered_stratifications = [
@@ -164,7 +146,7 @@ class StratifiedObservation(BaseObservation):
         df[VALUE_COLUMN] = 0.0
         df = df.set_index(stratification_names)
 
-        return df, unused_stratifications
+        return df
 
     def gather_results(
         self,
