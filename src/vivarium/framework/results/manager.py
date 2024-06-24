@@ -86,9 +86,9 @@ class ResultsManager(Manager):
             stratification.name for stratification in registered_stratifications
         )
 
-        # Initialize missing and unused stratification dictionaries for batch-logging
+        # Initialize missing and used stratification dictionaries for batch-logging
         missing_stratifications = {}
-        unused_stratifications = registered_stratification_names.copy()
+        used_stratifications = set()
 
         for event_name in self._results_context.observations:
             for (
@@ -107,14 +107,17 @@ class ResultsManager(Manager):
                     )
                     self._raw_results[measure] = df
                     if observation.stratifications is not None:
-                        unused_stratifications = self._track_stratifications(
+                        used_stratifications = self._track_stratifications(
                             measure,
                             event_requested_stratification_names,
                             registered_stratification_names,
                             missing_stratifications,
-                            unused_stratifications,
+                            used_stratifications,
                         )
 
+        unused_stratifications = registered_stratification_names.difference(
+            used_stratifications
+        )
         if unused_stratifications:
             self.logger.info(
                 "The following stratifications are registered but not used by any "
@@ -317,9 +320,9 @@ class ResultsManager(Manager):
         event_requested_stratification_names: set[str],
         registered_stratification_names: set[str],
         missing_stratifications: Dict[str, set[str]],
-        unused_stratifications: set[str],
+        used_stratifications: set[str],
     ) -> set[str]:
-        """Track stratifications for batch-logging"""
+        """Track unused and missing stratifications for batch-logging"""
 
         # Batch missing stratifications
         observer_missing_stratifications = event_requested_stratification_names.difference(
@@ -328,12 +331,12 @@ class ResultsManager(Manager):
         if observer_missing_stratifications:
             missing_stratifications[measure] = observer_missing_stratifications
 
-        # Remove stratifications from the running list of unused stratifications
-        unused_stratifications = unused_stratifications.difference(
+        # Add newly used stratifications
+        used_stratifications = used_stratifications.union(
             event_requested_stratification_names
         )
 
-        return unused_stratifications
+        return used_stratifications
 
     def _get_stratifications(
         self,
