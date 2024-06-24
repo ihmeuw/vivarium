@@ -70,7 +70,7 @@ class UnstratifiedObservation(BaseObservation):
 
     @staticmethod
     def initialize_results(
-        requested_stratification_names: Tuple[str],
+        requested_stratification_names: set[str],
         registered_stratifications: List[Stratification],
     ) -> pd.DataFrame:
         """Initialize an empty dataframe."""
@@ -116,7 +116,7 @@ class StratifiedObservation(BaseObservation):
 
     @staticmethod
     def initialize_results(
-        requested_stratification_names: Tuple[str],
+        requested_stratification_names: set[str],
         registered_stratifications: List[Stratification],
     ) -> pd.DataFrame:
         """Initialize a dataframe of 0s with complete set of stratifications as the index."""
