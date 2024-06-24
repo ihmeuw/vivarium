@@ -293,31 +293,6 @@ class ResultsManager(Manager):
     # Helper methods #
     ##################
 
-    @staticmethod
-    def _track_stratifications(
-        measure: str,
-        event_requested_stratification_names: set[str],
-        registered_stratification_names: set[str],
-        missing_stratifications: Dict[str, set[str]],
-        used_stratifications: set[str],
-    ) -> set[str]:
-        """Track used and missing stratifications for batch-logging"""
-
-        # Update the `missing_stratifications`` dict for this particular measure/observer
-        # if there are any missing stratifications
-        observer_missing_stratifications = event_requested_stratification_names.difference(
-            registered_stratification_names
-        )
-        if observer_missing_stratifications:
-            missing_stratifications[measure] = observer_missing_stratifications
-
-        # Add newly used stratifications to the running `used_stratifications` list
-        used_stratifications = used_stratifications.union(
-            event_requested_stratification_names
-        )
-
-        return used_stratifications
-
     def _get_stratifications(
         self,
         stratifications: List[str] = [],
