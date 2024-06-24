@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import itertools
 from abc import ABC
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Tuple, Union
 
 import pandas as pd
+from pandas.api.types import CategoricalDtype
 from pandas.core.groupby import DataFrameGroupBy
+
+from vivarium.framework.results.stratification import Stratification
+
+VALUE_COLUMN = "value"
 
 
 @dataclass
@@ -15,6 +21,7 @@ class BaseObservation(ABC):
     - `name`: name of the observation and is the measure it is observing
     - `pop_filter`: a filter that is applied to the population before the observation is made
     - `when`: the phase that the observation is registered to
+    - `results_initializer`: method that initializes the results
     - `results_gatherer`: method that gathers the new observation results
     - `results_updater`: method that updates the results with new observations
     - `results_formatter`: method that formats the results
@@ -23,6 +30,7 @@ class BaseObservation(ABC):
     name: str
     pop_filter: str
     when: str
+    results_initializer: Callable[..., pd.DataFrame]
     results_gatherer: Callable[..., pd.DataFrame]
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
@@ -53,11 +61,20 @@ class UnstratifiedObservation(BaseObservation):
             name=name,
             pop_filter=pop_filter,
             when=when,
+            results_initializer=self.initialize_results,
             results_gatherer=results_gatherer,
             results_updater=results_updater,
             results_formatter=results_formatter,
             stratifications=None,
         )
+
+    @staticmethod
+    def initialize_results(
+        requested_stratification_names: set[str],
+        registered_stratifications: List[Stratification],
+    ) -> pd.DataFrame:
+        """Initialize an empty dataframe."""
+        return pd.DataFrame()
 
 
 class StratifiedObservation(BaseObservation):
@@ -88,6 +105,7 @@ class StratifiedObservation(BaseObservation):
             name=name,
             pop_filter=pop_filter,
             when=when,
+            results_initializer=self.initialize_results,
             results_gatherer=self.gather_results,
             results_updater=results_updater,
             results_formatter=results_formatter,
@@ -95,6 +113,40 @@ class StratifiedObservation(BaseObservation):
         )
         self.aggregator_sources = aggregator_sources
         self.aggregator = aggregator
+
+    @staticmethod
+    def initialize_results(
+        requested_stratification_names: set[str],
+        registered_stratifications: List[Stratification],
+    ) -> pd.DataFrame:
+        """Initialize a dataframe of 0s with complete set of stratifications as the index."""
+
+        # Set up the complete index of all used stratifications
+        requested_and_registered_stratifications = [
+            stratification
+            for stratification in registered_stratifications
+            if stratification.name in requested_stratification_names
+        ]
+        stratification_values = {
+            stratification.name: stratification.categories
+            for stratification in requested_and_registered_stratifications
+        }
+        if stratification_values:
+            stratification_names = list(stratification_values.keys())
+            df = pd.DataFrame(
+                list(itertools.product(*stratification_values.values())),
+                columns=stratification_names,
+            ).astype(CategoricalDtype)
+        else:
+            # We are aggregating the entire population so create a single-row index
+            stratification_names = ["stratification"]
+            df = pd.DataFrame(["all"], columns=stratification_names).astype(CategoricalDtype)
+
+        # Initialize a zeros dataframe
+        df[VALUE_COLUMN] = 0.0
+        df = df.set_index(stratification_names)
+
+        return df
 
     def gather_results(
         self,
