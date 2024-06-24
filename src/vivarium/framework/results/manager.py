@@ -82,55 +82,35 @@ class ResultsManager(Manager):
     def on_post_setup(self, _: Event) -> None:
         """Initialize results with 0s DataFrame' for each measure and all stratifications"""
         registered_stratifications = self._results_context.stratifications
-        registered_stratification_names = set(
-            stratification.name for stratification in registered_stratifications
-        )
 
-        # Initialize missing and used stratification dictionaries for batch-logging
-        missing_stratifications = {}
         used_stratifications = set()
-
         for event_name in self._results_context.observations:
             for (
                 _pop_filter,
                 event_requested_stratification_names,
             ), observations in self._results_context.observations[event_name].items():
-                event_requested_stratification_names = (
-                    set(event_requested_stratification_names)
-                    if event_requested_stratification_names
-                    else set()
-                )
+                if event_requested_stratification_names is not None:
+                    used_stratifications |= set(event_requested_stratification_names)
                 for observation in observations:
                     measure = observation.name
                     self._raw_results[measure] = observation.results_initializer(
                         event_requested_stratification_names, registered_stratifications
                     )
-                    if observation.stratifications is not None:
-                        used_stratifications = self._track_stratifications(
-                            measure,
-                            event_requested_stratification_names,
-                            registered_stratification_names,
-                            missing_stratifications,
-                            used_stratifications,
-                        )
 
-        unused_stratifications = registered_stratification_names.difference(
-            used_stratifications
+        registered_stratification_names = set(
+            stratification.name for stratification in registered_stratifications
         )
+        unused_stratifications = registered_stratification_names - used_stratifications
         if unused_stratifications:
             self.logger.info(
                 "The following stratifications are registered but not used by any "
                 f"observers: \n{sorted(list(unused_stratifications))}"
             )
+        missing_stratifications = used_stratifications - registered_stratification_names
         if missing_stratifications:
-            # Sort by observer/measure and then by missing stratifiction
-            sorted_missing = {
-                key: sorted(list(missing_stratifications[key]))
-                for key in sorted(missing_stratifications)
-            }
             raise ValueError(
                 "The following observers are requested to be stratified by "
-                f"stratifications that are not registered: \n{sorted_missing}"
+                f"stratifications that are not registered: \n{sorted(list(missing_stratifications))}"
             )
 
     def on_time_step_prepare(self, event: Event) -> None:

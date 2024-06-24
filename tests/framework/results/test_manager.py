@@ -414,10 +414,7 @@ def test_observers_with_missing_stratifications_fail():
     """
     components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
 
-    expected_missing = {  # NOTE: keep in alphabetical order
-        "house_points": ["power_level_group", "student_house"],
-        "quidditch_wins": ["familiar"],
-    }
+    expected_missing = ["familiar", "power_level_group", "student_house"]
     expected_log_msg = re.escape(
         "The following observers are requested to be stratified by stratifications "
         f"that are not registered: \n{expected_missing}"
