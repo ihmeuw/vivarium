@@ -321,16 +321,17 @@ class ResultsManager(Manager):
         missing_stratifications: Dict[str, set[str]],
         used_stratifications: set[str],
     ) -> set[str]:
-        """Track unused and missing stratifications for batch-logging"""
+        """Track used and missing stratifications for batch-logging"""
 
-        # Batch missing stratifications
+        # Update the `missing_stratifications`` dict for this particular measure/observer
+        # if there are any missing stratifications
         observer_missing_stratifications = event_requested_stratification_names.difference(
             registered_stratification_names
         )
         if observer_missing_stratifications:
             missing_stratifications[measure] = observer_missing_stratifications
 
-        # Add newly used stratifications
+        # Add newly used stratifications to the running `used_stratifications` list
         used_stratifications = used_stratifications.union(
             event_requested_stratification_names
         )
