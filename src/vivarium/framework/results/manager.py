@@ -1,25 +1,18 @@
 from __future__ import annotations
 
-import itertools
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
-from pandas.api.types import CategoricalDtype
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.context import ResultsContext
-from vivarium.framework.results.observation import ConcatenatingObservation
-from vivarium.framework.results.stratification import Stratification
 from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-
-
-VALUE_COLUMN = "value"
 
 
 class SourceType(Enum):
@@ -89,48 +82,35 @@ class ResultsManager(Manager):
     def on_post_setup(self, _: Event) -> None:
         """Initialize results with 0s DataFrame' for each measure and all stratifications"""
         registered_stratifications = self._results_context.stratifications
-        registered_stratification_names = set(
-            stratification.name for stratification in registered_stratifications
-        )
 
-        missing_stratifications = {}
-        unused_stratifications = registered_stratification_names.copy()
-
+        used_stratifications = set()
         for event_name in self._results_context.observations:
             for (
                 _pop_filter,
-                all_requested_stratification_names,
+                event_requested_stratification_names,
             ), observations in self._results_context.observations[event_name].items():
+                if event_requested_stratification_names is not None:
+                    used_stratifications |= set(event_requested_stratification_names)
                 for observation in observations:
                     measure = observation.name
-                    if all_requested_stratification_names is not None:
-                        df, unused_stratifications = self._initialize_stratified_results(
-                            measure,
-                            all_requested_stratification_names,
-                            registered_stratifications,
-                            registered_stratification_names,
-                            missing_stratifications,
-                            unused_stratifications,
-                        )
-                    else:
-                        # Initialize a completely empty dataframe
-                        df = pd.DataFrame()
-                    self._raw_results[measure] = df
+                    self._raw_results[measure] = observation.results_initializer(
+                        event_requested_stratification_names, registered_stratifications
+                    )
 
+        registered_stratification_names = set(
+            stratification.name for stratification in registered_stratifications
+        )
+        unused_stratifications = registered_stratification_names - used_stratifications
         if unused_stratifications:
             self.logger.info(
                 "The following stratifications are registered but not used by any "
                 f"observers: \n{sorted(list(unused_stratifications))}"
             )
+        missing_stratifications = used_stratifications - registered_stratification_names
         if missing_stratifications:
-            # Sort by observer/measure and then by missing stratifiction
-            sorted_missing = {
-                key: sorted(list(missing_stratifications[key]))
-                for key in sorted(missing_stratifications)
-            }
             raise ValueError(
                 "The following observers are requested to be stratified by "
-                f"stratifications that are not registered: \n{sorted_missing}"
+                f"stratifications that are not registered: \n{sorted(list(missing_stratifications))}"
             )
 
     def on_time_step_prepare(self, event: Event) -> None:
@@ -329,56 +309,6 @@ class ResultsManager(Manager):
         )
         # Makes sure measure identifiers have fields in the same relative order.
         return tuple(sorted(stratifications))
-
-    @staticmethod
-    def _initialize_stratified_results(
-        measure: str,
-        all_requested_stratification_names: List[str],
-        registered_stratifications: List[Stratification],
-        registered_stratification_names: Set[str],
-        missing_stratifications: Dict[str, Set[str]],
-        unused_stratifications: Set[str],
-    ) -> Tuple[pd.DataFrame, Set[str]]:
-        all_requested_stratification_names = set(all_requested_stratification_names)
-
-        # Batch missing stratifications
-        observer_missing_stratifications = all_requested_stratification_names.difference(
-            registered_stratification_names
-        )
-        if observer_missing_stratifications:
-            missing_stratifications[measure] = observer_missing_stratifications
-
-            # Remove stratifications from the running list of unused stratifications
-        unused_stratifications = unused_stratifications.difference(
-            all_requested_stratification_names
-        )
-
-        # Set up the complete index of all used stratifications
-        requested_and_registered_stratifications = [
-            stratification
-            for stratification in registered_stratifications
-            if stratification.name in all_requested_stratification_names
-        ]
-        stratification_values = {
-            stratification.name: stratification.categories
-            for stratification in requested_and_registered_stratifications
-        }
-        if stratification_values:
-            stratification_names = list(stratification_values.keys())
-            df = pd.DataFrame(
-                list(itertools.product(*stratification_values.values())),
-                columns=stratification_names,
-            ).astype(CategoricalDtype)
-        else:
-            # We are aggregating the entire population so create a single-row index
-            stratification_names = ["stratification"]
-            df = pd.DataFrame(["all"], columns=stratification_names).astype(CategoricalDtype)
-
-            # Initialize a zeros dataframe
-        df[VALUE_COLUMN] = 0.0
-        df = df.set_index(stratification_names)
-
-        return df, unused_stratifications
 
     def _add_resources(self, target: List[str], target_type: SourceType) -> None:
         if len(target) == 0:
