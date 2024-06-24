@@ -102,10 +102,9 @@ class ResultsManager(Manager):
                 )
                 for observation in observations:
                     measure = observation.name
-                    df = observation.results_initializer(
+                    self._raw_results[measure] = observation.results_initializer(
                         event_requested_stratification_names, registered_stratifications
                     )
-                    self._raw_results[measure] = df
                     if observation.stratifications is not None:
                         used_stratifications = self._track_stratifications(
                             measure,
