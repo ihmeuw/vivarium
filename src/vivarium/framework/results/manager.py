@@ -79,30 +79,6 @@ class ResultsManager(Manager):
 
         self.set_default_stratifications(builder)
 
-    @staticmethod
-    def _track_stratifications(
-        measure: str,
-        event_requested_stratification_names: set[str],
-        registered_stratification_names: set[str],
-        missing_stratifications: Dict[str, set[str]],
-        unused_stratifications: set[str],
-    ) -> set[str]:
-        """Track stratifications for batch-logging"""
-
-        # Batch missing stratifications
-        observer_missing_stratifications = event_requested_stratification_names.difference(
-            registered_stratification_names
-        )
-        if observer_missing_stratifications:
-            missing_stratifications[measure] = observer_missing_stratifications
-
-        # Remove stratifications from the running list of unused stratifications
-        unused_stratifications = unused_stratifications.difference(
-            event_requested_stratification_names
-        )
-
-        return unused_stratifications
-
     def on_post_setup(self, _: Event) -> None:
         """Initialize results with 0s DataFrame' for each measure and all stratifications"""
         registered_stratifications = self._results_context.stratifications
@@ -334,6 +310,30 @@ class ResultsManager(Manager):
     ##################
     # Helper methods #
     ##################
+
+    @staticmethod
+    def _track_stratifications(
+        measure: str,
+        event_requested_stratification_names: set[str],
+        registered_stratification_names: set[str],
+        missing_stratifications: Dict[str, set[str]],
+        unused_stratifications: set[str],
+    ) -> set[str]:
+        """Track stratifications for batch-logging"""
+
+        # Batch missing stratifications
+        observer_missing_stratifications = event_requested_stratification_names.difference(
+            registered_stratification_names
+        )
+        if observer_missing_stratifications:
+            missing_stratifications[measure] = observer_missing_stratifications
+
+        # Remove stratifications from the running list of unused stratifications
+        unused_stratifications = unused_stratifications.difference(
+            event_requested_stratification_names
+        )
+
+        return unused_stratifications
 
     def _get_stratifications(
         self,
