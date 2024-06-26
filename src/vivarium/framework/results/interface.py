@@ -319,7 +319,7 @@ class ResultsInterface:
         requires_values: List[str] = [],
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
-        ] = lambda measure, results: results,
+        ] = lambda measure, results: results.reset_index(),
         additional_stratifications: List[str] = [],
         excluded_stratifications: List[str] = [],
         aggregator_sources: Optional[List[str]] = None,
