@@ -136,11 +136,13 @@ class StratifiedObservation(BaseObservation):
             df = pd.DataFrame(
                 list(itertools.product(*stratification_values.values())),
                 columns=stratification_names,
-            ).astype(CategoricalDtype)
+            ).astype(CategoricalDtype())
         else:
             # We are aggregating the entire population so create a single-row index
             stratification_names = ["stratification"]
-            df = pd.DataFrame(["all"], columns=stratification_names).astype(CategoricalDtype)
+            df = pd.DataFrame(["all"], columns=stratification_names).astype(
+                CategoricalDtype()
+            )
 
         # Initialize a zeros dataframe
         df[VALUE_COLUMN] = 0.0
@@ -170,7 +172,7 @@ class StratifiedObservation(BaseObservation):
             pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
             if aggregator_sources
             else pop_groups.apply(aggregator)
-        )
+        ).astype(float)
         return aggregates
 
     @staticmethod
