@@ -21,12 +21,15 @@ class Observer(Component, ABC):
     def configuration_defaults(self) -> Dict[str, Any]:
         return {
             "stratification": {
-                self.name.split("_observer")[0]: {
+                self.get_configuration_name(): {
                     "exclude": [],
                     "include": [],
                 },
             },
         }
+
+    def get_configuration_name(self) -> str:
+        return self.name.split("_observer")[0]
 
     @abstractmethod
     def register_observations(self, builder: Builder) -> None:
