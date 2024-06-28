@@ -19,10 +19,11 @@ tools to easily setup and run a simulation.
 
 """
 
+import os
 from pathlib import Path
 from pprint import pformat
 from typing import Any, Dict, List, Set, Union
-import os
+
 import numpy as np
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
