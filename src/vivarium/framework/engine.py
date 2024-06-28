@@ -22,7 +22,7 @@ tools to easily setup and run a simulation.
 from pathlib import Path
 from pprint import pformat
 from typing import Any, Dict, List, Set, Union
-
+import os
 import numpy as np
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
@@ -104,6 +104,17 @@ class SimulationContext:
         sim_name: str = None,
         logging_verbosity: int = 1,
     ):
+
+        # PYTHONHASHSEED must be set outside the Python process. We don't want to
+        # be tricked if someone has modified it inside the Python process, since
+        # that will have no effect on the actual reproducibility of hashes.
+        if os.environ.get("PYTHONHASHSEED") != "0":
+            raise EnvironmentError(
+                "PYTHONHASHSEED must be set to 0 in the environment to ensure "
+                "reproducibility of hash-based operations."
+            )
+        assert os.environ.get("PYTHONHASHSEED") == "0"
+
         self._name = self._get_context_name(sim_name)
 
         # Bootstrap phase: Parse arguments, make private managers
