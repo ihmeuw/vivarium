@@ -19,6 +19,7 @@ tools to easily setup and run a simulation.
 
 """
 
+import os
 from pathlib import Path
 from pprint import pformat
 from typing import Any, Dict, List, Set, Union
@@ -104,6 +105,18 @@ class SimulationContext:
         sim_name: str = None,
         logging_verbosity: int = 1,
     ):
+
+        # PYTHONHASHSEED must be set outside the Python process. We don't want to
+        # be tricked if someone has modified it inside the Python process, since
+        # that will have no effect on the actual reproducibility of hashes.
+        if os.environ.get("PYTHONHASHSEED") != "42":
+            raise EnvironmentError(
+                "PYTHONHASHSEED must be set to 42 in the environment to ensure "
+                "reproducibility of hash-based operations.\n"
+                "Please run 'export PYTHONHASHSEED=42' from the command line "
+                "(or add to your .bashrc) before running the simulation."
+            )
+
         self._name = self._get_context_name(sim_name)
 
         # Bootstrap phase: Parse arguments, make private managers
