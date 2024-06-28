@@ -144,12 +144,15 @@ def run(
 
     main = handle_exceptions(run_simulation, logger, with_debugger)
     finished_sim = main(model_specification, configuration=override_configuration)
-
-    metrics = pd.DataFrame(finished_sim.report(), index=[0])
+    metrics_dict = finished_sim.report()
+    metrics = pd.DataFrame(metrics_dict, index=[0])
+    metrics.T.rename(columns={0: "value"}).to_csv(results_root / "metrics_final.csv")
     metrics["simulation_run_time"] = time() - start
     metrics["random_seed"] = finished_sim.configuration.randomness.random_seed
     metrics["input_draw"] = finished_sim.configuration.input_data.input_draw_number
     metrics.to_hdf(results_root / "output.hdf", key="data")
+    output = pd.read_hdf(results_root / "output.hdf")
+    assert metrics.equals(output)
 
 
 @simulate.command()

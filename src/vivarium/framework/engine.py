@@ -245,9 +245,30 @@ class SimulationContext:
             )
             self._logger.debug(f"Updating: {len(pop_to_update)}")
             self.time_step_emitters[event](pop_to_update)
+        results_dir = (
+            self.configuration.to_dict().get("output_data", {}).get("results_directory")
+        )
+        if results_dir:
+            date = str(self._clock.time).split(" ")[0].replace("-", "_")
+            metrics = pd.DataFrame(self._results.metrics, index=[0]).T.rename(
+                columns={0: "value"}
+            )
+            metrics.to_csv(
+                Path(self.configuration.output_data.results_directory) / f"metrics_{date}.csv"
+            )
         self._clock.step_forward(self.get_population().index)
 
     def run(self) -> None:
+        results_dir = (
+            self.configuration.to_dict().get("output_data", {}).get("results_directory")
+        )
+        if results_dir:
+            metrics = pd.DataFrame(self._results.metrics, index=[0]).T.rename(
+                columns={0: "value"}
+            )
+            metrics.to_csv(
+                Path(self.configuration.output_data.results_directory) / f"metrics_init.csv"
+            )
         while self._clock.time < self._clock.stop_time:
             self.step()
 
