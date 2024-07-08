@@ -27,6 +27,9 @@ from layered_config_tree import LayeredConfigTree
 
 from vivarium.framework.utilities import import_by_path
 
+from ... import Component
+from .manager import ComponentConfigError
+
 
 class ParsingError(ComponentConfigError):
     """Error raised when component configurations are not specified correctly."""
