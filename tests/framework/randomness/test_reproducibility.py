@@ -22,9 +22,11 @@ def test_reproducibility(tmp_path, disease_model_spec):
         check=True,
     )
 
-    files = [file for file in results_dir.rglob("**/*.hdf")]
-    assert len(files) == 2
-    df1 = pd.read_hdf(files[0]).drop(columns="simulation_run_time")
-    df2 = pd.read_hdf(files[1]).drop(columns="simulation_run_time")
+    files = [file for file in results_dir.rglob("**/*.parquet")]
+    assert len(files) == 6
+    for filename in ["total_population_alive", "total_population_dead", "years_of_life_lost"]:
+        df_paths = [file for file in files if file.stem == filename]
+        df1 = pd.read_parquet(df_paths[0])
+        df2 = pd.read_parquet(df_paths[1])
 
-    assert df1.equals(df2)
+        assert df1.equals(df2)
