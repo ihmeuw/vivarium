@@ -51,6 +51,13 @@ class ResultsManager(Manager):
         return self._name
 
     def get_results(self) -> Dict[str, pd.DataFrame]:
+        """Return the measure-specific formatted results in a dictionary.
+
+        NOTE: self._results_context.observations is a list where each item is a dictionary
+        of the form {event_name: {(pop_filter, stratifications): List[Observation]}}.
+        We use a triple-nested for loop to iterative over only the list of Observations
+        (i.e. we do not need the event_name, pop_filter, or stratifications).
+        """
         formatted = {}
         for observation_details in self._results_context.observations.values():
             for observations in observation_details.values():
