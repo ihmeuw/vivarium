@@ -103,6 +103,45 @@ class ResultsContext:
         when: str,
         **kwargs,
     ) -> None:
+        """Add an observation to the context.
+
+        Parameters
+        ----------
+        observation_type
+            Class type of the observation to register.
+        name
+            Name of the metric to observe and result file.
+        pop_filter
+            A Pandas query filter string to filter the population down to the
+            simulants who should be considered for the observation.
+        when
+            String name of the phase of a time-step the observation should happen.
+            Valid values are: `"time_step__prepare"`, `"time_step"`,
+            `"time_step__cleanup"`, `"collect_metrics"`.
+        kwargs
+            Additional keyword arguments to pass to the observation constructor.
+
+
+        Returns
+        ------
+        None
+
+        """
+        already_used = None
+        if self.observations:
+            # NOTE: self.observations is a list where each item is a dictionary
+            # of the form {event_name: {(pop_filter, stratifications): List[Observation]}}.
+            # We use a triple-nested for loop to iterate over only the list of Observations
+            # (i.e. we do not need the event_name, pop_filter, or stratifications).
+            for observation_details in self.observations.values():
+                for observations in observation_details.values():
+                    for observation in observations:
+                        if observation.name == name:
+                            already_used = observation
+        if already_used:
+            raise ValueError(
+                f"Observation name '{name}' is already used: {str(already_used)}."
+            )
         observation = observation_type(name=name, pop_filter=pop_filter, when=when, **kwargs)
         self.observations[observation.when][
             (observation.pop_filter, observation.stratifications)

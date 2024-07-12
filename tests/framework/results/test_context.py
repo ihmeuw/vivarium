@@ -109,7 +109,7 @@ def _aggregate_state_person_time(x: pd.DataFrame) -> float:
     ],
     ids=["valid_on_collect_metrics", "valid_on_time_step__prepare"],
 )
-def test_add_observation(kwargs):
+def test_register_observation(kwargs):
     ctx = ResultsContext()
     assert len(ctx.observations) == 0
     kwargs["results_formatter"] = lambda: None
@@ -123,29 +123,28 @@ def test_add_observation(kwargs):
     assert len(ctx.observations) == 1
 
 
-def test_double_add_observation():
-    """Tests a double add of the same stratification, this should result in one
-    additional observation being added to the context."""
+def test_register_observation_duplicate_name_raises():
     ctx = ResultsContext()
-    assert len(ctx.observations) == 0
-    kwargs = {
-        "name": "living_person_time",
-        "pop_filter": 'alive == "alive" and undead == False',
-        "when": "collect_metrics",
-        "results_formatter": lambda: None,
-        "stratifications": tuple(),
-        "aggregator_sources": [],
-        "aggregator": len,
-    }
     ctx.register_observation(
         observation_type=AddingObservation,
-        **kwargs,
+        name="some-observation-name",
+        pop_filter="some-pop-filter",
+        when="some-when",
+        results_formatter=lambda df: df,
+        stratifications=(),
+        aggregator_sources=[],
+        aggregator=len,
     )
-    ctx.register_observation(
-        observation_type=AddingObservation,
-        **kwargs,
-    )
-    assert len(ctx.observations) == 1
+    with pytest.raises(
+        ValueError, match="Observation name 'some-observation-name' is already used: "
+    ):
+        # register a different observation but w/ the same name
+        ctx.register_observation(
+            observation_type=ConcatenatingObservation,
+            name="some-observation-name",
+            pop_filter="some-other-pop-filter",
+            when="some-other-when",
+        )
 
 
 @pytest.mark.parametrize(
