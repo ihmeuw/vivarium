@@ -55,7 +55,7 @@ class ResultsManager(Manager):
 
         NOTE: self._results_context.observations is a list where each item is a dictionary
         of the form {event_name: {(pop_filter, stratifications): List[Observation]}}.
-        We use a triple-nested for loop to iterative over only the list of Observations
+        We use a triple-nested for loop to iterate over only the list of Observations
         (i.e. we do not need the event_name, pop_filter, or stratifications).
         """
         formatted = {}
