@@ -1,5 +1,6 @@
 import itertools
 import math
+import re
 from datetime import timedelta
 
 import pandas as pd
@@ -22,6 +23,11 @@ from vivarium.framework.results.observation import (
     AddingObservation,
     ConcatenatingObservation,
 )
+
+
+def _aggregate_state_person_time(x: pd.DataFrame) -> float:
+    """Helper aggregator function for observation testing"""
+    return len(x) * (28 / 365.25)
 
 
 @pytest.mark.parametrize(
@@ -88,9 +94,17 @@ def test_add_stratifcation_duplicate_name_raises():
         ctx.add_stratification(NAME, [], [], None, False)
 
 
-def _aggregate_state_person_time(x: pd.DataFrame) -> float:
-    """Helper aggregator function for observation testing"""
-    return len(x) * (28 / 365.25)
+def test_add_stratification_duplicate_category_raises():
+    ctx = ResultsContext()
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            f"Found duplicate categories in stratification '{NAME}': ['slytherin']"
+        ),
+    ):
+        ctx.add_stratification(
+            NAME, SOURCES, CATEGORIES + ["slytherin"], sorting_hat_vector, True
+        )
 
 
 @pytest.mark.parametrize(
