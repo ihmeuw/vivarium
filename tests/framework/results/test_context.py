@@ -94,16 +94,23 @@ def test_add_stratifcation_duplicate_name_raises():
         ctx.add_stratification(NAME, [], [], None, False)
 
 
-def test_add_stratification_duplicate_category_raises():
+@pytest.mark.parametrize(
+    "duplicates",
+    [
+        ["slytherin"],
+        ["gryffindor", "slytherin"],
+    ],
+)
+def test_add_stratification_duplicate_category_raises(duplicates):
     ctx = ResultsContext()
     with pytest.raises(
         ValueError,
         match=re.escape(
-            f"Found duplicate categories in stratification '{NAME}': ['slytherin']"
+            f"Found duplicate categories in stratification '{NAME}': {duplicates}"
         ),
     ):
         ctx.add_stratification(
-            NAME, SOURCES, CATEGORIES + ["slytherin"], sorting_hat_vector, True
+            NAME, SOURCES, CATEGORIES + duplicates, sorting_hat_vector, True
         )
 
 
