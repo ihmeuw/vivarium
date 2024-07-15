@@ -126,10 +126,12 @@ def run(
     # Update permissions mask (assign to variable to avoid printing previous value)
     _ = os.umask(0o002)
     results_root.mkdir(parents=True, exist_ok=False)
+    output_data_root = results_root / "results"
+    output_data_root.mkdir(parents=True, exist_ok=False)
 
     configure_logging_to_file(output_directory=results_root)
 
-    output_data = {"results_directory": str(results_root)}
+    output_data = {"results_directory": str(output_data_root)}
     input_data = {}
     if artifact_path:
         input_data["artifact_path"] = artifact_path
@@ -152,6 +154,8 @@ def run(
     metadata["artifact_path"] = artifact_path
     with open(results_root / "metadata.yaml", "w") as f:
         yaml.dump(metadata, f, default_flow_style=False)
+
+    logger.info(f"Simulation finished.\nResults written to {output_data}")
 
 
 @simulate.command()
