@@ -92,6 +92,13 @@ class ResultsContext:
             raise ValueError(
                 f"Stratification name '{name}' is already used: {str(already_used[0])}."
             )
+        unique_categories = set(categories)
+        if len(categories) != len(unique_categories):
+            for category in unique_categories:
+                categories.remove(category)
+            raise ValueError(
+                f"Found duplicate categories in stratification '{name}': {categories}."
+            )
         stratification = Stratification(name, sources, categories, mapper, is_vectorized)
         self.stratifications.append(stratification)
 
