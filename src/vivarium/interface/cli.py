@@ -155,7 +155,7 @@ def run(
     with open(results_root / "metadata.yaml", "w") as f:
         yaml.dump(metadata, f, default_flow_style=False)
 
-    logger.info(f"Simulation finished.\nResults written to {output_data}")
+    logger.info(f"Simulation finished.\nResults written to {str(output_data_root)}")
 
 
 @simulate.command()
