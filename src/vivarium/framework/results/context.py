@@ -181,22 +181,13 @@ class ResultsContext:
                 yield None, None, None
             else:
                 if stratifications is None:
-                    for observation in observations:
-                        if not observation.to_observe(event):
-                            yield None, None, None
-                        else:
-                            df = observation.results_gatherer(filtered_pop)
-                            yield df, observation.name, observation.results_updater
+                    pop = filtered_pop
                 else:
-                    pop_groups = self._get_groups(stratifications, filtered_pop)
-                    for observation in observations:
-                        if not observation.to_observe(event):
-                            yield None, None, None
-                        else:
-                            aggregates = observation.results_gatherer(
-                                pop_groups, stratifications
-                            )
-                            yield aggregates, observation.name, observation.results_updater
+                    pop = self._get_groups(stratifications, filtered_pop)
+                for observation in observations:
+                    yield observation.gather_results(
+                        event, pop, stratifications
+                    ), observation.name, observation.results_updater
 
     @staticmethod
     def _filter_population(population: pd.DataFrame, pop_filter: str) -> pd.DataFrame:

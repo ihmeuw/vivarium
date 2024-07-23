@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 from abc import ABC
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -38,6 +38,20 @@ class BaseObservation(ABC):
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
     stratifications: Optional[Tuple[str]]
     to_observe: Callable[[Event], bool]
+
+    def gather_results(
+        self,
+        event: Event,
+        df: Union[pd.DataFrame, DataFrameGroupBy],
+        stratifications: Optional[tuple[str, ...]],
+    ) -> Optional[pd.DataFrame]:
+        if not self.to_observe(event):
+            return None
+        else:
+            if stratifications is None:
+                return self.results_gatherer(df)
+            else:
+                return self.results_gatherer(df, stratifications)
 
 
 class UnstratifiedObservation(BaseObservation):
@@ -77,7 +91,7 @@ class UnstratifiedObservation(BaseObservation):
     @staticmethod
     def initialize_results(
         requested_stratification_names: set[str],
-        registered_stratifications: List[Stratification],
+        registered_stratifications: list[Stratification],
     ) -> pd.DataFrame:
         """Initialize an empty dataframe."""
         return pd.DataFrame()
@@ -105,7 +119,7 @@ class StratifiedObservation(BaseObservation):
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         stratifications: Tuple[str, ...],
-        aggregator_sources: Optional[List[str]],
+        aggregator_sources: Optional[list[str]],
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
@@ -114,7 +128,7 @@ class StratifiedObservation(BaseObservation):
             pop_filter=pop_filter,
             when=when,
             results_initializer=self.initialize_results,
-            results_gatherer=self.gather_results,
+            results_gatherer=self.results_gatherer,
             results_updater=results_updater,
             results_formatter=results_formatter,
             stratifications=stratifications,
@@ -159,7 +173,7 @@ class StratifiedObservation(BaseObservation):
 
         return df
 
-    def gather_results(
+    def results_gatherer(
         self,
         pop_groups: DataFrameGroupBy,
         stratifications: Tuple[str, ...],
@@ -280,7 +294,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            results_gatherer=self.gather_results,
+            results_gatherer=self.results_gatherer,
             results_updater=self.concatenate_results,
             results_formatter=results_formatter,
             to_observe=to_observe,
@@ -295,5 +309,5 @@ class ConcatenatingObservation(UnstratifiedObservation):
             return new_observations
         return pd.concat([existing_results, new_observations], axis=0).reset_index(drop=True)
 
-    def gather_results(self, pop: pd.DataFrame) -> pd.DataFrame:
+    def results_gatherer(self, pop: pd.DataFrame) -> pd.DataFrame:
         return pop[self.included_columns]
