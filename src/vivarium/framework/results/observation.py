@@ -9,6 +9,7 @@ import pandas as pd
 from pandas.api.types import CategoricalDtype
 from pandas.core.groupby import DataFrameGroupBy
 
+from vivarium.framework.event import Event
 from vivarium.framework.results.stratification import Stratification
 
 VALUE_COLUMN = "value"
@@ -25,6 +26,7 @@ class BaseObservation(ABC):
     - `results_gatherer`: method that gathers the new observation results
     - `results_updater`: method that updates the results with new observations
     - `results_formatter`: method that formats the results
+    - `to_observe`: method that determines whether to observe an event
     """
 
     name: str
@@ -35,6 +37,7 @@ class BaseObservation(ABC):
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
     stratifications: Optional[Tuple[str]]
+    to_observe: Callable[[Event], bool]
 
 
 class UnstratifiedObservation(BaseObservation):
@@ -46,6 +49,7 @@ class UnstratifiedObservation(BaseObservation):
     - `results_gatherer`: method that gathers the new observation results
     - `results_updater`: method that updates the results with new observations
     - `results_formatter`: method that formats the results
+    - `to_observe`: method that determines whether to observe an event
     """
 
     def __init__(
@@ -56,6 +60,7 @@ class UnstratifiedObservation(BaseObservation):
         results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         super().__init__(
             name=name,
@@ -66,6 +71,7 @@ class UnstratifiedObservation(BaseObservation):
             results_updater=results_updater,
             results_formatter=results_formatter,
             stratifications=None,
+            to_observe=to_observe,
         )
 
     @staticmethod
@@ -88,6 +94,7 @@ class StratifiedObservation(BaseObservation):
     - `stratifications`: a tuple of columns for the observation to stratify by
     - `aggregator_sources`: a list of the columns to observe
     - `aggregator`: a method that aggregates the `aggregator_sources`
+    - `to_observe`: method that determines whether to observe an event
     """
 
     def __init__(
@@ -100,6 +107,7 @@ class StratifiedObservation(BaseObservation):
         stratifications: Tuple[str, ...],
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
+        to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         super().__init__(
             name=name,
@@ -110,6 +118,7 @@ class StratifiedObservation(BaseObservation):
             results_updater=results_updater,
             results_formatter=results_formatter,
             stratifications=stratifications,
+            to_observe=to_observe,
         )
         self.aggregator_sources = aggregator_sources
         self.aggregator = aggregator
@@ -203,6 +212,7 @@ class AddingObservation(StratifiedObservation):
     - `stratifications`: a tuple of columns for the observation to stratify by
     - `aggregator_sources`: a list of the columns to observe
     - `aggregator`: a method that aggregates the `aggregator_sources`
+    - `to_observe`: method that determines whether to observe an event
     """
 
     def __init__(
@@ -214,6 +224,7 @@ class AddingObservation(StratifiedObservation):
         stratifications: Tuple[str, ...],
         aggregator_sources: Optional[List[str]],
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
+        to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         super().__init__(
             name=name,
@@ -224,6 +235,7 @@ class AddingObservation(StratifiedObservation):
             stratifications=stratifications,
             aggregator_sources=aggregator_sources,
             aggregator=aggregator,
+            to_observe=to_observe,
         )
 
     @staticmethod
@@ -252,6 +264,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
     - `when`: the phase that the observation is registered to
     - `included_columns`: the columns to include in the observation
     - `results_formatter`: method that formats the results
+    - `to_observe`: method that determines whether to observe an event
     """
 
     def __init__(
@@ -261,6 +274,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
         when: str,
         included_columns: List[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
+        to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         super().__init__(
             name=name,
@@ -269,6 +283,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
             results_gatherer=self.gather_results,
             results_updater=self.concatenate_results,
             results_formatter=results_formatter,
+            to_observe=to_observe,
         )
         self.included_columns = included_columns
 

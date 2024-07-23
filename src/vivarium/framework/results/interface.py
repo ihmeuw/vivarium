@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 
+from vivarium.framework.event import Event
 from vivarium.framework.results.observation import (
     AddingObservation,
-    BaseObservation,
     ConcatenatingObservation,
     StratifiedObservation,
     UnstratifiedObservation,
@@ -170,6 +170,7 @@ class ResultsInterface:
         excluded_stratifications: List[str] = [],
         aggregator_sources: Optional[List[str]] = None,
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]] = len,
+        to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Provide the results system all the information it needs to perform a
         stratified observation.
@@ -202,6 +203,8 @@ class ResultsInterface:
             A list of population view columns to be used in the aggregator.
         aggregator
             A function that computes the quantity for the observation.
+        to_observe
+            A function that determines whether to observe the event at the current time step.
 
         Returns
         ------
@@ -222,6 +225,7 @@ class ResultsInterface:
             excluded_stratifications=excluded_stratifications,
             aggregator_sources=aggregator_sources,
             aggregator=aggregator,
+            to_observe=to_observe,
         )
 
     @staticmethod
@@ -253,6 +257,7 @@ class ResultsInterface:
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
+        to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Provide the results system all the information it needs to perform a
         stratified observation.
@@ -287,6 +292,8 @@ class ResultsInterface:
             A list of population view columns to be used in the aggregator.
         aggregator
             A function that computes the quantity for the observation.
+        to_observe
+            A function that determines whether to observe the event at the current time step.
 
         Returns
         ------
@@ -308,6 +315,7 @@ class ResultsInterface:
             results_updater=results_updater,
             results_gatherer=results_gatherer,
             results_formatter=results_formatter,
+            to_observe=to_observe,
         )
 
     def register_adding_observation(
@@ -324,6 +332,7 @@ class ResultsInterface:
         excluded_stratifications: List[str] = [],
         aggregator_sources: Optional[List[str]] = None,
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]] = len,
+        to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Provide the results system all the information it needs to perform the observation.
 
@@ -353,6 +362,8 @@ class ResultsInterface:
             A list of population view columns to be used in the aggregator.
         aggregator
             A function that computes the quantity for the observation.
+        to_observe
+            A function that determines whether to observe the event at the current time step.
 
         Returns
         ------
@@ -372,6 +383,7 @@ class ResultsInterface:
             excluded_stratifications=excluded_stratifications,
             aggregator_sources=aggregator_sources,
             aggregator=aggregator,
+            to_observe=to_observe,
         )
 
     def register_concatenating_observation(
@@ -384,6 +396,7 @@ class ResultsInterface:
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
+        to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Provide the results system all the information it needs to perform the observation.
 
@@ -403,6 +416,8 @@ class ResultsInterface:
             A list of the value pipelines that are required by either the pop_filter or the aggregator.
         results_formatter
             A function that formats the observation results.
+        to_observe
+            A function that determines whether to observe the event at the current time step.
 
         Returns
         ------
@@ -419,4 +434,5 @@ class ResultsInterface:
             requires_values=requires_values,
             results_formatter=results_formatter,
             included_columns=included_columns,
+            to_observe=to_observe,
         )

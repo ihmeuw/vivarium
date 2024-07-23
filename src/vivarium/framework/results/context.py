@@ -7,6 +7,7 @@ import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
 
 from vivarium.framework.engine import Builder
+from vivarium.framework.event import Event
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import BaseObservation
 from vivarium.framework.results.stratification import Stratification
@@ -155,7 +156,7 @@ class ResultsContext:
         ].append(observation)
 
     def gather_results(
-        self, population: pd.DataFrame, event_name: str
+        self, population: pd.DataFrame, event_name: str, event: Event
     ) -> Generator[
         Tuple[
             Optional[pd.DataFrame],
@@ -181,13 +182,21 @@ class ResultsContext:
             else:
                 if stratifications is None:
                     for observation in observations:
-                        df = observation.results_gatherer(filtered_pop)
-                        yield df, observation.name, observation.results_updater
+                        if not observation.to_observe(event):
+                            yield None, None, None
+                        else:
+                            df = observation.results_gatherer(filtered_pop)
+                            yield df, observation.name, observation.results_updater
                 else:
                     pop_groups = self._get_groups(stratifications, filtered_pop)
                     for observation in observations:
-                        aggregates = observation.results_gatherer(pop_groups, stratifications)
-                        yield aggregates, observation.name, observation.results_updater
+                        if not observation.to_observe(event):
+                            yield None, None, None
+                        else:
+                            aggregates = observation.results_gatherer(
+                                pop_groups, stratifications
+                            )
+                            yield aggregates, observation.name, observation.results_updater
 
     @staticmethod
     def _filter_population(population: pd.DataFrame, pop_filter: str) -> pd.DataFrame:

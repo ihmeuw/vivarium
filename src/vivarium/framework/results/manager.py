@@ -139,7 +139,7 @@ class ResultsManager(Manager):
         """
         population = self._prepare_population(event)
         for results_group, measure, updater in self._results_context.gather_results(
-            population, event_name
+            population, event_name, event
         ):
             if results_group is not None and measure is not None and updater is not None:
                 self._raw_results[measure] = updater(
