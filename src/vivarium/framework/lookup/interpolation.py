@@ -109,7 +109,9 @@ class Interpolation:
             )
 
         if self.categorical_parameters:
-            sub_tables = interpolants.groupby(list(self.categorical_parameters))
+            sub_tables = interpolants.groupby(
+                list(self.categorical_parameters), observed=False
+            )
         else:
             sub_tables = [(None, interpolants)]
         # specify some numeric type for columns, so they won't be objects but
