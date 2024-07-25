@@ -138,9 +138,9 @@ class ResultsContext:
         already_used = None
         if self.observations:
             # NOTE: self.observations is a list where each item is a dictionary
-            # of the form {event_name: {(pop_filter, stratifications): List[Observation]}}.
+            # of the form {lifecycle_phase: {(pop_filter, stratifications): List[Observation]}}.
             # We use a triple-nested for loop to iterate over only the list of Observations
-            # (i.e. we do not need the event_name, pop_filter, or stratifications).
+            # (i.e. we do not need the lifecycle_phase, pop_filter, or stratifications).
             for observation_details in self.observations.values():
                 for observations in observation_details.values():
                     for observation in observations:
@@ -156,7 +156,7 @@ class ResultsContext:
         ].append(observation)
 
     def gather_results(
-        self, population: pd.DataFrame, event_name: str, event: Event
+        self, population: pd.DataFrame, lifecycle_phase: str, event: Event
     ) -> Generator[
         Tuple[
             Optional[pd.DataFrame],
@@ -172,7 +172,7 @@ class ResultsContext:
             population = stratification(population)
 
         for (pop_filter, stratifications), observations in self.observations[
-            event_name
+            lifecycle_phase
         ].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
@@ -185,7 +185,7 @@ class ResultsContext:
                 else:
                     pop = self._get_groups(stratifications, filtered_pop)
                 for observation in observations:
-                    yield observation.gather_results(
+                    yield observation.observe(
                         event, pop, stratifications
                     ), observation.name, observation.results_updater
 

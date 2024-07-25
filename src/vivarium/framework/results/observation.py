@@ -39,7 +39,7 @@ class BaseObservation(ABC):
     stratifications: Optional[Tuple[str]]
     to_observe: Callable[[Event], bool]
 
-    def gather_results(
+    def observe(
         self,
         event: Event,
         df: Union[pd.DataFrame, DataFrameGroupBy],

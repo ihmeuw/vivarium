@@ -204,7 +204,7 @@ class ResultsInterface:
         aggregator
             A function that computes the quantity for the observation.
         to_observe
-            A function that determines whether to observe the event at the current time step.
+            A function that determines whether to perform an observation on this Event.
 
         Returns
         ------
@@ -293,7 +293,7 @@ class ResultsInterface:
         aggregator
             A function that computes the quantity for the observation.
         to_observe
-            A function that determines whether to observe the event at the current time step.
+            A function that determines whether to perform an observation on this Event.
 
         Returns
         ------
@@ -363,7 +363,7 @@ class ResultsInterface:
         aggregator
             A function that computes the quantity for the observation.
         to_observe
-            A function that determines whether to observe the event at the current time step.
+            A function that determines whether to perform an observation on this Event.
 
         Returns
         ------
@@ -417,7 +417,7 @@ class ResultsInterface:
         results_formatter
             A function that formats the observation results.
         to_observe
-            A function that determines whether to observe the event at the current time step.
+            A function that determines whether to perform an observation on this Event.
 
         Returns
         ------

@@ -54,9 +54,9 @@ class ResultsManager(Manager):
         """Return the measure-specific formatted results in a dictionary.
 
         NOTE: self._results_context.observations is a list where each item is a dictionary
-        of the form {event_name: {(pop_filter, stratifications): List[Observation]}}.
+        of the form {lifecycle_phase: {(pop_filter, stratifications): List[Observation]}}.
         We use a triple-nested for loop to iterate over only the list of Observations
-        (i.e. we do not need the event_name, pop_filter, or stratifications).
+        (i.e. we do not need the lifecycle_phase, pop_filter, or stratifications).
         """
         formatted = {}
         for observation_details in self._results_context.observations.values():
@@ -91,11 +91,11 @@ class ResultsManager(Manager):
         registered_stratifications = self._results_context.stratifications
 
         used_stratifications = set()
-        for event_name in self._results_context.observations:
+        for lifecycle_phase in self._results_context.observations:
             for (
                 _pop_filter,
                 event_requested_stratification_names,
-            ), observations in self._results_context.observations[event_name].items():
+            ), observations in self._results_context.observations[lifecycle_phase].items():
                 if event_requested_stratification_names is not None:
                     used_stratifications |= set(event_requested_stratification_names)
                 for observation in observations:
@@ -132,14 +132,14 @@ class ResultsManager(Manager):
     def on_collect_metrics(self, event: Event) -> None:
         self.gather_results("collect_metrics", event)
 
-    def gather_results(self, event_name: str, event: Event) -> None:
+    def gather_results(self, lifecycle_phase: str, event: Event) -> None:
         """Update the existing results with new results. Any columns in the
         results group that are not already in the existing results are initialized
         with 0.0.
         """
         population = self._prepare_population(event)
         for results_group, measure, updater in self._results_context.gather_results(
-            population, event_name, event
+            population, lifecycle_phase, event
         ):
             if results_group is not None and measure is not None and updater is not None:
                 self._raw_results[measure] = updater(
