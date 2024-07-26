@@ -274,9 +274,8 @@ class SimulationContext:
     def report(self, print_results: bool = True) -> None:
         self._lifecycle.set_state("report")
         self.report_emitter(self.get_population().index)
-
+        results = self.get_results()
         if print_results:
-            results = self.get_results()
             for measure, df in results.items():
                 self._logger.info(f"\n{measure}:\n{pformat(df)}")
             performance_metrics = self.get_performance_metrics()
@@ -285,15 +284,15 @@ class SimulationContext:
                 float_format=lambda x: f"{x:.2f}",
             )
             self._logger.info("\n" + performance_metrics)
-        self._write_results()
+        self._write_results(results)
 
-    def _write_results(self) -> None:
+    def _write_results(self, results: dict[str, pd.DataFrame]) -> None:
         """Iterate through the measures and write out the formatted results"""
         try:
             results_dir = self.configuration.output_data.results_directory
-            for measure, results in self.get_results().items():
+            for measure, df in results.items():
                 output_file = Path(results_dir) / f"{measure}.parquet"
-                results.to_parquet(output_file, index=False)
+                df.to_parquet(output_file, index=False)
         except ConfigurationKeyError:
             self._logger.info("No results directory set; results are not written to disk.")
 
