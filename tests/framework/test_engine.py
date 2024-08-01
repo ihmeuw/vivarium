@@ -346,6 +346,7 @@ def test_SimulationContext_report_write(SimulationContext, base_config, componen
         written_results = pd.read_parquet(results_root / f"{measure}.parquet")
         assert results.equals(written_results)
 
+
 @pytest.mark.skip(reason="TODO: Figure out how to make Dill serialize in pytest")
 def test_SimulationContext_write_backup(SimulationContext, tmpdir):
     sim = SimulationContext()
