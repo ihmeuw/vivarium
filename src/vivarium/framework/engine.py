@@ -21,7 +21,6 @@ tools to easily setup and run a simulation.
 
 from pathlib import Path
 from pprint import pformat
-from time import time
 from typing import Any, Dict, List, Optional, Set, Union
 
 import dill
