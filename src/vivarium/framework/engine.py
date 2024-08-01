@@ -21,8 +21,10 @@ tools to easily setup and run a simulation.
 
 from pathlib import Path
 from pprint import pformat
+from time import time
 from typing import Any, Dict, List, Optional, Set, Union
 
+import dill
 import numpy as np
 import pandas as pd
 import yaml
@@ -259,7 +261,7 @@ class SimulationContext:
         self._clock.step_forward(self.get_population().index)
 
     def run(self) -> None:
-        while self._clock.time < self._clock.stop_time:
+        while not self.past_stop_time():
             self.step()
 
     def finalize(self) -> None:
@@ -297,6 +299,10 @@ class SimulationContext:
         except ConfigurationKeyError:
             self._logger.info("No results directory set; results are not written to disk.")
 
+    def write_backup(self, backup_path: Path) -> None:
+        with open(backup_path, "wb") as f:
+            dill.dump(self, f)
+
     def get_performance_metrics(self) -> pd.DataFrame:
         timing_dict = self._lifecycle.timings
         total_time = np.sum([np.sum(v) for v in timing_dict.values()])
@@ -321,6 +327,9 @@ class SimulationContext:
 
     def get_population(self, untracked: bool = True) -> pd.DataFrame:
         return self._population.get_population(untracked)
+
+    def past_stop_time(self) -> bool:
+        return self._clock.time >= self._clock.stop_time
 
     def __repr__(self):
         return f"SimulationContext({self.name})"

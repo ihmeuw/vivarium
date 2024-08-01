@@ -347,6 +347,16 @@ def test_SimulationContext_report_write(SimulationContext, base_config, componen
         assert results.equals(written_results)
 
 
+def test_SimulationContext_write_backup(SimulationContext, tmpdir):
+    sim = SimulationContext()
+    backup_path = tmpdir / "backup.pkl"
+    sim.write_backup(backup_path)
+    assert backup_path.exists()
+    with open(backup_path, "rb") as f:
+        sim_backup = dill.load(f)
+    assert isinstance(sim_backup, SimulationContext)
+
+
 def test_get_results_formatting(SimulationContext, base_config):
     """Test formatted results are as expected"""
     components = [
