@@ -3,3 +3,9 @@ line_length = 94
 
 [tool.isort]
 profile = "black"
+
+[tool.coverage.run]
+source = ["vivarium"]
+
+[tool.coverage.report]
+show_missing = true
