@@ -233,10 +233,6 @@ pipeline {
               sh "rm -rf ${CONDA_ENV_PATH}"
               // Delete the workspace directory.
               deleteDir()
-              // Tell BitBucket whether the build succeeded or failed.
-              script {
-                notifyBitbucket()
-              }
             }
             failure {
               slackSend channel: "#${params.SLACK_TO}",
