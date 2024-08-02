@@ -61,27 +61,22 @@ install: # Install setuptools, install this package in editable mode
 	pip install -e .[DEV]
 
 format: setup.py pyproject.toml $(MAKE_SOURCES) # Run the code formatter and import sorter
-	-black $(LOCATIONS)
-	-isort $(LOCATIONS)
+	black $(LOCATIONS)
+	isort $(LOCATIONS)
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 lint: .flake8 .bandit $(MAKE_SOURCES) # Run the code linter and package security vulnerability checker
-	-flake8 $(LOCATIONS)
-	-safety check
+	flake8 $(LOCATIONS)
+	safety check
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 typecheck: pytype.cfg $(MAKE_SOURCES) # Run the type checker
-	-pytype --config=pytype.cfg $(LOCATIONS)
+	pytype --config=pytype.cfg $(LOCATIONS)
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 integration: $(MAKE_SOURCES) # Run the integration tests
 	export COVERAGE_FILE=./output/.coverage.integration
-	pytest --runslow --cov --cov-report term --cov-report html:./output/htmlcov_integration integration_tests/
-	@echo "Ignore, Created by Makefile, `date`" > $@
-
-unit: $(MAKE_SOURCES) # Run unit tests
-	export COVERAGE_FILE=./output/.coverage.unit
-	pytest --runslow --cov --cov-report term --cov-report html:./output/htmlcov_unit tests/
+	pytest --runslow --cov --cov-report term --cov-report html:./output/htmlcov_integration tests/
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 clean: # Delete build artifacts and do any custom cleanup such as spinning down services
