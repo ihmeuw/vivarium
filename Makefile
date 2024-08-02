@@ -8,8 +8,8 @@ LOCATIONS=src tests
 PACKAGE_NAME = vivarium
 SAFE_NAME = $(shell python -c "from pkg_resources import safe_name; print(safe_name(\"$(PACKAGE_NAME)\"))")
 
-setup_file   = $(shell find -name setup.py)
-version_line = $(shell grep "version = " ${setup_file})
+about_file   = $(shell find src -name __about__.py)
+version_line = $(shell grep "__version__ = " ${about_file})
 PACKAGE_VERSION = $(shell echo ${version_line} | cut -d "=" -f 2 | xargs)
 
 # Use this URL to pull IHME Python packages and deploy this package to PyPi.
