@@ -57,7 +57,7 @@ install: # Install setuptools, install this package in editable mode
 	pip install --upgrade pip setuptools
 	pip install -e .[DEV]
 
-format: setup.cfg pyproject.toml $(MAKE_SOURCES) # Run the code formatter and import sorter
+format: setup.py pyproject.toml $(MAKE_SOURCES) # Run the code formatter and import sorter
 	black $(LOCATIONS)
 	isort $(LOCATIONS)
 	@echo "Ignore, Created by Makefile, `date`" > $@
