@@ -25,6 +25,7 @@ class ResultsContext:
     def __init__(self) -> None:
         self.default_stratifications: List[str] = []
         self.stratifications: List[Stratification] = []
+        self.excluded_categories: dict[str, list[str]] = {}
         # keys are event names: [
         #     "time_step__prepare",
         #     "time_step",
@@ -51,6 +52,16 @@ class ResultsContext:
                 "for results production."
             )
         self.default_stratifications = default_grouping_columns
+
+    def set_stratification_excluded_categories(
+        self, excluded_categories: dict[str, list[str]]
+    ) -> None:
+        if self.excluded_categories:
+            raise ResultsConfigurationError(
+                "Multiple calls are being made to set excluded stratification categories "
+                "for results production."
+            )
+        self.excluded_categories = excluded_categories
 
     def add_stratification(
         self,
@@ -100,7 +111,32 @@ class ResultsContext:
             raise ValueError(
                 f"Found duplicate categories in stratification '{name}': {categories}."
             )
-        stratification = Stratification(name, sources, categories, mapper, is_vectorized)
+
+        # Handle excluded categories
+        excluded_categories = self.excluded_categories.get(name, [])
+        unknown_exclusions = set(excluded_categories) - set(categories)
+        if len(unknown_exclusions) > 0:
+            raise ValueError(
+                f"Excluded categories {unknown_exclusions} not found in categories "
+                f"{categories} for stratification '{name}'."
+            )
+        if excluded_categories:
+            self.logger.info(
+                f"'{name}' has category exclusion requests: {excluded_categories}\n"
+                "Removing these from the allowable categories."
+            )
+            categories = [
+                category for category in categories if category not in excluded_categories
+            ]
+
+        stratification = Stratification(
+            name,
+            sources,
+            categories,
+            excluded_categories,
+            mapper,
+            is_vectorized,
+        )
         self.stratifications.append(stratification)
 
     def register_observation(

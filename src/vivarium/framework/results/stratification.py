@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Callable, List, Optional, Union
 
 import pandas as pd
+from loguru import logger
 from pandas.api.types import CategoricalDtype
 
 
@@ -14,14 +15,14 @@ class Stratification:
     Each Stratification represents a set of mutually exclusive and collectively
     exhaustive categories into which simulants can be assigned.
 
-    The `Stratification` class has five fields: `name`, `sources`, `mapper`,
-    `categories`, and `is_vectorized`. The `name` is the name of the column
-    created by the mapper. The `sources` is a list of columns in the extended
-    state table that are the inputs to the mapper function.  Simulants will
-    later be grouped by this column (or these columns) during stratification.
-    `categories` is a set of values that the mapper is allowed to output. The
-    `mapper` is the method that transforms the source to the name column.
-    The method produces an output column by calling the mapper on the source
+    The `Stratification` class has six fields: `name`, `sources`, `mapper`,
+    `categories`, `excluded_categories`, and `is_vectorized`. The `name` is the
+    name of the column created by the mapper. The `sources` is a list of columns
+    in the extended state table that are the inputs to the mapper function. Simulants
+    will later be grouped by this column (or these columns) during stratification.
+    `categories` is the total set of values that the mapper can output minus the
+    `excluded_categories`. The `mapper` is the method that transforms the source to the
+    name column. The method produces an output column by calling the mapper on the source
     columns. If the mapper is `None`, the default identity mapper is used. If
     the mapper is not vectorized this is performed by using `pd.apply`.
     Finally, `is_vectorized` is a boolean parameter that signifies whether
@@ -35,6 +36,7 @@ class Stratification:
     name: str
     sources: List[str]
     categories: List[str]
+    excluded_categories: List[str]
     mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]] = None
     is_vectorized: bool = False
 
@@ -63,7 +65,15 @@ class Stratification:
             raw_mapped_column = self.mapper(population[self.sources])
         else:
             raw_mapped_column = population[self.sources].apply(self.mapper, axis=1)
-        mapped_column = raw_mapped_column.astype(
+        mapped_column = raw_mapped_column
+        to_drop = mapped_column[mapped_column.isin(self.excluded_categories)]
+        if len(to_drop) > 0:
+            logger.info(
+                f"Dropping {len(to_drop)} simulants that fall within {self.name} excluded categories."
+            )
+            mapped_column = mapped_column.loc[~mapped_column.index.isin(to_drop.index)]
+            population = population.loc[~population.index.isin(to_drop.index), :].copy()
+        mapped_column = mapped_column.astype(
             CategoricalDtype(categories=self.categories, ordered=True)
         )
         if mapped_column.isna().any():

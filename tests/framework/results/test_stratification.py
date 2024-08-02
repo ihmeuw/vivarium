@@ -18,108 +18,74 @@ from vivarium.framework.results.stratification import Stratification
 # Tests #
 #########
 @pytest.mark.parametrize(
-    "name, sources, categories, mapper, is_vectorized, expected_output",
+    "mapper, is_vectorized",
     [
         (  # expected output for vectorized
-            NAME,
-            SOURCES,
-            CATEGORIES,
             sorting_hat_vector,
             True,
-            STUDENT_HOUSES,
         ),
         (  # expected output for non-vectorized
-            NAME,
-            SOURCES,
-            CATEGORIES,
             sorting_hat_serial,
             False,
-            STUDENT_HOUSES,
         ),
     ],
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
-def test_stratification(name, sources, categories, mapper, is_vectorized, expected_output):
-    my_stratification = Stratification(name, sources, categories, mapper, is_vectorized)
-    output = my_stratification(STUDENT_TABLE)[name]
-    assert output.eq(expected_output).all()
+def test_stratification(mapper, is_vectorized):
+    my_stratification = Stratification(NAME, SOURCES, CATEGORIES, [], mapper, is_vectorized)
+    output = my_stratification(STUDENT_TABLE)[NAME]
+    assert output.eq(STUDENT_HOUSES).all()
 
 
 @pytest.mark.parametrize(
-    "name, sources, categories, mapper, is_vectorized, expected_exception",
+    "sources, categories",
     [
         (  # empty sources list with no defined mapper (default mapper)
-            NAME,
             [],
             CATEGORIES,
-            None,
-            True,
-            ValueError,
         ),
         (  # sources list with more than one column with no defined mapper (default mapper)
-            NAME,
             SOURCES,
             CATEGORIES,
-            None,
-            True,
-            ValueError,
         ),
         (  # empty sources list with no defined mapper (default mapper)
-            NAME,
             [],
             CATEGORIES,
-            None,
-            True,
-            ValueError,
         ),
         (  # empty categories list
-            NAME,
             SOURCES,
             [],
-            None,
-            True,
-            ValueError,
         ),
     ],
 )
-def test_stratification_init_raises(
-    name, sources, categories, mapper, is_vectorized, expected_exception
-):
-    with pytest.raises(expected_exception):
-        assert Stratification(name, sources, categories, mapper, is_vectorized)
+def test_stratification_init_raises(sources, categories):
+    with pytest.raises(ValueError):
+        assert Stratification(NAME, sources, categories, [], None, True)
 
 
 @pytest.mark.parametrize(
-    "name, sources, categories, mapper, is_vectorized, expected_exception",
+    "sources, mapper, is_vectorized, expected_exception",
     [
         (
-            NAME,
             SOURCES,
-            CATEGORIES,
             sorting_hat_bad_mapping,
             False,
             ValueError,
         ),
         (
-            NAME,
             ["middle_initial"],
-            CATEGORIES,
             sorting_hat_vector,
             True,
             KeyError,
         ),
         (
-            NAME,
             SOURCES,
-            CATEGORIES,
             sorting_hat_serial,
             True,
             Exception,
         ),
         (
-            NAME,
             SOURCES,
-            CATEGORIES,
             sorting_hat_vector,
             False,
             Exception,
@@ -132,10 +98,8 @@ def test_stratification_init_raises(
         "not_vectorized_with_serial_mapper",
     ],
 )
-def test_stratification_call_raises(
-    name, sources, categories, mapper, is_vectorized, expected_exception
-):
-    my_stratification = Stratification(name, sources, categories, mapper, is_vectorized)
+def test_stratification_call_raises(sources, mapper, is_vectorized, expected_exception):
+    my_stratification = Stratification(NAME, sources, CATEGORIES, [], mapper, is_vectorized)
     with pytest.raises(expected_exception):
         raise my_stratification(STUDENT_TABLE)
 

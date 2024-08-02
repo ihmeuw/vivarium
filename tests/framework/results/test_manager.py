@@ -4,6 +4,7 @@ from types import MethodType
 import numpy as np
 import pandas as pd
 import pytest
+from layered_config_tree import LayeredConfigTree
 from loguru import logger
 from pandas.api.types import CategoricalDtype
 
@@ -113,6 +114,9 @@ def test_register_stratification_no_pipelines(
 ):
     mgr = ResultsManager()
     builder = mocker.Mock()
+    builder.configuration.stratification = LayeredConfigTree(
+        {"default": [], "excluded_categories": {}}
+    )
     mgr.setup(builder)
     mgr.register_stratification(name, categories, mapper, is_vectorized, sources, [])
     for item in sources:
@@ -152,6 +156,9 @@ def test_register_stratification_with_pipelines(
 ):
     mgr = ResultsManager()
     builder = mocker.Mock()
+    builder.configuration.stratification = LayeredConfigTree(
+        {"default": [], "excluded_categories": {}}
+    )
     # Set up mock builder with mocked get_value call for Pipelines
     mocker.patch.object(builder, "value.get_value")
     builder.value.get_value = MethodType(mock_get_value, builder)
@@ -194,6 +201,9 @@ def test_register_stratification_with_column_and_pipelines(
 ):
     mgr = ResultsManager()
     builder = mocker.Mock()
+    builder.configuration.stratification = LayeredConfigTree(
+        {"default": [], "excluded_categories": {}}
+    )
     # Set up mock builder with mocked get_value call for Pipelines
     mocker.patch.object(builder, "value.get_value")
     builder.value.get_value = MethodType(mock_get_value, builder)
