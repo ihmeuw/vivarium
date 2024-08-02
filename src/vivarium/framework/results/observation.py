@@ -140,7 +140,7 @@ class StratifiedObservation(BaseObservation):
     @staticmethod
     def initialize_results(
         requested_stratification_names: set[str],
-        registered_stratifications: List[Stratification],
+        registered_stratifications: list[Stratification],
     ) -> pd.DataFrame:
         """Initialize a dataframe of 0s with complete set of stratifications as the index."""
 
@@ -188,7 +188,7 @@ class StratifiedObservation(BaseObservation):
     @staticmethod
     def _aggregate(
         pop_groups: DataFrameGroupBy,
-        aggregator_sources: Optional[List[str]],
+        aggregator_sources: Optional[list[str]],
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
     ) -> Union[pd.Series[float], pd.DataFrame]:
         aggregates = (
@@ -236,7 +236,7 @@ class AddingObservation(StratifiedObservation):
         when: str,
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         stratifications: Tuple[str, ...],
-        aggregator_sources: Optional[List[str]],
+        aggregator_sources: Optional[list[str]],
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
@@ -286,7 +286,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
         name: str,
         pop_filter: str,
         when: str,
-        included_columns: List[str],
+        included_columns: list[str],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):

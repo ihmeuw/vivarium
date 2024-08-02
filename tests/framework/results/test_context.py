@@ -118,6 +118,19 @@ def test_add_stratification_duplicate_category_raises(duplicates):
         )
 
 
+def test_add_stratification_bad_exception_category_raises(mocker):
+    ctx = ResultsContext()
+    mocker.patch.object(ctx, "excluded_categories", {"hogwarts_house": ["gryfflepuff"]})
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Excluded categories {'gryfflepuff'} not found in categories "
+            f"{CATEGORIES} for stratification '{NAME}'."
+        ),
+    ):
+        ctx.add_stratification(NAME, SOURCES, CATEGORIES, sorting_hat_vector, True)
+
+
 @pytest.mark.parametrize(
     "kwargs",
     [

@@ -35,6 +35,7 @@ class ResultsManager(Manager):
     CONFIGURATION_DEFAULTS = {
         "stratification": {
             "default": [],
+            "excluded_categories": {},
         }
     }
 
@@ -71,6 +72,8 @@ class ResultsManager(Manager):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: "Builder") -> None:
+        self._results_context.setup(builder)
+
         self.logger = builder.logging.get_logger(self.name)
         self.population_view = builder.population.get_view([])
         self.clock = builder.time.clock()
@@ -85,6 +88,7 @@ class ResultsManager(Manager):
         self.get_value = builder.value.get_value
 
         self.set_default_stratifications(builder)
+        self.set_stratification_excluded_categories(builder)
 
     def on_post_setup(self, _: Event) -> None:
         """Initialize results with 0s DataFrame' for each measure and all stratifications"""
@@ -153,6 +157,12 @@ class ResultsManager(Manager):
     def set_default_stratifications(self, builder: Builder) -> None:
         default_stratifications = builder.configuration.stratification.default
         self._results_context.set_default_stratifications(default_stratifications)
+
+    def set_stratification_excluded_categories(self, builder: Builder) -> None:
+        excluded_categories = builder.configuration.stratification.excluded_categories
+        self._results_context.set_stratification_excluded_categories(
+            excluded_categories.to_dict()
+        )
 
     def register_stratification(
         self,
