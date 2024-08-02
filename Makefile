@@ -76,7 +76,7 @@ typecheck: pytype.cfg $(MAKE_SOURCES) # Run the type checker
 
 integration: $(MAKE_SOURCES) # Run the integration tests
 	export COVERAGE_FILE=./output/.coverage.integration
-	pytest --runslow --cov --cov-report term --cov-report html:./output/htmlcov_integration tests/
+	pytest --runslow tests/ --cov --cov-report term --cov-report html:./output/htmlcov_integration
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 clean: # Delete build artifacts and do any custom cleanup such as spinning down services
