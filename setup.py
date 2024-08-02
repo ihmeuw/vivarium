@@ -63,6 +63,11 @@ if __name__ == "__main__":
         "sphinxcontrib-video",
     ]
 
+    lint_requirements = [
+        "black==22.3.0",
+        "isort",
+    ]
+
     setup(
         name=about["__title__"],
         description=about["__summary__"],
@@ -101,7 +106,7 @@ if __name__ == "__main__":
             "docs": doc_requirements,
             "test": test_requirements,
             "interactive": interactive_requirements,
-            "dev": doc_requirements + test_requirements + interactive_requirements,
+            "dev": doc_requirements + test_requirements + interactive_requirements + lint_requirements,
         },
         entry_points="""
                 [console_scripts]
