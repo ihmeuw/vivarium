@@ -1,12 +1,11 @@
 [tool.black]
 line_length = 94
 
-[tool.isort]
-line_length = 94
-profile = "black"
-
 [tool.coverage.run]
 source = ["vivarium"]
 
 [tool.coverage.report]
 show_missing = true
+
+[tool.isort]
+profile = "black"
