@@ -157,34 +157,18 @@ pipeline {
               }
             }
 
-
             // Tests
             // removable, if passwords can be exported to env. securely without bash indirection
-            stage("Run Unit Tests") {
-              steps {
-                sh "${ACTIVATE} && make unit"
-                publishHTML([
-                  allowMissing: true,
-                  alwaysLinkToLastBuild: false,
-                  keepAll: true,
-                  reportDir: "output/htmlcov_unit",
-                  reportFiles: "index.html",
-                  reportName: "Coverage Report - Unit Tests",
-                  reportTitles: ''
-                ])
-              }
-            }
-
             stage("Run End-to-End Tests") {
               steps {
-                sh "${ACTIVATE} && make e2e"
+                sh "${ACTIVATE} && make integration"
                 publishHTML([
                   allowMissing: true,
                   alwaysLinkToLastBuild: false,
                   keepAll: true,
                   reportDir: "output/htmlcov_e2e",
                   reportFiles: "index.html",
-                  reportName: "Coverage Report - E2E tests",
+                  reportName: "Coverage Report - Integration tests",
                   reportTitles: ''
                 ])
               }
