@@ -68,6 +68,7 @@ if __name__ == "__main__":
         "black==22.3.0",
         "isort",
         "flake8",
+        "safety",
     ]
 
     setup(
