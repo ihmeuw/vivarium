@@ -21,7 +21,7 @@ IHME_PYPI := https://artifactory.ihme.washington.edu/artifactory/api/pypi/pypi-s
 # the -n flag.
 # TODO: [MIC-4953] build w/ multiple python versions
 # TODO: Update when pytype supports >3.10
-PYTHON_VERSION ?= 3.11
+PYTHON_VERSION ?= 3.10
 CONDA_ENV_NAME ?= ${PACKAGE_NAME}_py${PYTHON_VERSION}
 CONDA_ENV_CREATION_FLAG = $(if $(CONDA_ENV_PATH),-p ${CONDA_ENV_PATH},-n ${CONDA_ENV_NAME})
 

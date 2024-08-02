@@ -106,7 +106,10 @@ if __name__ == "__main__":
             "docs": doc_requirements,
             "test": test_requirements,
             "interactive": interactive_requirements,
-            "dev": doc_requirements + test_requirements + interactive_requirements + lint_requirements,
+            "dev": doc_requirements
+            + test_requirements
+            + interactive_requirements
+            + lint_requirements,
         },
         entry_points="""
                 [console_scripts]
