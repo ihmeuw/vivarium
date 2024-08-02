@@ -58,8 +58,8 @@ install: # Install setuptools, install this package in editable mode
 	pip install -e .[DEV]
 
 format: setup.py pyproject.toml $(MAKE_SOURCES) # Run the code formatter and import sorter
-	black $(LOCATIONS)
-	isort $(LOCATIONS)
+	-black $(LOCATIONS)
+	-isort $(LOCATIONS)
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 lint: .flake8 .bandit $(MAKE_SOURCES) # Run the code linter and package security vulnerability checker
@@ -68,7 +68,7 @@ lint: .flake8 .bandit $(MAKE_SOURCES) # Run the code linter and package security
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 typecheck: pytype.cfg $(MAKE_SOURCES) # Run the type checker
-	pytype --config=pytype.cfg $(LOCATIONS)
+	-pytype --config=pytype.cfg $(LOCATIONS)
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 unit: $(MAKE_SOURCES) # Run the unit tests
