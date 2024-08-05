@@ -70,14 +70,22 @@ lint: .flake8 .bandit $(MAKE_SOURCES) # Run the code linter and package security
 	# -safety check
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
-# typecheck: pytype.cfg $(MAKE_SOURCES) # Run the type checker
-# 	-pytype --config=pytype.cfg $(LOCATIONS)
-# 	@echo "Ignore, Created by Makefile, `date`" > $@
-
 integration: $(MAKE_SOURCES) # Run the integration tests
 	export COVERAGE_FILE=./output/.coverage.integration
 	pytest --runslow tests/ --cov --cov-report term --cov-report html:./output/htmlcov_integration
 	@echo "Ignore, Created by Makefile, `date`" > $@
+
+build-doc: docs/ */*.rst $(MAKE_SOURCES) # Build the Sphinx docs
+	sphinx-apidoc -o docs -f src
+	sphinx-build docs ./output/docs_build
+	@echo "Ignore, Created by Makefile, `date`" > $@
+
+deploy-doc: # Deploy the Sphinx docs
+	@[ "${DOCS_ROOT_PATH}" ] && echo "" > /dev/null || ( echo "DOCS_ROOT_PATH is not set"; exit 1 )
+	mkdir -m 0775 -p ${DOCS_ROOT_PATH}/${PACKAGE_NAME}/${PACKAGE_VERSION}
+	cp -R ./output/docs_build/* ${DOCS_ROOT_PATH}/${PACKAGE_NAME}/${PACKAGE_VERSION}
+	chmod -R 0775 ${DOCS_ROOT_PATH}/${PACKAGE_NAME}/${PACKAGE_VERSION}
+	cd ${DOCS_ROOT_PATH}/${PACKAGE_NAME} && ln -nsFfv ${PACKAGE_VERSION} current
 
 clean: # Delete build artifacts and do any custom cleanup such as spinning down services
 	@rm -rf format lint typecheck build-doc build-package unit e2e integration .pytest_cache .pytype
