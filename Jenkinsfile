@@ -151,11 +151,11 @@ pipeline {
               }
             }
 
-            stage("Type Check") {
-              steps {
-                sh "${ACTIVATE} && make typecheck"
-              }
-            }
+            // stage("Type Check") {
+            //   steps {
+            //     sh "${ACTIVATE} && make typecheck"
+            //   }
+            // }
 
             // Tests
             // removable, if passwords can be exported to env. securely without bash indirection

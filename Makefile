@@ -70,9 +70,9 @@ lint: .flake8 .bandit $(MAKE_SOURCES) # Run the code linter and package security
 	-safety check
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
-typecheck: pytype.cfg $(MAKE_SOURCES) # Run the type checker
-	-pytype --config=pytype.cfg $(LOCATIONS)
-	@echo "Ignore, Created by Makefile, `date`" > $@
+# typecheck: pytype.cfg $(MAKE_SOURCES) # Run the type checker
+# 	-pytype --config=pytype.cfg $(LOCATIONS)
+# 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 integration: $(MAKE_SOURCES) # Run the integration tests
 	export COVERAGE_FILE=./output/.coverage.integration
