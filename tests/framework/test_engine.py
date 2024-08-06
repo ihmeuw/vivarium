@@ -1,12 +1,12 @@
 import math
 from itertools import product
 from pathlib import Path
+from time import time
 from typing import Dict, List
 
 import dill
 import pandas as pd
 import pytest
-from time import time
 
 from tests.framework.results.helpers import (
     FAMILIARS,
