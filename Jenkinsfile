@@ -160,7 +160,7 @@ pipeline {
                   allowMissing: true,
                   alwaysLinkToLastBuild: false,
                   keepAll: true,
-                  reportDir: "output/htmlcov_e2e",
+                  reportDir: "output/htmlcov_integration",
                   reportFiles: "index.html",
                   reportName: "Coverage Report - Integration tests",
                   reportTitles: ''
