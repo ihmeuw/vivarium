@@ -67,7 +67,7 @@ format: setup.py pyproject.toml $(MAKE_SOURCES) # Run the code formatter and imp
 
 lint: .flake8 .bandit $(MAKE_SOURCES) # Run the code linter and package security vulnerability checker
 	-flake8 $(LOCATIONS)
-	# -safety check
+	-safety check
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 integration: $(MAKE_SOURCES) # Run the integration tests
