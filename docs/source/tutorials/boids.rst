@@ -148,10 +148,10 @@ This is where we should initialize values in the ``columns_created``
 by this component.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/population.py
-   :lines: 33-41
+   :lines: 29-37
    :dedent: 4
    :linenos:
-   :lineno-start: 33
+   :lineno-start: 29
 
 We see that like the ``setup`` method, ``on_initialize_simulants`` takes in a
 special argument that we don't provide. This argument, ``pop_data`` is an
@@ -260,10 +260,10 @@ We call the :meth:`vivarium.framework.values.ValuesInterface.register_value_prod
 method to register a new pipeline.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
-   :lines: 34-36
+   :lines: 29-31
    :dedent: 4
    :linenos:
-   :lineno-start: 34
+   :lineno-start: 29
 
 This call provides a ``source`` function for our pipeline, which initializes the values.
 In this case, the default is zero acceleration:
@@ -498,9 +498,9 @@ parameter: the distance within which it should act.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/forces.py
    :caption: **File**: :file:`~/code/vivarium_examples/boids/forces.py`
-   :lines: 117-168
+   :lines: 100-124
    :linenos:
-   :lineno-start: 117
+   :lineno-start: 124
 
 For a quick test of our swarming behavior, let's add in these forces and check in on our boids after
 100 steps:
