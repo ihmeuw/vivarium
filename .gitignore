@@ -115,7 +115,3 @@ notebooks/
 
 # Version file
 src/vivarium/_version.py
-
-# pytype static type analyzer
-.pytype/*
-.pytype/
