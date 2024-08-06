@@ -88,13 +88,6 @@ deploy-doc: # Deploy the Sphinx docs
 	cd ${DOCS_ROOT_PATH}/${PACKAGE_NAME} && ln -nsFfv ${PACKAGE_VERSION} current
 
 clean: # Delete build artifacts and do any custom cleanup such as spinning down services
-	@rm -rf format lint typecheck build-doc build-package unit e2e integration .pytest_cache .pytype
+	@rm -rf format lint build-doc build-package integration .pytest_cache .pytype
 	@rm -rf dist output
 	$(shell find . -type f -name '*py[co]' -delete -o -type d -name __pycache__ -delete)
-
-quick: # Run a "quick" build
-	$(MAKE) format lint typecheck unit build-doc
-
-full: clean # Run a "full" build
-	$(MAKE) install quick e2e build-package
-
