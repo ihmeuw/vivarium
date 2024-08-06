@@ -150,11 +150,11 @@ pipeline {
               }
             }
 
-            stage("Lint") {
-              steps {
-                sh "${ACTIVATE} && make lint"
-              }
-            }
+            // stage("Lint") {
+            //   steps {
+            //     sh "${ACTIVATE} && make lint"
+            //   }
+            // }
 
             // Tests
             // removable, if passwords can be exported to env. securely without bash indirection

@@ -8,7 +8,7 @@ LOCATIONS=src tests
 PACKAGE_NAME = vivarium
 SAFE_NAME = $(shell python -c "from pkg_resources import safe_name; print(safe_name(\"$(PACKAGE_NAME)\"))")
 
-setup_file   = $(shell find -name setup.cfg)
+setup_file   = $(shell find -name setup.py)
 version_line = $(shell grep "version = " ${setup_file})
 PACKAGE_VERSION = $(shell echo ${version_line} | cut -d "=" -f 2 | xargs)
 

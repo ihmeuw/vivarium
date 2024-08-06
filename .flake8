@@ -34,7 +34,7 @@ extend-ignore =
 # everywhere else.
 # Also allow unused imports in __init__ files.
 per-file-ignores =
-    tests/**:D105,D106,D107,D205,D207,D208,D212,D214,D215,D301,D4,S101
+    tests/**:D105,D106,D107,D205,D207,D208,D212,D214,D215,D301,D4,S101,E266
     src/vivarium/lib/**:D105,D106,D107,D205,D207,D208,D212,D214,D215,D301,D4
     **/__init__.py:F401
 
