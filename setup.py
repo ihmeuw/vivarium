@@ -69,7 +69,7 @@ if __name__ == "__main__":
         "isort",
         "flake8",
         "pytype",
-        # "safety",
+        "safety",
     ]
 
     setup(
