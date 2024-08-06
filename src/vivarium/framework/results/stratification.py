@@ -20,9 +20,10 @@ class Stratification:
     name of the column created by the mapper. The `sources` is a list of columns
     in the extended state table that are the inputs to the mapper function. Simulants
     will later be grouped by this column (or these columns) during stratification.
-    `categories` is the total set of values that the mapper can output minus the
-    `excluded_categories`. The `mapper` is the method that transforms the source to the
-    name column. The method produces an output column by calling the mapper on the source
+    `categories` is the total set of values that the mapper can output.
+    `excluded_categories` are values that have been requested to be excluded (and
+    already removed) from `categories`. The `mapper` is the method that transforms the source
+    to the name column. The method produces an output column by calling the mapper on the source
     columns. If the mapper is `None`, the default identity mapper is used. If
     the mapper is not vectorized this is performed by using `pd.apply`.
     Finally, `is_vectorized` is a boolean parameter that signifies whether
@@ -62,24 +63,21 @@ class Stratification:
 
     def __call__(self, population: pd.DataFrame) -> pd.DataFrame:
         if self.is_vectorized:
-            raw_mapped_column = self.mapper(population[self.sources])
+            mapped_column = self.mapper(population[self.sources])
         else:
-            raw_mapped_column = population[self.sources].apply(self.mapper, axis=1)
-        mapped_column = raw_mapped_column
-        to_drop = mapped_column[mapped_column.isin(self.excluded_categories)]
-        if len(to_drop) > 0:
-            logger.info(
-                f"Dropping {len(to_drop)} simulants that fall within {self.name} excluded categories."
-            )
-            mapped_column = mapped_column.loc[~mapped_column.index.isin(to_drop.index)]
-            population = population.loc[~population.index.isin(to_drop.index), :].copy()
+            mapped_column = population[self.sources].apply(self.mapper, axis=1)
+
+        unknown_categories = set(mapped_column) - set(
+            self.categories + self.excluded_categories
+        )
+        if unknown_categories:
+            raise ValueError(f"Invalid values '{unknown_categories}' mapped to {self.name}.")
+
+        mapped_column = mapped_column[mapped_column.isin(self.categories)]
         mapped_column = mapped_column.astype(
             CategoricalDtype(categories=self.categories, ordered=True)
         )
-        if mapped_column.isna().any():
-            invalid_categories = set(raw_mapped_column.unique()) - set(self.categories)
-            raise ValueError(f"Invalid values '{invalid_categories}' found in {self.name}.")
-
+        population = population.loc[mapped_column.index, :]
         population[self.name] = mapped_column
         return population
 
