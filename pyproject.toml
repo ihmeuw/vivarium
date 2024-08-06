@@ -1,5 +1,9 @@
-[tool.black]
-line_length = 94
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+testpaths = ["tests/"]
 
 [tool.coverage.run]
 source = ["vivarium"]
@@ -7,5 +11,12 @@ source = ["vivarium"]
 [tool.coverage.report]
 show_missing = true
 
+[tool.black]
+line_length = 94
+skip-magic-trailing-comma = true
+
 [tool.isort]
-profile = "black"
+line_length = 94
+profile = "black" # Compatibility with black.
+multi_line_output = 3 # Vertical Hanging Indent, see https://pypi.org/project/isort/
+
