@@ -76,27 +76,10 @@ build-doc: $(MAKE_SOURCES) # Build the Sphinx docs
 	$(MAKE) -C docs/ html
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
-deploy-doc: # Deploy the Sphinx docs
-	@[ "${DOCS_ROOT_PATH}" ] && echo "" > /dev/null || ( echo "DOCS_ROOT_PATH is not set"; exit 1 )
-	mkdir -m 0775 -p ${DOCS_ROOT_PATH}/${PACKAGE_NAME}/${PACKAGE_VERSION}
-	cp -R ./output/docs_build/* ${DOCS_ROOT_PATH}/${PACKAGE_NAME}/${PACKAGE_VERSION}
-	chmod -R 0775 ${DOCS_ROOT_PATH}/${PACKAGE_NAME}/${PACKAGE_VERSION}
-	cd ${DOCS_ROOT_PATH}/${PACKAGE_NAME} && ln -nsFfv ${PACKAGE_VERSION} current
-
 build-package: $(MAKE_SOURCES) # Build the package as a pip wheel
 	pip install build
 	python -m build
 	@echo "Ignore, Created by Makefile, `date`" > $@
-
-deploy-package: # Deploy the package to Artifactory
-	@[ "${PYPI_ARTIFACTORY_CREDENTIALS_USR}" ] && echo "" > /dev/null || ( echo "PYPI_ARTIFACTORY_CREDENTIALS_USR is not set"; exit 1 )
-	@[ "${PYPI_ARTIFACTORY_CREDENTIALS_PSW}" ] && echo "" > /dev/null || ( echo "PYPI_ARTIFACTORY_CREDENTIALS_PSW is not set"; exit 1 )
-	pip install twine
-	twine upload --repository-url ${IHME_PYPI} -u ${PYPI_ARTIFACTORY_CREDENTIALS_USR} -p ${PYPI_ARTIFACTORY_CREDENTIALS_PSW} dist/*
-
-tag-version: # Tag the version and push
-	git tag -a "v${PACKAGE_VERSION}" -m "Tag automatically generated from Jenkins."
-	git push --tags
 
 clean: # Delete build artifacts and do any custom cleanup such as spinning down services
 	@rm -rf format lint build-doc build-package integration .pytest_cache
