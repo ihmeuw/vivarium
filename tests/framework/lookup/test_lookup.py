@@ -28,22 +28,10 @@ def test_interpolated_tables(base_config):
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     years = manager.build_table(
-        years,
-        key_columns=("sex",),
-        parameter_columns=(
-            "age",
-            "year",
-        ),
-        value_columns=None,
+        years, key_columns=("sex",), parameter_columns=("age", "year"), value_columns=None
     )
     ages = manager.build_table(
-        ages,
-        key_columns=("sex",),
-        parameter_columns=(
-            "age",
-            "year",
-        ),
-        value_columns=None,
+        ages, key_columns=("sex",), parameter_columns=("age", "year"), value_columns=None
     )
     one_d_age = manager.build_table(
         one_d_age, key_columns=("sex",), parameter_columns=("age",), value_columns=None
@@ -90,13 +78,7 @@ def test_interpolated_tables_without_uninterpolated_columns(base_config):
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     years = manager.build_table(
-        years,
-        key_columns=(),
-        parameter_columns=(
-            "year",
-            "age",
-        ),
-        value_columns=None,
+        years, key_columns=(), parameter_columns=("year", "age"), value_columns=None
     )
 
     result_years = years(simulation.get_population().index)

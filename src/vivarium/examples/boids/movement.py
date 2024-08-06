@@ -13,13 +13,8 @@ class Movement(Component):
     # Properties #
     ##############
     configuration_defaults = {
-        "field": {
-            "width": 1000,
-            "height": 1000,
-        },
-        "movement": {
-            "max_speed": 2,
-        },
+        "field": {"width": 1000, "height": 1000},
+        "movement": {"max_speed": 2},
     }
 
     columns_created = ["x", "vx", "y", "vy"]

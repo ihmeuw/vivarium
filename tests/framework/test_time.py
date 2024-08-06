@@ -9,18 +9,9 @@ from vivarium.framework.engine import SimulationContext as SimulationContext_
 from vivarium.framework.event import Event
 from vivarium.framework.time import SimulationClock, get_time_stamp
 from vivarium.framework.utilities import from_yearly
-from vivarium.framework.values import (
-    ValuesManager,
-    list_combiner,
-    rescale_post_processor,
-)
+from vivarium.framework.values import ValuesManager, list_combiner, rescale_post_processor
 
-from .components.mocks import (
-    Listener,
-    MockComponentA,
-    MockComponentB,
-    MockGenericComponent,
-)
+from .components.mocks import Listener, MockComponentA, MockComponentB, MockGenericComponent
 
 
 @pytest.fixture
@@ -304,10 +295,7 @@ def test_uneven_steps(SimulationContext, base_config):
     step_modifier_component = StepModifierWithRatePipeline(
         "step_modifier", step_modifiers["evens"], step_modifiers["odds"]
     )
-    sim = SimulationContext(
-        base_config,
-        [step_modifier_component, listener],
-    )
+    sim = SimulationContext(base_config, [step_modifier_component, listener])
 
     sim.setup()
     sim.initialize_simulants()
@@ -342,10 +330,7 @@ def test_partial_modification(SimulationContext, base_config):
     step_modifier_component = StepModifierWithRatePipeline(
         "step_modifier", step_modifiers["evens"], modified_simulants="evens"
     )
-    sim = SimulationContext(
-        base_config,
-        [step_modifier_component, listener],
-    )
+    sim = SimulationContext(base_config, [step_modifier_component, listener])
 
     sim.setup()
     sim.initialize_simulants()
@@ -380,10 +365,7 @@ def test_standard_step_size(SimulationContext, base_config):
     step_modifier_component = StepModifierWithRatePipeline(
         "step_modifier", step_modifiers["evens"], modified_simulants="evens"
     )
-    sim = SimulationContext(
-        base_config,
-        [step_modifier_component, listener],
-    )
+    sim = SimulationContext(base_config, [step_modifier_component, listener])
 
     sim.setup()
     sim.initialize_simulants()
@@ -422,10 +404,7 @@ def test_multiple_modifiers(SimulationContext, base_config):
         step_modifiers["odds"],
         modified_simulants="odds",
     )
-    sim = SimulationContext(
-        base_config,
-        [step_modifier_A, step_modifier_B, listener],
-    )
+    sim = SimulationContext(base_config, [step_modifier_A, step_modifier_B, listener])
 
     sim.setup()
     sim.initialize_simulants()
@@ -451,10 +430,7 @@ def test_untracked_simulants(SimulationContext, base_config):
     base_config.update({"configuration": {"time": {"standard_step_size": 7}}})
     listener = Listener("listener")
     step_modifier_component = StepModifierWithUntracking("step_modifier", 3)
-    sim = SimulationContext(
-        base_config,
-        [step_modifier_component, listener],
-    )
+    sim = SimulationContext(base_config, [step_modifier_component, listener])
 
     sim.setup()
     sim.initialize_simulants()
@@ -470,10 +446,7 @@ def test_move_simulants_to_end(SimulationContext, base_config):
     base_config.update({"configuration": {"time": {"standard_step_size": 7}}})
     listener = Listener("listener")
     step_modifier_component = StepModifierWithMovement("step_modifier", 3)
-    sim = SimulationContext(
-        base_config,
-        [step_modifier_component, listener],
-    )
+    sim = SimulationContext(base_config, [step_modifier_component, listener])
 
     sim.setup()
     sim.initialize_simulants()

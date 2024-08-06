@@ -407,8 +407,7 @@ def _choice(
 
 
 def _normalize_shape(
-    p: Union[List, Tuple, np.ndarray, pd.Series],
-    index: Union[pd.Index, pd.MultiIndex],
+    p: Union[List, Tuple, np.ndarray, pd.Series], index: Union[pd.Index, pd.MultiIndex]
 ) -> np.ndarray:
     p = np.array(p)
     # We got a 1-d array => same weights for every index.

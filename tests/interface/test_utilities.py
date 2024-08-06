@@ -59,11 +59,7 @@ def _write_file(path: Path, contents: str):
     ],
 )
 def test_get_output_model_name_string(
-    artifact_path,
-    model_spec_filename,
-    contents,
-    expected_output,
-    tmp_path,
+    artifact_path, model_spec_filename, contents, expected_output, tmp_path
 ):
     model_spec_path = Path(f"{tmp_path}/{model_spec_filename}")
     _write_file(model_spec_path, contents)

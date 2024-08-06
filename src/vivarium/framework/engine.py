@@ -122,8 +122,7 @@ class SimulationContext:
 
         self._logging = self._plugin_manager.get_plugin("logging")
         self._logging.configure_logging(
-            simulation_name=self.name,
-            verbosity=logging_verbosity,
+            simulation_name=self.name, verbosity=logging_verbosity
         )
         self._logger = self._logging.get_logger()
 
@@ -239,8 +238,7 @@ class SimulationContext:
             self._logger.debug(f"Event: {event}")
             self._lifecycle.set_state(event)
             pop_to_update = self._clock.get_active_simulants(
-                self.get_population().index,
-                self._clock.event_time,
+                self.get_population().index, self._clock.event_time
             )
             self._logger.debug(f"Updating: {len(pop_to_update)}")
             self.time_step_emitters[event](pop_to_update)
@@ -266,8 +264,7 @@ class SimulationContext:
             self._logger.info("\n" + pformat(metrics))
             performance_metrics = self.get_performance_metrics()
             performance_metrics = performance_metrics.to_string(
-                index=False,
-                float_format=lambda x: f"{x:.2f}",
+                index=False, float_format=lambda x: f"{x:.2f}"
             )
             self._logger.info("\n" + performance_metrics)
 

@@ -86,8 +86,7 @@ class BasePopulation(Component):
     def setup(self, builder: Builder) -> None:
         self.register = builder.randomness.register_simulants
         self.randomness_init = builder.randomness.get_stream(
-            "crn_init",
-            initializes_crn_attributes=self.with_crn,
+            "crn_init", initializes_crn_attributes=self.with_crn
         )
         self.randomness_other = builder.randomness.get_stream("other")
         self.simulant_creator = builder.population.get_simulant_creator()
@@ -109,16 +108,14 @@ class EntranceTimePopulation(BasePopulation):
             int
         )
         population = pd.DataFrame(
-            {"crn_attr1": pop_data.creation_time, "crn_attr2": crn_attr},
-            index=pop_data.index,
+            {"crn_attr1": pop_data.creation_time, "crn_attr2": crn_attr}, index=pop_data.index
         )
 
         if self.with_crn:
             self.register(population)
 
         population["other_attr1"] = self.randomness_other.get_draw(
-            pop_data.index,
-            additional_key="attr1",
+            pop_data.index, additional_key="attr1"
         )
         self.population_view.update(population)
 
@@ -150,8 +147,7 @@ class SequentialPopulation(BasePopulation):
             self.register(population)
 
         population["other_attr1"] = self.randomness_other.get_draw(
-            pop_data.index,
-            additional_key="attr1",
+            pop_data.index, additional_key="attr1"
         )
         self.population_view.update(population)
         self.count += new_people
@@ -171,9 +167,7 @@ class SequentialPopulation(BasePopulation):
     ],
 )
 def test_multi_sim_basic_reproducibility_with_same_pop_growth(
-    pop_class: Type,
-    with_crn: bool,
-    sims_to_add: cycle,
+    pop_class: Type, with_crn: bool, sims_to_add: cycle
 ):
     if with_crn:
         configuration = {"randomness": {"key_columns": ["crn_attr1", "crn_attr2"]}}
@@ -261,16 +255,14 @@ class UnBrokenPopulation(BasePopulation):
             int
         )
         population = pd.DataFrame(
-            {"crn_attr1": crn_attr, "crn_attr2": pop_data.creation_time},
-            index=pop_data.index,
+            {"crn_attr1": crn_attr, "crn_attr2": pop_data.creation_time}, index=pop_data.index
         )
 
         if self.with_crn:
             self.register(population)
 
         population["other_attr1"] = self.randomness_other.get_draw(
-            pop_data.index,
-            additional_key="attr1",
+            pop_data.index, additional_key="attr1"
         )
         self.population_view.update(population)
 

@@ -15,11 +15,7 @@ class Force(Component, ABC):
     ##############
     @property
     def configuration_defaults(self) -> Dict[str, Any]:
-        return {
-            self.__class__.__name__.lower(): {
-                "max_force": 0.03,
-            },
-        }
+        return {self.__class__.__name__.lower(): {"max_force": 0.03}}
 
     columns_required = ["x", "y", "vx", "vy"]
 
@@ -33,10 +29,7 @@ class Force(Component, ABC):
 
         self.neighbors = builder.value.get_value("neighbors")
 
-        builder.value.register_value_modifier(
-            "acceleration",
-            modifier=self.apply_force,
-        )
+        builder.value.register_value_modifier("acceleration", modifier=self.apply_force)
 
     ##################################
     # Pipeline sources and modifiers #
@@ -85,27 +78,17 @@ class Force(Component, ABC):
         return pairs
 
     def _normalize_and_limit_force(
-        self,
-        force: pd.DataFrame,
-        velocity: pd.DataFrame,
-        max_force: float,
-        max_speed: float,
+        self, force: pd.DataFrame, velocity: pd.DataFrame, max_force: float, max_speed: float
     ):
         normalization_factor = np.where(
-            (force.x != 0) | (force.y != 0),
-            max_speed / self._magnitude(force),
-            1.0,
+            (force.x != 0) | (force.y != 0), max_speed / self._magnitude(force), 1.0
         )
         force["x"] *= normalization_factor
         force["y"] *= normalization_factor
         force["x"] -= velocity.loc[force.index, "vx"]
         force["y"] -= velocity.loc[force.index, "vy"]
         magnitude = self._magnitude(force)
-        limit_scaling_factor = np.where(
-            magnitude > max_force,
-            max_force / magnitude,
-            1.0,
-        )
+        limit_scaling_factor = np.where(magnitude > max_force, max_force / magnitude, 1.0)
         force["x"] *= limit_scaling_factor
         force["y"] *= limit_scaling_factor
         return force[["x", "y"]]
@@ -117,12 +100,7 @@ class Force(Component, ABC):
 class Separation(Force):
     """Push boids apart when they get too close."""
 
-    configuration_defaults = {
-        "separation": {
-            "distance": 30,
-            "max_force": 0.03,
-        },
-    }
+    configuration_defaults = {"separation": {"distance": 30, "max_force": 0.03}}
 
     def calculate_force(self, neighbors: pd.DataFrame):
         # Push boids apart when they get too close

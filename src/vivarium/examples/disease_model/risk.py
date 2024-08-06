@@ -7,11 +7,7 @@ from vivarium.framework.engine import Builder
 
 
 class Risk(Component):
-    CONFIGURATION_DEFAULTS = {
-        "risk": {
-            "proportion_exposed": 0.3,
-        },
-    }
+    CONFIGURATION_DEFAULTS = {"risk": {"proportion_exposed": 0.3}}
 
     ##############
     # Properties #
@@ -75,11 +71,7 @@ class Risk(Component):
 
 
 class RiskEffect(Component):
-    CONFIGURATION_DEFAULTS = {
-        "risk_effect": {
-            "relative_risk": 2,
-        },
-    }
+    CONFIGURATION_DEFAULTS = {"risk_effect": {"relative_risk": 2}}
 
     ##############
     # Properties #

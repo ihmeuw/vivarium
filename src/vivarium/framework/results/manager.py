@@ -30,11 +30,7 @@ class ResultsManager(Manager):
     `collect_metrics`).
     """
 
-    CONFIGURATION_DEFAULTS = {
-        "stratification": {
-            "default": [],
-        }
-    }
+    CONFIGURATION_DEFAULTS = {"stratification": {"default": []}}
 
     def __init__(self):
         self._metrics = Counter()
@@ -276,7 +272,7 @@ class ResultsManager(Manager):
         ]
         if len(nop_additional):
             self.logger.warning(
-                f"Specified additional stratifications are already included by default: {nop_additional}",
+                f"Specified additional stratifications are already included by default: {nop_additional}"
             )
         nop_exclude = [
             s
@@ -285,5 +281,5 @@ class ResultsManager(Manager):
         ]
         if len(nop_exclude):
             self.logger.warning(
-                f"Specified excluded stratifications are already not included by default: {nop_exclude}",
+                f"Specified excluded stratifications are already not included by default: {nop_exclude}"
             )

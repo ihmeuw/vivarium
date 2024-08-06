@@ -5,16 +5,9 @@ import pandas as pd
 import pytest
 from scipy import stats
 
-from vivarium.framework.randomness import (
-    RESIDUAL_CHOICE,
-    RandomnessError,
-    RandomnessStream,
-)
+from vivarium.framework.randomness import RESIDUAL_CHOICE, RandomnessError, RandomnessStream
 from vivarium.framework.randomness.index_map import IndexMap
-from vivarium.framework.randomness.stream import (
-    _normalize_shape,
-    _set_residual_probability,
-)
+from vivarium.framework.randomness.stream import _normalize_shape, _set_residual_probability
 
 
 @pytest.fixture
@@ -150,18 +143,13 @@ def test_sample_from_distribution_bad_args(
 ):
     with pytest.raises(ValueError, match=error_message):
         randomness_stream.sample_from_distribution(
-            index=pd.Index([]),
-            distribution=distribution,
-            ppf=ppf,
+            index=pd.Index([]), distribution=distribution, ppf=ppf
         )
 
 
 @pytest.mark.parametrize(
     "distribution, params",
-    [
-        (stats.norm, {"loc": 5, "scale": 1}),
-        (stats.beta, {"a": 1, "b": 2}),
-    ],
+    [(stats.norm, {"loc": 5, "scale": 1}), (stats.beta, {"a": 1, "b": 2})],
 )
 def test_sample_from_distribution_using_scipy(
     index: pd.Index, distribution: stats.rv_continuous, params: Dict

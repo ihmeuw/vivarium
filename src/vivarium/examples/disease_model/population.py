@@ -28,7 +28,7 @@ class BasePopulation(Component):
                 "age_start": 0,
                 "age_end": 100,
                 # Note: There is also a 'population_size' key.
-            },
+            }
         }
 
     @property

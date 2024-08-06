@@ -20,11 +20,7 @@ class Mortality(Component):
         overwritten in the simulation model specification or by providing
         override values when constructing an interactive simulation.
         """
-        return {
-            "mortality": {
-                "mortality_rate": 0.01,
-            }
-        }
+        return {"mortality": {"mortality_rate": 0.01}}
 
     @property
     def columns_required(self) -> Optional[List[str]]:

@@ -6,11 +6,7 @@ from typing import Union
 import pandas as pd
 import pytest
 
-from vivarium.framework.population import (
-    PopulationError,
-    PopulationManager,
-    PopulationView,
-)
+from vivarium.framework.population import PopulationError, PopulationManager, PopulationView
 
 ##########################
 # Mock data and fixtures #
@@ -34,9 +30,7 @@ NEW_COL_NAMES = ["cube", "cube_string"]
 CUBE = [i**3 for i in range(len(RECORDS))]
 CUBE_STRING = [str(i**3) for i in range(len(RECORDS))]
 NEW_ATTRIBUTES = pd.DataFrame(
-    zip(CUBE, CUBE_STRING),
-    columns=NEW_COL_NAMES,
-    index=BASE_POPULATION.index,
+    zip(CUBE, CUBE_STRING), columns=NEW_COL_NAMES, index=BASE_POPULATION.index
 )
 
 
@@ -45,10 +39,7 @@ def population_manager():
     class _PopulationManager(PopulationManager):
         def __init__(self):
             super().__init__()
-            self._population = pd.DataFrame(
-                data=RECORDS,
-                columns=COL_NAMES,
-            )
+            self._population = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
 
         def _add_constraint(self, *args, **kwargs):
             pass
@@ -57,11 +48,7 @@ def population_manager():
 
 
 @pytest.fixture(
-    params=[
-        BASE_POPULATION.index,
-        BASE_POPULATION.index[::2],
-        BASE_POPULATION.index[:0],
-    ]
+    params=[BASE_POPULATION.index, BASE_POPULATION.index[::2], BASE_POPULATION.index[:0]]
 )
 def update_index(request) -> pd.Index:
     return request.param
@@ -236,10 +223,7 @@ def test_get_fail(population_manager):
 #######################################
 
 
-def test_full_population_view__coerce_to_dataframe(
-    population_update,
-    update_index,
-):
+def test_full_population_view__coerce_to_dataframe(population_update, update_index):
     cols = (
         population_update.columns
         if isinstance(population_update, pd.DataFrame)
@@ -250,16 +234,13 @@ def test_full_population_view__coerce_to_dataframe(
     assert BASE_POPULATION.loc[update_index, cols].equals(coerced_df)
 
 
-def test_full_population_view__coerce_to_dataframe_fail(
-    population_update_new_cols,
-):
+def test_full_population_view__coerce_to_dataframe_fail(population_update_new_cols):
     with pytest.raises(TypeError):
         PopulationView._coerce_to_dataframe(BASE_POPULATION.iloc[:, 0].tolist(), COL_NAMES)
 
     with pytest.raises(PopulationError, match="unnamed pandas series"):
         PopulationView._coerce_to_dataframe(
-            BASE_POPULATION.iloc[:, 0].rename(None),
-            COL_NAMES,
+            BASE_POPULATION.iloc[:, 0].rename(None), COL_NAMES
         )
 
     with pytest.raises(PopulationError, match="extra columns"):
@@ -308,10 +289,7 @@ def test_single_column_population_view__coerce_to_dataframe_fail(population_upda
 ##################################################
 
 
-def test__ensure_coherent_initialization_no_new_columns(
-    population_update,
-    update_index,
-):
+def test__ensure_coherent_initialization_no_new_columns(population_update, update_index):
     if isinstance(population_update, pd.Series):
         pytest.skip()
 
@@ -325,30 +303,26 @@ def test__ensure_coherent_initialization_no_new_columns(
     # No new columns
     with pytest.raises(PopulationError, match="all provided columns"):
         PopulationView._ensure_coherent_initialization(
-            population_update,
-            BASE_POPULATION.loc[update_index],
+            population_update, BASE_POPULATION.loc[update_index]
         )
 
 
 def test__ensure_coherent_initialization_new_columns(
-    population_update_new_cols,
-    update_index,
+    population_update_new_cols, update_index
 ):
     if isinstance(population_update_new_cols, pd.Series):
         pytest.skip()
 
     # All new cols, should be good
     PopulationView._ensure_coherent_initialization(
-        population_update_new_cols,
-        BASE_POPULATION.loc[update_index],
+        population_update_new_cols, BASE_POPULATION.loc[update_index]
     )
 
     # Missing rows
     if not update_index.equals(BASE_POPULATION.index):
         with pytest.raises(PopulationError, match="missing updates"):
             PopulationView._ensure_coherent_initialization(
-                population_update_new_cols,
-                BASE_POPULATION,
+                population_update_new_cols, BASE_POPULATION
             )
 
     # Conflicting data in existing cols.
@@ -358,8 +332,7 @@ def test__ensure_coherent_initialization_new_columns(
         update[COL_NAMES[0]] = "bad_values"
         with pytest.raises(PopulationError, match="conflicting"):
             PopulationView._ensure_coherent_initialization(
-                update,
-                BASE_POPULATION.loc[update_index],
+                update, BASE_POPULATION.loc[update_index]
             )
 
 
@@ -382,34 +355,20 @@ def test__format_update_and_check_preconditions_bad_args():
 
     with pytest.raises(TypeError):
         PopulationView._format_update_and_check_preconditions(
-            BASE_POPULATION.iloc[:, 0].tolist(),
-            BASE_POPULATION,
-            COL_NAMES,
-            True,
-            True,
+            BASE_POPULATION.iloc[:, 0].tolist(), BASE_POPULATION, COL_NAMES, True, True
         )
 
 
-def test__format_update_and_check_preconditions_coerce_failures(
-    population_update_new_cols,
-):
+def test__format_update_and_check_preconditions_coerce_failures(population_update_new_cols):
     with pytest.raises(PopulationError, match="unnamed pandas series"):
         PopulationView._format_update_and_check_preconditions(
-            BASE_POPULATION.iloc[:, 0].rename(None),
-            BASE_POPULATION,
-            COL_NAMES,
-            True,
-            True,
+            BASE_POPULATION.iloc[:, 0].rename(None), BASE_POPULATION, COL_NAMES, True, True
         )
 
     for view_cols in [COL_NAMES, [COL_NAMES[0]]]:
         with pytest.raises(PopulationError, match="extra columns"):
             PopulationView._format_update_and_check_preconditions(
-                population_update_new_cols,
-                BASE_POPULATION,
-                view_cols,
-                True,
-                True,
+                population_update_new_cols, BASE_POPULATION, view_cols, True, True
             )
 
         with pytest.raises(PopulationError, match="no columns"):
@@ -431,17 +390,12 @@ def test__format_update_and_check_preconditions_unknown_pop_fail(population_upda
 
     with pytest.raises(PopulationError, match=f"{len(update)} simulants"):
         PopulationView._format_update_and_check_preconditions(
-            update,
-            BASE_POPULATION,
-            COL_NAMES,
-            True,
-            True,
+            update, BASE_POPULATION, COL_NAMES, True, True
         )
 
 
 def test__format_update_and_check_preconditions_coherent_initialization_fail(
-    population_update,
-    update_index,
+    population_update, update_index
 ):
     # Missing population
     if not update_index.empty:
@@ -457,17 +411,12 @@ def test__format_update_and_check_preconditions_coherent_initialization_fail(
     # No new columns
     with pytest.raises(PopulationError, match="all provided columns"):
         PopulationView._format_update_and_check_preconditions(
-            population_update,
-            BASE_POPULATION.loc[update_index],
-            COL_NAMES,
-            True,
-            True,
+            population_update, BASE_POPULATION.loc[update_index], COL_NAMES, True, True
         )
 
 
 def test__format_update_and_check_preconditions_coherent_initialization_fail_new_cols(
-    population_update_new_cols,
-    update_index,
+    population_update_new_cols, update_index
 ):
     if not update_index.equals(BASE_POPULATION.index):
         with pytest.raises(PopulationError, match="missing updates"):
@@ -495,8 +444,7 @@ def test__format_update_and_check_preconditions_coherent_initialization_fail_new
 
 
 def test__format_update_and_check_preconditions_new_columns_non_init(
-    population_update_new_cols,
-    update_index,
+    population_update_new_cols, update_index
 ):
     for adding_simulants in [True, False]:
         with pytest.raises(PopulationError, match="outside the initial population creation"):
@@ -510,8 +458,7 @@ def test__format_update_and_check_preconditions_new_columns_non_init(
 
 
 def test__format_update_and_check_preconditions_conflicting_non_init(
-    population_update,
-    update_index,
+    population_update, update_index
 ):
     update = population_update.copy()
     if isinstance(update, pd.Series):
@@ -530,8 +477,7 @@ def test__format_update_and_check_preconditions_conflicting_non_init(
 
 
 def test__format_update_and_check_preconditions_init_pass(
-    population_update_new_cols,
-    update_index,
+    population_update_new_cols, update_index
 ):
     result = PopulationView._format_update_and_check_preconditions(
         population_update_new_cols,
@@ -541,8 +487,7 @@ def test__format_update_and_check_preconditions_init_pass(
         True,
     )
     update = PopulationView._coerce_to_dataframe(
-        population_update_new_cols,
-        COL_NAMES + NEW_COL_NAMES,
+        population_update_new_cols, COL_NAMES + NEW_COL_NAMES
     )
 
     assert set(result.columns) == set(update)
@@ -550,22 +495,12 @@ def test__format_update_and_check_preconditions_init_pass(
         assert result[col].equals(update[col])
 
 
-def test__format_update_and_check_preconditions_add_pass(
-    population_update,
-    update_index,
-):
+def test__format_update_and_check_preconditions_add_pass(population_update, update_index):
     state_table = BASE_POPULATION.drop(update_index).reindex(BASE_POPULATION.index)
     result = PopulationView._format_update_and_check_preconditions(
-        population_update,
-        state_table,
-        COL_NAMES + NEW_COL_NAMES,
-        False,
-        True,
+        population_update, state_table, COL_NAMES + NEW_COL_NAMES, False, True
     )
-    update = PopulationView._coerce_to_dataframe(
-        population_update,
-        COL_NAMES + NEW_COL_NAMES,
-    )
+    update = PopulationView._coerce_to_dataframe(population_update, COL_NAMES + NEW_COL_NAMES)
 
     assert set(result.columns) == set(update)
     for col in update:
@@ -573,20 +508,12 @@ def test__format_update_and_check_preconditions_add_pass(
 
 
 def test__format_update_and_check_preconditions_time_step_pass(
-    population_update,
-    update_index,
+    population_update, update_index
 ):
     result = PopulationView._format_update_and_check_preconditions(
-        population_update,
-        BASE_POPULATION,
-        COL_NAMES + NEW_COL_NAMES,
-        False,
-        False,
+        population_update, BASE_POPULATION, COL_NAMES + NEW_COL_NAMES, False, False
     )
-    update = PopulationView._coerce_to_dataframe(
-        population_update,
-        COL_NAMES + NEW_COL_NAMES,
-    )
+    update = PopulationView._coerce_to_dataframe(population_update, COL_NAMES + NEW_COL_NAMES)
 
     assert set(result.columns) == set(update)
     for col in update:
@@ -594,20 +521,12 @@ def test__format_update_and_check_preconditions_time_step_pass(
 
 
 def test__format_update_and_check_preconditions_adding_simulants_replace_identical_data(
-    population_update,
-    update_index,
+    population_update, update_index
 ):
     result = PopulationView._format_update_and_check_preconditions(
-        population_update,
-        BASE_POPULATION,
-        COL_NAMES + NEW_COL_NAMES,
-        False,
-        True,
+        population_update, BASE_POPULATION, COL_NAMES + NEW_COL_NAMES, False, True
     )
-    update = PopulationView._coerce_to_dataframe(
-        population_update,
-        COL_NAMES + NEW_COL_NAMES,
-    )
+    update = PopulationView._coerce_to_dataframe(population_update, COL_NAMES + NEW_COL_NAMES)
 
     assert set(result.columns) == set(update)
     for col in update:
@@ -635,9 +554,7 @@ def test__update_column_and_ensure_dtype():
                 existing = BASE_POPULATION[col].copy()
 
                 new_values = PopulationView._update_column_and_ensure_dtype(
-                    update,
-                    existing,
-                    adding_simulants,
+                    update, existing, adding_simulants
                 )
                 assert new_values.loc[update_index].astype(update.dtype).equals(update)
                 non_update_index = existing.index.difference(update_index)
@@ -663,18 +580,14 @@ def test__update_column_and_ensure_dtype_unmatched_dtype():
 
     # Should work fine when we're adding simulants
     new_values = PopulationView._update_column_and_ensure_dtype(
-        update,
-        existing,
-        adding_simulants=True,
+        update, existing, adding_simulants=True
     )
     assert new_values.loc[update_index].equals(update)
 
     # And be bad news otherwise.
     with pytest.raises(PopulationError, match="corrupting"):
         PopulationView._update_column_and_ensure_dtype(
-            update,
-            existing,
-            adding_simulants=False,
+            update, existing, adding_simulants=False
         )
 
 
@@ -684,9 +597,7 @@ def test__update_column_and_ensure_dtype_unmatched_dtype():
 
 
 def test_population_view_update_format_fail(
-    population_manager,
-    population_update,
-    update_index,
+    population_manager, population_update, update_index
 ):
     pv = population_manager.get_view(COL_NAMES)
 
@@ -725,9 +636,7 @@ def test_population_view_update_format_fail(
 
 
 def test_population_view_update_format_fail_new_cols(
-    population_manager,
-    population_update_new_cols,
-    update_index,
+    population_manager, population_update_new_cols, update_index
 ):
     pv = population_manager.get_view(COL_NAMES)
 
@@ -768,9 +677,7 @@ def test_population_view_update_format_fail_new_cols(
 
 
 def test_population_view_update_init(
-    population_manager,
-    population_update_new_cols,
-    update_index,
+    population_manager, population_update_new_cols, update_index
 ):
     if isinstance(population_update_new_cols, pd.Series):
         pytest.skip()
@@ -786,11 +693,7 @@ def test_population_view_update_init(
         assert population_manager._population[col].equals(population_update_new_cols[col])
 
 
-def test_population_view_update_add(
-    population_manager,
-    population_update,
-    update_index,
-):
+def test_population_view_update_add(population_manager, population_update, update_index):
     if isinstance(population_update, pd.Series):
         pytest.skip()
 
@@ -811,9 +714,7 @@ def test_population_view_update_add(
 
 
 def test_population_view_update_time_step(
-    population_manager,
-    population_update,
-    update_index,
+    population_manager, population_update, update_index
 ):
     if isinstance(population_update, pd.Series):
         pytest.skip()

@@ -218,12 +218,7 @@ class SimpleClock(SimulationClock):
     """A unitless step-count based simulation clock."""
 
     CONFIGURATION_DEFAULTS = {
-        "time": {
-            "start": 0,
-            "end": 100,
-            "step_size": 1,
-            "standard_step_size": None,
-        }
+        "time": {"start": 0, "end": 100, "step_size": 1, "standard_step_size": None}
     }
 
     @property
@@ -255,11 +250,7 @@ class DateTimeClock(SimulationClock):
     CONFIGURATION_DEFAULTS = {
         "time": {
             "start": {"year": 2005, "month": 7, "day": 2},
-            "end": {
-                "year": 2010,
-                "month": 7,
-                "day": 2,
-            },
+            "end": {"year": 2010, "month": 7, "day": 2},
             "step_size": 1,
             "standard_step_size": None,  # Days
         }

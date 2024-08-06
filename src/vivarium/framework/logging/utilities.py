@@ -47,11 +47,7 @@ def configure_logging_to_file(output_directory: Path) -> None:
     """
     log_file = output_directory / "simulation.log"
     _add_logging_sink(
-        log_file,
-        verbosity=2,
-        long_format=True,
-        colorize=False,
-        serialize=False,
+        log_file, verbosity=2, long_format=True, colorize=False, serialize=False
     )
 
 
@@ -63,11 +59,7 @@ def _clear_default_configuration():
 
 
 def _add_logging_sink(
-    sink,
-    verbosity: int,
-    long_format: bool,
-    colorize: bool,
-    serialize: bool,
+    sink, verbosity: int, long_format: bool, colorize: bool, serialize: bool
 ) -> int:
     """Add a logging sink to the logger.
 

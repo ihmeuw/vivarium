@@ -27,20 +27,8 @@ from .mocks import (
 @pytest.mark.parametrize(
     "name, sources, categories, mapper, is_vectorized",
     [
-        (
-            NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_vector,
-            True,
-        ),
-        (
-            NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_serial,
-            False,
-        ),
+        (NAME, SOURCES, CATEGORIES, sorting_hat_vector, True),
+        (NAME, SOURCES, CATEGORIES, sorting_hat_serial, False),
     ],
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
@@ -54,32 +42,15 @@ def test_register_stratification_no_pipelines(
     for item in sources:
         assert item in mgr._required_columns
     assert verify_stratification_added(
-        mgr._results_context.stratifications,
-        name,
-        sources,
-        categories,
-        mapper,
-        is_vectorized,
+        mgr._results_context.stratifications, name, sources, categories, mapper, is_vectorized
     )
 
 
 @pytest.mark.parametrize(
     "name, sources, categories, mapper, is_vectorized",
     [
-        (
-            NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_vector,
-            True,
-        ),
-        (
-            NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_serial,
-            False,
-        ),
+        (NAME, SOURCES, CATEGORIES, sorting_hat_vector, True),
+        (NAME, SOURCES, CATEGORIES, sorting_hat_serial, False),
     ],
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
@@ -96,12 +67,7 @@ def test_register_stratification_with_pipelines(
     for item in sources:
         assert item in mgr._required_values
     assert verify_stratification_added(
-        mgr._results_context.stratifications,
-        name,
-        sources,
-        categories,
-        mapper,
-        is_vectorized,
+        mgr._results_context.stratifications, name, sources, categories, mapper, is_vectorized
     )
 
 

@@ -305,8 +305,7 @@ class PopulationView:
         assert not creating_initial_population or adding_simulants
 
         population_update = PopulationView._coerce_to_dataframe(
-            population_update,
-            view_columns,
+            population_update, view_columns
         )
 
         unknown_simulants = len(population_update.index.difference(state_table.index))
@@ -347,8 +346,7 @@ class PopulationView:
 
     @staticmethod
     def _coerce_to_dataframe(
-        population_update: Union[pd.Series, pd.DataFrame],
-        view_columns: List[str],
+        population_update: Union[pd.Series, pd.DataFrame], view_columns: List[str]
     ) -> pd.DataFrame:
         """Coerce all population updates to a :class:`pandas.DataFrame` format.
 
@@ -457,9 +455,7 @@ class PopulationView:
 
     @staticmethod
     def _update_column_and_ensure_dtype(
-        update: pd.Series,
-        existing: pd.Series,
-        adding_simulants: bool,
+        update: pd.Series, existing: pd.Series, adding_simulants: bool
     ) -> pd.Series:
         """Build the updated state table column with an appropriate dtype.
 

@@ -86,8 +86,7 @@ def test_contains(manager):
 
 def test_returned_series_name(manager):
     value = manager.register_value_producer(
-        "test",
-        source=lambda idx: pd.Series(0.0, index=idx),
+        "test", source=lambda idx: pd.Series(0.0, index=idx)
     )
     assert value(pd.Index(range(10))).name == "test"
 

@@ -75,14 +75,7 @@ def test_stratification(name, sources, categories, mapper, is_vectorized, expect
             True,
             ValueError,
         ),
-        (  # empty categories list
-            NAME,
-            SOURCES,
-            [],
-            None,
-            True,
-            ValueError,
-        ),
+        (NAME, SOURCES, [], None, True, ValueError),  # empty categories list
     ],
 )
 def test_stratification_init_raises(
@@ -95,38 +88,10 @@ def test_stratification_init_raises(
 @pytest.mark.parametrize(
     "name, sources, categories, mapper, is_vectorized, expected_exception",
     [
-        (
-            NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_bad_mapping,
-            False,
-            ValueError,
-        ),
-        (
-            NAME,
-            ["middle_initial"],
-            CATEGORIES,
-            sorting_hat_vector,
-            True,
-            KeyError,
-        ),
-        (
-            NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_serial,
-            True,
-            Exception,
-        ),
-        (
-            NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_vector,
-            False,
-            Exception,
-        ),
+        (NAME, SOURCES, CATEGORIES, sorting_hat_bad_mapping, False, ValueError),
+        (NAME, ["middle_initial"], CATEGORIES, sorting_hat_vector, True, KeyError),
+        (NAME, SOURCES, CATEGORIES, sorting_hat_serial, True, Exception),
+        (NAME, SOURCES, CATEGORIES, sorting_hat_vector, False, Exception),
     ],
     ids=[
         "category_not_in_categories",

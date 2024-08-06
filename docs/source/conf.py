@@ -164,7 +164,7 @@ latex_documents = [
         f'{about["__title__"]} Documentation',
         about["__author__"],
         "manual",
-    ),
+    )
 ]
 
 
@@ -191,7 +191,7 @@ texinfo_documents = [
         f'{about["__title__"]}',
         about["__summary__"],
         "Miscellaneous",
-    ),
+    )
 ]
 
 # Other docs we can link to

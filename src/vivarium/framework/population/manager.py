@@ -120,11 +120,7 @@ class PopulationManager(Manager):
 
     # TODO: Move the configuration for initial population creation to
     #  user components.
-    CONFIGURATION_DEFAULTS = {
-        "population": {
-            "population_size": 100,
-        },
-    }
+    CONFIGURATION_DEFAULTS = {"population": {"population_size": 100}}
 
     def __init__(self):
         self._population = None

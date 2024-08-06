@@ -64,11 +64,7 @@ def test_rate_to_probability_vectorizability():
 def test_collapse_nested_dict():
     source = {"a": {"b": {"c": 1, "d": 2}}, "e": 3}
     result = collapse_nested_dict(source)
-    assert set(result) == {
-        ("a.b.c", 1),
-        ("a.b.d", 2),
-        ("e", 3),
-    }
+    assert set(result) == {("a.b.c", 1), ("a.b.d", 2), ("e", 3)}
 
 
 def test_import_class_by_path():

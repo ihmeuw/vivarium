@@ -221,11 +221,7 @@ class Component(ABC):
             list for a key implies no requirements for that key during
             initialization.
         """
-        return {
-            "requires_columns": [],
-            "requires_values": [],
-            "requires_streams": [],
-        }
+        return {"requires_columns": [], "requires_values": [], "requires_streams": []}
 
     @property
     def population_view_query(self) -> Optional[str]:
@@ -607,9 +603,7 @@ class Component(ABC):
         """
         if type(self).on_post_setup != Component.on_post_setup:
             builder.event.register_listener(
-                "post_setup",
-                self.on_post_setup,
-                self.post_setup_priority,
+                "post_setup", self.on_post_setup, self.post_setup_priority
             )
 
     def _register_simulant_initializer(self, builder: "Builder") -> None:
@@ -680,9 +674,7 @@ class Component(ABC):
         """
         if type(self).on_time_step != Component.on_time_step:
             builder.event.register_listener(
-                "time_step",
-                self.on_time_step,
-                self.time_step_priority,
+                "time_step", self.on_time_step, self.time_step_priority
             )
 
     def _register_time_step_cleanup_listener(self, builder: "Builder") -> None:
@@ -728,9 +720,7 @@ class Component(ABC):
         """
         if type(self).on_collect_metrics != Component.on_collect_metrics:
             builder.event.register_listener(
-                "collect_metrics",
-                self.on_collect_metrics,
-                self.collect_metrics_priority,
+                "collect_metrics", self.on_collect_metrics, self.collect_metrics_priority
             )
 
     def _register_simulation_end_listener(self, builder: "Builder") -> None:
@@ -752,7 +742,5 @@ class Component(ABC):
         """
         if type(self).on_simulation_end != Component.on_simulation_end:
             builder.event.register_listener(
-                "simulation_end",
-                self.on_simulation_end,
-                self.simulation_end_priority,
+                "simulation_end", self.on_simulation_end, self.simulation_end_priority
             )

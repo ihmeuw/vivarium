@@ -89,12 +89,7 @@ class ResultsInterface:
         None
         """
         self._manager.register_stratification(
-            name,
-            categories,
-            mapper,
-            is_vectorized,
-            requires_columns,
-            requires_values,
+            name, categories, mapper, is_vectorized, requires_columns, requires_values
         )
 
     def register_binned_stratification(

@@ -13,11 +13,7 @@ class Observer(Component):
 
     @property
     def configuration_defaults(self) -> Dict[str, Any]:
-        return {
-            "mortality": {
-                "life_expectancy": 80,
-            }
-        }
+        return {"mortality": {"life_expectancy": 80}}
 
     @property
     def columns_required(self) -> Optional[List[str]]:

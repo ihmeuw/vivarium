@@ -7,11 +7,7 @@ from vivarium.framework.engine import Builder
 
 
 class TreatmentIntervention(Component):
-    CONFIGURATION_DEFAULTS: Dict[str, Any] = {
-        "intervention": {
-            "effect_size": 0.5,
-        }
-    }
+    CONFIGURATION_DEFAULTS: Dict[str, Any] = {"intervention": {"effect_size": 0.5}}
 
     ##############
     # Properties #

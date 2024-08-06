@@ -12,11 +12,7 @@ class Population(Component):
     ##############
     # Properties #
     ##############
-    configuration_defaults = {
-        "population": {
-            "colors": ["red", "blue"],
-        }
-    }
+    configuration_defaults = {"population": {"colors": ["red", "blue"]}}
     columns_created = ["color", "entrance_time"]
 
     #####################

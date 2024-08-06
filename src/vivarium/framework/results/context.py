@@ -164,10 +164,7 @@ class ResultsContext:
 
     @staticmethod
     def _format_results(
-        measure: str,
-        aggregates: pd.Series,
-        has_stratifications: bool,
-        **additional_keys: str,
+        measure: str, aggregates: pd.Series, has_stratifications: bool, **additional_keys: str
     ) -> Dict[str, float]:
         results = {}
         # Simpler formatting if we don't have stratifications

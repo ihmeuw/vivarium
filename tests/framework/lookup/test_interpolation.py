@@ -342,15 +342,7 @@ def test_order_zero_1d_with_key_column():
     param_cols = [("year", "year_start", "year_end")]
     i = Interpolation(data, ["sex"], param_cols, ["value_1", "value_2"], 0, True, True)
 
-    query = pd.DataFrame(
-        {
-            "year": [
-                1992,
-                1993,
-            ],
-            "sex": ["Male", "Female"],
-        }
-    )
+    query = pd.DataFrame({"year": [1992, 1993], "sex": ["Male", "Female"]})
 
     expected_result = pd.DataFrame({"value_1": [10.0, 7.0], "value_2": [1200.0, 1350.0]})
 
@@ -362,10 +354,7 @@ def test_order_zero_non_numeric_values():
         {
             "year_start": [1990, 1990],
             "year_end": [1995, 1995],
-            "age_start": [
-                15,
-                24,
-            ],
+            "age_start": [15, 24],
             "age_end": [24, 30],
             "value_1": ["blue", "red"],
         }
@@ -374,16 +363,7 @@ def test_order_zero_non_numeric_values():
     param_cols = [("year", "year_start", "year_end"), ("age", "age_start", "age_end")]
     i = Interpolation(data, tuple(), param_cols, ["value_1"], 0, True, True)
 
-    query = pd.DataFrame(
-        {
-            "year": [1990, 1990],
-            "age": [
-                15,
-                24,
-            ],
-        },
-        index=[1, 0],
-    )
+    query = pd.DataFrame({"year": [1990, 1990], "age": [15, 24]}, index=[1, 0])
 
     expected_result = pd.DataFrame({"value_1": ["blue", "red"]}, index=[1, 0])
 
@@ -409,15 +389,7 @@ def test_order_zero_3d_with_key_col():
         ("year", "year_start", "year_end"),
         ("height", "height_start", "height_end"),
     ]
-    interp = Interpolation(
-        data,
-        ("sex",),
-        param_cols,
-        ["value"],
-        0,
-        True,
-        True,
-    )
+    interp = Interpolation(data, ("sex",), param_cols, ["value"], 0, True, True)
 
     interpolants = pd.DataFrame(
         {
@@ -438,13 +410,7 @@ def test_order_zero_3d_with_key_col():
 def test_order_zero_diff_bin_sizes():
     data = pd.DataFrame(
         {
-            "year_start": [
-                1990,
-                1995,
-                1996,
-                2005,
-                2005.5,
-            ],
+            "year_start": [1990, 1995, 1996, 2005, 2005.5],
             "year_end": [1995, 1996, 2005, 2005.5, 2010],
             "value": [1, 5, 2.3, 6, 100],
         }
@@ -463,13 +429,7 @@ def test_order_zero_diff_bin_sizes():
 def test_order_zero_given_call_column():
     data = pd.DataFrame(
         {
-            "year_start": [
-                1990,
-                1995,
-                1996,
-                2005,
-                2005.5,
-            ],
+            "year_start": [1990, 1995, 1996, 2005, 2005.5],
             "year_end": [1995, 1996, 2005, 2005.5, 2010],
             "year": [1992.5, 1995.5, 2000, 2005.25, 2007.75],
             "value": [1, 5, 2.3, 6, 100],
@@ -525,13 +485,7 @@ def test_interpolation_call_validate_option_invalid_data(validate):
 def test_interpolation_call_validate_option_valid_data(validate):
     data = pd.DataFrame(
         {
-            "year_start": [
-                1990,
-                1995,
-                1996,
-                2005,
-                2005.5,
-            ],
+            "year_start": [1990, 1995, 1996, 2005, 2005.5],
             "year_end": [1995, 1996, 2005, 2005.5, 2010],
             "value": [1, 5, 2.3, 6, 100],
         }

@@ -2,10 +2,7 @@ import pytest
 
 from vivarium import Component
 from vivarium.framework.population.exceptions import PopulationError
-from vivarium.framework.population.manager import (
-    InitializerComponentSet,
-    PopulationManager,
-)
+from vivarium.framework.population.manager import InitializerComponentSet, PopulationManager
 
 
 def test_initializer_set_fail_type():

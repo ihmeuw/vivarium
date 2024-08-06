@@ -168,8 +168,7 @@ def test():
 
 @simulate.command()
 @click.argument(
-    "model_specification",
-    type=click.Path(exists=True, dir_okay=False, resolve_path=True),
+    "model_specification", type=click.Path(exists=True, dir_okay=False, resolve_path=True)
 )
 @click.option(
     "--results_directory",

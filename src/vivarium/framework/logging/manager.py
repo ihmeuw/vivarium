@@ -16,10 +16,7 @@ class LoggingManager(Manager):
         self._simulation_name = None
 
     def configure_logging(
-        self,
-        simulation_name: str,
-        verbosity: int = 0,
-        long_format: bool = True,
+        self, simulation_name: str, verbosity: int = 0, long_format: bool = True
     ) -> None:
         self._simulation_name = simulation_name
         if self._terminal_logging_not_configured():

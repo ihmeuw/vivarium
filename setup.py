@@ -43,17 +43,9 @@ if __name__ == "__main__":
 
     setup_requires = ["setuptools_scm"]
 
-    interactive_requirements = [
-        "IPython",
-        "ipywidgets",
-        "jupyter",
-    ]
+    interactive_requirements = ["IPython", "ipywidgets", "jupyter"]
 
-    test_requirements = [
-        "pytest",
-        "pytest-cov",
-        "pytest-mock",
-    ]
+    test_requirements = ["pytest", "pytest-cov", "pytest-mock"]
 
     doc_requirements = [
         "sphinx>=5.0",
@@ -64,10 +56,7 @@ if __name__ == "__main__":
         "sphinxcontrib-video",
     ]
 
-    lint_requirements = [
-        "black==22.3.0",
-        "isort",
-    ]
+    lint_requirements = ["black==22.3.0", "isort"]
 
     setup(
         name=about["__title__"],

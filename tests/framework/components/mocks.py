@@ -53,10 +53,7 @@ class MockGenericComponent(Component):
     CONFIGURATION_DEFAULTS = {
         "component": {
             "key1": "val",
-            "key2": {
-                "subkey1": "val",
-                "subkey2": "val",
-            },
+            "key2": {"subkey1": "val", "subkey2": "val"},
             "key3": ["val", "val", "val"],
         }
     }

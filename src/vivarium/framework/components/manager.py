@@ -20,11 +20,7 @@ import typing
 from typing import Any, Dict, Iterator, List, Tuple, Union
 
 from vivarium import Component
-from vivarium.config_tree import (
-    ConfigTree,
-    ConfigurationError,
-    DuplicatedConfigurationError,
-)
+from vivarium.config_tree import ConfigTree, ConfigurationError, DuplicatedConfigurationError
 from vivarium.exceptions import VivariumError
 from vivarium.framework.lifecycle import LifeCycleManager
 from vivarium.manager import Manager

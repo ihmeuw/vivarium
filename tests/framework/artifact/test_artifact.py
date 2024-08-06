@@ -331,7 +331,7 @@ def test_remove_no_cache(hdf_mock, keys_mock, artifact_path):
     ]
     assert hdf_mock.remove.call_args_list == expected_calls_remove
     expected_calls_write = [
-        call(artifact_path, "metadata.keyspace", [k for k in keys_mock if k != key]),
+        call(artifact_path, "metadata.keyspace", [k for k in keys_mock if k != key])
     ]
     assert hdf_mock.write.call_args_list == expected_calls_write
 
@@ -445,10 +445,7 @@ def test_to_tree():
     ]
 
     key_tree = {
-        "population": {
-            "structure": [],
-            "age_groups": [],
-        },
+        "population": {"structure": [], "age_groups": []},
         "cause": {"diarrheal_diseases": ["incidence", "prevalence"]},
     }
 

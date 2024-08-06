@@ -106,8 +106,7 @@ def raise_if_not_setup(system_type):
 
 
 def get_output_model_name_string(
-    artifact_path: Union[str, Path],
-    model_spec_path: Union[str, Path],
+    artifact_path: Union[str, Path], model_spec_path: Union[str, Path]
 ) -> str:
     """Find a good string to use as model name in output path creation.
 

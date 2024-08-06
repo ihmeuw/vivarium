@@ -4,10 +4,7 @@ import pytest
 import yaml
 
 from vivarium import ConfigTree
-from vivarium.framework.components.parser import (
-    ComponentConfigurationParser,
-    ParsingError,
-)
+from vivarium.framework.components.parser import ComponentConfigurationParser, ParsingError
 from vivarium.framework.configuration import build_simulation_configuration
 
 from .mocks import MockComponentA, MockComponentB

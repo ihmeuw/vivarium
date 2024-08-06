@@ -123,9 +123,7 @@ class IndexMap:
         return self._resolve_collisions(new_key_index, current_map)
 
     def _resolve_collisions(
-        self,
-        new_key_index: pd.MultiIndex,
-        current_mapping: pd.Series,
+        self, new_key_index: pd.MultiIndex, current_mapping: pd.Series
     ) -> pd.Series:
         """Resolves collisions in the new mapping by perturbing the hash.
 

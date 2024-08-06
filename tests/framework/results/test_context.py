@@ -129,7 +129,7 @@ def test_add_observation(
             [],
             [],
             "collect_metrics",
-        ),
+        )
     ],
     ids=["valid_on_collect_metrics"],
 )
@@ -255,13 +255,7 @@ def test_gather_results(
     if "familiar" in stratifications:
         ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
     ctx.add_observation(
-        name,
-        pop_filter,
-        aggregator_sources,
-        aggregator,
-        stratifications,
-        [],
-        event_name,
+        name, pop_filter, aggregator_sources, aggregator, stratifications, [], event_name
     )
 
     i = 0
@@ -287,13 +281,7 @@ def test_gather_results(
         ),
         ("wizard_count", "tracked==True", None, len, ["familiar"]),
         ("power_level_total", "tracked==True", ["power_level"], sum, ["familiar"]),
-        (
-            "wizard_time",
-            "tracked==True",
-            [],
-            _aggregate_state_person_time,
-            ["familiar"],
-        ),
+        ("wizard_time", "tracked==True", [], _aggregate_state_person_time, ["familiar"]),
     ],
     ids=[
         "len_aggregator_two_stratifications",
@@ -331,13 +319,7 @@ def test_gather_results_partial_stratifications_in_results(
     if "familiar" in stratifications:
         ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
     ctx.add_observation(
-        name,
-        pop_filter,
-        aggregator_sources,
-        aggregator,
-        stratifications,
-        [],
-        event_name,
+        name, pop_filter, aggregator_sources, aggregator, stratifications, [], event_name
     )
 
     for r in ctx.gather_results(population, event_name):
