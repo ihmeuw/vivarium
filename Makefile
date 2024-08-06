@@ -72,9 +72,8 @@ integration: $(MAKE_SOURCES) # Run the end-to-end tests
 	pytest --runslow tests --cov --cov-report term --cov-report html:./output/htmlcov_integration
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
-build-doc: docs/ */*.rst $(MAKE_SOURCES) # Build the Sphinx docs
-	sphinx-apidoc -o docs -f src
-	sphinx-build docs ./output/docs_build
+build-doc: $(MAKE_SOURCES) # Build the Sphinx docs
+	$(MAKE) -C docs/ html
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 deploy-doc: # Deploy the Sphinx docs

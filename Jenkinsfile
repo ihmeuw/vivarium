@@ -190,52 +190,52 @@ pipeline {
                   }
                 }
 
-                stage("Deploy Docs") {
-                  when {
-                    expression { !params.IS_CRON }
-                    anyOf {
-                      environment name: "BRANCH", value: "main";
-                      expression { params.DEPLOY_OVERRIDE }
-                    }
-                  }
-                  environment {
-                    DOCS_ROOT_PATH = "/mnt/team/simulation_science/pub/docs"
-                  }
-                  steps {
-                    sh "${ACTIVATE} && make deploy-doc"
-                  }
-                }
+                // stage("Deploy Docs") {
+                //   when {
+                //     expression { !params.IS_CRON }
+                //     anyOf {
+                //       environment name: "BRANCH", value: "main";
+                //       expression { params.DEPLOY_OVERRIDE }
+                //     }
+                //   }
+                //   environment {
+                //     DOCS_ROOT_PATH = "/mnt/team/simulation_science/pub/docs"
+                //   }
+                //   steps {
+                //     sh "${ACTIVATE} && make deploy-doc"
+                //   }
+                // }
 
-                stage("Deploy Package to PyPi") {
-                  when {
-                    expression { !params.IS_CRON }
-                    anyOf {
-                      environment name: "BRANCH", value: "main";
-                      expression { params.DEPLOY_OVERRIDE }
-                    }
-                  }
-                  environment {
-                    // Note that Jenkins can only read credentials by ID, so read the ID rather than the
-                    // name of the secret here.
-                    PYPI_ARTIFACTORY_CREDENTIALS = credentials("artifactory_simsci")
-                  }
-                  steps {
-                    sh "${ACTIVATE} && make deploy-package"
-                  }
-                }
+                // stage("Deploy Package to PyPi") {
+                //   when {
+                //     expression { !params.IS_CRON }
+                //     anyOf {
+                //       environment name: "BRANCH", value: "main";
+                //       expression { params.DEPLOY_OVERRIDE }
+                //     }
+                //   }
+                //   environment {
+                //     // Note that Jenkins can only read credentials by ID, so read the ID rather than the
+                //     // name of the secret here.
+                //     PYPI_ARTIFACTORY_CREDENTIALS = credentials("artifactory_simsci")
+                //   }
+                //   steps {
+                //     sh "${ACTIVATE} && make deploy-package"
+                //   }
+                // }
 
-                stage("Tagging Version and Pushing") {
-                  when {
-                    expression { !params.IS_CRON }
-                    anyOf {
-                      environment name: "BRANCH", value: "main";
-                      expression { params.DEPLOY_OVERRIDE }
-                    }
-                  }
-                  steps {
-                    sh "${ACTIVATE} && make tag-version"
-                  }
-                }
+                // stage("Tagging Version and Pushing") {
+                //   when {
+                //     expression { !params.IS_CRON }
+                //     anyOf {
+                //       environment name: "BRANCH", value: "main";
+                //       expression { params.DEPLOY_OVERRIDE }
+                //     }
+                //   }
+                //   steps {
+                //     sh "${ACTIVATE} && make tag-version"
+                //   }
+                // }
               } // stages within build and deploy
             } // build and deploy stage
         } // stages bracket within Python matrix
