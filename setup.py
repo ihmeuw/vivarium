@@ -48,7 +48,7 @@ if __name__ == "__main__":
     test_requirements = ["pytest", "pytest-cov", "pytest-mock"]
 
     doc_requirements = [
-        "sphinx>=5.0",
+        "sphinx>=4.0",
         "sphinx-rtd-theme",
         "sphinx-click",
         "IPython",
