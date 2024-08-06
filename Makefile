@@ -69,7 +69,7 @@ lint: .flake8 .bandit $(MAKE_SOURCES) # Run the code linter and package security
 
 integration: $(MAKE_SOURCES) # Run the end-to-end tests
 	export COVERAGE_FILE=./output/.coverage.integration
-	pytest -m e2e --cov --cov-report term --cov-report html:./output/htmlcov_integration
+	pytest --runslow tests --cov --cov-report term --cov-report html:./output/htmlcov_integration
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 build-doc: docs/ */*.rst $(MAKE_SOURCES) # Build the Sphinx docs
