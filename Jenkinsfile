@@ -1,4 +1,4 @@
-pipeline_name="vivarium-workflow-actions"
+pipeline_name="vivarium"
 conda_env_name="${pipeline_name}-${BUILD_NUMBER}"
 conda_env_path="/tmp/${conda_env_name}"
 // defaults for conda and pip are a local directory /svc-simsci for improved speed.
@@ -25,13 +25,18 @@ pipeline {
 
   parameters {
     booleanParam(
+      name: "DEPLOY_OVERRIDE",
+      defaultValue: false,
+      description: "Whether to deploy despite building a non-default branch. Builds of the default branch are always deployed."
+    )
+    booleanParam(
       name: "IS_CRON",
       defaultValue: true,
       description: "Indicates a recurring build. Used to skip deployment steps."
     )
     string(
       name: "SLACK_TO",
-      defaultValue: "simsci-ci-status-test",
+      defaultValue: "simsci-ci-status",
       description: "The Slack channel to send messages to."
     )
     booleanParam(
@@ -153,7 +158,7 @@ pipeline {
 
             // Tests
             // removable, if passwords can be exported to env. securely without bash indirection
-            stage("Run End-to-End Tests") {
+            stage("Run Integration Tests") {
               steps {
                 sh "${ACTIVATE} && make integration"
                 publishHTML([
@@ -201,7 +206,36 @@ pipeline {
                   }
                 }
 
-                
+                stage("Deploy Package to PyPi") {
+                  when {
+                    expression { !params.IS_CRON }
+                    anyOf {
+                      environment name: "BRANCH", value: "main";
+                      expression { params.DEPLOY_OVERRIDE }
+                    }
+                  }
+                  environment {
+                    // Note that Jenkins can only read credentials by ID, so read the ID rather than the
+                    // name of the secret here.
+                    PYPI_ARTIFACTORY_CREDENTIALS = credentials("artifactory_simsci")
+                  }
+                  steps {
+                    sh "${ACTIVATE} && make deploy-package"
+                  }
+                }
+
+                stage("Tagging Version and Pushing") {
+                  when {
+                    expression { !params.IS_CRON }
+                    anyOf {
+                      environment name: "BRANCH", value: "main";
+                      expression { params.DEPLOY_OVERRIDE }
+                    }
+                  }
+                  steps {
+                    sh "${ACTIVATE} && make tag-version"
+                  }
+                }
               } // stages within build and deploy
             } // build and deploy stage
         } // stages bracket within Python matrix
@@ -211,6 +245,10 @@ pipeline {
               sh "rm -rf ${CONDA_ENV_PATH}"
               // Delete the workspace directory.
               deleteDir()
+              // Tell BitBucket whether the build succeeded or failed.
+              script {
+                notifyBitbucket()
+              }
             }
             failure {
               slackSend channel: "#${params.SLACK_TO}",

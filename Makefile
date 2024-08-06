@@ -8,10 +8,9 @@ LOCATIONS=src tests
 PACKAGE_NAME = vivarium
 SAFE_NAME = $(shell python -c "from pkg_resources import safe_name; print(safe_name(\"$(PACKAGE_NAME)\"))")
 
-about_file   = $(shell find src -name __about__.py)
-version_line = $(shell grep "__version__ = " ${about_file})
+setup_file   = $(shell find -name setup.cfg)
+version_line = $(shell grep "version = " ${setup_file})
 PACKAGE_VERSION = $(shell echo ${version_line} | cut -d "=" -f 2 | xargs)
-# PACKAGE_VERSION = $(shell echo $(shell pip list | grep -e "$(SAFE_NAME)") | cut -d " " -f2)
 
 # Use this URL to pull IHME Python packages and deploy this package to PyPi.
 IHME_PYPI := https://artifactory.ihme.washington.edu/artifactory/api/pypi/pypi-shared/
@@ -19,8 +18,6 @@ IHME_PYPI := https://artifactory.ihme.washington.edu/artifactory/api/pypi/pypi-s
 # If CONDA_ENV_PATH is set (from a Jenkins build), use the -p flag when making Conda env in
 # order to make env at specific path. Otherwise, make a named env at the default path using
 # the -n flag.
-# TODO: [MIC-4953] build w/ multiple python versions
-# TODO: Update when pytype supports >3.10
 PYTHON_VERSION ?= 3.11
 CONDA_ENV_NAME ?= ${PACKAGE_NAME}_py${PYTHON_VERSION}
 CONDA_ENV_CREATION_FLAG = $(if $(CONDA_ENV_PATH),-p ${CONDA_ENV_PATH},-n ${CONDA_ENV_NAME})
@@ -67,12 +64,12 @@ format: setup.py pyproject.toml $(MAKE_SOURCES) # Run the code formatter and imp
 
 lint: .flake8 .bandit $(MAKE_SOURCES) # Run the code linter and package security vulnerability checker
 	-flake8 $(LOCATIONS)
-# -safety check
+	-safety check
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
-integration: $(MAKE_SOURCES) # Run the integration tests
+integration: $(MAKE_SOURCES) # Run the end-to-end tests
 	export COVERAGE_FILE=./output/.coverage.integration
-	pytest --runslow tests/ --cov --cov-report term --cov-report html:./output/htmlcov_integration
+	pytest -m e2e --cov --cov-report term --cov-report html:./output/htmlcov_integration
 	@echo "Ignore, Created by Makefile, `date`" > $@
 
 build-doc: docs/ */*.rst $(MAKE_SOURCES) # Build the Sphinx docs
@@ -87,7 +84,22 @@ deploy-doc: # Deploy the Sphinx docs
 	chmod -R 0775 ${DOCS_ROOT_PATH}/${PACKAGE_NAME}/${PACKAGE_VERSION}
 	cd ${DOCS_ROOT_PATH}/${PACKAGE_NAME} && ln -nsFfv ${PACKAGE_VERSION} current
 
+build-package: $(MAKE_SOURCES) # Build the package as a pip wheel
+	pip install build
+	python -m build
+	@echo "Ignore, Created by Makefile, `date`" > $@
+
+deploy-package: # Deploy the package to Artifactory
+	@[ "${PYPI_ARTIFACTORY_CREDENTIALS_USR}" ] && echo "" > /dev/null || ( echo "PYPI_ARTIFACTORY_CREDENTIALS_USR is not set"; exit 1 )
+	@[ "${PYPI_ARTIFACTORY_CREDENTIALS_PSW}" ] && echo "" > /dev/null || ( echo "PYPI_ARTIFACTORY_CREDENTIALS_PSW is not set"; exit 1 )
+	pip install twine
+	twine upload --repository-url ${IHME_PYPI} -u ${PYPI_ARTIFACTORY_CREDENTIALS_USR} -p ${PYPI_ARTIFACTORY_CREDENTIALS_PSW} dist/*
+
+tag-version: # Tag the version and push
+	git tag -a "v${PACKAGE_VERSION}" -m "Tag automatically generated from Jenkins."
+	git push --tags
+
 clean: # Delete build artifacts and do any custom cleanup such as spinning down services
-	@rm -rf format lint build-doc build-package integration .pytest_cache .pytype
+	@rm -rf format lint typecheck build-doc build-package unit e2e integration .pytest_cache .pytype
 	@rm -rf dist output
 	$(shell find . -type f -name '*py[co]' -delete -o -type d -name __pycache__ -delete)
