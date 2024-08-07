@@ -318,7 +318,7 @@ class SimulationContext:
 
     def write_backup(self, backup_path: Path) -> None:
         with open(backup_path, "wb") as f:
-            dill.dump(self, f)
+            dill.dump(self, f, protocol=dill.HIGHEST_PROTOCOL)
 
     def get_performance_metrics(self) -> pd.DataFrame:
         timing_dict = self._lifecycle.timings
