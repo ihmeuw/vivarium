@@ -297,10 +297,10 @@ we simply call that pipeline as a function, using ``event.index``,
 which is the set of simulants affected by the event (in this case, all of them).
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
-   :lines: 63-87
+   :lines: 58-82
    :dedent: 4
    :linenos:
-   :lineno-start: 63
+   :lineno-start: 58
 
 Putting it together
 +++++++++++++++++++
