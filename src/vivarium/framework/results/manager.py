@@ -88,7 +88,6 @@ class ResultsManager(Manager):
         self.get_value = builder.value.get_value
 
         self.set_default_stratifications(builder)
-        self.set_stratification_excluded_categories(builder)
 
     def on_post_setup(self, _: Event) -> None:
         """Initialize results with 0s DataFrame' for each measure and all stratifications"""
@@ -142,6 +141,8 @@ class ResultsManager(Manager):
         with 0.0.
         """
         population = self._prepare_population(event)
+        if population.empty:
+            return
         for results_group, measure, updater in self._results_context.gather_results(
             population, lifecycle_phase, event
         ):
@@ -158,16 +159,11 @@ class ResultsManager(Manager):
         default_stratifications = builder.configuration.stratification.default
         self._results_context.set_default_stratifications(default_stratifications)
 
-    def set_stratification_excluded_categories(self, builder: Builder) -> None:
-        excluded_categories = builder.configuration.stratification.excluded_categories
-        self._results_context.set_stratification_excluded_categories(
-            excluded_categories.to_dict()
-        )
-
     def register_stratification(
         self,
         name: str,
         categories: List[str],
+        excluded_categories: Optional[List[str]],
         mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]],
         is_vectorized: bool,
         requires_columns: List[str] = [],
@@ -181,6 +177,9 @@ class ResultsManager(Manager):
             Name of the of the column created by the stratification.
         categories
             List of string values that the mapper is allowed to output.
+        excluded_categories
+            List of mapped string values to be excluded from results processing.
+            If `None` (the default), will use exclusions as defined in th model spec.
         mapper
             A callable that emits values in `categories` given inputs from columns
             and values in the `requires_columns` and `requires_values`, respectively.
@@ -202,7 +201,7 @@ class ResultsManager(Manager):
         self.logger.debug(f"Registering stratification {name}")
         target_columns = list(requires_columns) + list(requires_values)
         self._results_context.add_stratification(
-            name, target_columns, categories, mapper, is_vectorized
+            name, target_columns, categories, excluded_categories, mapper, is_vectorized
         )
         self._add_resources(requires_columns, SourceType.COLUMN)
         self._add_resources(requires_values, SourceType.VALUE)
@@ -262,6 +261,7 @@ class ResultsManager(Manager):
         self.register_stratification(
             name=binned_column,
             categories=labels,
+            excluded_categories=None,
             mapper=_bin_data,
             is_vectorized=True,
             **target_kwargs,

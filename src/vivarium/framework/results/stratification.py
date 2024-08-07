@@ -67,17 +67,19 @@ class Stratification:
         else:
             mapped_column = population[self.sources].apply(self.mapper, axis=1)
 
+        if mapped_column.isnull().any():
+            raise ValueError(f"Null values mapped to {self.name}.")
         unknown_categories = set(mapped_column) - set(
             self.categories + self.excluded_categories
         )
         if unknown_categories:
             raise ValueError(f"Invalid values '{unknown_categories}' mapped to {self.name}.")
 
-        mapped_column = mapped_column[mapped_column.isin(self.categories)]
+        # Convert the dtype to the allowed categories. Note that this will
+        # result in Nans for any values in excluded_categories.
         mapped_column = mapped_column.astype(
             CategoricalDtype(categories=self.categories, ordered=True)
         )
-        population = population.loc[mapped_column.index, :]
         population[self.name] = mapped_column
         return population
 

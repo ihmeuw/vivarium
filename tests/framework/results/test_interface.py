@@ -278,9 +278,11 @@ def test_register_adding_observation_when_options(when, mocker):
     mgr.setup(builder)
 
     # register stratifications
-    results_interface.register_stratification("house", HOUSES, None, True, ["house"], [])
     results_interface.register_stratification(
-        "familiar", FAMILIARS, None, True, ["familiar"], []
+        "house", HOUSES, is_vectorized=True, requires_columns=["house"]
+    )
+    results_interface.register_stratification(
+        "familiar", FAMILIARS, is_vectorized=True, requires_columns=["familiar"]
     )
 
     time_step__prepare_mock_aggregator = mocker.Mock(side_effect=lambda x: 1.0)

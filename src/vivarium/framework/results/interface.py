@@ -73,6 +73,7 @@ class ResultsInterface:
         self,
         name: str,
         categories: List[str],
+        excluded_categories: Optional[List[str]] = None,
         mapper: Optional[Callable[[pd.DataFrame], pd.Series[str]]] = None,
         is_vectorized: bool = False,
         requires_columns: List[str] = [],
@@ -86,6 +87,9 @@ class ResultsInterface:
             Name of the of the column created by the stratification.
         categories
             List of string values that the mapper is allowed to output.
+        excluded_categories
+            List of mapped string values to be excluded from results processing.
+            If `None` (the default), will use exclusions as defined in th model spec.
         mapper
             A callable that emits values in `categories` given inputs from columns
             and values in the `requires_columns` and `requires_values`, respectively.
@@ -107,6 +111,7 @@ class ResultsInterface:
         self._manager.register_stratification(
             name,
             categories,
+            excluded_categories,
             mapper,
             is_vectorized,
             requires_columns,
@@ -145,6 +150,7 @@ class ResultsInterface:
         ------
         None
         """
+        # TODO: implement excluded_categories like in `register_stratification`
         self._manager.register_binned_stratification(
             target, target_type, binned_column, bin_edges, labels, **cut_kwargs
         )

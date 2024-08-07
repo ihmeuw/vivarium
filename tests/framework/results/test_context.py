@@ -3,6 +3,7 @@ import math
 import re
 from datetime import timedelta
 
+import numpy as np
 import pandas as pd
 import pytest
 from pandas.core.groupby import DataFrameGroupBy
@@ -42,12 +43,20 @@ def mocked_event(mocker) -> Event:
     ],
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
-def test_add_stratification(name, sources, categories, mapper, is_vectorized):
+def test_add_stratification(name, sources, categories, mapper, is_vectorized, mocker):
     ctx = ResultsContext()
+    mocker.patch.object(ctx, "excluded_categories", {})
     assert not verify_stratification_added(
         ctx.stratifications, name, sources, categories, mapper, is_vectorized
     )
-    ctx.add_stratification(name, sources, categories, mapper, is_vectorized)
+    ctx.add_stratification(
+        name=name,
+        sources=sources,
+        categories=categories,
+        excluded_categories=None,
+        mapper=mapper,
+        is_vectorized=is_vectorized,
+    )
     assert verify_stratification_added(
         ctx.stratifications, name, sources, categories, mapper, is_vectorized
     )
@@ -87,15 +96,36 @@ def test_add_stratification_raises(
 ):
     ctx = ResultsContext()
     with pytest.raises(expected_exception):
-        raise ctx.add_stratification(name, sources, categories, mapper, is_vectorized)
+        raise ctx.add_stratification(
+            name=name,
+            sources=sources,
+            categories=categories,
+            excluded_categories=None,
+            mapper=mapper,
+            is_vectorized=is_vectorized,
+        )
 
 
 def test_add_stratifcation_duplicate_name_raises():
     ctx = ResultsContext()
-    ctx.add_stratification(NAME, SOURCES, CATEGORIES, sorting_hat_vector, True)
+    ctx.add_stratification(
+        name=NAME,
+        sources=SOURCES,
+        categories=CATEGORIES,
+        excluded_categories=None,
+        mapper=sorting_hat_vector,
+        is_vectorized=True,
+    )
     with pytest.raises(ValueError, match=f"Stratification name '{NAME}' is already used: "):
         # register a different stratification but w/ the same name
-        ctx.add_stratification(NAME, [], [], None, False)
+        ctx.add_stratification(
+            name=NAME,
+            sources=[],
+            categories=[],
+            excluded_categories=None,
+            mapper=None,
+            is_vectorized=False,
+        )
 
 
 @pytest.mark.parametrize(
@@ -114,7 +144,12 @@ def test_add_stratification_duplicate_category_raises(duplicates):
         ),
     ):
         ctx.add_stratification(
-            NAME, SOURCES, CATEGORIES + duplicates, sorting_hat_vector, True
+            name=NAME,
+            sources=SOURCES,
+            categories=CATEGORIES + duplicates,
+            excluded_categories=None,
+            mapper=sorting_hat_vector,
+            is_vectorized=True,
         )
 
 
@@ -128,7 +163,14 @@ def test_add_stratification_bad_exception_category_raises(mocker):
             f"{CATEGORIES} for stratification '{NAME}'."
         ),
     ):
-        ctx.add_stratification(NAME, SOURCES, CATEGORIES, sorting_hat_vector, True)
+        ctx.add_stratification(
+            name=NAME,
+            sources=SOURCES,
+            categories=CATEGORIES,
+            excluded_categories=None,
+            mapper=sorting_hat_vector,
+            is_vectorized=True,
+        )
 
 
 @pytest.mark.parametrize(
@@ -238,9 +280,23 @@ def test_adding_observation_gather_results(
 
     # Set up stratifications
     if "house" in stratifications:
-        ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
+        ctx.add_stratification(
+            name="house",
+            sources=["house"],
+            categories=CATEGORIES,
+            excluded_categories=None,
+            mapper=None,
+            is_vectorized=True,
+        )
     if "familiar" in stratifications:
-        ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
+        ctx.add_stratification(
+            name="familiar",
+            sources=["familiar"],
+            categories=FAMILIARS,
+            excluded_categories=None,
+            mapper=None,
+            is_vectorized=True,
+        )
     ctx.register_observation(
         observation_type=AddingObservation,
         name="foo",
@@ -368,9 +424,23 @@ def test_gather_results_partial_stratifications_in_results(
 
     # Set up stratifications
     if "house" in stratifications:
-        ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
+        ctx.add_stratification(
+            name="house",
+            sources=["house"],
+            categories=CATEGORIES,
+            excluded_categories=None,
+            mapper=None,
+            is_vectorized=True,
+        )
     if "familiar" in stratifications:
-        ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
+        ctx.add_stratification(
+            name="familiar",
+            sources=["familiar"],
+            categories=FAMILIARS,
+            excluded_categories=None,
+            mapper=None,
+            is_vectorized=True,
+        )
 
     ctx.register_observation(
         observation_type=AddingObservation,
@@ -461,8 +531,22 @@ def test_bad_aggregator_stratification(mocked_event):
     lifecycle_phase = "collect_metrics"
 
     # Set up stratifications
-    ctx.add_stratification("house", ["house"], CATEGORIES, None, True)
-    ctx.add_stratification("familiar", ["familiar"], FAMILIARS, None, True)
+    ctx.add_stratification(
+        name="house",
+        sources=["house"],
+        categories=CATEGORIES,
+        excluded_categories=None,
+        mapper=None,
+        is_vectorized=True,
+    )
+    ctx.add_stratification(
+        name="familiar",
+        sources=["familiar"],
+        categories=FAMILIARS,
+        excluded_categories=None,
+        mapper=None,
+        is_vectorized=True,
+    )
     ctx.register_observation(
         observation_type=AddingObservation,
         name="this_shouldnt_work",
@@ -482,25 +566,44 @@ def test_bad_aggregator_stratification(mocked_event):
 
 
 @pytest.mark.parametrize(
-    "pop_filter",
+    "pop_filter, stratifications",
     [
-        'familiar=="spaghetti_yeti"',
-        'familiar=="cat"',
-        "",
+        ('familiar=="cat"', tuple()),
+        ('familiar=="spaghetti_yeti"', tuple()),
+        ("", ("new_col1",)),
+        ("", ("new_col1", "new_col2")),
+        ('familiar=="cat"', ("new_col1",)),
+        ("", tuple()),
+    ],
+    ids=[
+        "pop_filter",
+        "pop_filter_empties_dataframe",
+        "single_excluded_stratification",
+        "two_excluded_stratifications",
+        "pop_filter_and_excluded_stratification",
+        "no_pop_filter_or_excluded_stratifications",
     ],
 )
-def test__filter_population(pop_filter):
+def test__filter_population(pop_filter, stratifications):
+    population = BASE_POPULATION.copy()
+    if stratifications:
+        # Make some of the stratifications missing to mimic mapping to excluded categories
+        population["new_col1"] = "new_value1"
+        population.loc[population["tracked"] == True, "new_col1"] = np.nan
+        if len(stratifications) == 2:
+            population["new_col2"] = "new_value2"
+            population.loc[population["new_col1"].notna(), "new_col2"] = np.nan
+
     filtered_pop = ResultsContext()._filter_population(
-        population=BASE_POPULATION, pop_filter=pop_filter
+        population=population, pop_filter=pop_filter, stratifications=stratifications
     )
+    expected = population
     if pop_filter:
         familiar = pop_filter.split("==")[1].strip('"')
-        assert filtered_pop.equals(BASE_POPULATION[BASE_POPULATION["familiar"] == familiar])
-        if not familiar in filtered_pop["familiar"].values:
-            assert filtered_pop.empty
-    else:
-        # An empty pop filter should return the entire population
-        assert filtered_pop.equals(BASE_POPULATION)
+        expected = expected[expected["familiar"] == familiar]
+    for stratification in stratifications:
+        expected = expected[expected[stratification].notna()]
+    assert filtered_pop.equals(expected)
 
 
 @pytest.mark.parametrize(
