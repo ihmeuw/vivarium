@@ -1,0 +1,46 @@
+[flake8]
+# Use the following flake8 plugins:
+# ANN   : flake8-annotations
+# B,B9  : flake8-bugbear
+# BLK   : flake8-black
+# C     : mccabe code complexity
+# D     : flake8-docstrings
+# DAR   : darglint. Not currently in use because it was too slow.
+# F     : pyflakes
+# I     : flake8-isort
+# S     : flake8-bandit
+# W,E   : pycodestyle (pep8) warnings and errors
+select = ANN,B,B9,BLK,C,D,E,F,I,S,W
+
+# Ignore these flake8 errors across the board.
+extend-ignore =
+    # Missing type annotation for self
+    ANN101,
+    # Missing type annotation for cls
+    ANN102,
+    # Missing type annotation for special method
+    ANN204,
+    # Missing docstring in public module
+    D100,
+    # Missing docstring in public package
+    D104,
+    # Colons should not have whitespace before them (needed for black)
+    E203,
+    # Line break before binary operator (needed for black)
+    W503,
+
+# Only use strict docstring linting in the api/ or cli/ directory. Unfortunately it's not
+# possible to enable only those directories, so instead we disable strict docstring linting
+# everywhere else.
+# Also allow unused imports in __init__ files.
+per-file-ignores =
+    tests/**:D105,D106,D107,D205,D207,D208,D212,D214,D215,D301,D4,S101,E266
+    src/vivarium/lib/**:D105,D106,D107,D205,D207,D208,D212,D214,D215,D301,D4
+    **/__init__.py:F401
+
+# Function complexity and line length
+max-complexity = 10
+max-line-length = 95
+
+# Docstrings
+docstring-convention = google
