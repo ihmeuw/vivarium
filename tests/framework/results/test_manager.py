@@ -13,12 +13,12 @@ from tests.framework.results.helpers import (
     BIN_LABELS,
     BIN_SILLY_BIN_EDGES,
     BIN_SOURCE,
-    CATEGORIES,
     FAMILIARS,
     HARRY_POTTER_CONFIG,
+    HOUSE_CATEGORIES,
     NAME,
+    NAME_COLUMNS,
     POWER_LEVEL_GROUP_LABELS,
-    SOURCES,
     STUDENT_HOUSES,
     CatBombObserver,
     ExamScoreObserver,
@@ -32,7 +32,7 @@ from tests.framework.results.helpers import (
     ValedictorianObserver,
     mock_get_value,
     sorting_hat_serial,
-    sorting_hat_vector,
+    sorting_hat_vectorized,
     verify_stratification_added,
 )
 from vivarium.framework.results import VALUE_COLUMN
@@ -94,15 +94,15 @@ def test__get_stratifications(
     [
         (
             NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_vector,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
+            sorting_hat_vectorized,
             True,
         ),
         (
             NAME,
-            SOURCES,
-            CATEGORIES,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
             sorting_hat_serial,
             False,
         ),
@@ -125,7 +125,6 @@ def test_register_stratification_no_pipelines(
         mapper=mapper,
         is_vectorized=is_vectorized,
         requires_columns=sources,
-        requires_values=[],
     )
     for item in sources:
         assert item in mgr._required_columns
@@ -144,15 +143,15 @@ def test_register_stratification_no_pipelines(
     [
         (
             NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_vector,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
+            sorting_hat_vectorized,
             True,
         ),
         (
             NAME,
-            SOURCES,
-            CATEGORIES,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
             sorting_hat_serial,
             False,
         ),
@@ -197,15 +196,15 @@ def test_register_stratification_with_pipelines(
     [
         (  # expected Stratification for vectorized
             NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_vector,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
+            sorting_hat_vectorized,
             True,
         ),
         (  # expected Stratification for non-vectorized
             NAME,
-            SOURCES,
-            CATEGORIES,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
             sorting_hat_serial,
             False,
         ),

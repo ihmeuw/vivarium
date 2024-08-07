@@ -6,9 +6,9 @@ import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
 
-from tests.framework.results.helpers import BASE_POPULATION
-from tests.framework.results.helpers import CATEGORIES as HOUSES
-from tests.framework.results.helpers import FAMILIARS, mock_get_value
+from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS
+from tests.framework.results.helpers import HOUSE_CATEGORIES as HOUSES
+from tests.framework.results.helpers import mock_get_value
 from vivarium.framework.results import ResultsInterface, ResultsManager
 
 
@@ -279,10 +279,13 @@ def test_register_adding_observation_when_options(when, mocker):
 
     # register stratifications
     results_interface.register_stratification(
-        "house", HOUSES, is_vectorized=True, requires_columns=["house"]
+        name="house", categories=HOUSES, is_vectorized=True, requires_columns=["house"]
     )
     results_interface.register_stratification(
-        "familiar", FAMILIARS, is_vectorized=True, requires_columns=["familiar"]
+        name="familiar",
+        categories=FAMILIARS,
+        is_vectorized=True,
+        requires_columns=["familiar"],
     )
 
     time_step__prepare_mock_aggregator = mocker.Mock(side_effect=lambda x: 1.0)
