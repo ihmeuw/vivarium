@@ -10,6 +10,7 @@ relevant to a particular simulation. This module provides a class to wrap that
 archive file for convenient access and inspection.
 
 """
+
 import re
 import warnings
 from collections import defaultdict

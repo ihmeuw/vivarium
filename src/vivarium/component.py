@@ -6,6 +6,7 @@ Component
 A base Component class to be used to create components for use in ``vivarium``
 simulations.
 """
+
 import re
 from abc import ABC
 from inspect import signature

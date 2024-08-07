@@ -7,6 +7,7 @@ This module contains the :class:`ArtifactManager`, a ``vivarium`` plugin
 for handling complex data bound up in a data artifact.
 
 """
+
 import re
 from pathlib import Path
 from typing import Any, Sequence, Union

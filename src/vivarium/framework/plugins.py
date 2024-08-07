@@ -8,6 +8,7 @@ The Plugin Management System
    in the next PR. -J.C. 05/07/19
 
 """
+
 from vivarium.config_tree import ConfigTree
 from vivarium.exceptions import VivariumError
 

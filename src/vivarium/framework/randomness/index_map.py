@@ -9,6 +9,7 @@ a set of static identifying characteristics about a simulant and hash them to a 
 positional index within a stream of seeded random numbers.
 
 """
+
 import datetime
 from typing import List, Tuple, Union
 

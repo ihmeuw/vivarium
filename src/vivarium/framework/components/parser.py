@@ -20,6 +20,7 @@ There are three steps to this process.
 3. Importing and instantiating the actual components
 
 """
+
 from typing import Dict, List, Tuple, Union
 
 from vivarium.config_tree import ConfigTree

@@ -10,6 +10,7 @@ For more information about time in the simulation, see the associated
 :ref:`concept note <time_concept>`.
 
 """
+
 from datetime import datetime, timedelta
 from functools import partial
 from numbers import Number

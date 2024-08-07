@@ -6,6 +6,7 @@ Logging Utilities
 This module contains utilities for configuring logging.
 
 """
+
 import logging
 import sys
 from pathlib import Path

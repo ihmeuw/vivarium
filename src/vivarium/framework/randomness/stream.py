@@ -21,6 +21,7 @@ RESIDUAL_CHOICE : object
     Currently this object is only used in the `choice` function of this
     module.
 """
+
 import hashlib
 from typing import Any, Callable, List, Tuple, Union
 

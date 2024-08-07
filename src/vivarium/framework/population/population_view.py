@@ -11,6 +11,7 @@ to the underlying simulation :term:`State Table`. It has two primary responsibil
     2. To allow the user to update the simulation state in a controlled way.
 
 """
+
 from typing import TYPE_CHECKING, List, Tuple, Union
 
 import pandas as pd

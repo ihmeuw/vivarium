@@ -6,6 +6,7 @@ Vivarium Testing Utilities
 Utility functions and classes to make testing ``vivarium`` components easier.
 
 """
+
 from pathlib import Path
 from typing import List
 
