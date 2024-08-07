@@ -6,16 +6,17 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 import pytest
+from layered_config_tree import LayeredConfigTree
 from pandas.core.groupby import DataFrameGroupBy
 
 from tests.framework.results.helpers import (
     BASE_POPULATION,
-    CATEGORIES,
     FAMILIARS,
+    HOUSE_CATEGORIES,
     NAME,
-    SOURCES,
+    NAME_COLUMNS,
     sorting_hat_serial,
-    sorting_hat_vector,
+    sorting_hat_vectorized,
     verify_stratification_added,
 )
 from vivarium.framework.event import Event
@@ -39,139 +40,86 @@ def mocked_event(mocker) -> Event:
 
 
 @pytest.mark.parametrize(
-    "name, sources, categories, mapper, is_vectorized",
+    "mapper, is_vectorized",
     [
-        (NAME, SOURCES, CATEGORIES, sorting_hat_vector, True),
-        (NAME, SOURCES, CATEGORIES, sorting_hat_serial, False),
+        (sorting_hat_vectorized, True),
+        (sorting_hat_serial, False),
     ],
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
-def test_add_stratification(name, sources, categories, mapper, is_vectorized, mocker):
+def test_add_stratification(mapper, is_vectorized, mocker):
     ctx = ResultsContext()
     mocker.patch.object(ctx, "excluded_categories", {})
     assert not verify_stratification_added(
-        ctx.stratifications, name, sources, categories, mapper, is_vectorized
+        ctx.stratifications, NAME, NAME_COLUMNS, HOUSE_CATEGORIES, mapper, is_vectorized
     )
     ctx.add_stratification(
-        name=name,
-        sources=sources,
-        categories=categories,
+        name=NAME,
+        sources=NAME_COLUMNS,
+        categories=HOUSE_CATEGORIES,
         excluded_categories=None,
         mapper=mapper,
         is_vectorized=is_vectorized,
     )
     assert verify_stratification_added(
-        ctx.stratifications, name, sources, categories, mapper, is_vectorized
+        ctx.stratifications, NAME, NAME_COLUMNS, HOUSE_CATEGORIES, mapper, is_vectorized
     )
 
 
 @pytest.mark.parametrize(
-    "name, sources, categories, mapper, is_vectorized, expected_exception",
+    "name, categories, excluded_categories, msg_match",
     [
-        (  # sources not in population columns
-            NAME,
-            ["middle_initial"],
-            CATEGORIES,
-            sorting_hat_vector,
-            True,
-            TypeError,
+        (
+            "duplicate_name",
+            HOUSE_CATEGORIES,
+            [],
+            "Stratification name 'duplicate_name' is already used: ",
         ),
-        (  # is_vectorized=True with non-vectorized mapper
+        (
             NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_serial,
-            True,
-            Exception,
+            HOUSE_CATEGORIES + ["slytherin"],
+            [],
+            f"Found duplicate categories in stratification '{NAME}': ['slytherin']",
         ),
-        (  # is_vectorized=False with vectorized mapper
+        (
             NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_vector,
-            False,
-            Exception,
+            HOUSE_CATEGORIES + ["gryffindor", "slytherin"],
+            [],
+            f"Found duplicate categories in stratification '{NAME}': ['gryffindor', 'slytherin']",
+        ),
+        (
+            NAME,
+            HOUSE_CATEGORIES,
+            ["gryfflepuff"],
+            "Excluded categories {'gryfflepuff'} not found in categories",
         ),
     ],
+    ids=[
+        "duplicate_name",
+        "duplicate_category",
+        "duplicate_categories",
+        "unknown_excluded_category",
+    ],
 )
-def test_add_stratification_raises(
-    name, sources, categories, mapper, is_vectorized, expected_exception
-):
+def test_add_stratification_raises(name, categories, excluded_categories, msg_match, mocker):
     ctx = ResultsContext()
-    with pytest.raises(expected_exception):
-        raise ctx.add_stratification(
-            name=name,
-            sources=sources,
-            categories=categories,
-            excluded_categories=None,
-            mapper=mapper,
-            is_vectorized=is_vectorized,
-        )
-
-
-def test_add_stratifcation_duplicate_name_raises():
-    ctx = ResultsContext()
+    mocker.patch.object(ctx, "excluded_categories", {name: excluded_categories})
+    # Register a stratification to test against duplicate stratifications
     ctx.add_stratification(
-        name=NAME,
-        sources=SOURCES,
-        categories=CATEGORIES,
+        name="duplicate_name",
+        sources=["foo"],
+        categories=["bar"],
         excluded_categories=None,
-        mapper=sorting_hat_vector,
-        is_vectorized=True,
+        mapper=sorting_hat_serial,
+        is_vectorized=False,
     )
-    with pytest.raises(ValueError, match=f"Stratification name '{NAME}' is already used: "):
-        # register a different stratification but w/ the same name
+    with pytest.raises(ValueError, match=re.escape(msg_match)):
         ctx.add_stratification(
-            name=NAME,
-            sources=[],
-            categories=[],
-            excluded_categories=None,
-            mapper=None,
-            is_vectorized=False,
-        )
-
-
-@pytest.mark.parametrize(
-    "duplicates",
-    [
-        ["slytherin"],
-        ["gryffindor", "slytherin"],
-    ],
-)
-def test_add_stratification_duplicate_category_raises(duplicates):
-    ctx = ResultsContext()
-    with pytest.raises(
-        ValueError,
-        match=re.escape(
-            f"Found duplicate categories in stratification '{NAME}': {duplicates}"
-        ),
-    ):
-        ctx.add_stratification(
-            name=NAME,
-            sources=SOURCES,
-            categories=CATEGORIES + duplicates,
-            excluded_categories=None,
-            mapper=sorting_hat_vector,
-            is_vectorized=True,
-        )
-
-
-def test_add_stratification_bad_exception_category_raises(mocker):
-    ctx = ResultsContext()
-    mocker.patch.object(ctx, "excluded_categories", {"hogwarts_house": ["gryfflepuff"]})
-    with pytest.raises(
-        ValueError,
-        match=re.escape(
-            "Excluded categories {'gryfflepuff'} not found in categories "
-            f"{CATEGORIES} for stratification '{NAME}'."
-        ),
-    ):
-        ctx.add_stratification(
-            name=NAME,
-            sources=SOURCES,
-            categories=CATEGORIES,
-            excluded_categories=None,
-            mapper=sorting_hat_vector,
+            name=name,
+            sources=NAME_COLUMNS,
+            categories=categories,
+            excluded_categories=excluded_categories,
+            mapper=sorting_hat_vectorized,
             is_vectorized=True,
         )
 
@@ -286,7 +234,7 @@ def test_adding_observation_gather_results(
         ctx.add_stratification(
             name="house",
             sources=["house"],
-            categories=CATEGORIES,
+            categories=HOUSE_CATEGORIES,
             excluded_categories=None,
             mapper=None,
             is_vectorized=True,
@@ -430,7 +378,7 @@ def test_gather_results_partial_stratifications_in_results(
         ctx.add_stratification(
             name="house",
             sources=["house"],
-            categories=CATEGORIES,
+            categories=HOUSE_CATEGORIES,
             excluded_categories=None,
             mapper=None,
             is_vectorized=True,
@@ -537,7 +485,7 @@ def test_bad_aggregator_stratification(mocked_event):
     ctx.add_stratification(
         name="house",
         sources=["house"],
-        categories=CATEGORIES,
+        categories=HOUSE_CATEGORIES,
         excluded_categories=None,
         mapper=None,
         is_vectorized=True,
@@ -613,7 +561,7 @@ def test__filter_population(pop_filter, stratifications):
     "stratifications, values",
     [
         (("familiar",), [FAMILIARS]),
-        (("familiar", "house"), [FAMILIARS, CATEGORIES]),
+        (("familiar", "house"), [FAMILIARS, HOUSE_CATEGORIES]),
         ((), "foo"),
     ],
 )

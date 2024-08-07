@@ -1,29 +1,28 @@
+import re
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from tests.framework.results.helpers import (
-    CATEGORIES,
+    HOUSE_CATEGORIES,
     NAME,
-    SOURCES,
+    NAME_COLUMNS,
     STUDENT_HOUSES,
     STUDENT_TABLE,
     sorting_hat_bad_mapping,
     sorting_hat_serial,
-    sorting_hat_vector,
+    sorting_hat_vectorized,
 )
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.results.stratification import Stratification
 
 
-#########
-# Tests #
-#########
 @pytest.mark.parametrize(
     "mapper, is_vectorized",
     [
         (  # expected output for vectorized
-            sorting_hat_vector,
+            sorting_hat_vectorized,
             True,
         ),
         (  # expected output for non-vectorized
@@ -34,83 +33,113 @@ from vivarium.framework.results.stratification import Stratification
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
 def test_stratification(mapper, is_vectorized):
-    my_stratification = Stratification(NAME, SOURCES, CATEGORIES, [], mapper, is_vectorized)
+    my_stratification = Stratification(
+        name=NAME,
+        sources=NAME_COLUMNS,
+        categories=HOUSE_CATEGORIES,
+        excluded_categories=[],
+        mapper=mapper,
+        is_vectorized=is_vectorized,
+    )
     output = my_stratification(STUDENT_TABLE)[NAME]
     assert output.eq(STUDENT_HOUSES).all()
 
 
 @pytest.mark.parametrize(
-    "sources, categories",
-    [
-        (  # empty sources list with no defined mapper (default mapper)
-            [],
-            CATEGORIES,
-        ),
-        (  # sources list with more than one column with no defined mapper (default mapper)
-            SOURCES,
-            CATEGORIES,
-        ),
-        (  # empty sources list with no defined mapper (default mapper)
-            [],
-            CATEGORIES,
-        ),
-        (  # empty categories list
-            SOURCES,
-            [],
-        ),
-    ],
-)
-def test_stratification_init_raises(sources, categories):
-    with pytest.raises(ValueError):
-        assert Stratification(NAME, sources, categories, [], None, True)
-
-
-@pytest.mark.parametrize(
-    "sources, mapper, is_vectorized, expected_exception",
+    "sources, categories, mapper, msg_match",
     [
         (
-            SOURCES,
-            sorting_hat_bad_mapping,
-            False,
-            ValueError,
+            [],
+            HOUSE_CATEGORIES,
+            None,
+            f"No mapper provided for stratification {NAME} with 0 stratification sources.",
         ),
         (
-            ["middle_initial"],
-            sorting_hat_vector,
-            True,
-            KeyError,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
+            None,
+            f"No mapper provided for stratification {NAME} with {len(NAME_COLUMNS)} stratification sources.",
         ),
         (
-            SOURCES,
-            sorting_hat_serial,
-            True,
-            Exception,
+            [],
+            HOUSE_CATEGORIES,
+            sorting_hat_vectorized,
+            "The sources argument must be non-empty.",
         ),
         (
-            SOURCES,
-            sorting_hat_vector,
-            False,
-            Exception,
-        ),
-        (
-            SOURCES,
-            lambda df: pd.Series(np.nan, index=df.index),
-            True,
-            ValueError,
+            NAME_COLUMNS,
+            [],
+            FileNotFoundError,
+            "The categories argument must be non-empty.",
         ),
     ],
     ids=[
-        "category_not_in_categories",
+        "no_mapper_empty_sources",
+        "no_mapper_multiple_sources",
+        "with_mapper_empty_sources",
+        "empty_categories",
+    ],
+)
+def test_stratification_init_raises(sources, categories, mapper, msg_match):
+    with pytest.raises(ValueError, match=re.escape(msg_match)):
+        Stratification(NAME, sources, categories, [], mapper, True)
+
+
+@pytest.mark.parametrize(
+    "sources, mapper, is_vectorized, expected_exception, error_match",
+    [
+        (
+            NAME_COLUMNS,
+            sorting_hat_bad_mapping,
+            False,
+            ValueError,
+            "Invalid values mapped to hogwarts_house: {'pancakes'}",
+        ),
+        (
+            ["middle_initial"],
+            sorting_hat_vectorized,
+            True,
+            KeyError,
+            "None of [Index(['middle_initial'], dtype='object')] are in the [columns]",
+        ),
+        (
+            NAME_COLUMNS,
+            sorting_hat_serial,
+            True,
+            Exception,  # Can be any exception
+            "",  # Can be any error message
+        ),
+        (
+            NAME_COLUMNS,
+            sorting_hat_vectorized,
+            False,
+            Exception,  # Can be any exception
+            "",  # Can be any error message
+        ),
+        (
+            NAME_COLUMNS,
+            lambda df: pd.Series(np.nan, index=df.index),
+            True,
+            ValueError,
+            "Null values mapped to hogwarts_house.",
+        ),
+    ],
+    ids=[
+        "unknown_category",
         "source_not_in_population_columns",
         "vectorized_with_serial_mapper",
-        "not_vectorized_with_serial_mapper",
+        "not_vectorized_with_vectorized_mapper",
         "mapper_returns_null",
     ],
 )
-def test_stratification_call_raises(sources, mapper, is_vectorized, expected_exception):
-    my_stratification = Stratification(NAME, sources, CATEGORIES, [], mapper, is_vectorized)
-    with pytest.raises(expected_exception):
-        raise my_stratification(STUDENT_TABLE)
+def test_stratification_call_raises(
+    sources, mapper, is_vectorized, expected_exception, error_match
+):
+    my_stratification = Stratification(
+        NAME, sources, HOUSE_CATEGORIES, [], mapper, is_vectorized
+    )
+    with pytest.raises(expected_exception, match=re.escape(error_match)):
+        my_stratification(STUDENT_TABLE)
 
 
 @pytest.mark.parametrize("default_stratifications", [["age", "sex"], ["age"], []])

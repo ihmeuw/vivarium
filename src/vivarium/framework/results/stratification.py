@@ -62,6 +62,11 @@ class Stratification:
             raise ValueError("The sources argument must be non-empty.")
 
     def __call__(self, population: pd.DataFrame) -> pd.DataFrame:
+        """Apply the mapper to the population 'sources' columns and add the result
+        to the population. Any excluded categories (which have already been removed
+        from self.categories) will be converted to NaNs in the new column
+        and dropped later at the observation level.
+        """
         if self.is_vectorized:
             mapped_column = self.mapper(population[self.sources])
         else:
@@ -73,7 +78,7 @@ class Stratification:
             self.categories + self.excluded_categories
         )
         if unknown_categories:
-            raise ValueError(f"Invalid values '{unknown_categories}' mapped to {self.name}.")
+            raise ValueError(f"Invalid values mapped to {self.name}: {unknown_categories}")
 
         # Convert the dtype to the allowed categories. Note that this will
         # result in Nans for any values in excluded_categories.

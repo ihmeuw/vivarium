@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from tests.framework.results.helpers import BASE_POPULATION, CATEGORIES, FAMILIARS
+from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS, HOUSE_CATEGORIES
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import (
@@ -74,7 +74,7 @@ def test_stratified_observation__aggregate(
     if aggregator == len:
         if stratifications:
             stratification_idx = (
-                set(itertools.product(*(FAMILIARS, CATEGORIES)))
+                set(itertools.product(*(FAMILIARS, HOUSE_CATEGORIES)))
                 if "house" in stratifications
                 else set(FAMILIARS)
             )
@@ -88,7 +88,7 @@ def test_stratified_observation__aggregate(
         expected = BASE_POPULATION[["power_level", "tracked"]].sum() / groups.ngroups
         if stratifications:
             stratification_idx = (
-                set(itertools.product(*(FAMILIARS, CATEGORIES)))
+                set(itertools.product(*(FAMILIARS, HOUSE_CATEGORIES)))
                 if "house" in stratifications
                 else set(FAMILIARS)
             )
