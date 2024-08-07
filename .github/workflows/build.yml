@@ -57,8 +57,8 @@ jobs:
       - name: Lint
         run: |
           pip install black==22.3.0 isort
-          black . --check --diff
           isort . --check --verbose --only-modified --diff
+          black . --check --diff
       - name: Test
         run: |
           if "${{ github.event_name == 'schedule' }}"; then

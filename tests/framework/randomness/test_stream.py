@@ -5,16 +5,9 @@ import pandas as pd
 import pytest
 from scipy import stats
 
-from vivarium.framework.randomness import (
-    RESIDUAL_CHOICE,
-    RandomnessError,
-    RandomnessStream,
-)
+from vivarium.framework.randomness import RESIDUAL_CHOICE, RandomnessError, RandomnessStream
 from vivarium.framework.randomness.index_map import IndexMap
-from vivarium.framework.randomness.stream import (
-    _normalize_shape,
-    _set_residual_probability,
-)
+from vivarium.framework.randomness.stream import _normalize_shape, _set_residual_probability
 
 
 @pytest.fixture
