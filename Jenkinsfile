@@ -36,7 +36,7 @@ pipeline {
     )
     string(
       name: "SLACK_TO",
-      defaultValue: "simsci-ci-status-test",
+      defaultValue: "simsci-ci-status",
       description: "The Slack channel to send messages to."
     )
     booleanParam(
