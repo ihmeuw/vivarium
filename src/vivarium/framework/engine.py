@@ -275,6 +275,7 @@ class SimulationContext:
             while self._clock.time < self._clock.stop_time:
                 self.step()
                 if time() >= time_to_save:
+                    self._logger.debug(f"Writing Simulation Backup to {backup_path}")
                     self.write_backup(backup_path)
                     time_to_save = time() + backup_freq
         else:
