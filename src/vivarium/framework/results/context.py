@@ -7,6 +7,7 @@ import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
 
 from vivarium.framework.engine import Builder
+from vivarium.framework.event import Event
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import BaseObservation
 from vivarium.framework.results.stratification import Stratification
@@ -92,6 +93,13 @@ class ResultsContext:
             raise ValueError(
                 f"Stratification name '{name}' is already used: {str(already_used[0])}."
             )
+        unique_categories = set(categories)
+        if len(categories) != len(unique_categories):
+            for category in unique_categories:
+                categories.remove(category)
+            raise ValueError(
+                f"Found duplicate categories in stratification '{name}': {categories}."
+            )
         stratification = Stratification(name, sources, categories, mapper, is_vectorized)
         self.stratifications.append(stratification)
 
@@ -130,9 +138,9 @@ class ResultsContext:
         already_used = None
         if self.observations:
             # NOTE: self.observations is a list where each item is a dictionary
-            # of the form {event_name: {(pop_filter, stratifications): List[Observation]}}.
+            # of the form {lifecycle_phase: {(pop_filter, stratifications): List[Observation]}}.
             # We use a triple-nested for loop to iterate over only the list of Observations
-            # (i.e. we do not need the event_name, pop_filter, or stratifications).
+            # (i.e. we do not need the lifecycle_phase, pop_filter, or stratifications).
             for observation_details in self.observations.values():
                 for observations in observation_details.values():
                     for observation in observations:
@@ -148,7 +156,7 @@ class ResultsContext:
         ].append(observation)
 
     def gather_results(
-        self, population: pd.DataFrame, event_name: str
+        self, population: pd.DataFrame, lifecycle_phase: str, event: Event
     ) -> Generator[
         Tuple[
             Optional[pd.DataFrame],
@@ -164,7 +172,7 @@ class ResultsContext:
             population = stratification(population)
 
         for (pop_filter, stratifications), observations in self.observations[
-            event_name
+            lifecycle_phase
         ].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
@@ -173,14 +181,13 @@ class ResultsContext:
                 yield None, None, None
             else:
                 if stratifications is None:
-                    for observation in observations:
-                        df = observation.results_gatherer(filtered_pop)
-                        yield df, observation.name, observation.results_updater
+                    pop = filtered_pop
                 else:
-                    pop_groups = self._get_groups(stratifications, filtered_pop)
-                    for observation in observations:
-                        aggregates = observation.results_gatherer(pop_groups, stratifications)
-                        yield aggregates, observation.name, observation.results_updater
+                    pop = self._get_groups(stratifications, filtered_pop)
+                for observation in observations:
+                    yield observation.observe(
+                        event, pop, stratifications
+                    ), observation.name, observation.results_updater
 
     @staticmethod
     def _filter_population(population: pd.DataFrame, pop_filter: str) -> pd.DataFrame:
