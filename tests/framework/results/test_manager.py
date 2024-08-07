@@ -118,7 +118,15 @@ def test_register_stratification_no_pipelines(
         {"default": [], "excluded_categories": {}}
     )
     mgr.setup(builder)
-    mgr.register_stratification(name, categories, mapper, is_vectorized, sources, [])
+    mgr.register_stratification(
+        name=name,
+        categories=categories,
+        excluded_categories=None,
+        mapper=mapper,
+        is_vectorized=is_vectorized,
+        requires_columns=sources,
+        requires_values=[],
+    )
     for item in sources:
         assert item in mgr._required_columns
     assert verify_stratification_added(
@@ -163,7 +171,15 @@ def test_register_stratification_with_pipelines(
     mocker.patch.object(builder, "value.get_value")
     builder.value.get_value = MethodType(mock_get_value, builder)
     mgr.setup(builder)
-    mgr.register_stratification(name, categories, mapper, is_vectorized, [], sources)
+    mgr.register_stratification(
+        name=name,
+        categories=categories,
+        excluded_categories=None,
+        mapper=mapper,
+        is_vectorized=is_vectorized,
+        requires_columns=[],
+        requires_values=sources,
+    )
     for item in sources:
         assert item in mgr._required_values
     assert verify_stratification_added(
@@ -210,7 +226,13 @@ def test_register_stratification_with_column_and_pipelines(
     mgr.setup(builder)
     mocked_column_name = "silly_column"
     mgr.register_stratification(
-        name, categories, mapper, is_vectorized, [mocked_column_name], sources
+        name=name,
+        categories=categories,
+        excluded_categories=None,
+        mapper=mapper,
+        is_vectorized=is_vectorized,
+        requires_columns=[mocked_column_name],
+        requires_values=sources,
     )
     assert mocked_column_name in mgr._required_columns
     for item in sources:

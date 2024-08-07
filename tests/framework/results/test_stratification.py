@@ -1,3 +1,5 @@
+import numpy as np
+import pandas as pd
 import pytest
 
 from tests.framework.results.helpers import (
@@ -90,12 +92,19 @@ def test_stratification_init_raises(sources, categories):
             False,
             Exception,
         ),
+        (
+            SOURCES,
+            lambda df: pd.Series(np.nan, index=df.index),
+            True,
+            ValueError,
+        ),
     ],
     ids=[
         "category_not_in_categories",
         "source_not_in_population_columns",
         "vectorized_with_serial_mapper",
         "not_vectorized_with_serial_mapper",
+        "mapper_returns_null",
     ],
 )
 def test_stratification_call_raises(sources, mapper, is_vectorized, expected_exception):

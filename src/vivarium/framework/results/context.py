@@ -43,6 +43,9 @@ class ResultsContext:
 
     def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
+        self.excluded_categories = (
+            builder.configuration.stratification.excluded_categories.to_dict()
+        )
 
     # noinspection PyAttributeOutsideInit
     def set_default_stratifications(self, default_grouping_columns: List[str]) -> None:
@@ -53,21 +56,12 @@ class ResultsContext:
             )
         self.default_stratifications = default_grouping_columns
 
-    def set_stratification_excluded_categories(
-        self, excluded_categories: dict[str, list[str]]
-    ) -> None:
-        if self.excluded_categories:
-            raise ResultsConfigurationError(
-                "Multiple calls are being made to set excluded stratification categories "
-                "for results production."
-            )
-        self.excluded_categories = excluded_categories
-
     def add_stratification(
         self,
         name: str,
         sources: List[str],
         categories: List[str],
+        excluded_categories: Optional[List[str]],
         mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]],
         is_vectorized: bool,
     ) -> None:
@@ -82,6 +76,9 @@ class ResultsContext:
             categorization.
         categories
             List of string values that the mapper is allowed to output.
+        excluded_categories
+            List of mapped string values to be excluded from results processing.
+            If `None` (the default), will use exclusions as defined in th model spec.
         mapper
             A callable that emits values in `categories` given inputs from columns
             and values in the `requires_columns` and `requires_values`, respectively.
@@ -112,28 +109,31 @@ class ResultsContext:
                 f"Found duplicate categories in stratification '{name}': {categories}."
             )
 
-        # Handle excluded categories
-        excluded_categories = self.excluded_categories.get(name, [])
-        unknown_exclusions = set(excluded_categories) - set(categories)
+        # Handle excluded categories. If excluded_categories are explicitly
+        # passed in, we use that instead of what is in the odel spec.
+        to_exclude = (
+            excluded_categories
+            if excluded_categories is not None
+            else self.excluded_categories.get(name, [])
+        )
+        unknown_exclusions = set(to_exclude) - set(categories)
         if len(unknown_exclusions) > 0:
             raise ValueError(
                 f"Excluded categories {unknown_exclusions} not found in categories "
                 f"{categories} for stratification '{name}'."
             )
-        if excluded_categories:
+        if to_exclude:
             self.logger.info(
-                f"'{name}' has category exclusion requests: {excluded_categories}\n"
+                f"'{name}' has category exclusion requests: {to_exclude}\n"
                 "Removing these from the allowable categories."
             )
-            categories = [
-                category for category in categories if category not in excluded_categories
-            ]
+            categories = [category for category in categories if category not in to_exclude]
 
         stratification = Stratification(
             name,
             sources,
             categories,
-            excluded_categories,
+            to_exclude,
             mapper,
             is_vectorized,
         )
@@ -202,17 +202,16 @@ class ResultsContext:
         None,
         None,
     ]:
-        # Optimization: We store all the producers by pop_filter and stratifications
-        # so that we only have to apply them once each time we compute results.
         for stratification in self.stratifications:
             population = stratification(population)
-
+        # Optimization: We store all the producers by pop_filter and stratifications
+        # so that we only have to apply them once each time we compute results.
         for (pop_filter, stratifications), observations in self.observations[
             lifecycle_phase
         ].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
-            filtered_pop = self._filter_population(population, pop_filter)
+            filtered_pop = self._filter_population(population, pop_filter, stratifications)
             if filtered_pop.empty:
                 yield None, None, None
             else:
@@ -226,8 +225,17 @@ class ResultsContext:
                     ), observation.name, observation.results_updater
 
     @staticmethod
-    def _filter_population(population: pd.DataFrame, pop_filter: str) -> pd.DataFrame:
-        return population.query(pop_filter) if pop_filter else population
+    def _filter_population(
+        population: pd.DataFrame, pop_filter: str, stratifications: tuple[str, ...]
+    ) -> pd.DataFrame:
+        """Filter the population based on the filter string as well as any
+        excluded stratification categories
+        """
+        pop = population.query(pop_filter) if pop_filter else population.copy()
+        # Drop all rows in the 'stratifications' columns that have NaN values
+        if stratifications:
+            pop = pop.dropna(subset=list(stratifications))
+        return pop
 
     @staticmethod
     def _get_groups(
