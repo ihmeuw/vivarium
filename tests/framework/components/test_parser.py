@@ -5,10 +5,7 @@ import yaml
 from layered_config_tree import LayeredConfigTree
 
 from tests.helpers import MockComponentA, MockComponentB
-from vivarium.framework.components.parser import (
-    ComponentConfigurationParser,
-    ParsingError,
-)
+from vivarium.framework.components.parser import ComponentConfigurationParser, ParsingError
 from vivarium.framework.configuration import build_simulation_configuration
 
 TEST_COMPONENTS_NESTED = """

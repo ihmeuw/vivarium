@@ -55,8 +55,11 @@ if __name__ == "__main__":
 
     test_requirements = [
         "pytest",
+        "pytest-cov",
         "pytest-mock",
     ]
+
+    lint_requirements = ["black==22.3.0", "isort"]
 
     doc_requirements = [
         "sphinx>=4.0",
@@ -105,7 +108,10 @@ if __name__ == "__main__":
             "docs": doc_requirements,
             "test": test_requirements,
             "interactive": interactive_requirements,
-            "dev": doc_requirements + test_requirements + interactive_requirements,
+            "dev": doc_requirements
+            + test_requirements
+            + lint_requirements
+            + interactive_requirements,
         },
         entry_points="""
                 [console_scripts]
