@@ -6,11 +6,7 @@ from typing import Union
 import pandas as pd
 import pytest
 
-from vivarium.framework.population import (
-    PopulationError,
-    PopulationManager,
-    PopulationView,
-)
+from vivarium.framework.population import PopulationError, PopulationManager, PopulationView
 
 ##########################
 # Mock data and fixtures #

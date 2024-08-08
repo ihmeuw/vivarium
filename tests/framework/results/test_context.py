@@ -20,10 +20,7 @@ from tests.framework.results.helpers import (
 from vivarium.framework.event import Event
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
-from vivarium.framework.results.observation import (
-    AddingObservation,
-    ConcatenatingObservation,
-)
+from vivarium.framework.results.observation import AddingObservation, ConcatenatingObservation
 
 
 def _aggregate_state_person_time(x: pd.DataFrame) -> float:
