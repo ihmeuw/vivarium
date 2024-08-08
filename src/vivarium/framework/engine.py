@@ -247,13 +247,13 @@ class SimulationContext:
         self._lifecycle.set_state("population_creation")
         pop_params = self.configuration.population
         # Fencepost the creation of the initial population.
-        self._clock.step_backward()
+        step_backward()
         population_size = pop_params.population_size
         self.simulant_creator(population_size, {"sim_state": "setup"})
         self._clock.step_forward(self.get_population().index)
 
     def step(self) -> None:
-        self._logger.debug(self._clock.time)
+        self._logger.debug()
         for event in self.time_step_events:
             self._logger.debug(f"Event: {event}")
             self._lifecycle.set_state(event)
@@ -272,14 +272,14 @@ class SimulationContext:
     ) -> None:
         if backup_freq:
             time_to_save = time() + backup_freq
-            while self._clock.time < self._clock.stop_time:
+            while self.current_time < self._clock.stop_time:
                 self.step()
                 if time() >= time_to_save:
                     self._logger.debug(f"Writing Simulation Backup to {backup_path}")
                     self.write_backup(backup_path)
                     time_to_save = time() + backup_freq
         else:
-            while self._clock.time < self._clock.stop_time:
+            while self.current_time < self._clock.stop_time:
                 self.step()
 
     def finalize(self) -> None:
