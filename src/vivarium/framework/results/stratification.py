@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import Callable, List, Optional, Union
 
 import pandas as pd
-from loguru import logger
 from pandas.api.types import CategoricalDtype
 
 
@@ -61,7 +60,7 @@ class Stratification:
         if not self.sources:
             raise ValueError("The sources argument must be non-empty.")
 
-    def __call__(self, population: pd.DataFrame) -> pd.DataFrame:
+    def __call__(self, population: pd.DataFrame) -> pd.Series[str]:
         """Apply the mapper to the population 'sources' columns and add the result
         to the population. Any excluded categories (which have already been removed
         from self.categories) will be converted to NaNs in the new column
@@ -91,8 +90,7 @@ class Stratification:
         mapped_column = mapped_column.astype(
             CategoricalDtype(categories=self.categories, ordered=True)
         )
-        population[self.name] = mapped_column
-        return population
+        return mapped_column
 
     @staticmethod
     def _default_mapper(pop: pd.DataFrame) -> pd.Series[str]:

@@ -535,16 +535,21 @@ def test__filter_population(pop_filter, stratifications):
     population = BASE_POPULATION.copy()
     if stratifications:
         # Make some of the stratifications missing to mimic mapping to excluded categories
-        population["new_col1"] = "new_value1"
-        population.loc[population["tracked"] == True, "new_col1"] = np.nan
+        population["new_col1_mapped_values"] = "new_value1"
+        population.loc[population["tracked"] == True, "new_col1_mapped_values"] = np.nan
         if len(stratifications) == 2:
-            population["new_col2"] = "new_value2"
-            population.loc[population["new_col1"].notna(), "new_col2"] = np.nan
+            population["new_col2_mapped_values"] = "new_value2"
+            population.loc[
+                population["new_col1_mapped_values"].notna(), "new_col2_mapped_values"
+            ] = np.nan
 
     filtered_pop = ResultsContext()._filter_population(
         population=population, pop_filter=pop_filter, stratifications=stratifications
     )
-    expected = population
+    expected = population.rename(
+        columns={"new_col1_mapped_values": "new_col1", "new_col2_mapped_values": "new_col2"}
+    )
+
     if pop_filter:
         familiar = pop_filter.split("==")[1].strip('"')
         expected = expected[expected["familiar"] == familiar]

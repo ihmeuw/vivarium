@@ -41,7 +41,7 @@ def test_stratification(mapper, is_vectorized):
         mapper=mapper,
         is_vectorized=is_vectorized,
     )
-    output = my_stratification(STUDENT_TABLE)[NAME]
+    output = my_stratification(STUDENT_TABLE)
     assert output.eq(STUDENT_HOUSES).all()
 
 
