@@ -26,6 +26,7 @@ class ResultsContext:
         self.default_stratifications: List[str] = []
         self.stratifications: List[Stratification] = []
         self.excluded_categories: dict[str, list[str]] = {}
+        self.stratification_col_suffix = "_mapped_values"
         # keys are event names: [
         #     "time_step__prepare",
         #     "time_step",
@@ -202,8 +203,14 @@ class ResultsContext:
         None,
         None,
     ]:
+        """Generate current results for all observations at this lifecycle phase and event."""
+
         for stratification in self.stratifications:
-            population = stratification(population)
+            # Add new columns to the dataframe of the stratified values
+            # FIXME: Find a way to prevent name collisions
+            population[f"{stratification.name}{self.stratification_col_suffix}"] = (
+                stratification(population)
+            )
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         for (pop_filter, stratifications), observations in self.observations[
@@ -224,22 +231,36 @@ class ResultsContext:
                         event, pop, stratifications
                     ), observation.name, observation.results_updater
 
-    @staticmethod
     def _filter_population(
-        population: pd.DataFrame, pop_filter: str, stratifications: tuple[str, ...]
+        self,
+        population: pd.DataFrame,
+        pop_filter: str,
+        stratifications: Optional[tuple[str, ...]],
     ) -> pd.DataFrame:
         """Filter the population based on the filter string as well as any
         excluded stratification categories
         """
         pop = population.query(pop_filter) if pop_filter else population.copy()
-        # Drop all rows in the 'stratifications' columns that have NaN values
         if stratifications:
-            pop = pop.dropna(subset=list(stratifications))
+            # Drop all rows in the mapped_stratification columns that have NaN values
+            pop = pop.dropna(
+                subset=[
+                    f"{stratification}{self.stratification_col_suffix}"
+                    for stratification in stratifications
+                ]
+            )
+            # And now move the mapped values to the stratification columns
+            for stratification in stratifications:
+                pop[stratification] = pop[f"{stratification}{self.stratification_col_suffix}"]
+                pop.drop(
+                    columns=[f"{stratification}{self.stratification_col_suffix}"],
+                    inplace=True,
+                )
+
         return pop
 
-    @staticmethod
     def _get_groups(
-        stratifications: Tuple[str, ...], filtered_pop: pd.DataFrame
+        self, stratifications: Tuple[str, ...], filtered_pop: pd.DataFrame
     ) -> DataFrameGroupBy:
         # NOTE: It's a bit hacky how we are handling the groupby object if there
         # are no stratifications. The alternative is to use the entire population
