@@ -6,7 +6,6 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 import pytest
-from layered_config_tree import LayeredConfigTree
 from pandas.core.groupby import DataFrameGroupBy
 
 from tests.framework.results.helpers import (
@@ -51,18 +50,18 @@ def test_add_stratification(mapper, is_vectorized, mocker):
     ctx = ResultsContext()
     mocker.patch.object(ctx, "excluded_categories", {})
     assert not verify_stratification_added(
-        ctx.stratifications, NAME, NAME_COLUMNS, HOUSE_CATEGORIES, mapper, is_vectorized
+        ctx.stratifications, NAME, NAME_COLUMNS, HOUSE_CATEGORIES, [], mapper, is_vectorized
     )
     ctx.add_stratification(
         name=NAME,
         sources=NAME_COLUMNS,
         categories=HOUSE_CATEGORIES,
-        excluded_categories=None,
+        excluded_categories=[],
         mapper=mapper,
         is_vectorized=is_vectorized,
     )
     assert verify_stratification_added(
-        ctx.stratifications, NAME, NAME_COLUMNS, HOUSE_CATEGORIES, mapper, is_vectorized
+        ctx.stratifications, NAME, NAME_COLUMNS, HOUSE_CATEGORIES, [], mapper, is_vectorized
     )
 
 
@@ -109,7 +108,7 @@ def test_add_stratification_raises(name, categories, excluded_categories, msg_ma
         name="duplicate_name",
         sources=["foo"],
         categories=["bar"],
-        excluded_categories=None,
+        excluded_categories=[],
         mapper=sorting_hat_serial,
         is_vectorized=False,
     )
@@ -235,7 +234,7 @@ def test_adding_observation_gather_results(
             name="house",
             sources=["house"],
             categories=HOUSE_CATEGORIES,
-            excluded_categories=None,
+            excluded_categories=[],
             mapper=None,
             is_vectorized=True,
         )
@@ -244,7 +243,7 @@ def test_adding_observation_gather_results(
             name="familiar",
             sources=["familiar"],
             categories=FAMILIARS,
-            excluded_categories=None,
+            excluded_categories=[],
             mapper=None,
             is_vectorized=True,
         )
@@ -379,7 +378,7 @@ def test_gather_results_partial_stratifications_in_results(
             name="house",
             sources=["house"],
             categories=HOUSE_CATEGORIES,
-            excluded_categories=None,
+            excluded_categories=[],
             mapper=None,
             is_vectorized=True,
         )
@@ -388,7 +387,7 @@ def test_gather_results_partial_stratifications_in_results(
             name="familiar",
             sources=["familiar"],
             categories=FAMILIARS,
-            excluded_categories=None,
+            excluded_categories=[],
             mapper=None,
             is_vectorized=True,
         )
@@ -486,7 +485,7 @@ def test_bad_aggregator_stratification(mocked_event):
         name="house",
         sources=["house"],
         categories=HOUSE_CATEGORIES,
-        excluded_categories=None,
+        excluded_categories=[],
         mapper=None,
         is_vectorized=True,
     )
@@ -494,7 +493,7 @@ def test_bad_aggregator_stratification(mocked_event):
         name="familiar",
         sources=["familiar"],
         categories=FAMILIARS,
-        excluded_categories=None,
+        excluded_categories=[],
         mapper=None,
         is_vectorized=True,
     )

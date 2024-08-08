@@ -266,7 +266,6 @@ class HogwartsResultsStratifier(Component):
             "power_level_group",
             POWER_LEVEL_BIN_EDGES,
             POWER_LEVEL_GROUP_LABELS,
-            "column",
         )
 
 
@@ -311,7 +310,7 @@ def sorting_hat_bad_mapping(simulant_row: pd.Series) -> str:
 
 
 def verify_stratification_added(
-    stratification_list, name, sources, categories, mapper, is_vectorized
+    stratification_list, name, sources, categories, excluded_categories, mapper, is_vectorized
 ):
     """Verify that a :class: `vivarium.framework.results.stratification.Stratification` is in `stratification_list`"""
     matching_stratification_found = False
@@ -319,7 +318,9 @@ def verify_stratification_added(
         # big equality check
         if (
             stratification.name == name
-            and sorted(stratification.categories) == sorted(categories)
+            and sorted(stratification.categories)
+            == sorted([cat for cat in categories if cat not in excluded_categories])
+            and sorted(stratification.excluded_categories) == sorted(excluded_categories)
             and stratification.mapper == mapper
             and stratification.is_vectorized == is_vectorized
             and sorted(stratification.sources) == sorted(sources)
