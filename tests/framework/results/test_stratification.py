@@ -93,7 +93,7 @@ def test_stratification_init_raises(sources, categories, mapper, msg_match):
             sorting_hat_bad_mapping,
             False,
             ValueError,
-            "Invalid values mapped to hogwarts_house: {'pancakes'}",
+            "Invalid values mapped to hogwarts_house: ['pancakes']",
         ),
         (
             ["middle_initial"],
@@ -121,7 +121,7 @@ def test_stratification_init_raises(sources, categories, mapper, msg_match):
             lambda df: pd.Series(np.nan, index=df.index),
             True,
             ValueError,
-            "Null values mapped to hogwarts_house.",
+            f"Invalid values mapped to hogwarts_house: [{np.nan}]",
         ),
     ],
     ids=[
