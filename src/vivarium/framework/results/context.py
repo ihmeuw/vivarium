@@ -123,7 +123,7 @@ class ResultsContext:
                 f"{categories} for stratification '{name}'."
             )
         if to_exclude:
-            self.logger.info(
+            self.logger.debug(
                 f"'{name}' has category exclusion requests: {to_exclude}\n"
                 "Removing these from the allowable categories."
             )

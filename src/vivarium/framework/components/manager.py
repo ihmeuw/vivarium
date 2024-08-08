@@ -348,7 +348,7 @@ class ComponentInterface:
         return self._manager.get_component(name)
 
     def get_components_by_type(
-        self, component_type: Union[type, Tuple[type, ...]]
+        self, component_type: Union[type, Tuple[type, ...], list[type]]
     ) -> List[Component]:
         """Get all components that are an instance of ``component_type``.
 
@@ -364,7 +364,7 @@ class ComponentInterface:
             A list of components of type ``component_type``.
 
         """
-        return self._manager.get_components_by_type(component_type)
+        return self._manager.get_components_by_type(tuple(component_type))
 
     def list_components(self) -> Dict[str, Component]:
         """Get a mapping of component names to components held by the manager.
