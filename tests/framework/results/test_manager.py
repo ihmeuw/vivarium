@@ -90,12 +90,13 @@ def test__get_stratifications(
 
 
 @pytest.mark.parametrize(
-    "name, sources, categories, mapper, is_vectorized",
+    "name, sources, categories, excluded_categories, mapper, is_vectorized",
     [
         (
             NAME,
             NAME_COLUMNS,
             HOUSE_CATEGORIES,
+            [],
             sorting_hat_vectorized,
             True,
         ),
@@ -103,14 +104,23 @@ def test__get_stratifications(
             NAME,
             NAME_COLUMNS,
             HOUSE_CATEGORIES,
+            [],
             sorting_hat_serial,
             False,
         ),
+        (
+            NAME,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
+            ["gryffindor"],
+            sorting_hat_vectorized,
+            True,
+        ),
     ],
-    ids=["vectorized_mapper", "non-vectorized_mapper"],
+    ids=["vectorized_mapper", "non-vectorized_mapper", "excluded_categories"],
 )
 def test_register_stratification_no_pipelines(
-    name, sources, categories, mapper, is_vectorized, mocker
+    name, sources, categories, excluded_categories, mapper, is_vectorized, mocker
 ):
     mgr = ResultsManager()
     builder = mocker.Mock()
@@ -121,7 +131,7 @@ def test_register_stratification_no_pipelines(
     mgr.register_stratification(
         name=name,
         categories=categories,
-        excluded_categories=None,
+        excluded_categories=excluded_categories,
         mapper=mapper,
         is_vectorized=is_vectorized,
         requires_columns=sources,
@@ -133,6 +143,7 @@ def test_register_stratification_no_pipelines(
         name,
         sources,
         categories,
+        excluded_categories,
         mapper,
         is_vectorized,
     )
@@ -173,7 +184,7 @@ def test_register_stratification_with_pipelines(
     mgr.register_stratification(
         name=name,
         categories=categories,
-        excluded_categories=None,
+        excluded_categories=[],
         mapper=mapper,
         is_vectorized=is_vectorized,
         requires_columns=[],
@@ -186,6 +197,7 @@ def test_register_stratification_with_pipelines(
         name,
         sources,
         categories,
+        [],
         mapper,
         is_vectorized,
     )
@@ -227,7 +239,7 @@ def test_register_stratification_with_column_and_pipelines(
     mgr.register_stratification(
         name=name,
         categories=categories,
-        excluded_categories=None,
+        excluded_categories=[],
         mapper=mapper,
         is_vectorized=is_vectorized,
         requires_columns=[mocked_column_name],
@@ -243,6 +255,7 @@ def test_register_stratification_with_column_and_pipelines(
         name,
         all_sources,
         categories,
+        [],
         mapper,
         is_vectorized,
     )
@@ -253,22 +266,28 @@ def test_register_stratification_with_column_and_pipelines(
 ##############################################
 
 
-def test_register_binned_stratification():
+@pytest.mark.parametrize("exclusions", [[], ["somewhat"], ["somewhat", "extra"]])
+def test_register_binned_stratification(exclusions, mocker):
     mgr = ResultsManager()
     mgr.logger = logger
+    builder = mocker.Mock()
+    mgr._results_context.setup(builder)
+    mocker.patch.object(mgr._results_context, "excluded_categories", {})
     assert len(mgr._results_context.stratifications) == 0
     mgr.register_binned_stratification(
         target=BIN_SOURCE,
-        target_type="column",
         binned_column=BIN_BINNED_COLUMN,
         bin_edges=BIN_SILLY_BIN_EDGES,
         labels=BIN_LABELS,
+        excluded_categories=exclusions,
+        target_type="column",
     )
     assert len(mgr._results_context.stratifications) == 1
     strat = mgr._results_context.stratifications[0]
     assert strat.name == BIN_BINNED_COLUMN
     assert strat.sources == [BIN_SOURCE]
-    assert strat.categories == BIN_LABELS
+    assert strat.categories == [cat for cat in BIN_LABELS if cat not in exclusions]
+    assert strat.excluded_categories == exclusions
     # Cannot access the mapper because it's in local scope, so check __repr__
     assert "function ResultsManager.register_binned_stratification.<locals>._bin_data" in str(
         strat.mapper
@@ -288,10 +307,11 @@ def test_register_binned_stratification_raises_bins_labels_mismatch(bins, labels
     ):
         mgr.register_binned_stratification(
             target=BIN_SOURCE,
-            target_type="column",
             binned_column=BIN_BINNED_COLUMN,
             bin_edges=bins,
             labels=labels,
+            excluded_categories=[],
+            target_type="column",
         )
 
 
@@ -300,10 +320,11 @@ def test_binned_stratification_mapper():
     mgr.logger = logger
     mgr.register_binned_stratification(
         target=BIN_SOURCE,
-        target_type="column",
         binned_column=BIN_BINNED_COLUMN,
         bin_edges=BIN_SILLY_BIN_EDGES,
         labels=BIN_LABELS,
+        excluded_categories=[],
+        target_type="column",
     )
     strat = mgr._results_context.stratifications[0]
     data = pd.Series([-np.inf] + BIN_SILLY_BIN_EDGES + [np.inf])
