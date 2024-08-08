@@ -179,7 +179,7 @@ class ResultsManager(Manager):
             List of string values that the mapper is allowed to output.
         excluded_categories
             List of mapped string values to be excluded from results processing.
-            If `None` (the default), will use exclusions as defined in th model spec.
+            If `None` (the default), will use exclusions as defined in the configuration.
         mapper
             A callable that emits values in `categories` given inputs from columns
             and values in the `requires_columns` and `requires_values`, respectively.
