@@ -10,7 +10,11 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import BaseObservation
-from vivarium.framework.results.stratification import Stratification
+from vivarium.framework.results.stratification import (
+    Stratification,
+    get_mapped_col_name,
+    get_original_col_name,
+)
 
 
 class ResultsContext:
@@ -26,7 +30,6 @@ class ResultsContext:
         self.default_stratifications: List[str] = []
         self.stratifications: List[Stratification] = []
         self.excluded_categories: dict[str, list[str]] = {}
-        self.stratification_col_suffix = "_mapped_values"
         # keys are event names: [
         #     "time_step__prepare",
         #     "time_step",
@@ -207,16 +210,15 @@ class ResultsContext:
 
         for stratification in self.stratifications:
             # Add new columns of mapped values to the population to prevent name collisions
-            # FIXME: encapsulate the stratifcation col name getter in Stratification (and its inverse)
-            if f"{stratification.name}{self.stratification_col_suffix}" in population.columns:
+            new_column = get_mapped_col_name(stratification.name)
+            if new_column in population.columns:
                 raise ValueError(
-                    f"Stratification column '{stratification.name}{self.stratification_col_suffix}' "
+                    f"Stratification column '{new_column}' "
                     "already exists in the state table or as a pipeline which is a required "
                     "name for stratifying results - choose a different name."
                 )
-            population[f"{stratification.name}{self.stratification_col_suffix}"] = (
-                stratification(population)
-            )
+            population[new_column] = stratification(population)
+
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         for (pop_filter, stratifications), observations in self.observations[
@@ -253,8 +255,7 @@ class ResultsContext:
             # Drop all rows in the mapped_stratification columns that have NaN values
             pop = pop.dropna(
                 subset=[
-                    f"{stratification}{self.stratification_col_suffix}"
-                    for stratification in stratifications
+                    get_mapped_col_name(stratification) for stratification in stratifications
                 ]
             )
         return pop
@@ -272,10 +273,7 @@ class ResultsContext:
 
         if stratifications:
             pop_groups = filtered_pop.groupby(
-                [
-                    f"{stratification}{self.stratification_col_suffix}"
-                    for stratification in stratifications
-                ],
+                [get_mapped_col_name(stratification) for stratification in stratifications],
                 observed=False,
             )
         else:
@@ -285,15 +283,9 @@ class ResultsContext:
     def _rename_index(self, results: pd.DataFrame) -> None:
         """convert stratified mapped index names to original"""
         if isinstance(results.index, pd.MultiIndex):
-            idx_names = [
-                name.replace(self.stratification_col_suffix, "")
-                for name in results.index.names
-                if self.stratification_col_suffix in name
-            ]
+            idx_names = [get_original_col_name(name) for name in results.index.names]
             results.rename_axis(index=idx_names, inplace=True)
         else:
             idx_name = results.index.name
             if idx_name is not None:
-                results.index.rename(
-                    idx_name.replace(self.stratification_col_suffix, ""), inplace=True
-                )
+                results.index.rename(get_original_col_name(idx_name), inplace=True)
