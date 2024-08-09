@@ -17,8 +17,7 @@ setup everything it holds when the context itself is setup.
 """
 
 import inspect
-import typing
-from typing import Any, Dict, Iterator, List, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Sequence, Tuple, Union
 
 from layered_config_tree import (
     ConfigurationError,
@@ -31,7 +30,7 @@ from vivarium.exceptions import VivariumError
 from vivarium.framework.lifecycle import LifeCycleManager
 from vivarium.manager import Manager
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
 
@@ -181,7 +180,7 @@ class ComponentManager(Manager):
             self._components.add(c)
 
     def get_components_by_type(
-        self, component_type: Union[type, Tuple[type, ...]]
+        self, component_type: Union[type, Sequence[type]]
     ) -> List[Component]:
         """Get all components that are an instance of ``component_type``.
 
@@ -196,7 +195,8 @@ class ComponentManager(Manager):
             A list of components of type ``component_type``.
 
         """
-        return [c for c in self._components if isinstance(c, component_type)]
+        # Convert component_type to a tuple for isinstance
+        return [c for c in self._components if isinstance(c, tuple(component_type))]
 
     def get_component(self, name: str) -> Component:
         """Get the component with name ``name``.
@@ -348,7 +348,7 @@ class ComponentInterface:
         return self._manager.get_component(name)
 
     def get_components_by_type(
-        self, component_type: Union[type, Tuple[type, ...], list[type]]
+        self, component_type: Union[type, Sequence[type]]
     ) -> List[Component]:
         """Get all components that are an instance of ``component_type``.
 
@@ -364,7 +364,7 @@ class ComponentInterface:
             A list of components of type ``component_type``.
 
         """
-        return self._manager.get_components_by_type(tuple(component_type))
+        return self._manager.get_components_by_type(component_type)
 
     def list_components(self) -> Dict[str, Component]:
         """Get a mapping of component names to components held by the manager.
