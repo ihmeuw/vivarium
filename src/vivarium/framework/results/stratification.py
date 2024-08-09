@@ -75,16 +75,11 @@ class Stratification:
         unknown_categories = set(mapped_column) - set(
             self.categories + self.excluded_categories
         )
+        # Reduce all nans to a single one
+        unknown_categories = [cat for cat in unknown_categories if not pd.isna(cat)]
+        if mapped_column.isna().any():
+            unknown_categories.append(mapped_column[mapped_column.isna()].iat[0])
         if unknown_categories:
-            # Reduce all nans to a single one
-            single_nan_list = (
-                [mapped_column[mapped_column.isna()].iat[0]]
-                if mapped_column.isna().any()
-                else []
-            )
-            unknown_categories = single_nan_list + [
-                cat for cat in unknown_categories if not pd.isna(cat)
-            ]
             raise ValueError(f"Invalid values mapped to {self.name}: {unknown_categories}")
 
         # Convert the dtype to the allowed categories. Note that this will
