@@ -212,7 +212,7 @@ class ResultsManager(Manager):
         binned_column: str,
         bin_edges: List[Union[int, float]],
         labels: List[str],
-        excluded_categories: Optional[List[str]],
+        excluded_categories: List[str],
         target_type: str,
         **cut_kwargs,
     ) -> None:
@@ -234,7 +234,7 @@ class ResultsManager(Manager):
             of `bin_edges` minus one.
         excluded_categories
             List of mapped string values to be excluded from results processing.
-            If `None` (the default), will use exclusions as defined in the configuration.
+            If empty (the default), will use exclusions as defined in the configuration.
         target_type
             "column" or "value"
         **cut_kwargs
