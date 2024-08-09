@@ -63,8 +63,13 @@ def test_stratified_observation__aggregate(
     - If no aggregator_resources are provided, then we want a full aggregation of the groups.
     - _aggregate can return either a pd.Series or a pd.DataFrame of any number of columns
     """
+
+    filtered_pop = BASE_POPULATION.copy()
+    for stratification in stratifications:
+        mapped_col = f"{stratification}_mapped_values"
+        filtered_pop[mapped_col] = filtered_pop[stratification]
     groups = ResultsContext()._get_groups(
-        stratifications=stratifications, filtered_pop=BASE_POPULATION
+        stratifications=stratifications, filtered_pop=filtered_pop
     )
     aggregates = stratified_observation._aggregate(
         pop_groups=groups,
@@ -166,10 +171,16 @@ def test_stratified_observation__expand_index(aggregates, stratified_observation
 )
 def test_stratified_observation_results_gatherer(stratifications, stratified_observation):
     ctx = ResultsContext()
+    # Append the post-stratified columns
+    filtered_population = BASE_POPULATION.copy()
+    for stratification in stratifications:
+        mapped_col = f"{stratification}_mapped_values"
+        filtered_population[mapped_col] = filtered_population[stratification]
     pop_groups = ctx._get_groups(
-        stratifications=stratifications, filtered_pop=BASE_POPULATION
+        stratifications=stratifications, filtered_pop=filtered_population
     )
     df = stratified_observation.results_gatherer(pop_groups, stratifications)
+    ctx._rename_index(df)
     assert set(df.columns) == set(["value"])
     expected_idx_names = (
         list(stratifications) if len(stratifications) > 0 else ["stratification"]
