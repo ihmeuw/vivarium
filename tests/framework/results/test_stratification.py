@@ -15,7 +15,11 @@ from tests.framework.results.helpers import (
     sorting_hat_vectorized,
 )
 from vivarium.framework.results.manager import ResultsManager
-from vivarium.framework.results.stratification import Stratification
+from vivarium.framework.results.stratification import (
+    Stratification,
+    get_mapped_col_name,
+    get_original_col_name,
+)
 
 
 @pytest.mark.parametrize(
@@ -152,3 +156,22 @@ def test_setting_default_stratifications(default_stratifications, mocker):
     mgr.setup(builder)
 
     assert mgr._results_context.default_stratifications == default_stratifications
+
+
+def test_get_mapped_column_name():
+    assert get_mapped_col_name("foo") == "foo_mapped_values"
+
+
+@pytest.mark.parametrize(
+    "col_name, expected",
+    [
+        ("foo_mapped_values", "foo"),
+        ("foo", "foo"),
+        ("foo_mapped_values_mapped_values", "foo_mapped_values"),
+        ("foo_mapped_values2", "foo_mapped_values2"),
+        ("_mapped_values_foo", "_mapped_values_foo"),
+        ("_mapped_values_foo_mapped_values", "_mapped_values_foo"),
+    ],
+)
+def test_get_original_col_name(col_name, expected):
+    assert get_original_col_name(col_name) == expected

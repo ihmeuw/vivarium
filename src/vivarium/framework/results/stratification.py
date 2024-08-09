@@ -6,6 +6,8 @@ from typing import Callable, List, Optional, Union
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
+STRATIFICATION_COLUMN_SUFFIX: str = "mapped_values"
+
 
 @dataclass
 class Stratification:
@@ -95,3 +97,17 @@ class Stratification:
     @staticmethod
     def _default_mapper(pop: pd.DataFrame) -> pd.Series[str]:
         return pop.squeeze(axis=1)
+
+
+def get_mapped_col_name(col_name: str) -> str:
+    """Return a new column name to be used for mapped values"""
+    return f"{col_name}_{STRATIFICATION_COLUMN_SUFFIX}"
+
+
+def get_original_col_name(col_name: str) -> str:
+    """Return the original column name given a modified mapped column name."""
+    return (
+        col_name[: -(len(STRATIFICATION_COLUMN_SUFFIX)) - 1]
+        if col_name.endswith(f"_{STRATIFICATION_COLUMN_SUFFIX}")
+        else col_name
+    )
