@@ -206,8 +206,14 @@ class ResultsContext:
         """Generate current results for all observations at this lifecycle phase and event."""
 
         for stratification in self.stratifications:
-            # Add new columns to the dataframe of the stratified values
-            # FIXME: Find a way to prevent name collisions
+            # Add new columns of mapped values to the population to prevent name collisions
+            # FIXME: encapsulate the stratifcation col name getter in Stratification (and its inverse)
+            if f"{stratification.name}{self.stratification_col_suffix}" in population.columns:
+                raise ValueError(
+                    f"Stratification column '{stratification.name}{self.stratification_col_suffix}' "
+                    "already exists in the state table or as a pipeline which is a required "
+                    "name for stratifying results - choose a different name."
+                )
             population[f"{stratification.name}{self.stratification_col_suffix}"] = (
                 stratification(population)
             )
@@ -227,9 +233,11 @@ class ResultsContext:
                 else:
                     pop = self._get_groups(stratifications, filtered_pop)
                 for observation in observations:
-                    yield observation.observe(
-                        event, pop, stratifications
-                    ), observation.name, observation.results_updater
+                    results = observation.observe(event, pop, stratifications)
+                    if results is not None:
+                        self._rename_index(results)
+
+                    yield (results, observation.name, observation.results_updater)
 
     def _filter_population(
         self,
@@ -249,26 +257,43 @@ class ResultsContext:
                     for stratification in stratifications
                 ]
             )
-            # And now move the mapped values to the stratification columns
-            for stratification in stratifications:
-                pop[stratification] = pop[f"{stratification}{self.stratification_col_suffix}"]
-                pop.drop(
-                    columns=[f"{stratification}{self.stratification_col_suffix}"],
-                    inplace=True,
-                )
-
         return pop
 
     def _get_groups(
         self, stratifications: Tuple[str, ...], filtered_pop: pd.DataFrame
     ) -> DataFrameGroupBy:
-        # NOTE: It's a bit hacky how we are handling the groupby object if there
-        # are no stratifications. The alternative is to use the entire population
-        # instead of a groupby object, but then we would need to handle
-        # the different ways the aggregator can behave.
+        """Group the population by stratifications.
+        NOTE: Stratifications at this point can be an empty tuple.
+        HACK: It's a bit hacky how we are handling the groupby object if there
+        are no stratifications. The alternative is to use the entire population
+        #nstead of a groupby object, but then we would need to handle
+        the different ways the aggregator can behave.
+        """
 
-        return (
-            filtered_pop.groupby(list(stratifications), observed=False)
-            if list(stratifications)
-            else filtered_pop.groupby(lambda _: "all")
-        )
+        if stratifications:
+            pop_groups = filtered_pop.groupby(
+                [
+                    f"{stratification}{self.stratification_col_suffix}"
+                    for stratification in stratifications
+                ],
+                observed=False,
+            )
+        else:
+            pop_groups = filtered_pop.groupby(lambda _: "all")
+        return pop_groups
+
+    def _rename_index(self, results: pd.DataFrame) -> None:
+        """convert stratified mapped index names to original"""
+        if isinstance(results.index, pd.MultiIndex):
+            idx_names = [
+                name.replace(self.stratification_col_suffix, "")
+                for name in results.index.names
+                if self.stratification_col_suffix in name
+            ]
+            results.rename_axis(index=idx_names, inplace=True)
+        else:
+            idx_name = results.index.name
+            if idx_name is not None:
+                results.index.rename(
+                    idx_name.replace(self.stratification_col_suffix, ""), inplace=True
+                )
