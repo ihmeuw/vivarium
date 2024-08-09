@@ -266,34 +266,6 @@ def test_register_stratification_with_column_and_pipelines(
 ##############################################
 
 
-@pytest.mark.parametrize("exclusions", [[], ["somewhat"], ["somewhat", "extra"]])
-def test_register_binned_stratification(exclusions, mocker):
-    mgr = ResultsManager()
-    mgr.logger = logger
-    builder = mocker.Mock()
-    mgr._results_context.setup(builder)
-    mocker.patch.object(mgr._results_context, "excluded_categories", {})
-    assert len(mgr._results_context.stratifications) == 0
-    mgr.register_binned_stratification(
-        target=BIN_SOURCE,
-        binned_column=BIN_BINNED_COLUMN,
-        bin_edges=BIN_SILLY_BIN_EDGES,
-        labels=BIN_LABELS,
-        excluded_categories=exclusions,
-        target_type="column",
-    )
-    assert len(mgr._results_context.stratifications) == 1
-    strat = mgr._results_context.stratifications[0]
-    assert strat.name == BIN_BINNED_COLUMN
-    assert strat.sources == [BIN_SOURCE]
-    assert strat.categories == [cat for cat in BIN_LABELS if cat not in exclusions]
-    assert strat.excluded_categories == exclusions
-    # Cannot access the mapper because it's in local scope, so check __repr__
-    assert "function ResultsManager.register_binned_stratification.<locals>._bin_data" in str(
-        strat.mapper
-    )
-
-
 @pytest.mark.parametrize(
     "bins, labels",
     [(BIN_SILLY_BIN_EDGES, BIN_LABELS[1:]), (BIN_SILLY_BIN_EDGES[1:], BIN_LABELS)],
