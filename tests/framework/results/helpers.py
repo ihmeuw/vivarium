@@ -11,11 +11,11 @@ from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.observer import Observer
 
 NAME = "hogwarts_house"
-SOURCES = ["first_name", "last_name"]
-CATEGORIES = ["hufflepuff", "ravenclaw", "slytherin", "gryffindor"]
+NAME_COLUMNS = ["first_name", "last_name"]
+HOUSE_CATEGORIES = ["hufflepuff", "ravenclaw", "slytherin", "gryffindor"]
 STUDENT_TABLE = pd.DataFrame(
     np.array([["harry", "potter"], ["severus", "snape"], ["luna", "lovegood"]]),
-    columns=SOURCES,
+    columns=NAME_COLUMNS,
 )
 STUDENT_HOUSES = pd.Series(["gryffindor", "slytherin", "ravenclaw"])
 
@@ -30,7 +30,7 @@ POWER_LEVELS = [20, 40, 60, 80]
 POWER_LEVEL_BIN_EDGES = [0, 25, 50, 75, 100]
 POWER_LEVEL_GROUP_LABELS = ["low", "medium", "high", "very high"]
 TRACKED_STATUSES = [True, False]
-RECORDS = list(itertools.product(CATEGORIES, FAMILIARS, POWER_LEVELS, TRACKED_STATUSES))
+RECORDS = list(itertools.product(HOUSE_CATEGORIES, FAMILIARS, POWER_LEVELS, TRACKED_STATUSES))
 BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
 
 HARRY_POTTER_CONFIG = {
@@ -254,17 +254,18 @@ class ValedictorianObserver(Observer):
 class HogwartsResultsStratifier(Component):
     def setup(self, builder: Builder) -> None:
         builder.results.register_stratification(
-            "student_house", list(STUDENT_HOUSES), requires_columns=["student_house"]
+            name="student_house",
+            categories=list(STUDENT_HOUSES),
+            requires_columns=["student_house"],
         )
         builder.results.register_stratification(
-            "familiar", FAMILIARS, requires_columns=["familiar"]
+            name="familiar", categories=FAMILIARS, requires_columns=["familiar"]
         )
         builder.results.register_binned_stratification(
             "power_level",
             "power_level_group",
             POWER_LEVEL_BIN_EDGES,
             POWER_LEVEL_GROUP_LABELS,
-            "column",
         )
 
 
@@ -286,7 +287,7 @@ def results_formatter(
     return results[other_cols + [VALUE_COLUMN]].sort_index().reset_index()
 
 
-def sorting_hat_vector(state_table: pd.DataFrame) -> pd.Series:
+def sorting_hat_vectorized(state_table: pd.DataFrame) -> pd.Series:
     sorted_series = state_table.apply(sorting_hat_serial, axis=1)
     return sorted_series
 
@@ -309,7 +310,7 @@ def sorting_hat_bad_mapping(simulant_row: pd.Series) -> str:
 
 
 def verify_stratification_added(
-    stratification_list, name, sources, categories, mapper, is_vectorized
+    stratification_list, name, sources, categories, excluded_categories, mapper, is_vectorized
 ):
     """Verify that a :class: `vivarium.framework.results.stratification.Stratification` is in `stratification_list`"""
     matching_stratification_found = False
@@ -317,7 +318,9 @@ def verify_stratification_added(
         # big equality check
         if (
             stratification.name == name
-            and sorted(stratification.categories) == sorted(categories)
+            and sorted(stratification.categories)
+            == sorted([cat for cat in categories if cat not in excluded_categories])
+            and sorted(stratification.excluded_categories) == sorted(excluded_categories)
             and stratification.mapper == mapper
             and stratification.is_vectorized == is_vectorized
             and sorted(stratification.sources) == sorted(sources)

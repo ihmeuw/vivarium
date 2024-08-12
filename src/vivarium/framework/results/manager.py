@@ -35,6 +35,7 @@ class ResultsManager(Manager):
     CONFIGURATION_DEFAULTS = {
         "stratification": {
             "default": [],
+            "excluded_categories": {},
         }
     }
 
@@ -71,6 +72,8 @@ class ResultsManager(Manager):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: "Builder") -> None:
+        self._results_context.setup(builder)
+
         self.logger = builder.logging.get_logger(self.name)
         self.population_view = builder.population.get_view([])
         self.clock = builder.time.clock()
@@ -138,6 +141,8 @@ class ResultsManager(Manager):
         with 0.0.
         """
         population = self._prepare_population(event)
+        if population.empty:
+            return
         for results_group, measure, updater in self._results_context.gather_results(
             population, lifecycle_phase, event
         ):
@@ -158,6 +163,7 @@ class ResultsManager(Manager):
         self,
         name: str,
         categories: List[str],
+        excluded_categories: Optional[List[str]],
         mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]],
         is_vectorized: bool,
         requires_columns: List[str] = [],
@@ -171,6 +177,9 @@ class ResultsManager(Manager):
             Name of the of the column created by the stratification.
         categories
             List of string values that the mapper is allowed to output.
+        excluded_categories
+            List of mapped string values to be excluded from results processing.
+            If None (the default), will use exclusions as defined in the configuration.
         mapper
             A callable that emits values in `categories` given inputs from columns
             and values in the `requires_columns` and `requires_values`, respectively.
@@ -192,7 +201,7 @@ class ResultsManager(Manager):
         self.logger.debug(f"Registering stratification {name}")
         target_columns = list(requires_columns) + list(requires_values)
         self._results_context.add_stratification(
-            name, target_columns, categories, mapper, is_vectorized
+            name, target_columns, categories, excluded_categories, mapper, is_vectorized
         )
         self._add_resources(requires_columns, SourceType.COLUMN)
         self._add_resources(requires_values, SourceType.VALUE)
@@ -200,10 +209,11 @@ class ResultsManager(Manager):
     def register_binned_stratification(
         self,
         target: str,
-        target_type: str,
         binned_column: str,
         bin_edges: List[Union[int, float]],
         labels: List[str],
+        excluded_categories: Optional[List[str]],
+        target_type: str,
         **cut_kwargs,
     ) -> None:
         """Manager-level registration of a continuous `target` quantity to observe into bins in a `binned_column`.
@@ -212,8 +222,6 @@ class ResultsManager(Manager):
         ----------
         target
             String name of the state table column or value pipeline used to stratify.
-        target_type
-            "column" or "value"
         binned_column
             String name of the column for the binned quantities.
         bin_edges
@@ -224,6 +232,11 @@ class ResultsManager(Manager):
         labels
             List of string labels for bins. The length must equal to the length
             of `bin_edges` minus one.
+        excluded_categories
+            List of mapped string values to be excluded from results processing.
+            If None (the default), will use exclusions as defined in the configuration.
+        target_type
+            "column" or "value"
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
 
@@ -252,6 +265,7 @@ class ResultsManager(Manager):
         self.register_stratification(
             name=binned_column,
             categories=labels,
+            excluded_categories=excluded_categories,
             mapper=_bin_data,
             is_vectorized=True,
             **target_kwargs,
