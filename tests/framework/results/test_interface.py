@@ -5,6 +5,7 @@ from types import MethodType
 import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
+from loguru import logger
 
 from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS
 from tests.framework.results.helpers import HOUSE_CATEGORIES as HOUSES
@@ -14,6 +15,106 @@ from vivarium.framework.results import ResultsInterface, ResultsManager
 
 def _silly_aggregator(_: pd.DataFrame) -> float:
     return 1.0
+
+
+####################################
+# Test stratification registration #
+####################################
+
+
+def test_register_stratification(mocker):
+    def _silly_mapper():
+        return "foo"
+
+    builder = mocker.Mock()
+    # Set up mock builder with mocked get_value call for Pipelines
+    mocker.patch.object(builder, "value.get_value")
+    builder.value.get_value = MethodType(mock_get_value, builder)
+    mgr = ResultsManager()
+    mgr.setup(builder)
+    interface = ResultsInterface(mgr)
+
+    # Check pre-registration stratifications and manager required columns/values
+    assert len(mgr._results_context.stratifications) == 0
+    assert mgr._required_columns == {"tracked"}
+    assert len(mgr._required_values) == 0
+
+    interface.register_stratification(
+        name="some-name",
+        categories=["some-category", "some-other-category", "some-unwanted-category"],
+        excluded_categories=["some-unwanted-category"],
+        mapper=_silly_mapper,
+        is_vectorized=False,
+        requires_columns=["some-column", "some-other-column"],
+        requires_values=["some-value", "some-other-value"],
+    )
+
+    # Check that manager required columns/values have been updated
+    assert mgr._required_columns == {"tracked", "some-column", "some-other-column"}
+    assert mgr._required_values == {"some-value", "some-other-value"}
+
+    # Check stratification registration
+    stratifications = mgr._results_context.stratifications
+    assert len(stratifications) == 1
+    stratification = stratifications[0]
+    assert stratification.name == "some-name"
+    assert stratification.sources == [
+        "some-column",
+        "some-other-column",
+        "some-value",
+        "some-other-value",
+    ]
+    assert stratification.categories == ["some-category", "some-other-category"]
+    assert stratification.excluded_categories == ["some-unwanted-category"]
+    assert stratification.mapper == _silly_mapper
+    assert stratification.is_vectorized is False
+
+
+def test_register_binned_stratification(mocker):
+
+    mgr = ResultsManager()
+    mgr.logger = logger
+    builder = mocker.Mock()
+    mgr._results_context.setup(builder)
+
+    # Check pre-registration stratifications and manager required columns/values
+    assert len(mgr._results_context.stratifications) == 0
+    assert mgr._required_columns == {"tracked"}
+    assert len(mgr._required_values) == 0
+
+    mgr.register_binned_stratification(
+        target="some-column-to-bin",
+        binned_column="new-binned-column",
+        bin_edges=[1, 2, 3],
+        labels=["1_to_2", "2_to_3"],
+        excluded_categories=["2_to_3"],
+        target_type="column",
+        some_kwarg="some-kwarg",
+        some_other_kwarg="some-other-kwarg",
+    )
+
+    # Check that manager required columns/values have been updated
+    assert mgr._required_columns == {"tracked", "some-column-to-bin"}
+    assert len(mgr._required_values) == 0
+
+    # Check stratification registration
+    stratifications = mgr._results_context.stratifications
+    assert len(stratifications) == 1
+    stratification = stratifications[0]
+    assert stratification.name == "new-binned-column"
+    assert stratification.sources == ["some-column-to-bin"]
+    assert stratification.categories == ["1_to_2"]
+    assert stratification.excluded_categories == ["2_to_3"]
+    # Cannot access the mapper because it's in local scope, so check __repr__
+    assert "function ResultsManager.register_binned_stratification.<locals>._bin_data" in str(
+        stratification.mapper
+    )
+    assert stratification.is_vectorized is True
+
+
+#################################
+# Test observation registration #
+#################################
 
 
 @pytest.mark.parametrize(
