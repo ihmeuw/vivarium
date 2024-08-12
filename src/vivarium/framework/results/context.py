@@ -272,7 +272,7 @@ class ResultsContext:
         NOTE: Stratifications at this point can be an empty tuple.
         HACK: It's a bit hacky how we are handling the groupby object if there
         are no stratifications. The alternative is to use the entire population
-        #nstead of a groupby object, but then we would need to handle
+        instead of a groupby object, but then we would need to handle
         the different ways the aggregator can behave.
         """
 
