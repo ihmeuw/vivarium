@@ -221,23 +221,25 @@ class ResultsContext:
 
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
-        for (pop_filter, stratifications), observations in self.observations[
+        for (pop_filter, stratification_names), observations in self.observations[
             lifecycle_phase
         ].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
-            filtered_pop = self._filter_population(population, pop_filter, stratifications)
+            filtered_pop = self._filter_population(
+                population, pop_filter, stratification_names
+            )
             if filtered_pop.empty:
                 yield None, None, None
             else:
-                if stratifications is None:
+                if stratification_names is None:
                     pop = filtered_pop
                 else:
-                    pop = self._get_groups(stratifications, filtered_pop)
+                    pop = self._get_groups(stratification_names, filtered_pop)
                 for observation in observations:
-                    results = observation.observe(event, pop, stratifications)
+                    results = observation.observe(event, pop, stratification_names)
                     if results is not None:
-                        self._rename_index(results)
+                        self._rename_stratification_columns(results)
 
                     yield (results, observation.name, observation.results_updater)
 
@@ -280,7 +282,7 @@ class ResultsContext:
             pop_groups = filtered_pop.groupby(lambda _: "all")
         return pop_groups
 
-    def _rename_index(self, results: pd.DataFrame) -> None:
+    def _rename_stratification_columns(self, results: pd.DataFrame) -> None:
         """convert stratified mapped index names to original"""
         if isinstance(results.index, pd.MultiIndex):
             idx_names = [get_original_col_name(name) for name in results.index.names]

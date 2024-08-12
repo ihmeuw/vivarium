@@ -180,7 +180,7 @@ def test_stratified_observation_results_gatherer(stratifications, stratified_obs
         stratifications=stratifications, filtered_pop=filtered_population
     )
     df = stratified_observation.results_gatherer(pop_groups, stratifications)
-    ctx._rename_index(df)
+    ctx._rename_stratification_columns(df)
     assert set(df.columns) == set(["value"])
     expected_idx_names = (
         list(stratifications) if len(stratifications) > 0 else ["stratification"]
