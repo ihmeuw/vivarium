@@ -546,7 +546,7 @@ def test__filter_population(pop_filter, stratifications):
             population[mapped_col] = population[stratification]
 
     filtered_pop = ResultsContext()._filter_population(
-        population=population, pop_filter=pop_filter, stratifications=stratifications
+        population=population, pop_filter=pop_filter, stratification_names=stratifications
     )
     expected = population.copy()
     if pop_filter:

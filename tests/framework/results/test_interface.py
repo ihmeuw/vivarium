@@ -24,7 +24,8 @@ def _silly_aggregator(_: pd.DataFrame) -> float:
 
 def test_register_stratification(mocker):
     def _silly_mapper():
-        return "foo"
+        # NOTE: it does not actually matter what this mapper returns for this test
+        return {"some-category", "some-other-category", "some-unwanted-category"}
 
     builder = mocker.Mock()
     # Set up mock builder with mocked get_value call for Pipelines

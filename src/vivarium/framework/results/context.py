@@ -247,23 +247,26 @@ class ResultsContext:
         self,
         population: pd.DataFrame,
         pop_filter: str,
-        stratifications: Optional[tuple[str, ...]],
+        stratification_names: Optional[tuple[str, ...]],
     ) -> pd.DataFrame:
         """Filter the population based on the filter string as well as any
         excluded stratification categories
         """
         pop = population.query(pop_filter) if pop_filter else population.copy()
-        if stratifications:
+        if stratification_names:
             # Drop all rows in the mapped_stratification columns that have NaN values
+            # (which only exist if the mapper returned an excluded category).
             pop = pop.dropna(
                 subset=[
-                    get_mapped_col_name(stratification) for stratification in stratifications
+                    get_mapped_col_name(stratification)
+                    for stratification in stratification_names
                 ]
             )
         return pop
 
+    @staticmethod
     def _get_groups(
-        self, stratifications: Tuple[str, ...], filtered_pop: pd.DataFrame
+        stratifications: Tuple[str, ...], filtered_pop: pd.DataFrame
     ) -> DataFrameGroupBy:
         """Group the population by stratifications.
         NOTE: Stratifications at this point can be an empty tuple.
