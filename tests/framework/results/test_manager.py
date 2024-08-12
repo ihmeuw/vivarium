@@ -184,7 +184,7 @@ def test_register_stratification_with_pipelines(
     mgr.register_stratification(
         name=name,
         categories=categories,
-        excluded_categories=[],
+        excluded_categories=None,
         mapper=mapper,
         is_vectorized=is_vectorized,
         requires_columns=[],
@@ -239,7 +239,7 @@ def test_register_stratification_with_column_and_pipelines(
     mgr.register_stratification(
         name=name,
         categories=categories,
-        excluded_categories=[],
+        excluded_categories=None,
         mapper=mapper,
         is_vectorized=is_vectorized,
         requires_columns=[mocked_column_name],
@@ -282,7 +282,7 @@ def test_register_binned_stratification_raises_bins_labels_mismatch(bins, labels
             binned_column=BIN_BINNED_COLUMN,
             bin_edges=bins,
             labels=labels,
-            excluded_categories=[],
+            excluded_categories=None,
             target_type="column",
         )
 
@@ -295,7 +295,7 @@ def test_binned_stratification_mapper():
         binned_column=BIN_BINNED_COLUMN,
         bin_edges=BIN_SILLY_BIN_EDGES,
         labels=BIN_LABELS,
-        excluded_categories=[],
+        excluded_categories=None,
         target_type="column",
     )
     strat = mgr._results_context.stratifications[0]

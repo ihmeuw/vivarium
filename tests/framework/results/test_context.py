@@ -53,7 +53,7 @@ def test_add_stratification(mapper, is_vectorized, mocker):
         name=NAME,
         sources=NAME_COLUMNS,
         categories=HOUSE_CATEGORIES,
-        excluded_categories=[],
+        excluded_categories=None,
         mapper=mapper,
         is_vectorized=is_vectorized,
     )
@@ -105,7 +105,7 @@ def test_add_stratification_raises(name, categories, excluded_categories, msg_ma
         name="duplicate_name",
         sources=["foo"],
         categories=["bar"],
-        excluded_categories=[],
+        excluded_categories=None,
         mapper=sorting_hat_serial,
         is_vectorized=False,
     )
@@ -231,7 +231,7 @@ def test_adding_observation_gather_results(
             name="house",
             sources=["house"],
             categories=HOUSE_CATEGORIES,
-            excluded_categories=[],
+            excluded_categories=None,
             mapper=None,
             is_vectorized=True,
         )
@@ -240,7 +240,7 @@ def test_adding_observation_gather_results(
             name="familiar",
             sources=["familiar"],
             categories=FAMILIARS,
-            excluded_categories=[],
+            excluded_categories=None,
             mapper=None,
             is_vectorized=True,
         )
@@ -375,7 +375,7 @@ def test_gather_results_partial_stratifications_in_results(
             name="house",
             sources=["house"],
             categories=HOUSE_CATEGORIES,
-            excluded_categories=[],
+            excluded_categories=None,
             mapper=None,
             is_vectorized=True,
         )
@@ -384,7 +384,7 @@ def test_gather_results_partial_stratifications_in_results(
             name="familiar",
             sources=["familiar"],
             categories=FAMILIARS,
-            excluded_categories=[],
+            excluded_categories=None,
             mapper=None,
             is_vectorized=True,
         )
@@ -482,7 +482,7 @@ def test_bad_aggregator_stratification(mocked_event):
         name="house",
         sources=["house"],
         categories=HOUSE_CATEGORIES,
-        excluded_categories=[],
+        excluded_categories=None,
         mapper=None,
         is_vectorized=True,
     )
@@ -490,7 +490,7 @@ def test_bad_aggregator_stratification(mocked_event):
         name="familiar",
         sources=["familiar"],
         categories=FAMILIARS,
-        excluded_categories=[],
+        excluded_categories=None,
         mapper=None,
         is_vectorized=True,
     )

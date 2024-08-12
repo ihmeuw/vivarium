@@ -73,7 +73,7 @@ class ResultsInterface:
         self,
         name: str,
         categories: List[str],
-        excluded_categories: List[str] = [],
+        excluded_categories: Optional[List[str]] = None,
         mapper: Optional[Callable[[pd.DataFrame], pd.Series[str]]] = None,
         is_vectorized: bool = False,
         requires_columns: List[str] = [],
@@ -89,7 +89,7 @@ class ResultsInterface:
             List of string values that the mapper is allowed to output.
         excluded_categories
             List of mapped string values to be excluded from results processing.
-            If empty (the default), will use exclusions as defined in the configuration.
+            If None (the default), will use exclusions as defined in the configuration.
         mapper
             A callable that emits values in `categories` given inputs from columns
             and values in the `requires_columns` and `requires_values`, respectively.
@@ -124,7 +124,7 @@ class ResultsInterface:
         binned_column: str,
         bin_edges: List[Union[int, float]] = [],
         labels: List[str] = [],
-        excluded_categories: List[str] = [],
+        excluded_categories: Optional[List[str]] = None,
         target_type: str = "column",
         **cut_kwargs: Dict,
     ) -> None:
@@ -144,7 +144,7 @@ class ResultsInterface:
             of `bin_edges` minus 1.
         excluded_categories
             List of mapped string values to be excluded from results processing.
-            If empty (the default), will use exclusions as defined in the configuration.
+            If None (the default), will use exclusions as defined in the configuration.
         target_type
             "column" or "value"
         **cut_kwargs

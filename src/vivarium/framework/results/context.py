@@ -65,7 +65,7 @@ class ResultsContext:
         name: str,
         sources: List[str],
         categories: List[str],
-        excluded_categories: List[str],
+        excluded_categories: Optional[List[str]],
         mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]],
         is_vectorized: bool,
     ) -> None:
@@ -82,7 +82,7 @@ class ResultsContext:
             List of string values that the mapper is allowed to output.
         excluded_categories
             List of mapped string values to be excluded from results processing.
-            If empty (the default), will use exclusions as defined in the configuration.
+            If None (the default), will use exclusions as defined in the configuration.
         mapper
             A callable that emits values in `categories` given inputs from columns
             and values in the `requires_columns` and `requires_values`, respectively.
@@ -117,7 +117,7 @@ class ResultsContext:
         # passed in, we use that instead of what is in the model spec.
         to_exclude = (
             excluded_categories
-            if excluded_categories
+            if excluded_categories is not None
             else self.excluded_categories.get(name, [])
         )
         unknown_exclusions = set(to_exclude) - set(categories)
