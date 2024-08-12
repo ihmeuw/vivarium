@@ -1,4 +1,4 @@
-**3.0.0 - 08/12/2024**
+**3.0.0 - 08/12/24**
 
 Breaking changes:
   - Remove the unnecessary metrics pipeline
