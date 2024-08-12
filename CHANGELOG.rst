@@ -1,27 +1,32 @@
 **3.0.0 - 08/12/2024**
 
-  - Refactor results manager to process results directly
-  - Refactor lookup table creation and allow creation from the configuration
+Breaking changes:
   - Remove the unnecessary metrics pipeline
-  - Implement excluding results categories via the configuration
-  - Implement simulation backups
-  - Implement multiple new Observer types
-  - Implement multiple new interface functions for registering stratifications and observations
-  - Remove --location/-l option from simulate run command
-  - Implement an Observation dataclass
-  - Enable build_lookup_table to accept a list as input data
-  - Add a get_configuration method and configuration attribute to Component
+  - Refactor lookup table creation and allow creation from the configuration
+  - Refactor results manager to process results directly
+
+Major changes:
   - Move results controller and interface from managers to default plugins
-  - Automatically run Jenkins builds on push or pull request
-  - Install matching upstream branches in github builds
-  - Stop writing seed and draw columns to the results
-  - Add simulate run e2e test
-  - Move all steps of running a simulation into a run_simulation instance method
-  - Check for and log unused stratifications and raise for missing required stratifications
-  - Add a report emitter to the SimulationContext
+  - Add a get_configuration method and configuration attribute to Component
+  - Enable build_lookup_table to accept a list as input data
+  - Implement an Observation dataclass
+  - Remove --location/-l option from simulate run command
+  - Implement multiple new interface functions for registering stratifications and observations
+  - Implement multiple new Observer types
+  - Implement simulation backups
+  - Implement excluding results categories via the configuration
+
+Other changes:
   - Use LayeredConfigTree package instead of local ConfigTree class
+  - Add a report emitter to the SimulationContext
+  - Check for and log unused stratifications and raise for missing required stratifications
+  - Move all steps of running a simulation into a run_simulation instance method
+  - Add simulate run e2e test
+  - Stop writing seed and draw columns to the results
+  - Install matching upstream branches in github builds
+  - Automatically run Jenkins builds on push or pull request
   - Add type hints throughout results modules
-  - various other minor updates
+  - Various other minor updates
 
 **2.3.8 - 06/17/24**
 
