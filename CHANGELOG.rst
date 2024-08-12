@@ -11,6 +11,7 @@ Major changes:
   - Enable build_lookup_table to accept a list as input data
   - Implement an Observation dataclass
   - Remove --location/-l option from simulate run command
+  - Change the metrics/ folder to results/; refer to "results" instead of "metrics" throughout
   - Implement multiple new interface functions for registering stratifications and observations
   - Implement multiple new Observer types
   - Implement simulation backups
