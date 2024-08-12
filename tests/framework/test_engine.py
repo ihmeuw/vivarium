@@ -1,8 +1,10 @@
 import math
 from itertools import product
 from pathlib import Path
+from time import time
 from typing import Dict, List
 
+import dill
 import pandas as pd
 import pytest
 
@@ -345,6 +347,45 @@ def test_SimulationContext_report_write(SimulationContext, base_config, componen
         results = sim.get_results()[measure]
         written_results = pd.read_parquet(results_root / f"{measure}.parquet")
         assert results.equals(written_results)
+
+
+def test_SimulationContext_write_backup(mocker, SimulationContext, tmpdir):
+    # TODO MIC-5216: Remove mocks when we can use dill in pytest.
+    mocker.patch("vivarium.framework.engine.dill.dump")
+    mocker.patch("vivarium.framework.engine.dill.load", return_value=SimulationContext())
+    sim = SimulationContext()
+    backup_path = tmpdir / "backup.pkl"
+    sim.write_backup(backup_path)
+    assert backup_path.exists()
+    with open(backup_path, "rb") as f:
+        sim_backup = dill.load(f)
+    assert isinstance(sim_backup, SimulationContext)
+
+
+def test_SimulationContext_run_with_backup(mocker, SimulationContext, base_config, tmpdir):
+    mocker.patch("vivarium.framework.engine.SimulationContext.write_backup")
+    original_time = time()
+
+    def time_generator():
+        current_time = original_time
+        while True:
+            yield current_time
+            current_time += 5
+
+    mocker.patch("vivarium.framework.engine.time", side_effect=time_generator())
+    components = [
+        Hogwarts(),
+        HousePointsObserver(),
+        NoStratificationsQuidditchWinsObserver(),
+        QuidditchWinsObserver(),
+        HogwartsResultsStratifier(),
+    ]
+    sim = SimulationContext(base_config, components, configuration=HARRY_POTTER_CONFIG)
+    backup_path = tmpdir / "backup.pkl"
+    sim.setup()
+    sim.initialize_simulants()
+    sim.run(backup_path=backup_path, backup_freq=5)
+    assert sim.write_backup.call_count == _get_num_steps(sim)
 
 
 def test_get_results_formatting(SimulationContext, base_config):

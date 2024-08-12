@@ -21,8 +21,10 @@ tools to easily setup and run a simulation.
 
 from pathlib import Path
 from pprint import pformat
+from time import time
 from typing import Any, Dict, List, Optional, Set, Union
 
+import dill
 import numpy as np
 import pandas as pd
 import yaml
@@ -42,7 +44,7 @@ from vivarium.framework.population import PopulationInterface
 from vivarium.framework.randomness import RandomnessInterface
 from vivarium.framework.resource import ResourceInterface
 from vivarium.framework.results import ResultsInterface
-from vivarium.framework.time import TimeInterface
+from vivarium.framework.time import Time, TimeInterface
 from vivarium.framework.values import ValuesInterface
 
 
@@ -206,6 +208,11 @@ class SimulationContext:
     def name(self) -> str:
         return self._name
 
+    @property
+    def current_time(self) -> Time:
+        """Returns the current simulation time."""
+        return self._clock.time
+
     def get_results(self) -> Dict[str, pd.DataFrame]:
         """Return the formatted results."""
         return self._results.get_results()
@@ -246,7 +253,7 @@ class SimulationContext:
         self._clock.step_forward(self.get_population().index)
 
     def step(self) -> None:
-        self._logger.debug(self._clock.time)
+        self._logger.debug(self.current_time)
         for event in self.time_step_events:
             self._logger.debug(f"Event: {event}")
             self._lifecycle.set_state(event)
@@ -258,9 +265,22 @@ class SimulationContext:
             self.time_step_emitters[event](pop_to_update)
         self._clock.step_forward(self.get_population().index)
 
-    def run(self) -> None:
-        while self._clock.time < self._clock.stop_time:
-            self.step()
+    def run(
+        self,
+        backup_path: Optional[Path] = None,
+        backup_freq: Optional[Union[int, float]] = None,
+    ) -> None:
+        if backup_freq:
+            time_to_save = time() + backup_freq
+            while self.current_time < self._clock.stop_time:
+                self.step()
+                if time() >= time_to_save:
+                    self._logger.debug(f"Writing Simulation Backup to {backup_path}")
+                    self.write_backup(backup_path)
+                    time_to_save = time() + backup_freq
+        else:
+            while self.current_time < self._clock.stop_time:
+                self.step()
 
     def finalize(self) -> None:
         self._lifecycle.set_state("simulation_end")
@@ -295,6 +315,10 @@ class SimulationContext:
                 df.to_parquet(output_file, index=False)
         except ConfigurationKeyError:
             self._logger.info("No results directory set; results are not written to disk.")
+
+    def write_backup(self, backup_path: Path) -> None:
+        with open(backup_path, "wb") as f:
+            dill.dump(self, f, protocol=dill.HIGHEST_PROTOCOL)
 
     def get_performance_metrics(self) -> pd.DataFrame:
         timing_dict = self._lifecycle.timings

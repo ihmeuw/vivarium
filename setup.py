@@ -41,6 +41,7 @@ if __name__ == "__main__":
         "networkx",
         "loguru",
         "pyarrow",
+        "dill",
         # Type stubs
         "pandas-stubs",
     ]
