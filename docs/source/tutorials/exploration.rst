@@ -95,6 +95,7 @@ configuration by simply printing it.
    sim = get_disease_model_simulation()
 
    del sim.configuration['input_data']
+   del sim.configuration['stratification']['excluded_categories']
 
 .. testcode:: configuration
 

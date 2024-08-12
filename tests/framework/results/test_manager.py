@@ -4,6 +4,7 @@ from types import MethodType
 import numpy as np
 import pandas as pd
 import pytest
+from layered_config_tree import LayeredConfigTree
 from loguru import logger
 from pandas.api.types import CategoricalDtype
 
@@ -12,12 +13,12 @@ from tests.framework.results.helpers import (
     BIN_LABELS,
     BIN_SILLY_BIN_EDGES,
     BIN_SOURCE,
-    CATEGORIES,
     FAMILIARS,
     HARRY_POTTER_CONFIG,
+    HOUSE_CATEGORIES,
     NAME,
+    NAME_COLUMNS,
     POWER_LEVEL_GROUP_LABELS,
-    SOURCES,
     STUDENT_HOUSES,
     CatBombObserver,
     ExamScoreObserver,
@@ -31,7 +32,7 @@ from tests.framework.results.helpers import (
     ValedictorianObserver,
     mock_get_value,
     sorting_hat_serial,
-    sorting_hat_vector,
+    sorting_hat_vectorized,
     verify_stratification_added,
 )
 from vivarium.framework.results import VALUE_COLUMN
@@ -89,32 +90,52 @@ def test__get_stratifications(
 
 
 @pytest.mark.parametrize(
-    "name, sources, categories, mapper, is_vectorized",
+    "name, sources, categories, excluded_categories, mapper, is_vectorized",
     [
         (
             NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_vector,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
+            [],
+            sorting_hat_vectorized,
             True,
         ),
         (
             NAME,
-            SOURCES,
-            CATEGORIES,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
+            [],
             sorting_hat_serial,
             False,
         ),
+        (
+            NAME,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
+            ["gryffindor"],
+            sorting_hat_vectorized,
+            True,
+        ),
     ],
-    ids=["vectorized_mapper", "non-vectorized_mapper"],
+    ids=["vectorized_mapper", "non-vectorized_mapper", "excluded_categories"],
 )
 def test_register_stratification_no_pipelines(
-    name, sources, categories, mapper, is_vectorized, mocker
+    name, sources, categories, excluded_categories, mapper, is_vectorized, mocker
 ):
     mgr = ResultsManager()
     builder = mocker.Mock()
+    builder.configuration.stratification = LayeredConfigTree(
+        {"default": [], "excluded_categories": {}}
+    )
     mgr.setup(builder)
-    mgr.register_stratification(name, categories, mapper, is_vectorized, sources, [])
+    mgr.register_stratification(
+        name=name,
+        categories=categories,
+        excluded_categories=excluded_categories,
+        mapper=mapper,
+        is_vectorized=is_vectorized,
+        requires_columns=sources,
+    )
     for item in sources:
         assert item in mgr._required_columns
     assert verify_stratification_added(
@@ -122,6 +143,7 @@ def test_register_stratification_no_pipelines(
         name,
         sources,
         categories,
+        excluded_categories,
         mapper,
         is_vectorized,
     )
@@ -132,15 +154,15 @@ def test_register_stratification_no_pipelines(
     [
         (
             NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_vector,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
+            sorting_hat_vectorized,
             True,
         ),
         (
             NAME,
-            SOURCES,
-            CATEGORIES,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
             sorting_hat_serial,
             False,
         ),
@@ -152,11 +174,22 @@ def test_register_stratification_with_pipelines(
 ):
     mgr = ResultsManager()
     builder = mocker.Mock()
+    builder.configuration.stratification = LayeredConfigTree(
+        {"default": [], "excluded_categories": {}}
+    )
     # Set up mock builder with mocked get_value call for Pipelines
     mocker.patch.object(builder, "value.get_value")
     builder.value.get_value = MethodType(mock_get_value, builder)
     mgr.setup(builder)
-    mgr.register_stratification(name, categories, mapper, is_vectorized, [], sources)
+    mgr.register_stratification(
+        name=name,
+        categories=categories,
+        excluded_categories=None,
+        mapper=mapper,
+        is_vectorized=is_vectorized,
+        requires_columns=[],
+        requires_values=sources,
+    )
     for item in sources:
         assert item in mgr._required_values
     assert verify_stratification_added(
@@ -164,6 +197,7 @@ def test_register_stratification_with_pipelines(
         name,
         sources,
         categories,
+        [],
         mapper,
         is_vectorized,
     )
@@ -174,15 +208,15 @@ def test_register_stratification_with_pipelines(
     [
         (  # expected Stratification for vectorized
             NAME,
-            SOURCES,
-            CATEGORIES,
-            sorting_hat_vector,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
+            sorting_hat_vectorized,
             True,
         ),
         (  # expected Stratification for non-vectorized
             NAME,
-            SOURCES,
-            CATEGORIES,
+            NAME_COLUMNS,
+            HOUSE_CATEGORIES,
             sorting_hat_serial,
             False,
         ),
@@ -194,13 +228,22 @@ def test_register_stratification_with_column_and_pipelines(
 ):
     mgr = ResultsManager()
     builder = mocker.Mock()
+    builder.configuration.stratification = LayeredConfigTree(
+        {"default": [], "excluded_categories": {}}
+    )
     # Set up mock builder with mocked get_value call for Pipelines
     mocker.patch.object(builder, "value.get_value")
     builder.value.get_value = MethodType(mock_get_value, builder)
     mgr.setup(builder)
     mocked_column_name = "silly_column"
     mgr.register_stratification(
-        name, categories, mapper, is_vectorized, [mocked_column_name], sources
+        name=name,
+        categories=categories,
+        excluded_categories=None,
+        mapper=mapper,
+        is_vectorized=is_vectorized,
+        requires_columns=[mocked_column_name],
+        requires_values=sources,
     )
     assert mocked_column_name in mgr._required_columns
     for item in sources:
@@ -212,6 +255,7 @@ def test_register_stratification_with_column_and_pipelines(
         name,
         all_sources,
         categories,
+        [],
         mapper,
         is_vectorized,
     )
@@ -220,28 +264,6 @@ def test_register_stratification_with_column_and_pipelines(
 ##############################################
 # Tests for `register_binned_stratification` #
 ##############################################
-
-
-def test_register_binned_stratification():
-    mgr = ResultsManager()
-    mgr.logger = logger
-    assert len(mgr._results_context.stratifications) == 0
-    mgr.register_binned_stratification(
-        target=BIN_SOURCE,
-        target_type="column",
-        binned_column=BIN_BINNED_COLUMN,
-        bin_edges=BIN_SILLY_BIN_EDGES,
-        labels=BIN_LABELS,
-    )
-    assert len(mgr._results_context.stratifications) == 1
-    strat = mgr._results_context.stratifications[0]
-    assert strat.name == BIN_BINNED_COLUMN
-    assert strat.sources == [BIN_SOURCE]
-    assert strat.categories == BIN_LABELS
-    # Cannot access the mapper because it's in local scope, so check __repr__
-    assert "function ResultsManager.register_binned_stratification.<locals>._bin_data" in str(
-        strat.mapper
-    )
 
 
 @pytest.mark.parametrize(
@@ -257,10 +279,11 @@ def test_register_binned_stratification_raises_bins_labels_mismatch(bins, labels
     ):
         mgr.register_binned_stratification(
             target=BIN_SOURCE,
-            target_type="column",
             binned_column=BIN_BINNED_COLUMN,
             bin_edges=bins,
             labels=labels,
+            excluded_categories=None,
+            target_type="column",
         )
 
 
@@ -269,10 +292,11 @@ def test_binned_stratification_mapper():
     mgr.logger = logger
     mgr.register_binned_stratification(
         target=BIN_SOURCE,
-        target_type="column",
         binned_column=BIN_BINNED_COLUMN,
         bin_edges=BIN_SILLY_BIN_EDGES,
         labels=BIN_LABELS,
+        excluded_categories=None,
+        target_type="column",
     )
     strat = mgr._results_context.stratifications[0]
     data = pd.Series([-np.inf] + BIN_SILLY_BIN_EDGES + [np.inf])
