@@ -76,7 +76,6 @@ def test_register_binned_stratification(mocker):
     mgr.logger = logger
     builder = mocker.Mock()
     mgr._results_context.setup(builder)
-    # mocker.patch.object(mgr._results_context, "excluded_categories", {})
 
     # Check pre-registration stratifications and manager required columns/values
     assert len(mgr._results_context.stratifications) == 0
