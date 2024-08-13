@@ -1,3 +1,9 @@
+"""
+===============
+Results Context
+===============
+"""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -18,12 +24,12 @@ from vivarium.framework.results.stratification import (
 
 
 class ResultsContext:
-    """
-    Manager context for organizing observations and the stratifications they require.
+    """Manager for organizing observations and their required stratifications.
 
-    This context object is wholly contained by the manager :class:`vivarium.framework.results.manager.ResultsManger`.
-    Stratifications can be added to the context through the manager via the
-    :meth:`vivarium.framework.results.context.ResultsContext.add_observation` method.
+    This context object is wholly contained by :class:`ResultsManager <vivarium.framework.results.manager.ResultsManager>`.
+    Stratifications and observations can be added to the context through the manager via the
+    :meth:`vivarium.framework.results.context.ResultsContext.add_stratification` and
+    :meth:`vivarium.framework.results.context.ResultsContext.register_observation` methods, respectively.
     """
 
     def __init__(self) -> None:
@@ -69,17 +75,17 @@ class ResultsContext:
         mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]],
         is_vectorized: bool,
     ) -> None:
-        """Add a stratification to the context.
+        """Add a stratification to the results context.
 
         Parameters
         ----------
         name
-            Name of the of the column created by the stratification.
+            Name of the column created by the `mapper`.
         sources
-            A list of the columns and values needed for the mapper to determinate
+            A list of the columns and values needed for the `mapper` to determine
             categorization.
         categories
-            List of string values that the mapper is allowed to output.
+            List of string values that the `mapper` is allowed to map to.
         excluded_categories
             List of mapped string values to be excluded from results processing.
             If None (the default), will use exclusions as defined in the configuration.
@@ -87,12 +93,21 @@ class ResultsContext:
             A callable that emits values in `categories` given inputs from columns
             and values in the `requires_columns` and `requires_values`, respectively.
         is_vectorized
-            `True` if the mapper function expects a `DataFrame`, and `False` if it
-            expects a row of the `DataFrame` and should be used by calling :func:`df.apply`.
+            True if the `mapper` function expects a pd.DataFrame and False if it
+            expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
+
+        Raises
+        ------
+        ValueError
+            If the stratification `name` is already used.
+        ValueError
+            If there are duplicate `categories`.
+        ValueError
+            If any `excluded_categories` are not in `categories`.
 
 
         Returns
-        ------
+        -------
         None
 
         """
@@ -151,27 +166,31 @@ class ResultsContext:
         when: str,
         **kwargs,
     ) -> None:
-        """Add an observation to the context.
+        """Add an observation to the results context.
 
         Parameters
         ----------
         observation_type
-            Class type of the observation to register.
+            Specific class type of observation to register.
         name
-            Name of the metric to observe and result file.
+            Name of the observation. It will also be the name of the output results file
+            for this particular observation.
         pop_filter
-            A Pandas query filter string to filter the population down to the
-            simulants who should be considered for the observation.
+            A Pandas query filter string to filter the population down to the simulants who should
+            be considered for the observation.
         when
-            String name of the phase of a time-step the observation should happen.
-            Valid values are: `"time_step__prepare"`, `"time_step"`,
-            `"time_step__cleanup"`, `"collect_metrics"`.
-        kwargs
-            Additional keyword arguments to pass to the observation constructor.
+            String name of the lifecycle phase the observation should happen. Valid values are:
+            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
+        **kwargs
+            Additional keyword arguments to be passed to the observation's constructor.
 
+        Raises
+        ------
+        ValueError
+            If the observation `name` is already used.
 
         Returns
-        ------
+        -------
         None
 
         """
@@ -190,6 +209,9 @@ class ResultsContext:
             raise ValueError(
                 f"Observation name '{name}' is already used: {str(already_used)}."
             )
+
+        # Instantiate the observation and add it and its (pop_filter, stratifications)
+        # tuple as a key-value pair to the self.observations[when] dictionary.
         observation = observation_type(name=name, pop_filter=pop_filter, when=when, **kwargs)
         self.observations[observation.when][
             (observation.pop_filter, observation.stratifications)
@@ -206,7 +228,32 @@ class ResultsContext:
         None,
         None,
     ]:
-        """Generate current results for all observations at this lifecycle phase and event."""
+        """Generate and yield current results for all observations at this lifecycle
+        phase and event. Each set of results are stratified and grouped by
+        all regigstered stratifications as well as filtered by their respective
+        observation's pop_filter.
+
+        Parameters
+        ----------
+        population
+            The current population DataFrame.
+        lifecycle_phase
+            The current lifecycle phase.
+        event
+            The current Event.
+
+        Raises
+        ------
+        ValueError
+            If a stratification's temporary column name already exists in the population DataFrame.
+
+        Yields
+        ------
+        A tuple containing each observation's newly observed results, the name of
+        the observation, and the observations results updater function. Note that
+        it yields (None, None, None) if the filtered is empty.
+
+        """
 
         for stratification in self.stratifications:
             # Add new columns of mapped values to the population to prevent name collisions
@@ -249,8 +296,8 @@ class ResultsContext:
         pop_filter: str,
         stratification_names: Optional[tuple[str, ...]],
     ) -> pd.DataFrame:
-        """Filter the population based on the filter string as well as any
-        excluded stratification categories
+        """Filter the population based on the `pop_filter` string as well as any
+        excluded stratification categories.
         """
         pop = population.query(pop_filter) if pop_filter else population.copy()
         if stratification_names:
@@ -268,10 +315,13 @@ class ResultsContext:
     def _get_groups(
         stratifications: Tuple[str, ...], filtered_pop: pd.DataFrame
     ) -> DataFrameGroupBy:
-        """Group the population by stratifications.
+        """Group the population by stratification.
+
         NOTE: Stratifications at this point can be an empty tuple.
-        HACK: It's a bit hacky how we are handling the groupby object if there
-        are no stratifications. The alternative is to use the entire population
+
+        HACK: If there are no `stratifications` (i.e. it's an empty tuple), we
+        create a single group of the entire `filtered_pop` index and assign
+        it a name of "all". The alternative is to use the entire population
         instead of a groupby object, but then we would need to handle
         the different ways the aggregator can behave.
         """
@@ -286,7 +336,7 @@ class ResultsContext:
         return pop_groups
 
     def _rename_stratification_columns(self, results: pd.DataFrame) -> None:
-        """convert stratified mapped index names to original"""
+        """Convert the temporary stratified mapped index names back to their original names."""
         if isinstance(results.index, pd.MultiIndex):
             idx_names = [get_original_col_name(name) for name in results.index.names]
             results.rename_axis(index=idx_names, inplace=True)

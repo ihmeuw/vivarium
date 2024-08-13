@@ -1,3 +1,9 @@
+"""
+================
+Stratifications
+================
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -11,28 +17,32 @@ STRATIFICATION_COLUMN_SUFFIX: str = "mapped_values"
 
 @dataclass
 class Stratification:
-    """Class for stratifying observed quantities by specified characteristics
+    """Class for stratifying observed quantities by specified characteristics.
 
     Each Stratification represents a set of mutually exclusive and collectively
     exhaustive categories into which simulants can be assigned.
 
-    The `Stratification` class has six fields: `name`, `sources`, `mapper`,
-    `categories`, `excluded_categories`, and `is_vectorized`. The `name` is the
-    name of the column created by the mapper. The `sources` is a list of columns
-    in the extended state table that are the inputs to the mapper function. Simulants
-    will later be grouped by this column (or these columns) during stratification.
-    `categories` is the total set of values that the mapper can output.
-    `excluded_categories` are values that have been requested to be excluded (and
-    already removed) from `categories`. The `mapper` is the method that transforms the source
-    to the name column. The method produces an output column by calling the mapper on the source
-    columns. If the mapper is `None`, the default identity mapper is used. If
-    the mapper is not vectorized this is performed by using `pd.apply`.
-    Finally, `is_vectorized` is a boolean parameter that signifies whether
-    mapper function is applied to a single simulant (`False`) or to the whole
-    population (`True`).
-
     `Stratification` also has a `__call__()` method. The method produces an
     output column by calling the mapper on the source columns.
+
+    Attributes
+    ----------
+    name
+        Name of the column created by the `mapper`.
+    sources
+        A list of the columns and values needed for the `mapper` to determine
+        categorization.
+    categories
+        List of string values that the `mapper` is allowed to map to.
+    excluded_categories
+        List of mapped string values to be excluded from results processing.
+        If None (the default), will use exclusions as defined in the configuration.
+    mapper
+        A callable that emits values in `categories` given inputs from columns
+        and values in the `requires_columns` and `requires_values`, respectively.
+    is_vectorized
+        True if the `mapper` function expects a pd.DataFrame and False if it
+        expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
     """
 
     name: str
@@ -49,6 +59,9 @@ class Stratification:
         )
 
     def __post_init__(self) -> None:
+        """Assign a default `mapper` if none was provided and check for non-empty
+        `categories` and `sources` otherwise.
+        """
         if self.mapper is None:
             if len(self.sources) != 1:
                 raise ValueError(
@@ -63,10 +76,10 @@ class Stratification:
             raise ValueError("The sources argument must be non-empty.")
 
     def __call__(self, population: pd.DataFrame) -> pd.Series[str]:
-        """Apply the mapper to the population 'sources' columns and add the result
-        to the population. Any excluded categories (which have already been removed
-        from self.categories) will be converted to NaNs in the new column
-        and dropped later at the observation level.
+        """Apply the mapper to the population `sources` columns to create a new
+        pandas Series to be added to the population. Any excluded categories
+        (which have already been removed from self.categories) will be converted
+        to NaNs in the new column and dropped later at the observation level.
         """
         if self.is_vectorized:
             mapped_column = self.mapper(population[self.sources])

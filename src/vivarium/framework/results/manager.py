@@ -1,3 +1,9 @@
+"""
+======================
+Results System Manager
+======================
+"""
+
 from __future__ import annotations
 
 from collections import defaultdict
@@ -23,13 +29,9 @@ class SourceType(Enum):
 class ResultsManager(Manager):
     """Backend manager object for the results management system.
 
-    The :class:`ResultManager` actually performs the actions needed to
-    stratify and observe results. It contains the public methods used by the
-    :class:`ResultsInterface` to register stratifications and observations,
-    which provide it with lists of methods to apply in their respective areas.
-    It is able to record observations at any of the time-step sub-steps
-    (`time_step__prepare`, `time_step`, `time_step__cleanup`, and
-    `collect_metrics`).
+    This class contains the public methods used by the :class:`ResultsInterface <vivarium.framework.results.interface.ResultsInterface>`
+    to register stratifications and observations as well as the :method:`get_results`
+    method used to retrieve formatted results by the :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`.
     """
 
     CONFIGURATION_DEFAULTS = {
@@ -48,16 +50,16 @@ class ResultsManager(Manager):
 
     @property
     def name(self) -> str:
-        """The name of this ResultsManager."""
         return self._name
 
     def get_results(self) -> Dict[str, pd.DataFrame]:
         """Return the measure-specific formatted results in a dictionary.
 
         NOTE: self._results_context.observations is a list where each item is a dictionary
-        of the form {lifecycle_phase: {(pop_filter, stratifications): List[Observation]}}.
+        of the form {lifecycle_phase: {(pop_filter, stratification_names): List[Observation]}}.
         We use a triple-nested for loop to iterate over only the list of Observations
-        (i.e. we do not need the lifecycle_phase, pop_filter, or stratifications).
+        (i.e. we do not need the lifecycle_phase, pop_filter, or stratification_names
+        for this method).
         """
         formatted = {}
         for observation_details in self._results_context.observations.values():
@@ -90,7 +92,7 @@ class ResultsManager(Manager):
         self.set_default_stratifications(builder)
 
     def on_post_setup(self, _: Event) -> None:
-        """Initialize results with 0s DataFrame' for each measure and all stratifications"""
+        """Initialize results for each measure."""
         registered_stratifications = self._results_context.stratifications
 
         used_stratifications = set()
@@ -136,10 +138,7 @@ class ResultsManager(Manager):
         self.gather_results("collect_metrics", event)
 
     def gather_results(self, lifecycle_phase: str, event: Event) -> None:
-        """Update the existing results with new results. Any columns in the
-        results group that are not already in the existing results are initialized
-        with 0.0.
-        """
+        """Update existing results with any new results."""
         population = self._prepare_population(event)
         if population.empty:
             return
@@ -169,14 +168,16 @@ class ResultsManager(Manager):
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
     ) -> None:
-        """Manager-level stratification registration, including resources and the stratification itself.
+        """Manager-level stratification registration. Adds a stratification
+        to the :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
+        as well as the stratification's required resources to this manager.
 
         Parameters
         ----------
         name
-            Name of the of the column created by the stratification.
+            Name of the column created by the `mapper`.
         categories
-            List of string values that the mapper is allowed to output.
+            List of string values that the `mapper` is allowed to map to.
         excluded_categories
             List of mapped string values to be excluded from results processing.
             If None (the default), will use exclusions as defined in the configuration.
@@ -184,19 +185,19 @@ class ResultsManager(Manager):
             A callable that emits values in `categories` given inputs from columns
             and values in the `requires_columns` and `requires_values`, respectively.
         is_vectorized
-            `True` if the mapper function expects a `DataFrame`, and `False` if it
-            expects a row of the `DataFrame` and should be used by calling :func:`df.apply`.
+            True if the `mapper` function expects a pd.DataFrame and False if it
+            expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
         requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline modifier
-            is called.
+            A list of the state table columns that must be present and populated in the
+            state table before the pipeline modifier is called.
         requires_values
             A list of the value pipelines that need to be properly sourced
             before the pipeline modifier is called.
 
         Returns
-        ------
+        -------
         None
+
         """
         self.logger.debug(f"Registering stratification {name}")
         target_columns = list(requires_columns) + list(requires_values)
@@ -216,36 +217,38 @@ class ResultsManager(Manager):
         target_type: str,
         **cut_kwargs,
     ) -> None:
-        """Manager-level registration of a continuous `target` quantity to observe into bins in a `binned_column`.
+        """Manager-level registration of a continuous `target` quantity to observe
+        into bins in a `binned_column`.
 
         Parameters
         ----------
         target
-            String name of the state table column or value pipeline used to stratify.
+            String name of the state table column or value pipeline to be binned.
         binned_column
-            String name of the column for the binned quantities.
+            String name of the new column for the binned quantities.
         bin_edges
             List of scalars defining the bin edges, passed to :meth: pandas.cut.
-            The length must equal the length of `labels` plus one.
-            Note that the bins are left edge inclusive, e.g. bin edges [1, 2, 3]
-            indicate groups [1, 2) and [2, 3).
+            The length must be equal to the length of `labels` plus 1.
         labels
-            List of string labels for bins. The length must equal to the length
-            of `bin_edges` minus one.
+            List of string labels for bins. The length must be equal to the length
+            of `bin_edges` minus 1.
         excluded_categories
             List of mapped string values to be excluded from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         target_type
-            "column" or "value"
+            Type specification of the `target` to be binned. "column" if it's a
+            state table column or "value" if it's a value pipeline.
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
 
         Returns
-        ------
+        -------
         None
+
         """
 
         def _bin_data(data: Union[pd.Series, pd.DataFrame]) -> pd.Series:
+            """Use pandas.cut to bin continuous values"""
             data = data.squeeze()
             if not isinstance(data, pd.Series):
                 raise ValueError(f"Expected a Series, but got type {type(data)}.")
@@ -259,7 +262,7 @@ class ResultsManager(Manager):
                 f"match the number of labels ({len(labels)})"
             )
 
-        target_arg = "requires_columns" if target_type == "column" else "required_values"
+        target_arg = "requires_columns" if target_type == "column" else "requires_values"
         target_kwargs = {target_arg: [target]}
 
         self.register_stratification(
@@ -281,10 +284,42 @@ class ResultsManager(Manager):
         requires_columns: List[str],
         requires_values: List[str],
         **kwargs,
-    ):
+    ) -> None:
+        """Manager-level observation registration. Adds an observation to the
+        :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
+        as well as the observation's required resources to this manager.
+
+        Parameters
+        ----------
+        observation_type
+            Specific class type of observation to register.
+        is_stratified
+            True if the observation is a stratified type and False if not.
+        name
+            Name of the observation. It will also be the name of the output results file
+            for this particular observation.
+        pop_filter
+            A Pandas query filter string to filter the population down to the simulants who should
+            be considered for the observation.
+        when
+            String name of the lifecycle phase the observation should happen. Valid values are:
+            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
+        requires_columns
+            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
+        requires_values
+            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
+        **kwargs
+            Additional keyword arguments to be passed to the observation's constructor.
+
+        Returns
+        -------
+        None
+
+        """
         self.logger.debug(f"Registering observation {name}")
 
         if is_stratified:
+            # Resolve required stratifications and add to kwargs dictionary
             additional_stratifications = kwargs.get("additional_stratifications", [])
             excluded_stratifications = kwargs.get("excluded_stratifications", [])
             self._warn_check_stratifications(
@@ -296,6 +331,7 @@ class ResultsManager(Manager):
                 excluded_stratifications,
             )
             kwargs["stratifications"] = stratifications
+            # Remove the unused kwargs before passing to the results context registration
             del kwargs["additional_stratifications"]
             del kwargs["excluded_stratifications"]
 
@@ -320,6 +356,7 @@ class ResultsManager(Manager):
         additional_stratifications: List[str] = [],
         excluded_stratifications: List[str] = [],
     ) -> Tuple[str, ...]:
+        """Resolve the stratifications required for the observation."""
         stratifications = list(
             set(
                 self._results_context.default_stratifications
@@ -332,6 +369,7 @@ class ResultsManager(Manager):
         return tuple(sorted(stratifications))
 
     def _add_resources(self, target: List[str], target_type: SourceType) -> None:
+        """Add required resources to the manager's list of required columns and values."""
         if len(target) == 0:
             return  # do nothing on empty lists
         target_set = set(target) - {"event_time", "current_time", "event_step_size"}
