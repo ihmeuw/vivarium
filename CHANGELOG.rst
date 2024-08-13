@@ -2,7 +2,7 @@
 
 Breaking changes:
   - Remove the unnecessary metrics pipeline
-  - Refactor lookup table creation and allow creation from the configuration
+  - Refactor lookup table creation and allow configuration of lookup columns
   - Refactor results manager to process results directly
 
 Major changes:
