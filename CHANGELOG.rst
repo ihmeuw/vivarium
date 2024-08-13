@@ -18,7 +18,7 @@ Major changes:
   - Implement excluding results categories via the configuration
 
 Other changes:
-  - Use LayeredConfigTree package instead of local ConfigTree class
+  - Use layered-config-tree package instead of local ConfigTree class
   - Add a report emitter to the SimulationContext
   - Check for and log unused stratifications and raise for missing required stratifications
   - Move all steps of running a simulation into a run_simulation instance method
