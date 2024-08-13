@@ -1,7 +1,33 @@
-**3.0.0 - FIXME ADD DATE**
+**3.0.0 - 08/13/24**
 
-  - Add functionality to Component to configure lookup tables
-  - Use LayeredConfigTree package instead of local ConfigTree class
+Breaking changes:
+  - Remove the unnecessary metrics pipeline
+  - Refactor lookup table creation and allow configuration of lookup columns
+  - Refactor results manager to process results directly
+
+Major changes:
+  - Move results controller and interface from managers to default plugins
+  - Add a get_configuration method and configuration attribute to Component
+  - Enable build_lookup_table to accept a list as input data
+  - Implement an Observation dataclass
+  - Remove --location/-l option from simulate run command
+  - Change the metrics/ folder to results/; refer to "results" instead of "metrics" throughout
+  - Implement multiple new interface functions for registering stratifications and observations
+  - Implement multiple new Observer types
+  - Implement simulation backups
+  - Implement excluding results categories via the configuration
+
+Other changes:
+  - Use layered-config-tree package instead of local ConfigTree class
+  - Add a report emitter to the SimulationContext
+  - Check for and log unused stratifications and raise for missing required stratifications
+  - Move all steps of running a simulation into a run_simulation instance method
+  - Add simulate run e2e test
+  - Stop writing seed and draw columns to the results
+  - Install matching upstream branches in github builds
+  - Automatically run Jenkins builds on push or pull request
+  - Add type hints throughout results modules
+  - Various other minor updates
 
 **2.3.8 - 06/17/24**
 
