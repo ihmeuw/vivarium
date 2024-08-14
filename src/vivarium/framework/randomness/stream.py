@@ -17,7 +17,7 @@ module.
 """
 
 import hashlib
-from typing import Any, Callable, List, Tuple, Union, Optional
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd

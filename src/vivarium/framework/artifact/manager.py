@@ -9,7 +9,7 @@ for handling complex data bound up in a data artifact.
 
 import re
 from pathlib import Path
-from typing import Any, Callable, List, Sequence, Union, Optional
+from typing import Any, Callable, List, Optional, Sequence, Union
 
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
