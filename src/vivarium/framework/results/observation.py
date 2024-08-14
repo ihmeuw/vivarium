@@ -43,15 +43,14 @@ class BaseObservation(ABC):
         DataFrame or one with a complete set of stratifications as the index and
         all values set to 0.0.
     results_gatherer
-        Method or function that gathers the new observation results.
+        Method or function that gathers the new observation results. If `stratifications`
+        is not None, this method must accept `stratifications` as the second argument.
     results_updater
         Method or function that updates existing raw observation results with newly gathered results.
     results_formatter
         Method or function that formats the raw observation results.
     stratifications
-        Optional tuple of column names for the observation to stratify by. If not
-        None, the `results_gatherer` method must accept `stratifications` as
-        the second argument.
+        Optional tuple of column names for the observation to stratify by.
     to_observe
         Method or function that determines whether to perform an observation on this Event.
     """
@@ -60,7 +59,7 @@ class BaseObservation(ABC):
     pop_filter: str
     when: str
     results_initializer: Callable[[Iterable[str], Iterable[Stratification]], pd.DataFrame]
-    results_gatherer: Callable[..., pd.DataFrame]
+    results_gatherer: Callable[[pd.DataFrame, Optional[tuple[str, ...]]], pd.DataFrame]
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
     stratifications: Optional[Tuple[str]]
@@ -341,6 +340,13 @@ class AddingObservation(StratifiedObservation):
     def add_results(
         existing_results: pd.DataFrame, new_observations: pd.DataFrame
     ) -> pd.DataFrame:
+        """Add newly-observed results to the existing results.
+
+        Notes
+        -----
+        If the new observations contain columns not present in the existing results,
+        the columns are added to the DataFrame and initialized with 0.0s.
+        """
         updated_results = existing_results.copy()
         # Look for extra columns in the new_observations and initialize with 0.
         extra_cols = [

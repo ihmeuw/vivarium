@@ -64,8 +64,9 @@ class Stratification:
         if self.mapper is None:
             if len(self.sources) != 1:
                 raise ValueError(
-                    f"No mapper provided for stratification {self.name} with "
-                    f"{len(self.sources)} stratification sources."
+                    f"No mapper but {len(self.sources)} stratification sources are "
+                    f"provided for stratification {self.name}. The list of sources "
+                    "must be of length 1 if no mapper is provided."
                 )
             self.mapper = self._default_mapper
             self.is_vectorized = True
@@ -79,6 +80,21 @@ class Stratification:
         pandas Series to be added to the population. Any excluded categories
         (which have already been removed from self.categories) will be converted
         to NaNs in the new column and dropped later at the observation level.
+
+        Parameters
+        ----------
+        population
+            A pandas DataFrame containing the data to be stratified.
+
+        Returns
+        -------
+        pd.Series[str]
+            A pandas Series containing the mapped values to be used for stratifying.
+
+        Raises
+        ------
+        ValueError
+            If the mapper returns any values not in `categories` or `excluded_categories`.
         """
         if self.is_vectorized:
             mapped_column = self.mapper(population[self.sources])
