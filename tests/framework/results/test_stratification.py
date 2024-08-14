@@ -56,13 +56,19 @@ def test_stratification(mapper, is_vectorized):
             [],
             HOUSE_CATEGORIES,
             None,
-            f"No mapper provided for stratification {NAME} with 0 stratification sources.",
+            (
+                f"No mapper but 0 stratification sources are provided for stratification {NAME}. "
+                "The list of sources must be of length 1 if no mapper is provided."
+            ),
         ),
         (
             NAME_COLUMNS,
             HOUSE_CATEGORIES,
             None,
-            f"No mapper provided for stratification {NAME} with {len(NAME_COLUMNS)} stratification sources.",
+            (
+                f"No mapper but {len(NAME_COLUMNS)} stratification sources are provided for stratification {NAME}. "
+                "The list of sources must be of length 1 if no mapper is provided."
+            ),
         ),
         (
             [],
