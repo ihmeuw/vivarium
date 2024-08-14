@@ -85,7 +85,7 @@ class ResultsInterface:
         name
             Name of the stratification.
         categories
-            List of string values that the `mapper` is allowed to map to.
+            Exhaustive list of all possible stratification values.
         excluded_categories
             List of mapped string values to be excluded from results processing.
             If None (the default), will use exclusions as defined in the configuration.
