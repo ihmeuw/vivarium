@@ -155,6 +155,17 @@ class ResultsManager(Manager):
     ##########################
 
     def set_default_stratifications(self, builder: Builder) -> None:
+        """Set the default stratifications for the results context.
+
+        This passes the default stratifications from the configuration to the
+        :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
+        :meth:`set_default_stratifications` method to be set.
+
+        Parameters
+        ----------
+        builder
+            The builder object for the simulation.
+        """
         default_stratifications = builder.configuration.stratification.default
         self._results_context.set_default_stratifications(default_stratifications)
 

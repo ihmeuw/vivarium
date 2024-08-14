@@ -59,6 +59,18 @@ class ResultsContext:
 
     # noinspection PyAttributeOutsideInit
     def set_default_stratifications(self, default_grouping_columns: List[str]) -> None:
+        """Set the default column names for stratifying results.
+
+        Parameters
+        ----------
+        default_grouping_columns
+            List of column names to use for stratifying results.
+
+        Raises
+        ------
+        ResultsConfigurationError
+            If the `self.default_stratifications` attribute has already been set.
+        """
         if self.default_stratifications:
             raise ResultsConfigurationError(
                 "Multiple calls are being made to set default grouping columns "
