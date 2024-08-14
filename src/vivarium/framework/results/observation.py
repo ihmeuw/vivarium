@@ -9,7 +9,7 @@ from __future__ import annotations
 import itertools
 from abc import ABC
 from dataclasses import dataclass
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Union, Iterable
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -38,7 +38,10 @@ class BaseObservation(ABC):
         String name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
     results_initializer
-        Method or function that initializes the raw observation results.
+        Method or function that initializes the raw observation results
+        prior to starting the simulation. This could return, for example, and empty
+        DataFrame or one with a complete set of stratifications as the index and
+        all values set to 0.0.
     results_gatherer
         Method or function that gathers the new observation results.
     results_updater
@@ -56,7 +59,7 @@ class BaseObservation(ABC):
     name: str
     pop_filter: str
     when: str
-    results_initializer: Callable[..., pd.DataFrame]
+    results_initializer: Callable[[Iterable[str], Iterable[Stratification]], pd.DataFrame]
     results_gatherer: Callable[..., pd.DataFrame]
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
