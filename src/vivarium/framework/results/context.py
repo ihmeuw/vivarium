@@ -30,6 +30,21 @@ class ResultsContext:
     Stratifications and observations can be added to the context through the manager via the
     :meth:`vivarium.framework.results.context.ResultsContext.add_stratification` and
     :meth:`vivarium.framework.results.context.ResultsContext.register_observation` methods, respectively.
+
+    Attributes
+    ----------
+    default_stratifications
+        List of column names to use for stratifying results.
+    stratifications
+        List of :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
+        objects to be applied to results.
+    excluded_categories
+        Dictionary of per-metric categories to be excluded from the results.
+    observations
+        Dictionary of observation details. It is of the format
+        {lifecycle_phase: {(pop_filter, stratifications): list[Observation]}}
+    logger
+        Logger for the results context.
     """
 
     def __init__(self) -> None:
