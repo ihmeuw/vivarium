@@ -116,8 +116,10 @@ class ResultsContext:
             List of mapped string values to be excluded from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that takes a Series or a DataFrame as input and produces a
-            Series containing the corresponding stratification values.
+            A callable that takes inputs from the columns and pipelines specified by
+            `sources` and produces a Series. All values of any Series produced by a
+            `mapper` must be one of the elements of `categories`. A simulation will
+            fail if the `mapper` ever produces an invalid value.
         is_vectorized
             True if the `mapper` function expects a pd.DataFrame and False if it
             expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
