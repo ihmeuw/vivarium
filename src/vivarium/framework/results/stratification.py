@@ -60,6 +60,13 @@ class Stratification:
     def __post_init__(self) -> None:
         """Assign a default `mapper` if none was provided and check for non-empty
         `categories` and `sources` otherwise.
+
+        Raises
+        ------
+        ValueError
+            - If no mapper is provided and the number of sources is not 1.
+            - If the categories argument is empty.
+            - If the sources argument is empty.
         """
         if self.mapper is None:
             if len(self.sources) != 1:
