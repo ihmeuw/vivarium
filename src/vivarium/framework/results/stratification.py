@@ -30,16 +30,15 @@ class Stratification:
     name
         Name of the column created by the `mapper`.
     sources
-        A list of the columns and values needed for the `mapper` to determine
-        categorization.
+        A list of the columns and values needed as input for the `mapper`.
     categories
         List of string values that the `mapper` is allowed to map to.
     excluded_categories
         List of mapped string values to be excluded from results processing.
         If None (the default), will use exclusions as defined in the configuration.
     mapper
-        A callable that emits values in `categories` given inputs from columns
-        and values in the `requires_columns` and `requires_values`, respectively.
+        A callable that takes a Series or a DataFrame as input and produces a
+        Series containing the corresponding stratification values.
     is_vectorized
         True if the `mapper` function expects a pd.DataFrame and False if it
         expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).

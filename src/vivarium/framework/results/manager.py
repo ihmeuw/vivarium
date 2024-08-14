@@ -193,8 +193,8 @@ class ResultsManager(Manager):
             List of mapped string values to be excluded from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that emits values in `categories` given inputs from columns
-            and values in the `requires_columns` and `requires_values`, respectively.
+            A callable that takes a Series or a DataFrame as input and produces a
+            Series containing the corresponding stratification values.
         is_vectorized
             True if the `mapper` function expects a pd.DataFrame and False if it
             expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
@@ -390,6 +390,7 @@ class ResultsManager(Manager):
             self._required_values.update([self.get_value(target) for target in target_set])
 
     def _prepare_population(self, event: Event) -> pd.DataFrame:
+        """Prepare the population for results gathering."""
         population = self.population_view.subview(list(self._required_columns)).get(
             event.index
         )

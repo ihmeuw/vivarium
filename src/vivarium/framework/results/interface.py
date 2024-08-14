@@ -90,8 +90,8 @@ class ResultsInterface:
             List of mapped string values to be excluded from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that emits values in `categories` given inputs from columns
-            and values in the `requires_columns` and `requires_values`, respectively.
+            A callable that takes a Series or a DataFrame as input and produces a
+            Series containing the corresponding stratification values.
         is_vectorized
             True if the `mapper` function expects a pd.DataFrame and False if it
             expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
