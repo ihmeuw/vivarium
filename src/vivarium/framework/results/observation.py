@@ -9,7 +9,7 @@ from __future__ import annotations
 import itertools
 from abc import ABC
 from dataclasses import dataclass
-from typing import Callable, Optional, Tuple, Union, Iterable
+from typing import Callable, Iterable, Optional, Tuple, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
