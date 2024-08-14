@@ -91,10 +91,8 @@ class DiseaseState(State):
     def setup(self, builder: Builder):
         """Performs this component's simulation setup.
 
-        Parameters
-        ----------
-        builder : `engine.Builder`
-            Interface to several simulation tools.
+        Args:
+            builder: Interface to several simulation tools and subsystems.
         """
         super().setup(builder)
         if self._with_excess_mortality:

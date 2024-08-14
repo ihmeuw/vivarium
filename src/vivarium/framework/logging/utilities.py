@@ -17,15 +17,11 @@ from loguru import logger
 def configure_logging_to_terminal(verbosity: int, long_format: bool = True) -> None:
     """Configure logging to print to the sys.stdout.
 
-    Parameters
-    ----------
-    verbosity
-        The verbosity level of the logging. 0 logs at the WARNING level, 1 logs
-        at the INFO level, and 2 logs at the DEBUG level.
-    long_format
-        Whether to use the long format for logging messages, which includes explicit
-        information about the simulation context and component in the log messages.
-
+    Args:
+        verbosity: The verbosity level of the logging. 0 logs at the WARNING level, 1 logs
+            at the INFO level, and 2 logs at the DEBUG level.
+        long_format: Whether to use the long format for logging messages, which includes explicit
+            information about the simulation context and component in the log messages.
     """
     _clear_default_configuration()
     _add_logging_sink(
@@ -40,11 +36,8 @@ def configure_logging_to_terminal(verbosity: int, long_format: bool = True) -> N
 def configure_logging_to_file(output_directory: Path) -> None:
     """Configure logging to write to a file in the provided output directory.
 
-    Parameters
-    ----------
-    output_directory
-        The directory to write the log file to.
-
+    Args:
+        output_directory: The directory to write the log file to.
     """
     log_file = output_directory / "simulation.log"
     _add_logging_sink(
@@ -72,23 +65,16 @@ def _add_logging_sink(
 ) -> int:
     """Add a logging sink to the logger.
 
-    Parameters
-    ----------
-    sink
-        The sink to add.  Can be a file path, a file object, or a callable.
-    verbosity
-        The verbosity level.  0 is the default and will only log warnings and errors.
-        1 will log info messages.  2 will log debug messages.
-    long_format
-        Whether to use the long format for logging messages.  The long format includes
-        the simulation name and component name.  The short format only includes the
-        file name and line number.
-    colorize
-        Whether to colorize the log messages.
-    serialize
-        Whether to serialize log messages.  This is useful when logging to
-        a file or a database.
-
+    Args:
+        sink: The sink to add.  Can be a file path, a file object, or a callable.
+        verbosity: The verbosity level.  0 is the default and will only log warnings and errors.
+            1 will log info messages.  2 will log debug messages.
+        long_format: Whether to use the long format for logging messages.  The long format includes
+            the simulation name and component name.  The short format only includes the
+            file name and line number.
+        colorize: Whether to colorize the log messages.
+        serialize: Whether to serialize log messages.  This is useful when logging to
+            a file or a database.
     """
     log_formatter = _LogFormatter(long_format)
     logging_level = _get_log_level(verbosity)

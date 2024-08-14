@@ -77,39 +77,23 @@ class ResultsContext:
     ) -> None:
         """Add a stratification to the results context.
 
-        Parameters
-        ----------
-        name
-            Name of the column created by the `mapper`.
-        sources
-            A list of the columns and values needed for the `mapper` to determine
-            categorization.
-        categories
-            List of string values that the `mapper` is allowed to map to.
-        excluded_categories
-            List of mapped string values to be excluded from results processing.
-            If None (the default), will use exclusions as defined in the configuration.
-        mapper
-            A callable that emits values in `categories` given inputs from columns
-            and values in the `requires_columns` and `requires_values`, respectively.
-        is_vectorized
-            True if the `mapper` function expects a pd.DataFrame and False if it
-            expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
+        Args:
+            name: Name of the column created by the `mapper`.
+            sources: A list of the columns and values needed for the `mapper` to determine
+                categorization.
+            categories: List of string values that the `mapper` is allowed to map to.
+            excluded_categories: List of mapped string values to be excluded from results
+                processing. If None (the default), will use exclusions as defined in
+                the configuration.
+            mapper: A callable that emits values in `categories` given inputs from columns
+                and values in the `requires_columns` and `requires_values`, respectively.
+            is_vectorized: True if the `mapper` function expects a pd.DataFrame and False if it
+                expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
 
-        Raises
-        ------
-        ValueError
-            If the stratification `name` is already used.
-        ValueError
-            If there are duplicate `categories`.
-        ValueError
-            If any `excluded_categories` are not in `categories`.
-
-
-        Returns
-        -------
-        None
-
+        Raises:
+            ValueError: If the stratification `name` is already used.
+            ValueError: If there are duplicate `categories`.
+            ValueError: If any `excluded_categories` are not in `categories`.
         """
         already_used = [
             stratification
@@ -168,31 +152,20 @@ class ResultsContext:
     ) -> None:
         """Add an observation to the results context.
 
-        Parameters
-        ----------
-        observation_type
-            Specific class type of observation to register.
-        name
-            Name of the observation. It will also be the name of the output results file
-            for this particular observation.
-        pop_filter
-            A Pandas query filter string to filter the population down to the simulants who should
-            be considered for the observation.
-        when
-            String name of the lifecycle phase the observation should happen. Valid values are:
-            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        **kwargs
-            Additional keyword arguments to be passed to the observation's constructor.
+        Args:
+            observation_type: Specific class type of observation to register.
+            name: Name of the observation. It will also be the name of the output
+                results file for this particular observation.
+            pop_filter: A Pandas query filter string to filter the population down
+                to the simulants who should be considered for the observation.
+            when: String name of the lifecycle phase the observation should happen.
+                Valid values are: "time_step__prepare", "time_step", "time_step__cleanup",
+                or "collect_metrics".
+            **kwargs: Additional keyword arguments to be passed to the observation's
+                constructor.
 
-        Raises
-        ------
-        ValueError
-            If the observation `name` is already used.
-
-        Returns
-        -------
-        None
-
+        Raises:
+            ValueError: If the observation `name` is already used.
         """
         already_used = None
         if self.observations:
@@ -229,30 +202,25 @@ class ResultsContext:
         None,
     ]:
         """Generate and yield current results for all observations at this lifecycle
-        phase and event. Each set of results are stratified and grouped by
+        phase and event.
+
+        Each set of results are stratified and grouped by
         all regigstered stratifications as well as filtered by their respective
         observation's pop_filter.
 
-        Parameters
-        ----------
-        population
-            The current population DataFrame.
-        lifecycle_phase
-            The current lifecycle phase.
-        event
-            The current Event.
+        Args:
+            population: The current population DataFrame.
+            lifecycle_phase: The current lifecycle phase.
+            event: The current Event.
 
-        Raises
-        ------
-        ValueError
-            If a stratification's temporary column name already exists in the population DataFrame.
+        Yields:
+            A tuple containing each observation's newly observed results, the name of
+            the observation, and the observations results updater function. Note that
+            it yields (None, None, None) if the filtered is empty.
 
-        Yields
-        ------
-        A tuple containing each observation's newly observed results, the name of
-        the observation, and the observations results updater function. Note that
-        it yields (None, None, None) if the filtered is empty.
-
+        Raises:
+            ValueError: If a stratification's temporary column name already exists
+                in the population DataFrame.
         """
 
         for stratification in self.stratifications:

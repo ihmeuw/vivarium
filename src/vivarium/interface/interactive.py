@@ -10,11 +10,10 @@ methods for running and exploring the simulation in an interactive setting.
 
 See the associated tutorials for :ref:`running <interactive_tutorial>` and
 :ref:`exploring <exploration_tutorial>` for more information.
-
 """
 
 from math import ceil
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 
@@ -42,14 +41,12 @@ class InteractiveContext(SimulationContext):
         super().setup()
         self.initialize_simulants()
 
-    def step(self, step_size: Timedelta = None):
+    def step(self, step_size: Optional[Timedelta] = None):
         """Advance the simulation one step.
 
-        Parameters
-        ----------
-        step_size
-            An optional size of step to take. Must be compatible with the
-            simulation clock's step size (usually a pandas.Timedelta).
+        Args:
+            step_size: An optional size of step to take. Must be compatible with
+                the simulation clock's step size (usually a pandas.Timedelta).
         """
         old_step_size = self._clock._clock_step_size
         if step_size is not None:
@@ -67,60 +64,42 @@ class InteractiveContext(SimulationContext):
     def run(self, with_logging: bool = True) -> int:
         """Run the simulation for the duration specified in the configuration.
 
-        Parameters
-        ----------
-        with_logging
-            Whether or not to log the simulation steps. Only works in an ipython
-            environment.
+        Args:
+            with_logging: Whether or not to log the simulation steps. Only works
+                in an ipython environment.
 
-        Returns
-        -------
-        int
+        Returns:
             The number of steps the simulation took.
-
         """
         return self.run_until(self._clock.stop_time, with_logging=with_logging)
 
     def run_for(self, duration: Timedelta, with_logging: bool = True) -> int:
         """Run the simulation for the given time duration.
 
-        Parameters
-        ----------
-        duration
-            The length of time to run the simulation for. Should be compatible
-            with the simulation clock's step size (usually a pandas
-            Timedelta).
-        with_logging
-            Whether or not to log the simulation steps. Only works in an ipython
-            environment.
+        Args:
+            duration: The length of time to run the simulation for. Should be
+                compatible with the simulation clock's step size (usually a
+                pandas Timedelta).
+        with_logging: Whether or not to log the simulation steps. Only works in
+            an ipython environment.
 
-        Returns
-        -------
-        int
+        Returns:
             The number of steps the simulation took.
-
         """
         return self.run_until(self._clock.time + duration, with_logging=with_logging)
 
     def run_until(self, end_time: Time, with_logging: bool = True) -> int:
         """Run the simulation until the provided end time.
 
-        Parameters
-        ----------
-        end_time
-            The time to run the simulation until. The simulation will run until
-            its clock is greater than or equal to the provided end time. Must be
-            compatible with the simulation clock's step size (usually a pandas.Timestamp)
+        Args:
+            end_time: The time to run the simulation until. The simulation will run until
+                its clock is greater than or equal to the provided end time. Must be
+                compatible with the simulation clock's step size (usually a pandas.Timestamp)
+            with_logging: Whether or not to log the simulation steps. Only works in an
+                ipython environment.
 
-        with_logging
-            Whether or not to log the simulation steps. Only works in an ipython
-            environment.
-
-        Returns
-        -------
-        int
+        Returns:
             The number of steps the simulation took.
-
         """
         if not (
             isinstance(end_time, type(self._clock.time))
@@ -136,21 +115,19 @@ class InteractiveContext(SimulationContext):
         return iterations
 
     def take_steps(
-        self, number_of_steps: int = 1, step_size: Timedelta = None, with_logging: bool = True
+        self,
+        number_of_steps: int = 1,
+        step_size: Optional[Timedelta] = None,
+        with_logging: bool = True,
     ):
         """Run the simulation for the given number of steps.
 
-        Parameters
-        ----------
-        number_of_steps
-            The number of steps to take.
-        step_size
-            An optional size of step to take. Must be compatible with the
-            simulation clock's step size (usually a pandas.Timedelta).
-        with_logging
-            Whether or not to log the simulation steps. Only works in an ipython
-            environment.
-
+        Args:
+            number_of_steps: The number of steps to take.
+            step_size: An optional size of step to take. Must be compatible with the
+                simulation clock's step size (usually a pandas.Timedelta).
+            with_logging: Whether or not to log the simulation steps. Only works
+                in an ipython environment.
         """
         if not isinstance(number_of_steps, int):
             raise ValueError("Number of steps must be an integer.")
@@ -165,12 +142,9 @@ class InteractiveContext(SimulationContext):
     def get_population(self, untracked: bool = False) -> pd.DataFrame:
         """Get a copy of the population state table.
 
-        Parameters
-        ----------
-        untracked
-            Whether or not to return simulants who are no longer being tracked
-            by the simulation.
-
+        Args:
+            untracked: Whether or not to return simulants who are no longer being
+                tracked by the simulation.
         """
         return self._population.get_population(untracked)
 
@@ -192,11 +166,8 @@ class InteractiveContext(SimulationContext):
         Available event types can be found by calling
         :func:`InteractiveContext.list_events`.
 
-        Parameters
-        ----------
-        event_type
-            The type of event to grab the listeners for.
-
+        Args:
+            event_type: The type of event to grab the listeners for.
         """
         if event_type not in self._events:
             raise ValueError(f"No event {event_type} in system.")
@@ -208,11 +179,8 @@ class InteractiveContext(SimulationContext):
         Available event types can be found by calling
         :func:`InteractiveContext.list_events`.
 
-        Parameters
-        ----------
-        event_type
-            The type of event to grab the listeners for.
-
+        Args:
+            event_type: The type of event to grab the listeners for.
         """
         if event_type not in self._events:
             raise ValueError(f"No event {event_type} in system.")
@@ -221,26 +189,21 @@ class InteractiveContext(SimulationContext):
     def list_components(self) -> Dict[str, Any]:
         """Get a mapping of component names to components currently in the simulation.
 
-        Returns
-        -------
-        Dict[str, Any]
+        Returns:
             A dictionary mapping component names to components.
-
         """
         return self._component_manager.list_components()
 
     def get_component(self, name: str) -> Any:
         """Get the component in the simulation that has ``name``, if present.
+
         Names are guaranteed to be unique.
 
-        Parameters
-        ----------
-        name
-            A component name.
-        Returns
-        -------
-            A component that has the name ``name`` else None.
+        Args:
+            name: A component name.
 
+        Returns:
+            A component that has the name ``name`` else None.
         """
         return self._component_manager.get_component(name)
 

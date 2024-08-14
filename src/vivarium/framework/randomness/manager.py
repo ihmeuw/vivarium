@@ -67,25 +67,23 @@ class RandomnessManager(Manager):
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
-        Parameters
-        ----------
-        decision_point
-            A unique identifier for a stream of random numbers.  Typically
-            represents a decision that needs to be made each time step like
-            'moves_left' or 'gets_disease'.
-        initializes_crn_attributes
-            A flag indicating whether this stream is used to generate key
-            initialization information that will be used to identify simulants
-            in the Common Random Number framework. These streams cannot be
-            copied and should only be used to generate the state table columns
-            specified in ``builder.configuration.randomness.key_columns``.
+        Args:
+            decision_point: A unique identifier for a stream of random numbers.
+                Typically represents a decision that needs to be made each time
+                step like 'moves_left' or 'gets_disease'.
+            initializes_crn_attributes: A flag indicating whether this stream is
+                used to generate key initialization information that will be used to
+                identify simulants in the Common Random Number framework. These streams
+                cannot be copied and should only be used to generate the state table
+                columns specified in ``builder.configuration.randomness.key_columns``.
 
-        Raises
-        ------
-        RandomnessError
+        Returns:
+            An entry point into the Common Random Number generation framework which
+            provides vectorized access to random numbers and a few other utilities.
+
+        Raises:
             If another location in the simulation has already created a randomness stream
             with the same identifier.
-
         """
         stream = self._get_randomness_stream(decision_point, initializes_crn_attributes)
         if not initializes_crn_attributes:
@@ -133,37 +131,27 @@ class RandomnessManager(Manager):
     def get_seed(self, decision_point: str) -> int:
         """Get a randomly generated seed for use with external randomness tools.
 
-        Parameters
-        ----------
-        decision_point
-            A unique identifier for a stream of random numbers.  Typically
-            represents a decision that needs to be made each time step like
-            'moves_left' or 'gets_disease'.
+        Args:
+            decision_point: A unique identifier for a stream of random numbers.
+                Typically represents a decision that needs to be made each time
+                step like 'moves_left' or 'gets_disease'.
 
-        Returns
-        -------
-        int
+        Returns:
             A seed for a random number generation that is linked to Vivarium's
             common random number framework.
-
         """
         return get_hash("_".join([decision_point, str(self._clock()), str(self._seed)]))
 
-    def register_simulants(self, simulants: pd.DataFrame):
+    def register_simulants(self, simulants: pd.DataFrame) -> None:
         """Adds new simulants to the randomness mapping.
 
-        Parameters
-        ----------
-        simulants
-            A table with state data representing the new simulants.  Each
-            simulant should pass through this function exactly once.
+        Args:
+            simulants: A table with state data representing the new simulants.
+                Each simulant should pass through this function exactly once.
 
-        Raises
-        ------
-        RandomnessError
-            If the provided table does not contain all key columns specified
-            in the configuration.
-
+        Raises:
+            RandomnessError: If the provided table does not contain all key columns
+                specified in the configuration.
         """
         if not all(k in simulants.columns for k in self._key_columns):
             raise RandomnessError(
@@ -193,58 +181,42 @@ class RandomnessInterface:
         scenarios should be careful to use randomness streams provided by the
         framework wherever randomness is employed.
 
-        Parameters
-        ----------
-        decision_point
-            A unique identifier for a stream of random numbers.  Typically
-            represents a decision that needs to be made each time step like
-            'moves_left' or 'gets_disease'.
-        initializes_crn_attributes
-            A flag indicating whether this stream is used to generate key
-            initialization information that will be used to identify simulants
-            in the Common Random Number framework. These streams cannot be
-            copied and should only be used to generate the state table columns
-            specified in ``builder.configuration.randomness.key_columns``.
+        Args:
+            decision_point: A unique identifier for a stream of random numbers.
+                Typically represents a decision that needs to be made each time step
+                like 'moves_left' or 'gets_disease'.
+            initializes_crn_attributes: A flag indicating whether this stream is used
+                to generate key initialization information that will be used to identify
+                simulants in the Common Random Number framework. These streams cannot
+                be copied and should only be used to generate the state table columns
+                specified in ``builder.configuration.randomness.key_columns``.
 
-        Returns
-        -------
-        RandomnessStream
-            An entry point into the Common Random Number generation framework.
-            The stream provides vectorized access to random numbers and a few
-            other utilities.
-
+        Returns:
+            An entry point into the Common Random Number generation framework which
+            provides vectorized access to random numbers and a few other utilities.
         """
         return self._manager.get_randomness_stream(decision_point, initializes_crn_attributes)
 
     def get_seed(self, decision_point: str) -> int:
         """Get a randomly generated seed for use with external randomness tools.
 
-        Parameters
-        ----------
-        decision_point :
-            A unique identifier for a stream of random numbers.  Typically
-            represents a decision that needs to be made each time step like
-            'moves_left' or 'gets_disease'.
+        Args:
+            decision_point: A unique identifier for a stream of random numbers.
+                Typically represents a decision that needs to be made each time
+                step like 'moves_left' or 'gets_disease'.
 
-        Returns
-        -------
-        int
+        Returns:
             A seed for a random number generation that is linked to Vivarium's
             common random number framework.
-
         """
         return self._manager.get_seed(decision_point)
 
     def register_simulants(self, simulants: pd.DataFrame):
         """Registers simulants with the Common Random Number Framework.
 
-        Parameters
-        ----------
-        simulants
-            A section of the state table with new simulants and at least the
-            columns specified in
-            ``builder.configuration.randomness.key_columns``.  This function
-            should be called as soon as the key columns are generated.
-
+        Args:
+            simulants: A section of the state table with new simulants and at least
+                the columns specified in ``builder.configuration.randomness.key_columns``.
+                This function should be called as soon as the key columns are generated.
         """
         self._manager.register_simulants(simulants)

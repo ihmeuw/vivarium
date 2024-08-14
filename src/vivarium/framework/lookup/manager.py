@@ -34,11 +34,9 @@ if TYPE_CHECKING:
 class LookupTableManager(Manager):
     """Manages complex data in the simulation.
 
-    Notes
-    -----
-    Client code should never access this class directly. Use ``lookup`` on the
-    builder during setup to get references to LookupTable objects.
-
+    Notes:
+        Client code should never access this class directly. Use ``lookup`` on the
+        builder during setup to get references to LookupTable objects.
     """
 
     CONFIGURATION_DEFAULTS = {
@@ -125,7 +123,6 @@ class LookupTableInterface:
     abstraction to ensure that accurate data can be retrieved when it's needed.
 
     For more information, see :ref:`here <lookup_concept>`.
-
     """
 
     def __init__(self, manager: LookupTableManager):
@@ -152,26 +149,20 @@ class LookupTableInterface:
         the table, named according to value_columns.
 
 
-        Parameters
-        ----------
-        data
-            The source data which will be used to build the resulting
-            :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`.
-        key_columns
-            Columns used to select between interpolation functions. These
-            should be the non-continuous variables in the data. For example
-            'sex' in data about a population.
-        parameter_columns
-            The columns which contain the parameters to the interpolation
-            functions. These should be the continuous variables. For example
-            'age' in data about a population.
-        value_columns
-            The data columns that will be in the resulting LookupTable. Columns
-            to be interpolated over if interpolation or the names of the columns
-            in the scalar table.
+        Args:
+            data: The source data which will be used to build the resulting
+                :class:`Lookup Table <vivarium.framework.lookup.table.LookupTable>`.
+            key_columns: Columns used to select between interpolation functions. These
+                should be the non-continuous variables in the data. For example
+                'sex' in data about a population.
+            parameter_columns: The columns which contain the parameters to the interpolation
+                functions. These should be the continuous variables. For example
+                'age' in data about a population.
+            value_columns: The data columns that will be in the resulting LookupTable. Columns
+                to be interpolated over if interpolation or the names of the columns
+                in the scalar table.
 
-        Returns
-        -------
+        Returns:
             LookupTable
         """
         return self._manager.build_table(data, key_columns, parameter_columns, value_columns)

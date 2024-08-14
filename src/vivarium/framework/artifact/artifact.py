@@ -31,14 +31,10 @@ class Artifact:
 
     def __init__(self, path: Union[str, Path], filter_terms: List[str] = None):
         """
-        Parameters
-        ----------
-        path
-            The path to the artifact file.
-        filter_terms
-            A set of terms suitable for usage with the ``where`` kwarg
-            for :func:`pd.read_hdf`.
-
+        Args:
+            path: The path to the artifact file.
+            filter_terms: A set of terms suitable for usage with the ``where``
+                kwarg for :func:`pd.read_hdf`.
         """
         self._path = Path(path)
         self._filter_terms = filter_terms
@@ -85,22 +81,15 @@ class Artifact:
     def load(self, entity_key: str) -> Any:
         """Loads the data associated with provided entity_key.
 
-        Parameters
-        ----------
-        entity_key
-            The key associated with the expected data.
+        Args:
+            entity_key: The key associated with the expected data.
 
-        Returns
-        -------
-        Any
+        Returns:
             The expected data. Will either be a standard Python object or a
             :class:`pandas.DataFrame` or :class:`pandas.Series`.
 
-        Raises
-        ------
-        ArtifactException
-            If the provided key is not in the artifact.
-
+        Raises:
+            ArtifactException: If the provided key is not in the artifact.
         """
         if entity_key not in self:
             raise ArtifactException(f"{entity_key} should be in {self.path}.")
@@ -117,22 +106,16 @@ class Artifact:
 
         return self._cache[entity_key]
 
-    def write(self, entity_key: str, data: Any):
+    def write(self, entity_key: str, data: Any) -> None:
         """Writes data into the artifact and binds it to the provided key.
 
-        Parameters
-        ----------
-        entity_key
-            The key associated with the provided data.
-        data
-            The data to write. Accepted formats are :class:`pandas.Series`,
-            :class:`pandas.DataFrame` or standard python types and containers.
+        Args:
+            entity_key: The key associated with the provided data.
+            data: The data to write. Accepted formats are :class:`pandas.Series`,
+                :class:`pandas.DataFrame` or standard python types and containers.
 
-        Raises
-        ------
-        ArtifactException
-            If the provided key already exists in the artifact.
-
+        Raises:
+            ArtifactException: If the provided key already exists in the artifact.
         """
         if entity_key in self:
             raise ArtifactException(f"{entity_key} already in artifact.")
@@ -142,19 +125,14 @@ class Artifact:
             hdf.write(self._path, entity_key, data)
             self._keys.append(entity_key)
 
-    def remove(self, entity_key: str):
+    def remove(self, entity_key: str) -> None:
         """Removes data associated with the provided key from the artifact.
 
-        Parameters
-        ----------
-        entity_key
-            The key associated with the data to remove.
+        Args:
+            entity_key: The key associated with the data to remove.
 
-        Raises
-        ------
-        ArtifactException
-            If the key is not present in the artifact.
-
+        Raises:
+            ArtifactException: If the key is not present in the artifact.
         """
         if entity_key not in self:
             raise ArtifactException(
@@ -166,22 +144,16 @@ class Artifact:
             self._cache.pop(entity_key)
         hdf.remove(self._path, entity_key)
 
-    def replace(self, entity_key: str, data: Any):
+    def replace(self, entity_key: str, data: Any) -> None:
         """Replaces the artifact data at the provided key with the new data.
 
-        Parameters
-        ----------
-        entity_key
-            The key for which the data should be overwritten.
-        data
-            The data to write. Accepted formats are :class:`pandas.Series`,
-            :class:`pandas.DataFrame` or standard python types and containers.
+        Args:
+            entity_key: The key for which the data should be overwritten.
+            data: The data to write. Accepted formats are :class:`pandas.Series`,
+                :class:`pandas.DataFrame` or standard python types and containers.
 
-        Raises
-        ------
-        ArtifactException
-            If the provided key does not already exist in the artifact.
-
+        Raises:
+            ArtifactException: If the provided key does not already exist in the artifact.
         """
         if entity_key not in self:
             raise ArtifactException(
@@ -195,7 +167,6 @@ class Artifact:
 
         The artifact will cache data in memory to improve performance for
         repeat access.
-
         """
         self._cache = {}
 
@@ -235,7 +206,8 @@ class Keys:
     """A convenient wrapper around the keyspace which makes it easier for
     Artifact to maintain its keyspace when an entity key is added or removed.
     With the artifact_path, Keys object is initialized when the Artifact is
-    initialized"""
+    initialized
+    """
 
     keyspace_node = "metadata.keyspace"
 
@@ -271,7 +243,8 @@ class Keys:
 def _parse_draw_filters(filter_terms):
     """Given a list of filter terms, parse out any related to draws and convert
     to the list of column names. Also include 'value' column for compatibility
-    with data that is long on draws."""
+    with data that is long on draws.
+    """
     columns = None
 
     if filter_terms:

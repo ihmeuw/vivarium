@@ -5,7 +5,6 @@ Interpolation
 
 Provides interpolation algorithms across tabular data for ``vivarium``
 simulations.
-
 """
 
 from typing import List, Tuple, Union
@@ -19,20 +18,18 @@ ParameterType = Union[List[List[str]], List[Tuple[str, str, str]]]
 class Interpolation:
     """A callable that returns the result of an interpolation function over input data.
 
-    Attributes
-    ----------
-    data :
-        The data from which to build the interpolation. Contains
-        categorical_parameters and continuous_parameters.
-    categorical_parameters :
-        Column names to be used as categorical parameters in Interpolation
-        to select between interpolation functions.
-    continuous_parameters :
-        Column names to be used as continuous parameters in Interpolation. If
-        bin edges, should be of the form (column name used in call, column name
-        for left bin edge, column name for right bin edge).
-    order :
-        Order of interpolation.
+    Attributes:
+        data: The data from which to build the interpolation. Contains
+            categorical_parameters and continuous_parameters.
+        categorical_parameters: Column names to be used as categorical parameters
+            in Interpolation to select between interpolation functions.
+        continuous_parameters: Column names to be used as continuous parameters in
+            Interpolation. If bin edges, should be of the form (column name used
+            in call, column name for left bin edge, column name for right bin edge).
+        value_columns: Columns to be interpolated.
+        order: Order of interpolation.
+        extrapolate: Whether or not to extrapolate beyond the edge of supplied bins.
+        validate: Whether or not to validate the data.
     """
 
     def __init__(
@@ -92,14 +89,10 @@ class Interpolation:
     def __call__(self, interpolants: pd.DataFrame) -> pd.DataFrame:
         """Get the interpolated results for the parameters in interpolants.
 
-        Parameters
-         ----------
-        interpolants :
-            Data frame containing the parameters to interpolate..
+        Args:
+            interpolants: Data frame containing the parameters to interpolate..
 
-        Returns
-        -------
-        pd.DataFrame
+        Returns:
             A table with the interpolated values for the given interpolants.
         """
 
@@ -190,7 +183,9 @@ def validate_call_data(data, categorical_parameters, continuous_parameters):
 
 
 def check_data_complete(data, continuous_parameters):
-    """For any parameters specified with edges, make sure edges
+    """Check that data is complete for interpolation.
+
+    For any parameters specified with edges, make sure edges
     don't overlap and don't have any gaps. Assumes that edges are
     specified with ends and starts overlapping (but one exclusive and
     the other inclusive) so can check that end of previous == start
@@ -253,13 +248,15 @@ def check_data_complete(data, continuous_parameters):
 class Order0Interp:
     """A callable that returns the result of order 0 interpolation over input data.
 
-    Attributes
-    ----------
-    data :
-        The data from which to build the interpolation. Contains
-        categorical_parameters and continuous_parameters.
-    continuous_parameters :
-        Column names to be used as parameters in Interpolation.
+    Attributes:
+        data: The data from which to build the interpolation. Contains
+            categorical_parameters and continuous_parameters.
+        continuous_parameters: Parameter columns. Should be of form (column name
+            used in call, column name for left bin edge, column name for right bin edge)
+            or column name. Assumes left bin edges are inclusive and right exclusive.
+        value_columns: Columns to be interpolated.
+        extrapolate: Whether or not to extrapolate beyond the edge of supplied bins.
+        validate: Whether or not to validate the data.
     """
 
     def __init__(
@@ -270,21 +267,6 @@ class Order0Interp:
         extrapolate: bool,
         validate: bool,
     ):
-        """
-
-        Parameters
-        ----------
-        data :
-            Data frame used to build interpolation.
-        continuous_parameters :
-            Parameter columns. Should be of form (column name used in call,
-            column name for left bin edge, column name for right bin edge)
-            or column name. Assumes left bin edges are inclusive and
-            right exclusive.
-        extrapolate :
-            Whether or not to extrapolate beyond the edge of supplied bins.
-
-        """
         if validate:
             check_data_complete(data, continuous_parameters)
 
@@ -309,16 +291,11 @@ class Order0Interp:
         """Find the bins for each parameter for each interpolant in interpolants
         and return the values from data there.
 
-        Parameters
-        ----------
-        interpolants:
-            Data frame containing the parameters to interpolate..
+        Args:
+            interpolants: Data frame containing the parameters to interpolate..
 
-        Returns
-        -------
-        pd.DataFrame
+        Returns:
             A table with the interpolated values for the given interpolants.
-
         """
         # build a dataframe where we have the start of each parameter bin for each interpolant
         interpolant_bins = pd.DataFrame(index=interpolants.index)

@@ -80,32 +80,20 @@ class ResultsInterface:
         """Registers a new column and its values to be used by observations
         to stratify results.
 
-        Parameters
-        ----------
-        name
-            Name of the column created by the `mapper`.
-        categories
-            List of string values that the `mapper` is allowed to map to.
-        excluded_categories
-            List of mapped string values to be excluded from results processing.
-            If None (the default), will use exclusions as defined in the configuration.
-        mapper
-            A callable that emits values in `categories` given inputs from columns
-            and values in the `requires_columns` and `requires_values`, respectively.
-        is_vectorized
-            True if the `mapper` function expects a pd.DataFrame and False if it
-            expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
-        requires_columns
-            A list of the state table columns that must be present and populated in the
-            state table before the pipeline modifier is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
-
-        Returns
-        -------
-        None
-
+        Args:
+            name: Name of the column created by the `mapper`.
+            categories: List of string values that the `mapper` is allowed to map to.
+            excluded_categories: List of mapped string values to be excluded from results
+                processing. If None (the default), will use exclusions as defined in the
+                configuration.
+            mapper: A callable that emits values in `categories` given inputs from columns
+                and values in the `requires_columns` and `requires_values`, respectively.
+            is_vectorized: True if the `mapper` function expects a pd.DataFrame and False if it
+                expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
+            requires_columns: A list of the state table columns that must be present and
+                populated in the state table before the pipeline modifier is called.
+            requires_values: A list of the value pipelines that need to be properly sourced
+                before the pipeline modifier is called.
         """
         self._manager.register_stratification(
             name,
@@ -130,31 +118,19 @@ class ResultsInterface:
         """Registers a continuous `target` column to map into bins in a new `binned_column`
         to be used by observations to stratify results.
 
-        Parameters
-        ----------
-        target
-            String name of the state table column or value pipeline to be binned.
-        binned_column
-            String name of the new column for the binned quantities.
-        bin_edges
-            List of scalars defining the bin edges, passed to :meth: pandas.cut.
-            The length must be equal to the length of `labels` plus 1.
-        labels
-            List of string labels for bins. The length must be equal to the length
-            of `bin_edges` minus 1.
-        excluded_categories
-            List of mapped string values to be excluded from results processing.
-            If None (the default), will use exclusions as defined in the configuration.
-        target_type
-            Type specification of the `target` to be binned. "column" if it's a
-            state table column or "value" if it's a value pipeline.
-        **cut_kwargs
-            Keyword arguments for :meth: pandas.cut.
-
-        Returns
-        -------
-        None
-
+        Args:
+            target: String name of the state table column or value pipeline to be binned.
+            binned_column: String name of the new column for the binned quantities.
+            bin_edges: List of scalars defining the bin edges, passed to :meth: pandas.cut.
+                The length must be equal to the length of `labels` plus 1.
+            labels: List of string labels for bins. The length must be equal to the length
+                of `bin_edges` minus 1.
+            excluded_categories: List of mapped string values to be excluded from results
+                processing. If None (the default), will use exclusions as defined in
+                the configuration.
+            target_type: Type specification of the `target` to be binned. "column"
+                if it's a state table column or "value" if it's a value pipeline.
+            **cut_kwargs: Keyword arguments for :meth: pandas.cut.
         """
         self._manager.register_binned_stratification(
             target,
@@ -191,47 +167,33 @@ class ResultsInterface:
     ) -> None:
         """Registers a stratified observation to the results system.
 
-        Parameters
-        ----------
-        name
-            Name of the observation. It will also be the name of the output results file
-            for this particular observation.
-        pop_filter
-            A Pandas query filter string to filter the population down to the simulants who should
-            be considered for the observation.
-        when
-            String name of the lifecycle phase the observation should happen. Valid values are:
-            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
-        results_updater
-            Function that updates existing raw observation results with newly gathered results.
-        results_formatter
-            Function that formats the raw observation results.
-        additional_stratifications
-            List of additional :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
-            names by which to stratify this observation by.
-        excluded_stratifications
-            List of default :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
-            names to remove from this observation.
-        aggregator_sources
-            List of population view columns to be used in the `aggregator`.
-        aggregator
-            Function that computes the quantity for this observation.
-        to_observe
-            Function that determines whether to perform an observation on this Event.
+        Args:
+            name: Name of the observation. It will also be the name of the output
+                results file for this particular observation.
+            pop_filter: A Pandas query filter string to filter the population down
+                to the simulants who should be considered for the observation.
+            when: String name of the lifecycle phase the observation should happen.
+                Valid values are: "time_step__prepare", "time_step", "time_step__cleanup",
+                or "collect_metrics".
+            requires_columns: List of the state table columns that are required by
+                either the `pop_filter` or the `aggregator`.
+            requires_values: List of the value pipelines that are required by either
+                the `pop_filter` or the `aggregator`.
+            results_updater: Function that updates existing raw observation results
+                with newly gathered results.
+            results_formatter: Function that formats the raw observation results.
+            additional_stratifications: List of additional
+                :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
+                names by which to stratify this observation by.
+            excluded_stratifications: List of default
+                :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
+                names to remove from this observation.
+            aggregator_sources: List of population view columns to be used in the `aggregator`.
+            aggregator: Function that computes the quantity for this observation.
+            to_observe: Function that determines whether to perform an observation on this Event.
 
-        Raises
-        ------
-        ValueError
-            If any required callable arguments are missing.
-
-        Returns
-        -------
-        None
-
+        Raises:
+            ValueError: If any required callable arguments are missing.
         """
         self._check_for_required_callables(name, {"results_updater": results_updater})
         self._manager.register_observation(
@@ -271,39 +233,27 @@ class ResultsInterface:
     ) -> None:
         """Registers an unstratified observation to the results system.
 
-        Parameters
-        ----------
-        name
-            Name of the observation. It will also be the name of the output results file
-            for this particular observation.
-        pop_filter
-            A Pandas query filter string to filter the population down to the simulants who should
-            be considered for the observation.
-        when
-            String name of the lifecycle phase the observation should happen. Valid values are:
-            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
-        results_gatherer
-            Function that gathers the latest observation results.
-        results_updater
-            Function that updates existing raw observation results with newly gathered results.
-        results_formatter
-            Function that formats the raw observation results.
-        to_observe
-            Function that determines whether to perform an observation on this Event.
+        Args:
+            name: Name of the observation. It will also be the name of the output
+                results file for this particular observation.
+            pop_filter: A Pandas query filter string to filter the population down
+                to the simulants who should be considered for the observation.
+            when: String name of the lifecycle phase the observation should happen.
+                Valid values are: "time_step__prepare", "time_step", "time_step__cleanup",
+                or "collect_metrics".
+            requires_columns: List of the state table columns that are required by
+                either the `pop_filter` or the `aggregator`.
+            requires_values: List of the value pipelines that are required by either
+                the `pop_filter` or the `aggregator`.
+            results_gatherer: Function that gathers the latest observation results.
+            results_updater: Function that updates existing raw observation results
+                with newly gathered results.
+            results_formatter: Function that formats the raw observation results.
+            to_observe:   Function that determines whether to perform an observation
+                on this Event.
 
-        Raises
-        ------
-        ValueError
-            If any required callable arguments are missing.
-
-        Returns
-        -------
-        None
-
+        Raises:
+            ValueError: If any required callable arguments are missing.
         """
         required_callables = {
             "results_gatherer": results_gatherer,
@@ -340,44 +290,34 @@ class ResultsInterface:
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]] = len,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
-        """Registers an adding observation to the results system; that is,
-        one that adds/sums new results to existing result values. Note that an adding
-        observation is a specific type of stratified observation.
+        """Registers an adding observation to the results system.
 
-        Parameters
-        ----------
-        name
-            Name of the observation. It will also be the name of the output results file
-            for this particular observation.
-        pop_filter
-            A Pandas query filter string to filter the population down to the simulants who should
-            be considered for the observation.
-        when
-            String name of the lifecycle phase the observation should happen. Valid values are:
-            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
-        results_formatter
-            Function that formats the raw observation results.
-        additional_stratifications
-            List of additional :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
-            names by which to stratify this observation by.
-        excluded_stratifications
-            List of default :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
-            names to remove from this observation.
-        aggregator_sources
-            List of population view columns to be used in the `aggregator`.
-        aggregator
-            Function that computes the quantity for this observation.
-        to_observe
-            Function that determines whether to perform an observation on this Event.
+        An "adding" observation is one that adds/sums new results to existing
+        result values. Note that an adding observation is a specific type of
+        stratified observation.
 
-        Returns
-        ------
-        None
-
+        Args:
+            name: Name of the observation. It will also be the name of the output
+                results file for this particular observation.
+            pop_filter: A Pandas query filter string to filter the population down
+            to the simulants who should be considered for the observation.
+            when: String name of the lifecycle phase the observation should happen.
+                Valid values are: "time_step__prepare", "time_step", "time_step__cleanup",
+                or "collect_metrics".
+            requires_columns: List of the state table columns that are required by
+                either the `pop_filter` or the `aggregator`.
+            requires_values: List of the value pipelines that are required by either
+                the `pop_filter` or the `aggregator`.
+            results_formatter: Function that formats the raw observation results.
+            additional_stratifications: List of additional
+                :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
+                names by which to stratify this observation by.
+            excluded_stratifications: List of default
+                :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
+                names to remove from this observation.
+            aggregator_sources: List of population view columns to be used in the `aggregator`.
+            aggregator: Function that computes the quantity for this observation.
+            to_observe: Function that determines whether to perform an observation on this Event.
         """
         self._manager.register_observation(
             observation_type=AddingObservation,
@@ -407,34 +347,27 @@ class ResultsInterface:
         ] = lambda measure, results: results,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
-        """Registers a concatenating observation to the results system; that is,
-        one that concatenates new results to existing results. Note that a
-        concatenating observation is a specific type of unstratified observation.
+        """Registers a concatenating observation to the results system.
 
-        Parameters
-        ----------
-        name
-            Name of the observation. It will also be the name of the output results file
-            for this particular observation.
-        pop_filter
-            A Pandas query filter string to filter the population down to the simulants who should
-            be considered for the observation.
-        when
-            String name of the lifecycle phase the observation should happen. Valid values are:
-            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
-        results_formatter
-            Function that formats the raw observation results.
-        to_observe
-            Function that determines whether to perform an observation on this Event.
+        A "concatenating" observation is one that concatenates new results to
+        existing results. Note that a concatenating observation is a specific
+        type of unstratified observation.
 
-        Returns
-        ------
-        None
-
+        Args:
+            name: Name of the observation. It will also be the name of the output
+                results file for this particular observation.
+            pop_filter: A Pandas query filter string to filter the population down
+            to the simulants who should be considered for the observation.
+            when: String name of the lifecycle phase the observation should happen.
+                Valid values are: "time_step__prepare", "time_step", "time_step__cleanup",
+                or "collect_metrics".
+            requires_columns: List of the state table columns that are required by
+                either the `pop_filter` or the `aggregator`.
+            requires_values: List of the value pipelines that are required by either
+                the `pop_filter` or the `aggregator`.
+            results_formatter: Function that formats the raw observation results.
+            to_observe: Function that determines whether to perform an observation
+                on this Event.
         """
         included_columns = ["event_time"] + requires_columns + requires_values
         self._manager.register_observation(

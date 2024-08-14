@@ -36,11 +36,9 @@ class LookupTable(ABC):
     running, then, components can lookup parameter values based solely on
     the population index.
 
-    Notes
-    -----
-    These should not be created directly. Use the `lookup` method on the builder
-    during setup.
-
+    Notes:
+        These should not be created directly. Use the `lookup` method on the builder
+        during setup.
     """
 
     table_number: int
@@ -73,16 +71,12 @@ class LookupTable(ABC):
     def __call__(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
         """Get the mapped values for the given index.
 
-        Parameters
-        ----------
-        index
-            Index for population view.
+        Args:
+            index: Index for population view.
 
-        Returns
-        -------
+        Returns:
             pandas.Series if only one value_column, pandas.DataFrame if multiple
             columns
-
         """
         return self.call(index).squeeze(axis=1)
 
@@ -98,11 +92,9 @@ class LookupTable(ABC):
 class InterpolatedTable(LookupTable):
     """A callable that interpolates data according to a given strategy.
 
-    Notes
-    -----
-    These should not be created directly. Use the `lookup` interface on the
-    :class:`builder <vivarium.framework.engine.Builder>` during setup.
-
+    Notes:
+        These should not be created directly. Use the `lookup` interface on the
+        :class:`builder <vivarium.framework.engine.Builder>` during setup.
     """
 
     def __init__(
@@ -164,16 +156,11 @@ class InterpolatedTable(LookupTable):
     def call(self, index: pd.Index) -> pd.DataFrame:
         """Get the interpolated values for the rows in ``index``.
 
-        Parameters
-        ----------
-        index
-            Index of the population to interpolate for.
+        Args:
+            index: Index of the population to interpolate for.
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             A table with the interpolated values for the population requested.
-
         """
         pop = self.population_view.get(index)
         del pop["tracked"]
@@ -190,15 +177,12 @@ class InterpolatedTable(LookupTable):
 
 
 class CategoricalTable(LookupTable):
-    """
-    A callable that selects values from a table based on categorical parameters
+    """A callable that selects values from a table based on categorical parameters
     across an index.
 
-    Notes
-    -----
-    These should not be created directly. Use the `lookup` interface on the
-    :class:`builder <vivarium.framework.engine.Builder>` during setup.
-
+    Notes:
+        These should not be created directly. Use the `lookup` interface on the
+        :class:`builder <vivarium.framework.engine.Builder>` during setup.
     """
 
     def __init__(
@@ -232,14 +216,10 @@ class CategoricalTable(LookupTable):
     def call(self, index: pd.Index) -> pd.DataFrame:
         """Get the mapped values for the rows in ``index``.
 
-        Parameters
-        ----------
-        index
-            Index of the population to interpolate for.
+        Args:
+            index: Index of the population to interpolate for.
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             A table with the mapped values for the population requested.
         """
         pop = self.population_view.get(index)
@@ -272,26 +252,20 @@ class CategoricalTable(LookupTable):
 class ScalarTable(LookupTable):
     """A callable that broadcasts a scalar or list of scalars over an index.
 
-    Notes
-    -----
-    These should not be created directly. Use the `lookup` interface on the
-    builder during setup.
+    Notes:
+        These should not be created directly. Use the `lookup` interface on the
+        builder during setup.
     """
 
     def call(self, index: pd.Index) -> pd.DataFrame:
         """Broadcast this tables values over the provided index.
 
-        Parameters
-        ----------
-        index
-            Index of the population to construct table for.
+        Args:
+            index: Index of the population to construct table for.
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             A table with a column for each of the scalar values for the
             population requested.
-
         """
         if not isinstance(self.data, (list, tuple)):
             values = pd.Series(

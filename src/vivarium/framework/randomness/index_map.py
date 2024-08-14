@@ -7,7 +7,6 @@ The :class:`IndexMap` is an internal abstraction used by the randomness system t
 random numbers for the same simulants across multiple simulations. It's key idea is to take
 a set of static identifying characteristics about a simulant and hash them to a consistent
 positional index within a stream of seeded random numbers.
-
 """
 
 import datetime
@@ -34,15 +33,11 @@ class IndexMap:
     def update(self, new_keys: pd.DataFrame, clock_time: pd.Timestamp) -> None:
         """Adds the new keys to the mapping.
 
-        Parameters
-        ----------
-        new_keys
-            A pandas DataFrame indexed by the simulant index and columns corresponding to
-            the randomness system key columns.
-        clock_time
-            The simulation clock time. Used as the salt during hashing to
-            minimize inter-simulation collisions.
-
+        Args:
+            new_keys: A pandas DataFrame indexed by the simulant index and columns
+                corresponding to the randomness system key columns.
+            clock_time: The simulation clock time. Used as the salt during hashing to
+                minimize inter-simulation collisions.
         """
         if new_keys.empty or not self._use_crn:
             return  # Nothing to do
@@ -65,21 +60,18 @@ class IndexMap:
     def _parse_new_keys(self, new_keys: pd.DataFrame) -> Tuple[pd.MultiIndex, pd.MultiIndex]:
         """Parses raw new keys into the mapping index.
 
-        Parameters
-        ----------
-        new_keys
-            A pandas DataFrame indexed by the simulant index and columns corresponding to
-            the randomness system key columns.
+        This returns a tuple of the new and final mapping indices. Both are pandas
+        indices with a level for the index assigned by the population system and
+        additional levels for the key columns associated with the simulant index. The
+        new mapping index contains only the values for the new keys and the final mapping
+        combines the existing mapping and the new mapping index.
 
-        Returns
-        -------
-        Tuple[pd.MultiIndex, pd.MultiIndex]
-            A tuple of the new mapping index and the final mapping index. Both are pandas
-            indices with a level for the index assigned by the population system and
-            additional levels for the key columns associated with the simulant index. The
-            new mapping index contains only the values for the new keys and the final mapping
-            combines the existing mapping and the new mapping index.
+        Args:
+            new_keys: A pandas DataFrame indexed by the simulant index and columns
+                corresponding to the randomness system key columns.
 
+        Returns:
+            A tuple of the new mapping index and the final mapping index.
         """
         keys = new_keys.copy()
         keys.index.name = self.SIM_INDEX_COLUMN
@@ -97,21 +89,16 @@ class IndexMap:
         """Builds a new mapping between key columns and the randomness index from the
         new mapping index and the existing map.
 
-        Parameters
-        ----------
-        new_mapping_index
-            An index with a level for the index assigned by the population system and
-            additional levels for the key columns associated with the simulant index.
-        clock_time
-            The simulation clock time. Used as the salt during hashing to
-            minimize inter-simulation collisions.
+        Args:
+            new_mapping_index: An index with a level for the index assigned by the
+                population system and additional levels for the key columns associated
+                with the simulant index.
+            clock_time: The simulation clock time. Used as the salt during hashing to
+                minimize inter-simulation collisions.
 
-        Returns
-        -------
-        pd.Series
+        Returns:
             The new mapping incorporating the updates from the new mapping index and
             resolving collisions.
-
         """
         new_key_index = new_mapping_index.droplevel(self.SIM_INDEX_COLUMN)
         mapping_update = self._hash(new_key_index, salt=clock_time)
@@ -130,20 +117,14 @@ class IndexMap:
     ) -> pd.Series:
         """Resolves collisions in the new mapping by perturbing the hash.
 
-        Parameters
-        ----------
-        new_key_index
-            The index of new key attributes to hash.
-        current_mapping
-            The new mapping incorporating the updates from the new mapping index with
-            collisions unresolved.
+        Args:
+            new_key_index: The index of new key attributes to hash.
+            current_mapping: The new mapping incorporating the updates from the
+                new mapping index with collisions unresolved.
 
-        Returns
-        -------
-        pd.Series
+        Returns:
             The new mapping incorporating the updates from the new mapping index and
             resolving collisions.
-
         """
         current_mapping = current_mapping.drop_duplicates()
         collisions = new_key_index.difference(current_mapping.index)
@@ -156,23 +137,17 @@ class IndexMap:
         return current_mapping
 
     def _hash(self, keys: pd.Index, salt: int = 0) -> pd.Series:
-        """Hashes the index into an integer index in the range [0, self.stride]
+        """Hashes the index into an integer index in the range [0, self.stride].
 
-        Parameters
-        ----------
-        keys
-            The new index to hash.
-        salt
-            An integer used to perturb the hash in a deterministic way. Useful
-            in dealing with collisions.
+        Args:
+            keys: The new index to hash.
+            salt: An integer used to perturb the hash in a deterministic way. Useful
+                in dealing with collisions.
 
-        Returns
-        -------
-        pandas.Series
+        Returns:
             A pandas series indexed by the given keys and whose values take on
-            integers in the range [0, len(self)].  Duplicates may appear and
+            integers in the range [0, len(self)]. Duplicates may appear and
             should be dealt with by the calling code.
-
         """
         key_frame = keys.to_frame()
         new_map = pd.Series(0, index=keys)
@@ -197,22 +172,15 @@ class IndexMap:
         """Converts a column of datetimes, integers, or floats into a column
         of 10 digit integers.
 
-        Parameters
-        ----------
-        column
-            A series of datetimes, integers, or floats.
+        Args:
+            column: A series of datetimes, integers, or floats.
 
-        Returns
-        -------
-        pandas.Series
+        Returns:
             A series of ten digit integers based on the input data.
 
-        Raises
-        ------
-        RandomnessError
-            If the column contains data that is neither a datetime-like nor
-            numeric.
-
+        Raises:
+            RandomnessError: If the column contains data that is neither a
+                datetime-like nor numeric.
         """
         if isinstance(column.iloc[0], datetime.datetime):
             column = self._clip_to_seconds(column.astype(np.int64))

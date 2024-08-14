@@ -47,10 +47,8 @@ class BasePopulation(Component):
         framework. The framework passes in a ``builder`` object which
         provides access to a variety of framework subsystems and metadata.
 
-        Parameters
-        ----------
-        builder :
-            Access to simulation tools and subsystems.
+        Args:
+            builder: Interface to several simulation tools and subsystems.
         """
         self.config = builder.configuration
 
@@ -90,13 +88,11 @@ class BasePopulation(Component):
             The time that the simulant entered the simulation. The 'birthday'
             for simulants that enter as newborns. A `pandas.Timestamp`.
 
-        Parameters
-        ----------
-        pop_data :
-            A record containing the index of the new simulants, the
-            start of the time step the simulants are added on, the width
-            of the time step, and the age boundaries for the simulants to
-            generate.
+        Args:
+            pop_data: A record containing the index of the new simulants, the
+                start of the time step the simulants are added on, the width
+                of the time step, and the age boundaries for the simulants to
+                generate.
 
         """
 
@@ -135,12 +131,10 @@ class BasePopulation(Component):
     def on_time_step(self, event: Event) -> None:
         """Updates simulant age on every time step.
 
-        Parameters
-        ----------
-        event :
-            An event object emitted by the simulation containing an index
-            representing the simulants affected by the event and timing
-            information.
+        Args:
+            event: An event object emitted by the simulation containing an index
+                representing the simulants affected by the event and timing
+                information.
         """
         population = self.population_view.get(event.index, query="alive == 'alive'")
         population["age"] += event.step_size / pd.Timedelta(days=365)

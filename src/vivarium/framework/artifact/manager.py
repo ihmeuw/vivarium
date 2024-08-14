@@ -5,12 +5,11 @@ The Artifact Manager
 
 This module contains the :class:`ArtifactManager`, a ``vivarium`` plugin
 for handling complex data bound up in a data artifact.
-
 """
 
 import re
 from pathlib import Path
-from typing import Any, Callable, List, Sequence, Union
+from typing import Any, Callable, List, Sequence, Union, Optional
 
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
@@ -49,19 +48,16 @@ class ArtifactManager(Manager):
         self.artifact = self._load_artifact(builder.configuration)
         builder.lifecycle.add_constraint(self.load, allow_during=["setup"])
 
-    def _load_artifact(self, configuration: LayeredConfigTree) -> Union[Artifact, None]:
+    def _load_artifact(self, configuration: LayeredConfigTree) -> Optional[Artifact]:
         """Looks up the path to the artifact hdf file, builds a default filter,
         and generates the data artifact. Stores any configuration specified filter
         terms separately to be applied on loading, because not all columns are
         available via artifact filter terms.
 
-        Parameters
-        ----------
-        configuration :
-            Configuration block of the model specification containing the input data parameters.
+        Args:
+            configuration: Configuration block of the model specification containing the input data parameters.
 
-        Returns
-        -------
+        Returns:
             An interface to the data artifact.
         """
         if not configuration.input_data.artifact_path:
@@ -76,18 +72,13 @@ class ArtifactManager(Manager):
     def load(self, entity_key: str, **column_filters: _Filter) -> Any:
         """Loads data associated with the given entity key.
 
-        Parameters
-        ----------
-        entity_key
-            The key associated with the expected data.
-        column_filters
-            Filters that subset the data by a categorical column and then remove
-            the column from the raw data. They are supplied as keyword arguments
-            to the load method in the form "column=value".
+        Args:
+            entity_key: The key associated with the expected data.
+            column_filters: Filters that subset the data by a categorical column and then remove
+                the column from the raw data. They are supplied as keyword arguments
+                to the load method in the form "column=value".
 
-        Returns
-        -------
-        Any
+        Returns:
             The data associated with the given key, filtered down to the
             requested subset if the data is a dataframe.
         """
@@ -104,8 +95,7 @@ class ArtifactManager(Manager):
         )
 
     def value_columns(self) -> Callable[[Union[str, pd.DataFrame]], List[str]]:
-        """
-        Returns a function that returns the value columns for the given input.
+        """Returns a function that returns the value columns for the given input.
 
         The function can be called with either a string or a pandas DataFrame.
         If a string is provided, it is interpreted as an artifact key, and the
@@ -113,9 +103,7 @@ class ArtifactManager(Manager):
 
         Currently, the returned function will always return ["value"].
 
-        Returns
-        -------
-        Callable[[Union[str, pandas.core.generic.PandasObject]], List[str]]
+        Returns:
             A function that returns the value columns for the given input.
         """
         return lambda _: [self._default_value_column]
@@ -130,7 +118,7 @@ class ArtifactInterface:
     def __init__(self, manager: ArtifactManager):
         self._manager = manager
 
-    def load(self, entity_key: str, **column_filters: Union[_Filter]) -> pd.DataFrame:
+    def load(self, entity_key: str, **column_filters: _Filter) -> pd.DataFrame:
         """Loads data associated with a formatted entity key.
 
         The provided entity key must be of the form
@@ -147,33 +135,25 @@ class ArtifactInterface:
         Examples of measures are incidence, disability_weight, relative_risk,
         and cost.
 
-        Parameters
-        ----------
-        entity_key
-            The key associated with the expected data.
-        column_filters
-            Filters that subset the data by a categorical column and then
-            remove the column from the raw data. They are supplied as keyword
-            arguments to the load method in the form "column=value".
+        Args:
+            entity_key: The key associated with the expected data.
+            column_filters: Filters that subset the data by a categorical column and then
+                remove the column from the raw data. They are supplied as keyword
+                arguments to the load method in the form "column=value".
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             The data associated with the given key filtered down to the requested subset.
         """
         return self._manager.load(entity_key, **column_filters)
 
     def value_columns(self) -> Callable[[Union[str, pd.DataFrame]], List[str]]:
-        """
-        Returns a function that returns the value columns for the given input.
+        """Returns a function that returns the value columns for the given input.
 
         The function can be called with either a string or a pandas DataFrame.
         If a string is provided, it is interpreted as an artifact key, and the
         value columns for the data stored at that key are returned.
 
-        Returns
-        -------
-        Callable[[Union[str, pandas.core.generic.PandasObject]], List[str]]
+        Returns:
             A function that returns the value columns for the given input.
         """
         return self._manager.value_columns()
@@ -257,14 +237,10 @@ def parse_artifact_path_config(config: LayeredConfigTree) -> str:
     The path specified in the configuration may be absolute or it may be relative
     to the location of the configuration file.
 
-    Parameters
-    ----------
-    config
-        The configuration block of the simulation model specification containing the artifact path.
+    Args:
+        config: The configuration block of the simulation model specification containing the artifact path.
 
-    Returns
-    -------
-    str
+    Returns:
         The path to the data artifact.
     """
     path = Path(config.input_data.artifact_path)

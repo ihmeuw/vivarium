@@ -6,7 +6,6 @@ Configuration Utilities
 A set of functions for turning model specification files into programmatic
 representations of :term:`model specifications <Model Specification>` and
 :term:`configurations <Configuration>`.
-
 """
 
 from pathlib import Path

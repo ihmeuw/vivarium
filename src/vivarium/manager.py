@@ -15,8 +15,7 @@ if TYPE_CHECKING:
 
 class Manager:
     CONFIGURATION_DEFAULTS: Dict[str, Any] = {}
-    """
-    A dictionary containing the defaults for any configurations managed by this
+    """A dictionary containing the defaults for any configurations managed by this
     manager. An empty dictionary indicates no managed configurations.
     """
 
@@ -26,16 +25,13 @@ class Manager:
 
     @property
     def configuration_defaults(self) -> Dict[str, Any]:
-        """
-        Provides a dictionary containing the defaults for any configurations
+        """Provides a dictionary containing the defaults for any configurations
         managed by this manager.
 
         These default values will be stored at the `component_configs` layer of the
         simulation's LayeredConfigTree.
 
-        Returns
-        -------
-        Dict[str, Any]
+        Returns:
             A dictionary containing the defaults for any configurations managed by
             this manager.
         """

@@ -55,22 +55,17 @@ PandasObj = (pd.DataFrame, pd.Series)
 ####################
 
 
-def touch(path: Union[str, Path]):
+def touch(path: Union[str, Path]) -> None:
     """Creates an HDF file, wiping an existing file if necessary.
 
     If the given path is proper to create a HDF file, it creates a new
     HDF file.
 
-    Parameters
-    ----------
-    path
-        The path to the HDF file.
+    Args:
+        path: The path to the HDF file.
 
-    Raises
-    ------
-    ValueError
-        If the non-proper path is given to create a HDF file.
-
+    Raises:
+        ValueError: If the non-proper path is given to create a HDF file.
     """
     path = _get_valid_hdf_path(path)
 
@@ -78,30 +73,23 @@ def touch(path: Union[str, Path]):
         pass
 
 
-def write(path: Union[str, Path], entity_key: str, data: Any):
+def write(path: Union[str, Path], entity_key: str, data: Any) -> None:
     """Writes data to the HDF file at the given path to the given key.
 
-    Parameters
-    ----------
-    path
-        The path to the HDF file to write to.
-    entity_key
-        A string representation of the internal HDF path where we want to
-        write the data. The key must be formatted as ``"type.name.measure"``
-        or ``"type.measure"``.
-    data
-        The data to write. If it is a :mod:`pandas` object, it will be
-        written using a
-        `pandas.HDFStore <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#hdf5-pytables>`_
-        or :meth:`pandas.DataFrame.to_hdf`. If it is some other kind of python
-        object, it will first be encoded as json with :func:`json.dumps` and
-        then written to the provided key.
+    Args:
+        path: The path to the HDF file to write to.
+        entity_key: A string representation of the internal HDF path where we want to
+            write the data. The key must be formatted as ``"type.name.measure"``
+            or ``"type.measure"``.
+        data: The data to write. If it is a :mod:`pandas` object, it will be
+            written using a
+            `pandas.HDFStore <https://pandas.pydata.org/pandas-docs/stable/user_guide/io.html#hdf5-pytables>`_
+            or :meth:`pandas.DataFrame.to_hdf`. If it is some other kind of python
+            object, it will first be encoded as json with :func:`json.dumps` and
+            then written to the provided key.
 
-    Raises
-    ------
-    ValueError
-        If the path or entity_key are improperly formatted.
-
+    Raises:
+        ValueError: If the path or entity_key are improperly formatted.
     """
     path = _get_valid_hdf_path(path)
     entity_key = EntityKey(entity_key)
@@ -120,30 +108,20 @@ def load(
 ) -> Any:
     """Loads data from an HDF file.
 
-    Parameters
-    ----------
-    path
-        The path to the HDF file to load the data from.
-    entity_key
-        A representation of the internal HDF path where the data is located.
-    filter_terms
-        An optional list of terms used to filter the rows in the data.
-        The terms must be formatted in a way that is suitable for use with
-        the ``where`` argument of :func:`pandas.read_hdf`. Only
-        filters applying to existing columns in the data are used.
-    column_filters
-        An optional list of columns to load from the data.
+    Args:
+        path: The path to the HDF file to load the data from.
+        entity_key: A representation of the internal HDF path where the data is located.
+        filter_terms: An optional list of terms used to filter the rows in the data.
+            The terms must be formatted in a way that is suitable for use with
+            the ``where`` argument of :func:`pandas.read_hdf`. Only
+            filters applying to existing columns in the data are used.
+        column_filters: An optional list of columns to load from the data.
 
-    Raises
-    ------
-    ValueError
-        If the path or entity_key are improperly formatted.
-
-    Returns
-    -------
-    Any
+    Returns:
         The data stored at the the given key in the HDF file.
 
+    Raises:
+        ValueError: If the path or entity_key are improperly formatted.
     """
     path = _get_valid_hdf_path(path)
     entity_key = EntityKey(entity_key)
@@ -174,21 +152,15 @@ def load(
     return data
 
 
-def remove(path: Union[str, Path], entity_key: str):
+def remove(path: Union[str, Path], entity_key: str) -> None:
     """Removes a piece of data from an HDF file.
 
-    Parameters
-    ----------
-    path :
-        The path to the HDF file to remove the data from.
-    entity_key :
-        A representation of the internal HDF path where the data is located.
+    Args:
+        path: The path to the HDF file to remove the data from.
+        entity_key: A representation of the internal HDF path where the data is located.
 
-    Raises
-    ------
-    ValueError
-        If the path or entity_key are improperly formatted.
-
+    Raises:
+        ValueError: If the path or entity_key are improperly formatted.
     """
     path = _get_valid_hdf_path(path)
     entity_key = EntityKey(entity_key)
@@ -200,14 +172,10 @@ def remove(path: Union[str, Path], entity_key: str):
 def get_keys(path: Union[str, Path]) -> List[str]:
     """Gets key representation of all paths in an HDF file.
 
-    Parameters
-    ----------
-    path :
-        The path to the HDF file.
+    Args:
+        path: The path to the HDF file.
 
-    Returns
-    -------
-    List[str]
+    Returns:
         A list of key representations of the internal paths in the HDF.
     """
     path = _get_valid_hdf_path(path)
@@ -222,17 +190,16 @@ class EntityKey(str):
     This class provides several representations of the artifact keys that
     are useful when working with the :mod:`pandas` and
     `tables <https://www.pytables.org>`_ HDF interfaces.
-
     """
 
     def __init__(self, key):
         """
-        Parameters
-        ----------
-        key
-            The string representation of the entity key.  Must be formatted
-            as ``"type.name.measure"`` or ``"type.measure"``.
+        Args:
+            key: The string representation of the entity key.  Must be formatted
+                as ``"type.name.measure"`` or ``"type.measure"``.
 
+        Raises:
+            ValueError: If the key is improperly formatted.
         """
         elements = [e for e in key.split(".") if e]
         if len(elements) not in [2, 3] or len(key.split(".")) != len(elements):
@@ -284,16 +251,11 @@ class EntityKey(str):
     def with_measure(self, measure: str) -> "EntityKey":
         """Replaces this key's measure with the provided one.
 
-        Parameters
-        ----------
-        measure :
-            The measure to replace this key's measure with.
+        Args:
+            measure: The measure to replace this key's measure with.
 
-        Returns
-        -------
-        EntityKey
-            A new EntityKey with the updated measure.
-
+        Returns:
+            EntityKey: A new EntityKey with the updated measure.
         """
         if self.name:
             return EntityKey(f"{self.type}.{self.name}.{measure}")
@@ -335,7 +297,6 @@ def _write_pandas_data(path: Path, entity_key: EntityKey, data: Union[PandasObj]
 
     This method currently supports :class:`pandas DataFrame` objects, with or
     with or without columns, and :class:`pandas.Series` objects.
-
     """
     if data.empty:
         # Our data is indexed, sometimes with no other columns. This leaves an
@@ -400,16 +361,12 @@ def _get_node_name(node: tables.node.Node) -> str:
 def _get_valid_filter_terms(filter_terms, colnames):
     """Removes any filter terms referencing non-existent columns
 
-    Parameters
-    ----------
-    filter_terms
-        A list of terms formatted so as to be used in the `where` argument of
+    Args:
+        filter_terms: A list of terms formatted so as to be used in the `where` argument of
         :func:`pd.read_hdf`.
-    colnames :
-        A list of column names present in the data that will be filtered.
+        colnames: A list of column names present in the data that will be filtered.
 
-    Returns
-    -------
+    Returns:
         The list of valid filter terms (terms that do not reference any column
         not existing in the data). Returns none if the list is empty because
         the `where` argument doesn't like empty lists.

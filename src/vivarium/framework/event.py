@@ -24,7 +24,6 @@ of the event framework with which client code should interact.
 
 For more information, see the associated event
 :ref:`concept note <event_concept>`.
-
 """
 
 from typing import Any, Callable, Dict, List, NamedTuple, Optional
@@ -42,7 +41,6 @@ class Event(NamedTuple):
     Events themselves are just a bundle of data.  They must be emitted
     along an :class:`EventChannel` in order for other simulation components
     to respond to them.
-
     """
 
     #: An index into the population table containing all simulants affected
@@ -63,17 +61,12 @@ class Event(NamedTuple):
         :class:`EventChannel` in response to an event emitted from a
         different channel.
 
-        Parameters
-        ----------
-        new_index
-            An index into the population table containing all simulants
+        Args:
+            new_index: An index into the population table containing all simulants
             affected by this event.
 
-        Returns
-        -------
-        Event
+        Returns:
             The new event.
-
         """
         return Event(new_index, self.user_data, self.time, self.step_size)
 
@@ -101,14 +94,10 @@ class EventChannel:
         first and order 9 last), with no ordering within a particular priority
         level guaranteed.
 
-        Parameters
-        ----------
-        index
-            An index into the population table containing all simulants
-            affected by this event.
-        user_data
-            Any additional data provided by the user about the event.
-
+        Args:
+            index: An index into the population table containing all simulants
+                affected by this event.
+            user_data: Any additional data provided by the user about the event.
         """
         if not user_data:
             user_data = {}
@@ -131,12 +120,10 @@ class EventChannel:
 class EventManager(Manager):
     """The configuration for the event system.
 
-    Notes
-    -----
-    Client code should never need to interact with this class
-    except through the decorators in this module and the emitter
-    function exposed on the builder during the setup phase.
-
+    Notes:
+        Client code should never need to interact with this class
+        except through the decorators in this module and the emitter
+        function exposed on the builder during the setup phase.
     """
 
     def __init__(self):
@@ -155,11 +142,8 @@ class EventManager(Manager):
     def setup(self, builder):
         """Performs this component's simulation setup.
 
-        Parameters
-        ----------
-        builder
-            Object giving access to core framework functionality.
-
+        Args:
+            builder: Object giving access to core framework functionality.
         """
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
@@ -180,17 +164,13 @@ class EventManager(Manager):
     def get_emitter(self, name: str) -> Callable[[pd.Index, Optional[Dict]], Event]:
         """Get an emitter function for the named event.
 
-        Parameters
-        ----------
-        name
-            The name of the event.
+        Args:
+            name: The name of the event.
 
-        Returns
-        -------
+        Returns:
             A function that accepts an index and optional user data. This function
             creates and timestamps an Event and distributes it to all interested
             listeners
-
         """
         channel = self.get_channel(name)
         try:
@@ -204,28 +184,21 @@ class EventManager(Manager):
     def register_listener(self, name: str, listener: Callable, priority: int = 5):
         """Registers a new listener to the named event.
 
-        Parameters
-        ----------
-        name
-            The name of the event.
-        listener
-            The consumer of the named event.
-        priority
-            Number in range(10) used to assign the ordering in which listeners
-            process the event.
+        Args:
+            name: The name of the event.
+            listener: The consumer of the named event.
+            priority: Number in range(10) used to assign the ordering in which
+                listeners process the event.
         """
         self.get_channel(name).listeners[priority].append(listener)
 
     def get_listeners(self, name: str) -> Dict[int, List[Callable]]:
         """Get  all listeners registered for the named event.
 
-        Parameters
-        ----------
-        name
-            The name of the event.
+        Args:
+            name: The name of the event.
 
-        Returns
-        -------
+        Returns:
             A dictionary that maps each priority level of the named event's
             listeners to a list of listeners at that level.
         """
@@ -239,16 +212,13 @@ class EventManager(Manager):
     def list_events(self) -> List[Event]:
         """List all event names known to the event system.
 
-        Returns
-        -------
-        List[Event]
+
+        Returns:
             A list of all known event names.
 
-        Notes
-        -----
-        This value can change after setup if components dynamically create
-        new event labels.
-
+        Notes:
+            This value can change after setup if components dynamically create
+            new event labels.
         """
         return list(self._event_types.keys())
 
@@ -268,20 +238,16 @@ class EventInterface:
     def get_emitter(self, name: str) -> Callable[[pd.Index, Optional[Dict]], Event]:
         """Gets an emitter for a named event.
 
-        Parameters
-        ----------
-        name
-            The name of the event the requested emitter will emit.
-            Users may provide their own named events by requesting an emitter
-            with this function, but should do so with caution as it makes time
-            much more difficult to think about.
+        Args:
+            name: The name of the event the requested emitter will emit.
+                Users may provide their own named events by requesting an emitter
+                with this function, but should do so with caution as it makes time
+                much more difficult to think about.
 
-        Returns
-        -------
+        Returns:
             An emitter for the named event. The emitter should be called by
             the requesting component at the appropriate point in the simulation
             lifecycle.
-
         """
         return self._manager.get_emitter(name)
 
@@ -305,23 +271,18 @@ class EventInterface:
               - ``collect_metrics``
             - At simulation end: ``simulation_end``
 
-        Parameters
-        ----------
-        name
-            The name of the event to listen for.
-        listener
-            The callable to be invoked any time an :class:`Event` with the given
-            name is emitted.
-        priority
-            One of {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}.
-            An indication of the order in which event listeners should be
-            called. Listeners with smaller priority values will be called
-            earlier. Listeners with the same priority have no guaranteed
-            ordering.  This feature should be avoided if possible. Components
-            should strive to obey the Markov property as they transform the
-            state table (the state of the simulation at the beginning of the
-            next time step should only depend on the current state of the
-            system).
-
+        Args:
+            name: The name of the event to listen for.
+            listener: The callable to be invoked any time an :class:`Event` with
+                the given name is emitted.
+            priority: One of {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}.
+                An indication of the order in which event listeners should be
+                called. Listeners with smaller priority values will be called
+                earlier. Listeners with the same priority have no guaranteed
+                ordering.  This feature should be avoided if possible. Components
+                should strive to obey the Markov property as they transform the
+                state table (the state of the simulation at the beginning of the
+                next time step should only depend on the current state of the
+                system).
         """
         self._manager.register_listener(name, listener, priority)

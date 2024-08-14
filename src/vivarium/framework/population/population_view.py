@@ -9,10 +9,9 @@ to the underlying simulation :term:`State Table`. It has two primary responsibil
     1. To provide user access to subsets of the simulation state table
        when it is safe to do so.
     2. To allow the user to update the simulation state in a controlled way.
-
 """
 
-from typing import TYPE_CHECKING, List, Tuple, Union
+from typing import TYPE_CHECKING, List, Tuple, Union, Optional
 
 import pandas as pd
 
@@ -25,27 +24,15 @@ if TYPE_CHECKING:
 
 class PopulationView:
     """A read/write manager for the simulation state table.
+
     It can be used to both read and update the state of the population. A
     PopulationView can only read and write columns for which it is configured.
     Attempts to update non-existent columns are ignored except during
     simulant creation when new columns are allowed to be created.
 
-    Parameters
-    ----------
-    manager
-        The population manager for the simulation.
-    columns
-        The set of columns this view should have access too.  If empty, this
-        view will have access to the entire state table.
-    query
-        A :mod:`pandas`-style filter that will be applied any time this
-        view is read from.
-
-    Notes
-    -----
-    By default, this view will filter out ``untracked`` simulants unless
-    the ``tracked`` column is specified in the initialization arguments.
-
+    Notes:
+        By default, this view will filter out ``untracked`` simulants unless
+        the ``tracked`` column is specified in the initialization arguments.
     """
 
     def __init__(
@@ -55,6 +42,16 @@ class PopulationView:
         columns: Union[List[str], Tuple[str]] = (),
         query: str = None,
     ):
+        """Create a new view of the simulation state table.
+
+        Args:
+            manager: The population manager for the simulation.
+            view_id: The unique identifier for this view.
+            columns: The set of columns this view should have access too.  If empty, this
+                view will have access to the entire state table.
+            query: A :mod:`pandas`-style filter that will be applied any time this
+                view is read from.
+        """
         self._manager = manager
         self._id = view_id
         self._columns = list(columns)
@@ -72,44 +69,23 @@ class PopulationView:
         the view will have access to the full table by default. That case
         should be only be used in situations where the full state table is
         actually needed, like for some metrics collection applications.
-
         """
         if not self._columns:
             return list(self._manager.get_population(True).columns)
         return list(self._columns)
 
     @property
-    def query(self) -> Union[str, None]:
+    def query(self) -> Optional[str]:
         """A :mod:`pandas` style query to filter the rows of this view.
 
         This query will be applied any time the view is read. This query may
         reference columns not in the view's columns.
-
         """
         return self._query
 
     def subview(self, columns: Union[List[str], Tuple[str]]) -> "PopulationView":
         """Retrieves a new view with a subset of this view's columns.
 
-        Parameters
-        ----------
-        columns
-            The set of columns to provide access to in the subview. Must be
-            a proper subset of this view's columns.
-
-        Returns
-        -------
-        PopulationView
-            A new view with access to the requested columns.
-
-        Raises
-        ------
-        PopulationError
-            If the requested columns are not a proper subset of this view's
-            columns or no columns are requested.
-
-        Notes
-        -----
         Subviews are useful during population initialization. The original
         view may contain both columns that a component needs to create and
         update as well as columns that the component needs to read.  By
@@ -117,6 +93,16 @@ class PopulationView:
         without running the risk of trying to access uncreated columns
         because the component itself has not created them.
 
+        Args:
+            columns: The set of columns to provide access to in the subview. Must be
+            a proper subset of this view's columns.
+
+        Returns:
+            A new view with access to the requested columns.
+
+        Raises:
+            PopulationError: If the requested columns are not a proper subset of
+                this view's columns or no columns are requested.
         """
 
         if not columns or set(columns) - set(self.columns):
@@ -136,31 +122,22 @@ class PopulationView:
         further filtered by the view's query and only return a subset
         of the population represented by the index.
 
-        Parameters
-        ----------
-        index
-            Index of the population to get.
-        query
-            Additional conditions used to filter the index. These conditions
-            will be unioned with the default query of this view.  The query
-            provided may use columns that this view does not have access to.
+        See Also:
+            :meth:`subview <PopulationView.subview>`
+
+        Args:
+            index: Index of the population to get.
+            query: Additional conditions used to filter the index. These conditions
+                will be unioned with the default query of this view.  The query
+                provided may use columns that this view does not have access to.
 
         Returns
-        -------
-        pandas.DataFrame
             A table with the subset of the population requested.
 
         Raises
-        ------
-        PopulationError
-            If this view has access to columns that have not yet been created
-            and this method is called.  If you see this error, you should
-            request a subview with the columns you need read access to.
-
-        See Also
-        --------
-        :meth:`subview <PopulationView.subview>`
-
+            PopulationError: If this view has access to columns that have not yet
+                been created and this method is called. If you see this error, you
+                should request a subview with the columns you need read access to.
         """
         pop = self._manager.get_population(True).loc[index]
 
@@ -187,24 +164,19 @@ class PopulationView:
     def update(self, population_update: Union[pd.DataFrame, pd.Series]) -> None:
         """Updates the state table with the provided data.
 
-        Parameters
-        ----------
-        population_update
-            The data which should be copied into the simulation's state. If
-            the update is a :class:`pandas.DataFrame`, it can contain a subset
-            of the view's columns but no extra columns. If ``pop`` is a
-            :class:`pandas.Series` it must have a name that matches one of
-            this view's columns unless the view only has one column in which
-            case the Series will be assumed to refer to that regardless of its
-            name.
+        Args:
+            population_update: The data which should be copied into the simulation's
+                state. If the update is a :class:`pandas.DataFrame`, it can contain a
+                subset of the view's columns but no extra columns. If ``pop`` is a
+                :class:`pandas.Series` it must have a name that matches one of
+                this view's columns unless the view only has one column in which
+                case the Series will be assumed to refer to that regardless of its
+                name.
 
         Raises
-        ------
-        PopulationError
-            If the provided data name or columns do not match columns that
-            this view manages or if the view is being updated with a data
-            type inconsistent with the original population data.
-
+            PopulationError: If the provided data name or columns do not match
+                columns that this view manages or if the view is being updated with
+                a data type inconsistent with the original population data.
         """
         state_table = self._manager.get_population(True)
         population_update = self._format_update_and_check_preconditions(
@@ -274,34 +246,23 @@ class PopulationView:
         the existing state table. When new simulants are added in the middle of the
         simulation, we require that only one component provide updates to a column.
 
-        Parameters
-        ----------
-        population_update
-            The update to the simulation state table.
-        state_table
-            The existing simulation state table.
-        view_columns
-            The columns managed by this PopulationView.
-        creating_initial_population
-            Whether the initial population is being created.
-        adding_simulants
-            Whether new simulants are currently being initialized.
+        Args:
+            population_update: The update to the simulation state table.
+            state_table: The existing simulation state table.
+            view_columns: The columns managed by this PopulationView.
+            creating_initial_population: Whether the initial population is being created.
+            adding_simulants: Whether new simulants are currently being initialized.
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             The input data formatted as a DataFrame.
 
-        Raises
-        ------
-        TypeError
-            If the population update is not a :class:`pandas.Series` or a
-            :class:`pandas.DataFrame`.
-        PopulationError
-            If the update violates any preconditions relevant to the context in which
-            the update is provided (initial population creation, population creation on
-            time steps, or population state changes on time steps).
-
+        Raises:
+            TypeError: If the population update is not a :class:`pandas.Series` or a
+                :class:`pandas.DataFrame`.
+            PopulationError: If the update violates any preconditions relevant to
+                the context in which the update is provided (initial population
+                creation, population creation on time steps, or population state
+                changes on time steps).
         """
         assert not creating_initial_population or adding_simulants
 
@@ -353,26 +314,18 @@ class PopulationView:
     ) -> pd.DataFrame:
         """Coerce all population updates to a :class:`pandas.DataFrame` format.
 
-        Parameters
-        ----------
-        population_update
-            The update to the simulation state table.
+        Args:
+            population_update: The update to the simulation state table.
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             The input data formatted as a DataFrame.
 
-        Raises
-        ------
-        TypeError
-            If the population update is not a :class:`pandas.Series` or a
-            :class:`pandas.DataFrame`.
-        PopulationError
-            If the input data is a :class:`pandas.Series` and this :class:`PopulationView`
-            manages multiple columns or if the population update contains columns not
-            managed by this view.
-
+        Raises:
+            TypeError: If the population update is not a :class:`pandas.Series` or a
+                :class:`pandas.DataFrame`.
+            PopulationError: If the input data is a :class:`pandas.Series` and this
+                :class:`PopulationView` manages multiple columns or if the population
+                update contains columns not managed by this view.
         """
         if not isinstance(population_update, (pd.Series, pd.DataFrame)):
             raise TypeError(
@@ -420,21 +373,15 @@ class PopulationView:
         duplicate column information, which we should continue to allow. We want to ensure
         that a column is only getting one set of unique values though.
 
-        Parameters
-        ----------
-        population_update
-            The update to the simulation state table.
-        state_table
-            The existing simulation state table. When this method is called, the table
-            should be in a partially complete state. That is the provided population
-            update should carry some new attributes we need to assign.
+        Args:
+            population_update: The update to the simulation state table.
+            state_table: The existing simulation state table. When this method is called,
+                the table should be in a partially complete state. That is the provided
+                population update should carry some new attributes we need to assign.
 
-        Raises
-        -----
-        PopulationError
-            If the population update contains no new information or if it contains
-            information in conflict with the existing state table.
-
+        Raises:
+            PopulationError: If the population update contains no new information or
+                if it contains information in conflict with the existing state table.
         """
         missing_pops = len(state_table.index.difference(population_update.index))
         if missing_pops:
@@ -464,20 +411,13 @@ class PopulationView:
     ) -> pd.Series:
         """Build the updated state table column with an appropriate dtype.
 
-        Parameters
-        ----------
-        update
-            The new column values for a subset of the existing index.
-        existing
-            The existing column values for all simulants in the state table.
-        adding_simulants
-            Whether new simulants are currently being initialized.
+        Args:
+            update: The new column values for a subset of the existing index.
+            existing: The existing column values for all simulants in the state table.
+            adding_simulants: Whether new simulants are currently being initialized.
 
-        Returns
-        -------
-        pd.Series
+        Returns:
             The column with the provided update applied
-
         """
         # FIXME: This code does not work as described. I'm leaving it here because writing
         #  real dtype checking code is a pain and we never seem to hit the actual edge cases.

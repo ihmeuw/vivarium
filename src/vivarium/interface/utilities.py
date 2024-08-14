@@ -5,7 +5,6 @@ Interface Utility Functions
 
 The functions defined here are used to support the interactive and command-line
 interfaces for ``vivarium``.
-
 """
 
 import functools
@@ -112,18 +111,12 @@ def get_output_model_name_string(
 ) -> str:
     """Find a good string to use as model name in output path creation.
 
-    Parameters
-    ----------
-    artifact_path
-        Path to the artifact file, if exists, else should be None
-    model_spec_path
-        Path to the model specification file. This must exist.
+    Args:
+        artifact_path: Path to the artifact file, if exists, else should be None
+        model_spec_path: Path to the model specification file. This must exist.
 
-    Returns
-    -------
-    str
+    Returns:
         A model name string for use in output labeling.
-
     """
     if artifact_path:
         model_name = Path(artifact_path).stem

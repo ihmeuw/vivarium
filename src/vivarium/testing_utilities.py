@@ -4,7 +4,6 @@ Vivarium Testing Utilities
 ==========================
 
 Utility functions and classes to make testing ``vivarium`` components easier.
-
 """
 
 from itertools import product
@@ -158,23 +157,20 @@ def build_table(
     key_columns: Dict = {"sex": ("Female", "Male")},
     value_columns: List = ["value"],
 ) -> pd.DataFrame:
-    """
-    Parameters
-    ----------
-    value
-        Value(s) to put in the value columns of a lookup table.
-    parameter_columns
-        A dictionary where the keys are parameter (continuous) columns of a lookup table
-        and the values are tuple of the range (inclusive) for that column.
-    key_columns
-        A dictionary where the keys are key (categorical) columns of a lookup table
-        and the values are a tuple of the categories for that column
-    value_columns
-        A list of value columns that will appear in the returned lookup table
+    """Create a fully-expanded pandas DataFrame.
 
-    Returns
-        A pandas dataframe that has the cartesian product of the range of all parameter columns
-        and the values of the key columns.
+    Args:
+        value: Value(s) to put in the value columns of a lookup table.
+        parameter_columns: A dictionary where the keys are parameter (continuous)
+            columns of a lookup table and the values are tuple of the range (inclusive)
+            for that column.
+        key_columns: A dictionary where the keys are key (categorical) columns of
+            a lookup table and the values are a tuple of the categories for that column
+        value_columns: A list of value columns that will appear in the returned lookup table
+
+    Returns:
+        A pandas DataFrame that has the cartesian product of the range of all
+        parameter columns and the values of the key columns.
     """
     if not isinstance(value, list):
         value = [value] * len(value_columns)

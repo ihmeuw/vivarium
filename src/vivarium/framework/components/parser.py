@@ -38,8 +38,7 @@ class ParsingError(ComponentConfigError):
 
 
 class ComponentConfigurationParser:
-    """
-    Parses component configuration from model specification and initializes
+    """Parses component configuration from model specification and initializes
     components.
 
     To define your own set of parsing rules, you should write a parser class
@@ -74,19 +73,14 @@ class ComponentConfigurationParser:
         Configurations that are provided in the form of a list are already
         assumed to be in the correct form.
 
-        Parameters
-        ----------
-        component_config
-            A hierarchical component specification blob. This configuration
+        Args:
+            component_config: A hierarchical component specification blob. This configuration
             information needs to be parsable into a full import path and a set
             of initialization arguments by the ``parse_component_config``
             method.
 
-        Returns
-        -------
-        List
+        Returns:
             A list of initialized components.
-
         """
         if isinstance(component_config, LayeredConfigTree):
             component_list = self.parse_component_config(component_config)
@@ -97,22 +91,17 @@ class ComponentConfigurationParser:
         return component_list
 
     def parse_component_config(self, component_config: LayeredConfigTree) -> List[Component]:
-        """
-        Helper function for parsing a LayeredConfigTree into a flat list of Components.
+        """Helper function for parsing a LayeredConfigTree into a flat list of Components.
 
         This function converts the LayeredConfigTree into a dictionary and passes it
         along with an empty prefix list to
         :meth:`process_level <ComponentConfigurationParser.process_level>`. The
         result is a flat list of components.
 
-        Parameters
-        ----------
-        component_config
-            A LayeredConfigTree representing a hierarchical component specification blob.
+        Args:
+            component_config: A LayeredConfigTree representing a hierarchical component specification blob.
 
-        Returns
-        -------
-        List[Component]
+        Returns:
             A flat list of Components
         """
         if not component_config:
@@ -153,17 +142,15 @@ class ComponentConfigurationParser:
              'vivarium_examples.disease_model.disease.SIS_DiseaseModel("diarrhea")']
 
 
-        Parameters
-        ----------
-        level
-            A level of the hierarchical component specification blob.
-        prefix
-            A list of strings representing the import path prefix.
+        Args:
+            level: A level of the hierarchical component specification blob.
+            prefix: A list of strings representing the import path prefix.
 
-        Returns
-        -------
-        List[Component]
+        Returns:
             A flat list of Components
+
+        Raises:
+            ParsingError: If the component configuration has an empty header
         """
         if not level:
             raise ParsingError(
@@ -198,15 +185,11 @@ class ComponentConfigurationParser:
         This function takes a string representing a component and turns it into
         an instantiated component object.
 
-        Parameters
-        ----------
-        component_string
-            A string representing the full python import path to the component,
+        Args:
+            component_string: A string representing the full python import path to the component,
             the component name, and any arguments.
 
-        Returns
-        -------
-        Component
+        Returns:
             An instantiated component object.
         """
         component_path, args = self.prep_component(component_string)
@@ -217,14 +200,10 @@ class ComponentConfigurationParser:
         """Transform component description string into a tuple of component paths
         and required arguments.
 
-        Parameters
-        ----------
-        component_string
-            The component description to transform.
+        Args:
+            component_string: The component description to transform.
 
-        Returns
-        -------
-        Tuple[str, Tuple]
+        Returns:
             Component/argument tuple.
         """
         path, args_plus = component_string.split("(")
@@ -237,16 +216,11 @@ class ComponentConfigurationParser:
         Transform component arguments into a tuple, validating that each argument
         is a string.
 
-        Parameters
-        ----------
-        args
-            List of arguments to the component specified at ``path``.
-        path
-            Path representing the component for which arguments are being cleaned.
+        Args:
+            args: List of arguments to the component specified at ``path``.
+            path: Path representing the component for which arguments are being cleaned.
 
-        Returns
-        -------
-        Tuple
+        Returns:
             A tuple of arguments, each of which is guaranteed to be a string.
         """
         out = []
@@ -270,18 +244,12 @@ class ComponentConfigurationParser:
         Transform a tuple representing a Component into an actual instantiated
         component object.
 
-        Parameters
-        ----------
-        component_path
-            A string with the full import path to the component and the
-            component name
-        args
-            A tuple of arguments to the component specified at ``component_path``.
+        Args:
+            component_path: A string with the full import path to the component and the
+                component name
+            args: A tuple of arguments to the component specified at ``component_path``.
 
-        Returns
-        -------
-        Component
+        Returns:
             An instantiated component object.
-
         """
         return import_by_path(component_path)(*args)

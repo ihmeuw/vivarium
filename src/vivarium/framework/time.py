@@ -8,7 +8,6 @@ clocks for use in ``vivarium``.
 
 For more information about time in the simulation, see the associated
 :ref:`concept note <time_concept>`.
-
 """
 
 from datetime import datetime, timedelta
@@ -188,21 +187,17 @@ class SimulationClock(Manager):
             self._simulants_to_snooze = self._simulants_to_snooze.union(index)
 
     def step_size_post_processor(self, values: List[NumberLike], _) -> pd.Series:
-        """Computes the largest feasible step size for each simulant. This is the smallest component-modified
-        step size (rounded down to increments of the minimum step size), or the global step size, whichever is larger.
+        """Computes the largest feasible step size for each simulant.
+
+        This is the smallest component-modified step size (rounded down to increments
+        of the minimum step size), or the global step size, whichever is larger.
         If no components modify the step size, we default to the global step size.
 
-        Parameters
-        ----------
-        values
-            A list of step sizes
+        args:
+            values: A list of step sizes
 
-        Returns
-        -------
-        pandas.Series
+        Returns:
             The largest feasible step size for each simulant
-
-
         """
 
         min_modified = pd.DataFrame(values).min(axis=0).fillna(self.standard_step_size)
@@ -318,27 +313,23 @@ class TimeInterface:
     def register_step_size_modifier(
         self,
         modifier: Callable[[pd.Index], pd.Series],
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
-        requires_streams: List[str] = (),
+        requires_columns: tuple[str, ...] = (),
+        requires_values: tuple[str, ...] = (),
+        requires_streams: tuple[str, ...] = (),
     ) -> None:
         """Registers a step size modifier.
 
-        Parameters
-        ----------
-        modifier
-            Modifier of the step size pipeline. Modifiers can take an index
-            and should return a series of step sizes.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the modifier
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the  modifier is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the modifier is called."""
+        Args:
+            modifier: Modifier of the step size pipeline. Modifiers can take an index
+                and should return a series of step sizes.
+            requires_columns: A tuple of the state table columns that already need to
+                be present and populated in the state table before the modifier
+                is called.
+            requires_values: A tuple of the value pipelines that need to be properly
+                sourced before the modifier is called.
+            requires_streams: A tuple of the randomness streams that need to be
+                properly sourced before the modifier is called.
+        """
         return self._manager.register_step_modifier(
             modifier, requires_columns, requires_values, requires_streams
         )

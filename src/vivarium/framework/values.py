@@ -10,7 +10,6 @@ infrastructure. It allows for values that determine the behavior of individual
 
 For more information about when and how you should use pipelines in your
 simulations, see the value system :ref:`concept note <values_concept>`.
-
 """
 
 from collections import defaultdict
@@ -39,23 +38,16 @@ def replace_combiner(value: Any, mutator: Callable, *args: Any, **kwargs: Any) -
 
     This is the default combiner.
 
-    Parameters
-    ----------
-    value
-        The value from the previous step in the pipeline.
-    mutator
-        A callable that takes in all arguments that the pipeline source takes
-        in plus an additional last positional argument for the value from
-        the previous stage in the pipeline.
-    args, kwargs
-        The same args and kwargs provided during the invocation of the
-        pipeline.
+    Args:
+        value: The value from the previous step in the pipeline.
+        mutator: A callable that takes in all arguments that the pipeline source
+            takes in plus an additional last positional argument for the value from
+            the previous stage in the pipeline.
+        *args: The same args provided during the invocation of the pipeline.
+        **kwargs: The same kwargs provided during the invocation of the pipeline.
 
-    Returns
-    -------
-    Any
+    Returns:
         A modified version of the input value.
-
     """
     args = list(args) + [value]
     return mutator(*args, **kwargs)
@@ -67,19 +59,14 @@ def list_combiner(value: List, mutator: Callable, *args: Any, **kwargs: Any) -> 
     This combiner is meant to be used with a post-processor that does some
     kind of reduce operation like summing all values in the list.
 
-    Parameters
-    ----------
-    value
-        A list of all values provided by the source and prior mutators in the
-        pipeline.
-    mutator
-        A callable that returns some portion of this pipeline's final value.
-    args, kwargs
-        The same args and kwargs provided during the invocation of the
-        pipeline.
+    Args:
+        value: A list of all values provided by the source and prior mutators in
+            the pipeline.
+        mutator: A callable that returns some portion of this pipeline's final value.
+        *args: The same args provided during the invocation of the pipeline.
+        **kwargs: The same kwargs provided during the invocation of the pipeline.
 
-    Returns
-    -------
+    Returns:
         The input list with new mutator portion of the pipeline value
         appended to it.
 
@@ -95,21 +82,15 @@ def rescale_post_processor(value: NumberLike, manager: "ValuesManager") -> Numbe
     :class:`~vivarium.framework.time.DateTimeClock` or another implementation
     of a clock that traffics in pandas date-time objects.
 
-    Parameters
-    ----------
-    value
-        Annual rates, either as a number or something we can broadcast
-        multiplication over like a :mod:`numpy` array or :mod:`pandas`
-        data frame.
-    time_step
-        A pandas time delta representing the size of the upcoming time
-        step.
+    Args:
+        value: Annual rates, either as a number or something we can broadcast
+            multiplication over like a :mod:`numpy` array or :mod:`pandas`
+            data frame.
+        time_step: A pandas time delta representing the size of the upcoming time
+            step.
 
-    Returns
-    -------
-    Union[numpy.ndarray, pandas.Series, pandas.DataFrame, numbers.Number]
+    Returns:
         The annual rates rescaled to the size of the current time step size.
-
     """
     if hasattr(value, "index"):
         return value.mul(
@@ -143,19 +124,14 @@ def union_post_processor(values: List[NumberLike], _) -> NumberLike:
        * - :math:`1 - \prod_x(1 - p_x)`
          - Probability of any event x
 
-    Parameters
-    ----------
-    values
-        A list of independent proportions or probabilities, either
-        as numbers or as a something we can broadcast addition and
-        multiplication over.
+    Args:
+        values: A list of independent proportions or probabilities, either
+            as numbers or as a something we can broadcast addition and
+            multiplication over.
 
-    Returns
-    -------
-    Union[numpy.ndarray, pandas.Series, pandas.DataFrame, numbers.Number]
+    Returns:
         The probability over the union of the sample spaces represented
         by the original probabilities.
-
     """
     # if there is only one value, return the value
     if len(values) == 1:
@@ -183,24 +159,16 @@ class Pipeline:
     generic components that create a set of pipeline modifiers for
     values that won't be used in the particular simulation.
 
-    Attributes
-    ----------
-    name
-        The name of the value represented by this pipeline.
-    source
-        A callable source for this pipeline's value.
-    mutators
-        A list of callables that directly modify the pipeline source or
-        contribute portions of the value.
-    combiner
-        A strategy for combining the source and mutator values into the
-        final value represented by the pipeline.
-    post_processor
-        An optional final transformation to perform on the combined output of
-        the source and mutators.
-    manager
-        A reference to the simulation values manager.
-
+    Attributes:
+        name: The name of the value represented by this pipeline.
+        source: A callable source for this pipeline's value.
+        mutators: A list of callables that directly modify the pipeline source or
+            contribute portions of the value.
+        combiner: A strategy for combining the source and mutator values into the
+            final value represented by the pipeline.
+        post_processor: An optional final transformation to perform on the combined
+            output of the source and mutators.
+        manager: A reference to the simulation values manager.
     """
 
     def __init__(self):
@@ -214,26 +182,21 @@ class Pipeline:
     def __call__(self, *args, skip_post_processor=False, **kwargs):
         """Generates the value represented by this pipeline.
 
-        Arguments
-        ---------
-        skip_post_processor
-            Whether we should invoke the post-processor on the combined
-            source and mutator output or return without post-processing.
-            This is useful when the post-processor acts as some sort of final
-            unit conversion (e.g. the rescale post processor).
-        args, kwargs
-            Pipeline arguments.  These should be the arguments to the
-            callable source of the pipeline.
+        Args:
+            skip_post_processor: Whether we should invoke the post-processor on the
+                combined source and mutator output or return without post-processing.
+                This is useful when the post-processor acts as some sort of final
+                unit conversion (e.g. the rescale post processor).
+            *args: Pipeline args. These should be the args to the callable source of
+                the pipeline.
+            **kwargs: Pipeline kwargs. These should be the kwargs to the callable
+                source of the pipeline.
 
-        Returns
-        -------
+        Returns:
             The value represented by the pipeline.
 
-        Raises
-        ------
-        DynamicValueError
-            If the pipeline is invoked without a source set.
-
+        Raises:
+            DynamicValueError: If the pipeline is invoked without a source set.
         """
         return self._call(*args, skip_post_processor=skip_post_processor, **kwargs)
 
@@ -318,10 +281,8 @@ class ValuesManager(Manager):
     ) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named value.
 
-        See Also
-        --------
+        See Also:
             :meth:`ValuesInterface.register_value_producer`
-
         """
         pipeline = self._register_value_producer(
             value_name, source, preferred_combiner, preferred_post_processor
@@ -373,29 +334,22 @@ class ValuesManager(Manager):
     ):
         """Marks a ``Callable`` as the modifier of a named value.
 
-        Parameters
-        ----------
-        value_name :
-            The name of the dynamic value pipeline to be modified.
-        modifier :
-            A function that modifies the source of the dynamic value pipeline
-            when called. If the pipeline has a ``replace_combiner``, the
-            modifier should accept the same arguments as the pipeline source
-            with an additional last positional argument for the results of the
-            previous stage in the pipeline. For the ``list_combiner`` strategy,
-            the pipeline modifiers should have the same signature as the pipeline
-            source.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline modifier
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline modifier is called.
-
+        Args:
+            value_name: The name of the dynamic value pipeline to be modified.
+            modifier: A function that modifies the source of the dynamic value pipeline
+                when called. If the pipeline has a ``replace_combiner``, the
+                modifier should accept the same arguments as the pipeline source
+                with an additional last positional argument for the results of the
+                previous stage in the pipeline. For the ``list_combiner`` strategy,
+                the pipeline modifiers should have the same signature as the pipeline
+                source.
+            requires_columns: A list of the state table columns that already need to
+                be present and populated in the state table before the pipeline modifier
+                is called.
+            requires_values: A list of the value pipelines that need to be properly sourced
+                before the pipeline modifier is called.
+            requires_streams: A list of the randomness streams that need to be properly
+                sourced before the pipeline modifier is called.
         """
         modifier_name = self._get_modifier_name(modifier)
 
@@ -412,18 +366,14 @@ class ValuesManager(Manager):
     def get_value(self, name):
         """Retrieve the pipeline representing the named value.
 
-        Parameters
-        ----------
-        name
-            Name of the pipeline to return.
+        Args:
+            name: Name of the pipeline to return.
 
-        Returns
-        -------
+        Returns:
             A callable reference to the named pipeline.  The pipeline arguments
             should be identical to the arguments to the pipeline source
             (frequently just a :class:`pandas.Index` representing the
             simulants).
-
         """
         return self._pipelines[name]  # May create a pipeline.
 
@@ -491,7 +441,6 @@ class ValuesInterface:
     The values system provides tools to build up a value across many
     components, allowing users to build components that focus on small groups
     of simulant attributes.
-
     """
 
     def __init__(self, manager: ValuesManager):
@@ -509,40 +458,29 @@ class ValuesInterface:
     ) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named value.
 
-        Parameters
-        ----------
-        value_name
-            The name of the new dynamic value pipeline.
-        source
-            A callable source for the dynamic value pipeline.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline source
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline source is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline source is called.
-        preferred_combiner
-            A strategy for combining the source and the results of any calls
-            to mutators in the pipeline. ``vivarium`` provides the strategies
-            ``replace_combiner`` (the default) and ``list_combiner``, which
-            are importable from ``vivarium.framework.values``.  Client code
-            may define additional strategies as necessary.
-        preferred_post_processor
-            A strategy for processing the final output of the pipeline.
-            ``vivarium`` provides the strategies ``rescale_post_processor``
-            and ``union_post_processor`` which are importable from
-            ``vivarium.framework.values``.  Client code may define additional
-            strategies as necessary.
+        Args:
+            value_name: The name of the new dynamic value pipeline.
+            source: A callable source for the dynamic value pipeline.
+            requires_columns: A list of the state table columns that already need
+                to be present and populated in the state table before the pipeline
+                source is called.
+            requires_values: A list of the value pipelines that need to be properly
+                sourced before the pipeline source is called.
+            requires_streams: A list of the randomness streams that need to be properly
+                sourced before the pipeline source is called.
+            preferred_combiner: A strategy for combining the source and the results
+                of any calls to mutators in the pipeline. ``vivarium`` provides the
+                strategies ``replace_combiner`` (the default) and ``list_combiner``,
+                which are importable from ``vivarium.framework.values``.  Client code
+                may define additional strategies as necessary.
+            preferred_post_processor: A strategy for processing the final output of
+                the pipeline. ``vivarium`` provides the strategies
+                ``rescale_post_processor`` and ``union_post_processor`` which are
+                importable from ``vivarium.framework.values``.  Client code may
+                define additional strategies as necessary.
 
-        Returns
-        -------
-        Pipeline
+        Returns:
             A callable reference to the named dynamic value pipeline.
-
         """
         return self._manager.register_value_producer(
             value_name,
@@ -571,28 +509,19 @@ class ValuesInterface:
         preferred_combiner=replace_combiner,
         preferred_post_processor=rescale_post_processor)``
 
-        Parameters
-        ----------
-        rate_name
-            The name of the new dynamic rate pipeline.
-        source
-            A callable source for the dynamic rate pipeline.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline source
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline source is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline source is called.
+        Args:
+            rate_name: The name of the new dynamic rate pipeline.
+            source: A callable source for the dynamic rate pipeline.
+            requires_columns: A list of the state table columns that already need
+                to be present and populated in the state table before the pipeline
+                source is called.
+            requires_values: A list of the value pipelines that need to be properly
+                sourced before the pipeline source is called.
+            requires_streams: A list of the randomness streams that need to be
+                properly sourced before the pipeline source is called.
 
-        Returns
-        -------
-        Pipeline
+        Returns:
             A callable reference to the named dynamic rate pipeline.
-
         """
         return self.register_value_producer(
             rate_name,
@@ -613,29 +542,22 @@ class ValuesInterface:
     ):
         """Marks a ``Callable`` as the modifier of a named value.
 
-        Parameters
-        ----------
-        value_name :
-            The name of the dynamic value pipeline to be modified.
-        modifier :
-            A function that modifies the source of the dynamic value pipeline
-            when called. If the pipeline has a ``replace_combiner``, the
-            modifier should accept the same arguments as the pipeline source
-            with an additional last positional argument for the results of the
-            previous stage in the pipeline. For the ``list_combiner`` strategy,
-            the pipeline modifiers should have the same signature as the pipeline
-            source.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline modifier
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline modifier is called.
-
+        Args:
+            value_name: The name of the dynamic value pipeline to be modified.
+            modifier: A function that modifies the source of the dynamic value pipeline
+                when called. If the pipeline has a ``replace_combiner``, the
+                modifier should accept the same arguments as the pipeline source
+                with an additional last positional argument for the results of the
+                previous stage in the pipeline. For the ``list_combiner`` strategy,
+                the pipeline modifiers should have the same signature as the pipeline
+                source.
+            requires_columns: A list of the state table columns that already need to
+                be present and populated in the state table before the pipeline modifier
+                is called.
+            requires_values: A list of the value pipelines that need to be properly
+                sourced before the pipeline modifier is called.
+            requires_streams: A list of the randomness streams that need to be
+                properly sourced before the pipeline modifier is called.
         """
         self._manager.register_value_modifier(
             value_name, modifier, requires_columns, requires_values, requires_streams
@@ -644,17 +566,13 @@ class ValuesInterface:
     def get_value(self, name: str) -> Pipeline:
         """Retrieve the pipeline representing the named value.
 
-        Parameters
-        ----------
-        name
-            Name of the pipeline to return.
+        Args:
+            name: Name of the pipeline to return.
 
-        Returns
-        -------
-            A callable reference to the named pipeline.  The pipeline arguments
+        Returns:
+            A callable reference to the named pipeline. The pipeline arguments
             should be identical to the arguments to the pipeline source
             (frequently just a :class:`pandas.Index` representing the
             simulants).
-
         """
         return self._manager.get_value(name)

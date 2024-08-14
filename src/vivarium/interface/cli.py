@@ -27,7 +27,6 @@ simulations from the command line.
 .. click:: vivarium.interface.cli:simulate
    :prog: simulate
    :show-nested:
-
 """
 
 import cProfile
@@ -113,7 +112,6 @@ def run(
     is provided, a subdirectory will be created with the same name as the
     MODEL_SPECIFICATION if one does not exist. Results will be written to a
     further subdirectory named after the start time of the simulation run.
-
     """
     if verbose and quiet:
         raise click.UsageError("Cannot be both verbose and quiet.")

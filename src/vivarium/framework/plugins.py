@@ -6,7 +6,6 @@ The Plugin Management System
 .. todo::
    This part will come in with the full description of the plugin system
    in the next PR. -J.C. 05/07/19
-
 """
 
 from layered_config_tree import LayeredConfigTree

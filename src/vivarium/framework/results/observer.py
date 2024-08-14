@@ -13,6 +13,7 @@ from vivarium.framework.engine import Builder
 
 class Observer(Component, ABC):
     """An abstract base class intended to be subclassed by observer components.
+
     The primary purpose of this class is to provide attributes required by
     the subclass `report` method.
 

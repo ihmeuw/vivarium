@@ -45,7 +45,6 @@ class OrderedComponentSet:
 
     It preserves ordering, enforces uniqueness by name, and provides a
     subset of set-like semantics.
-
     """
 
     def __init__(self, *args: Union[Component, Manager]):
@@ -117,7 +116,6 @@ class ComponentManager(Manager):
     phase for all components and managers it controls. This is done first for
     managers and then components, and involves applying default configurations
     and calling the object's ``setup`` method.
-
     """
 
     def __init__(self):
@@ -154,11 +152,8 @@ class ComponentManager(Manager):
 
         Managers are configured and setup before components.
 
-        Parameters
-        ----------
-        managers
-            Instantiated managers to register.
-
+        Args:
+            managers: Instantiated managers to register.
         """
         for m in self._flatten(list(managers)):
             self.apply_configuration_defaults(m)
@@ -169,11 +164,8 @@ class ComponentManager(Manager):
 
         Components are configured and setup after managers.
 
-        Parameters
-        ----------
-        components
-            Instantiated components to register.
-
+        Args:
+            components: Instantiated components to register.
         """
         for c in self._flatten(list(components)):
             self.apply_configuration_defaults(c)
@@ -184,16 +176,11 @@ class ComponentManager(Manager):
     ) -> List[Component]:
         """Get all components that are an instance of ``component_type``.
 
-        Parameters
-        ----------
-        component_type
-            A component type.
+        Args:
+            component_type: A component type.
 
-        Returns
-        -------
-        List[Any]
+        Returns:
             A list of components of type ``component_type``.
-
         """
         # Convert component_type to a tuple for isinstance
         return [c for c in self._components if isinstance(c, tuple(component_type))]
@@ -203,20 +190,15 @@ class ComponentManager(Manager):
 
         Names are guaranteed to be unique.
 
-        Parameters
-        ----------
-        name
-            A component name.
+        Args:
+            name: A component name.
 
-        Returns
-        -------
-        Component
+        Returns:
             A component that has name ``name``.
 
-        Raises
-        ------
-        ValueError
-            No component exists in the component manager with ``name``.
+        Raises:
+            ValueError:
+                No component exists in the component manager with ``name``.
 
         """
         for c in self._components:
@@ -227,11 +209,8 @@ class ComponentManager(Manager):
     def list_components(self) -> Dict[str, Component]:
         """Get a mapping of component names to components held by the manager.
 
-        Returns
-        -------
-        Dict[str, Any]
+        Returns:
             A mapping of component names to components.
-
         """
         return {c.name: c for c in self._components}
 
@@ -244,11 +223,8 @@ class ComponentManager(Manager):
         components as a side effect of setup because components themselves have
         access to this interface through the builder in their setup method.
 
-        Parameters
-        ----------
-        builder
-            Interface to several simulation tools.
-
+        Args:
+            builder: Interface to several simulation tools.
         """
         self._setup_components(builder, self._managers + self._components)
 
@@ -326,7 +302,6 @@ class ComponentInterface:
     defines component manager methods a ``vivarium`` component can access from
     the builder. It provides methods for querying and adding components to the
     :class:`ComponentManager`.
-
     """
 
     def __init__(self, manager: ComponentManager):
@@ -336,14 +311,11 @@ class ComponentInterface:
         """Get the component that has ``name`` if presently held by the component
         manager. Names are guaranteed to be unique.
 
-        Parameters
-        ----------
-        name
-            A component name.
-        Returns
-        -------
-            A component that has name ``name``.
+        Args:
+            name: A component name.
 
+        Returns:
+            A component that has name ``name``.
         """
         return self._manager.get_component(name)
 
@@ -352,27 +324,19 @@ class ComponentInterface:
     ) -> List[Component]:
         """Get all components that are an instance of ``component_type``.
 
-        Parameters
-        ----------
-        component_type
-            A component type to retrieve, compared against internal components
-            using isinstance().
+        Args:
+            component_type: A component type to retrieve, compared against internal
+            components using isinstance().
 
-        Returns
-        -------
-        List[Any]
+        Returns:
             A list of components of type ``component_type``.
-
         """
         return self._manager.get_components_by_type(component_type)
 
     def list_components(self) -> Dict[str, Component]:
         """Get a mapping of component names to components held by the manager.
 
-        Returns
-        -------
-        Dict[str, Any]
+        Returns:
             A dictionary mapping component names to components.
-
         """
         return self._manager.list_components()

@@ -6,24 +6,18 @@ Randomness Streams
 This module provides a wrapper around numpy's randomness system with the intent of coupling
 it to vivarium's tools for Common Random Number genereration.
 
+RESIDUAL_CHOICE is a probability placeholder to be used in an un-normalized array
+of weights to absorb leftover weight so that the array sums to unity.
+For example::
 
-Attributes
-----------
-RESIDUAL_CHOICE : object
-    A probability placeholder to be used in an un-normalized array of weights
-    to absorb leftover weight so that the array sums to unity.
-    For example::
+    [0.2, 0.2, RESIDUAL_CHOICE] => [0.2, 0.2, 0.6]
 
-        [0.2, 0.2, RESIDUAL_CHOICE] => [0.2, 0.2, 0.6]
-
-    Note
-    ----
-    Currently this object is only used in the `choice` function of this
-    module.
+Note: Currently RESIDUAL_CHOICE is only used in the `choice` function of this
+module.
 """
 
 import hashlib
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable, List, Tuple, Union, Optional
 
 import numpy as np
 import pandas as pd
@@ -39,16 +33,11 @@ RESIDUAL_CHOICE = object()
 def get_hash(key: str) -> int:
     """Gets a hash of the provided key.
 
-    Parameters
-    ----------
-    key :
-        A string used to create a seed for the random number generator.
+    Args:
+        key: A string used to create a seed for the random number generator.
 
     Returns
-    -------
-    int
         A hash of the provided key.
-
     """
     max_allowable_numpy_seed = 4294967295  # 2**32 - 1
     return int(hashlib.sha1(key.encode("utf8")).hexdigest(), 16) % max_allowable_numpy_seed
@@ -62,27 +51,24 @@ class RandomnessStream:
     for doing common simulation tasks that require random numbers like
     making decisions among a number of choices.
 
-    Attributes
-    ----------
-    key
-        The name of the randomness stream.
-    clock
-        A way to get the current simulation time.
-    seed
-        An extra number used to seed the random number generation.
+    Notes:
+        Should not be constructed by client code.
 
-    Notes
-    -----
-    Should not be constructed by client code.
+        Simulation components get `RandomnessStream` objects by requesting
+        them from the builder provided to them during the setup phase.
+        I.E.::
 
-    Simulation components get `RandomnessStream` objects by requesting
-    them from the builder provided to them during the setup phase.
-    I.E.::
+            class VivariumComponent:
+                def setup(self, builder):
+                    self.randomness_stream = builder.randomness.get_stream('stream_name')
 
-        class VivariumComponent:
-            def setup(self, builder):
-                self.randomness_stream = builder.randomness.get_stream('stream_name')
-
+    Attributes:
+        key: The name of the randomness stream.
+        clock: A way to get the current simulation time.
+        seed: An extra number used to seed the random number generation.
+        index_map: A key-index mapping with a vectorized hash and vectorized lookups.
+        initializes_crn_attributes: A boolean indicating whether the stream is
+            used to initialize CRN attributes.
     """
 
     def __init__(
@@ -106,34 +92,16 @@ class RandomnessStream:
     def _key(self, additional_key: Any = None) -> str:
         """Construct a hashable key from this object's state.
 
-        Parameters
-        ----------
-        additional_key
-            Any additional information used to seed random number generation.
+        Args:
+            additional_key: Any additional information used to seed random number generation.
 
-        Returns
-        -------
-        str
+        Returns:
             A key to seed random number generation.
-
         """
         return "_".join([self.key, str(self.clock()), str(additional_key), str(self.seed)])
 
     def get_draw(self, index: pd.Index, additional_key: Any = None) -> pd.Series:
         """Get an indexed set of numbers uniformly drawn from the unit interval.
-
-        Parameters
-        ----------
-        index
-            An index whose length is the number of random draws made
-            and which indexes the returned `pandas.Series`.
-        additional_key
-            Any additional information used to seed random number generation.
-
-        Returns
-        -------
-        pandas.Series
-            A series of random numbers indexed by the provided `pandas.Index`.
 
         Note
         ----
@@ -145,6 +113,16 @@ class RandomnessStream:
         https://en.wikipedia.org/wiki/Variance_reduction and
         "Untangling Uncertainty with Common Random Numbers:
         A Simulation Study; A.Flaxman, et. al., Summersim 2017"
+
+        Args:
+            index: An index whose length is the number of random draws made
+                and which indexes the returned `pandas.Series`.
+            additional_key: Any additional information used to seed random number
+                generation.
+
+        Returns:
+            A series of random numbers indexed by the provided `pandas.Index`.
+
 
         """
         # Return a structured null value if an empty index is passed
@@ -195,27 +173,20 @@ class RandomnessStream:
         some event to happen, we create and return the subpopulation for whom
         the event occurred.
 
-        Parameters
-        ----------
-        population
-            A view on the simulants for which we are determining the
-            outcome of an event.
-        rate
-            A scalar float value or a 1d list of rates of the event under
-            consideration occurring which corresponds (i.e.
-            `len(population) == len(probability))` to the population view passed
-            in. The rates must be scaled to the simulation time-step size either
-            manually or as a post-processing step in a rate pipeline. If a
-            scalar is provided, it is applied to every row in the population.
-        additional_key
-            Any additional information used to create the seed.
+        Args:
+            population: A view on the simulants for which we are determining the
+                outcome of an event.
+            rate: A scalar float value or a 1d list of rates of the event under
+                consideration occurring which corresponds (i.e.
+                `len(population) == len(probability))` to the population view passed
+                in. The rates must be scaled to the simulation time-step size either
+                manually or as a post-processing step in a rate pipeline. If a
+                scalar is provided, it is applied to every row in the population.
+            additional_key: Any additional information used to create the seed.
 
-        Returns
-        -------
-        pandas.core.generic.PandasObject
+        Returns:
             The subpopulation of the simulants for whom the event occurred.
-            The return type will be the same as type(population)
-
+            The return type will be the same as type(population).
         """
         return self.filter_for_probability(
             population, rate_to_probability(rate), additional_key
@@ -233,26 +204,19 @@ class RandomnessStream:
         for some event to happen, we create and return the subpopulation for
         whom the event occurred.
 
-        Parameters
-        ----------
-        population
-            A view on the simulants for which we are determining the
-            outcome of an event.
-        probability
-            A scalar float value or a 1d list of probabilities of the event
-            under consideration occurring which corresponds (i.e.
-            `len(population) == len(probability)` to the population view
-            passed in. If a scalar is provided, it is applied to every row in
-            the population.
-        additional_key
-            Any additional information used to create the seed.
+        Args:
+            population: A view on the simulants for which we are determining the
+                outcome of an event.
+            probability: A scalar float value or a 1d list of probabilities of the event
+                under consideration occurring which corresponds (i.e.
+                `len(population) == len(probability)` to the population view
+                passed in. If a scalar is provided, it is applied to every row in
+                the population.
+            additional_key" Any additional information used to create the seed.
 
-        Returns
-        -------
-        pandas.core.generic.PandasObject
+        Returns:
             The subpopulation of the simulants for whom the event occurred.
-            The return type will be the same as type(population)
-
+            The return type will be the same as type(population).
         """
         if population.empty:
             return population
@@ -275,35 +239,26 @@ class RandomnessStream:
         returns an indexed set of decisions from those choices. This is
         simply a vectorized way to make decisions with some book-keeping.
 
-        Parameters
-        ----------
-        index
-            An index whose length is the number of random draws made
-            and which indexes the returned `pandas.Series`.
-        choices
-            A set of options to choose from.
-        p
-            The relative weights of the choices.  Can be either a 1-d array of
-            the same length as `choices` or a 2-d array with `len(index)` rows
-            and `len(choices)` columns.  In the 1-d case, the same set of
-            weights are used to decide among the choices for every item in
-            the `index`. In the 2-d case, each row in `p` contains a separate
-            set of weights for every item in the `index`.
-        additional_key
-            Any additional information used to seed random number generation.
+        Args:
+            index: An index whose length is the number of random draws made
+                and which indexes the returned `pandas.Series`.
+            choices: A set of options to choose from.
+            p: The relative weights of the choices. Can be either a 1-d array of
+                the same length as `choices` or a 2-d array with `len(index)` rows
+                and `len(choices)` columns.  In the 1-d case, the same set of
+                weights are used to decide among the choices for every item in
+                the `index`. In the 2-d case, each row in `p` contains a separate
+                set of weights for every item in the `index`.
+            additional_key: Any additional information used to seed random number
+                generation.
 
-        Returns
-        -------
-        pandas.Series
+        Returns:
             An indexed set of decisions from among the available `choices`.
 
-        Raises
-        ------
-        RandomnessError
-            If any row in `p` contains `RESIDUAL_CHOICE` and the remaining
-            weights in the row are not normalized or any row of `p contains
-            more than one reference to `RESIDUAL_CHOICE`.
-
+        Raises:
+            RandomnessError: If any row in `p` contains `RESIDUAL_CHOICE` and the
+                remaining weights in the row are not normalized or any row of `p`
+                contains more than one reference to `RESIDUAL_CHOICE`.
         """
         draws = self.get_draw(index, additional_key)
         return _choice(draws, choices, p)
@@ -311,28 +266,22 @@ class RandomnessStream:
     def sample_from_distribution(
         self,
         index: pd.Index,
-        distribution: stats.rv_continuous = None,
-        ppf: Callable[[pd.Series, ...], pd.Series] = None,
+        distribution: Optional[stats.rv_continuous] = None,
+        ppf: Optional[Callable[[pd.Series, ...], pd.Series]] = None,
         additional_key: Any = None,
         **distribution_kwargs: Any,
     ) -> pd.Series:
-        """
-        Given a distribution, returns an indexed set of samples from that
+        """Given a distribution, returns an indexed set of samples from that
         distribution.
 
-        Parameters
-        ----------
-        index
-            An index whose length is the number of random draws made
-            and which indexes the returned `pandas.Series`.
-        distribution
-            A scipy.stats distribution object.
-        ppf
-            A function that takes a series of draws and returns a series of samples.
-        additional_key
-            Any additional information used to seed random number generation.
-        distribution_kwargs
-            Additional keyword arguments to pass to the distribution's ppf function.
+        Args:
+            index: An index whose length is the number of random draws made
+                and which indexes the returned `pandas.Series`.
+            distribution: A scipy.stats distribution object.
+            ppf: A function that takes a series of draws and returns a series of samples.
+            additional_key: Any additional information used to seed random number generation.
+            **distribution_kwargs: Additional keyword arguments to pass to the distribution's
+                ppf function.
         """
         if ppf is None and distribution is None:
             raise ValueError("Either distribution or ppf must be provided")
@@ -355,7 +304,7 @@ class RandomnessStream:
 def _choice(
     draws: pd.Series,
     choices: Union[List, Tuple, np.ndarray, pd.Series],
-    p: Union[List, Tuple, np.ndarray, pd.Series] = None,
+    p: Optional[Union[List, Tuple, np.ndarray, pd.Series]] = None,
 ) -> pd.Series:
     """Decides between a weighted or unweighted set of choices.
 
@@ -363,34 +312,25 @@ def _choice(
     returns an indexed set of decisions from those choices. This is
     simply a vectorized way to make decisions with some book-keeping.
 
-    Parameters
-    ----------
-    draws
-        A uniformly distributed random number for every simulant to make
-        a choice for.
-    choices
-        A set of options to choose from. Choices must be the same for every
-        simulant.
-    p
-        The relative weights of the choices.  Can be either a 1-d array of
-        the same length as `choices` or a 2-d array with `len(draws)` rows
-        and `len(choices)` columns.  In the 1-d case, the same set of weights
-        are used to decide among the choices for every item in the `index`.
-        In the 2-d case, each row in `p` contains a separate set of weights
-        for every item in the `index`.
+    Args:
+        draws: A uniformly distributed random number for every simulant to make
+            a choice for.
+        choices: A set of options to choose from. Choices must be the same for every
+            simulant.
+        p: The relative weights of the choices.  Can be either a 1-d array of
+            the same length as `choices` or a 2-d array with `len(draws)` rows
+            and `len(choices)` columns.  In the 1-d case, the same set of weights
+            are used to decide among the choices for every item in the `index`.
+            In the 2-d case, each row in `p` contains a separate set of weights
+            for every item in the `index`.
 
-    Returns
-    -------
-    pandas.Series
+    Returns:
         An indexed set of decisions from among the available `choices`.
 
-    Raises
-    ------
-    RandomnessError
-        If any row in `p` contains `RESIDUAL_CHOICE` and the remaining
-        weights in the row are not normalized or any row of `p` contains
-        more than one reference to `RESIDUAL_CHOICE`.
-
+    Raises:
+        RandomnessError: If any row in `p` contains `RESIDUAL_CHOICE` and the
+            remaining weights in the row are not normalized or any row of `p`
+            contains more than one reference to `RESIDUAL_CHOICE`.
     """
     # Convert p to normalized probabilities broadcasted over index.
     p = (
@@ -422,17 +362,12 @@ def _normalize_shape(
 def _set_residual_probability(p: np.ndarray) -> np.ndarray:
     """Turns any use of `RESIDUAL_CHOICE` into a residual probability.
 
-    Parameters
-    ----------
-    p
-        Array where each row is a set of probability weights and potentially
-        a `RESIDUAL_CHOICE` placeholder.
+    Args:
+        p: Array where each row is a set of probability weights and potentially
+            a `RESIDUAL_CHOICE` placeholder.
 
-    Returns
-    -------
-    numpy.ndarray
+    Returns:
         Array where each row is a set of normalized probability weights.
-
     """
     residual_mask = p == RESIDUAL_CHOICE
     if residual_mask.any():  # I.E. if we have any placeholders.

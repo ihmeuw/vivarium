@@ -25,24 +25,18 @@ class Stratification:
     `Stratification` also has a `__call__()` method. The method produces an
     output column by calling the mapper on the source columns.
 
-    Attributes
-    ----------
-    name
-        Name of the column created by the `mapper`.
-    sources
-        A list of the columns and values needed for the `mapper` to determine
-        categorization.
-    categories
-        List of string values that the `mapper` is allowed to map to.
-    excluded_categories
-        List of mapped string values to be excluded from results processing.
-        If None (the default), will use exclusions as defined in the configuration.
-    mapper
-        A callable that emits values in `categories` given inputs from columns
-        and values in the `requires_columns` and `requires_values`, respectively.
-    is_vectorized
-        True if the `mapper` function expects a pd.DataFrame and False if it
-        expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
+    Attributes:
+        name: Name of the column created by the `mapper`.
+        sources: A list of the columns and values needed for the `mapper` to
+            determine categorization.
+        categories: List of string values that the `mapper` is allowed to map to.
+        excluded_categories: List of mapped string values to be excluded from results
+            processing. If None (the default), will use exclusions as defined in
+            the configuration.
+        mapper: A callable that emits values in `categories` given inputs from columns
+            and values in the `requires_columns` and `requires_values`, respectively.
+        is_vectorized: True if the `mapper` function expects a pd.DataFrame and False if it
+            expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
     """
 
     name: str
@@ -77,9 +71,23 @@ class Stratification:
 
     def __call__(self, population: pd.DataFrame) -> pd.Series[str]:
         """Apply the mapper to the population `sources` columns to create a new
-        pandas Series to be added to the population. Any excluded categories
-        (which have already been removed from self.categories) will be converted
-        to NaNs in the new column and dropped later at the observation level.
+        pandas Series to be added to the population.
+
+        Any excluded categories (which have already been removed from self.categories)
+        will be converted to NaNs in the new column and dropped later at the
+        observation level.
+
+        Args:
+            population: The population state table.
+
+        Returns:
+            A pandas Series with the mapped categorical values. This Series
+            will be added to the state table as a new column to be used for
+            filtering excluded categories and grouping.
+
+        Raises:
+            ValueError: If the mapper returns a value not in `categories` or
+                `excluded_categories`.
         """
         if self.is_vectorized:
             mapped_column = self.mapper(population[self.sources])

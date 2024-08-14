@@ -16,7 +16,6 @@ can read more about how the builder works and what services is exposes
 
 Finally, there are a handful of wrapper methods that allow a user or user
 tools to easily setup and run a simulation.
-
 """
 
 from pathlib import Path
@@ -55,23 +54,18 @@ class SimulationContext:
     def _get_context_name(sim_name: Union[str, None]) -> str:
         """Get a unique name for a simulation context.
 
-        Parameters
-        ----------
-        sim_name
-            The name of the simulation context.  If None, a unique name will be generated.
+        Notes:
+            This method mutates process global state (the class attribute
+            ``_created_simulation_contexts``) in order to keep track contexts that have been
+            generated. This functionality makes generating simulation contexts in parallel
+            a non-threadsafe operation.
 
-        Returns
-        -------
-        str
+        Args:
+            sim_name: The name of the simulation context.  If None, a unique name
+                will be generated.
+
+        Returns:
             A unique name for the simulation context.
-
-        Note
-        ----
-        This method mutates process global state (the class attribute
-        ``_created_simulation_contexts``) in order to keep track contexts that have been
-        generated. This functionality makes generating simulation contexts in parallel
-        a non-threadsafe operation.
-
         """
         if sim_name is None:
             sim_number = len(SimulationContext._created_simulation_contexts) + 1
@@ -92,7 +86,6 @@ class SimulationContext:
         """Clear the cache of simulation context names.
 
         This is primarily useful for testing purposes.
-
         """
         SimulationContext._created_simulation_contexts = set()
 
@@ -355,43 +348,32 @@ class Builder:
     This is the access point for components through which they are able to
     utilize a variety of interfaces to interact with the simulation framework.
 
-    Attributes
-    ----------
-    logging: LoggingInterface
-        Provides access to the :ref:`logging<logging_concept>` system.
-    lookup: LookupTableInterface
-        Provides access to simulant-specific data via the
-        :ref:`lookup table<lookup_concept>` abstraction.
-    value: ValuesInterface
-        Provides access to computed simulant attribute values via the
-        :ref:`value pipeline<values_concept>` system.
-    event: EventInterface
-        Provides access to event listeners utilized in the
-        :ref:`event<event_concept>` system.
-    population: PopulationInterface
-        Provides access to simulant state table via the
-        :ref:`population<population_concept>` system.
-    resources: ResourceInterface
-        Provides access to the :ref:`resource<resource_concept>` system,
-        which manages dependencies between components.
-    time: TimeInterface
-        Provides access to the simulation's :ref:`clock<time_concept>`.
-    components: ComponentInterface
-        Provides access to the :ref:`component management<components_concept>`
-        system, which maintains a reference to all managers and components in
-        the simulation.
-    lifecycle: LifeCycleInterface
-        Provides access to the :ref:`life-cycle<lifecycle_concept>` system,
-        which manages the simulation's execution life-cycle.
-    data: ArtifactInterface
-        Provides access to the simulation's input data housed in the
-        :ref:`data artifact<data_concept>`.
+    Notes:
+        A `Builder` should never be created directly. It will automatically be
+        created during the initialization of a :class:`SimulationContext`
 
-    Notes
-    -----
-    A `Builder` should never be created directly. It will automatically be
-    created during the initialization of a :class:`SimulationContext`
-
+    Attributes:
+        configuration: Provides access to the :ref:`configuration<configuration_concept>`.
+        logging: Provides access to the :ref:`logging<logging_concept>` system.
+        lookup: Provides access to simulant-specific data via the
+            :ref:`lookup table<lookup_concept>` abstraction.
+        value: Provides access to computed simulant attribute values via the
+            :ref:`value pipeline<values_concept>` system.
+        event: Provides access to event listeners utilized in the
+            :ref:`event<event_concept>` system.
+        population: Provides access to simulant state table via the
+            :ref:`population<population_concept>` system.
+        resources: Provides access to the :ref:`resource<resource_concept>` system,
+            which manages dependencies between components.
+        randomness: Provides access to the :ref:`randomness<crn_concept>` system.
+        time: Provides access to the simulation's :ref:`clock<time_concept>`.
+        components: Provides access to the :ref:`component management<components_concept>`
+            system, which maintains a reference to all managers and components in
+            the simulation.
+        lifecycle: Provides access to the :ref:`life-cycle<lifecycle_concept>` system,
+            which manages the simulation's execution life-cycle.
+        data: Provides access to the simulation's input data housed in the
+            :ref:`data artifact<data_concept>`.
     """
 
     def __init__(self, configuration, plugin_manager):

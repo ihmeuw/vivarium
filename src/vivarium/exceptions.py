@@ -5,7 +5,6 @@ Exceptions
 
 Module containing framework-wide exception definitions. Exceptions for
 particular subsystems are defined in their respective modules.
-
 """
 
 

@@ -60,6 +60,10 @@ class ResultsManager(Manager):
         We use a triple-nested for loop to iterate over only the list of Observations
         (i.e. we do not need the lifecycle_phase, pop_filter, or stratification_names
         for this method).
+
+        Returns:
+            A dictionary of the measure-specific formatted results. The keys are
+            the specific measures and the values are the respective formatted results.
         """
         formatted = {}
         for observation_details in self._results_context.observations.values():
@@ -172,32 +176,20 @@ class ResultsManager(Manager):
         to the :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
         as well as the stratification's required resources to this manager.
 
-        Parameters
-        ----------
-        name
-            Name of the column created by the `mapper`.
-        categories
-            List of string values that the `mapper` is allowed to map to.
-        excluded_categories
-            List of mapped string values to be excluded from results processing.
-            If None (the default), will use exclusions as defined in the configuration.
-        mapper
-            A callable that emits values in `categories` given inputs from columns
-            and values in the `requires_columns` and `requires_values`, respectively.
-        is_vectorized
-            True if the `mapper` function expects a pd.DataFrame and False if it
-            expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
-        requires_columns
-            A list of the state table columns that must be present and populated in the
-            state table before the pipeline modifier is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
-
-        Returns
-        -------
-        None
-
+        Args:
+            name: Name of the column created by the `mapper`.
+            categories: List of string values that the `mapper` is allowed to map to.
+            excluded_categories: List of mapped string values to be excluded from
+                results processing. If None (the default), will use exclusions as
+                defined in the configuration.
+            mapper: A callable that emits values in `categories` given inputs from columns
+                and values in the `requires_columns` and `requires_values`, respectively.
+            is_vectorized: True if the `mapper` function expects a pd.DataFrame and False if it
+                expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
+            requires_columns: A list of the state table columns that must be present and
+                populated in the state table before the pipeline modifier is called.
+            requires_values: A list of the value pipelines that need to be properly sourced
+                before the pipeline modifier is called.
         """
         self.logger.debug(f"Registering stratification {name}")
         target_columns = list(requires_columns) + list(requires_values)
@@ -220,31 +212,19 @@ class ResultsManager(Manager):
         """Manager-level registration of a continuous `target` quantity to observe
         into bins in a `binned_column`.
 
-        Parameters
-        ----------
-        target
-            String name of the state table column or value pipeline to be binned.
-        binned_column
-            String name of the new column for the binned quantities.
-        bin_edges
-            List of scalars defining the bin edges, passed to :meth: pandas.cut.
-            The length must be equal to the length of `labels` plus 1.
-        labels
-            List of string labels for bins. The length must be equal to the length
-            of `bin_edges` minus 1.
-        excluded_categories
-            List of mapped string values to be excluded from results processing.
-            If None (the default), will use exclusions as defined in the configuration.
-        target_type
-            Type specification of the `target` to be binned. "column" if it's a
-            state table column or "value" if it's a value pipeline.
-        **cut_kwargs
-            Keyword arguments for :meth: pandas.cut.
-
-        Returns
-        -------
-        None
-
+        Args:
+            target: String name of the state table column or value pipeline to be binned.
+            binned_column: String name of the new column for the binned quantities.
+            bin_edges: List of scalars defining the bin edges, passed to :meth: pandas.cut.
+                The length must be equal to the length of `labels` plus 1.
+            labels: List of string labels for bins. The length must be equal to the length
+                of `bin_edges` minus 1.
+            excluded_categories: List of mapped string values to be excluded from
+                results processing. If None (the default), will use exclusions as
+                defined in the configuration.
+            target_type: Type specification of the `target` to be binned. "column"
+                if it's a state table column or "value" if it's a value pipeline.
+            **cut_kwargs: Keyword arguments for :meth: pandas.cut.
         """
 
         def _bin_data(data: Union[pd.Series, pd.DataFrame]) -> pd.Series:
@@ -285,36 +265,28 @@ class ResultsManager(Manager):
         requires_values: List[str],
         **kwargs,
     ) -> None:
-        """Manager-level observation registration. Adds an observation to the
+        """Manager-level observation registration.
+
+        Specifically, this method adds an observation to the
         :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
         as well as the observation's required resources to this manager.
 
-        Parameters
-        ----------
-        observation_type
-            Specific class type of observation to register.
-        is_stratified
-            True if the observation is a stratified type and False if not.
-        name
-            Name of the observation. It will also be the name of the output results file
-            for this particular observation.
-        pop_filter
-            A Pandas query filter string to filter the population down to the simulants who should
-            be considered for the observation.
-        when
-            String name of the lifecycle phase the observation should happen. Valid values are:
-            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-        requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
-        requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
-        **kwargs
-            Additional keyword arguments to be passed to the observation's constructor.
-
-        Returns
-        -------
-        None
-
+        Args:
+            observation_type: Specific class type of observation to register.
+            is_stratified: True if the observation is a stratified type and False if not.
+            name: Name of the observation. It will also be the name of the output results file
+                for this particular observation.
+            pop_filter: A Pandas query filter string to filter the population down to the
+                simulants who should be considered for the observation.
+            when: String name of the lifecycle phase the observation should happen.
+                Valid values are: "time_step__prepare", "time_step", "time_step__cleanup",
+                or "collect_metrics".
+            requires_columns: List of the state table columns that are required by
+                either the `pop_filter` or the `aggregator`.
+            requires_values: List of the value pipelines that are required by either
+                the `pop_filter` or the `aggregator`.
+            **kwargs: Additional keyword arguments to be passed to the observation's
+                constructor.
         """
         self.logger.debug(f"Registering observation {name}")
 

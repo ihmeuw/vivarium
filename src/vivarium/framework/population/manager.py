@@ -5,7 +5,6 @@ The Population Manager
 
 The manager and :ref:`builder <builder_concept>` interface for the
 :ref:`population management system <population_concept>`.
-
 """
 
 from types import MethodType
@@ -25,7 +24,6 @@ class SimulantData(NamedTuple):
     Any time simulants are added to the simulation, each initializer is called
     with this structure containing information relevant to their
     initialization.
-
     """
 
     #: The index representing the new simulants being added to the simulation.
@@ -47,27 +45,19 @@ class InitializerComponentSet:
         self._components = {}
         self._columns_produced = {}
 
-    def add(self, initializer: Callable, columns_produced: List[str]):
+    def add(self, initializer: Callable, columns_produced: List[str]) -> None:
         """Adds an initializer and columns to the set, enforcing uniqueness.
 
-        Parameters
-        ----------
-        initializer
-            The population initializer to add to the set.
-        columns_produced
-            The columns the initializer produces.
+        Args:
+            initializer: The population initializer to add to the set.
+            columns_produced: The columns the initializer produces.
 
-        Raises
-        ------
-        TypeError
-            If the initializer is not an object method.
-        AttributeError
-            If the object bound to the method does not have a name attribute.
-        PopulationError
-            If the component bound to the method already has an initializer
-            registered or if the columns produced are duplicates of columns
-            another initializer produces.
-
+        Raises:
+            TypeError: If the initializer is not an object method.
+            AttributeError: If the object bound to the method does not have a name attribute.
+            PopulationError: If the component bound to the method already has an
+                initializer registered or if the columns produced are duplicates
+                of columns another initializer produces.
         """
         if not isinstance(initializer, MethodType):
             raise TypeError(
@@ -140,7 +130,6 @@ class PopulationManager(Manager):
 
     @property
     def name(self):
-        """The name of this component."""
         return "population_manager"
 
     def setup(self, builder):
@@ -201,25 +190,18 @@ class PopulationManager(Manager):
         by default. If the columns argument is empty, the population view will
         have access to the entire state table.
 
-        Parameters
-        ----------
-        columns
-            A subset of the state table columns that will be available in the
-            returned view. If empty, this view will have access to the entire
-            state table.
-        query
-            A filter on the population state.  This filters out particular
-            simulants (rows in the state table) based on their current state.
-            The query should be provided in a way that is understood by the
-            :meth:`pandas.DataFrame.query` method and may reference state
-            table columns not requested in the ``columns`` argument.
+        Args:
+            columns: A subset of the state table columns that will be available in the
+                returned view. If empty, this view will have access to the entire
+                state table.
+            query: A filter on the population state.  This filters out particular
+                simulants (rows in the state table) based on their current state.
+                The query should be provided in a way that is understood by the
+                :meth:`pandas.DataFrame.query` method and may reference state
+                table columns not requested in the ``columns`` argument.
 
-        Returns
-        -------
-        PopulationView
-            A filtered view of the requested columns of the population state
-            table.
-
+        Returns:
+            A filtered view of the requested columns of the population state table.
         """
         view = self._get_view(columns, query)
         self._add_constraint(
@@ -249,32 +231,25 @@ class PopulationManager(Manager):
     def register_simulant_initializer(
         self,
         initializer: Callable,
-        creates_columns: List[str] = (),
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
-        requires_streams: List[str] = (),
+        creates_columns: tuple[str, ...] = (),
+        requires_columns: tuple[str, ...] = (),
+        requires_values: tuple[str, ...] = (),
+        requires_streams: tuple[str, ...] = (),
     ):
         """Marks a source of initial state information for new simulants.
 
-        Parameters
-        ----------
-        initializer
-            A callable that adds or updates initial state information about
-            new simulants.
-        creates_columns
-            A list of the state table columns that the given initializer
-            provides the initial state information for.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the provided initializer
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the provided initializer is called.
-        requires_streams
-            A list of the randomness streams necessary to initialize the
-            simulant attributes.
-
+        Args:
+            initializer: A callable that adds or updates initial state information about
+                new simulants.
+            creates_columns: A tuple of the state table columns that the given initializer
+                provides the initial state information for.
+            requires_columns: A tuple of the state table columns that already need to
+                be present and populated in the state table before the provided
+                initializer is called.
+            requires_values: A tuple of the value pipelines that need to be properly
+                sourced before the provided initializer is called.
+            requires_streams: A tuple of the randomness streams necessary to
+                initialize the simulant attributes.
         """
         self._initializer_components.add(initializer, creates_columns)
         dependencies = (
@@ -293,19 +268,16 @@ class PopulationManager(Manager):
     def get_simulant_creator(self) -> Callable[[int, Optional[Dict[str, Any]]], pd.Index]:
         """Gets a function that can generate new simulants.
 
-        Returns
-        -------
-        Callable
-           The simulant creator function. The creator function takes the
-           number of simulants to be created as it's first argument and a dict
-           population configuration that will be available to simulant
-           initializers as it's second argument. It generates the new rows in
-           the population state table and then calls each initializer
-           registered with the population system with a data
-           object containing the state table index of the new simulants, the
-           configuration info passed to the creator, the current simulation
-           time, and the size of the next time step.
+        The creator function takes the number of simulants to be created as it's
+        first argument and a dict population configuration that will be available to
+        simulant initializers as it's second argument. It generates the new rows in
+        the population state table and then calls each initializer registered with
+        the population system with a data object containing the state table index
+        of the new simulants, the configuration info passed to the creator, the
+        current simulation time, and the size of the next time step.
 
+        Returns:
+           The simulant creator function.
         """
         return self._create_simulants
 
@@ -340,16 +312,11 @@ class PopulationManager(Manager):
     def get_population(self, untracked: bool) -> pd.DataFrame:
         """Provides a copy of the full population state table.
 
-        Parameters
-        ----------
-        untracked
-            Whether to include untracked simulants in the returned population.
+        Args:
+            untracked: Whether to include untracked simulants in the returned population.
 
-        Returns
-        -------
-        pandas.DataFrame
+        Returns:
             A copy of the population table.
-
         """
         pop = self._population.copy() if self._population is not None else pd.DataFrame()
         if not untracked and "tracked" in pop.columns:
@@ -377,7 +344,6 @@ class PopulationInterface:
     need information about individuals or cohorts once they reach five years
     of age, and so we can have them "age out" of the simulation at five years
     old by setting the ``tracked`` attribute to ``False``.
-
     """
 
     def __init__(self, manager: PopulationManager):
@@ -397,75 +363,59 @@ class PopulationInterface:
         by default. If the columns argument is empty, the population view will
         have access to the entire state table.
 
-        Parameters
-        ----------
-        columns
-            A subset of the state table columns that will be available in the
-            returned view. If empty, this view will have access to the entire
-            state table.
-        query
-            A filter on the population state.  This filters out particular
-            simulants (rows in the state table) based on their current state.
-            The query should be provided in a way that is understood by the
-            :meth:`pandas.DataFrame.query` method and may reference state
-            table columns not requested in the ``columns`` argument.
+        Args:
+            columns: A subset of the state table columns that will be available in the
+                returned view. If empty, this view will have access to the entire
+                state table.
+            query: A filter on the population state.  This filters out particular
+                simulants (rows in the state table) based on their current state.
+                The query should be provided in a way that is understood by the
+                :meth:`pandas.DataFrame.query` method and may reference state
+                table columns not requested in the ``columns`` argument.
 
-        Returns
-        -------
-        PopulationView
-            A filtered view of the requested columns of the population state
-            table.
-
+        Returns:
+            A filtered view of the requested columns of the population state table.
         """
         return self._manager.get_view(columns, query)
 
     def get_simulant_creator(self) -> Callable[[int, Optional[Dict[str, Any]]], pd.Index]:
         """Gets a function that can generate new simulants.
 
-        Returns
-        -------
-           The simulant creator function. The creator function takes the
-           number of simulants to be created as it's first argument and a dict
-           population configuration that will be available to simulant
-           initializers as it's second argument. It generates the new rows in
-           the population state table and then calls each initializer
-           registered with the population system with a data
-           object containing the state table index of the new simulants, the
-           configuration info passed to the creator, the current simulation
-           time, and the size of the next time step.
+        The creator function takes the number of simulants to be created as it's
+        first argument and a dict population configuration that will be available
+        to simulant initializers as it's second argument. It generates the new rows
+        in the population state table and then calls each initializer registered
+        with the population system with a data object containing the state table
+        index of the new simulants, the configuration info passed to the creator,
+        the current simulation time, and the size of the next time step.
 
+        Returns:
+           The simulant creator function.
         """
         return self._manager.get_simulant_creator()
 
     def initializes_simulants(
         self,
         initializer: Callable[[SimulantData], None],
-        creates_columns: List[str] = (),
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
-        requires_streams: List[str] = (),
+        creates_columns: tuple[str, ...] = (),
+        requires_columns: tuple[str, ...] = (),
+        requires_values: tuple[str, ...] = (),
+        requires_streams: tuple[str, ...] = (),
     ):
         """Marks a source of initial state information for new simulants.
 
-        Parameters
-        ----------
-        initializer
-            A callable that adds or updates initial state information about
-            new simulants.
-        creates_columns
-            A list of the state table columns that the given initializer
-            provides the initial state information for.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the provided initializer
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the provided initializer is called.
-        requires_streams
-            A list of the randomness streams necessary to initialize the
-            simulant attributes.
-
+        Args:
+            initializer: A callable that adds or updates initial state information
+                about new simulants.
+            creates_columns: A tuple of the state table columns that the given
+                initializer provides the initial state information for.
+            requires_columns: A tuple of the state table columns that already need
+                to be present and populated in the state table before the provided
+                initializeris called.
+            requires_values: A tuple of the value pipelines that need to be properly
+                sourced before the provided initializer is called.
+            requires_streams: A tuple of the randomness streams necessary to
+                initialize the simulant attributes.
         """
         self._manager.register_simulant_initializer(
             initializer, creates_columns, requires_columns, requires_values, requires_streams

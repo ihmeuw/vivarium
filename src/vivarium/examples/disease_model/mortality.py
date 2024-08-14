@@ -46,10 +46,8 @@ class Mortality(Component):
         framework. The framework passes in a ``builder`` object which
         provides access to a variety of framework subsystems and metadata.
 
-        Parameters
-        ----------
-        builder :
-            Access to simulation tools and subsystems.
+        Args:
+            builder: Interface to several simulation tools and subsystems.
         """
         self.config = builder.configuration.mortality
         self.randomness = builder.randomness.get_stream("mortality")
@@ -65,12 +63,10 @@ class Mortality(Component):
     def on_time_step(self, event: Event) -> None:
         """Determines who dies each time step.
 
-        Parameters
-        ----------
-        event :
-            An event object emitted by the simulation containing an index
-            representing the simulants affected by the event and timing
-            information.
+        Args:
+            event: An event object emitted by the simulation containing an index
+                representing the simulants affected by the event and timing
+                information.
         """
         effective_rate = self.mortality_rate(event.index)
         effective_probability = 1 - np.exp(-effective_rate)
@@ -85,14 +81,11 @@ class Mortality(Component):
     def base_mortality_rate(self, index: pd.Index) -> pd.Series:
         """Computes the base mortality rate for every individual.
 
-        Parameters
-        ----------
-        index :
-            A representation of the simulants to compute the base mortality
-            rate for.
+        Args:
+            index: A representation of the simulants to compute the base mortality
+                rate for.
 
-        Returns
-        -------
+        Returns:
             The base mortality rate for all simulants in the index.
         """
         return pd.Series(self.config.mortality_rate, index=index)

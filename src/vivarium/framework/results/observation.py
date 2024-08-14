@@ -23,34 +23,29 @@ VALUE_COLUMN = "value"
 
 @dataclass
 class BaseObservation(ABC):
-    """An abstract base dataclass to be inherited by concrete observations. It includes
-    an :meth:`observe` method that determines whether to observe results for a given event.
+    """An abstract base dataclass to be inherited by concrete observations.
 
-    Attributes
-    ----------
-    name
-        Name of the observation. It will also be the name of the output results file
-        for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
-    when
-        String name of the lifecycle phase the observation should happen. Valid values are:
-        "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    results_initializer
-        Method or function that initializes the raw observation results.
-    results_gatherer
-        Method or function that gathers the new observation results.
-    results_updater
-        Method or function that updates existing raw observation results with newly gathered results.
-    results_formatter
-        Method or function that formats the raw observation results.
-    stratifications
-        Optional tuple of column names for the observation to stratify by. If not
-        None, the `results_gatherer` method must accept `stratifications` as
-        the second argument.
-    to_observe
-        Method or function that determines whether to perform an observation on this Event.
+    Note that this class includes an :meth:`observe` method that determines whether
+    or not to observe results for a given event.
+
+    Attributes:
+        name: Name of the observation. It will also be the name of the output results
+            file for this particular observation.
+        pop_filter: A Pandas query filter string to filter the population down to the
+            simulants who should be considered for the observation.
+        when: String name of the lifecycle phase the observation should happen.
+            Valid values are: "time_step__prepare", "time_step", "time_step__cleanup",
+            or "collect_metrics".
+        results_initializer: Method or function that initializes the raw observation results.
+        results_gatherer: Method or function that gathers the new observation results.
+        results_updater: Method or function that updates existing raw observation results
+            with newly gathered results.
+        results_formatter: Method or function that formats the raw observation results.
+        stratifications: Optional tuple of column names for the observation to stratify by.
+            If not None, the `results_gatherer` method must accept `stratifications` as
+            the second argument.
+        to_observe: Method or function that determines whether to perform an observation
+            on this Event.
     """
 
     name: str
@@ -85,25 +80,20 @@ class UnstratifiedObservation(BaseObservation):
     The parent class `stratifications` are set to None and the `results_initializer`
     method is explicitly defined.
 
-    Attributes
-    ----------
-    name
-        Name of the observation. It will also be the name of the output results file
-        for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
-    when
-        String name of the lifecycle phase the observation should happen. Valid values are:
-        "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    results_gatherer
-        Method or function that gathers the new observation results.
-    results_updater
-        Method or function that updates existing raw observation results with newly gathered results.
-    results_formatter
-        Method or function that formats the raw observation results.
-    to_observe
-        Method or function that determines whether to perform an observation on this Event.
+    Attributes:
+        name: Name of the observation. It will also be the name of the output results
+            file for this particular observation.
+        pop_filter: A Pandas query filter string to filter the population down to the
+            simulants who should be considered for the observation.
+        when: String name of the lifecycle phase the observation should happen. Valid
+            values are: "time_step__prepare", "time_step", "time_step__cleanup",
+            or "collect_metrics".
+        results_gatherer: Method or function that gathers the new observation results.
+        results_updater: Method or function that updates existing raw observation
+            results with newly gathered results.
+        results_formatter: Method or function that formats the raw observation results.
+        to_observe: Method or function that determines whether to perform an
+            observation on this Event.
     """
 
     def __init__(
@@ -144,30 +134,23 @@ class StratifiedObservation(BaseObservation):
     explicitly defined and stratification-specific attributes `aggregator_sources`
     and `aggregator` are added.
 
-    Attributes
-    ----------
-    name
-        Name of the observation. It will also be the name of the output results file
-        for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
-    when
-        String name of the lifecycle phase the observation should happen. Valid values are:
-        "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    results_updater
-        Method or function that updates existing raw observation results with newly gathered results.
-    results_formatter
-        Method or function that formats the raw observation results.
-    stratifications
-        Tuple of column names for the observation to stratify by. If empty,
-        the observation is aggregated over the entire population.
-    aggregator_sources
-        List of population view columns to be used in the `aggregator`.
-    aggregator
-        Method or function that computes the quantity for this observation.
-    to_observe
-        Method or function that determines whether to perform an observation on this Event.
+    Attributes:
+        name: Name of the observation. It will also be the name of the output results
+            file for this particular observation.
+        pop_filter: A Pandas query filter string to filter the population down to the
+            simulants who should be considered for the observation.
+        when: String name of the lifecycle phase the observation should happen.
+            Valid values are: "time_step__prepare", "time_step", "time_step__cleanup",
+            or "collect_metrics".
+        results_updater: Method or function that updates existing raw observation
+            results with newly gathered results.
+        results_formatter: Method or function that formats the raw observation results.
+        stratifications: Tuple of column names for the observation to stratify by.
+            If empty, the observation is aggregated over the entire population.
+        aggregator_sources: List of population view columns to be used in the `aggregator`.
+        aggregator: Method or function that computes the quantity for this observation.
+        to_observe: Method or function that determines whether to perform an observation
+            on this Event.
     """
 
     def __init__(
@@ -288,27 +271,20 @@ class AddingObservation(StratifiedObservation):
     The parent class `results_updater` method is explicitly defined and
     stratification-specific attributes `aggregator_sources` and `aggregator` are added.
 
-    Attributes
-    ----------
-    name
-        Name of the observation. It will also be the name of the output results file
-        for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
-    when
-        String name of the lifecycle phase the observation should happen. Valid values are:
-        "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    results_formatter
-        Method or function that formats the raw observation results.
-    stratifications
-        Optional tuple of column names for the observation to stratify by.
-    aggregator_sources
-        List of population view columns to be used in the `aggregator`.
-    aggregator
-        Method or function that computes the quantity for this observation.
-    to_observe
-        Method or function that determines whether to perform an observation on this Event.
+    Attributes:
+        name: Name of the observation. It will also be the name of the output results
+            file for this particular observation.
+        pop_filter: A Pandas query filter string to filter the population down to the
+            simulants who should be considered for the observation.
+        when: String name of the lifecycle phase the observation should happen.
+            Valid values are: "time_step__prepare", "time_step", "time_step__cleanup",
+            or "collect_metrics".
+        results_formatter: Method or function that formats the raw observation results.
+        stratifications: Optional tuple of column names for the observation to stratify by.
+        aggregator_sources: List of population view columns to be used in the `aggregator`.
+        aggregator: Method or function that computes the quantity for this observation.
+        to_observe: Method or function that determines whether to perform an observation
+            on this Event.
     """
 
     def __init__(
@@ -356,23 +332,18 @@ class ConcatenatingObservation(UnstratifiedObservation):
     The parent class `results_gatherer` and `results_updater` methods are explicitly
     defined and attribute `included_columns` is added.
 
-    Attributes
-    ----------
-    name
-        Name of the observation. It will also be the name of the output results file
-        for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
-    when
-        String name of the lifecycle phase the observation should happen. Valid values are:
-        "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    included_columns
-        Columns to include in the observation
-    results_formatter
-        Method or function that formats the raw observation results.
-    to_observe
-        Method or function that determines whether to perform an observation on this Event.
+    Attributes:
+        name: Name of the observation. It will also be the name of the output results
+            file for this particular observation.
+        pop_filter: A Pandas query filter string to filter the population down to the
+            simulants who should be considered for the observation.
+        when: String name of the lifecycle phase the observation should happen.
+            Valid values are: "time_step__prepare", "time_step", "time_step__cleanup",
+            or "collect_metrics".
+        included_columns: Columns to include in the observation
+        results_formatter: Method or function that formats the raw observation results.
+        to_observe: Method or function that determines whether to perform an observation
+            on this Event.
     """
 
     def __init__(

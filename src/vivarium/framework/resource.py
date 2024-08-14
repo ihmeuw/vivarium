@@ -14,7 +14,6 @@ sensitive to ordering. The intent behind this tool is to provide an interface
 that allows other managers to register resources with the resource manager
 and in turn ask for ordered sequences of these resources according to their
 dependencies or raise exceptions if this is not possible.
-
 """
 
 from types import MethodType
@@ -52,7 +51,6 @@ class ResourceGroup:
     all in-edges.  This is a local-information representation that can be
     used to construct the entire dependency graph once all resources are
     specified.
-
     """
 
     def __init__(
@@ -72,7 +70,6 @@ class ResourceGroup:
         """The type of resource produced by this resource group's producer.
 
         Must be one of `RESOURCE_TYPES`.
-
         """
         return self._resource_type
 
@@ -137,11 +134,9 @@ class ResourceManager(Manager):
     def sorted_nodes(self):
         """Returns a topological sort of the resource graph.
 
-        Notes
-        -----
-        Topological sorts are not stable. Be wary of depending on order
-        where you shouldn't.
-
+        Notes:
+            Topological sorts are not stable. Be wary of depending on order
+            where you shouldn't.
         """
         if self._sorted_nodes is None:
             try:
@@ -165,26 +160,18 @@ class ResourceManager(Manager):
     ):
         """Adds managed resources to the resource pool.
 
-        Parameters
-        ----------
-        resource_type
-            The type of the resources being added. Must be one of
-            `RESOURCE_TYPES`.
-        resource_names
-            A list of names of the resources being added.
-        producer
-            A method or object that will produce the resources.
-        dependencies
-            A list of resource names formatted as
-            ``resource_type.resource_name`` that the producer requires.
+        Args:
+            resource_type: The type of the resources being added. Must be one of
+                `RESOURCE_TYPES`.
+            resource_names: A list of names of the resources being added.
+            producer: A method or object that will produce the resources.
+            dependencies: A list of resource names formatted as
+                ``resource_type.resource_name`` that the producer requires.
 
-        Raises
-        ------
-        ResourceError
-            If either the resource type is invalid, a component has multiple
-            resource producers for the ``column`` resource type, or
+        Raises:
+            ResourceError: If either the resource type is invalid, a component
+            has multiple resource producers for the ``column`` resource type, or
             there are multiple producers of the same resource.
-
         """
         if resource_type not in RESOURCE_TYPES:
             raise ResourceError(
@@ -214,10 +201,8 @@ class ResourceManager(Manager):
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
-        See Also
-        --------
-        :class:`ResourceGroup`
-
+        See Also:
+            :class:`ResourceGroup`
         """
         if not resource_names:
             # We have a "producer" that doesn't produce anything, but
@@ -237,13 +222,11 @@ class ResourceManager(Manager):
         the graph is generated as all resources must be registered at that
         point.
 
-        Notes
-        -----
-        We are taking advantage of lazy initialization to sneak this in
-        between post setup time when the :class:`values manager
-        <vivarium.framework.values.ValuesManager>` finalizes pipeline
-        dependencies and population creation time.
-
+        Notes:
+            We are taking advantage of lazy initialization to sneak this in
+            between post setup time when the :class:`values manager
+            <vivarium.framework.values.ValuesManager>` finalizes pipeline
+            dependencies and population creation time.
         """
         resource_graph = nx.DiGraph()
         # networkx ignores duplicates
@@ -270,7 +253,6 @@ class ResourceManager(Manager):
         We exclude all non-initializer dependencies. They were necessary in
         graph construction, but we only need the column producers at population
         creation time.
-
         """
         return iter(
             [
@@ -303,7 +285,6 @@ class ResourceInterface:
     uses the local dependency information to construct a full dependency
     graph, validate that there are no cyclic dependencies, and return
     resources and their producers in an order that makes sense.
-
     """
 
     def __init__(self, manager: ResourceManager):
@@ -318,26 +299,18 @@ class ResourceInterface:
     ):
         """Adds managed resources to the resource pool.
 
-        Parameters
-        ----------
-        resource_type
-            The type of the resources being added. Must be one of
-            `RESOURCE_TYPES`.
-        resource_names
-            A list of names of the resources being added.
-        producer
-            A method or object that will produce the resources.
-        dependencies
-            A list of resource names formatted as
-            ``resource_type.resource_name`` that the producer requires.
+        Args:
+            resource_type: The type of the resources being added. Must be one of
+                `RESOURCE_TYPES`.
+            resource_names: A list of names of the resources being added.
+            producer: A method or object that will produce the resources.
+            dependencies: A list of resource names formatted as
+                ``resource_type.resource_name`` that the producer requires.
 
-        Raises
-        ------
-        ResourceError
-            If either the resource type is invalid, a component has multiple
-            resource producers for the ``column`` resource type, or
-            there are multiple producers of the same resource.
-
+        Raises:
+            ResourceError: If either the resource type is invalid, a component has
+                multiple resource producers for the ``column`` resource type, or
+                there are multiple producers of the same resource.
         """
         self._manager.add_resources(resource_type, resource_names, producer, dependencies)
 
@@ -347,6 +320,5 @@ class ResourceInterface:
         We exclude all non-initializer dependencies. They were necessary in
         graph construction, but we only need the column producers at population
         creation time.
-
         """
         return iter(self._manager)

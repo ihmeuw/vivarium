@@ -4,7 +4,6 @@ Framework Utility Functions
 ===========================
 
 Collection of utility functions shared by the ``vivarium`` framework.
-
 """
 
 import functools
@@ -52,10 +51,8 @@ def collapse_nested_dict(d, prefix=None):
 def import_by_path(path: str) -> Callable:
     """Import a class or function given it's absolute path.
 
-    Parameters
-    ----------
-    path:
-      Path to object to import
+    Args:
+        path: Path to the object to import
     """
 
     module_path, _, class_name = path.rpartition(".")
