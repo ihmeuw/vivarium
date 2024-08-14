@@ -83,7 +83,7 @@ class ResultsInterface:
         Parameters
         ----------
         name
-            Name of the column created by the `mapper`.
+            Name of the stratification.
         categories
             List of string values that the `mapper` is allowed to map to.
         excluded_categories
