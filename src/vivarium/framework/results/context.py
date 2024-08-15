@@ -39,7 +39,8 @@ class ResultsContext:
         List of :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
         objects to be applied to results.
     excluded_categories
-        Dictionary of per-metric categories to be excluded from the results.
+        Dictionary of possible per-metric stratification values to be excluded
+        from results processing.
     observations
         Dictionary of observation details. It is of the format
         {lifecycle_phase: {(pop_filter, stratifications): list[Observation]}}
@@ -99,7 +100,9 @@ class ResultsContext:
         sources: List[str],
         categories: List[str],
         excluded_categories: Optional[List[str]],
-        mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]],
+        mapper: Optional[
+            Callable[[Union[pd.Series[str], pd.DataFrame, str]], Union[pd.Series[str], str]]
+        ],
         is_vectorized: bool,
     ) -> None:
         """Add a stratification to the results context.
@@ -113,13 +116,14 @@ class ResultsContext:
         categories
             List of string values that the `mapper` is allowed to map to.
         excluded_categories
-            List of mapped string values to be excluded from results processing.
+            List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
             A callable that takes inputs from the columns and pipelines specified by
-            `sources` and produces a Series. All values of any Series produced by a
-            `mapper` must be one of the elements of `categories`. A simulation will
-            fail if the `mapper` ever produces an invalid value.
+            `requires_columns` and `requires_values` arguments and produces a
+            Series. All values produced by a `mapper` must be one of the elements of
+            `categories`. A simulation will fail if the `mapper` ever produces
+            an invalid value.
         is_vectorized
             True if the `mapper` function expects a pd.DataFrame and False if it
             expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).

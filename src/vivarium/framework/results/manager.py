@@ -174,7 +174,9 @@ class ResultsManager(Manager):
         name: str,
         categories: List[str],
         excluded_categories: Optional[List[str]],
-        mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]],
+        mapper: Optional[
+            Callable[[Union[pd.Series[str], pd.DataFrame, str]], Union[pd.Series[str], str]]
+        ],
         is_vectorized: bool,
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
@@ -190,23 +192,23 @@ class ResultsManager(Manager):
         categories
             List of string values that the `mapper` is allowed to map to.
         excluded_categories
-            List of mapped string values to be excluded from results processing.
+            List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
             A callable that takes inputs from the columns and pipelines specified by
             `requires_columns` and `requires_values` arguments and produces a
-            Series. All values of any Series produced by a `mapper` must be one of the
-            elements of `categories`. A simulation will fail if the `mapper` ever produces
+            Series. All values produced by a `mapper` must be one of the elements of
+            `categories`. A simulation will fail if the `mapper` ever produces
             an invalid value.
         is_vectorized
             True if the `mapper` function expects a pd.DataFrame and False if it
             expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
         requires_columns
-            A list of the state table columns that must be present and populated in the
-            state table before the pipeline modifier is called.
+            A list of the state table columns that are required by the `mapper` to
+            produce the stratification.
         requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
+            A list of the value pipelines that are required by the `mapper` to
+            produce the stratification.
 
         Returns
         -------
@@ -247,7 +249,7 @@ class ResultsManager(Manager):
             List of string labels for bins. The length must be equal to the length
             of `bin_edges` minus 1.
         excluded_categories
-            List of mapped string values to be excluded from results processing.
+            List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         target_type
             Type specification of the `target` to be binned. "column" if it's a

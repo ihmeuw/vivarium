@@ -34,7 +34,7 @@ class Stratification:
     categories
         List of string values that the `mapper` is allowed to map to.
     excluded_categories
-        List of mapped string values to be excluded from results processing.
+        List of possible stratification values to exclude from results processing.
         If None (the default), will use exclusions as defined in the configuration.
     mapper
         A callable that takes a Series or a DataFrame as input and produces a
@@ -48,7 +48,9 @@ class Stratification:
     sources: List[str]
     categories: List[str]
     excluded_categories: List[str]
-    mapper: Optional[Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]] = None
+    mapper: Optional[
+        Callable[[Union[pd.Series[str], pd.DataFrame, str]], Union[pd.Series[str], str]]
+    ] = None
     is_vectorized: bool = False
 
     def __str__(self) -> str:

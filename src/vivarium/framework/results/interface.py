@@ -71,14 +71,13 @@ class ResultsInterface:
         categories: List[str],
         excluded_categories: Optional[List[str]] = None,
         mapper: Optional[
-            Callable[[Union[pd.Series[str], pd.DataFrame]], pd.Series[str]]
+            Callable[[Union[pd.Series[str], pd.DataFrame, str]], Union[pd.Series[str], str]]
         ] = None,
         is_vectorized: bool = False,
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
     ) -> None:
-        """Registers a new column and its values to be used by observations
-        to stratify results.
+        """Registers a stratification that can be used by stratified observations.
 
         Parameters
         ----------
@@ -87,23 +86,23 @@ class ResultsInterface:
         categories
             Exhaustive list of all possible stratification values.
         excluded_categories
-            List of mapped string values to be excluded from results processing.
+            List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
             A callable that takes inputs from the columns and pipelines specified by
             `requires_columns` and `requires_values` arguments and produces a
-            Series. All values of any Series produced by a `mapper` must be one of the
-            elements of `categories`. A simulation will fail if the `mapper` ever produces
+            Series. All values produced by a `mapper` must be one of the elements of
+            `categories`. A simulation will fail if the `mapper` ever produces
             an invalid value.
         is_vectorized
             True if the `mapper` function expects a pd.DataFrame and False if it
             expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
         requires_columns
-            A list of the state table columns that must be present and populated in the
-            state table before the pipeline modifier is called.
+            A list of the state table columns that are required by the `mapper`
+            to produce the stratification.
         requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
+            A list of the value pipelines that are required by the `mapper` to
+            produce the stratification.
 
         Returns
         -------
@@ -130,15 +129,14 @@ class ResultsInterface:
         target_type: str = "column",
         **cut_kwargs: Dict,
     ) -> None:
-        """Registers a continuous `target` column to map into bins in a new `binned_column`
-        to be used by observations to stratify results.
+        """Registers a binned stratification that can be used by stratified observations.
 
         Parameters
         ----------
         target
-            String name of the state table column or value pipeline to be binned.
+            Name of the state table column or value pipeline to be binned.
         binned_column
-            String name of the new column for the binned quantities.
+            Name of the new column for the binned quantities.
         bin_edges
             List of scalars defining the bin edges, passed to :meth: pandas.cut.
             The length must be equal to the length of `labels` plus 1.
@@ -146,7 +144,7 @@ class ResultsInterface:
             List of string labels for bins. The length must be equal to the length
             of `bin_edges` minus 1.
         excluded_categories
-            List of mapped string values to be excluded from results processing.
+            List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         target_type
             Type specification of the `target` to be binned. "column" if it's a

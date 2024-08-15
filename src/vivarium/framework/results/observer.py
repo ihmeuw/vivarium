@@ -45,10 +45,10 @@ class Observer(Component, ABC):
     def setup_component(self, builder: Builder) -> None:
         super().setup_component(builder)
         self.register_observations(builder)
-        self.get_formatter_attributes(builder)
+        self.set_results_dir(builder)
 
-    def get_formatter_attributes(self, builder: Builder) -> None:
-        """Define commonly-used attributes for reporting."""
+    def set_results_dir(self, builder: Builder) -> None:
+        """Define the results directory from the configuration."""
         self.results_dir = (
             builder.configuration.to_dict()
             .get("output_data", {})
