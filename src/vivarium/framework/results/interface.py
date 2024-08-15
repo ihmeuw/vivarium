@@ -95,8 +95,8 @@ class ResultsInterface:
             `categories`. A simulation will fail if the `mapper` ever produces
             an invalid value.
         is_vectorized
-            True if the `mapper` function expects a pd.DataFrame and False if it
-            expects a single pd.DataFrame row (and so used by calling :func:`df.apply`).
+            True if the `mapper` function will map the entire population, and False
+            if it will only map a single simulant.
         requires_columns
             A list of the state table columns that are required by the `mapper`
             to produce the stratification.
