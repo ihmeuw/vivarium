@@ -45,7 +45,7 @@ def test_stratification(mapper, is_vectorized):
         mapper=mapper,
         is_vectorized=is_vectorized,
     )
-    output = my_stratification(STUDENT_TABLE)
+    output = my_stratification.stratify(STUDENT_TABLE)
     assert output.eq(STUDENT_HOUSES).all()
 
 
@@ -149,7 +149,7 @@ def test_stratification_call_raises(
         NAME, sources, HOUSE_CATEGORIES, [], mapper, is_vectorized
     )
     with pytest.raises(expected_exception, match=re.escape(error_match)):
-        my_stratification(STUDENT_TABLE)
+        my_stratification.stratify(STUDENT_TABLE)
 
 
 @pytest.mark.parametrize("default_stratifications", [["age", "sex"], ["age"], []])

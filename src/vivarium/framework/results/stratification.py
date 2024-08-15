@@ -84,7 +84,7 @@ class Stratification:
         if not self.sources:
             raise ValueError("The sources argument must be non-empty.")
 
-    def __call__(self, population: pd.DataFrame) -> pd.Series[str]:
+    def stratify(self, population: pd.DataFrame) -> pd.Series[str]:
         """Apply the mapper to the population `sources` columns to create a new
         pandas Series to be added to the population. Any excluded categories
         (which have already been removed from self.categories) will be converted

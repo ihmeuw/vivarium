@@ -287,7 +287,7 @@ class ResultsContext:
                     "already exists in the state table or as a pipeline which is a required "
                     "name for stratifying results - choose a different name."
                 )
-            population[new_column] = stratification(population)
+            population[new_column] = stratification.stratify(population)
 
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
