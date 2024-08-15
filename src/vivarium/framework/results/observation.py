@@ -39,12 +39,11 @@ class BaseObservation(ABC):
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
     results_initializer
         Method or function that initializes the raw observation results
-        prior to starting the simulation. This could return, for example, and empty
+        prior to starting the simulation. This could return, for example, an empty
         DataFrame or one with a complete set of stratifications as the index and
         all values set to 0.0.
     results_gatherer
-        Method or function that gathers the new observation results. If `stratifications`
-        is not None, this method must accept `stratifications` as the second argument.
+        Method or function that gathers the new observation results.
     results_updater
         Method or function that updates existing raw observation results with newly gathered results.
     results_formatter
@@ -75,10 +74,7 @@ class BaseObservation(ABC):
         if not self.to_observe(event):
             return None
         else:
-            if stratifications is None:
-                return self.results_gatherer(df)
-            else:
-                return self.results_gatherer(df, stratifications)
+            return self.results_gatherer(df, stratifications)
 
 
 class UnstratifiedObservation(BaseObservation):
@@ -113,7 +109,7 @@ class UnstratifiedObservation(BaseObservation):
         name: str,
         pop_filter: str,
         when: str,
-        results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
+        results_gatherer: Callable[[pd.DataFrame, None], pd.DataFrame],
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         to_observe: Callable[[Event], bool] = lambda event: True,
@@ -122,7 +118,7 @@ class UnstratifiedObservation(BaseObservation):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            results_initializer=self.initialize_results,
+            results_initializer=self.create_empty_df,
             results_gatherer=results_gatherer,
             results_updater=results_updater,
             results_formatter=results_formatter,
@@ -131,7 +127,7 @@ class UnstratifiedObservation(BaseObservation):
         )
 
     @staticmethod
-    def initialize_results(
+    def create_empty_df(
         requested_stratification_names: set[str],
         registered_stratifications: list[Stratification],
     ) -> pd.DataFrame:
@@ -188,8 +184,8 @@ class StratifiedObservation(BaseObservation):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            results_initializer=self.initialize_results,
-            results_gatherer=self.results_gatherer,
+            results_initializer=self.create_expanded_df,
+            results_gatherer=self.get_complete_stratified_results,
             results_updater=results_updater,
             results_formatter=results_formatter,
             stratifications=stratifications,
@@ -199,7 +195,7 @@ class StratifiedObservation(BaseObservation):
         self.aggregator = aggregator
 
     @staticmethod
-    def initialize_results(
+    def create_expanded_df(
         requested_stratification_names: set[str],
         registered_stratifications: list[Stratification],
     ) -> pd.DataFrame:
@@ -234,7 +230,7 @@ class StratifiedObservation(BaseObservation):
 
         return df
 
-    def results_gatherer(
+    def get_complete_stratified_results(
         self,
         pop_groups: DataFrameGroupBy,
         stratifications: Tuple[str, ...],
@@ -410,12 +406,18 @@ class ConcatenatingObservation(UnstratifiedObservation):
             name=name,
             pop_filter=pop_filter,
             when=when,
-            results_gatherer=self.results_gatherer,
+            results_gatherer=self.get_results_of_interest,
             results_updater=self.concatenate_results,
             results_formatter=results_formatter,
             to_observe=to_observe,
         )
         self.included_columns = included_columns
+
+    def get_results_of_interest(
+        self, pop: pd.DataFrame, stratifications: None
+    ) -> pd.DataFrame:
+        """Return the population with only the `included_columns`."""
+        return pop[self.included_columns]
 
     @staticmethod
     def concatenate_results(
@@ -425,7 +427,3 @@ class ConcatenatingObservation(UnstratifiedObservation):
         if existing_results.empty:
             return new_observations
         return pd.concat([existing_results, new_observations], axis=0).reset_index(drop=True)
-
-    def results_gatherer(self, pop: pd.DataFrame) -> pd.DataFrame:
-        """Return the population with only the `included_columns`."""
-        return pop[self.included_columns]

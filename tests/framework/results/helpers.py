@@ -241,7 +241,7 @@ class ValedictorianObserver(Observer):
             results_updater=self.update_valedictorian,
         )
 
-    def choose_valedictorian(self, df):
+    def choose_valedictorian(self, df, stratifications):
         eligible_students = df.loc[~df["student_id"].isin(self.valedictorians), "student_id"]
         valedictorian = RNG.choice(eligible_students)
         self.valedictorians.append(valedictorian)
