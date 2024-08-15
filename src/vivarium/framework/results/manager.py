@@ -55,11 +55,18 @@ class ResultsManager(Manager):
     def get_results(self) -> Dict[str, pd.DataFrame]:
         """Return the measure-specific formatted results in a dictionary.
 
-        NOTE: self._results_context.observations is a list where each item is a dictionary
+        Notes
+        -----
+        self._results_context.observations is a list where each item is a dictionary
         of the form {lifecycle_phase: {(pop_filter, stratification_names): List[Observation]}}.
         We use a triple-nested for loop to iterate over only the list of Observations
         (i.e. we do not need the lifecycle_phase, pop_filter, or stratification_names
         for this method).
+
+        Returns
+        -------
+        Dict[str, pd.DataFrame]
+            A dictionary of formatted results for each measure.
         """
         formatted = {}
         for observation_details in self._results_context.observations.values():
@@ -74,6 +81,7 @@ class ResultsManager(Manager):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: "Builder") -> None:
+        """Set up the results manager."""
         self._results_context.setup(builder)
 
         self.logger = builder.logging.get_logger(self.name)
@@ -126,15 +134,19 @@ class ResultsManager(Manager):
             )
 
     def on_time_step_prepare(self, event: Event) -> None:
+        """Define the listener callable for the time_step__prepare phase."""
         self.gather_results("time_step__prepare", event)
 
     def on_time_step(self, event: Event) -> None:
+        """Define the listener callable for the time_step phase."""
         self.gather_results("time_step", event)
 
     def on_time_step_cleanup(self, event: Event) -> None:
+        """Define the listener callable for the time_step__cleanup phase."""
         self.gather_results("time_step__cleanup", event)
 
     def on_collect_metrics(self, event: Event) -> None:
+        """Define the listener callable for the collect_metrics phase."""
         self.gather_results("collect_metrics", event)
 
     def gather_results(self, lifecycle_phase: str, event: Event) -> None:
@@ -209,11 +221,6 @@ class ResultsManager(Manager):
         requires_values
             A list of the value pipelines that are required by the `mapper` to
             produce the stratification.
-
-        Returns
-        -------
-        None
-
         """
         self.logger.debug(f"Registering stratification {name}")
         target_columns = list(requires_columns) + list(requires_values)
@@ -256,11 +263,6 @@ class ResultsManager(Manager):
             state table column or "value" if it's a value pipeline.
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
-
-        Returns
-        -------
-        None
-
         """
 
         def _bin_data(data: Union[pd.Series, pd.DataFrame]) -> pd.Series:
@@ -326,11 +328,6 @@ class ResultsManager(Manager):
             List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
         **kwargs
             Additional keyword arguments to be passed to the observation's constructor.
-
-        Returns
-        -------
-        None
-
         """
         self.logger.debug(f"Registering observation {name}")
 

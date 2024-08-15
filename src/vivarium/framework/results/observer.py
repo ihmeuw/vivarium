@@ -35,6 +35,7 @@ class Observer(Component, ABC):
         }
 
     def get_configuration_name(self) -> str:
+        """Return the name of a concrete observer for use in the configuration"""
         return self.name.split("_observer")[0]
 
     @abstractmethod
@@ -43,6 +44,7 @@ class Observer(Component, ABC):
         pass
 
     def setup_component(self, builder: Builder) -> None:
+        """Set up the observer component."""
         super().setup_component(builder)
         self.register_observations(builder)
         self.set_results_dir(builder)

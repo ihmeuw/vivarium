@@ -239,7 +239,20 @@ class StratifiedObservation(BaseObservation):
         pop_groups: DataFrameGroupBy,
         stratifications: Tuple[str, ...],
     ) -> pd.DataFrame:
-        """Gather results for this observation."""
+        """Gather results for this observation.
+
+        Parameters
+        ----------
+        pop_groups
+            The population grouped by the stratifications.
+        stratifications
+            The stratifications to use for the observation.
+
+        Returns
+        -------
+        pd.DataFrame
+            The results of the observation.
+        """
         df = self._aggregate(pop_groups, self.aggregator_sources, self.aggregator)
         df = self._format(df)
         df = self._expand_index(df)

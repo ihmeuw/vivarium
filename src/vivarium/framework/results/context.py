@@ -68,6 +68,11 @@ class ResultsContext:
         return "results_context"
 
     def setup(self, builder: Builder) -> None:
+        """Set up the results context.
+
+        This method is called by the :class:`ResultsManager <vivarium.framework.results.manager.ResultsManager>`
+        during the setup phase of that object.
+        """
         self.logger = builder.logging.get_logger(self.name)
         self.excluded_categories = (
             builder.configuration.stratification.excluded_categories.to_dict()
@@ -131,17 +136,9 @@ class ResultsContext:
         Raises
         ------
         ValueError
-            If the stratification `name` is already used.
-        ValueError
-            If there are duplicate `categories`.
-        ValueError
-            If any `excluded_categories` are not in `categories`.
-
-
-        Returns
-        -------
-        None
-
+            - If the stratification `name` is already used.
+            - If there are duplicate `categories`.
+            - If any `excluded_categories` are not in `categories`.
         """
         already_used = [
             stratification
@@ -220,11 +217,6 @@ class ResultsContext:
         ------
         ValueError
             If the observation `name` is already used.
-
-        Returns
-        -------
-        None
-
         """
         already_used = None
         if self.observations:
@@ -274,17 +266,16 @@ class ResultsContext:
         event
             The current Event.
 
-        Raises
-        ------
-        ValueError
-            If a stratification's temporary column name already exists in the population DataFrame.
-
         Yields
         ------
         A tuple containing each observation's newly observed results, the name of
         the observation, and the observations results updater function. Note that
         it yields (None, None, None) if the filtered population is empty.
 
+        Raises
+        ------
+        ValueError
+            If a stratification's temporary column name already exists in the population DataFrame.
         """
 
         for stratification in self.stratifications:
@@ -349,7 +340,9 @@ class ResultsContext:
     ) -> DataFrameGroupBy:
         """Group the population by stratification.
 
-        NOTE: Stratifications at this point can be an empty tuple.
+        Notes
+        -----
+        Stratifications at this point can be an empty tuple.
 
         HACK: If there are no `stratifications` (i.e. it's an empty tuple), we
         create a single group of the entire `filtered_pop` index and assign

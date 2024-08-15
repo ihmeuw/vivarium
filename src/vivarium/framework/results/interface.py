@@ -103,11 +103,6 @@ class ResultsInterface:
         requires_values
             A list of the value pipelines that are required by the `mapper` to
             produce the stratification.
-
-        Returns
-        -------
-        None
-
         """
         self._manager.register_stratification(
             name,
@@ -151,11 +146,6 @@ class ResultsInterface:
             state table column or "value" if it's a value pipeline.
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
-
-        Returns
-        -------
-        None
-
         """
         self._manager.register_binned_stratification(
             target,
@@ -228,11 +218,6 @@ class ResultsInterface:
         ------
         ValueError
             If any required callable arguments are missing.
-
-        Returns
-        -------
-        None
-
         """
         self._check_for_required_callables(name, {"results_updater": results_updater})
         self._manager.register_observation(
@@ -300,11 +285,6 @@ class ResultsInterface:
         ------
         ValueError
             If any required callable arguments are missing.
-
-        Returns
-        -------
-        None
-
         """
         required_callables = {
             "results_gatherer": results_gatherer,
@@ -374,11 +354,6 @@ class ResultsInterface:
             Function that computes the quantity for this observation.
         to_observe
             Function that determines whether to perform an observation on this Event.
-
-        Returns
-        ------
-        None
-
         """
         self._manager.register_observation(
             observation_type=AddingObservation,
@@ -431,11 +406,6 @@ class ResultsInterface:
             Function that formats the raw observation results.
         to_observe
             Function that determines whether to perform an observation on this Event.
-
-        Returns
-        ------
-        None
-
         """
         included_columns = ["event_time"] + requires_columns + requires_values
         self._manager.register_observation(

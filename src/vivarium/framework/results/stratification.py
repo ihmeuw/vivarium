@@ -128,6 +128,22 @@ class Stratification:
 
     @staticmethod
     def _default_mapper(pop: pd.DataFrame) -> pd.Series[str]:
+        """Default stratification mapper that squeezes a DataFrame to a Series.
+
+        Parameters
+        ----------
+        pop
+            A pandas DataFrame containing the data to be stratified.
+
+        Returns
+        -------
+        pd.Series[str]
+            A pandas Series containing the data to be stratified.
+
+        Notes
+        -----
+        The input DataFrame is guaranteeed to have a single column.
+        """
         return pop.squeeze(axis=1)
 
 
