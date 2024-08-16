@@ -205,7 +205,7 @@ pipeline {
             }
             failure {
               script {
-                if {$GIT_BRANCH == "main"} {
+                if (${GIT_BRANCH} == "main") {
                   echo 'This is the main branch. Sending a failure message to Slack.'
                   slackSend channel: "#${params.SLACK_TO}",
                             message: ":x: JOB FAILURE: $JOB_NAME - $BUILD_ID\n\n${BUILD_URL}console\n\n<!channel>",
