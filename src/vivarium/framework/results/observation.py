@@ -9,7 +9,7 @@ from __future__ import annotations
 import itertools
 from abc import ABC
 from dataclasses import dataclass
-from typing import Callable, Iterable, Optional, Tuple, Union
+from typing import Callable, Iterable, Optional, Sequence, Tuple, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -58,7 +58,10 @@ class BaseObservation(ABC):
     pop_filter: str
     when: str
     results_initializer: Callable[[Iterable[str], Iterable[Stratification]], pd.DataFrame]
-    results_gatherer: Callable[[pd.DataFrame, Optional[tuple[str, ...]]], pd.DataFrame]
+    results_gatherer: Union[
+        Callable[[pd.DataFrame, Sequence[str]], pd.DataFrame],
+        Callable[[pd.DataFrame], pd.DataFrame],
+    ]
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
     stratifications: Optional[Tuple[str]]
@@ -74,7 +77,10 @@ class BaseObservation(ABC):
         if not self.to_observe(event):
             return None
         else:
-            return self.results_gatherer(df, stratifications)
+            if stratifications is None:
+                return self.results_gatherer(df)
+            else:
+                return self.results_gatherer(df, stratifications)
 
 
 class UnstratifiedObservation(BaseObservation):
@@ -109,7 +115,7 @@ class UnstratifiedObservation(BaseObservation):
         name: str,
         pop_filter: str,
         when: str,
-        results_gatherer: Callable[[pd.DataFrame, None], pd.DataFrame],
+        results_gatherer: Callable[[pd.DataFrame], pd.DataFrame],
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         to_observe: Callable[[Event], bool] = lambda event: True,
@@ -413,9 +419,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
         )
         self.included_columns = included_columns
 
-    def get_results_of_interest(
-        self, pop: pd.DataFrame, stratifications: None
-    ) -> pd.DataFrame:
+    def get_results_of_interest(self, pop: pd.DataFrame) -> pd.DataFrame:
         """Return the population with only the `included_columns`."""
         return pop[self.included_columns]
 

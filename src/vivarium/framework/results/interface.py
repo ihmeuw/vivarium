@@ -249,7 +249,7 @@ class ResultsInterface:
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
         results_gatherer: Callable[
-            [pd.DataFrame, None], pd.DataFrame
+            [pd.DataFrame], pd.DataFrame
         ] = _required_function_placeholder,
         results_updater: Callable[
             [pd.DataFrame, pd.DataFrame], pd.DataFrame
@@ -277,8 +277,7 @@ class ResultsInterface:
         requires_values
             List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
         results_gatherer
-            Function that gathers the latest observation results. It must accept a DataFrame
-            and an optional tuple of stratifications as arguments.
+            Function that gathers the latest observation results.
         results_updater
             Function that updates existing raw observation results with newly gathered results.
         results_formatter
