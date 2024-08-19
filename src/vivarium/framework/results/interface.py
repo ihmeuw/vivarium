@@ -135,7 +135,7 @@ class ResultsInterface:
         target
             Name of the state table column or value pipeline to be binned.
         binned_column
-            Name of the new column for the binned quantities.
+            Name of the (binned) stratification.
         bin_edges
             List of scalars defining the bin edges, passed to :meth: pandas.cut.
             The length must be equal to the length of `labels` plus 1.
