@@ -21,6 +21,7 @@ from vivarium.framework.results.stratification import (
     get_mapped_col_name,
     get_original_col_name,
 )
+from vivarium.types import ScalarValue
 
 
 class ResultsContext:
@@ -101,7 +102,7 @@ class ResultsContext:
         mapper: Optional[
             Union[
                 Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
-                Callable[[Any], str],
+                Callable[[ScalarValue], str],
             ]
         ],
         is_vectorized: bool,
@@ -120,11 +121,10 @@ class ResultsContext:
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that maps the columns and value pipelines specified by the
-            `requires_columns` and `requires_values` arguments to the stratification
-            categories. It can either map the entire population or an individual
-            simulant. A simulation will fail if the `mapper` ever produces an invalid
-            value.
+            A callable that maps the columns and value pipelines specified by
+            `sources` to the stratification categories. It can either map the entire
+            population or an individual simulant. A simulation will fail if the `mapper`
+            ever produces an invalid value.
         is_vectorized
             True if the `mapper` function will map the entire population, and False
             if it will only map a single simulant.

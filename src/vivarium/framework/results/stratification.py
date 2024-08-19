@@ -12,6 +12,8 @@ from typing import Any, Callable, List, Optional, Union
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
+from vivarium.types import ScalarValue
+
 STRATIFICATION_COLUMN_SUFFIX: str = "mapped_values"
 
 
@@ -53,7 +55,8 @@ class Stratification:
     excluded_categories: List[str]
     mapper: Optional[
         Union[
-            Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]], Callable[[Any], str]
+            Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
+            Callable[[ScalarValue], str],
         ]
     ]
     is_vectorized: bool = False

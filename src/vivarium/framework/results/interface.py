@@ -21,6 +21,7 @@ from vivarium.framework.results.observation import (
     StratifiedObservation,
     UnstratifiedObservation,
 )
+from vivarium.types import ScalarValue
 
 if TYPE_CHECKING:
     from vivarium.framework.results.manager import ResultsManager
@@ -74,7 +75,7 @@ class ResultsInterface:
         mapper: Optional[
             Union[
                 Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
-                Callable[[Any], str],
+                Callable[[ScalarValue], str],
             ]
         ] = None,
         is_vectorized: bool = False,

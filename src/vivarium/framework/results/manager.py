@@ -16,6 +16,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
+from vivarium.types import ScalarValue
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -189,7 +190,7 @@ class ResultsManager(Manager):
         mapper: Optional[
             Union[
                 Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
-                Callable[[Any], str],
+                Callable[[ScalarValue], str],
             ]
         ],
         is_vectorized: bool,
