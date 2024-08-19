@@ -5,7 +5,7 @@ Stratifications
 """
 
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -24,6 +24,27 @@ class Stratification:
 
     This class includes a :meth:`stratify <stratify>` method that produces an
     output column by calling the mapper on the source columns.
+
+    Attributes
+    ----------
+    name
+        Name of the stratification.
+    sources
+        A list of the columns and values needed as input for the `mapper`.
+    categories
+        Exhaustive list of all possible stratification values.
+    excluded_categories
+        List of possible stratification values to exclude from results processing.
+        If None (the default), will use exclusions as defined in the configuration.
+    mapper
+            A callable that maps the columns and value pipelines specified by the
+            `requires_columns` and `requires_values` arguments to the stratification
+            categories. It can either map the entire population or an individual
+            simulant. A simulation will fail if the `mapper` ever produces an invalid
+            value.
+    is_vectorized
+        True if the `mapper` function will map the entire population, and False
+        if it will only map a single simulant.
     """
 
     name: str
