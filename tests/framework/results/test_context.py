@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
 from loguru import logger
-from pandas.core.groupby import DataFrameGroupBy
+from pandas.core.groupby.generic import DataFrameGroupBy
 
 from tests.framework.results.helpers import (
     BASE_POPULATION,

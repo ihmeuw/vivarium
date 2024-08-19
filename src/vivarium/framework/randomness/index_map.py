@@ -73,7 +73,7 @@ class IndexMap:
 
         Returns
         -------
-        Tuple[pd.MultiIndex, pd.MultiIndex]
+        Tuple[pandas.MultiIndex, pandas.MultiIndex]
             A tuple of the new mapping index and the final mapping index. Both are pandas
             indices with a level for the index assigned by the population system and
             additional levels for the key columns associated with the simulant index. The
@@ -108,7 +108,7 @@ class IndexMap:
 
         Returns
         -------
-        pd.Series
+        pandas.Series
             The new mapping incorporating the updates from the new mapping index and
             resolving collisions.
 
@@ -140,7 +140,7 @@ class IndexMap:
 
         Returns
         -------
-        pd.Series
+        pandas.Series
             The new mapping incorporating the updates from the new mapping index and
             resolving collisions.
 

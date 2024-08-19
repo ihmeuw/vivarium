@@ -115,3 +115,6 @@ notebooks/
 
 # Version file
 src/vivarium/_version.py
+
+# macOS
+*.DS_Store
