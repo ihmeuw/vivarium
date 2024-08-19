@@ -5,7 +5,7 @@ Results Context
 """
 
 from collections import defaultdict
-from typing import Any, Callable, Generator, List, Optional, Tuple, Type, Union
+from typing import Callable, Generator, List, Optional, Tuple, Type, Union
 
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy

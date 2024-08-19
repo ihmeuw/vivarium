@@ -6,7 +6,7 @@ Results System Manager
 
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 

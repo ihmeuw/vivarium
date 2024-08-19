@@ -75,7 +75,7 @@ class BaseObservation(ABC):
         df: Union[pd.DataFrame, DataFrameGroupBy],
         stratifications: Optional[tuple[str, ...]],
     ) -> Optional[pd.DataFrame]:
-        """Determine whether to observe the given event and, if so, gather the results."""
+        # """Determine whether to observe the given event and, if so, gather the results."""
         if not self.to_observe(event):
             return None
         else:

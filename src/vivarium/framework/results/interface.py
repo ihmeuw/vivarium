@@ -8,7 +8,7 @@ methods to register stratifications and results producers (referred to as "obser
 to a simulation.
 """
 
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 
