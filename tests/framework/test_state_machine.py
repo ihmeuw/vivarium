@@ -6,7 +6,7 @@ import pandas as pd
 from vivarium import Component, InteractiveContext
 from vivarium.framework.population import SimulantData
 from vivarium.framework.state_machine import Machine, State, Transition
-from vivarium.framework.time import Time
+from vivarium.types import Time
 
 
 def _population_fixture(column, initial_value):

@@ -13,17 +13,13 @@ that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 
 import dataclasses
 from abc import ABC, abstractmethod
-from datetime import datetime, timedelta
-from numbers import Number
 from typing import Callable, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 
 from vivarium.framework.lookup.interpolation import Interpolation
-
-ScalarValue = Union[Number, timedelta, datetime]
-LookupTableData = Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]]
+from vivarium.types import ScalarValue
 
 
 @dataclasses.dataclass
