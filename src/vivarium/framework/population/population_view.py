@@ -475,7 +475,7 @@ class PopulationView:
 
         Returns
         -------
-        pd.Series
+        pandas.Series
             The column with the provided update applied
 
         """

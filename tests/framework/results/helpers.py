@@ -312,7 +312,7 @@ def sorting_hat_bad_mapping(simulant_row: pd.Series) -> str:
 def verify_stratification_added(
     stratification_list, name, sources, categories, excluded_categories, mapper, is_vectorized
 ):
-    """Verify that a :class: `vivarium.framework.results.stratification.Stratification` is in `stratification_list`"""
+    """Verify that a Stratification object is in `stratification_list`"""
     matching_stratification_found = False
     for stratification in stratification_list:  # noqa
         # big equality check

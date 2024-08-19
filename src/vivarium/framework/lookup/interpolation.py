@@ -99,7 +99,7 @@ class Interpolation:
 
         Returns
         -------
-        pd.DataFrame
+        pandas.DataFrame
             A table with the interpolated values for the given interpolants.
         """
 
@@ -316,7 +316,7 @@ class Order0Interp:
 
         Returns
         -------
-        pd.DataFrame
+        pandas.DataFrame
             A table with the interpolated values for the given interpolants.
 
         """

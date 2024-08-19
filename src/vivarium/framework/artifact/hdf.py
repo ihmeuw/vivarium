@@ -404,7 +404,7 @@ def _get_valid_filter_terms(filter_terms, colnames):
     ----------
     filter_terms
         A list of terms formatted so as to be used in the `where` argument of
-        :func:`pd.read_hdf`.
+        :func:`pandas.read_hdf`.
     colnames :
         A list of column names present in the data that will be filtered.
 

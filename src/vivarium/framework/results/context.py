@@ -4,13 +4,11 @@ Results Context
 ===============
 """
 
-from __future__ import annotations
-
 from collections import defaultdict
-from typing import Any, Callable, Generator, List, Optional, Tuple, Type, Union
+from typing import Callable, Generator, List, Optional, Tuple, Type, Union
 
 import pandas as pd
-from pandas.core.groupby import DataFrameGroupBy
+from pandas.core.groupby.generic import DataFrameGroupBy
 
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
@@ -29,8 +27,8 @@ class ResultsContext:
 
     This context object is wholly contained by :class:`ResultsManager <vivarium.framework.results.manager.ResultsManager>`.
     Stratifications and observations can be added to the context through the manager via the
-    :meth:`vivarium.framework.results.context.ResultsContext.add_stratification` and
-    :meth:`vivarium.framework.results.context.ResultsContext.register_observation` methods, respectively.
+    :meth:`add_stratification <vivarium.framework.results.context.ResultsContext.add_stratification>` and
+    :meth:`register_observation <vivarium.framework.results.context.ResultsContext.register_observation>` methods, respectively.
 
     Attributes
     ----------
@@ -101,7 +99,7 @@ class ResultsContext:
         excluded_categories: Optional[List[str]],
         mapper: Optional[
             Union[
-                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
+                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series],
                 Callable[[ScalarValue], str],
             ]
         ],
@@ -132,9 +130,11 @@ class ResultsContext:
         Raises
         ------
         ValueError
-            - If the stratification `name` is already used.
-            - If there are duplicate `categories`.
-            - If any `excluded_categories` are not in `categories`.
+            If the stratification `name` is already used.
+        ValueError
+            If there are duplicate `categories`.
+        ValueError
+            If any `excluded_categories` are not in `categories`.
         """
         already_used = [
             stratification
