@@ -2,9 +2,20 @@
 ============
 Observations
 ============
-"""
 
-from __future__ import annotations
+An observation is a class object that records simulation results; they are responsible
+for initializing, gathering, updating, and formatting results.
+
+The provided :class:`BaseObservation` class is an abstract base class that should
+be subclassed by concrete observations. While there are no required abstract methods
+to define when subclassing, the class does provide common attributes as well
+as an `observe` method that determines whether to observe results for a given event.
+
+At the highest level, an observation can be categorized as either an
+:class:`UnstratifiedObservation` or a :class:`StratifiedObservation`. More specialized
+implementations of these classes involve defining the various methods
+provided as attributes to the parent class.
+"""
 
 import itertools
 from abc import ABC
@@ -13,7 +24,7 @@ from typing import Callable, Iterable, Optional, Sequence, Tuple, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
-from pandas.core.groupby import DataFrameGroupBy
+from pandas.core.groupby.generic import DataFrameGroupBy
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.stratification import Stratification
@@ -23,49 +34,40 @@ VALUE_COLUMN = "value"
 
 @dataclass
 class BaseObservation(ABC):
-    """An abstract base dataclass to be inherited by concrete observations. It includes
-    an :meth:`observe` method that determines whether to observe results for a given event.
+    """An abstract base dataclass to be inherited by concrete observations.
 
-    Attributes
-    ----------
-    name
-        Name of the observation. It will also be the name of the output results file
-        for this particular observation.
-    pop_filter
-        A Pandas query filter string to filter the population down to the simulants who should
-        be considered for the observation.
-    when
-        String name of the lifecycle phase the observation should happen. Valid values are:
-        "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-    results_initializer
-        Method or function that initializes the raw observation results
-        prior to starting the simulation. This could return, for example, an empty
-        DataFrame or one with a complete set of stratifications as the index and
-        all values set to 0.0.
-    results_gatherer
-        Method or function that gathers the new observation results.
-    results_updater
-        Method or function that updates existing raw observation results with newly gathered results.
-    results_formatter
-        Method or function that formats the raw observation results.
-    stratifications
-        Optional tuple of column names for the observation to stratify by.
-    to_observe
-        Method or function that determines whether to perform an observation on this Event.
+    This class includes an :meth:`observe <observe>` method that determines whether
+    to observe results for a given event.
     """
 
     name: str
+    """Name of the observation. It will also be the name of the output results file
+    for this particular observation."""
     pop_filter: str
+    """A Pandas query filter string to filter the population down to the simulants
+    who should be considered for the observation."""
     when: str
+    """String name of the lifecycle phase the observation should happen. Valid values are:
+    "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics"."""
     results_initializer: Callable[[Iterable[str], Iterable[Stratification]], pd.DataFrame]
+    """Method or function that initializes the raw observation results
+    prior to starting the simulation. This could return, for example, an empty
+    DataFrame or one with a complete set of stratifications as the index and
+    all values set to 0.0."""
     results_gatherer: Union[
         Callable[[pd.DataFrame, Sequence[str]], pd.DataFrame],
         Callable[[pd.DataFrame], pd.DataFrame],
     ]
+    """Method or function that gathers the new observation results."""
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
+    """Method or function that updates existing raw observation results with newly
+    gathered results."""
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
+    """Method or function that formats the raw observation results."""
     stratifications: Optional[Tuple[str]]
+    """Optional tuple of column names for the observation to stratify by."""
     to_observe: Callable[[Event], bool]
+    """Method or function that determines whether to perform an observation on this Event."""
 
     def observe(
         self,
@@ -73,7 +75,7 @@ class BaseObservation(ABC):
         df: Union[pd.DataFrame, DataFrameGroupBy],
         stratifications: Optional[tuple[str, ...]],
     ) -> Optional[pd.DataFrame]:
-        """Determine whether to observe the given event and, if so, gather the results."""
+        # """Determine whether to observe the given event and, if so, gather the results."""
         if not self.to_observe(event):
             return None
         else:
@@ -183,7 +185,7 @@ class StratifiedObservation(BaseObservation):
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         stratifications: Tuple[str, ...],
         aggregator_sources: Optional[list[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series]],
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         super().__init__(
@@ -252,7 +254,7 @@ class StratifiedObservation(BaseObservation):
 
         Returns
         -------
-        pd.DataFrame
+        pandas.DataFrame
             The results of the observation.
         """
         df = self._aggregate(pop_groups, self.aggregator_sources, self.aggregator)
@@ -266,8 +268,8 @@ class StratifiedObservation(BaseObservation):
     def _aggregate(
         pop_groups: DataFrameGroupBy,
         aggregator_sources: Optional[list[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
-    ) -> Union[pd.Series[float], pd.DataFrame]:
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series]],
+    ) -> Union[pd.Series, pd.DataFrame]:
         """Apply the `aggregator` to the population groups and their
         `aggregator_sources` columns.
         """
@@ -279,7 +281,7 @@ class StratifiedObservation(BaseObservation):
         return aggregates
 
     @staticmethod
-    def _format(aggregates: Union[pd.Series[float], pd.DataFrame]) -> pd.DataFrame:
+    def _format(aggregates: Union[pd.Series, pd.DataFrame]) -> pd.DataFrame:
         """Convert the results to a pandas DataFrame if necessary and ensure the
         results column name is 'value'.
         """
@@ -336,7 +338,7 @@ class AddingObservation(StratifiedObservation):
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         stratifications: Tuple[str, ...],
         aggregator_sources: Optional[list[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]],
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series]],
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         super().__init__(

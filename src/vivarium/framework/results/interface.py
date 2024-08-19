@@ -1,16 +1,14 @@
 """
-==========================
-Vivarium Results Interface
-==========================
+=================
+Results Interface
+=================
 
 This module provides a :class:`ResultsInterface <ResultsInterface>` class with
 methods to register stratifications and results producers (referred to as "observations")
 to a simulation.
 """
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 
@@ -74,7 +72,7 @@ class ResultsInterface:
         excluded_categories: Optional[List[str]] = None,
         mapper: Optional[
             Union[
-                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
+                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series],
                 Callable[[ScalarValue], str],
             ]
         ] = None,
@@ -182,7 +180,7 @@ class ResultsInterface:
         additional_stratifications: List[str] = [],
         excluded_stratifications: List[str] = [],
         aggregator_sources: Optional[List[str]] = None,
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]] = len,
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series]] = len,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Registers a stratified observation to the results system.
@@ -323,7 +321,7 @@ class ResultsInterface:
         additional_stratifications: List[str] = [],
         excluded_stratifications: List[str] = [],
         aggregator_sources: Optional[List[str]] = None,
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]] = len,
+        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series]] = len,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Registers an adding observation to the results system; that is,

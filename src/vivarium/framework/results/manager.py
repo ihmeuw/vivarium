@@ -4,11 +4,9 @@ Results System Manager
 ======================
 """
 
-from __future__ import annotations
-
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -31,7 +29,7 @@ class ResultsManager(Manager):
     """Backend manager object for the results management system.
 
     This class contains the public methods used by the :class:`ResultsInterface <vivarium.framework.results.interface.ResultsInterface>`
-    to register stratifications and observations as well as the :method:`get_results`
+    to register stratifications and observations as well as the :meth:`get_results <get_results>`
     method used to retrieve formatted results by the :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`.
     """
 
@@ -66,7 +64,7 @@ class ResultsManager(Manager):
 
         Returns
         -------
-        Dict[str, pd.DataFrame]
+        Dict[str, pandas.DataFrame]
             A dictionary of formatted results for each measure.
         """
         formatted = {}
@@ -167,7 +165,7 @@ class ResultsManager(Manager):
     # Stratification methods #
     ##########################
 
-    def set_default_stratifications(self, builder: Builder) -> None:
+    def set_default_stratifications(self, builder: "Builder") -> None:
         """Set the default stratifications for the results context.
 
         This passes the default stratifications from the configuration to the
@@ -189,7 +187,7 @@ class ResultsManager(Manager):
         excluded_categories: Optional[List[str]],
         mapper: Optional[
             Union[
-                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
+                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series],
                 Callable[[ScalarValue], str],
             ]
         ],
