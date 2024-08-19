@@ -32,8 +32,8 @@ from typing import Any, Callable, Dict, List, NamedTuple, Optional
 import pandas as pd
 
 from vivarium.framework.lifecycle import ConstraintError
-from vivarium.framework.time import Time, Timedelta
 from vivarium.manager import Manager
+from vivarium.types import Time, Timedelta
 
 
 class Event(NamedTuple):

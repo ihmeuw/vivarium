@@ -18,7 +18,7 @@ from vivarium import Component
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.population import PopulationView
-    from vivarium.framework.time import Time
+    from vivarium.types import Time
 
 
 def _next_state(

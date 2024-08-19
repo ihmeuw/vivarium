@@ -11,13 +11,13 @@ For more information about time in the simulation, see the associated
 
 """
 
-from datetime import datetime, timedelta
 from functools import partial
-from numbers import Number
-from typing import TYPE_CHECKING, Callable, List, Union
+from typing import TYPE_CHECKING, Callable, List
 
 import numpy as np
 import pandas as pd
+
+from vivarium.types import NumberLike, Time, Timedelta
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -27,10 +27,6 @@ if TYPE_CHECKING:
 
 from vivarium.framework.values import list_combiner
 from vivarium.manager import Manager
-
-Time = Union[pd.Timestamp, datetime, Number]
-Timedelta = Union[pd.Timedelta, timedelta, Number]
-NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
 
 
 class SimulationClock(Manager):
