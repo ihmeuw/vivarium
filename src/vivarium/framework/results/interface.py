@@ -3,8 +3,9 @@
 Vivarium Results Interface
 ==========================
 
-This module provides an interface for ... tbd
-
+This module provides a :class:`ResultsInterface <ResultsInterface>` class with
+methods to register stratifications and results producers (referred to as "observations")
+to a simulation.
 """
 
 from __future__ import annotations
