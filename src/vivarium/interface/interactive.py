@@ -19,9 +19,9 @@ from typing import Any, Callable, Dict, List
 import pandas as pd
 
 from vivarium.framework.engine import SimulationContext
-from vivarium.framework.time import Time, Timedelta
 from vivarium.framework.values import Pipeline
 from vivarium.interface.utilities import log_progress, run_from_ipython
+from vivarium.types import Time, Timedelta
 
 
 class InteractiveContext(SimulationContext):

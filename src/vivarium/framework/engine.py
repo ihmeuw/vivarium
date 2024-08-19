@@ -44,8 +44,9 @@ from vivarium.framework.population import PopulationInterface
 from vivarium.framework.randomness import RandomnessInterface
 from vivarium.framework.resource import ResourceInterface
 from vivarium.framework.results import ResultsInterface
-from vivarium.framework.time import Time, TimeInterface
+from vivarium.framework.time import TimeInterface
 from vivarium.framework.values import ValuesInterface
+from vivarium.types import Time
 
 
 class SimulationContext:

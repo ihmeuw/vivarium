@@ -71,12 +71,18 @@ def test_register_stratification(mocker):
     assert stratification.is_vectorized is False
 
 
-def test_register_binned_stratification(mocker):
+@pytest.mark.parametrize(
+    "target, target_type", [("some-column", "column"), ("some-value", "value")]
+)
+def test_register_binned_stratification_foo(target, target_type, mocker):
 
     mgr = ResultsManager()
     mgr.logger = logger
     builder = mocker.Mock()
-    mgr._results_context.setup(builder)
+    mocker.patch.object(builder, "value.get_value")
+    builder.value.get_value = MethodType(mock_get_value, builder)
+    mgr.setup(builder)
+    # mgr._results_context.setup(builder)
 
     # Check pre-registration stratifications and manager required columns/values
     assert len(mgr._results_context.stratifications) == 0
@@ -84,26 +90,30 @@ def test_register_binned_stratification(mocker):
     assert len(mgr._required_values) == 0
 
     mgr.register_binned_stratification(
-        target="some-column-to-bin",
+        target=target,
         binned_column="new-binned-column",
         bin_edges=[1, 2, 3],
         labels=["1_to_2", "2_to_3"],
         excluded_categories=["2_to_3"],
-        target_type="column",
+        target_type=target_type,
         some_kwarg="some-kwarg",
         some_other_kwarg="some-other-kwarg",
     )
 
     # Check that manager required columns/values have been updated
-    assert mgr._required_columns == {"tracked", "some-column-to-bin"}
-    assert len(mgr._required_values) == 0
+    assert (
+        mgr._required_columns == {"tracked", target}
+        if target_type == "column"
+        else {"tracked"}
+    )
+    assert mgr._required_values == ({target} if target_type == "value" else set())
 
     # Check stratification registration
     stratifications = mgr._results_context.stratifications
     assert len(stratifications) == 1
     stratification = stratifications[0]
     assert stratification.name == "new-binned-column"
-    assert stratification.sources == ["some-column-to-bin"]
+    assert stratification.sources == [target]
     assert stratification.categories == ["1_to_2"]
     assert stratification.excluded_categories == ["2_to_3"]
     # Cannot access the mapper because it's in local scope, so check __repr__
