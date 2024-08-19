@@ -1,13 +1,11 @@
 """
-================
+===============
 Stratifications
-================
+===============
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Any, Callable, List, Optional, Union
+from typing import Callable, List, Optional, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -24,42 +22,33 @@ class Stratification:
     Each Stratification represents a set of mutually exclusive and collectively
     exhaustive categories into which simulants can be assigned.
 
-    `Stratification` also has a `__call__()` method. The method produces an
+    This class includes a :meth:`stratify <stratify>` method that produces an
     output column by calling the mapper on the source columns.
-
-    Attributes
-    ----------
-    name
-        Name of the stratification.
-    sources
-        A list of the columns and values needed as input for the `mapper`.
-    categories
-        Exhaustive list of all possible stratification values.
-    excluded_categories
-        List of possible stratification values to exclude from results processing.
-        If None (the default), will use exclusions as defined in the configuration.
-    mapper
-            A callable that maps the columns and value pipelines specified by the
-            `requires_columns` and `requires_values` arguments to the stratification
-            categories. It can either map the entire population or an individual
-            simulant. A simulation will fail if the `mapper` ever produces an invalid
-            value.
-    is_vectorized
-        True if the `mapper` function will map the entire population, and False
-        if it will only map a single simulant.
     """
 
     name: str
+    """Name of the stratification."""
     sources: List[str]
+    """A list of the columns and values needed as input for the `mapper`."""
     categories: List[str]
+    """Exhaustive list of all possible stratification values."""
     excluded_categories: List[str]
+    """List of possible stratification values to exclude from results processing.
+    If None (the default), will use exclusions as defined in the configuration."""
     mapper: Optional[
         Union[
-            Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
+            Callable[[Union[pd.Series, pd.DataFrame]], pd.Series],
             Callable[[ScalarValue], str],
         ]
     ]
+    """A callable that maps the columns and value pipelines specified by the
+    `requires_columns` and `requires_values` arguments to the stratification
+    categories. It can either map the entire population or an individual
+    simulant. A simulation will fail if the `mapper` ever produces an invalid
+    value."""
     is_vectorized: bool = False
+    """True if the `mapper` function will map the entire population, and False
+    if it will only map a single simulant."""
 
     def __str__(self) -> str:
         return (
@@ -74,9 +63,11 @@ class Stratification:
         Raises
         ------
         ValueError
-            - If no mapper is provided and the number of sources is not 1.
-            - If the categories argument is empty.
-            - If the sources argument is empty.
+            If no mapper is provided and the number of sources is not 1.
+        ValueError
+            If the categories argument is empty.
+        ValueError
+            If the sources argument is empty.
         """
         if self.mapper is None:
             if len(self.sources) != 1:
@@ -92,21 +83,21 @@ class Stratification:
         if not self.sources:
             raise ValueError("The sources argument must be non-empty.")
 
-    def stratify(self, population: pd.DataFrame) -> pd.Series[str]:
+    def stratify(self, population: pd.DataFrame) -> pd.Series:
         """Apply the mapper to the population `sources` columns to create a new
-        pandas Series to be added to the population. Any excluded categories
+        Series to be added to the population. Any excluded categories
         (which have already been removed from self.categories) will be converted
         to NaNs in the new column and dropped later at the observation level.
 
         Parameters
         ----------
         population
-            A pandas DataFrame containing the data to be stratified.
+            A DataFrame containing the data to be stratified.
 
         Returns
         -------
-        pd.Series[str]
-            A pandas Series containing the mapped values to be used for stratifying.
+        pandas.Series
+            A Series containing the mapped values to be used for stratifying.
 
         Raises
         ------
@@ -135,18 +126,18 @@ class Stratification:
         return mapped_column
 
     @staticmethod
-    def _default_mapper(pop: pd.DataFrame) -> pd.Series[str]:
+    def _default_mapper(pop: pd.DataFrame) -> pd.Series:
         """Default stratification mapper that squeezes a DataFrame to a Series.
 
         Parameters
         ----------
         pop
-            A pandas DataFrame containing the data to be stratified.
+            A DataFrame containing the data to be stratified.
 
         Returns
         -------
-        pd.Series[str]
-            A pandas Series containing the data to be stratified.
+        pandas.Series
+            A Series containing the data to be stratified.
 
         Notes
         -----

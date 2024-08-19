@@ -6,7 +6,7 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 import pytest
-from pandas.core.groupby import DataFrameGroupBy
+from pandas.core.groupby.generic import DataFrameGroupBy
 
 from tests.framework.results.helpers import (
     BASE_POPULATION,
