@@ -1,3 +1,7 @@
+**3.0.1 - TBD**
+
+  - Update results-related docstrings
+
 **3.0.0 - 08/13/24**
 
 Breaking changes:

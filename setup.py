@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     doc_requirements = [
         "sphinx>=4.0",
-        "sphinx-rtd-theme",
+        "sphinx-rtd-theme>=0.6",
         "sphinx-click",
         "IPython",
         "matplotlib",

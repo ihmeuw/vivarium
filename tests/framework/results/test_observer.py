@@ -35,7 +35,7 @@ def test_observer_instantiation():
         (True, None),
     ],
 )
-def test_get_formatter_attributes(is_interactive, results_dir, mocker):
+def test_set_results_dir(is_interactive, results_dir, mocker):
     builder = mocker.Mock()
     if is_interactive:
         builder.configuration = LayeredConfigTree()
@@ -47,6 +47,6 @@ def test_get_formatter_attributes(is_interactive, results_dir, mocker):
         )
 
     observer = TestObserver()
-    observer.get_formatter_attributes(builder)
+    observer.set_results_dir(builder)
 
     assert observer.results_dir == results_dir

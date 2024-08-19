@@ -14,18 +14,14 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 """
 
 from collections import defaultdict
-from numbers import Number
-from typing import Any, Callable, Iterable, List, Tuple, Union
+from typing import Any, Callable, Iterable, List, Tuple
 
-import numpy as np
 import pandas as pd
 
 from vivarium.exceptions import VivariumError
 from vivarium.framework.utilities import from_yearly
 from vivarium.manager import Manager
-
-# Supports standard algebraic operations with scalar values.
-NumberLike = Union[np.ndarray, pd.Series, pd.DataFrame, Number]
+from vivarium.types import NumberLike
 
 
 class DynamicValueError(VivariumError):
