@@ -1,6 +1,16 @@
+"""
+==========================
+Vivarium Results Interface
+==========================
+
+This module provides a :class:`ResultsInterface <ResultsInterface>` class with
+methods to register stratifications and results producers (referred to as "observations")
+to a simulation.
+"""
+
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 
@@ -11,9 +21,9 @@ from vivarium.framework.results.observation import (
     StratifiedObservation,
     UnstratifiedObservation,
 )
+from vivarium.types import ScalarValue
 
 if TYPE_CHECKING:
-    # cyclic import
     from vivarium.framework.results.manager import ResultsManager
 
 
@@ -39,19 +49,8 @@ class ResultsInterface:
     modeling, but are required for the stratification of produced results.
 
     The purpose of this interface is to provide controlled access to a results
-    backend by means of the builder object. It exposes methods
-    to register stratifications, set default stratifications, and register
-    results producers. There is a special case for stratifications generated
-    by binning continuous data into categories.
-
-    The expected use pattern would be for a single component to register all
-    stratifications required by the model using :func:`register_default_stratifications`,
-    :func:`register_stratification`, and :func:`register_binned_stratification`
-    as necessary. A “binned stratification” is a stratification special case for
-    the very common situation when a single continuous value needs to be binned into
-    categorical bins. The `is_vectorized` argument should be True if the mapper
-    function expects a DataFrame corresponding to the whole population, and False
-    if it expects a row of the DataFrame corresponding to a single simulant.
+    backend by means of the builder object; it exposes methods to register both
+    stratifications and results producers (referred to as "observations").
     """
 
     def __init__(self, manager: "ResultsManager") -> None:
@@ -60,7 +59,6 @@ class ResultsInterface:
 
     @property
     def name(self) -> str:
-        """The name of this ResultsInterface."""
         return self._name
 
     ##################################
@@ -74,39 +72,42 @@ class ResultsInterface:
         name: str,
         categories: List[str],
         excluded_categories: Optional[List[str]] = None,
-        mapper: Optional[Callable[[pd.DataFrame], pd.Series[str]]] = None,
+        mapper: Optional[
+            Union[
+                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
+                Callable[[ScalarValue], str],
+            ]
+        ] = None,
         is_vectorized: bool = False,
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
     ) -> None:
-        """Register quantities to observe.
+        """Registers a stratification that can be used by stratified observations.
 
         Parameters
         ----------
         name
-            Name of the of the column created by the stratification.
+            Name of the stratification.
         categories
-            List of string values that the mapper is allowed to output.
+            Exhaustive list of all possible stratification values.
         excluded_categories
-            List of mapped string values to be excluded from results processing.
+            List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that emits values in `categories` given inputs from columns
-            and values in the `requires_columns` and `requires_values`, respectively.
+            A callable that maps the columns and value pipelines specified by the
+            `requires_columns` and `requires_values` arguments to the stratification
+            categories. It can either map the entire population or an individual
+            simulant. A simulation will fail if the `mapper` ever produces an invalid
+            value.
         is_vectorized
-            `True` if the mapper function expects a `DataFrame`, and `False` if it
-            expects a row of the `DataFrame` and should be used by calling :func:`df.apply`.
+            True if the `mapper` function will map the entire population, and False
+            if it will only map a single simulant.
         requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline modifier
-            is called.
+            A list of the state table columns that are required by the `mapper`
+            to produce the stratification.
         requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
-
-        Returns
-        ------
-        None
+            A list of the value pipelines that are required by the `mapper` to
+            produce the stratification.
         """
         self._manager.register_stratification(
             name,
@@ -128,14 +129,14 @@ class ResultsInterface:
         target_type: str = "column",
         **cut_kwargs: Dict,
     ) -> None:
-        """Register a continuous `target` quantity to observe into bins in a `binned_column`.
+        """Registers a binned stratification that can be used by stratified observations.
 
         Parameters
         ----------
         target
-            String name of the state table column or value pipeline used to stratify.
+            Name of the state table column or value pipeline to be binned.
         binned_column
-            String name of the column for the binned quantities.
+            Name of the (binned) stratification.
         bin_edges
             List of scalars defining the bin edges, passed to :meth: pandas.cut.
             The length must be equal to the length of `labels` plus 1.
@@ -143,16 +144,13 @@ class ResultsInterface:
             List of string labels for bins. The length must be equal to the length
             of `bin_edges` minus 1.
         excluded_categories
-            List of mapped string values to be excluded from results processing.
+            List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         target_type
-            "column" or "value"
+            Type specification of the `target` to be binned. "column" if it's a
+            state table column or "value" if it's a value pipeline.
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
-
-        Returns
-        ------
-        None
         """
         self._manager.register_binned_stratification(
             target,
@@ -187,43 +185,44 @@ class ResultsInterface:
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]] = len,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
-        """Provide the results system all the information it needs to perform a
-        stratified observation.
+        """Registers a stratified observation to the results system.
 
         Parameters
         ----------
         name
-            String name for the observation.
+            Name of the observation. It will also be the name of the output results file
+            for this particular observation.
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
         when
-            String name of the phase of a time-step the observation should happen. Valid values are:
-            `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
+            String name of the lifecycle phase the observation should happen. Valid values are:
+            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         requires_columns
-            A list of the state table columns that are required by either the pop_filter or the aggregator.
+            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
         requires_values
-            A list of the value pipelines that are required by either the pop_filter or the aggregator.
+            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
         results_updater
-            A function that updates existing observation results with newly gathered ones.
+            Function that updates existing raw observation results with newly gathered results.
         results_formatter
-            A function that formats the observation results.
+            Function that formats the raw observation results.
         additional_stratifications
-            A list of additional :class:`stratification <vivarium.framework.results.stratification.Stratification>`
-            names by which to stratify.
+            List of additional :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
+            names by which to stratify this observation by.
         excluded_stratifications
-            A list of default :class:`stratification <vivarium.framework.results.stratification.Stratification>`
-            names to remove from the observation.
+            List of default :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
+            names to remove from this observation.
         aggregator_sources
-            A list of population view columns to be used in the aggregator.
+            List of population view columns to be used in the `aggregator`.
         aggregator
-            A function that computes the quantity for the observation.
+            Function that computes the quantity for this observation.
         to_observe
-            A function that determines whether to perform an observation on this Event.
+            Function that determines whether to perform an observation on this Event.
 
-        Returns
+        Raises
         ------
-        None
+        ValueError
+            If any required callable arguments are missing.
         """
         self._check_for_required_callables(name, {"results_updater": results_updater})
         self._manager.register_observation(
@@ -243,19 +242,6 @@ class ResultsInterface:
             to_observe=to_observe,
         )
 
-    @staticmethod
-    def _check_for_required_callables(
-        observation_name: str, required_callables: Dict[str, Callable]
-    ) -> None:
-        missing = []
-        for arg_name, callable in required_callables.items():
-            if callable == _required_function_placeholder:
-                missing.append(arg_name)
-        if len(missing) > 0:
-            raise ValueError(
-                f"Observation '{observation_name}' is missing required callable(s): {missing}"
-            )
-
     def register_unstratified_observation(
         self,
         name: str,
@@ -274,45 +260,36 @@ class ResultsInterface:
         ] = lambda measure, results: results,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
-        """Provide the results system all the information it needs to perform a
-        stratified observation.
+        """Registers an unstratified observation to the results system.
 
         Parameters
         ----------
         name
-            String name for the observation.
+            Name of the observation. It will also be the name of the output results file
+            for this particular observation.
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
         when
-            String name of the phase of a time-step the observation should happen. Valid values are:
-            `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
+            String name of the lifecycle phase the observation should happen. Valid values are:
+            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         requires_columns
-            A list of the state table columns that are required by either the pop_filter or the aggregator.
+            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
         requires_values
-            A list of the value pipelines that are required by either the pop_filter or the aggregator.
+            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
         results_gatherer
-            A function that gathers the latest observation results.
+            Function that gathers the latest observation results.
         results_updater
-            A function that updates existing observation results with newly gathered ones.
+            Function that updates existing raw observation results with newly gathered results.
         results_formatter
-            A function that formats the observation results.
-        additional_stratifications
-            A list of additional :class:`stratification <vivarium.framework.results.stratification.Stratification>`
-            names by which to stratify.
-        excluded_stratifications
-            A list of default :class:`stratification <vivarium.framework.results.stratification.Stratification>`
-            names to remove from the observation.
-        aggregator_sources
-            A list of population view columns to be used in the aggregator.
-        aggregator
-            A function that computes the quantity for the observation.
+            Function that formats the raw observation results.
         to_observe
-            A function that determines whether to perform an observation on this Event.
+            Function that determines whether to perform an observation on this Event.
 
-        Returns
+        Raises
         ------
-        None
+        ValueError
+            If any required callable arguments are missing.
         """
         required_callables = {
             "results_gatherer": results_gatherer,
@@ -349,42 +326,40 @@ class ResultsInterface:
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series[float]]] = len,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
-        """Provide the results system all the information it needs to perform the observation.
+        """Registers an adding observation to the results system; that is,
+        one that adds/sums new results to existing result values. Note that an adding
+        observation is a specific type of stratified observation.
 
         Parameters
         ----------
         name
-            String name for the observation.
+            Name of the observation. It will also be the name of the output results file
+            for this particular observation.
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
         when
-            String name of the phase of a time-step the observation should happen. Valid values are:
-            `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
+            String name of the lifecycle phase the observation should happen. Valid values are:
+            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         requires_columns
-            A list of the state table columns that are required by either the pop_filter or the aggregator.
+            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
         requires_values
-            A list of the value pipelines that are required by either the pop_filter or the aggregator.
+            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
         results_formatter
-            A function that formats the observation results.
+            Function that formats the raw observation results.
         additional_stratifications
-            A list of additional :class:`stratification <vivarium.framework.results.stratification.Stratification>`
-            names by which to stratify.
+            List of additional :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
+            names by which to stratify this observation by.
         excluded_stratifications
-            A list of default :class:`stratification <vivarium.framework.results.stratification.Stratification>`
-            names to remove from the observation.
+            List of default :class:`Stratification <vivarium.framework.results.stratification.Stratification>`
+            names to remove from this observation.
         aggregator_sources
-            A list of population view columns to be used in the aggregator.
+            List of population view columns to be used in the `aggregator`.
         aggregator
-            A function that computes the quantity for the observation.
+            Function that computes the quantity for this observation.
         to_observe
-            A function that determines whether to perform an observation on this Event.
-
-        Returns
-        ------
-        None
+            Function that determines whether to perform an observation on this Event.
         """
-
         self._manager.register_observation(
             observation_type=AddingObservation,
             is_stratified=True,
@@ -413,30 +388,29 @@ class ResultsInterface:
         ] = lambda measure, results: results,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
-        """Provide the results system all the information it needs to perform the observation.
+        """Registers a concatenating observation to the results system; that is,
+        one that concatenates new results to existing results. Note that a
+        concatenating observation is a specific type of unstratified observation.
 
         Parameters
         ----------
         name
-            String name for the observation.
+            Name of the observation. It will also be the name of the output results file
+            for this particular observation.
         pop_filter
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
         when
-            String name of the phase of a time-step the observation should happen. Valid values are:
-            `"time_step__prepare"`, `"time_step"`, `"time_step__cleanup"`, `"collect_metrics"`.
+            String name of the lifecycle phase the observation should happen. Valid values are:
+            "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         requires_columns
-            A list of the state table columns that are required by either the pop_filter or the aggregator.
+            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
         requires_values
-            A list of the value pipelines that are required by either the pop_filter or the aggregator.
+            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
         results_formatter
-            A function that formats the observation results.
+            Function that formats the raw observation results.
         to_observe
-            A function that determines whether to perform an observation on this Event.
-
-        Returns
-        ------
-        None
+            Function that determines whether to perform an observation on this Event.
         """
         included_columns = ["event_time"] + requires_columns + requires_values
         self._manager.register_observation(
@@ -451,3 +425,17 @@ class ResultsInterface:
             included_columns=included_columns,
             to_observe=to_observe,
         )
+
+    @staticmethod
+    def _check_for_required_callables(
+        observation_name: str, required_callables: Dict[str, Callable]
+    ) -> None:
+        """Raises a ValueError if any required callable arguments are missing."""
+        missing = []
+        for arg_name, callable in required_callables.items():
+            if callable == _required_function_placeholder:
+                missing.append(arg_name)
+        if len(missing) > 0:
+            raise ValueError(
+                f"Observation '{observation_name}' is missing required callable(s): {missing}"
+            )

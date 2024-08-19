@@ -1,3 +1,9 @@
+"""
+=========
+Observers
+=========
+"""
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict
 
@@ -7,10 +13,10 @@ from vivarium.framework.engine import Builder
 
 class Observer(Component, ABC):
     """An abstract base class intended to be subclassed by observer components.
-    The primary purpose of this class is to provide attributes required by
-    the subclass `report` method.
 
-    Note that a `register_observation` method must be defined in the subclass.
+    Notes
+    -----
+        A `register_observation` method must be defined in the subclass.
     """
 
     def __init__(self) -> None:
@@ -29,6 +35,7 @@ class Observer(Component, ABC):
         }
 
     def get_configuration_name(self) -> str:
+        """Return the name of a concrete observer for use in the configuration"""
         return self.name.split("_observer")[0]
 
     @abstractmethod
@@ -37,12 +44,13 @@ class Observer(Component, ABC):
         pass
 
     def setup_component(self, builder: Builder) -> None:
+        """Set up the observer component."""
         super().setup_component(builder)
         self.register_observations(builder)
-        self.get_formatter_attributes(builder)
+        self.set_results_dir(builder)
 
-    def get_formatter_attributes(self, builder: Builder) -> None:
-        """Define commonly-used attributes for reporting."""
+    def set_results_dir(self, builder: Builder) -> None:
+        """Define the results directory from the configuration."""
         self.results_dir = (
             builder.configuration.to_dict()
             .get("output_data", {})

@@ -22,10 +22,10 @@ from vivarium.framework.lookup.table import (
     CategoricalTable,
     InterpolatedTable,
     LookupTable,
-    LookupTableData,
     ScalarTable,
 )
 from vivarium.manager import Manager
+from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder

@@ -13,7 +13,7 @@ from typing import List, Tuple, Union
 import numpy as np
 import pandas as pd
 
-ParameterType = Union[List[List[str]], List[Tuple[str, str, str]]]
+_ParameterType = Union[List[List[str]], List[Tuple[str, str, str]]]
 
 
 class Interpolation:
@@ -39,7 +39,7 @@ class Interpolation:
         self,
         data: pd.DataFrame,
         categorical_parameters: Union[List[str], Tuple[str, ...]],
-        continuous_parameters: ParameterType,
+        continuous_parameters: _ParameterType,
         value_columns: Union[List[str], Tuple[str, ...]],
         order: int,
         extrapolate: bool,
@@ -265,7 +265,7 @@ class Order0Interp:
     def __init__(
         self,
         data,
-        continuous_parameters: ParameterType,
+        continuous_parameters: _ParameterType,
         value_columns: List[str],
         extrapolate: bool,
         validate: bool,

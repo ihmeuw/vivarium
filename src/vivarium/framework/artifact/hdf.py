@@ -48,7 +48,7 @@ import pandas as pd
 import tables
 from tables.nodes import filenode
 
-PandasObj = (pd.DataFrame, pd.Series)
+_PandasObj = (pd.DataFrame, pd.Series)
 
 ####################
 # Public interface #
@@ -106,7 +106,7 @@ def write(path: Union[str, Path], entity_key: str, data: Any):
     path = _get_valid_hdf_path(path)
     entity_key = EntityKey(entity_key)
 
-    if isinstance(data, PandasObj):
+    if isinstance(data, _PandasObj):
         _write_pandas_data(path, entity_key, data)
     else:
         _write_json_blob(path, entity_key, data)
@@ -330,7 +330,7 @@ def _get_valid_hdf_path(path: Union[str, Path]) -> Path:
     return path
 
 
-def _write_pandas_data(path: Path, entity_key: EntityKey, data: Union[PandasObj]):
+def _write_pandas_data(path: Path, entity_key: EntityKey, data: Union[_PandasObj]):
     """Write data in a pandas format to an HDF file.
 
     This method currently supports :class:`pandas DataFrame` objects, with or
