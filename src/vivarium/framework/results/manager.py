@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -187,7 +187,10 @@ class ResultsManager(Manager):
         categories: List[str],
         excluded_categories: Optional[List[str]],
         mapper: Optional[
-            Callable[[Union[pd.Series[str], pd.DataFrame, str]], Union[pd.Series[str], str]]
+            Union[
+                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
+                Callable[[Any], str],
+            ]
         ],
         is_vectorized: bool,
         requires_columns: List[str] = [],
@@ -200,24 +203,24 @@ class ResultsManager(Manager):
         Parameters
         ----------
         name
-            Name of the column created by the `mapper`.
+            Name of the stratification.
         categories
-            List of string values that the `mapper` is allowed to map to.
+            Exhaustive list of all possible stratification values.
         excluded_categories
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that takes inputs from the columns and pipelines specified by
-            `requires_columns` and `requires_values` arguments and produces a
-            Series. All values produced by a `mapper` must be one of the elements of
-            `categories`. A simulation will fail if the `mapper` ever produces
-            an invalid value.
+            A callable that maps the columns and value pipelines specified by the
+            `requires_columns` and `requires_values` arguments to the stratification
+            categories. It can either map the entire population or an individual
+            simulant. A simulation will fail if the `mapper` ever produces an invalid
+            value.
         is_vectorized
             True if the `mapper` function will map the entire population, and False
             if it will only map a single simulant.
         requires_columns
-            A list of the state table columns that are required by the `mapper` to
-            produce the stratification.
+            A list of the state table columns that are required by the `mapper`
+            to produce the stratification.
         requires_values
             A list of the value pipelines that are required by the `mapper` to
             produce the stratification.
@@ -246,9 +249,9 @@ class ResultsManager(Manager):
         Parameters
         ----------
         target
-            String name of the state table column or value pipeline to be binned.
+            Name of the state table column or value pipeline to be binned.
         binned_column
-            String name of the new column for the binned quantities.
+            Name of the (binned) stratification.
         bin_edges
             List of scalars defining the bin edges, passed to :meth: pandas.cut.
             The length must be equal to the length of `labels` plus 1.

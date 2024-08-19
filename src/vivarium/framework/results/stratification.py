@@ -7,7 +7,7 @@ Stratifications
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -28,17 +28,20 @@ class Stratification:
     Attributes
     ----------
     name
-        Name of the column created by the `mapper`.
+        Name of the stratification.
     sources
         A list of the columns and values needed as input for the `mapper`.
     categories
-        List of string values that the `mapper` is allowed to map to.
+        Exhaustive list of all possible stratification values.
     excluded_categories
         List of possible stratification values to exclude from results processing.
         If None (the default), will use exclusions as defined in the configuration.
     mapper
-        A callable that takes a Series or a DataFrame as input and produces a
-        Series containing the corresponding stratification values.
+            A callable that maps the columns and value pipelines specified by the
+            `requires_columns` and `requires_values` arguments to the stratification
+            categories. It can either map the entire population or an individual
+            simulant. A simulation will fail if the `mapper` ever produces an invalid
+            value.
     is_vectorized
         True if the `mapper` function will map the entire population, and False
         if it will only map a single simulant.
@@ -49,8 +52,10 @@ class Stratification:
     categories: List[str]
     excluded_categories: List[str]
     mapper: Optional[
-        Callable[[Union[pd.Series[str], pd.DataFrame, str]], Union[pd.Series[str], str]]
-    ] = None
+        Union[
+            Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]], Callable[[Any], str]
+        ]
+    ]
     is_vectorized: bool = False
 
     def __str__(self) -> str:

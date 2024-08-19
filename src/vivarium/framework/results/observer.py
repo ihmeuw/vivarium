@@ -13,10 +13,10 @@ from vivarium.framework.engine import Builder
 
 class Observer(Component, ABC):
     """An abstract base class intended to be subclassed by observer components.
-    The primary purpose of this class is to provide attributes required by
-    the subclass `report` method.
 
-    Note that a `register_observation` method must be defined in the subclass.
+    Notes
+    -----
+        A `register_observation` method must be defined in the subclass.
     """
 
     def __init__(self) -> None:

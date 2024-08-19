@@ -9,7 +9,7 @@ This module provides an interface for ... tbd
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 
@@ -71,7 +71,10 @@ class ResultsInterface:
         categories: List[str],
         excluded_categories: Optional[List[str]] = None,
         mapper: Optional[
-            Callable[[Union[pd.Series[str], pd.DataFrame, str]], Union[pd.Series[str], str]]
+            Union[
+                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
+                Callable[[Any], str],
+            ]
         ] = None,
         is_vectorized: bool = False,
         requires_columns: List[str] = [],
@@ -89,11 +92,11 @@ class ResultsInterface:
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that takes inputs from the columns and pipelines specified by
-            `requires_columns` and `requires_values` arguments and produces a
-            Series. All values produced by a `mapper` must be one of the elements of
-            `categories`. A simulation will fail if the `mapper` ever produces
-            an invalid value.
+            A callable that maps the columns and value pipelines specified by the
+            `requires_columns` and `requires_values` arguments to the stratification
+            categories. It can either map the entire population or an individual
+            simulant. A simulation will fail if the `mapper` ever produces an invalid
+            value.
         is_vectorized
             True if the `mapper` function will map the entire population, and False
             if it will only map a single simulant.

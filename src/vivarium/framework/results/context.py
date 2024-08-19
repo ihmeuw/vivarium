@@ -7,7 +7,7 @@ Results Context
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Callable, Generator, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Generator, List, Optional, Tuple, Type, Union
 
 import pandas as pd
 from pandas.core.groupby import DataFrameGroupBy
@@ -43,7 +43,9 @@ class ResultsContext:
         from results processing.
     observations
         Dictionary of observation details. It is of the format
-        {lifecycle_phase: {(pop_filter, stratifications): list[Observation]}}
+        {lifecycle_phase: {(pop_filter, stratifications): list[Observation]}}.
+        Allowable lifecycle_phases are "time_step__prepare", "time_step",
+        "time_step__cleanup", and "collect_metrics".
     logger
         Logger for the results context.
     """
@@ -52,15 +54,6 @@ class ResultsContext:
         self.default_stratifications: List[str] = []
         self.stratifications: List[Stratification] = []
         self.excluded_categories: dict[str, list[str]] = {}
-        # keys are event names: [
-        #     "time_step__prepare",
-        #     "time_step",
-        #     "time_step__cleanup",
-        #     "collect_metrics",
-        # ]
-        # values are dicts with
-        #     key (filter, grouper)
-        #     value Observation
         self.observations: defaultdict = defaultdict(lambda: defaultdict(list))
 
     @property
@@ -80,12 +73,12 @@ class ResultsContext:
 
     # noinspection PyAttributeOutsideInit
     def set_default_stratifications(self, default_grouping_columns: List[str]) -> None:
-        """Set the default column names for stratifying results.
+        """Set the default stratifications to be used by stratified observations.
 
         Parameters
         ----------
         default_grouping_columns
-            List of column names to use for stratifying results.
+            List of stratifications to be used.
 
         Raises
         ------
@@ -106,7 +99,10 @@ class ResultsContext:
         categories: List[str],
         excluded_categories: Optional[List[str]],
         mapper: Optional[
-            Callable[[Union[pd.Series[str], pd.DataFrame, str]], Union[pd.Series[str], str]]
+            Union[
+                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series[str]],
+                Callable[[Any], str],
+            ]
         ],
         is_vectorized: bool,
     ) -> None:
@@ -115,20 +111,20 @@ class ResultsContext:
         Parameters
         ----------
         name
-            Name of the column created by the `mapper`.
+            Name of the stratification.
         sources
             A list of the columns and values needed as input for the `mapper`.
         categories
-            List of string values that the `mapper` is allowed to map to.
+            Exhaustive list of all possible stratification values.
         excluded_categories
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that takes inputs from the columns and pipelines specified by
-            `requires_columns` and `requires_values` arguments and produces a
-            Series. All values produced by a `mapper` must be one of the elements of
-            `categories`. A simulation will fail if the `mapper` ever produces
-            an invalid value.
+            A callable that maps the columns and value pipelines specified by the
+            `requires_columns` and `requires_values` arguments to the stratification
+            categories. It can either map the entire population or an individual
+            simulant. A simulation will fail if the `mapper` ever produces an invalid
+            value.
         is_vectorized
             True if the `mapper` function will map the entire population, and False
             if it will only map a single simulant.
@@ -319,9 +315,7 @@ class ResultsContext:
         pop_filter: str,
         stratification_names: Optional[tuple[str, ...]],
     ) -> pd.DataFrame:
-        """Filter the population based on the `pop_filter` string as well as any
-        excluded stratification categories.
-        """
+        """Filter out simulants not to observe."""
         pop = population.query(pop_filter) if pop_filter else population.copy()
         if stratification_names:
             # Drop all rows in the mapped_stratification columns that have NaN values
