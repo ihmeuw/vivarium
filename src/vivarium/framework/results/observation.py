@@ -9,7 +9,8 @@ for initializing, gathering, updating, and formatting results.
 The provided :class:`BaseObservation` class is an abstract base class that should
 be subclassed by concrete observations. While there are no required abstract methods
 to define when subclassing, the class does provide common attributes as well
-as an `observe` method that determines whether to observe results for a given event.
+as an `observe` method that determines whether to observe a given event, and if so,
+gathers the results.
 
 At the highest level, an observation can be categorized as either an
 :class:`UnstratifiedObservation` or a :class:`StratifiedObservation`. More specialized
@@ -37,7 +38,7 @@ class BaseObservation(ABC):
     """An abstract base dataclass to be inherited by concrete observations.
 
     This class includes an :meth:`observe <observe>` method that determines whether
-    to observe results for a given event.
+    to observe a given event, and if so, gathers the results.
     """
 
     name: str
@@ -75,7 +76,7 @@ class BaseObservation(ABC):
         df: Union[pd.DataFrame, DataFrameGroupBy],
         stratifications: Optional[tuple[str, ...]],
     ) -> Optional[pd.DataFrame]:
-        # """Determine whether to observe the given event and, if so, gather the results."""
+        """Determine whether to observe the given event, and if so, gather the results."""
         if not self.to_observe(event):
             return None
         else:

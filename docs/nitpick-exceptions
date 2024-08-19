@@ -22,8 +22,6 @@ py:class Time
 py:class vivarium.framework.time.Time
 py:class Timedelta
 py:class vivarium.framework.time.Timedelta
-py:exc ResultsConfigurationError
-py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
 
 # layered_config_tree
 py:class layered_config_tree.main.LayeredConfigTree

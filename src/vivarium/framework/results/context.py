@@ -10,9 +10,9 @@ from typing import Callable, Generator, List, Optional, Tuple, Type, Union
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
 
+from vivarium.exceptions import VivariumError
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
-from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import BaseObservation
 from vivarium.framework.results.stratification import (
     Stratification,
@@ -20,6 +20,12 @@ from vivarium.framework.results.stratification import (
     get_original_col_name,
 )
 from vivarium.types import ScalarValue
+
+
+class ResultsConfigurationError(VivariumError):
+    """Error raised when the results stratifications are improperly configured."""
+
+    pass
 
 
 class ResultsContext:
