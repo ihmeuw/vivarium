@@ -40,6 +40,11 @@ jobs:
           cd ..
           git clone https://github.com/ihmeuw/vivarium_build_utils.git
           cd vivarium
+          echo "Contents of install_dependency_branch.sh"
+          echo "----------------------------------------"
+          cat ../vivarium_build_utils/install_dependency_branch.sh
+          echo ""
+          echo "----------------------------------------"
           sh ../vivarium_build_utils/install_dependency_branch.sh layered_config_tree ${branch_name}
       - name: print environment values
         run: |
