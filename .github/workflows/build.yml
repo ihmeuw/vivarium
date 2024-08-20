@@ -29,31 +29,26 @@ jobs:
           else
           echo "branch_name=${GITHUB_REF_NAME}" >> $GITHUB_ENV
           fi
-      - name: check for upstream branch
-        run: |
-          if git ls-remote --exit-code --heads https://github.com/ihmeuw/layered_config_tree.git ${branch_name} == "0"; then
-            echo "upstream_exist=true" >> $GITHUB_ENV
-          else
-            echo "upstream_exist=false" >> $GITHUB_ENV
-          fi
-      - name: print environment values
-        run: |
-          cat $GITHUB_ENV
       - name: Update pip
         run: |
           python -m pip install --upgrade pip
-      - name: Retrieve upstream branch if exists
-        if: env.upstream_exist == 'true'
-        run: |
-          echo "Cloning upstream branch: ${branch_name}"
-          pushd ..
-          git clone --branch=${branch_name} https://github.com/ihmeuw/layered_config_tree.git
-          pushd layered_config_tree
-          pip install .
-          popd && popd
       - name: Install dependencies
         run: |
           pip install .[dev]
+      - name: check for dependency branches and install if needed
+        run: |
+          cd ..
+          git clone https://github.com/ihmeuw/vivarium_build_utils.git
+          cd vivarium
+          echo "Contents of install_dependency_branch.sh"
+          echo "----------------------------------------"
+          cat ../vivarium_build_utils/install_dependency_branch.sh
+          echo ""
+          echo "----------------------------------------"
+          sh ../vivarium_build_utils/install_dependency_branch.sh layered_config_tree ${branch_name}
+      - name: print environment values
+        run: |
+          cat $GITHUB_ENV
       - name: Lint
         run: |
           pip install black==22.3.0 isort

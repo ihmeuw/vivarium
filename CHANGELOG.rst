@@ -1,3 +1,7 @@
+**3.0.1- 08/19/24**
+
+ - Create script to find matching dependency branches
+
 **3.0.0 - 08/13/24**
 
 Breaking changes:
