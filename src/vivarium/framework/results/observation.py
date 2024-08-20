@@ -47,7 +47,7 @@ class BaseObservation(ABC):
     """A Pandas query filter string to filter the population down to the simulants
     who should be considered for the observation."""
     when: str
-    """String name of the lifecycle phase the observation should happen. Valid values are:
+    """Name of the lifecycle phase the observation should happen. Valid values are:
     "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics"."""
     results_initializer: Callable[[Iterable[str], Iterable[Stratification]], pd.DataFrame]
     """Method or function that initializes the raw observation results
@@ -100,7 +100,7 @@ class UnstratifiedObservation(BaseObservation):
         A Pandas query filter string to filter the population down to the simulants who should
         be considered for the observation.
     when
-        String name of the lifecycle phase the observation should happen. Valid values are:
+        Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
     results_gatherer
         Method or function that gathers the new observation results.
@@ -159,7 +159,7 @@ class StratifiedObservation(BaseObservation):
         A Pandas query filter string to filter the population down to the simulants who should
         be considered for the observation.
     when
-        String name of the lifecycle phase the observation should happen. Valid values are:
+        Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
     results_updater
         Method or function that updates existing raw observation results with newly gathered results.
@@ -316,7 +316,7 @@ class AddingObservation(StratifiedObservation):
         A Pandas query filter string to filter the population down to the simulants who should
         be considered for the observation.
     when
-        String name of the lifecycle phase the observation should happen. Valid values are:
+        Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
     results_formatter
         Method or function that formats the raw observation results.
@@ -391,7 +391,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
         A Pandas query filter string to filter the population down to the simulants who should
         be considered for the observation.
     when
-        String name of the lifecycle phase the observation should happen. Valid values are:
+        Name of the lifecycle phase the observation should happen. Valid values are:
         "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
     included_columns
         Columns to include in the observation

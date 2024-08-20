@@ -24,6 +24,11 @@ You can find a short intro to yaml basics
    :local:
    :backlinks: none
 
+The Plugins Block
+-----------------
+
+TBD
+
 The Components Block
 --------------------
 The components block of the model specification file contains the information
@@ -89,3 +94,31 @@ and a diarrhea disease model.
    :hidden:
 
    yaml_basics
+
+The Configuration Block
+-----------------------
+
+The configuration block of the model specification file contains any information
+necessary to configure the simulation to run, including (among other things) 
+key columns to be used for common random number generation, the simulation 
+start and end times, step size, and the population size.
+
+.. code-block:: yaml
+
+    configuration:
+        randomness:
+            key_columns: ['entrance_time', 'age']
+        time:
+            start:
+                year: 2022
+                month: 1
+                day: 1
+            end:
+                year: 2026
+                month: 12
+                day: 31
+            step_size: 0.5  # Days
+        population:
+            population_size: 100_000
+            age_start: 0
+            age_end: 5
