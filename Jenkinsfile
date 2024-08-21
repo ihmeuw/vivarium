@@ -196,43 +196,42 @@ pipeline {
             } // build and deploy stage
         } // stages bracket within Python matrix
         post {
-            always {
-              sh "${ACTIVATE} && make clean"
-              sh "rm -rf ${CONDA_ENV_PATH}"
-              // Delete the workspace directory.
-              deleteDir()
+          always {
+            sh "${ACTIVATE} && make clean"
+            sh "rm -rf ${CONDA_ENV_PATH}"
+            // Delete the workspace directory.
+            deleteDir()
+          }
+          script {
+            if (${GIT_BRANCH} == "main") {
+              channelName = "${params.SLACK_TO}"
+            } else {
+              channelName = "simsci-ci-status-test"
             }
+          }
+          failure {
+            // TODO: DM the developer instead of the slack channel
+            echo "This build failed on ${GIT_BRANCH}. Sending a failure message to Slack."
+            slackSend channel: "#${channelName}",
+                        message: ":x: JOB FAILURE: $JOB_NAME - $BUILD_ID\n\n${BUILD_URL}console\n\n<!channel>",
+                        teamDomain: "ihme",
+                        tokenCredentialId: "slack"
+          }
+          success {
             script {
-                if (${GIT_BRANCH} == "main") {
-                  channelName = "${params.SLACK_TO}"
-                } else {
-                  channelName = "simsci-ci-status-test"
-                }
-            }
-            failure {
-                // TODO: DM the developer instead of the slack channel
-                echo "This build failed on ${GIT_BRANCH}. Sending a failure message to Slack."
-                slackSend channel: "#${channelName}",
-                            message: ":x: JOB FAILURE: $JOB_NAME - $BUILD_ID\n\n${BUILD_URL}console\n\n<!channel>",
-                            teamDomain: "ihme",
-                            tokenCredentialId: "slack"
+              if (params.DEBUG) {
+                echo 'Debug is enabled. Sending a success message to Slack.'
+                slackSend channel: "#${params.SLACK_TO}",
+                          message: ":white_check_mark: (debugging) JOB SUCCESS: $JOB_NAME - $BUILD_ID\n\n${BUILD_URL}console",
+                          teamDomain: "ihme",
+                          tokenCredentialId: "slack"
+              } else {
+                echo 'Debug is not enabled. No success message will be sent to Slack.'
               }
             }
-            success {
-              script {
-                if (params.DEBUG) {
-                  echo 'Debug is enabled. Sending a success message to Slack.'
-                  slackSend channel: "#${params.SLACK_TO}",
-                            message: ":white_check_mark: (debugging) JOB SUCCESS: $JOB_NAME - $BUILD_ID\n\n${BUILD_URL}console",
-                            teamDomain: "ihme",
-                            tokenCredentialId: "slack"
-                } else {
-                  echo 'Debug is not enabled. No success message will be sent to Slack.'
-                }
-              }
-            }
+          }
         } // post bracket
       } // Python matrix bracket
     } // Python matrix stage bracket
   } // stages bracket
-}
+} // pipeline bracket
