@@ -59,8 +59,12 @@ install: # Install setuptools, install this package in editable mode
 	pip install -e .[DEV]
 	@cd ..
 	@echo "----------------------------------------"
-	@git clone https://github.com/ihmeuw/vivarium_build_utils.git
-	@pwd
+	@if [ ! -d "vivarium_build_utils" ]; then \
+		echo "Cloning repository into $(REPO_DIR)..."; \
+		git clone https://github.com/ihmeuw/vivarium_build_utils.git \
+	else \
+		echo "vivarium_build_utils already exists. Skipping clone."; \
+	fi
 	@echo "Contents of install_dependency_branch.sh"
 	@echo "----------------------------------------"
 	@cat vivarium_build_utils/install_dependency_branch.sh
