@@ -25,140 +25,10 @@ be grouped into **stratifications**.
     A ``vivarium`` simulation will *not* record results by default. The user must
     define observers that register observations in order to record results!
 
-Observers
-+++++++++
-
-The :class:`Observer <vivarium.framework.results.observer.Observer>` object is a 
-``vivarium`` :class:`Component <vivarium.component.Component>` and abstract base 
-class whose primary purpose is to register observations to the results system. 
-Ideally, each concrete observer class should register a single observation (though 
-this is not enforced).
-
-Observations
-++++++++++++
-
-When discussing the results system, an **observation** is used somewhat interchangeably
-with the term "results". More specifically, an observation is a set of measure-specific
-results that are collected throughout the simulation.
-
-Implementation-wise, an observation is a data structure that holds the values 
-and callables required to collect the results of a specific measure during the simulation. 
-
-At the highest level, an observation can be considered either *stratified* or
-*unstratified*. A 
-:class:`StratifiedObservation <vivarium.framework.results.observation.StratifiedObservation>`
-is one whose results are grouped into and aggregated by categories referred to as 
-**stratifications**. An 
-:class:`UnstratifiedObservation <vivarium.framework.results.observation.UnstratifiedObservation>`
-is one whose results are not grouped into categories.
-
-A couple other more specific and commonly used observations are provided as well:
-
-- :class:`AddingObservation <vivarium.framework.results.observation.AddingObservation>`: 
-  a specific type of 
-  :class:`StratifiedObservation <vivarium.framework.results.observation.StratifiedObservation>` 
-  that gathers new results and adds/sums them to any existing results.
-- :class:`ConcatenatingObservation <vivarium.framework.results.observation.ConcatenatingObservation>`: 
-  a specific type of 
-  :class:`UnstratifiedObservation <vivarium.framework.results.observation.UnstratifiedObservation>` 
-  that gathers new results and concatenates them to any existing results.
-
-Ideally, all concrete classes should inherit from the 
-:class:`BaseObservation <vivarium.framework.results.observation.BaseObservation>`
-abstract base class, which contains the common attributes between observation types:
-
-.. list-table:: **Common Observation Attributes**
-  :widths: 15 45
-  :header-rows: 1
-
-  * - Attribute
-    - Description
-  * - | :attr:`name <vivarium.framework.results.observation.BaseObservation.name>`
-    - | Name of the observation. It will also be the name of the output results file
-      | for this particular observation.
-  * - | :attr:`pop_filter <vivarium.framework.results.observation.BaseObservation.pop_filter>`
-    - | A Pandas query filter string to filter the population down to the simulants
-      | who should be considered for the observation.
-  * - | :attr:`when <vivarium.framework.results.observation.BaseObservation.when>`
-    - | Name of the lifecycle phase the observation should happen. Valid values are:
-      | "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-  * - | :attr:`results_initializer <vivarium.framework.results.observation.BaseObservation.results_initializer>`
-    - | Method or function that initializes the raw observation results
-      | prior to starting the simulation. This could return, for example, an empty
-      | DataFrame or one with a complete set of stratifications as the index and
-      | all values set to 0.0.
-  * - | :attr:`results_gatherer <vivarium.framework.results.observation.BaseObservation.results_gatherer>`
-    - | Method or function that gathers the new observation results.
-  * - | :attr:`results_updater <vivarium.framework.results.observation.BaseObservation.results_updater>`
-    - | Method or function that updates existing raw observation results with newly
-      | gathered results.
-  * - | :attr:`results_formatter <vivarium.framework.results.observation.BaseObservation.results_formatter>`
-    - | Method or function that formats the raw observation results.
-  * - | :attr:`stratifications <vivarium.framework.results.observation.BaseObservation.stratifications>`
-    - | Optional tuple of column names for the observation to stratify by.
-  * - | :attr:`to_observe <vivarium.framework.results.observation.BaseObservation.to_observe>`
-    - | Method or function that determines whether to perform an observation on this Event.
-
-The **BaseObservation** also contains the 
-:meth:`observe <vivarium.framework.results.observation.BaseObservation.observe>`
-method which is called at each :ref:`event <event_concept>` and :ref:`time step <time_concept>` 
-to determine whether or not the observation should be recorded, and if so, gathers 
-the results and stores them in the results system.
-
 .. note::
-    All four observation types discussed above inherit from the **BaseObservation** 
-    abstract base class. What differentiates them are the assigned attributes 
-    (e.g. defining the **results_updater** to be an adding method for the 
-    **AddingObservation**) or adding other attributes as necessary (e.g. 
-    adding a **stratifications**, **aggregator_sources**, and **aggregator** for
-    the **StratifiedObservation**).
-
-Stratifications
-+++++++++++++++
-
-A **stratification** is a way to group and aggregate results into categories. For 
-example, if you have an observation that records a certain measure but you want to 
-stratify the results by age groups, you can register a stratification containing a 
-mapper function that maps each simulant's age to an age group (e.g. 23.1 -> "20_to_25").
-
-The :class:`Stratification <vivarium.framework.results.stratification.Stratification>` 
-class is a data structure that holds the values and callables required to stratify the
-results of an observation:
-
-.. list-table:: **Stratification Attributes**
-  :widths: 15 45
-  :header-rows: 1
-
-  * - Attribute
-    - Description
-  * - | :attr:`name <vivarium.framework.results.stratification.Stratification.name>`
-    - | Name of the stratification.
-  * - | :attr:`sources <vivarium.framework.results.stratification.Stratification.sources>`
-    - | A list of the columns and values needed as input for the `mapper`.
-  * - | :attr:`categories <vivarium.framework.results.stratification.Stratification.categories>`
-    - | Exhaustive list of all possible stratification values.
-  * - | :attr:`excluded_categories <vivarium.framework.results.stratification.Stratification.excluded_categories>`
-    - | List of possible stratification values to exclude from results processing.
-      | If None (the default), will use exclusions as defined in the configuration.
-  * - | :attr:`mapper <vivarium.framework.results.stratification.Stratification.mapper>`
-    - | A callable that maps the columns and value pipelines specified by the
-      | `requires_columns` and `requires_values` arguments to the stratification
-      | categories. It can either map the entire population or an individual
-      | simulant. A simulation will fail if the `mapper` ever produces an invalid
-      | value.
-  * - | :attr:`is_vectorized <vivarium.framework.results.stratification.Stratification.is_vectorized>`
-    - | True if the `mapper` function will map the entire population, and False
-      | if it will only map a single simulant.
-
-Each **Stratification** also contains the 
-:meth:`stratify <vivarium.framework.results.stratification.Stratification.stratify>`
-method which is called at each :ref:`event <event_concept>` and :ref:`time step <time_concept>` 
-to use the **mapper** to map values in the **sources** columns to **categories** 
-(excluding any categories specified in **excluded_categories**).
-
-.. note::
-    There are two types of supported stratifications: *unbinned* and *binned*;
-    both types are backed by an instance of **Stratification**.
+    Users should not interact with observations and stratifications directly - 
+    they should only be created by the methods provided by the 
+    :class:`ResultsInterface <vivarium.framework.results.interface.ResultsInterface>`.
 
 How to Use the Results Management System
 ----------------------------------------
@@ -173,7 +43,7 @@ Creating an Observer and Registering Observations
 All **observers** should be concrete instances of the 
 :class:`Observer <vivarium.framework.results.observer.Observer>` 
 abstract base class which guarantees that it is a proper ``vivarium`` 
-:class:`Component <vivarium.component.Component>`. And while the user is free to 
+:class:`Component <vivarium.component.Component>`. While the user is free to 
 add whatever business logic is necessary, the primary goal of the component lies 
 in the :meth:`register_observations <vivarium.framework.results.observer.Observer.register_observations>`
 method. This is a required method (indeed, it is an abstract method of the 
@@ -361,3 +231,138 @@ For example, to exclude "stillbirth" as a pregnancy outcome during results proce
           exclude: ['age_group']
       excluded_categories:
         pregnancy_outcome: ['stillbirth']
+
+Observers
+---------
+
+The :class:`Observer <vivarium.framework.results.observer.Observer>` object is a 
+``vivarium`` :class:`Component <vivarium.component.Component>` and abstract base 
+class whose primary purpose is to register observations to the results system. 
+Ideally, each concrete observer class should register a single observation (though 
+this is not enforced).
+
+Observations
+------------
+
+When discussing the results system, an **observation** is used somewhat interchangeably
+with the term "results". More specifically, an observation is a set of measure-specific
+results that are collected throughout the simulation.
+
+Implementation-wise, an observation is a data structure that holds the values 
+and callables required to collect the results of a specific measure during the simulation. 
+
+At the highest level, an observation can be considered either *stratified* or
+*unstratified*. A 
+:class:`StratifiedObservation <vivarium.framework.results.observation.StratifiedObservation>`
+is one whose results are grouped into and aggregated by categories referred to as 
+**stratifications**. An 
+:class:`UnstratifiedObservation <vivarium.framework.results.observation.UnstratifiedObservation>`
+is one whose results are not grouped into categories.
+
+A couple other more specific and commonly used observations are provided as well:
+
+- :class:`AddingObservation <vivarium.framework.results.observation.AddingObservation>`: 
+  a specific type of 
+  :class:`StratifiedObservation <vivarium.framework.results.observation.StratifiedObservation>` 
+  that gathers new results and adds/sums them to any existing results.
+- :class:`ConcatenatingObservation <vivarium.framework.results.observation.ConcatenatingObservation>`: 
+  a specific type of 
+  :class:`UnstratifiedObservation <vivarium.framework.results.observation.UnstratifiedObservation>` 
+  that gathers new results and concatenates them to any existing results.
+
+Ideally, all concrete classes should inherit from the 
+:class:`BaseObservation <vivarium.framework.results.observation.BaseObservation>`
+abstract base class, which contains the common attributes between observation types:
+
+.. list-table:: **Common Observation Attributes**
+  :widths: 15 45
+  :header-rows: 1
+
+  * - Attribute
+    - Description
+  * - | :attr:`name <vivarium.framework.results.observation.BaseObservation.name>`
+    - | Name of the observation. It will also be the name of the output results file
+      | for this particular observation.
+  * - | :attr:`pop_filter <vivarium.framework.results.observation.BaseObservation.pop_filter>`
+    - | A Pandas query filter string to filter the population down to the simulants
+      | who should be considered for the observation.
+  * - | :attr:`when <vivarium.framework.results.observation.BaseObservation.when>`
+    - | Name of the lifecycle phase the observation should happen. Valid values are:
+      | "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
+  * - | :attr:`results_initializer <vivarium.framework.results.observation.BaseObservation.results_initializer>`
+    - | Method or function that initializes the raw observation results
+      | prior to starting the simulation. This could return, for example, an empty
+      | DataFrame or one with a complete set of stratifications as the index and
+      | all values set to 0.0.
+  * - | :attr:`results_gatherer <vivarium.framework.results.observation.BaseObservation.results_gatherer>`
+    - | Method or function that gathers the new observation results.
+  * - | :attr:`results_updater <vivarium.framework.results.observation.BaseObservation.results_updater>`
+    - | Method or function that updates existing raw observation results with newly
+      | gathered results.
+  * - | :attr:`results_formatter <vivarium.framework.results.observation.BaseObservation.results_formatter>`
+    - | Method or function that formats the raw observation results.
+  * - | :attr:`stratifications <vivarium.framework.results.observation.BaseObservation.stratifications>`
+    - | Optional tuple of column names for the observation to stratify by.
+  * - | :attr:`to_observe <vivarium.framework.results.observation.BaseObservation.to_observe>`
+    - | Method or function that determines whether to perform an observation on this Event.
+
+The **BaseObservation** also contains the 
+:meth:`observe <vivarium.framework.results.observation.BaseObservation.observe>`
+method which is called at each :ref:`event <event_concept>` and :ref:`time step <time_concept>` 
+to determine whether or not the observation should be recorded, and if so, gathers 
+the results and stores them in the results system.
+
+.. note::
+    All four observation types discussed above inherit from the **BaseObservation** 
+    abstract base class. What differentiates them are the assigned attributes 
+    (e.g. defining the **results_updater** to be an adding method for the 
+    **AddingObservation**) or adding other attributes as necessary (e.g. 
+    adding a **stratifications**, **aggregator_sources**, and **aggregator** for
+    the **StratifiedObservation**).
+
+Stratifications
+---------------
+
+A **stratification** is a way to group and aggregate results into categories. For 
+example, if you have an observation that records a certain measure but you want to 
+stratify the results by age groups, you can register a stratification containing a 
+mapper function that maps each simulant's age to an age group (e.g. 23.1 -> "20_to_25").
+
+The :class:`Stratification <vivarium.framework.results.stratification.Stratification>` 
+class is a data structure that holds the values and callables required to stratify the
+results of an observation:
+
+.. list-table:: **Stratification Attributes**
+  :widths: 15 45
+  :header-rows: 1
+
+  * - Attribute
+    - Description
+  * - | :attr:`name <vivarium.framework.results.stratification.Stratification.name>`
+    - | Name of the stratification.
+  * - | :attr:`sources <vivarium.framework.results.stratification.Stratification.sources>`
+    - | A list of the columns and values needed as input for the `mapper`.
+  * - | :attr:`categories <vivarium.framework.results.stratification.Stratification.categories>`
+    - | Exhaustive list of all possible stratification values.
+  * - | :attr:`excluded_categories <vivarium.framework.results.stratification.Stratification.excluded_categories>`
+    - | List of possible stratification values to exclude from results processing.
+      | If None (the default), will use exclusions as defined in the configuration.
+  * - | :attr:`mapper <vivarium.framework.results.stratification.Stratification.mapper>`
+    - | A callable that maps the columns and value pipelines specified by the
+      | `requires_columns` and `requires_values` arguments to the stratification
+      | categories. It can either map the entire population or an individual
+      | simulant. A simulation will fail if the `mapper` ever produces an invalid
+      | value.
+  * - | :attr:`is_vectorized <vivarium.framework.results.stratification.Stratification.is_vectorized>`
+    - | True if the `mapper` function will map the entire population, and False
+      | if it will only map a single simulant.
+
+Each **Stratification** also contains the 
+:meth:`stratify <vivarium.framework.results.stratification.Stratification.stratify>`
+method which is called at each :ref:`event <event_concept>` and :ref:`time step <time_concept>` 
+to use the **mapper** to map values in the **sources** columns to **categories** 
+(excluding any categories specified in **excluded_categories**).
+
+.. note::
+    There are two types of supported stratifications: *unbinned* and *binned*;
+    both types are backed by an instance of **Stratification**.

@@ -4,6 +4,16 @@
 The Model Specification
 =======================
 
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: none
+
+.. toctree::
+   :hidden:
+
+   yaml_basics
+
 A :term:`model specification <Model Specification>` is a complete representation
 of a :mod:`vivarium` simulation formatted as a yaml file.
 
@@ -19,15 +29,11 @@ Each of these blocks is delineated by a top-level key in the yaml file:
 You can find a short intro to yaml basics
 :ref:`here <model_specification_yaml_concept>`.
 
-.. contents::
-   :depth: 2
-   :local:
-   :backlinks: none
-
 The Plugins Block
 -----------------
 
-TBD
+.. todo::
+   describe plugins
 
 The Components Block
 --------------------
@@ -89,11 +95,6 @@ To illustrate this process, the result of a :meth:`get_components
 call on either of the above yaml components block examples would be a list
 containing three instantiated objects: a population object, a mortality object,
 and a diarrhea disease model.
-
-.. toctree::
-   :hidden:
-
-   yaml_basics
 
 The Configuration Block
 -----------------------
