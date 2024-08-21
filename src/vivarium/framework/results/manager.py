@@ -322,7 +322,7 @@ class ResultsManager(Manager):
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
         when
-            String name of the lifecycle phase the observation should happen. Valid values are:
+            Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         requires_columns
             List of the state table columns that are required by either the `pop_filter` or the `aggregator`.

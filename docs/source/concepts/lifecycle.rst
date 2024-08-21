@@ -34,7 +34,8 @@ during a simulation.
    * - | :ref:`Main Loop <lifecycle_main_loop>`
      - | The core logic (as encoded in the simulation components) is executed.
    * - | :ref:`Simulation End <lifecycle_simulation_end>`
-     - | The population state is finalized and results are tabulated.
+     - | The population state is finalized and results are tabulated and written
+       | to disk.
 
 The simulation itself maintains a formal representation of its internal
 execution state using the tools in the :mod:`~vivarium.framework.lifecycle`
@@ -197,4 +198,4 @@ simulation end. It is split into two states.  During the first, the
 signal that the event loop has finished and the
 :ref:`state table <population_concept>` is final. At this point, final
 simulation outputs are safe to compute. The second state is *report* in
-which the simulation will accumulate all final outputs and return them.
+which the simulation will accumulate all final outputs and write them to disk.

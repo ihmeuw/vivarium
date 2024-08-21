@@ -9,14 +9,6 @@ Thinking about Time in the Simulation
    :local:
    :backlinks: none
 
-Outline
--------
- - The Simulation Clock
- - Start, stop, and step size.
- - Fundamental assumptions about discrete time simulation.
- - clock time vs. event time
- - Individual Clocks
-
 The Simulation Clock
 --------------------
 The :class:`SimulationClock <vivarium.framework.time.SimulationClock>` plugin manages the progression of time throughout the simulation. 
