@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 this_makefile := $(lastword $(MAKEFILE_LIST)) # Used to automatically list targets
 .DEFAULT_GOAL := list # If someone runs "make", run "make list"
 
