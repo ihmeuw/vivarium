@@ -200,7 +200,7 @@ observations and then customize "deaths" observations to also include
       default:
         - 'age_group'
         - 'sex'
-      births:
+      deaths:
           include: ['location']
           exclude: ['age_group']
 
