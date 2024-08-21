@@ -57,10 +57,10 @@ build-env: # Make a new conda environment
 install: # Install setuptools, install this package in editable mode
 	pip install --upgrade pip setuptools
 	pip install -e .[DEV]
-
-dependencies: # Check for upstream dependencies
-	@git clone https://github.com/ihmeuw/vivarium_build_utils.git
 	@cd ..
+	@echo "----------------------------------------"
+	@git clone https://github.com/ihmeuw/vivarium_build_utils.git
+	@cd ../vivarium
 	@ls
 	@echo "Contents of install_dependency_branch.sh"
 	@echo "----------------------------------------"

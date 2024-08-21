@@ -140,11 +140,11 @@ pipeline {
               }
             }
 
-            stage("Dependencies") {
-              steps {
-                sh "${ACTIVATE} && make dependencies \"ARGS=${GIT_BRANCH}\""
-              }
-            }
+            // stage("Dependencies") {
+            //   steps {
+            //     sh "${ACTIVATE} && make dependencies \"ARGS=${GIT_BRANCH}\""
+            //   }
+            // }
 
             // Quality Checks
             stage("Format") {
@@ -202,13 +202,14 @@ pipeline {
               // Delete the workspace directory.
               deleteDir()
             }
-            failure {
-              script {
+            script {
                 if (${GIT_BRANCH} == "main") {
                   channelName = "${params.SLACK_TO}"
                 } else {
                   channelName = "simsci-ci-status-test"
                 }
+            }
+            failure {
                 // TODO: DM the developer instead of the slack channel
                 echo "This build failed on ${GIT_BRANCH}. Sending a failure message to Slack."
                 slackSend channel: "#${channelName}",
