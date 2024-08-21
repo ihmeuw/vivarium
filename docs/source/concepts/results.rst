@@ -156,31 +156,61 @@ can be accessed through the :ref:`builder <builder_concept>`:
 - :meth:`builder.results.register_stratification <vivarium.framework.results.interface.ResultsInterface.register_stratification>`
 - :meth:`builder.results.register_binned_stratification <vivarium.framework.results.interface.ResultsInterface.register_binned_stratification>`
 
-Here is an example of how you might register a "pregnancy_outcome" stratification 
-as part of the **BirthObserver's** **register_observations** method:
+Here is an example of how you might register a "current_year" and "sex" as stratifications:
 
 .. testcode::
+  import pandas as pd
 
+  from vivarium import Component
   from vivarium.framework.engine import Builder
-  from vivarium.framework.results import Observer
 
-  class BirthObserver(Observer):
+  class ResultsStratifier(Component):
+    """Register stratifications for the results system"""
 
-    ...
+    def setup(self, builder: Builder) -> None:
+      self.start_year = builder.configuration.time.start.year
+      self.end_year = builder.configuration.time.end.year
+      self.register_stratifications(builder)
 
-    def register_observations(self, builder: Builder) -> None:
+    def register_stratifications(self, builder: Builder) -> None:
       builder.results.register_stratification(
-        "pregnancy_outcome",
-        ["live_birth", "stillbirth", "pregnancy", "parturition"],
-        requires_columns=["pregnancy_outcome"],
+        "current_year",
+        [str(year) for year in range(self.start_year, self.end_year + 1)],
+        mapper=self.map_year,
+        is_vectorized=True,
+        requires_columns=["current_time"],
       )
-      ...  # register observations
+      builder.results.register_stratification(
+        "sex", ["Female", "Male"], requires_columns=["sex"]
+      )
 
-    ...
+    ###########
+    # Mappers #
+    ###########
+
+    @staticmethod
+    def map_year(pop: pd.DataFrame) -> pd.Series[str]:
+        """Map datetime with year
+
+        Parameters
+        ----------
+        pop
+            A pd.DataFrame with one column, a datetime to be mapped to year
+
+        Returns
+        ------
+        pandas.Series
+            A pd.Series with years corresponding to the pop passed into the function
+        """
+        return pop.squeeze(axis=1).dt.year.apply(str)
 
 .. note::
-  It is somewhat common to encapsulate all stratification registrations in a single
-  class, though this is not enforced (as the example above demonstrates).
+  Good encapsulation suggests that all stratification registrations occur in a single
+  class (as in the **ResultsStratifier** class in the above example). This is not
+  enforced, however, and it is also somewhat common to register a stratification 
+  that will only be used by a single observer within that observer's 
+  :meth:`register_observations <vivarium.framework.results.observer.Observer.register_observations>`
+  method.
 
 Just because you've *registered* a stratification doesn't mean that the results will
 actually *use* it. In order to use the stratification, you must add it to the 
