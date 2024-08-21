@@ -143,6 +143,12 @@ pipeline {
               }
             }
 
+            stage("Dependencies") {
+              steps {
+                sh "${ACTIVATE} && make dependencies \"ARGS=${GIT_BRANCH}\""
+              }
+            }
+
             // Quality Checks
             stage("Format") {
               steps {
