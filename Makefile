@@ -58,16 +58,15 @@ install: # Install setuptools, install this package in editable mode
 	pip install --upgrade pip setuptools
 	pip install -e .[DEV]
 	@cd ..
-	@ls
 	@echo "----------------------------------------"
 	@git clone https://github.com/ihmeuw/vivarium_build_utils.git
-	@ls
+	@pwd
 	@echo "Contents of install_dependency_branch.sh"
 	@echo "----------------------------------------"
-	@cat ../vivarium_build_utils/install_dependency_branch.sh
+	@cat vivarium_build_utils/install_dependency_branch.sh
 	@echo ""
 	@echo "----------------------------------------"
-	@sh ../vivarium_build_utils/install_dependency_branch.sh layered_config_tree ${GIT_BRANCH}
+	@sh vivarium_build_utils/install_dependency_branch.sh layered_config_tree ${GIT_BRANCH}
 
 format: setup.py pyproject.toml $(MAKE_SOURCES) # Run the code formatter and import sorter
 	black $(LOCATIONS)
