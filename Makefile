@@ -59,7 +59,8 @@ install: # Install setuptools, install this package in editable mode
 
 dependencies: # Check for upstream dependencies
 	@git clone https://github.com/ihmeuw/vivarium_build_utils.git
-	@cd vivarium
+	@ls
+	@cd ../vivarium
 	@echo "Contents of install_dependency_branch.sh"
 	@echo "----------------------------------------"
 	@cat ../vivarium_build_utils/install_dependency_branch.sh
