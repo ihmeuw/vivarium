@@ -17,9 +17,6 @@ import sys
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 from pathlib import Path
 
-from docutils.nodes import Text
-from sphinx.ext.intersphinx import missing_reference
-
 import vivarium
 
 base_dir = Path(vivarium.__file__).parent
