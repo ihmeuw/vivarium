@@ -100,6 +100,7 @@ to existing ones, and formats the data to only include specified state table col
 as well as adds a new one ("birth_date").
 
 .. testcode::
+
   from datetime import datetime
 
   import pandas as pd
@@ -159,6 +160,7 @@ can be accessed through the :ref:`builder <builder_concept>`:
 Here is an example of how you might register a "current_year" and "sex" as stratifications:
 
 .. testcode::
+
   import pandas as pd
 
   from vivarium import Component
@@ -189,20 +191,20 @@ Here is an example of how you might register a "current_year" and "sex" as strat
     ###########
 
     @staticmethod
-    def map_year(pop: pd.DataFrame) -> pd.Series[str]:
-        """Map datetime with year
+    def map_year(pop: pd.DataFrame) -> pd.Series:
+      """Map datetime with year
 
-        Parameters
-        ----------
-        pop
-            A pd.DataFrame with one column, a datetime to be mapped to year
+      Parameters
+      ----------
+      pop
+        A pd.DataFrame with one column, a datetime to be mapped to year
 
-        Returns
-        ------
-        pandas.Series
-            A pd.Series with years corresponding to the pop passed into the function
-        """
-        return pop.squeeze(axis=1).dt.year.apply(str)
+      Returns
+      ------
+      pandas.Series
+        A pd.Series with years corresponding to the pop passed into the function
+      """
+      return pop.squeeze(axis=1).dt.year.apply(str)
 
 .. note::
   Good encapsulation suggests that all stratification registrations occur in a single
