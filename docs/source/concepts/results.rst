@@ -190,8 +190,8 @@ will be used by all observations as well as observation-specific "include" and
 "exclude" keys to further modify each observation's stratifications.
 
 For example, to use "age_group" and "sex" as default stratifications for *all* 
-observations and then customize the "births" observations to also include 
-"pregnancy_outcome" but not "age_group":
+observations and then customize "deaths" observations to also include 
+"location" but not "age_group":
 
 .. code-block:: yaml
 
@@ -201,7 +201,7 @@ observations and then customize the "births" observations to also include
         - 'age_group'
         - 'sex'
       births:
-          include: ['pregnancy_outcome']
+          include: ['location']
           exclude: ['age_group']
 
 .. note::
