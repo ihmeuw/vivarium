@@ -84,9 +84,9 @@ class Stratification:
             raise ValueError("The sources argument must be non-empty.")
 
     def stratify(self, population: pd.DataFrame) -> pd.Series:
-        """Apply the mapper to the population `sources` columns to create a new
-        Series to be added to the population. Any excluded categories
-        (which have already been removed from self.categories) will be converted
+        """Apply the `mapper` to the population `sources` columns to create a new
+        Series to be added to the population. Any `excluded_categories`
+        (which have already been removed from `categories`) will be converted
         to NaNs in the new column and dropped later at the observation level.
 
         Parameters
