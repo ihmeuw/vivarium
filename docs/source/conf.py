@@ -17,9 +17,6 @@ import sys
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 from pathlib import Path
 
-from docutils.nodes import Text
-from sphinx.ext.intersphinx import missing_reference
-
 import vivarium
 
 base_dir = Path(vivarium.__file__).parent
@@ -235,22 +232,3 @@ for line in open("../nitpick-exceptions"):
     dtype, target = line.split(None, 1)
     target = target.strip()
     nitpick_ignore.append((dtype, target))
-
-
-# Fix sphinx warnings when for literal Ellipses in type hints.
-def setup(app):
-    app.connect("missing-reference", __sphinx_issue_8127)
-
-
-def __sphinx_issue_8127(app, env, node, contnode):
-    reftarget = node.get("reftarget", None)
-    if reftarget == "..":
-        node["reftype"] = "data"
-        node["reftarget"] = "Ellipsis"
-        text_node = next(iter(contnode.traverse(lambda n: n.tagname == "#text")))
-        replacement_node = Text("...", "")
-        if text_node.parent is not None:
-            text_node.parent.replace(text_node, replacement_node)
-        else:  # e.g. happens in rtype fields
-            contnode = replacement_node
-        return missing_reference(app, env, node, contnode)
