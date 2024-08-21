@@ -4,6 +4,16 @@
 The Model Specification
 =======================
 
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: none
+
+.. toctree::
+   :hidden:
+
+   yaml_basics
+
 A :term:`model specification <Model Specification>` is a complete representation
 of a :mod:`vivarium` simulation formatted as a yaml file.
 
@@ -19,10 +29,11 @@ Each of these blocks is delineated by a top-level key in the yaml file:
 You can find a short intro to yaml basics
 :ref:`here <model_specification_yaml_concept>`.
 
-.. contents::
-   :depth: 2
-   :local:
-   :backlinks: none
+The Plugins Block
+-----------------
+
+.. todo::
+   describe plugins
 
 The Components Block
 --------------------
@@ -85,7 +96,30 @@ call on either of the above yaml components block examples would be a list
 containing three instantiated objects: a population object, a mortality object,
 and a diarrhea disease model.
 
-.. toctree::
-   :hidden:
+The Configuration Block
+-----------------------
 
-   yaml_basics
+The configuration block of the model specification file contains any information
+necessary to configure the simulation to run, including (among other things) 
+key columns to be used for common random number generation, the simulation 
+start and end times, step size, and the population size.
+
+.. code-block:: yaml
+
+    configuration:
+        randomness:
+            key_columns: ['entrance_time', 'age']
+        time:
+            start:
+                year: 2022
+                month: 1
+                day: 1
+            end:
+                year: 2026
+                month: 12
+                day: 31
+            step_size: 0.5  # Days
+        population:
+            population_size: 100_000
+            age_start: 0
+            age_end: 5
