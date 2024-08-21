@@ -60,8 +60,8 @@ install: # Install setuptools, install this package in editable mode
 	@cd ..
 	@echo "----------------------------------------"
 	@if [ ! -d "vivarium_build_utils" ]; then \
-		echo "Cloning repository into $(REPO_DIR)..."; \
-		git clone https://github.com/ihmeuw/vivarium_build_utils.git \
+		# Clone the build utils repo if it doesn't exist. \
+		git clone https://github.com/ihmeuw/vivarium_build_utils.git; \
 	else \
 		echo "vivarium_build_utils already exists. Skipping clone."; \
 	fi
