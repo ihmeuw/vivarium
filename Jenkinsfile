@@ -202,14 +202,14 @@ pipeline {
             // Delete the workspace directory.
             deleteDir()
           }
-          script {
-            if (${GIT_BRANCH} == "main") {
-              channelName = "${params.SLACK_TO}"
-            } else {
-              channelName = "simsci-ci-status-test"
-            }
-          }
           failure {
+            script {
+              if (${GIT_BRANCH} == "main") {
+                channelName = "simsci-ci-status"
+              } else {
+                channelName = "simsci-ci-status-test"
+              }
+            }
             // TODO: DM the developer instead of the slack channel
             echo "This build failed on ${GIT_BRANCH}. Sending a failure message to Slack."
             slackSend channel: "#${channelName}",
