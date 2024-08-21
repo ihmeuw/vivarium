@@ -204,7 +204,7 @@ pipeline {
           }
           failure {
             script {
-              if (${GIT_BRANCH} == "main") {
+              if (env.BRANCH == "main") {
                 channelName = "simsci-ci-status"
               } else {
                 channelName = "simsci-ci-status-test"
