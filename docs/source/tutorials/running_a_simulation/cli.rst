@@ -73,7 +73,7 @@ options for the run. These are:
     *   - | **--results_directory** or **-o**
         - | The top-level directory in which to write results.
           | Within this directory, a subdirectory named to match the
-          | model-specification file will be created. Within this, a further
+          | model specification file will be created. Within this, a further
           | subdirectory named for the time at which the run was started will
           | be created.
     *   - | **--verbose** or **-v**
@@ -87,23 +87,23 @@ options for the run. These are:
 
 .. note::
     You can see a description of any of the available commands by using the 
-    ``--help`` flag, e.g. `simulate --help` or `simulate run --help`.
+    **--help** flag, e.g. ``simulate --help`` or ``simulate run --help``.
 
 
 Let's illustrate how to use them. Say we run the following:
 
 .. code-block:: console
 
-    simulate run /path/to/your/model/specification -o /path/to/output/directory --log /path/to/log/file --pdb -v
+    simulate run /path/to/your/model/specification.yaml -i /path/to/artifact.hdf -o /path/to/output/directory --pdb -v
 
 Let's walk through how each of these flags will change the behavior from our
-initial plain ``simulate run``. First, we have specified an output directory
-via the **-o** flag. In our first example, outputs went to
-``~/vivarium_results``. Now they will go to our specified directory. Second, we
-have also provided a path to a log file via **--log** at which we
-can find the log outputs of our simulation run. Next, we have provided the
-**--pdb** flag so that if something goes wrong in our run, we will drop into
-the python debugger where we can investigate. Finally, we have turned on the
+initial plain ``simulate run``. First, we have specified an artifact path via the 
+**-i** flag. This will run the simulation using that artifact regardless of what 
+is specified in the model specification. Second, we have specified an output
+directory via the **-o** flag. In our first example, outputs went to
+``~/vivarium_results``. Now they will go to our specified directory. Next, we have 
+provided the **--pdb** flag so that if something goes wrong in our run, we will drop 
+into the python debugger where we can investigate. Finally, we have turned on the
 verbose option via the **-v** flag. Whereas before, we saw nothing printed to
 the console while our simulation was running, we will now see something like
 the following:
