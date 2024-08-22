@@ -70,7 +70,7 @@ install: # Install setuptools, install this package in editable mode
 	@cat vivarium_build_utils/install_dependency_branch.sh
 	@echo ""
 	@echo "----------------------------------------"
-	@sh vivarium_build_utils/install_dependency_branch.sh layered_config_tree ${GIT_BRANCH}
+	@sh vivarium_build_utils/install_dependency_branch.sh layered_config_tree ${GIT_BRANCH} jenkins
 
 format: setup.py pyproject.toml $(MAKE_SOURCES) # Run the code formatter and import sorter
 	black $(LOCATIONS)
