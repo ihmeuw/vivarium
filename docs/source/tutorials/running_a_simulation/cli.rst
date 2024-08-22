@@ -66,28 +66,28 @@ options for the run. These are:
 
     *   - Option
         - Description
-    *   - | **--artifact_path or -i**
+    *   - | **-\-artifact_path or -i**
         - | The path to a directory containing the artifact data file that the 
           | model requires. This is only required if the model specification
           | file does not contain the artifact path or you want to override it.
-    *   - | **--results_directory** or **-o**
+    *   - | **-\-results_directory** or **-o**
         - | The top-level directory in which to write results.
           | Within this directory, a subdirectory named to match the
           | model specification file will be created. Within this, a further
           | subdirectory named for the time at which the run was started will
           | be created.
-    *   - | **--verbose** or **-v**
+    *   - | **-\-verbose** or **-v**
         - | Report each time step as it occurs during the run.
-    *   - | **--quiet** or **-q**
+    *   - | **-\-quiet** or **-q**
         - | Suppress all logging except for warnings and errors.
-    *   - | **--pdb**
+    *   - | **-\-pdb**
         - | If an error occurs, drop into the python debugger.
-    *   - | **--help**
+    *   - | **-\-help**
         - | Print a help message and exit.
 
 .. note::
     You can see a description of any of the available commands by using the 
-    **--help** flag, e.g. ``simulate --help`` or ``simulate run --help``.
+    **-\-help** flag, e.g. ``simulate --help`` or ``simulate run --help``.
 
 
 Let's illustrate how to use them. Say we run the following:
@@ -102,7 +102,7 @@ initial plain ``simulate run``. First, we have specified an artifact path via th
 is specified in the model specification. Second, we have specified an output
 directory via the **-o** flag. In our first example, outputs went to
 ``~/vivarium_results``. Now they will go to our specified directory. Next, we have 
-provided the **--pdb** flag so that if something goes wrong in our run, we will drop 
+provided the **-\-pdb** flag so that if something goes wrong in our run, we will drop 
 into the python debugger where we can investigate. Finally, we have turned on the
 verbose option via the **-v** flag. Whereas before, we saw nothing printed to
 the console while our simulation was running, we will now see something like
