@@ -66,7 +66,11 @@ options for the run. These are:
 
     *   - Option
         - Description
-    *   - | **--results-directory** or **-o**
+    *   - | **--artifact_path or -i**
+        - | The path to a directory containing the artifact data file that the 
+          | model requires. This is only required if the model specification
+          | file does not contain the artifact path or you want to override it.
+    *   - | **--results_directory** or **-o**
         - | The top-level directory in which to write results.
           | Within this directory, a subdirectory named to match the
           | model-specification file will be created. Within this, a further
@@ -74,10 +78,16 @@ options for the run. These are:
           | be created.
     *   - | **--verbose** or **-v**
         - | Report each time step as it occurs during the run.
-    *   - | **--log**
-        - | A path at which a log file should be created.
+    *   - | **--quiet** or **-q**
+        - | Suppress all logging except for warnings and errors.
     *   - | **--pdb**
         - | If an error occurs, drop into the python debugger.
+    *   - | **--help**
+        - | Print a help message and exit.
+
+.. note::
+    You can see a description of any of the available commands by using the 
+    ``--help`` flag, e.g. `simulate --help` or `simulate run --help`.
 
 
 Let's illustrate how to use them. Say we run the following:
