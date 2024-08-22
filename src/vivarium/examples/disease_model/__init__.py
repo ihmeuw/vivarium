@@ -6,7 +6,7 @@ from vivarium.examples.disease_model.disease import (
 )
 from vivarium.examples.disease_model.intervention import TreatmentIntervention
 from vivarium.examples.disease_model.mortality import Mortality
-from vivarium.examples.disease_model.observer import Observer
+from vivarium.examples.disease_model.observer import DeathsObserver, YllsObserver
 from vivarium.examples.disease_model.population import BasePopulation
 from vivarium.examples.disease_model.risk import Risk, RiskEffect
 

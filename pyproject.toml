@@ -13,8 +13,10 @@ show_missing = true
 
 [tool.black]
 line_length = 94
+exclude = '''.*examples.*'''
 
 [tool.isort]
 line_length = 94
 profile = "black"
 multi_line_output = 3 # Vertical Hanging Indent, see https://pypi.org/project/isort/
+skip_glob = ["*/examples/*", "**/examples/*"]
