@@ -97,9 +97,9 @@ Let's illustrate how to use them. Say we run the following:
     simulate run /path/to/your/model/specification.yaml -i /path/to/artifact.hdf -o /path/to/output/directory --pdb -v
 
 Let's walk through how each of these flags will change the behavior from our
-initial plain ``simulate run``. First, we have specified an artifact path via the 
-**-i** flag. This will run the simulation using that artifact regardless of what 
-is specified in the model specification. Second, we have specified an output
+initial plain ``simulate run``. First, we have provided an artifact path via the 
+**-i** flag which will run the simulation using that artifact (regardless of what 
+is specified in the model specification). Second, we have specified an output
 directory via the **-o** flag. In our first example, outputs went to
 ``~/vivarium_results``. Now they will go to our specified directory. Next, we have 
 provided the **-\-pdb** flag so that if something goes wrong in our run, we will drop 
