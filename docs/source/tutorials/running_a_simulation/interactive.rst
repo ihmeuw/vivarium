@@ -124,9 +124,9 @@ example and we will place them in a normal Python list.
 
 .. code-block:: python
 
-   from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
-                                                SISDiseaseModel, Risk, RiskEffect,
-                                                TreatmentIntervention)
+   from vivarium.examples.disease_model import (BasePopulation, Mortality, DeathsObserver,
+                                                YllsObserver, SISDiseaseModel, Risk,
+                                                RiskEffect, TreatmentIntervention)
 
    components = [BasePopulation(),
                  Mortality(),
@@ -197,9 +197,9 @@ one last way to set up the simulation in an interactive setting.
 .. testcode::
    :hide:
 
-   from vivarium.examples.disease_model import (BasePopulation, Mortality, Observer,
-                                                SISDiseaseModel, Risk, RiskEffect,
-                                                TreatmentIntervention)
+   from vivarium.examples.disease_model import (BasePopulation, Mortality, DeathsObserver,
+                                                YllsObserver, SISDiseaseModel, Risk,
+                                                RiskEffect, TreatmentIntervention)
    from vivarium import InteractiveContext
 
    config = {
