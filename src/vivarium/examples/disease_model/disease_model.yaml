@@ -12,7 +12,8 @@ components:
         intervention:
             - TreatmentIntervention('sqlns', 'child_wasting.proportion_exposed')
         observer:
-            - Observer()
+            - DeathsObserver()
+            - YllsObserver()
 
 configuration:
     randomness:

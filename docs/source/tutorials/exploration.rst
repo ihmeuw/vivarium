@@ -169,6 +169,11 @@ configuration by simply printing it.
     stratification:
         default:
             component_configs: []
+        deaths:
+            exclude:
+                component_configs: []
+            include:
+                component_configs: []
 
 
 What do we see here?  The configuration is *hierarchical*.  There are a set of
