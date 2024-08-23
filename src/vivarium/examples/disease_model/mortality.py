@@ -28,11 +28,7 @@ class Mortality(Component):
 
     @property
     def columns_required(self) -> Optional[List[str]]:
-        return ["alive"]
-
-    @property
-    def population_view_query(self) -> Optional[str]:
-        return "alive == 'alive'"
+        return ["tracked", "alive"]
 
     #####################
     # Lifecycle methods #
@@ -76,7 +72,28 @@ class Mortality(Component):
         effective_probability = 1 - np.exp(-effective_rate)
         draw = self.randomness.get_draw(event.index)
         affected_simulants = draw < effective_probability
-        self.population_view.update(pd.Series("dead", index=event.index[affected_simulants]))
+        self.population_view.subview(["alive"]).update(
+            pd.Series("dead", index=event.index[affected_simulants])
+        )
+
+    def on_time_step_prepare(self, event: Event) -> None:
+        """Untrack any simulants who died during the previous time step.
+
+        We do this after the previous time step because the mortality
+        observer needs to collect observations before updating.
+
+        Parameters
+        ----------
+        event :
+            An event object emitted by the simulation containing an index
+            representing the simulants affected by the event and timing
+            information.
+        """
+        population = self.population_view.get(event.index)
+        population.loc[
+            (population["alive"] == "dead") & population["tracked"] == True, "tracked"
+        ] = False
+        self.population_view.update(population)
 
     ##################################
     # Pipeline sources and modifiers #

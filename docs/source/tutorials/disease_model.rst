@@ -28,7 +28,7 @@ Setup
 -----
 I'm assuming you've read through the material in
 :doc:`getting started <getting_started>` and are working in your
-:file:`vivarium_examples` package. If not, you should go there first.
+:file:`vivarium/examples` package. If not, you should go there first.
 
 .. todo::
    package setup with __init__ and stuff
@@ -45,7 +45,7 @@ We need a population though. So we'll start with one here and defer explanation
 of some of the more complex pieces/systems until later.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :caption: **File**: :file:`~/code/vivarium_examples/disease_model/population.py`
+   :caption: **File**: :file:`~/code/vivarium/examples/disease_model/population.py`
 
 There are a lot of things here.  Let's take them piece by piece.
 (*Note*: I'll be leaving out the docstrings in the code snippets below).
@@ -483,7 +483,7 @@ Now that we've done all this hard work, let's see what it gives us.
 .. code-block:: python
 
    from vivarium import InteractiveContext
-   from vivarium_examples.disease_model.population import BasePopulation
+   from vivarium.examples.disease_model.population import BasePopulation
 
    config = {'randomness': {'key_columns': ['entrance_time', 'age']}}
 
@@ -540,7 +540,7 @@ Now that we have population generation and aging working, the next step
 is introducing mortality into our simulation.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :caption: **File**: :file:`~/code/vivarium_examples/disease_model/mortality.py`
+   :caption: **File**: :file:`~/code/vivarium/examples/disease_model/mortality.py`
 
 The purpose of this component is to determine who dies every time step based
 on a mortality rate. You'll see many of the same framework features we used
@@ -664,8 +664,8 @@ can see the impact of our mortality component without taking too many steps.
 .. code-block:: python
 
    from vivarium InteractiveContext
-   from vivarium_examples.disease_model.population import BasePopulation
-   from vivarium_examples.disease_model.mortality import Mortality
+   from vivarium.examples.disease_model.population import BasePopulation
+   from vivarium.examples.disease_model.mortality import Mortality
 
    config = {
        'population': {
@@ -736,25 +736,142 @@ to 0.0097 deaths per person-year, very close to the 0.01 rate we provided.
    sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
    sim.take_steps(2)
 
-
-Observer
---------
-
-In a real simulation, we typically want to record sophisticated output.  We
-also frequently work in non-interactive (or even distributed) environments
-where we don't have easy access to the simulation object.
-
 Disease
 -------
+
+.. todo::
+   disease
 
 Risk
 ----
 
+.. todo::
+   risk
+
 Intervention
 ------------
+
+.. todo::
+   interventions
+
+Observer
+--------
+
+We've spent some time showing how we can look at the population state table to see 
+how it changes during an interactive simulation. However, we also typically want 
+the simulation itself to record more sophisticated output. Further, we frequently 
+work in non-interactive (or even distributed) environments where we simply don't 
+have access to the simulation object and so would like to write our output to disk. 
+These recorded outputs (i.e. results) are referred to in vivarium as **observations** 
+and it is the job of so-called **observers** to register them to the simulation. 
+:class:`Observers <vivarium.framework.results.observer.Observer>` are vivarium 
+:class:`components <vivarium.component.Component>` that are created by the user 
+and added to the simulation via the model specification.
+
+This example's observers are shown below.
+
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/observer.py
+   :caption: **File**: :file:`~/code/vivarium/examples/disease_model/observer.py`
+
+There are two observers that have each registered a single observation to the 
+simulation: deaths and years of life lost (YLLs). It is important to note that 
+neither of those observations are population state table columns; they are 
+more complex results that require some computation to determine. 
+
+In an interactive setting, we can access these observations via the 
+``sim.get_results()`` command. This will return a dictionary of all  
+observations up to this point in the simulation.
+
+.. code-block:: python
+
+   from vivarium import InteractiveContext
+   from vivarium.examples.disease_model.population import BasePopulation
+   from vivarium.examples.disease_model.mortality import Mortality
+   from vivarium.examples.disease_model.observer import DeathsObserver, YllsObserver
+
+   config = {
+       'population': {
+           'population_size': 100_000
+       },
+       'randomness': {
+           'key_columns': ['entrance_time', 'age']
+       }
+   }
+
+   sim = InteractiveContext(
+      components=[
+         BasePopulation(),
+         Mortality(),
+         DeathsObserver(),
+         YllsObserver(),
+      ],
+      configuration=config
+   )
+   sim.take_steps(365)  # Run for one year with one day time steps
+   print(sim.get_results()["dead"])
+   print(sim.get_results()["ylls"])
+
+::
+
+   stratification  value
+   0            all  985.0
+
+   stratification         value
+   0            all  27966.647762
+
+We see that after 365 days of simulation, 985 simlants have died and there has
+been a total of 27,987 years of life lost.
+
+.. testcode::
+   :hide:
+
+   from vivarium import InteractiveContext
+   from vivarium.examples.disease_model.population import BasePopulation
+   from vivarium.examples.disease_model.mortality import Mortality
+   from vivarium.examples.disease_model.observer import DeathsObserver, YllsObserver
+
+   config = {
+       'population': {
+           'population_size': 100_000
+       },
+       'randomness': {
+           'key_columns': ['entrance_time', 'age']
+       }
+   }
+
+   sim = InteractiveContext(
+      components=[
+         BasePopulation(),
+         Mortality(),
+         DeathsObserver(),
+         YllsObserver(),
+      ],
+      configuration=config
+   )
+   sim.take_steps(2)
+   dead = sim.get_results()["dead"]
+   assert len(dead) == 1
+   assert dead["value"][0] == 6
+   ylls = sim.get_results()["ylls"]
+   assert len(ylls) == 1
+   assert ylls["value"][0] == 102.50076885303923
+
+.. note::
+
+   The observer is responsible for recording observations in memory, but it is
+   the responsibility of the user to write them to disk when in an interactive
+   environment. When running a full simulation from the command line (i.e. in a 
+   non-interactive environment), the vivarium engine itself will automatically 
+   write the results to disk at the end of the simulation.
 
 Running from the command line
 -----------------------------
 
+.. todo::
+   running from the command line
+
 Exploring some results
 ----------------------
+
+.. todo::
+   exploring some results
