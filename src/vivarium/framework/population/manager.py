@@ -249,10 +249,10 @@ class PopulationManager(Manager):
     def register_simulant_initializer(
         self,
         initializer: Callable,
-        creates_columns: tuple[str, ...] = (),
-        requires_columns: tuple[str, ...] = (),
-        requires_values: tuple[str, ...] = (),
-        requires_streams: tuple[str, ...] = (),
+        creates_columns: List[str] = (),
+        requires_columns: List[str] = (),
+        requires_values: List[str] = (),
+        requires_streams: List[str] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
@@ -262,17 +262,17 @@ class PopulationManager(Manager):
             A callable that adds or updates initial state information about
             new simulants.
         creates_columns
-            A tuple of the state table columns that the given initializer
+            A list of the state table columns that the given initializer
             provides the initial state information for.
         requires_columns
-            A tuple of the state table columns that already need to be present
+            A list of the state table columns that already need to be present
             and populated in the state table before the provided initializer
             is called.
         requires_values
-            A tuple of the value pipelines that need to be properly sourced
+            A list of the value pipelines that need to be properly sourced
             before the provided initializer is called.
         requires_streams
-            A tuple of the randomness streams necessary to initialize the
+            A list of the randomness streams necessary to initialize the
             simulant attributes.
         """
         self._initializer_components.add(initializer, creates_columns)
@@ -434,10 +434,10 @@ class PopulationInterface:
     def initializes_simulants(
         self,
         initializer: Callable[[SimulantData], None],
-        creates_columns: tuple[str, ...] = (),
-        requires_columns: tuple[str, ...] = (),
-        requires_values: tuple[str, ...] = (),
-        requires_streams: tuple[str, ...] = (),
+        creates_columns: List[str] = (),
+        requires_columns: List[str] = (),
+        requires_values: List[str] = (),
+        requires_streams: List[str] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
@@ -447,17 +447,17 @@ class PopulationInterface:
             A callable that adds or updates initial state information about
             new simulants.
         creates_columns
-            A tuple of the state table columns that the given initializer
+            A list of the state table columns that the given initializer
             provides the initial state information for.
         requires_columns
-            A tuple of the state table columns that already need to be present
+            A list of the state table columns that already need to be present
             and populated in the state table before the provided initializer
             is called.
         requires_values
-            A tuple of the value pipelines that need to be properly sourced
+            A list of the value pipelines that need to be properly sourced
             before the provided initializer is called.
         requires_streams
-            A tuple of the randomness streams necessary to initialize the
+            A list of the randomness streams necessary to initialize the
             simulant attributes.
         """
         self._manager.register_simulant_initializer(
