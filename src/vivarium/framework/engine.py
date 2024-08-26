@@ -27,7 +27,6 @@ from typing import Any, Dict, List, Optional, Set, Union
 import dill
 import numpy as np
 import pandas as pd
-import yaml
 from layered_config_tree import ConfigurationKeyError, LayeredConfigTree
 
 from vivarium import Component
@@ -63,16 +62,14 @@ class SimulationContext:
 
         Returns
         -------
-        str
             A unique name for the simulation context.
 
-        Note
-        ----
+        Notes
+        -----
         This method mutates process global state (the class attribute
         ``_created_simulation_contexts``) in order to keep track contexts that have been
         generated. This functionality makes generating simulation contexts in parallel
         a non-threadsafe operation.
-
         """
         if sim_name is None:
             sim_number = len(SimulationContext._created_simulation_contexts) + 1
@@ -92,8 +89,9 @@ class SimulationContext:
     def _clear_context_cache():
         """Clear the cache of simulation context names.
 
+        Notes
+        -----
         This is primarily useful for testing purposes.
-
         """
         SimulationContext._created_simulation_contexts = set()
 
@@ -358,6 +356,8 @@ class Builder:
 
     Attributes
     ----------
+    configuration: LayeredConfigTree
+        Provides access to the :ref:`configuration<configuration_concept>`
     logging: LoggingInterface
         Provides access to the :ref:`logging<logging_concept>` system.
     lookup: LookupTableInterface
@@ -375,6 +375,10 @@ class Builder:
     resources: ResourceInterface
         Provides access to the :ref:`resource<resource_concept>` system,
         which manages dependencies between components.
+    results: ResultsInterface
+        Provides access to the :ref:`results<results_concept>` system.
+    randomness: RandomnessInterface
+        Provides access to the :ref:`randomness<randomness_concept>` system.
     time: TimeInterface
         Provides access to the simulation's :ref:`clock<time_concept>`.
     components: ComponentInterface

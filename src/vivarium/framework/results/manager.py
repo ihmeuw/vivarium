@@ -2,6 +2,7 @@
 ======================
 Results System Manager
 ======================
+
 """
 
 from collections import defaultdict
@@ -31,6 +32,7 @@ class ResultsManager(Manager):
     This class contains the public methods used by the :class:`ResultsInterface <vivarium.framework.results.interface.ResultsInterface>`
     to register stratifications and observations as well as the :meth:`get_results <get_results>`
     method used to retrieve formatted results by the :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`.
+
     """
 
     CONFIGURATION_DEFAULTS = {
@@ -64,8 +66,8 @@ class ResultsManager(Manager):
 
         Returns
         -------
-        Dict[str, pandas.DataFrame]
-            A dictionary of formatted results for each measure.
+            A dictionary of measure-specific formatted results. The keys are the
+            measure names and the values are the respective results.
         """
         formatted = {}
         for observation_details in self._results_context.observations.values():
@@ -195,8 +197,10 @@ class ResultsManager(Manager):
         requires_columns: List[str] = [],
         requires_values: List[str] = [],
     ) -> None:
-        """Manager-level stratification registration. Adds a stratification
-        to the :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
+        """Manager-level stratification registration.
+
+        Adds a stratification to the
+        :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
         as well as the stratification's required resources to this manager.
 
         Parameters
@@ -305,7 +309,9 @@ class ResultsManager(Manager):
         requires_values: List[str],
         **kwargs,
     ) -> None:
-        """Manager-level observation registration. Adds an observation to the
+        """Manager-level observation registration.
+
+        Adds an observation to the
         :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
         as well as the observation's required resources to this manager.
 

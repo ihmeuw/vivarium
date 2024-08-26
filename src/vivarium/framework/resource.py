@@ -72,7 +72,6 @@ class ResourceGroup:
         """The type of resource produced by this resource group's producer.
 
         Must be one of `RESOURCE_TYPES`.
-
         """
         return self._resource_type
 
@@ -141,7 +140,6 @@ class ResourceManager(Manager):
         -----
         Topological sorts are not stable. Be wary of depending on order
         where you shouldn't.
-
         """
         if self._sorted_nodes is None:
             try:
@@ -184,7 +182,6 @@ class ResourceManager(Manager):
             If either the resource type is invalid, a component has multiple
             resource producers for the ``column`` resource type, or
             there are multiple producers of the same resource.
-
         """
         if resource_type not in RESOURCE_TYPES:
             raise ResourceError(
@@ -217,7 +214,6 @@ class ResourceManager(Manager):
         See Also
         --------
         :class:`ResourceGroup`
-
         """
         if not resource_names:
             # We have a "producer" that doesn't produce anything, but
@@ -243,7 +239,6 @@ class ResourceManager(Manager):
         between post setup time when the :class:`values manager
         <vivarium.framework.values.ValuesManager>` finalizes pipeline
         dependencies and population creation time.
-
         """
         resource_graph = nx.DiGraph()
         # networkx ignores duplicates
@@ -270,7 +265,6 @@ class ResourceManager(Manager):
         We exclude all non-initializer dependencies. They were necessary in
         graph construction, but we only need the column producers at population
         creation time.
-
         """
         return iter(
             [
@@ -315,7 +309,7 @@ class ResourceInterface:
         resource_names: List[str],
         producer: Any,
         dependencies: List[str],
-    ):
+    ) -> None:
         """Adds managed resources to the resource pool.
 
         Parameters
@@ -337,7 +331,6 @@ class ResourceInterface:
             If either the resource type is invalid, a component has multiple
             resource producers for the ``column`` resource type, or
             there are multiple producers of the same resource.
-
         """
         self._manager.add_resources(resource_type, resource_names, producer, dependencies)
 
@@ -347,6 +340,5 @@ class ResourceInterface:
         We exclude all non-initializer dependencies. They were necessary in
         graph construction, but we only need the column producers at population
         creation time.
-
         """
         return iter(self._manager)

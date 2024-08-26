@@ -38,8 +38,7 @@ class ParsingError(ComponentConfigError):
 
 
 class ComponentConfigurationParser:
-    """
-    Parses component configuration from model specification and initializes
+    """Parses component configuration from model specification and initializes
     components.
 
     To define your own set of parsing rules, you should write a parser class
@@ -58,6 +57,7 @@ class ComponentConfigurationParser:
 
     All classes that are initialized from the ``yaml`` configuration must
     either take no arguments or take arguments specified as strings.
+
     """
 
     def get_components(
@@ -84,9 +84,7 @@ class ComponentConfigurationParser:
 
         Returns
         -------
-        List
             A list of initialized components.
-
         """
         if isinstance(component_config, LayeredConfigTree):
             component_list = self.parse_component_config(component_config)
@@ -112,7 +110,6 @@ class ComponentConfigurationParser:
 
         Returns
         -------
-        List[Component]
             A flat list of Components
         """
         if not component_config:
@@ -162,7 +159,6 @@ class ComponentConfigurationParser:
 
         Returns
         -------
-        List[Component]
             A flat list of Components
         """
         if not level:
@@ -192,8 +188,7 @@ class ComponentConfigurationParser:
         return component_list
 
     def create_component_from_string(self, component_string: str) -> Component:
-        """
-        Helper function for creating a component from a string.
+        """Helper function for creating a component from a string.
 
         This function takes a string representing a component and turns it into
         an instantiated component object.
@@ -206,7 +201,6 @@ class ComponentConfigurationParser:
 
         Returns
         -------
-        Component
             An instantiated component object.
         """
         component_path, args = self.prep_component(component_string)
@@ -224,7 +218,6 @@ class ComponentConfigurationParser:
 
         Returns
         -------
-        Tuple[str, Tuple]
             Component/argument tuple.
         """
         path, args_plus = component_string.split("(")
@@ -233,8 +226,7 @@ class ComponentConfigurationParser:
 
     @staticmethod
     def _clean_args(args: List, path: str) -> Tuple:
-        """
-        Transform component arguments into a tuple, validating that each argument
+        """Transform component arguments into a tuple, validating that each argument
         is a string.
 
         Parameters
@@ -246,7 +238,6 @@ class ComponentConfigurationParser:
 
         Returns
         -------
-        Tuple
             A tuple of arguments, each of which is guaranteed to be a string.
         """
         out = []
@@ -266,8 +257,7 @@ class ComponentConfigurationParser:
 
     @staticmethod
     def import_and_instantiate_component(component_path: str, args: Tuple[str]) -> Component:
-        """
-        Transform a tuple representing a Component into an actual instantiated
+        """Transform a tuple representing a Component into an actual instantiated
         component object.
 
         Parameters
@@ -280,8 +270,6 @@ class ComponentConfigurationParser:
 
         Returns
         -------
-        Component
             An instantiated component object.
-
         """
         return import_by_path(component_path)(*args)

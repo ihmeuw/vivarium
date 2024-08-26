@@ -5,6 +5,7 @@ Component
 
 A base Component class to be used to create components for use in ``vivarium``
 simulations.
+
 """
 
 import re
@@ -31,8 +32,7 @@ DEFAULT_EVENT_PRIORITY = 5
 
 
 class Component(ABC):
-    """
-    The base class for all components used in a Vivarium simulation.
+    """The base class for all components used in a Vivarium simulation.
 
     A `Component` in a Vivarium simulation represents a distinct feature or
     aspect of the model. It encapsulates the logic and data needed for that
@@ -76,17 +76,16 @@ class Component(ABC):
     - `on_time_step_cleanup`
     - `on_collect_metrics`
     - `on_simulation_end`
+
     """
 
     CONFIGURATION_DEFAULTS: Dict[str, Any] = {}
-    """
-    A dictionary containing the defaults for any configurations managed by this
+    """A dictionary containing the defaults for any configurations managed by this
     component. An empty dictionary indicates no managed configurations.
     """
 
     def __repr__(self):
-        """
-        Returns a string representation of the __init__ call made to create this
+        """Returns a string representation of the __init__ call made to create this
         object.
 
         The representation is built by retrieving the initialization parameters
@@ -100,7 +99,6 @@ class Component(ABC):
 
         Returns
         -------
-        str
             A string representation of the __init__ call made to create this
             object.
         """
@@ -123,9 +121,10 @@ class Component(ABC):
 
     @property
     def name(self) -> str:
-        """
-        Returns the name of the component. By convention, these are in snake
-        case with arguments of the `__init__` appended and separated by `.`.
+        """Returns the name of the component.
+
+        By convention, these are in snake case with arguments of the `__init__`
+        appended and separated by `.`.
 
         Names must be unique within a simulation.
 
@@ -142,7 +141,6 @@ class Component(ABC):
 
         Returns
         -------
-        str
             The unique name of the component.
         """
         if not self._name:
@@ -159,20 +157,17 @@ class Component(ABC):
 
     @property
     def sub_components(self) -> List["Component"]:
-        """
-        Provide components managed by this component.
+        """Provide components managed by this component.
 
         Returns
         -------
-        List[Component]
             A list of components that are managed by this component.
         """
         return self._sub_components
 
     @property
     def configuration_defaults(self) -> Dict[str, Any]:
-        """
-        Provides a dictionary containing the defaults for any configurations
+        """Provides a dictionary containing the defaults for any configurations
         managed by this component.
 
         These default values will be stored at the `component_configs` layer of the
@@ -180,7 +175,6 @@ class Component(ABC):
 
         Returns
         -------
-        Dict[str, Any]
             A dictionary containing the defaults for any configurations managed by
             this component.
         """
@@ -188,12 +182,10 @@ class Component(ABC):
 
     @property
     def columns_created(self) -> List[str]:
-        """
-        Provides names of columns created by the component.
+        """Provides names of columns created by the component.
 
         Returns
         -------
-        List[str]
             Names of the columns created by this component, or an empty list if
             none.
         """
@@ -201,12 +193,10 @@ class Component(ABC):
 
     @property
     def columns_required(self) -> Optional[List[str]]:
-        """
-        Provides names of columns required by the component.
+        """Provides names of columns required by the component.
 
         Returns
         -------
-        Optional[List[str]]
             Names of required columns not created by this component. An empty
             list means all available columns are needed. `None` means no
             additional columns are necessary.
@@ -215,13 +205,11 @@ class Component(ABC):
 
     @property
     def initialization_requirements(self) -> Dict[str, List[str]]:
-        """
-        Provides the names of all values required by this component during
+        """Provides the names of all values required by this component during
         simulant initialization.
 
         Returns
         -------
-        Dict[str, List[str]]
             A dictionary containing the additional requirements of this
             component during simulant initialization. An omitted key or an empty
             list for a key implies no requirements for that key during
@@ -235,12 +223,10 @@ class Component(ABC):
 
     @property
     def population_view_query(self) -> Optional[str]:
-        """
-        Provides a query to use when filtering the component's `PopulationView`.
+        """Provides a query to use when filtering the component's `PopulationView`.
 
         Returns
         -------
-        Optional[str]
             A pandas query string for filtering the component's `PopulationView`.
             Returns `None` if no filtering is required.
         """
@@ -248,12 +234,10 @@ class Component(ABC):
 
     @property
     def post_setup_priority(self) -> int:
-        """
-        Provides the priority of this component's post_setup listener.
+        """Provides the priority of this component's post_setup listener.
 
         Returns
         -------
-        int
             The priority of this component's post_setup listener. This value
             can range from 0 to 9, inclusive.
         """
@@ -261,12 +245,10 @@ class Component(ABC):
 
     @property
     def time_step_prepare_priority(self) -> int:
-        """
-        Provides the priority of this component's time_step__prepare listener.
+        """Provides the priority of this component's time_step__prepare listener.
 
         Returns
         -------
-        int
             The priority of this component's time_step__prepare listener. This value
             can range from 0 to 9, inclusive.
         """
@@ -274,12 +256,10 @@ class Component(ABC):
 
     @property
     def time_step_priority(self) -> int:
-        """
-        Provides the priority of this component's time_step listener.
+        """Provides the priority of this component's time_step listener.
 
         Returns
         -------
-        int
             The priority of this component's time_step listener. This value
             can range from 0 to 9, inclusive.
         """
@@ -287,12 +267,10 @@ class Component(ABC):
 
     @property
     def time_step_cleanup_priority(self) -> int:
-        """
-        Provides the priority of this component's time_step__cleanup listener.
+        """Provides the priority of this component's time_step__cleanup listener.
 
         Returns
         -------
-        int
             The priority of this component's time_step__cleanup listener. This value
             can range from 0 to 9, inclusive.
         """
@@ -300,12 +278,10 @@ class Component(ABC):
 
     @property
     def collect_metrics_priority(self) -> int:
-        """
-        Provides the priority of this component's collect_metrics listener.
+        """Provides the priority of this component's collect_metrics listener.
 
         Returns
         -------
-        int
             The priority of this component's collect_metrics listener. This value
             can range from 0 to 9, inclusive.
         """
@@ -313,12 +289,10 @@ class Component(ABC):
 
     @property
     def simulation_end_priority(self) -> int:
-        """
-        Provides the priority of this component's simulation_end listener.
+        """Provides the priority of this component's simulation_end listener.
 
         Returns
         -------
-        int
             The priority of this component's simulation_end listener. This value
             can range from 0 to 9, inclusive.
         """
@@ -329,8 +303,7 @@ class Component(ABC):
     #####################
 
     def __init__(self) -> None:
-        """
-        Initializes a new instance of the Component class.
+        """Initializes a new instance of the Component class.
 
         This method is the initializer for the Component class. It initializes
         logger of type Logger and population_view of type PopulationView to None.
@@ -349,8 +322,7 @@ class Component(ABC):
         self.lookup_tables: Dict[str, LookupTable] = {}
 
     def setup_component(self, builder: "Builder") -> None:
-        """
-        Sets up the component for a Vivarium simulation.
+        """Sets up the component for a Vivarium simulation.
 
         This method is run by Vivarium during the setup phase. It performs a series
         of operations to prepare the component for the simulation.
@@ -362,12 +334,7 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
             The builder object used to set up the component.
-
-        Returns
-        -------
-        None
         """
         self.logger = builder.logging.get_logger(self.name)
         self.get_value_columns = builder.data.value_columns()
@@ -388,8 +355,7 @@ class Component(ABC):
     #######################
 
     def setup(self, builder: "Builder") -> None:
-        """
-        Defines custom actions this component needs to run during the setup
+        """Defines custom actions this component needs to run during the setup
         lifecycle phase.
 
         This method is intended to be overridden by subclasses to perform any
@@ -398,32 +364,25 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder object used to set up the component.
-
-        Returns
-        -------
-        None
         """
         pass
 
     def on_post_setup(self, event: Event) -> None:
-        """
-        Method that vivarium will run during the post_setup event.
+        """Method that vivarium will run during the post_setup event.
 
         This method is intended to be overridden by subclasses if there are
         operations they need to perform specifically during the post_setup event.
 
-        NOTE: This method is not commonly used functionality.
+        Notes
+        -----
+        This method is not commonly used functionality.
 
         Parameters
         ----------
-        event : Event
+        event
             The event object associated with the post_setup event.
-
-        Returns
-        -------
-        None
         """
         pass
 
@@ -447,8 +406,7 @@ class Component(ABC):
         pass
 
     def on_time_step_prepare(self, event: Event) -> None:
-        """
-        Method that vivarium will run during the time_step__prepare event.
+        """Method that vivarium will run during the time_step__prepare event.
 
         This method is intended to be overridden by subclasses if there are
         operations they need to perform specifically during the
@@ -456,36 +414,26 @@ class Component(ABC):
 
         Parameters
         ----------
-        event : Event
+        event
             The event object associated with the time_step__prepare event.
-
-        Returns
-        -------
-        None
         """
         pass
 
     def on_time_step(self, event: Event) -> None:
-        """
-        Method that vivarium will run during the time_step event.
+        """Method that vivarium will run during the time_step event.
 
         This method is intended to be overridden by subclasses if there are
         operations they need to perform specifically during the time_step event.
 
         Parameters
         ----------
-        event : Event
+        event
             The event object associated with the time_step event.
-
-        Returns
-        -------
-        None
         """
         pass
 
     def on_time_step_cleanup(self, event: Event) -> None:
-        """
-        Method that vivarium will run during the time_step__cleanup event.
+        """Method that vivarium will run during the time_step__cleanup event.
 
         This method is intended to be overridden by subclasses if there are
         operations they need to perform specifically during the
@@ -493,18 +441,13 @@ class Component(ABC):
 
         Parameters
         ----------
-        event : Event
+        event
             The event object associated with the time_step__cleanup event.
-
-        Returns
-        -------
-        None
         """
         pass
 
     def on_collect_metrics(self, event: Event) -> None:
-        """
-        Method that vivarium will run during the collect_metrics event.
+        """Method that vivarium will run during the collect_metrics event.
 
         This method is intended to be overridden by subclasses if there are
         operations they need to perform specifically during the collect_metrics
@@ -512,18 +455,13 @@ class Component(ABC):
 
         Parameters
         ----------
-        event : Event
+        event
             The event object associated with the collect_metrics event.
-
-        Returns
-        -------
-        None
         """
         pass
 
     def on_simulation_end(self, event: Event) -> None:
-        """
-        Method that vivarium will run during the simulation_end event.
+        """Method that vivarium will run during the simulation_end event.
 
         This method is intended to be overridden by subclasses if there are
         operations they need to perform specifically during the simulation_end
@@ -531,12 +469,8 @@ class Component(ABC):
 
         Parameters
         ----------
-        event : Event
+        event
             The event object associated with the simulation_end event.
-
-        Returns
-        -------
-        None
         """
         pass
 
@@ -545,19 +479,18 @@ class Component(ABC):
     ##################
 
     def get_initialization_parameters(self) -> Dict[str, Any]:
-        """
-        Retrieves the values of all parameters specified in the `__init__` that
+        """Retrieves the values of all parameters specified in the `__init__` that
         have an attribute with the same name.
 
-        Note: this retrieves the value of the attribute at the time of calling,
+        Notes
+        -----
+        This retrieves the value of the attribute at the time of calling,
         which is not guaranteed to be the same as the original value.
 
         Returns
         -------
-        dict
             A dictionary where the keys are the names of the parameters used in
             the `__init__` method and the values are their current values.
-
         """
         return {
             parameter_name: getattr(self, parameter_name)
@@ -566,8 +499,7 @@ class Component(ABC):
         }
 
     def get_configuration(self, builder: "Builder") -> Optional[LayeredConfigTree]:
-        """
-        Retrieves the configuration for this component from the builder.
+        """Retrieves the configuration for this component from the builder.
 
         This method retrieves the configuration for this component from the
         simulation's overall configuration. The configuration is retrieved using
@@ -575,12 +507,11 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The simulation's builder object.
 
         Returns
         -------
-        Optional[layered_config_tree.main.LayeredConfigTree]
             The configuration for this component, or `None` if the component has
             no configuration.
         """
@@ -590,8 +521,7 @@ class Component(ABC):
         return None
 
     def build_all_lookup_tables(self, builder: "Builder") -> None:
-        """
-        Builds all lookup tables for this component.
+        """Builds all lookup tables for this component.
 
         This method builds lookup tables for this component based on the data
         sources specified in the configuration. If no data sources are specified,
@@ -602,12 +532,8 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder object used to set up the component.
-
-        Returns
-        -------
-        None
         """
         if self.configuration and "data_sources" in self.configuration:
             for table_name in self.configuration.data_sources.keys():
@@ -627,8 +553,7 @@ class Component(ABC):
         data_source: Union[str, float, int, list, pd.DataFrame],
         value_columns: Optional[Iterable[str]] = None,
     ) -> LookupTable:
-        """
-        Builds a LookupTable from a data source.
+        """Builds a LookupTable from a data source.
 
         Uses `get_data` to parse the data source and retrieve the lookup table
         data. The LookupTable is built from the data source, with the value
@@ -638,16 +563,15 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder object used to set up the component.
-        data_source : Union[str, float, pandas.core.generic.PandasObject]
+        data_source
             The data source to build the LookupTable from.
-        value_columns : Optional[Iterable[str]]
+        value_columns
             The columns to include in the LookupTable.
 
         Returns
         -------
-        LookupTable
             The LookupTable built from the data source.
 
         Raises
@@ -695,8 +619,7 @@ class Component(ABC):
         builder: "Builder",
         data_source: Union[str, float, pd.DataFrame],
     ) -> Union[float, pd.DataFrame]:
-        """
-        Retrieves data from a data source.
+        """Retrieves data from a data source.
 
         If the data source is a float or a DataFrame, it is treated as the data
         itself. If the data source is a string, containing the substring '::',
@@ -708,14 +631,13 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder object used to set up the component.
-        data_source : Union[str, float, pandas.core.generic.PandasObject]
+        data_source
             The data source to retrieve data from.
 
         Returns
         -------
-        Union[float, pandas.core.generic.PandasObject]
             The data retrieved from the data source.
 
         Raises
@@ -751,8 +673,7 @@ class Component(ABC):
             raise ConfigurationError(f"Failed to find key '{data_source}' in artifact.")
 
     def _set_population_view(self, builder: "Builder") -> None:
-        """
-        Creates the PopulationView for this component if it needs access to
+        """Creates the PopulationView for this component if it needs access to
         the state table.
 
         The method determines the necessary columns for the PopulationView
@@ -761,12 +682,8 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder object used to set up the component.
-
-        Returns
-        -------
-        None
         """
         if self.columns_required:
             # Get all columns created and required
@@ -787,8 +704,7 @@ class Component(ABC):
             )
 
     def _register_post_setup_listener(self, builder: "Builder") -> None:
-        """
-        Registers a post_setup listener if this component has defined one.
+        """Registers a post_setup listener if this component has defined one.
 
         This method allows the component to respond to "post_setup" events if it
         has its own `on_post_setup` method. The listener will be registered with
@@ -797,12 +713,8 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder with which to register the listener.
-
-        Returns
-        -------
-        None
         """
         if type(self).on_post_setup != Component.on_post_setup:
             builder.event.register_listener(
@@ -812,8 +724,7 @@ class Component(ABC):
             )
 
     def _register_simulant_initializer(self, builder: "Builder") -> None:
-        """
-        Registers a simulant initializer if this component has defined one.
+        """Registers a simulant initializer if this component has defined one.
 
         This method allows the component to initialize simulants if it has its
         own `on_initialize_simulants` method. It registers this method with the
@@ -822,12 +733,8 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder with which to register the initializer.
-
-        Returns
-        -------
-        None
         """
         if type(self).on_initialize_simulants != Component.on_initialize_simulants:
             builder.population.initializes_simulants(
@@ -837,8 +744,7 @@ class Component(ABC):
             )
 
     def _register_time_step_prepare_listener(self, builder: "Builder") -> None:
-        """
-        Registers a time_step_prepare listener if this component has defined one.
+        """Registers a time_step_prepare listener if this component has defined one.
 
         This method allows the component to respond to "time_step_prepare" events
         if it has its own `on_time_step_prepare` method. The listener will be
@@ -846,12 +752,8 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder with which to register the listener.
-
-        Returns
-        -------
-        None
         """
         if type(self).on_time_step_prepare != Component.on_time_step_prepare:
             builder.event.register_listener(
@@ -861,8 +763,7 @@ class Component(ABC):
             )
 
     def _register_time_step_listener(self, builder: "Builder") -> None:
-        """
-        Registers a time_step listener if this component has defined one.
+        """Registers a time_step listener if this component has defined one.
 
         This method allows the component to respond to "time_step" events
         if it has its own `on_time_step` method. The listener will be
@@ -870,12 +771,8 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder with which to register the listener.
-
-        Returns
-        -------
-        None
         """
         if type(self).on_time_step != Component.on_time_step:
             builder.event.register_listener(
@@ -885,8 +782,7 @@ class Component(ABC):
             )
 
     def _register_time_step_cleanup_listener(self, builder: "Builder") -> None:
-        """
-        Registers a time_step_cleanup listener if this component has defined one.
+        """Registers a time_step_cleanup listener if this component has defined one.
 
         This method allows the component to respond to "time_step_cleanup" events
         if it has its own `on_time_step_cleanup` method. The listener will be
@@ -894,12 +790,8 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder with which to register the listener.
-
-        Returns
-        -------
-        None
         """
         if type(self).on_time_step_cleanup != Component.on_time_step_cleanup:
             builder.event.register_listener(
@@ -909,8 +801,7 @@ class Component(ABC):
             )
 
     def _register_collect_metrics_listener(self, builder: "Builder") -> None:
-        """
-        Registers a collect_metrics listener if this component has defined one.
+        """Registers a collect_metrics listener if this component has defined one.
 
         This method allows the component to respond to "collect_metrics" events
         if it has its own `on_collect_metrics` method. The listener will be
@@ -918,12 +809,8 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder with which to register the listener.
-
-        Returns
-        -------
-        None
         """
         if type(self).on_collect_metrics != Component.on_collect_metrics:
             builder.event.register_listener(
@@ -933,8 +820,7 @@ class Component(ABC):
             )
 
     def _register_simulation_end_listener(self, builder: "Builder") -> None:
-        """
-        Registers a simulation_end listener if this component has defined one.
+        """Registers a simulation_end listener if this component has defined one.
 
         This method allows the component to respond to "simulation_end" events
         if it has its own `on_simulation_end` method. The listener will be
@@ -942,12 +828,8 @@ class Component(ABC):
 
         Parameters
         ----------
-        builder : Builder
+        builder
             The builder with which to register the listener.
-
-        Returns
-        -------
-        None
         """
         if type(self).on_simulation_end != Component.on_simulation_end:
             builder.event.register_listener(

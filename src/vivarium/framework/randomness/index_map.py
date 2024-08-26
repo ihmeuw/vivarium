@@ -42,7 +42,6 @@ class IndexMap:
         clock_time
             The simulation clock time. Used as the salt during hashing to
             minimize inter-simulation collisions.
-
         """
         if new_keys.empty or not self._use_crn:
             return  # Nothing to do
@@ -65,6 +64,12 @@ class IndexMap:
     def _parse_new_keys(self, new_keys: pd.DataFrame) -> Tuple[pd.MultiIndex, pd.MultiIndex]:
         """Parses raw new keys into the mapping index.
 
+        This returns a tuple of the new and final mapping indices. Both are pandas
+        indices with a level for the index assigned by the population system and
+        additional levels for the key columns associated with the simulant index. The
+        new mapping index contains only the values for the new keys and the final mapping
+        combines the existing mapping and the new mapping index.
+
         Parameters
         ----------
         new_keys
@@ -73,13 +78,7 @@ class IndexMap:
 
         Returns
         -------
-        Tuple[pandas.MultiIndex, pandas.MultiIndex]
-            A tuple of the new mapping index and the final mapping index. Both are pandas
-            indices with a level for the index assigned by the population system and
-            additional levels for the key columns associated with the simulant index. The
-            new mapping index contains only the values for the new keys and the final mapping
-            combines the existing mapping and the new mapping index.
-
+            A tuple of the new mapping index and the final mapping index.
         """
         keys = new_keys.copy()
         keys.index.name = self.SIM_INDEX_COLUMN
@@ -108,10 +107,8 @@ class IndexMap:
 
         Returns
         -------
-        pandas.Series
             The new mapping incorporating the updates from the new mapping index and
             resolving collisions.
-
         """
         new_key_index = new_mapping_index.droplevel(self.SIM_INDEX_COLUMN)
         mapping_update = self._hash(new_key_index, salt=clock_time)
@@ -140,10 +137,8 @@ class IndexMap:
 
         Returns
         -------
-        pandas.Series
             The new mapping incorporating the updates from the new mapping index and
             resolving collisions.
-
         """
         current_mapping = current_mapping.drop_duplicates()
         collisions = new_key_index.difference(current_mapping.index)
@@ -168,11 +163,9 @@ class IndexMap:
 
         Returns
         -------
-        pandas.Series
             A pandas series indexed by the given keys and whose values take on
             integers in the range [0, len(self)].  Duplicates may appear and
             should be dealt with by the calling code.
-
         """
         key_frame = keys.to_frame()
         new_map = pd.Series(0, index=keys)
@@ -204,7 +197,6 @@ class IndexMap:
 
         Returns
         -------
-        pandas.Series
             A series of ten digit integers based on the input data.
 
         Raises
@@ -212,7 +204,6 @@ class IndexMap:
         RandomnessError
             If the column contains data that is neither a datetime-like nor
             numeric.
-
         """
         if isinstance(column.iloc[0], datetime.datetime):
             column = self._clip_to_seconds(column.astype(np.int64))

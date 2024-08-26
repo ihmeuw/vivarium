@@ -10,7 +10,7 @@ for handling complex data bound up in a data artifact.
 
 import re
 from pathlib import Path
-from typing import Any, Callable, List, Sequence, Union
+from typing import Any, Callable, List, Optional, Sequence, Union
 
 import pandas as pd
 from layered_config_tree import LayeredConfigTree
@@ -49,15 +49,17 @@ class ArtifactManager(Manager):
         self.artifact = self._load_artifact(builder.configuration)
         builder.lifecycle.add_constraint(self.load, allow_during=["setup"])
 
-    def _load_artifact(self, configuration: LayeredConfigTree) -> Union[Artifact, None]:
-        """Looks up the path to the artifact hdf file, builds a default filter,
+    def _load_artifact(self, configuration: LayeredConfigTree) -> Optional[Artifact]:
+        """Loads artifact data.
+
+        Looks up the path to the artifact hdf file, builds a default filter,
         and generates the data artifact. Stores any configuration specified filter
         terms separately to be applied on loading, because not all columns are
         available via artifact filter terms.
 
         Parameters
         ----------
-        configuration :
+        configuration
             Configuration block of the model specification containing the input data parameters.
 
         Returns
@@ -87,7 +89,6 @@ class ArtifactManager(Manager):
 
         Returns
         -------
-        Any
             The data associated with the given key, filtered down to the
             requested subset if the data is a dataframe.
         """
@@ -104,8 +105,7 @@ class ArtifactManager(Manager):
         )
 
     def value_columns(self) -> Callable[[Union[str, pd.DataFrame]], List[str]]:
-        """
-        Returns a function that returns the value columns for the given input.
+        """Returns a function that returns the value columns for the given input.
 
         The function can be called with either a string or a pandas DataFrame.
         If a string is provided, it is interpreted as an artifact key, and the
@@ -115,7 +115,6 @@ class ArtifactManager(Manager):
 
         Returns
         -------
-        Callable[[Union[str, pandas.core.generic.PandasObject]], List[str]]
             A function that returns the value columns for the given input.
         """
         return lambda _: [self._default_value_column]
@@ -130,7 +129,7 @@ class ArtifactInterface:
     def __init__(self, manager: ArtifactManager):
         self._manager = manager
 
-    def load(self, entity_key: str, **column_filters: Union[_Filter]) -> pd.DataFrame:
+    def load(self, entity_key: str, **column_filters: _Filter) -> pd.DataFrame:
         """Loads data associated with a formatted entity key.
 
         The provided entity key must be of the form
@@ -158,14 +157,12 @@ class ArtifactInterface:
 
         Returns
         -------
-        pandas.DataFrame
             The data associated with the given key filtered down to the requested subset.
         """
         return self._manager.load(entity_key, **column_filters)
 
     def value_columns(self) -> Callable[[Union[str, pd.DataFrame]], List[str]]:
-        """
-        Returns a function that returns the value columns for the given input.
+        """Returns a function that returns the value columns for the given input.
 
         The function can be called with either a string or a pandas DataFrame.
         If a string is provided, it is interpreted as an artifact key, and the
@@ -173,7 +170,6 @@ class ArtifactInterface:
 
         Returns
         -------
-        Callable[[Union[str, pandas.core.generic.PandasObject]], List[str]]
             A function that returns the value columns for the given input.
         """
         return self._manager.value_columns()
@@ -183,7 +179,7 @@ class ArtifactInterface:
 
 
 def filter_data(
-    data: pd.DataFrame, config_filter_term: str = None, **column_filters: _Filter
+    data: pd.DataFrame, config_filter_term: Optional[str] = None, **column_filters: _Filter
 ) -> pd.DataFrame:
     """Uses the provided column filters and age_group conditions to subset the raw data."""
     data = _config_filter(data, config_filter_term)
@@ -264,7 +260,6 @@ def parse_artifact_path_config(config: LayeredConfigTree) -> str:
 
     Returns
     -------
-    str
         The path to the data artifact.
     """
     path = Path(config.input_data.artifact_path)

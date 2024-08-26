@@ -54,8 +54,12 @@ def import_by_path(path: str) -> Callable:
 
     Parameters
     ----------
-    path:
-      Path to object to import
+    path
+        Path to object to import
+
+    Returns
+    -------
+        The imported class or function
     """
 
     module_path, _, class_name = path.rpartition(".")

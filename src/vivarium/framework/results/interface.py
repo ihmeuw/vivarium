@@ -6,6 +6,7 @@ Results Interface
 This module provides a :class:`ResultsInterface <ResultsInterface>` class with
 methods to register stratifications and results producers (referred to as "observations")
 to a simulation.
+
 """
 
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
@@ -49,6 +50,7 @@ class ResultsInterface:
     The purpose of this interface is to provide controlled access to a results
     backend by means of the builder object; it exposes methods to register both
     stratifications and results producers (referred to as "observations").
+
     """
 
     def __init__(self, manager: "ResultsManager") -> None:
@@ -324,9 +326,14 @@ class ResultsInterface:
         aggregator: Callable[[pd.DataFrame], Union[float, pd.Series]] = len,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
-        """Registers an adding observation to the results system; that is,
-        one that adds/sums new results to existing result values. Note that an adding
-        observation is a specific type of stratified observation.
+        """Registers an adding observation to the results system.
+
+        An "adding" observation is one that adds/sums new results to existing
+        result values.
+
+        Notes
+        -----
+        An adding observation is a specific type of stratified observation.
 
         Parameters
         ----------
@@ -386,9 +393,14 @@ class ResultsInterface:
         ] = lambda measure, results: results,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
-        """Registers a concatenating observation to the results system; that is,
-        one that concatenates new results to existing results. Note that a
-        concatenating observation is a specific type of unstratified observation.
+        """Registers a concatenating observation to the results system.
+
+        A "concatenating" observation is one that concatenates new results to
+        existing results.
+
+        Notes
+        -----
+        A concatenating observation is a specific type of unstratified observation.
 
         Parameters
         ----------
