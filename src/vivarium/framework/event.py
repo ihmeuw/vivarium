@@ -71,9 +71,7 @@ class Event(NamedTuple):
 
         Returns
         -------
-        Event
             The new event.
-
         """
         return Event(new_index, self.user_data, self.time, self.step_size)
 
@@ -94,7 +92,7 @@ class EventChannel:
         self.manager = manager
         self.listeners = [[] for _ in range(10)]
 
-    def emit(self, index: pd.Index, user_data: Dict = None) -> Event:
+    def emit(self, index: pd.Index, user_data: Optional[Dict] = None) -> Event:
         """Notifies all listeners to this channel that an event has occurred.
 
         Events are emitted to listeners in order of priority (with order 0 being
@@ -108,7 +106,6 @@ class EventChannel:
             affected by this event.
         user_data
             Any additional data provided by the user about the event.
-
         """
         if not user_data:
             user_data = {}
@@ -159,7 +156,6 @@ class EventManager(Manager):
         ----------
         builder
             Object giving access to core framework functionality.
-
         """
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
@@ -190,7 +186,6 @@ class EventManager(Manager):
             A function that accepts an index and optional user data. This function
             creates and timestamps an Event and distributes it to all interested
             listeners
-
         """
         channel = self.get_channel(name)
         try:
@@ -201,7 +196,7 @@ class EventManager(Manager):
             pass
         return channel.emit
 
-    def register_listener(self, name: str, listener: Callable, priority: int = 5):
+    def register_listener(self, name: str, listener: Callable, priority: int = 5) -> None:
         """Registers a new listener to the named event.
 
         Parameters
@@ -217,7 +212,7 @@ class EventManager(Manager):
         self.get_channel(name).listeners[priority].append(listener)
 
     def get_listeners(self, name: str) -> Dict[int, List[Callable]]:
-        """Get  all listeners registered for the named event.
+        """Get all listeners registered for the named event.
 
         Parameters
         ----------
@@ -241,14 +236,12 @@ class EventManager(Manager):
 
         Returns
         -------
-        List[Event]
-            A list of all known event names.
+            A list of all known events.
 
         Notes
         -----
         This value can change after setup if components dynamically create
         new event labels.
-
         """
         return list(self._event_types.keys())
 
@@ -281,7 +274,6 @@ class EventInterface:
             An emitter for the named event. The emitter should be called by
             the requesting component at the appropriate point in the simulation
             lifecycle.
-
         """
         return self._manager.get_emitter(name)
 
@@ -322,6 +314,5 @@ class EventInterface:
             state table (the state of the simulation at the beginning of the
             next time step should only depend on the current state of the
             system).
-
         """
         self._manager.register_listener(name, listener, priority)

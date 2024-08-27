@@ -4,7 +4,7 @@ from types import MethodType
 
 import pandas as pd
 import pytest
-from layered_config_tree import LayeredConfigTree
+from layered_config_tree.main import LayeredConfigTree
 from loguru import logger
 
 from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS

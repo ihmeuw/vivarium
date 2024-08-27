@@ -167,7 +167,6 @@ class InterpolatedTable(LookupTable):
 
         Returns
         -------
-        pandas.DataFrame
             A table with the interpolated values for the population requested.
 
         """
@@ -235,7 +234,6 @@ class CategoricalTable(LookupTable):
 
         Returns
         -------
-        pandas.DataFrame
             A table with the mapped values for the population requested.
         """
         pop = self.population_view.get(index)
@@ -284,7 +282,6 @@ class ScalarTable(LookupTable):
 
         Returns
         -------
-        pandas.DataFrame
             A table with a column for each of the scalar values for the
             population requested.
 

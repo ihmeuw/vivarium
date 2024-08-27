@@ -39,7 +39,6 @@ def _next_state(
         A set of potential transitions available to the simulants.
     population_view
         A view of the internal state of the simulation.
-
     """
     if len(transition_set) == 0 or index.empty:
         return
@@ -79,11 +78,9 @@ def _groupby_new_state(
 
     Returns
     -------
-    List[Tuple[str, pandas.Index]
         The first item in each tuple is the name of an output state and the
         second item is a `pandas.Index` representing the simulants to transition
         into that state.
-
     """
     groups = pd.Series(index).groupby(
         pd.Categorical(decisions.values, categories=outputs), observed=False
@@ -111,7 +108,7 @@ def _process_trigger(trigger):
 class Transition(Component):
     """A process by which an entity might change into a particular state.
 
-    Parameters
+    Attributes
     ----------
     input_state
         The start state of the entity that undergoes the transition.
@@ -120,7 +117,8 @@ class Transition(Component):
     probability_func
         A method or function that describing the probability of this
         transition occurring.
-
+    triggered
+        A flag indicating whether this transition is triggered by some event.
     """
 
     #####################
@@ -228,7 +226,6 @@ class State(Component):
             When this transition is occurring.
         population_view
             A view of the internal state of the simulation.
-
         """
         return _next_state(index, event_time, self.transition_set, population_view)
 
@@ -245,7 +242,6 @@ class State(Component):
             The time at which this transition occurs.
         population_view
             A view of the internal state of the simulation.
-
         """
         population_view.update(pd.Series(self.state_id, index=index))
         self.transition_side_effect(index, event_time)
@@ -260,7 +256,6 @@ class State(Component):
         ----------
         transition
             The transition to add
-
         """
         self.transition_set.append(transition)
 
@@ -288,15 +283,17 @@ class TransientState(State, Transient):
 class TransitionSet(Component):
     """A container for state machine transitions.
 
-    Parameters
+    Attributes
     ----------
     state_id
         The unique name of the state that instantiated this TransitionSet. Typically
         a string but any object implementing __str__ will do.
-    iterable
-        Any iterable whose elements are `Transition` objects.
     allow_null_transition
         Specified whether it is possible not to transition on a given time-step
+    transitions
+        A list of transitions that can be taken from this state.
+    random
+        The randomness stream.
 
     """
 
@@ -331,7 +328,6 @@ class TransitionSet(Component):
         builder
             Interface to several simulation tools including access to common random
             number generation, in particular.
-
         """
         self.random = builder.randomness.get_stream(self.name)
 
@@ -349,12 +345,9 @@ class TransitionSet(Component):
 
         Returns
         -------
-        List
-            The possible end states of this set of transitions.
-        pandas.Series
-            A series containing the name of the next state for each simulant
+            A tuple of the possible end states of this set of transitions and a
+            series containing the name of the next state for each simulant
             in the index.
-
         """
         outputs, probabilities = zip(
             *[
@@ -397,12 +390,10 @@ class TransitionSet(Component):
 
         Returns
         -------
-        List
-            The original output list expanded to include a null transition (a
-            transition back to the starting state) if requested.
-        numpy.ndarray
-            The original probabilities rescaled to sum to 1 and potentially
-            expanded to include a null transition weight.
+            A tuple of the original output list expanded to include a null transition
+            (a transition back to the starting state) if requested and the original
+            probabilities rescaled to sum to 1 and potentially expanded to include
+            a null transition weight.
         """
         outputs = list(outputs)
 
@@ -501,7 +492,6 @@ class Machine(Component):
             An iterable of integer labels for the simulants.
         event_time
             The time at which this transition occurs.
-
         """
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
@@ -531,7 +521,13 @@ class Machine(Component):
         """
         Gets the values of the state column specified in the __init__`.
 
-        Note: this retrieves the value of the attribute at the time of calling
+        Returns
+        -------
+            The value of the state column.
+
+        Notes
+        -----
+        This retrieves the value of the attribute at the time of calling
         which is not guaranteed to be the same as the original value.
         """
 

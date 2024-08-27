@@ -55,7 +55,7 @@ _PandasObj = (pd.DataFrame, pd.Series)
 ####################
 
 
-def touch(path: Union[str, Path]):
+def touch(path: Union[str, Path]) -> None:
     """Creates an HDF file, wiping an existing file if necessary.
 
     If the given path is proper to create a HDF file, it creates a new
@@ -78,7 +78,7 @@ def touch(path: Union[str, Path]):
         pass
 
 
-def write(path: Union[str, Path], entity_key: str, data: Any):
+def write(path: Union[str, Path], entity_key: str, data: Any) -> None:
     """Writes data to the HDF file at the given path to the given key.
 
     Parameters
@@ -134,16 +134,14 @@ def load(
     column_filters
         An optional list of columns to load from the data.
 
+    Returns
+    -------
+        The data stored at the the given key in the HDF file.
+
     Raises
     ------
     ValueError
         If the path or entity_key are improperly formatted.
-
-    Returns
-    -------
-    Any
-        The data stored at the the given key in the HDF file.
-
     """
     path = _get_valid_hdf_path(path)
     entity_key = EntityKey(entity_key)
@@ -174,7 +172,7 @@ def load(
     return data
 
 
-def remove(path: Union[str, Path], entity_key: str):
+def remove(path: Union[str, Path], entity_key: str) -> None:
     """Removes a piece of data from an HDF file.
 
     Parameters
@@ -188,7 +186,6 @@ def remove(path: Union[str, Path], entity_key: str):
     ------
     ValueError
         If the path or entity_key are improperly formatted.
-
     """
     path = _get_valid_hdf_path(path)
     entity_key = EntityKey(entity_key)
@@ -202,12 +199,11 @@ def get_keys(path: Union[str, Path]) -> List[str]:
 
     Parameters
     ----------
-    path :
+    path
         The path to the HDF file.
 
     Returns
     -------
-    List[str]
         A list of key representations of the internal paths in the HDF.
     """
     path = _get_valid_hdf_path(path)
@@ -233,6 +229,10 @@ class EntityKey(str):
             The string representation of the entity key.  Must be formatted
             as ``"type.name.measure"`` or ``"type.measure"``.
 
+        Raises
+        ------
+        ValueError
+            If the key is improperly formatted.
         """
         elements = [e for e in key.split(".") if e]
         if len(elements) not in [2, 3] or len(key.split(".")) != len(elements):
@@ -291,9 +291,7 @@ class EntityKey(str):
 
         Returns
         -------
-        EntityKey
             A new EntityKey with the updated measure.
-
         """
         if self.name:
             return EntityKey(f"{self.type}.{self.name}.{measure}")
@@ -330,12 +328,11 @@ def _get_valid_hdf_path(path: Union[str, Path]) -> Path:
     return path
 
 
-def _write_pandas_data(path: Path, entity_key: EntityKey, data: Union[_PandasObj]):
+def _write_pandas_data(path: Path, entity_key: EntityKey, data: _PandasObj):
     """Write data in a pandas format to an HDF file.
 
     This method currently supports :class:`pandas DataFrame` objects, with or
     with or without columns, and :class:`pandas.Series` objects.
-
     """
     if data.empty:
         # Our data is indexed, sometimes with no other columns. This leaves an
@@ -356,7 +353,7 @@ def _write_pandas_data(path: Path, entity_key: EntityKey, data: Union[_PandasObj
         store.get_storer(entity_key.path).attrs.metadata = metadata
 
 
-def _write_json_blob(path: Path, entity_key: EntityKey, data: Any):
+def _write_json_blob(path: Path, entity_key: EntityKey, data: Any) -> None:
     """Writes a Python object as json to the HDF file at the given path."""
     with tables.open_file(str(path), "a") as store:
         if entity_key.group_prefix not in store:
@@ -397,7 +394,7 @@ def _get_node_name(node: tables.node.Node) -> str:
     return node_name
 
 
-def _get_valid_filter_terms(filter_terms, colnames):
+def _get_valid_filter_terms(filter_terms, colnames) -> Optional[list[str]]:
     """Removes any filter terms referencing non-existent columns
 
     Parameters
@@ -413,7 +410,6 @@ def _get_valid_filter_terms(filter_terms, colnames):
         The list of valid filter terms (terms that do not reference any column
         not existing in the data). Returns none if the list is empty because
         the `where` argument doesn't like empty lists.
-
     """
     if not filter_terms:
         return None

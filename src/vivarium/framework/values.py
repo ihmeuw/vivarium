@@ -14,7 +14,7 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 """
 
 from collections import defaultdict
-from typing import Any, Callable, Iterable, List, Tuple
+from typing import Any, Callable, Iterable, List, Optional, Tuple
 
 import pandas as pd
 
@@ -49,9 +49,7 @@ def replace_combiner(value: Any, mutator: Callable, *args: Any, **kwargs: Any) -
 
     Returns
     -------
-    Any
         A modified version of the input value.
-
     """
     args = list(args) + [value]
     return mutator(*args, **kwargs)
@@ -78,7 +76,6 @@ def list_combiner(value: List, mutator: Callable, *args: Any, **kwargs: Any) -> 
     -------
         The input list with new mutator portion of the pipeline value
         appended to it.
-
     """
     value.append(mutator(*args, **kwargs))
     return value
@@ -103,9 +100,7 @@ def rescale_post_processor(value: NumberLike, manager: "ValuesManager") -> Numbe
 
     Returns
     -------
-    Union[numpy.ndarray, pandas.Series, pandas.DataFrame, numbers.Number]
         The annual rates rescaled to the size of the current time step size.
-
     """
     if hasattr(value, "index"):
         return value.mul(
@@ -148,10 +143,8 @@ def union_post_processor(values: List[NumberLike], _) -> NumberLike:
 
     Returns
     -------
-    Union[numpy.ndarray, pandas.Series, pandas.DataFrame, numbers.Number]
         The probability over the union of the sample spaces represented
         by the original probabilities.
-
     """
     # if there is only one value, return the value
     if len(values) == 1:
@@ -229,7 +222,6 @@ class Pipeline:
         ------
         DynamicValueError
             If the pipeline is invoked without a source set.
-
         """
         return self._call(*args, skip_post_processor=skip_post_processor, **kwargs)
 
@@ -317,7 +309,6 @@ class ValuesManager(Manager):
         See Also
         --------
             :meth:`ValuesInterface.register_value_producer`
-
         """
         pipeline = self._register_value_producer(
             value_name, source, preferred_combiner, preferred_post_processor
@@ -366,7 +357,7 @@ class ValuesManager(Manager):
         requires_columns: List[str] = (),
         requires_values: List[str] = (),
         requires_streams: List[str] = (),
-    ):
+    ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
 
         Parameters
@@ -391,7 +382,6 @@ class ValuesManager(Manager):
         requires_streams
             A list of the randomness streams that need to be properly sourced
             before the pipeline modifier is called.
-
         """
         modifier_name = self._get_modifier_name(modifier)
 
@@ -405,7 +395,7 @@ class ValuesManager(Manager):
         )
         self.resources.add_resources("value_modifier", [name], modifier, dependencies)
 
-    def get_value(self, name):
+    def get_value(self, name) -> Pipeline:
         """Retrieve the pipeline representing the named value.
 
         Parameters
@@ -419,7 +409,6 @@ class ValuesManager(Manager):
             should be identical to the arguments to the pipeline source
             (frequently just a :class:`pandas.Index` representing the
             simulants).
-
         """
         return self._pipelines[name]  # May create a pipeline.
 
@@ -501,7 +490,7 @@ class ValuesInterface:
         requires_values: List[str] = (),
         requires_streams: List[str] = (),
         preferred_combiner: Callable = replace_combiner,
-        preferred_post_processor: Callable = None,
+        preferred_post_processor: Optional[Callable] = None,
     ) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named value.
 
@@ -536,9 +525,7 @@ class ValuesInterface:
 
         Returns
         -------
-        Pipeline
             A callable reference to the named dynamic value pipeline.
-
         """
         return self._manager.register_value_producer(
             value_name,
@@ -586,9 +573,7 @@ class ValuesInterface:
 
         Returns
         -------
-        Pipeline
             A callable reference to the named dynamic rate pipeline.
-
         """
         return self.register_value_producer(
             rate_name,
@@ -606,7 +591,7 @@ class ValuesInterface:
         requires_columns: List[str] = (),
         requires_values: List[str] = (),
         requires_streams: List[str] = (),
-    ):
+    ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
 
         Parameters
@@ -631,7 +616,6 @@ class ValuesInterface:
         requires_streams
             A list of the randomness streams that need to be properly sourced
             before the pipeline modifier is called.
-
         """
         self._manager.register_value_modifier(
             value_name, modifier, requires_columns, requires_values, requires_streams
