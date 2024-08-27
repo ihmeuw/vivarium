@@ -2,6 +2,11 @@
 Artifact
 ========
 
+.. todo::
+
+    This tutorial is very out of date and needs to be overhauled. The basic 
+    concepts are still correct, but the code examples are not.
+
 A data artifact is a bundle of input data associated with a particular
 model. It is typically stored as an ``hdf`` file on disk with very particular
 formatting. This file is then used by the :mod:`vivarium` simulations to fill
