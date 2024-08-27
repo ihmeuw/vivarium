@@ -136,11 +136,6 @@ The ``setup`` method
 Instead of the ``__init__`` method, most of the component initialization
 takes place in the ``setup`` method.
 
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 43, 55-71
-   :dedent: 4
-   :linenos:
-
 The signature for the ``setup`` method is the same in every component.
 When the framework is constructing the simulation it looks for a ``setup``
 method on each component and calls that method with a
@@ -180,15 +175,14 @@ method on each component and calls that method with a
 
 Let's step through the ``setup`` method and examine what's happening.
 
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
+   :lines: 43, 55-71
+   :dedent: 4
+   :linenos:
+
 Line 2 simply grabs a copy of the simulation
 :class:`configuration <layered_config_tree.main.LayeredConfigTree>`. This is essentially
 a dictionary that supports ``.``-access notation.
-
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 55
-   :dedent: 4
-   :linenos:
-   :lineno-start: 2
 
 Lines 4-18 interact with Vivarium's
 :class:`randomness system <vivarium.framework.randomness.manager.RandomnessInterface>`.
@@ -236,8 +230,7 @@ randomness system to let us know whether or not we care about using CRN.
 We'll explore this later when we're looking at running simulations with
 interventions.
 
-The next thing we do is grab actual
-:class:`randomness streams <vivarium.framework.randomness.stream.RandomnessStream>`
+Finally, we grab actual :class:`randomness streams <vivarium.framework.randomness.stream.RandomnessStream>`
 from the framework.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
@@ -303,11 +296,6 @@ any of these methods during the setup phase and calls them if they are defined.
 The fact that this method is called ``on_initialize_simulants`` guarantees that 
 it will be called during the population initialization phase of the simulation.
 
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 77, 103-133
-   :dedent: 4
-   :linenos:
-
 This initializer method is called by the population management whenever simulants
 are created. For our purposes, this happens only once at the very beginning of
 the simulation. Typically, we'd task another component with responsibility for
@@ -317,6 +305,11 @@ our location of interest or a ``Fertility`` component that handles new simulants
 being born).
 
 We'll take this method line by line as we did with ``setup``.
+
+.. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
+   :lines: 77, 102-132
+   :dedent: 4
+   :linenos:
 
 First, we see that this method takes in a special argument that we don't provide. 
 This argument, ``pop_data`` is an instance of 
@@ -345,7 +338,7 @@ property we specified an ``'age_start'`` and ``'age_end'``. Here we use these
 to generate the age distribution of our initial population.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 103-112
+   :lines: 102-111
    :dedent: 4
    :linenos:
    :lineno-start: 2
@@ -385,7 +378,7 @@ These ``key_columns`` are what the randomness system uses to uniquely
 identify simulants across simulations.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 114-121
+   :lines: 113-120
    :dedent: 4
    :linenos:
    :lineno-start: 13
@@ -405,7 +398,7 @@ If we're not using CRN, we can just generate the full set of simulant
 attributes straightaway.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 122-131
+   :lines: 121-130
    :dedent: 4
    :linenos:
    :lineno-start: 21
@@ -419,7 +412,7 @@ inform the simulation by passing in the ``DataFrame`` to our
 population table.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 133
+   :lines: 132
    :dedent: 4
    :linenos:
    :lineno-start: 32
@@ -437,7 +430,7 @@ The last piece of our population component is the ``'time_step'`` listener
 method ``on_time_step``.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/population.py
-   :lines: 135, 145-147
+   :lines: 134, 144-146
    :dedent: 4
    :linenos:
 
@@ -585,7 +578,7 @@ Columns Required
 ++++++++++++++++
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 16-17, 23-27
+   :lines: 29-31
 
 While this component does not create any new columns like the ``BasePopulation``
 component, it does require the ``'tracked'`` and ``'alive'`` columns to be 

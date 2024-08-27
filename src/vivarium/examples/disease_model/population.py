@@ -17,10 +17,10 @@ class BasePopulation(Component):
 
     @property
     def configuration_defaults(self) -> Dict[str, Any]:
-        """
-        A set of default configuration values for this component. These can be
-        overwritten in the simulation model specification or by providing
-        override values when constructing an interactive simulation.
+        """A set of default configuration values for this component.
+
+        These can be overwritten in the simulation model specification or by
+        providing override values when constructing an interactive simulation.
         """
         return {
             "population": {
@@ -49,7 +49,7 @@ class BasePopulation(Component):
 
         Parameters
         ----------
-        builder :
+        builder
             Access to simulation tools and subsystems.
         """
         self.config = builder.configuration
@@ -80,24 +80,23 @@ class BasePopulation(Component):
         This component is responsible for creating and filling four columns
         in the population state table:
 
-        'age' :
+        'age'
             The age of the simulant in fractional years.
-        'sex' :
+        'sex'
             The sex of the simulant. One of {'Male', 'Female'}
-        'alive' :
+        'alive'
             Whether or not the simulant is alive. One of {'alive', 'dead'}
-        'entrance_time' :
+        'entrance_time'
             The time that the simulant entered the simulation. The 'birthday'
             for simulants that enter as newborns. A `pandas.Timestamp`.
 
         Parameters
         ----------
-        pop_data :
+        pop_data
             A record containing the index of the new simulants, the
             start of the time step the simulants are added on, the width
             of the time step, and the age boundaries for the simulants to
             generate.
-
         """
 
         age_start = pop_data.user_data.get("age_start", self.config.population.age_start)
@@ -137,7 +136,7 @@ class BasePopulation(Component):
 
         Parameters
         ----------
-        event :
+        event
             An event object emitted by the simulation containing an index
             representing the simulants affected by the event and timing
             information.
