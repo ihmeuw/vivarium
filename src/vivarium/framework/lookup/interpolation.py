@@ -33,6 +33,7 @@ class Interpolation:
         for left bin edge, column name for right bin edge).
     order :
         Order of interpolation.
+
     """
 
     def __init__(
@@ -99,7 +100,6 @@ class Interpolation:
 
         Returns
         -------
-        pandas.DataFrame
             A table with the interpolated values for the given interpolants.
         """
 
@@ -189,8 +189,10 @@ def validate_call_data(data, categorical_parameters, continuous_parameters):
         )
 
 
-def check_data_complete(data, continuous_parameters):
-    """For any parameters specified with edges, make sure edges
+def check_data_complete(data, continuous_parameters) -> None:
+    """Check that data is complete for interpolation.
+
+    For any parameters specified with edges, make sure edges
     don't overlap and don't have any gaps. Assumes that edges are
     specified with ends and starts overlapping (but one exclusive and
     the other inclusive) so can check that end of previous == start
@@ -204,6 +206,15 @@ def check_data_complete(data, continuous_parameters):
     should cover a continuous range of that parameter with no overlaps or gaps
     and the range covered should be the same for all combinations of other
     parameter values.
+
+    Raises
+    ------
+    ValueError
+        If there are missing values for every combinations of continuous parameters.
+    ValueError
+        If the parameter data contains overlaps.
+    NotImplementedError
+        If a parameter contains non-continuous bins.
     """
 
     param_edges = [
@@ -255,11 +266,18 @@ class Order0Interp:
 
     Attributes
     ----------
-    data :
-        The data from which to build the interpolation. Contains
-        categorical_parameters and continuous_parameters.
-    continuous_parameters :
-        Column names to be used as parameters in Interpolation.
+    data
+        The data from which to build the interpolation.
+    value_columns
+        Columns to be interpolated.
+    extrapolate
+        Whether or not to extrapolate beyond the edge of supplied bins.
+    parameter_bins
+        A dictionary where they keys are a tuple of the form
+        (column name used in call, column name for left bin edge, column name for right bin edge)
+        and the values are dictionaries of the form {"bins": [ordered left edges of bins],
+        "max": max right edge (used when extrapolation not allowed)}.
+
     """
 
     def __init__(
@@ -271,19 +289,21 @@ class Order0Interp:
         validate: bool,
     ):
         """
-
         Parameters
         ----------
-        data :
+        data
             Data frame used to build interpolation.
-        continuous_parameters :
+        continuous_parameters
             Parameter columns. Should be of form (column name used in call,
             column name for left bin edge, column name for right bin edge)
             or column name. Assumes left bin edges are inclusive and
             right exclusive.
-        extrapolate :
+        value_columns
+            Columns to be interpolated.
+        extrapolate
             Whether or not to extrapolate beyond the edge of supplied bins.
-
+        validate
+            Whether or not to validate the data.
         """
         if validate:
             check_data_complete(data, continuous_parameters)
@@ -311,14 +331,12 @@ class Order0Interp:
 
         Parameters
         ----------
-        interpolants:
+        interpolants
             Data frame containing the parameters to interpolate..
 
         Returns
         -------
-        pandas.DataFrame
             A table with the interpolated values for the given interpolants.
-
         """
         # build a dataframe where we have the start of each parameter bin for each interpolant
         interpolant_bins = pd.DataFrame(index=interpolants.index)

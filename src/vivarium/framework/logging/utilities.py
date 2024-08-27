@@ -25,7 +25,6 @@ def configure_logging_to_terminal(verbosity: int, long_format: bool = True) -> N
     long_format
         Whether to use the long format for logging messages, which includes explicit
         information about the simulation context and component in the log messages.
-
     """
     _clear_default_configuration()
     _add_logging_sink(
@@ -44,7 +43,6 @@ def configure_logging_to_file(output_directory: Path) -> None:
     ----------
     output_directory
         The directory to write the log file to.
-
     """
     log_file = output_directory / "simulation.log"
     _add_logging_sink(
@@ -88,7 +86,6 @@ def _add_logging_sink(
     serialize
         Whether to serialize log messages.  This is useful when logging to
         a file or a database.
-
     """
     log_formatter = _LogFormatter(long_format)
     logging_level = _get_log_level(verbosity)

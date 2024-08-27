@@ -15,7 +15,7 @@ import re
 import warnings
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from vivarium.framework.artifact import hdf
 
@@ -29,7 +29,7 @@ class ArtifactException(Exception):
 class Artifact:
     """An interface for interacting with :mod:`vivarium` artifacts."""
 
-    def __init__(self, path: Union[str, Path], filter_terms: List[str] = None):
+    def __init__(self, path: Union[str, Path], filter_terms: Optional[List[str]] = None):
         """
         Parameters
         ----------
@@ -38,7 +38,6 @@ class Artifact:
         filter_terms
             A set of terms suitable for usage with the ``where`` kwarg
             for :func:`pandas.read_hdf`.
-
         """
         self._path = Path(path)
         self._filter_terms = filter_terms
@@ -92,7 +91,6 @@ class Artifact:
 
         Returns
         -------
-        Any
             The expected data. Will either be a standard Python object or a
             :class:`pandas.DataFrame` or :class:`pandas.Series`.
 
@@ -100,7 +98,6 @@ class Artifact:
         ------
         ArtifactException
             If the provided key is not in the artifact.
-
         """
         if entity_key not in self:
             raise ArtifactException(f"{entity_key} should be in {self.path}.")
@@ -117,7 +114,7 @@ class Artifact:
 
         return self._cache[entity_key]
 
-    def write(self, entity_key: str, data: Any):
+    def write(self, entity_key: str, data: Any) -> None:
         """Writes data into the artifact and binds it to the provided key.
 
         Parameters
@@ -132,7 +129,6 @@ class Artifact:
         ------
         ArtifactException
             If the provided key already exists in the artifact.
-
         """
         if entity_key in self:
             raise ArtifactException(f"{entity_key} already in artifact.")
@@ -142,7 +138,7 @@ class Artifact:
             hdf.write(self._path, entity_key, data)
             self._keys.append(entity_key)
 
-    def remove(self, entity_key: str):
+    def remove(self, entity_key: str) -> None:
         """Removes data associated with the provided key from the artifact.
 
         Parameters
@@ -154,7 +150,6 @@ class Artifact:
         ------
         ArtifactException
             If the key is not present in the artifact.
-
         """
         if entity_key not in self:
             raise ArtifactException(
@@ -166,7 +161,7 @@ class Artifact:
             self._cache.pop(entity_key)
         hdf.remove(self._path, entity_key)
 
-    def replace(self, entity_key: str, data: Any):
+    def replace(self, entity_key: str, data: Any) -> None:
         """Replaces the artifact data at the provided key with the new data.
 
         Parameters
@@ -181,7 +176,6 @@ class Artifact:
         ------
         ArtifactException
             If the provided key does not already exist in the artifact.
-
         """
         if entity_key not in self:
             raise ArtifactException(
@@ -190,12 +184,11 @@ class Artifact:
         self.remove(entity_key)
         self.write(entity_key, data)
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         """Clears the artifact's cache.
 
         The artifact will cache data in memory to improve performance for
         repeat access.
-
         """
         self._cache = {}
 
@@ -234,8 +227,11 @@ def _to_tree(keys: List[str]) -> Dict[str, Dict[str, List[str]]]:
 class Keys:
     """A convenient wrapper around the keyspace which makes it easier for
     Artifact to maintain its keyspace when an entity key is added or removed.
+
     With the artifact_path, Keys object is initialized when the Artifact is
-    initialized"""
+    initialized
+
+    """
 
     keyspace_node = "metadata.keyspace"
 
@@ -243,7 +239,7 @@ class Keys:
         self._path = artifact_path
         self._keys = [str(k) for k in hdf.load(self._path, "metadata.keyspace", None, None)]
 
-    def append(self, new_key: str):
+    def append(self, new_key: str) -> None:
         """Whenever the artifact gets a new key and new data, append is called to
         remove the old keyspace and to write the updated keyspace"""
 
@@ -251,7 +247,7 @@ class Keys:
         hdf.remove(self._path, self.keyspace_node)
         hdf.write(self._path, self.keyspace_node, self._keys)
 
-    def remove(self, removing_key: str):
+    def remove(self, removing_key: str) -> None:
         """Whenever the artifact removes a key and data, remove is called to
         remove the key from keyspace and write the updated keyspace."""
 
@@ -268,10 +264,12 @@ class Keys:
         return item in self._keys
 
 
-def _parse_draw_filters(filter_terms):
+def _parse_draw_filters(filter_terms) -> Optional[list[str]]:
     """Given a list of filter terms, parse out any related to draws and convert
-    to the list of column names. Also include 'value' column for compatibility
-    with data that is long on draws."""
+    to the list of column names.
+
+    Also include 'value' column for compatibility with data that is long on draws.
+    """
     columns = None
 
     if filter_terms:

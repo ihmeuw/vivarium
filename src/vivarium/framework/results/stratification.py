@@ -2,6 +2,7 @@
 ===============
 Stratifications
 ===============
+
 """
 
 from dataclasses import dataclass
@@ -24,6 +25,7 @@ class Stratification:
 
     This class includes a :meth:`stratify <stratify>` method that produces an
     output column by calling the mapper on the source columns.
+
     """
 
     name: str
@@ -85,9 +87,11 @@ class Stratification:
 
     def stratify(self, population: pd.DataFrame) -> pd.Series:
         """Apply the `mapper` to the population `sources` columns to create a new
-        Series to be added to the population. Any `excluded_categories`
-        (which have already been removed from `categories`) will be converted
-        to NaNs in the new column and dropped later at the observation level.
+        Series to be added to the population.
+
+        Any `excluded_categories` (which have already been removed from `categories`)
+        will be converted to NaNs in the new column and dropped later at the
+        observation level.
 
         Parameters
         ----------
@@ -96,7 +100,6 @@ class Stratification:
 
         Returns
         -------
-        pandas.Series
             A Series containing the mapped values to be used for stratifying.
 
         Raises
@@ -132,12 +135,11 @@ class Stratification:
         Parameters
         ----------
         pop
-            A DataFrame containing the data to be stratified.
+            The data to be stratified.
 
         Returns
         -------
-        pandas.Series
-            A Series containing the data to be stratified.
+           The squeezed data to be stratified.
 
         Notes
         -----

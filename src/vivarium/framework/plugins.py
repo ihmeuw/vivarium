@@ -9,7 +9,7 @@ The Plugin Management System
 
 """
 
-from layered_config_tree import LayeredConfigTree
+from layered_config_tree.main import LayeredConfigTree
 
 from vivarium.exceptions import VivariumError
 from vivarium.framework.utilities import import_by_path

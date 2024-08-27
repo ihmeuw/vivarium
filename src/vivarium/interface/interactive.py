@@ -14,7 +14,7 @@ See the associated tutorials for :ref:`running <interactive_tutorial>` and
 """
 
 from math import ceil
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 import pandas as pd
 
@@ -42,7 +42,7 @@ class InteractiveContext(SimulationContext):
         super().setup()
         self.initialize_simulants()
 
-    def step(self, step_size: Timedelta = None):
+    def step(self, step_size: Optional[Timedelta] = None) -> None:
         """Advance the simulation one step.
 
         Parameters
@@ -75,9 +75,7 @@ class InteractiveContext(SimulationContext):
 
         Returns
         -------
-        int
             The number of steps the simulation took.
-
         """
         return self.run_until(self._clock.stop_time, with_logging=with_logging)
 
@@ -96,9 +94,7 @@ class InteractiveContext(SimulationContext):
 
         Returns
         -------
-        int
             The number of steps the simulation took.
-
         """
         return self.run_until(self._clock.time + duration, with_logging=with_logging)
 
@@ -118,9 +114,7 @@ class InteractiveContext(SimulationContext):
 
         Returns
         -------
-        int
             The number of steps the simulation took.
-
         """
         if not (
             isinstance(end_time, type(self._clock.time))
@@ -136,7 +130,10 @@ class InteractiveContext(SimulationContext):
         return iterations
 
     def take_steps(
-        self, number_of_steps: int = 1, step_size: Timedelta = None, with_logging: bool = True
+        self,
+        number_of_steps: int = 1,
+        step_size: Optional[Timedelta] = None,
+        with_logging: bool = True,
     ):
         """Run the simulation for the given number of steps.
 
@@ -150,7 +147,6 @@ class InteractiveContext(SimulationContext):
         with_logging
             Whether or not to log the simulation steps. Only works in an ipython
             environment.
-
         """
         if not isinstance(number_of_steps, int):
             raise ValueError("Number of steps must be an integer.")
@@ -171,6 +167,9 @@ class InteractiveContext(SimulationContext):
             Whether or not to return simulants who are no longer being tracked
             by the simulation.
 
+        Returns
+        -------
+            The population state table.
         """
         return self._population.get_population(untracked)
 
@@ -197,6 +196,10 @@ class InteractiveContext(SimulationContext):
         event_type
             The type of event to grab the listeners for.
 
+        Returns
+        -------
+            A dictionary that maps each priority level of the named event's
+            listeners to a list of listeners at that level.
         """
         if event_type not in self._events:
             raise ValueError(f"No event {event_type} in system.")
@@ -213,6 +216,9 @@ class InteractiveContext(SimulationContext):
         event_type
             The type of event to grab the listeners for.
 
+        Returns
+        -------
+            The callable that emits the named event.
         """
         if event_type not in self._events:
             raise ValueError(f"No event {event_type} in system.")
@@ -223,9 +229,7 @@ class InteractiveContext(SimulationContext):
 
         Returns
         -------
-        Dict[str, Any]
             A dictionary mapping component names to components.
-
         """
         return self._component_manager.list_components()
 
@@ -237,10 +241,10 @@ class InteractiveContext(SimulationContext):
         ----------
         name
             A component name.
+
         Returns
         -------
             A component that has the name ``name`` else None.
-
         """
         return self._component_manager.get_component(name)
 

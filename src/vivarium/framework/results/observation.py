@@ -15,6 +15,7 @@ At the highest level, an observation can be categorized as either an
 :class:`UnstratifiedObservation` or a :class:`StratifiedObservation`. More specialized
 implementations of these classes involve defining the various methods
 provided as attributes to the parent class.
+
 """
 
 import itertools
@@ -38,6 +39,7 @@ class BaseObservation(ABC):
 
     This class includes an :meth:`observe <observe>` method that determines whether
     to observe results for a given event.
+
     """
 
     name: str
@@ -75,7 +77,21 @@ class BaseObservation(ABC):
         df: Union[pd.DataFrame, DataFrameGroupBy],
         stratifications: Optional[tuple[str, ...]],
     ) -> Optional[pd.DataFrame]:
-        # """Determine whether to observe the given event and, if so, gather the results."""
+        """Determine whether to observe the given event, and if so, gather the results.
+
+        Parameters
+        ----------
+        event
+            The event to observe.
+        df
+            The population or population grouped by the stratifications.
+        stratifications
+            The stratifications to use for the observation.
+
+        Returns
+        -------
+            The results of the observation.
+        """
         if not self.to_observe(event):
             return None
         else:
@@ -110,6 +126,7 @@ class UnstratifiedObservation(BaseObservation):
         Method or function that formats the raw observation results.
     to_observe
         Method or function that determines whether to perform an observation on this Event.
+
     """
 
     def __init__(
@@ -139,7 +156,19 @@ class UnstratifiedObservation(BaseObservation):
         requested_stratification_names: set[str],
         registered_stratifications: list[Stratification],
     ) -> pd.DataFrame:
-        """Initialize an empty dataframe."""
+        """Initialize an empty dataframe.
+
+        Parameters
+        ----------
+        requested_stratification_names
+            The names of the stratifications requested for this observation.
+        registered_stratifications
+            The list of all registered stratifications.
+
+        Returns
+        -------
+            An empty DataFrame.
+        """
         return pd.DataFrame()
 
 
@@ -174,6 +203,7 @@ class StratifiedObservation(BaseObservation):
         Method or function that computes the quantity for this observation.
     to_observe
         Method or function that determines whether to perform an observation on this Event.
+
     """
 
     def __init__(
@@ -207,7 +237,24 @@ class StratifiedObservation(BaseObservation):
         requested_stratification_names: set[str],
         registered_stratifications: list[Stratification],
     ) -> pd.DataFrame:
-        """Initialize a dataframe of 0s with complete set of stratifications as the index."""
+        """Initialize a dataframe of 0s with complete set of stratifications as the index.
+
+        Parameters
+        ----------
+        requested_stratification_names
+            The names of the stratifications requested for this observation.
+        registered_stratifications
+            The list of all registered stratifications.
+
+        Returns
+        -------
+            An empty DataFrame with the complete set of stratifications as the index.
+
+        Notes
+        -----
+        If no stratifications are requested, then we are aggregating over the
+        entire population and a single-row index named 'stratification' is created.
+        """
 
         # Set up the complete index of all used stratifications
         requested_and_registered_stratifications = [
@@ -254,7 +301,6 @@ class StratifiedObservation(BaseObservation):
 
         Returns
         -------
-        pandas.DataFrame
             The results of the observation.
         """
         df = self._aggregate(pop_groups, self.aggregator_sources, self.aggregator)
@@ -328,6 +374,7 @@ class AddingObservation(StratifiedObservation):
         Method or function that computes the quantity for this observation.
     to_observe
         Method or function that determines whether to perform an observation on this Event.
+
     """
 
     def __init__(
@@ -358,6 +405,17 @@ class AddingObservation(StratifiedObservation):
         existing_results: pd.DataFrame, new_observations: pd.DataFrame
     ) -> pd.DataFrame:
         """Add newly-observed results to the existing results.
+
+        Parameters
+        ----------
+        existing_results
+            The existing results DataFrame.
+        new_observations
+            The new observations DataFrame.
+
+        Returns
+        -------
+            The new results added to the existing results.
 
         Notes
         -----
@@ -399,6 +457,7 @@ class ConcatenatingObservation(UnstratifiedObservation):
         Method or function that formats the raw observation results.
     to_observe
         Method or function that determines whether to perform an observation on this Event.
+
     """
 
     def __init__(
@@ -429,7 +488,19 @@ class ConcatenatingObservation(UnstratifiedObservation):
     def concatenate_results(
         existing_results: pd.DataFrame, new_observations: pd.DataFrame
     ) -> pd.DataFrame:
-        """Concatenate the existing results with the new observations."""
+        """Concatenate the existing results with the new observations.
+
+        Parameters
+        ----------
+        existing_results
+            The existing results.
+        new_observations
+            The new observations.
+
+        Returns
+        -------
+            The new results concatenated to the existing results.
+        """
         if existing_results.empty:
             return new_observations
         return pd.concat([existing_results, new_observations], axis=0).reset_index(drop=True)

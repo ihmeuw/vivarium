@@ -12,7 +12,7 @@ to the underlying simulation :term:`State Table`. It has two primary responsibil
 
 """
 
-from typing import TYPE_CHECKING, List, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import pandas as pd
 
@@ -25,21 +25,11 @@ if TYPE_CHECKING:
 
 class PopulationView:
     """A read/write manager for the simulation state table.
+
     It can be used to both read and update the state of the population. A
     PopulationView can only read and write columns for which it is configured.
     Attempts to update non-existent columns are ignored except during
     simulant creation when new columns are allowed to be created.
-
-    Parameters
-    ----------
-    manager
-        The population manager for the simulation.
-    columns
-        The set of columns this view should have access too.  If empty, this
-        view will have access to the entire state table.
-    query
-        A :mod:`pandas`-style filter that will be applied any time this
-        view is read from.
 
     Notes
     -----
@@ -53,8 +43,23 @@ class PopulationView:
         manager: "PopulationManager",
         view_id: int,
         columns: Union[List[str], Tuple[str]] = (),
-        query: str = None,
+        query: Optional[str] = None,
     ):
+        """
+
+        Parameters
+        ----------
+        manager
+            The population manager for the simulation.
+        view_id
+            The unique identifier for this view.
+        columns
+            The set of columns this view should have access too.  If empty, this
+            view will have access to the entire state table.
+        query
+            A :mod:`pandas`-style filter that will be applied any time this
+            view is read from.
+        """
         self._manager = manager
         self._id = view_id
         self._columns = list(columns)
@@ -72,19 +77,17 @@ class PopulationView:
         the view will have access to the full table by default. That case
         should be only be used in situations where the full state table is
         actually needed, like for some metrics collection applications.
-
         """
         if not self._columns:
             return list(self._manager.get_population(True).columns)
         return list(self._columns)
 
     @property
-    def query(self) -> Union[str, None]:
+    def query(self) -> Optional[str]:
         """A :mod:`pandas` style query to filter the rows of this view.
 
         This query will be applied any time the view is read. This query may
         reference columns not in the view's columns.
-
         """
         return self._query
 
@@ -99,7 +102,6 @@ class PopulationView:
 
         Returns
         -------
-        PopulationView
             A new view with access to the requested columns.
 
         Raises
@@ -116,7 +118,6 @@ class PopulationView:
         requesting a subview, a component can read the sections it needs
         without running the risk of trying to access uncreated columns
         because the component itself has not created them.
-
         """
 
         if not columns or set(columns) - set(self.columns):
@@ -147,7 +148,6 @@ class PopulationView:
 
         Returns
         -------
-        pandas.DataFrame
             A table with the subset of the population requested.
 
         Raises
@@ -160,7 +160,6 @@ class PopulationView:
         See Also
         --------
         :meth:`subview <PopulationView.subview>`
-
         """
         pop = self._manager.get_population(True).loc[index]
 
@@ -204,7 +203,6 @@ class PopulationView:
             If the provided data name or columns do not match columns that
             this view manages or if the view is being updated with a data
             type inconsistent with the original population data.
-
         """
         state_table = self._manager.get_population(True)
         population_update = self._format_update_and_check_preconditions(
@@ -289,7 +287,6 @@ class PopulationView:
 
         Returns
         -------
-        pandas.DataFrame
             The input data formatted as a DataFrame.
 
         Raises
@@ -360,7 +357,6 @@ class PopulationView:
 
         Returns
         -------
-        pandas.DataFrame
             The input data formatted as a DataFrame.
 
         Raises
@@ -372,7 +368,6 @@ class PopulationView:
             If the input data is a :class:`pandas.Series` and this :class:`PopulationView`
             manages multiple columns or if the population update contains columns not
             managed by this view.
-
         """
         if not isinstance(population_update, (pd.Series, pd.DataFrame)):
             raise TypeError(
@@ -434,7 +429,6 @@ class PopulationView:
         PopulationError
             If the population update contains no new information or if it contains
             information in conflict with the existing state table.
-
         """
         missing_pops = len(state_table.index.difference(population_update.index))
         if missing_pops:
@@ -475,9 +469,7 @@ class PopulationView:
 
         Returns
         -------
-        pandas.Series
             The column with the provided update applied
-
         """
         # FIXME: This code does not work as described. I'm leaving it here because writing
         #  real dtype checking code is a pain and we never seem to hit the actual edge cases.

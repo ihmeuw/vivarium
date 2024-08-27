@@ -4,7 +4,7 @@ from types import MethodType
 import numpy as np
 import pandas as pd
 import pytest
-from layered_config_tree import LayeredConfigTree
+from layered_config_tree.main import LayeredConfigTree
 from loguru import logger
 from pandas.api.types import CategoricalDtype
 

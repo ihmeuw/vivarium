@@ -47,7 +47,7 @@ class InitializerComponentSet:
         self._components = {}
         self._columns_produced = {}
 
-    def add(self, initializer: Callable, columns_produced: List[str]):
+    def add(self, initializer: Callable, columns_produced: List[str]) -> None:
         """Adds an initializer and columns to the set, enforcing uniqueness.
 
         Parameters
@@ -67,7 +67,6 @@ class InitializerComponentSet:
             If the component bound to the method already has an initializer
             registered or if the columns produced are duplicates of columns
             another initializer produces.
-
         """
         if not isinstance(initializer, MethodType):
             raise TypeError(
@@ -188,7 +187,7 @@ class PopulationManager(Manager):
     ###########################
 
     def get_view(
-        self, columns: Union[List[str], Tuple[str]], query: str = None
+        self, columns: Union[List[str], Tuple[str]], query: Optional[str] = None
     ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
@@ -216,7 +215,6 @@ class PopulationManager(Manager):
 
         Returns
         -------
-        PopulationView
             A filtered view of the requested columns of the population state
             table.
 
@@ -237,7 +235,9 @@ class PopulationManager(Manager):
         )
         return view
 
-    def _get_view(self, columns: Union[List[str], Tuple[str]], query: str = None):
+    def _get_view(
+        self, columns: Union[List[str], Tuple[str]], query: Optional[str] = None
+    ) -> PopulationView:
         if columns and "tracked" not in columns:
             if query is None:
                 query = "tracked == True"
@@ -253,7 +253,7 @@ class PopulationManager(Manager):
         requires_columns: List[str] = (),
         requires_values: List[str] = (),
         requires_streams: List[str] = (),
-    ):
+    ) -> None:
         """Marks a source of initial state information for new simulants.
 
         Parameters
@@ -274,7 +274,6 @@ class PopulationManager(Manager):
         requires_streams
             A list of the randomness streams necessary to initialize the
             simulant attributes.
-
         """
         self._initializer_components.add(initializer, creates_columns)
         dependencies = (
@@ -293,19 +292,18 @@ class PopulationManager(Manager):
     def get_simulant_creator(self) -> Callable[[int, Optional[Dict[str, Any]]], pd.Index]:
         """Gets a function that can generate new simulants.
 
+        The creator function takes the number of simulants to be created as it's
+        first argument and a dict population configuration that will be available
+        to simulant initializers as it's second argument. It generates the new rows
+        in the population state table and then calls each initializer
+        registered with the population system with a data
+        object containing the state table index of the new simulants, the
+        configuration info passed to the creator, the current simulation
+        time, and the size of the next time step.
+
         Returns
         -------
-        Callable
-           The simulant creator function. The creator function takes the
-           number of simulants to be created as it's first argument and a dict
-           population configuration that will be available to simulant
-           initializers as it's second argument. It generates the new rows in
-           the population state table and then calls each initializer
-           registered with the population system with a data
-           object containing the state table index of the new simulants, the
-           configuration info passed to the creator, the current simulation
-           time, and the size of the next time step.
-
+           The simulant creator function.
         """
         return self._create_simulants
 
@@ -347,9 +345,7 @@ class PopulationManager(Manager):
 
         Returns
         -------
-        pandas.DataFrame
             A copy of the population table.
-
         """
         pop = self._population.copy() if self._population is not None else pd.DataFrame()
         if not untracked and "tracked" in pop.columns:
@@ -384,7 +380,7 @@ class PopulationInterface:
         self._manager = manager
 
     def get_view(
-        self, columns: Union[List[str], Tuple[str]], query: str = None
+        self, columns: Union[List[str], Tuple[str]], query: Optional[str] = None
     ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
@@ -412,28 +408,26 @@ class PopulationInterface:
 
         Returns
         -------
-        PopulationView
             A filtered view of the requested columns of the population state
             table.
-
         """
         return self._manager.get_view(columns, query)
 
     def get_simulant_creator(self) -> Callable[[int, Optional[Dict[str, Any]]], pd.Index]:
         """Gets a function that can generate new simulants.
 
+        The creator function takes the number of simulants to be created as it's
+        first argument and a dict population configuration that will be available
+        to simulant initializers as it's second argument. It generates the new rows
+        in the population state table and then calls each initializer
+        registered with the population system with a data
+        object containing the state table index of the new simulants, the
+        configuration info passed to the creator, the current simulation
+        time, and the size of the next time step.
+
         Returns
         -------
-           The simulant creator function. The creator function takes the
-           number of simulants to be created as it's first argument and a dict
-           population configuration that will be available to simulant
-           initializers as it's second argument. It generates the new rows in
-           the population state table and then calls each initializer
-           registered with the population system with a data
-           object containing the state table index of the new simulants, the
-           configuration info passed to the creator, the current simulation
-           time, and the size of the next time step.
-
+           The simulant creator function.
         """
         return self._manager.get_simulant_creator()
 
@@ -444,7 +438,7 @@ class PopulationInterface:
         requires_columns: List[str] = (),
         requires_values: List[str] = (),
         requires_streams: List[str] = (),
-    ):
+    ) -> None:
         """Marks a source of initial state information for new simulants.
 
         Parameters
@@ -465,7 +459,6 @@ class PopulationInterface:
         requires_streams
             A list of the randomness streams necessary to initialize the
             simulant attributes.
-
         """
         self._manager.register_simulant_initializer(
             initializer, creates_columns, requires_columns, requires_values, requires_streams

@@ -1,5 +1,5 @@
 import pytest
-from layered_config_tree import LayeredConfigTree
+from layered_config_tree.main import LayeredConfigTree
 
 from vivarium.framework.results.observer import Observer
 

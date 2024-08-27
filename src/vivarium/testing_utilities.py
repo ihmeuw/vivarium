@@ -159,6 +159,7 @@ def build_table(
     value_columns: List = ["value"],
 ) -> pd.DataFrame:
     """
+
     Parameters
     ----------
     value
@@ -173,6 +174,7 @@ def build_table(
         A list of value columns that will appear in the returned lookup table
 
     Returns
+    -------
         A pandas dataframe that has the cartesian product of the range of all parameter columns
         and the values of the key columns.
     """

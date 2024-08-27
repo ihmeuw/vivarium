@@ -69,6 +69,7 @@ if __name__ == "__main__":
         "IPython",
         "matplotlib",
         "sphinxcontrib-video",
+        "sphinx-autodoc-typehints",
     ]
 
     setup(
