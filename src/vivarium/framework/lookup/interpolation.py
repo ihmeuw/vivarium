@@ -275,11 +275,8 @@ class Order0Interp:
     parameter_bins
         A dictionary where they keys are a tuple of the form
         (column name used in call, column name for left bin edge, column name for right bin edge)
-        and the values are dictionaries of the form
-        {
-            "bins": [ordered left edges of bins],
-            "max": max right edge (used when extrapolation not allowed)
-        }.
+        and the values are dictionaries of the form {"bins": [ordered left edges of bins],
+        "max": max right edge (used when extrapolation not allowed)}.
 
     """
 
@@ -292,7 +289,6 @@ class Order0Interp:
         validate: bool,
     ):
         """
-
         Parameters
         ----------
         data

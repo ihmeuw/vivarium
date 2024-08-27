@@ -39,8 +39,7 @@ model_specification
   As an argument ot the
   :class:`SimulationContext <vivarium.framework.engine.SimulationContext>`, it
   can be provided as a path to a file (either as a :class:`str` or a
-  :class:`pathlib.Path`) or as a
-  :class:`LayeredConfigTree <layered_config_tree.main.LayeredConfigTree>`, the internal
+  :class:`pathlib.Path`) or as a ``LayeredConfigTree``, the internal
   representation of configuration information used by :mod:`vivarium`. The
   model specification contains three pieces, each represented by the next
   three arguments. For more information about model specifications and their
@@ -51,8 +50,7 @@ components
   of a :mod:`vivarium` simulation. They are python classes that interact with
   the framework via the :ref:`builder <builder_concept>`. Components may be
   provided to the context as a list of instantiated objects, as a dictionary
-  representation of their import paths, or as a
-  :class:`LayeredConfigTree <layered_config_tree.main.LayeredConfigTree>`
+  representation of their import paths, or as a ``LayeredConfigTree``
   representation of their import paths. The latter two representations are
   treated as prefix trees when they are parsed into objects. This behavior
   is controlled by the
@@ -62,16 +60,14 @@ components
 configuration
   The :term:`configuration <Configuration>` is the set of
   variable model parameters in a :mod:`vivarium` simulation.  It may be
-  provided as a dictionary or
-  :class:`LayeredConfigTree <layered_config_tree.main.LayeredConfigTree>` representation. See
+  provided as a dictionary or ``LayeredConfigTree`` representation. See
   the :ref:`concept note <configuration_concept>` for more information.
 plugins
   :term:`Plugins <Plugin>` represent core functionality and
   subsystems of a :mod:`vivarium` simulation.  Users may wish to extend the
   functionality of the framework by writing their own plugins.  The framework
   then needs to be notified of their names and where they are located. Plugins
-  may be specified as either a dictionary or
-  :class:`LayeredConfigTree <layered_config_tree.main.LayeredConfigTree>` and are
+  may be specified as either a dictionary or ``LayeredConfigTree`` and are
   parsed into objects by the
   :class:`PluginManager <vivarium.framework.plugins.PluginManager>`.
   This is an advanced feature and almost never necessary.
@@ -82,8 +78,7 @@ modification of a simulation defined in a model specification file.
 
 .. warning::
 
-   If you provide ``components`` as a :class:`dict` or
-   :class:`LayeredConfigTree <layered_config_tree.main.LayeredConfigTree>`,
+   If you provide ``components`` as a :class:`dict` or ``LayeredConfigTree``,
    these will also be treated as overrides, though this is almost never the
    intended use case, so tread cautiously.
 

@@ -141,7 +141,8 @@ class Component(ABC):
 
         Returns
         -------
-            The unique name of the component.
+        str
+            The name of the component.
         """
         if not self._name:
             base_name = re.sub("(.)([A-Z][a-z]+)", r"\1_\2", type(self).__name__)
@@ -161,7 +162,8 @@ class Component(ABC):
 
         Returns
         -------
-            A list of components that are managed by this component.
+        List[Component]
+            The sub-components that are managed by this component.
         """
         return self._sub_components
 
@@ -314,9 +316,9 @@ class Component(ABC):
         self._name: str = ""
         self._sub_components: List["Component"] = []
         self.logger: Optional[Logger] = None
-        self.get_value_columns: Optional[
-            Callable[[Union[str, pd.DataFrame]], List[str]]
-        ] = None
+        self.get_value_columns: Optional[Callable[[Union[str, pd.DataFrame]], List[str]]] = (
+            None
+        )
         self.configuration: Optional[LayeredConfigTree] = None
         self.population_view: Optional[PopulationView] = None
         self.lookup_tables: Dict[str, LookupTable] = {}
@@ -334,6 +336,7 @@ class Component(ABC):
 
         Parameters
         ----------
+        builder
             The builder object used to set up the component.
         """
         self.logger = builder.logging.get_logger(self.name)

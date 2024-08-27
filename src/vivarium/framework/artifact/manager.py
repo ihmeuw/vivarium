@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional, Sequence, Union
 
 import pandas as pd
-from layered_config_tree import LayeredConfigTree
+from layered_config_tree.main import LayeredConfigTree
 
 from vivarium.framework.artifact.artifact import Artifact
 from vivarium.manager import Manager

@@ -22,12 +22,13 @@ tools to easily setup and run a simulation.
 from pathlib import Path
 from pprint import pformat
 from time import time
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union
 
 import dill
 import numpy as np
 import pandas as pd
-from layered_config_tree import ConfigurationKeyError, LayeredConfigTree
+from layered_config_tree.exceptions import ConfigurationKeyError
+from layered_config_tree.main import LayeredConfigTree
 
 from vivarium import Component
 from vivarium.exceptions import VivariumError
@@ -356,39 +357,39 @@ class Builder:
 
     Attributes
     ----------
-    configuration: LayeredConfigTree
+    configuration : ``LayeredConfigTree``
         Provides access to the :ref:`configuration<configuration_concept>`
-    logging: LoggingInterface
+    logging : LoggingInterface
         Provides access to the :ref:`logging<logging_concept>` system.
-    lookup: LookupTableInterface
+    lookup : LookupTableInterface
         Provides access to simulant-specific data via the
         :ref:`lookup table<lookup_concept>` abstraction.
-    value: ValuesInterface
+    value : ValuesInterface
         Provides access to computed simulant attribute values via the
         :ref:`value pipeline<values_concept>` system.
-    event: EventInterface
+    event : EventInterface
         Provides access to event listeners utilized in the
         :ref:`event<event_concept>` system.
-    population: PopulationInterface
+    population : PopulationInterface
         Provides access to simulant state table via the
         :ref:`population<population_concept>` system.
-    resources: ResourceInterface
+    resources : ResourceInterface
         Provides access to the :ref:`resource<resource_concept>` system,
         which manages dependencies between components.
-    results: ResultsInterface
+    results : ResultsInterface
         Provides access to the :ref:`results<results_concept>` system.
-    randomness: RandomnessInterface
-        Provides access to the :ref:`randomness<randomness_concept>` system.
-    time: TimeInterface
+    randomness : RandomnessInterface
+        Provides access to the :ref:`randomness<crn_concept>` system.
+    time : TimeInterface
         Provides access to the simulation's :ref:`clock<time_concept>`.
-    components: ComponentInterface
+    components : ComponentInterface
         Provides access to the :ref:`component management<components_concept>`
         system, which maintains a reference to all managers and components in
         the simulation.
-    lifecycle: LifeCycleInterface
+    lifecycle : LifeCycleInterface
         Provides access to the :ref:`life-cycle<lifecycle_concept>` system,
         which manages the simulation's execution life-cycle.
-    data: ArtifactInterface
+    data : ArtifactInterface
         Provides access to the simulation's input data housed in the
         :ref:`data artifact<data_concept>`.
 

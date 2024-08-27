@@ -4,7 +4,7 @@ The Component Configuration Parser
 ==================================
 
 The :class:`ComponentConfigurationParser` is responsible for taking a list or
-hierarchical :class:`LayeredConfigTree <layered_config_tree.main.LayeredConfigTree>` of components
+hierarchical ``LayeredConfigTree`` of components
 derived from a model specification yaml file and turning it into a list of
 instantiated component objects. When a model specification yaml file is loaded,
 the components come in as strings. In order for the simulation to be able to
@@ -23,7 +23,7 @@ There are three steps to this process.
 
 from typing import Dict, List, Tuple, Union
 
-from layered_config_tree import LayeredConfigTree
+from layered_config_tree.main import LayeredConfigTree
 
 from vivarium.framework.utilities import import_by_path
 
@@ -70,9 +70,8 @@ class ComponentConfigurationParser:
         validating/prepping, and importing/instantiating.
 
         The first step of parsing is only done for component configurations that
-        come in as a :class:`LayeredConfigTree <layered_config_tree.main.LayeredConfigTree>`.
-        Configurations that are provided in the form of a list are already
-        assumed to be in the correct form.
+        come in as a ``LayeredConfigTree``. Configurations that are provided in
+        the form of a list are already assumed to be in the correct form.
 
         Parameters
         ----------
@@ -96,9 +95,9 @@ class ComponentConfigurationParser:
 
     def parse_component_config(self, component_config: LayeredConfigTree) -> List[Component]:
         """
-        Helper function for parsing a LayeredConfigTree into a flat list of Components.
+        Helper function for parsing a ``LayeredConfigTree`` into a flat list of Components.
 
-        This function converts the LayeredConfigTree into a dictionary and passes it
+        This function converts the ``LayeredConfigTree`` into a dictionary and passes it
         along with an empty prefix list to
         :meth:`process_level <ComponentConfigurationParser.process_level>`. The
         result is a flat list of components.
@@ -106,7 +105,7 @@ class ComponentConfigurationParser:
         Parameters
         ----------
         component_config
-            A LayeredConfigTree representing a hierarchical component specification blob.
+            A ``LayeredConfigTree`` representing a hierarchical component specification blob.
 
         Returns
         -------
