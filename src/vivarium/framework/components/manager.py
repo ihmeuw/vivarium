@@ -106,7 +106,6 @@ class OrderedComponentSet:
 class ComponentManager(Manager):
     """Manages the initialization and setup of :mod:`vivarium` components.
 
-
     Maintains references to all components and managers in a :mod:`vivarium`
     simulation, applies their default configuration and initiates their
     ``setup`` life-cycle stage.
@@ -158,7 +157,6 @@ class ComponentManager(Manager):
         ----------
         managers
             Instantiated managers to register.
-
         """
         for m in self._flatten(list(managers)):
             self.apply_configuration_defaults(m)
@@ -173,7 +171,6 @@ class ComponentManager(Manager):
         ----------
         components
             Instantiated components to register.
-
         """
         for c in self._flatten(list(components)):
             self.apply_configuration_defaults(c)
@@ -191,9 +188,7 @@ class ComponentManager(Manager):
 
         Returns
         -------
-        List[Any]
             A list of components of type ``component_type``.
-
         """
         # Convert component_type to a tuple for isinstance
         return [c for c in self._components if isinstance(c, tuple(component_type))]
@@ -210,14 +205,12 @@ class ComponentManager(Manager):
 
         Returns
         -------
-        Component
             A component that has name ``name``.
 
         Raises
         ------
         ValueError
             No component exists in the component manager with ``name``.
-
         """
         for c in self._components:
             if c.name == name:
@@ -229,7 +222,6 @@ class ComponentManager(Manager):
 
         Returns
         -------
-        Dict[str, Any]
             A mapping of component names to components.
 
         """
@@ -248,7 +240,6 @@ class ComponentManager(Manager):
         ----------
         builder
             Interface to several simulation tools.
-
         """
         self._setup_components(builder, self._managers + self._components)
 
@@ -322,11 +313,11 @@ class ComponentManager(Manager):
 
 
 class ComponentInterface:
-    """The builder interface for the component manager system. This class
-    defines component manager methods a ``vivarium`` component can access from
-    the builder. It provides methods for querying and adding components to the
-    :class:`ComponentManager`.
+    """The builder interface for the component manager system.
 
+    This class defines component manager methods a ``vivarium`` component can
+    access from the builder. It provides methods for querying and adding components
+    to the :class:`ComponentManager`.
     """
 
     def __init__(self, manager: ComponentManager):
@@ -340,10 +331,10 @@ class ComponentInterface:
         ----------
         name
             A component name.
+
         Returns
         -------
             A component that has name ``name``.
-
         """
         return self._manager.get_component(name)
 
@@ -360,9 +351,7 @@ class ComponentInterface:
 
         Returns
         -------
-        List[Any]
             A list of components of type ``component_type``.
-
         """
         return self._manager.get_components_by_type(component_type)
 
@@ -371,8 +360,6 @@ class ComponentInterface:
 
         Returns
         -------
-        Dict[str, Any]
             A dictionary mapping component names to components.
-
         """
         return self._manager.list_components()

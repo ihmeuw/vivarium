@@ -2,6 +2,7 @@
 =========================
 Randomness System Manager
 =========================
+
 """
 
 import pandas as pd
@@ -80,12 +81,17 @@ class RandomnessManager(Manager):
             copied and should only be used to generate the state table columns
             specified in ``builder.configuration.randomness.key_columns``.
 
+        Returns
+        -------
+            An entry point into the Common Random Number generation framework.
+            The stream provides vectorized access to random numbers and a few
+            other utilities.
+
         Raises
         ------
         RandomnessError
             If another location in the simulation has already created a randomness stream
             with the same identifier.
-
         """
         stream = self._get_randomness_stream(decision_point, initializes_crn_attributes)
         if not initializes_crn_attributes:
@@ -142,14 +148,12 @@ class RandomnessManager(Manager):
 
         Returns
         -------
-        int
             A seed for a random number generation that is linked to Vivarium's
             common random number framework.
-
         """
         return get_hash("_".join([decision_point, str(self._clock()), str(self._seed)]))
 
-    def register_simulants(self, simulants: pd.DataFrame):
+    def register_simulants(self, simulants: pd.DataFrame) -> None:
         """Adds new simulants to the randomness mapping.
 
         Parameters
@@ -163,7 +167,6 @@ class RandomnessManager(Manager):
         RandomnessError
             If the provided table does not contain all key columns specified
             in the configuration.
-
         """
         if not all(k in simulants.columns for k in self._key_columns):
             raise RandomnessError(
@@ -208,11 +211,9 @@ class RandomnessInterface:
 
         Returns
         -------
-        RandomnessStream
             An entry point into the Common Random Number generation framework.
             The stream provides vectorized access to random numbers and a few
             other utilities.
-
         """
         return self._manager.get_randomness_stream(decision_point, initializes_crn_attributes)
 
@@ -228,14 +229,12 @@ class RandomnessInterface:
 
         Returns
         -------
-        int
             A seed for a random number generation that is linked to Vivarium's
             common random number framework.
-
         """
         return self._manager.get_seed(decision_point)
 
-    def register_simulants(self, simulants: pd.DataFrame):
+    def register_simulants(self, simulants: pd.DataFrame) -> None:
         """Registers simulants with the Common Random Number Framework.
 
         Parameters
@@ -245,6 +244,5 @@ class RandomnessInterface:
             columns specified in
             ``builder.configuration.randomness.key_columns``.  This function
             should be called as soon as the key columns are generated.
-
         """
         self._manager.register_simulants(simulants)

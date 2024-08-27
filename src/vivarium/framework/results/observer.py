@@ -10,6 +10,7 @@ to the simulation.
 The provided :class:`Observer` class is an abstract base class that should be subclassed
 by concrete observers. Each concrete observer is required to implement a
 `register_observations` method that registers all required observations.
+
 """
 
 from abc import ABC, abstractmethod
@@ -25,6 +26,7 @@ class Observer(Component, ABC):
     Notes
     -----
         A `register_observation` method must be defined in the subclass.
+
     """
 
     def __init__(self) -> None:

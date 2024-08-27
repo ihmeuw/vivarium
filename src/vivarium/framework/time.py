@@ -184,8 +184,10 @@ class SimulationClock(Manager):
             self._simulants_to_snooze = self._simulants_to_snooze.union(index)
 
     def step_size_post_processor(self, values: List[NumberLike], _) -> pd.Series:
-        """Computes the largest feasible step size for each simulant. This is the smallest component-modified
-        step size (rounded down to increments of the minimum step size), or the global step size, whichever is larger.
+        """Computes the largest feasible step size for each simulant.
+
+        This is the smallest component-modified step size (rounded down to increments
+        of the minimum step size), or the global step size, whichever is larger.
         If no components modify the step size, we default to the global step size.
 
         Parameters
@@ -195,10 +197,7 @@ class SimulationClock(Manager):
 
         Returns
         -------
-        pandas.Series
             The largest feasible step size for each simulant
-
-
         """
 
         min_modified = pd.DataFrame(values).min(axis=0).fillna(self.standard_step_size)

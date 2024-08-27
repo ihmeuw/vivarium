@@ -16,14 +16,16 @@ RESIDUAL_CHOICE : object
 
         [0.2, 0.2, RESIDUAL_CHOICE] => [0.2, 0.2, 0.6]
 
-    Note
-    ----
-    Currently this object is only used in the `choice` function of this
-    module.
+        
+Notes
+-----
+Currently this object is only used in the `choice` function of this
+module.
+
 """
 
 import hashlib
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -46,9 +48,7 @@ def get_hash(key: str) -> int:
 
     Returns
     -------
-    int
         A hash of the provided key.
-
     """
     max_allowable_numpy_seed = 4294967295  # 2**32 - 1
     return int(hashlib.sha1(key.encode("utf8")).hexdigest(), 16) % max_allowable_numpy_seed
@@ -70,6 +70,10 @@ class RandomnessStream:
         A way to get the current simulation time.
     seed
         An extra number used to seed the random number generation.
+    index_map
+        A key-index mapping with a fectorized hash and vectorized lookups.
+    initializes_crn_attributes
+        A boolean indicating whether the stram is used to initialize CRN attributes.
 
     Notes
     -----
@@ -113,9 +117,7 @@ class RandomnessStream:
 
         Returns
         -------
-        str
             A key to seed random number generation.
-
         """
         return "_".join([self.key, str(self.clock()), str(additional_key), str(self.seed)])
 
@@ -132,11 +134,10 @@ class RandomnessStream:
 
         Returns
         -------
-        pandas.Series
             A series of random numbers indexed by the provided `pandas.Index`.
 
-        Note
-        ----
+        Notes
+        -----
         This is the core of the CRN implementation, allowing for consistent use of random
         numbers across simulations with multiple scenarios.
 
@@ -145,7 +146,6 @@ class RandomnessStream:
         https://en.wikipedia.org/wiki/Variance_reduction and
         "Untangling Uncertainty with Common Random Numbers:
         A Simulation Study; A.Flaxman, et. al., Summersim 2017"
-
         """
         # Return a structured null value if an empty index is passed
         if index.empty:
@@ -212,10 +212,8 @@ class RandomnessStream:
 
         Returns
         -------
-        pandas.core.generic.PandasObject
             The subpopulation of the simulants for whom the event occurred.
-            The return type will be the same as type(population)
-
+            The return type will be the same as type(population).
         """
         return self.filter_for_probability(
             population, rate_to_probability(rate), additional_key
@@ -249,10 +247,8 @@ class RandomnessStream:
 
         Returns
         -------
-        pandas.core.generic.PandasObject
             The subpopulation of the simulants for whom the event occurred.
-            The return type will be the same as type(population)
-
+            The return type will be the same as type(population).
         """
         if population.empty:
             return population
@@ -266,8 +262,8 @@ class RandomnessStream:
         self,
         index: pd.Index,
         choices: Union[List, Tuple, np.ndarray, pd.Series],
-        p: Union[List, Tuple, np.ndarray, pd.Series] = None,
-        additional_key: Any = None,
+        p: Optional[Union[List, Tuple, np.ndarray, pd.Series]] = None,
+        additional_key: Optional[Any] = None,
     ) -> pd.Series:
         """Decides between a weighted or unweighted set of choices.
 
@@ -294,7 +290,6 @@ class RandomnessStream:
 
         Returns
         -------
-        pandas.Series
             An indexed set of decisions from among the available `choices`.
 
         Raises
@@ -303,7 +298,6 @@ class RandomnessStream:
             If any row in `p` contains `RESIDUAL_CHOICE` and the remaining
             weights in the row are not normalized or any row of `p contains
             more than one reference to `RESIDUAL_CHOICE`.
-
         """
         draws = self.get_draw(index, additional_key)
         return _choice(draws, choices, p)
@@ -311,13 +305,12 @@ class RandomnessStream:
     def sample_from_distribution(
         self,
         index: pd.Index,
-        distribution: stats.rv_continuous = None,
-        ppf: Callable[[pd.Series, ...], pd.Series] = None,
+        distribution: Optional[stats.rv_continuous] = None,
+        ppf: Optional[Callable[[pd.Series, dict[str, Any]], pd.Series]] = None,
         additional_key: Any = None,
-        **distribution_kwargs: Any,
+        **distribution_kwargs: dict[str, Any],
     ) -> pd.Series:
-        """
-        Given a distribution, returns an indexed set of samples from that
+        """Given a distribution, returns an indexed set of samples from that
         distribution.
 
         Parameters
@@ -333,6 +326,10 @@ class RandomnessStream:
             Any additional information used to seed random number generation.
         distribution_kwargs
             Additional keyword arguments to pass to the distribution's ppf function.
+
+        Returns
+        -------
+            An indexed set of samples from the provided distribution.
         """
         if ppf is None and distribution is None:
             raise ValueError("Either distribution or ppf must be provided")
@@ -355,7 +352,7 @@ class RandomnessStream:
 def _choice(
     draws: pd.Series,
     choices: Union[List, Tuple, np.ndarray, pd.Series],
-    p: Union[List, Tuple, np.ndarray, pd.Series] = None,
+    p: Optional[Union[List, Tuple, np.ndarray, pd.Series]] = None,
 ) -> pd.Series:
     """Decides between a weighted or unweighted set of choices.
 
@@ -381,7 +378,6 @@ def _choice(
 
     Returns
     -------
-    pandas.Series
         An indexed set of decisions from among the available `choices`.
 
     Raises
@@ -390,7 +386,6 @@ def _choice(
         If any row in `p` contains `RESIDUAL_CHOICE` and the remaining
         weights in the row are not normalized or any row of `p` contains
         more than one reference to `RESIDUAL_CHOICE`.
-
     """
     # Convert p to normalized probabilities broadcasted over index.
     p = (
@@ -430,9 +425,14 @@ def _set_residual_probability(p: np.ndarray) -> np.ndarray:
 
     Returns
     -------
-    numpy.ndarray
         Array where each row is a set of normalized probability weights.
 
+    Raises
+    ------
+    RandomnessError
+        If more than one residual choice is supplied for a single set of weights.
+    RandomnessError
+        If residual choice is supplied with weights that sum to more than 1.
     """
     residual_mask = p == RESIDUAL_CHOICE
     if residual_mask.any():  # I.E. if we have any placeholders.

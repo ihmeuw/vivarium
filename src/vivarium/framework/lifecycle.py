@@ -37,8 +37,6 @@ import time
 from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Tuple
 
-import numpy as np
-
 from vivarium.exceptions import VivariumError
 from vivarium.manager import Manager
 
@@ -81,7 +79,7 @@ class LifeCycleState:
         """The number of times this state has been entered."""
         return self._entrance_count
 
-    def add_next(self, next_state: "LifeCycleState", loop: bool = False):
+    def add_next(self, next_state: "LifeCycleState", loop: bool = False) -> None:
         """Link this state to the next state in the simulation life cycle.
 
         States are linked together and used to ensure that the simulation
@@ -98,7 +96,6 @@ class LifeCycleState:
         loop
             Whether the provided state is the linear next state or a loop
             back to a previous state in the life cycle.
-
         """
         if loop:
             self._loop_next = next_state
@@ -115,19 +112,17 @@ class LifeCycleState:
 
         Returns
         -------
-        bool
             Whether the state is valid for a transition.
-
         """
         return (state is None and state is self._next) or (
             state is not None and (state is self._next or state is self._loop_next)
         )
 
-    def enter(self):
+    def enter(self) -> None:
         """Marks an entrance into this state."""
         self._entrance_count += 1
 
-    def add_handlers(self, handlers: List[Callable]):
+    def add_handlers(self, handlers: List[Callable]) -> None:
         """Registers a set of functions that will be executed during the state.
 
         The primary use case here is for introspection and reporting.
@@ -137,7 +132,6 @@ class LifeCycleState:
         ----------
         handlers
             The set of functions that will be executed during this state.
-
         """
         for h in handlers:
             name = h.__name__
@@ -214,7 +208,7 @@ class LifeCycle:
         self._phases = []
         self.add_phase("initialization", ["initialization"], loop=False)
 
-    def add_phase(self, phase_name: str, states: List[str], loop):
+    def add_phase(self, phase_name: str, states: List[str], loop) -> None:
         """Add a new phase to the lifecycle.
 
         Phases must be added in order.
@@ -234,7 +228,6 @@ class LifeCycle:
         ------
         LifeCycleError
             If the phase or state names are non-unique.
-
         """
         self._validate(phase_name, states)
 
@@ -256,14 +249,12 @@ class LifeCycle:
 
         Returns
         -------
-        LifeCycleState
             The requested state.
 
         Raises
         ------
         LifeCycleError
             If the requested state does not exist.
-
         """
         if state_name not in self:
             raise LifeCycleError(f"Attempting to look up non-existent state {state_name}.")
@@ -280,14 +271,12 @@ class LifeCycle:
 
         Return
         ------
-        List[str]
             The state names in the provided phase.
 
         Raises
         ------
         LifeCycleError
             If the phase does not exist in the life cycle.
-
         """
         if phase_name not in self._phase_names:
             raise LifeCycleError(
@@ -296,7 +285,7 @@ class LifeCycle:
         phase = [p for p in self._phases if p.name == phase_name].pop()
         return [s.name for s in phase.states]
 
-    def _validate(self, phase_name: str, states: List[str]):
+    def _validate(self, phase_name: str, states: List[str]) -> None:
         """Validates that a phase and set of states are unique."""
         if phase_name in self._phase_names:
             raise LifeCycleError(
@@ -332,7 +321,7 @@ class ConstraintMaker:
         self.lifecycle_manager = lifecycle_manager
         self.constraints = set()
 
-    def check_valid_state(self, method: Callable, permitted_states: List[str]):
+    def check_valid_state(self, method: Callable, permitted_states: List[str]) -> None:
         """Ensures a component method is being called during an allowed state.
 
         Parameters
@@ -346,7 +335,6 @@ class ConstraintMaker:
         ------
         ConstraintError
             If the method is being called outside the permitted states.
-
         """
         current_state = self.lifecycle_manager.current_state
         if current_state not in permitted_states:
@@ -372,9 +360,7 @@ class ConstraintMaker:
 
         Returns
         -------
-        Callable
             The constrained method.
-
         """
 
         @functools.wraps(method)
@@ -401,6 +387,14 @@ class ConstraintMaker:
         collected, making :func:`id` unreliable for checking if a method
         has been constrained before.
 
+        Parameters
+        ----------
+        method
+            The method to convert to a global id.
+
+        Returns
+        -------
+            The global id of the method.
         """
         return f"{method.__self__.name}.{method.__name__}"
 
@@ -428,7 +422,6 @@ class ConstraintMaker:
         ValueError
             If the provided method is a python "special" method (i.e. a
             method surrounded by double underscores).
-
         """
         if not hasattr(method, "__self__"):
             raise TypeError(
@@ -473,7 +466,7 @@ class LifeCycleManager(Manager):
     def timings(self) -> Dict[str, List[float]]:
         return self._timings
 
-    def add_phase(self, phase_name: str, states: List[str], loop: bool = False):
+    def add_phase(self, phase_name: str, states: List[str], loop: bool = False) -> None:
         """Add a new phase to the lifecycle.
 
         Phases must be added in order.
@@ -493,11 +486,10 @@ class LifeCycleManager(Manager):
         ------
         LifeCycleError
             If the phase or state names are non-unique.
-
         """
         self.lifecycle.add_phase(phase_name, states, loop)
 
-    def set_state(self, state: str):
+    def set_state(self, state: str) -> None:
         """Sets the current life cycle state to the provided state.
 
         Parameters
@@ -512,7 +504,6 @@ class LifeCycleManager(Manager):
         InvalidTransitionError
             If setting the provided state represents an invalid life cycle
             transition.
-
         """
         new_state = self.lifecycle.get_state(state)
         if self._current_state.valid_next_state(new_state):
@@ -538,13 +529,11 @@ class LifeCycleManager(Manager):
 
         Returns
         -------
-        List[str]
             A list of state names in order of execution.
-
         """
         return self.lifecycle.get_state_names(phase)
 
-    def add_handlers(self, state_name: str, handlers: List[Callable]):
+    def add_handlers(self, state_name: str, handlers: List[Callable]) -> None:
         """Registers a set of functions to be called during a life cycle state.
 
         This method does not apply any constraints, rather it is used
@@ -556,13 +545,12 @@ class LifeCycleManager(Manager):
             The name of the state to register the handlers for.
         handlers
             A list of functions that will execute during the state.
-
         """
         s = self.lifecycle.get_state(state_name)
         s.add_handlers(handlers)
 
     def add_constraint(
-        self, method: Callable, allow_during: List[str] = (), restrict_during: List[str] = ()
+        self, method: Callable, allow_during: List[str] = [], restrict_during: List[str] = []
     ):
         """Constrains a function to be executable only during certain states.
 
@@ -587,7 +575,6 @@ class LifeCycleManager(Manager):
         ConstraintError
             If a lifecycle constraint has already been applied to the provided
             method.
-
         """
         if allow_during and restrict_during or not (allow_during or restrict_during):
             raise ValueError(
@@ -627,7 +614,7 @@ class LifeCycleInterface:
     def __init__(self, manager: LifeCycleManager):
         self._manager = manager
 
-    def add_handlers(self, state: str, handlers: List[Callable]):
+    def add_handlers(self, state: str, handlers: List[Callable]) -> None:
         """Registers a set of functions to be called during a life cycle state.
 
         This method does not apply any constraints, rather it is used
@@ -639,13 +626,12 @@ class LifeCycleInterface:
             The name of the state to register the handlers for.
         handlers
             A list of functions that will execute during the state.
-
         """
         self._manager.add_handlers(state, handlers)
 
     def add_constraint(
-        self, method: Callable, allow_during: List[str] = (), restrict_during: List[str] = ()
-    ):
+        self, method: Callable, allow_during: List[str] = [], restrict_during: List[str] = []
+    ) -> None:
         """Constrains a function to be executable only during certain states.
 
         Parameters
@@ -669,7 +655,6 @@ class LifeCycleInterface:
         ConstraintError
             If a life cycle constraint has already been applied to the
             provided method.
-
         """
         self._manager.add_constraint(method, allow_during, restrict_during)
 
@@ -678,8 +663,6 @@ class LifeCycleInterface:
 
         Returns
         -------
-        Callable[[], str]
             A callable that returns the current simulation lifecycle state.
-
         """
         return lambda: self._manager.current_state

@@ -2,6 +2,7 @@
 ===============
 Results Context
 ===============
+
 """
 
 from collections import defaultdict
@@ -249,7 +250,9 @@ class ResultsContext:
         None,
     ]:
         """Generate and yield current results for all observations at this lifecycle
-        phase and event. Each set of results are stratified and grouped by
+        phase and event.
+
+        Each set of results are stratified and grouped by
         all registered stratifications as well as filtered by their respective
         observation's pop_filter.
 
@@ -264,9 +267,9 @@ class ResultsContext:
 
         Yields
         ------
-        A tuple containing each observation's newly observed results, the name of
-        the observation, and the observations results updater function. Note that
-        it yields (None, None, None) if the filtered population is empty.
+            A tuple containing each observation's newly observed results, the name of
+            the observation, and the observations results updater function. Note that
+            it yields (None, None, None) if the filtered population is empty.
 
         Raises
         ------
