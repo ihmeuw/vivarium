@@ -4,7 +4,7 @@ The Component Configuration Parser
 ==================================
 
 The :class:`ComponentConfigurationParser` is responsible for taking a list or
-hierarchical ``LayeredConfigTree`` of components
+hierarchical :class:`LayeredConfigTree <layered_config_tree.main.LayeredConfigTree>` of components
 derived from a model specification yaml file and turning it into a list of
 instantiated component objects. When a model specification yaml file is loaded,
 the components come in as strings. In order for the simulation to be able to
@@ -70,8 +70,9 @@ class ComponentConfigurationParser:
         validating/prepping, and importing/instantiating.
 
         The first step of parsing is only done for component configurations that
-        come in as a ``LayeredConfigTree``. Configurations that are provided in
-        the form of a list are already assumed to be in the correct form.
+        come in as a :class:`LayeredConfigTree <layered_config_tree.main.LayeredConfigTree>`.
+        Configurations that are provided in the form of a list are already
+        assumed to be in the correct form.
 
         Parameters
         ----------
