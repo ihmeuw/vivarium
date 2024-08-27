@@ -1,6 +1,10 @@
-**TBD - TBD**
+**3.0.2 - 08/27/24**
 
-  - Update results-related docstrings
+  - Update results docstrings
+  - Add a results concepts model doc
+  - Docstring cleanup throughout
+  - Fix up tutorial docs
+  - Strengthen doctests
   
 **3.0.1- 08/20/24**
 
