@@ -316,9 +316,9 @@ class Component(ABC):
         self._name: str = ""
         self._sub_components: List["Component"] = []
         self.logger: Optional[Logger] = None
-        self.get_value_columns: Optional[Callable[[Union[str, pd.DataFrame]], List[str]]] = (
-            None
-        )
+        self.get_value_columns: Optional[
+            Callable[[Union[str, pd.DataFrame]], List[str]]
+        ] = None
         self.configuration: Optional[LayeredConfigTree] = None
         self.population_view: Optional[PopulationView] = None
         self.lookup_tables: Dict[str, LookupTable] = {}
