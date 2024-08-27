@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
 
 from vivarium import Component
 from vivarium.framework.engine import Builder
-from vivarium.framework.population import SimulantData
 
 
 class Force(Component, ABC):
