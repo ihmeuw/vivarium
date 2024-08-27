@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import pandas as pd
 
@@ -93,7 +93,7 @@ class DiseaseState(State):
 
         Parameters
         ----------
-        builder : `engine.Builder`
+        builder
             Interface to several simulation tools.
         """
         super().setup(builder)

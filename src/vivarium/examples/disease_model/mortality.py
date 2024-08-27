@@ -15,10 +15,10 @@ class Mortality(Component):
 
     @property
     def configuration_defaults(self) -> Dict[str, Any]:
-        """
-        A set of default configuration values for this component. These can be
-        overwritten in the simulation model specification or by providing
-        override values when constructing an interactive simulation.
+        """A set of default configuration values for this component.
+
+        These can be overwritten in the simulation model specification or by
+        providing override values when constructing an interactive simulation.
         """
         return {
             "mortality": {
@@ -44,7 +44,7 @@ class Mortality(Component):
 
         Parameters
         ----------
-        builder :
+        builder
             Access to simulation tools and subsystems.
         """
         self.config = builder.configuration.mortality
@@ -63,7 +63,7 @@ class Mortality(Component):
 
         Parameters
         ----------
-        event :
+        event
             An event object emitted by the simulation containing an index
             representing the simulants affected by the event and timing
             information.
@@ -84,7 +84,7 @@ class Mortality(Component):
 
         Parameters
         ----------
-        event :
+        event
             An event object emitted by the simulation containing an index
             representing the simulants affected by the event and timing
             information.
@@ -104,7 +104,7 @@ class Mortality(Component):
 
         Parameters
         ----------
-        index :
+        index
             A representation of the simulants to compute the base mortality
             rate for.
 

@@ -272,12 +272,12 @@ your starting population.
 
 ::
 
-      tracked     sex  alive        age entrance_time  child_growth_failure_propensity                 diarrhea
-   0     True  Female  alive   3.452598    2005-06-28                         0.552276  susceptible_to_diarrhea
-   1     True  Female  alive   4.773249    2005-06-28                         0.019633  susceptible_to_diarrhea
-   2     True    Male  alive  23.423383    2005-06-28                         0.578892  susceptible_to_diarrhea
-   3     True  Female  alive  13.792463    2005-06-28                         0.988650  susceptible_to_diarrhea
-   4     True    Male  alive   0.449368    2005-06-28                         0.407759  susceptible_to_diarrhea
+       tracked       age  alive     sex       entrance_time                 lower_respiratory_infections  child_wasting_propensity
+    0     True  4.341734  alive    Male 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.612086
+    1     True  1.009906  alive    Male 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.395465
+    2     True  1.166290  alive    Male 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.670765
+    3     True  4.075051  alive  Female 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.289266
+    4     True  2.133430  alive  Female 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.700001
 
 This gives you a ``pandas.DataFrame`` representing your starting population.
 You can use it to check all sorts of characteristics about individuals or
