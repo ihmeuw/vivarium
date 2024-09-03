@@ -44,5 +44,5 @@ class Manager:
     # Lifecycle methods #
     #####################
 
-    def setup(self, builder: "Builder"):
+    def setup(self, builder: "Builder") -> None:
         pass
