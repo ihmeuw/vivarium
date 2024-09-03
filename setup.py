@@ -60,7 +60,11 @@ if __name__ == "__main__":
         "pytest-mock",
     ]
 
-    lint_requirements = ["black==22.3.0", "isort"]
+    lint_requirements = [
+        "black==22.3.0",
+        "isort",
+        "mypy",
+    ]
 
     doc_requirements = [
         "sphinx>=4.0",
