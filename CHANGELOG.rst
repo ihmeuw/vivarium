@@ -1,3 +1,7 @@
+**3.0.4 - 09/12/24**
+
+  - Introduce static type checking with mypy
+
 **3.0.3 - 09/11/24**
 
   - Raise an error if a component attempts to access a non-existent population_view
