@@ -162,6 +162,7 @@ class Component(ABC):
 
         Returns
         -------
+        PopulationView
             The PopulationView for this component
 
         Raises
