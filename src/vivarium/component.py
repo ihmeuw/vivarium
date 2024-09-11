@@ -21,11 +21,11 @@ from loguru._logger import Logger
 from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.event import Event
 from vivarium.framework.lookup import LookupTable
+from vivarium.framework.population import PopulationError, PopulationView
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.framework.population import PopulationView, SimulantData
-
+    from vivarium.framework.population import SimulantData
 
 DEFAULT_EVENT_PRIORITY = 5
 """The default priority at which events will be triggered."""
@@ -155,6 +155,28 @@ class Component(ABC):
             self._name = ".".join([base_name] + args)
 
         return self._name
+
+    @property
+    def population_view(self) -> PopulationView:
+        """Provides the PopulationView for this component.
+
+        Returns
+        -------
+        PopulationView
+            The PopulationView for this component
+
+        Raises
+        ------
+        PopulationError
+            If the component does not have access to the state table.
+        """
+        if self._population_view is None:
+            raise PopulationError(
+                f"Component '{self.name}' does not have access to the state "
+                "table. This is likely due to a failure to set columns_required "
+                "or columns_created for this component."
+            )
+        return self._population_view
 
     @property
     def sub_components(self) -> List["Component"]:
@@ -320,7 +342,7 @@ class Component(ABC):
             Callable[[Union[str, pd.DataFrame]], List[str]]
         ] = None
         self.configuration: Optional[LayeredConfigTree] = None
-        self.population_view: Optional[PopulationView] = None
+        self._population_view: Optional[PopulationView] = None
         self.lookup_tables: Dict[str, LookupTable] = {}
 
     def setup_component(self, builder: "Builder") -> None:
@@ -702,7 +724,7 @@ class Component(ABC):
             population_view_columns = None
 
         if population_view_columns is not None:
-            self.population_view = builder.population.get_view(
+            self._population_view = builder.population.get_view(
                 population_view_columns, self.population_view_query
             )
 
