@@ -1,3 +1,7 @@
+**3.0.3 - 09/11/24**
+
+  - Raise an error if a component attempts to access a non-existent population_view
+
 **3.0.2 - 08/27/24**
 
   - Update results docstrings

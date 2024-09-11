@@ -16,10 +16,10 @@ from tests.helpers import (
     ParameterizedByComponent,
     SingleLookupCreator,
 )
-from vivarium import Artifact, Component, InteractiveContext
-from vivarium.framework.artifact import ArtifactException
+from vivarium import Artifact, InteractiveContext
 from vivarium.framework.engine import Builder
 from vivarium.framework.lookup.table import ScalarTable
+from vivarium.framework.population import PopulationError
 
 
 def load_cooling_time(builder: Builder) -> pd.DataFrame:
@@ -150,7 +150,11 @@ def test_component_with_no_population_view():
     InteractiveContext(components=[ColumnCreator(), component])
 
     # Assert population view is not set
-    assert component.population_view is None
+    assert component._population_view is None
+
+    # Assert trying to access the population view raises an error
+    with pytest.raises(PopulationError, match=f"'{component.name}' does not have access"):
+        _ = component.population_view
 
 
 def test_component_initializer_is_not_registered_if_not_defined():
