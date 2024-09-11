@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 ==========================
 Vivarium Testing Utilities

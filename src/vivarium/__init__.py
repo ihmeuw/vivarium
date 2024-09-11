@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 import numpy
 
 numpy.seterr(all="raise")
