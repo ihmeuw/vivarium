@@ -34,7 +34,7 @@ import pandas as pd
 
 from vivarium.framework.lifecycle import ConstraintError
 from vivarium.manager import Manager
-from vivarium.types import SimStepSize, SimTime
+from vivarium.types import ClockStepSize, ClockTime
 
 
 class Event(NamedTuple):
@@ -53,9 +53,9 @@ class Event(NamedTuple):
     user_data: Dict[str, Any]
     #: The simulation time at which this event will resolve. The current
     #: simulation size plus the current time step size.
-    time: SimTime
+    time: ClockTime
     #: The current step size at the time of the event.
-    step_size: SimStepSize
+    step_size: ClockStepSize
 
     def split(self, new_index: pd.Index) -> "Event":
         """Create a copy of this event with a new index.

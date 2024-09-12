@@ -22,5 +22,5 @@ NumberLike = Union[
 # todo need to use TypeVars here
 Time = Union[pd.Timestamp, datetime]
 Timedelta = Union[pd.Timedelta, timedelta]
-SimTime = Union[Time, Number]
-SimStepSize = Union[Timedelta, Number]
+ClockTime = Union[Time, Number]
+ClockStepSize = Union[Timedelta, Number]

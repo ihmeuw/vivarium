@@ -47,7 +47,7 @@ from vivarium.framework.resource import ResourceInterface
 from vivarium.framework.results import ResultsInterface
 from vivarium.framework.time import TimeInterface
 from vivarium.framework.values import ValuesInterface
-from vivarium.types import SimTime
+from vivarium.types import ClockTime
 
 
 class SimulationContext:
@@ -210,7 +210,7 @@ class SimulationContext:
         return self._name
 
     @property
-    def current_time(self) -> SimTime:
+    def current_time(self) -> ClockTime:
         """Returns the current simulation time."""
         return self._clock.time
 

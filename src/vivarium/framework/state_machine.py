@@ -19,12 +19,12 @@ from vivarium import Component
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.population import PopulationView
-    from vivarium.types import SimTime
+    from vivarium.types import ClockTime
 
 
 def _next_state(
     index: pd.Index,
-    event_time: "SimTime",
+    event_time: "ClockTime",
     transition_set: "TransitionSet",
     population_view: "PopulationView",
 ) -> None:
@@ -215,7 +215,7 @@ class State(Component):
         self._model = model_name
 
     def next_state(
-        self, index: pd.Index, event_time: "SimTime", population_view: "PopulationView"
+        self, index: pd.Index, event_time: "ClockTime", population_view: "PopulationView"
     ) -> None:
         """Moves a population between different states.
 
@@ -231,7 +231,7 @@ class State(Component):
         return _next_state(index, event_time, self.transition_set, population_view)
 
     def transition_effect(
-        self, index: pd.Index, event_time: "SimTime", population_view: "PopulationView"
+        self, index: pd.Index, event_time: "ClockTime", population_view: "PopulationView"
     ) -> None:
         """Updates the simulation state and triggers any side-effects associated with entering this state.
 
@@ -247,7 +247,7 @@ class State(Component):
         population_view.update(pd.Series(self.state_id, index=index))
         self.transition_side_effect(index, event_time)
 
-    def cleanup_effect(self, index: pd.Index, event_time: "SimTime") -> None:
+    def cleanup_effect(self, index: pd.Index, event_time: "ClockTime") -> None:
         pass
 
     def add_transition(self, transition: Transition) -> None:
@@ -267,7 +267,7 @@ class State(Component):
     # Helper methods #
     ##################
 
-    def transition_side_effect(self, index: pd.Index, event_time: "SimTime") -> None:
+    def transition_side_effect(self, index: pd.Index, event_time: "ClockTime") -> None:
         pass
 
 
@@ -484,7 +484,7 @@ class Machine(Component):
             self.states.append(state)
             state.set_model(self.state_column)
 
-    def transition(self, index: pd.Index, event_time: "SimTime") -> None:
+    def transition(self, index: pd.Index, event_time: "ClockTime") -> None:
         """Finds the population in each state and moves them to the next state.
 
         Parameters
@@ -502,7 +502,7 @@ class Machine(Component):
                     self.population_view.subview([self.state_column]),
                 )
 
-    def cleanup(self, index: pd.Index, event_time: "SimTime") -> None:
+    def cleanup(self, index: pd.Index, event_time: "ClockTime") -> None:
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
                 state.cleanup_effect(affected.index, event_time)
