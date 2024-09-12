@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from typing import Any, Dict, List
 
 import pandas as pd

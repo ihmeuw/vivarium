@@ -4,8 +4,9 @@ from typing import List
 import numpy as np
 import pandas as pd
 
-from vivarium.framework.components.manager import Component
+from vivarium import Component
 from vivarium.framework.engine import Builder
+from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.observer import Observer
@@ -86,7 +87,7 @@ class Hogwarts(Component):
         initialization_data["potion_power"] = initialization_data["power_level"] / 2
         self.population_view.update(initialization_data)
 
-    def on_time_step(self, pop_data: SimulantData) -> None:
+    def on_time_step(self, pop_data: Event) -> None:
         update = self.population_view.get(pop_data.index)
         update["house_points"] = 0
         update["quidditch_wins"] = 0

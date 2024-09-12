@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from vivarium.examples.disease_model.disease import (
     DiseaseModel,
     DiseaseState,

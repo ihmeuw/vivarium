@@ -4,7 +4,7 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from tests import HARRY_POTTER_CONFIG
+from tests.framework.results.helpers import HARRY_POTTER_CONFIG
 from vivarium.interface.cli import simulate
 
 
@@ -19,7 +19,7 @@ def model_spec(base_config, tmp_path) -> str:
     model_spec = {}
     model_spec["configuration"] = base_config.to_dict()
     model_spec["components"] = {
-        "tests": [
+        "tests.framework.results.helpers": [
             "Hogwarts()",
             "HousePointsObserver()",
             "NoStratificationsQuidditchWinsObserver()",

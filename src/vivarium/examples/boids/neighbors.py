@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 import pandas as pd
 from scipy import spatial
 

@@ -51,9 +51,10 @@ jobs:
           cat $GITHUB_ENV
       - name: Lint
         run: |
-          pip install black==22.3.0 isort
+          pip install black==22.3.0 isort mypy
           isort . --check --verbose --only-modified --diff
           black . --check --diff
+          mypy .
       - name: Test
         run: |
           if "${{ github.event_name == 'schedule' }}"; then
