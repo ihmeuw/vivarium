@@ -74,7 +74,6 @@ exclude = [
     'src/vivarium/framework/results/stratification.py',
     'src/vivarium/framework/state_machine.py',
     'src/vivarium/framework/time.py',
-    'src/vivarium/framework/utilities.py',
     'src/vivarium/framework/values.py',
     'src/vivarium/interface/cli.py',
     'src/vivarium/interface/interactive.py',

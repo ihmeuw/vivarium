@@ -6,7 +6,7 @@ import pandas as pd
 from vivarium import Component, InteractiveContext
 from vivarium.framework.population import SimulantData
 from vivarium.framework.state_machine import Machine, State, Transition
-from vivarium.types import Time
+from vivarium.types import SimTime
 
 
 def _population_fixture(column, initial_value):
@@ -155,7 +155,7 @@ def test_side_effects():
         def columns_required(self) -> Optional[List[str]]:
             return ["count"]
 
-        def transition_side_effect(self, index: pd.Index, _: Time) -> None:
+        def transition_side_effect(self, index: pd.Index, _: SimTime) -> None:
             pop = self.population_view.get(index)
             self.population_view.update(pop["count"] + 1)
 

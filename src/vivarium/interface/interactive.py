@@ -22,7 +22,7 @@ import pandas as pd
 from vivarium.framework.engine import SimulationContext
 from vivarium.framework.values import Pipeline
 from vivarium.interface.utilities import log_progress, run_from_ipython
-from vivarium.types import Time, Timedelta
+from vivarium.types import SimStepSize, SimTime
 
 
 class InteractiveContext(SimulationContext):
@@ -35,7 +35,7 @@ class InteractiveContext(SimulationContext):
             self.setup()
 
     @property
-    def current_time(self) -> Time:
+    def current_time(self) -> SimTime:
         """Returns the current simulation time."""
         return self._clock.time
 
@@ -43,7 +43,7 @@ class InteractiveContext(SimulationContext):
         super().setup()
         self.initialize_simulants()
 
-    def step(self, step_size: Optional[Timedelta] = None) -> None:
+    def step(self, step_size: Optional[SimStepSize] = None) -> None:
         """Advance the simulation one step.
 
         Parameters
@@ -80,7 +80,7 @@ class InteractiveContext(SimulationContext):
         """
         return self.run_until(self._clock.stop_time, with_logging=with_logging)
 
-    def run_for(self, duration: Timedelta, with_logging: bool = True) -> int:
+    def run_for(self, duration: SimStepSize, with_logging: bool = True) -> int:
         """Run the simulation for the given time duration.
 
         Parameters
@@ -99,7 +99,7 @@ class InteractiveContext(SimulationContext):
         """
         return self.run_until(self._clock.time + duration, with_logging=with_logging)
 
-    def run_until(self, end_time: Time, with_logging: bool = True) -> int:
+    def run_until(self, end_time: SimTime, with_logging: bool = True) -> int:
         """Run the simulation until the provided end time.
 
         Parameters
@@ -133,7 +133,7 @@ class InteractiveContext(SimulationContext):
     def take_steps(
         self,
         number_of_steps: int = 1,
-        step_size: Optional[Timedelta] = None,
+        step_size: Optional[SimStepSize] = None,
         with_logging: bool = True,
     ):
         """Run the simulation for the given number of steps.
