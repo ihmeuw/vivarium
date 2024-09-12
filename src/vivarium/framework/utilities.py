@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 ===========================
 Framework Utility Functions
