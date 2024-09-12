@@ -17,7 +17,8 @@ py:class loguru._logger.Logger
 # vivarium
 # Type aliases don't play nicely with sphinx when you import them
 # elsewhere.  Works fine for static type checker though.  I think this
-# is cause sphinx does runtime checks.
+# is because sphinx does runtime checks.
+py:class NumericArray
 py:class Time
 py:class vivarium.framework.time.Time
 py:class Timedelta

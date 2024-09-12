@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Callable, List
 import numpy as np
 import pandas as pd
 
-from vivarium.types import NumberLike, Time, Timedelta
+from vivarium.types import ClockStepSize, ClockTime, NumberLike
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -46,51 +46,51 @@ class SimulationClock(Manager):
         return ["tracked"]
 
     @property
-    def time(self) -> Time:
+    def time(self) -> ClockTime:
         """The current simulation time."""
         if not self._clock_time:
             raise ValueError("No start time provided")
         return self._clock_time
 
     @property
-    def stop_time(self) -> Time:
+    def stop_time(self) -> ClockTime:
         """The time at which the simulation will stop."""
         if not self._stop_time:
             raise ValueError("No stop time provided")
         return self._stop_time
 
     @property
-    def minimum_step_size(self) -> Timedelta:
+    def minimum_step_size(self) -> ClockStepSize:
         """The minimum step size."""
         if not self._minimum_step_size:
             raise ValueError("No minimum step size provided")
         return self._minimum_step_size
 
     @property
-    def standard_step_size(self) -> Timedelta:
+    def standard_step_size(self) -> ClockStepSize:
         """The standard varied step size."""
         if not self._standard_step_size:
             raise ValueError("No standard step size provided")
         return self._standard_step_size
 
     @property
-    def step_size(self) -> Timedelta:
+    def step_size(self) -> ClockStepSize:
         """The size of the next time step."""
         if not self._clock_step_size:
             raise ValueError("No step size provided")
         return self._clock_step_size
 
     @property
-    def event_time(self) -> Time:
+    def event_time(self) -> ClockTime:
         "Convenience method for event time, or clock + step"
         return self.time + self.step_size
 
     def __init__(self):
-        self._clock_time: Time = None
-        self._stop_time: Time = None
-        self._minimum_step_size: Timedelta = None
-        self._standard_step_size: Timedelta = None
-        self._clock_step_size: Timedelta = None
+        self._clock_time: ClockTime = None
+        self._stop_time: ClockTime = None
+        self._minimum_step_size: ClockStepSize = None
+        self._standard_step_size: ClockStepSize = None
+        self._clock_step_size: ClockStepSize = None
         self._individual_clocks: PopulationView = None
         self._pipeline_name = "simulant_step_size"
         # TODO: Delegate this functionality to "tracked" or similar when appropriate
@@ -173,7 +173,7 @@ class SimulationClock(Manager):
                 self._individual_clocks.update(clocks_to_update)
             self._clock_step_size = self.simulant_next_event_times(index).min() - self.time
 
-    def get_active_simulants(self, index: pd.Index, time: Time) -> pd.Index:
+    def get_active_simulants(self, index: pd.Index, time: ClockTime) -> pd.Index:
         """Gets population that is aligned with global clock"""
         if index.empty or not self._individual_clocks:
             return index
@@ -291,11 +291,11 @@ class TimeInterface:
     def __init__(self, manager: SimulationClock):
         self._manager = manager
 
-    def clock(self) -> Callable[[], Time]:
+    def clock(self) -> Callable[[], ClockTime]:
         """Gets a callable that returns the current simulation time."""
         return lambda: self._manager.time
 
-    def step_size(self) -> Callable[[], Timedelta]:
+    def step_size(self) -> Callable[[], ClockStepSize]:
         """Gets a callable that returns the current simulation step size."""
         return lambda: self._manager.step_size
 

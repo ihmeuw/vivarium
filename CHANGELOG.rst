@@ -1,6 +1,7 @@
 **3.0.4 - 09/12/24**
 
   - Introduce static type checking with mypy
+  - Add new types for clock time and step-size
 
 **3.0.3 - 09/11/24**
 
