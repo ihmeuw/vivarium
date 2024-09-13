@@ -50,3 +50,9 @@ def test_set_results_dir(is_interactive, results_dir, mocker):
     observer.set_results_dir(builder)
 
     assert observer.results_dir == results_dir
+
+
+def test_diff_observer():
+    from vivarium.framework.engine import SimulationContext
+    sim = SimulationContext("/home/rmudambi/workspace/framework/vivarium/src/vivarium/examples/disease_model/disease_model.yaml")
+    sim.run_simulation()
