@@ -15,10 +15,15 @@ by concrete observers. Each concrete observer is required to implement a
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from pathlib import Path
+from typing import Any, Dict, Optional, List
+
+import pandas as pd
+import scipy.sparse as sparse
 
 from vivarium import Component
 from vivarium.framework.engine import Builder
+from vivarium.framework.event import Event
 
 
 class Observer(Component, ABC):
@@ -67,3 +72,90 @@ class Observer(Component, ABC):
             .get("output_data", {})
             .get("results_directory", None)
         )
+
+class FullHistoryObserver(Component):
+
+    # other options:
+    # - use scipy.sparse.csc_array:
+    #   - map non-numeric columns to numeric
+    #     - map categorical to integer
+    #   - save mapping strategy so that it can be inverted
+    #   - save column names
+    #   - convert to csc_array
+
+    @property
+    def columns_required(self) -> Optional[List[str]]:
+        return []
+
+    def __init__(self):
+        super().__init__()
+        self.time_step_counter = 0.0
+        self.clock = None
+        self.initial_state = pd.DataFrame()
+        self.recorded_state = pd.DataFrame()
+        self.changes = []
+        # self.column_maps = {
+        #     column_name: self._create_map(col_map)
+        #     for column_name, col_map in [
+        #         ("tracked", {"tracked": 1, "untracked": 2}),
+        #         ("sex", {"Male": 1, "Female": 2}),
+        #         ("alive", {"alive": 1, "dead": 2}),
+        #         (
+        #             "lower_respiratory_infections",
+        #             {
+        #                 "susceptible_to_lower_respiratory_infections": 1,
+        #                 "lower_respiratory_infections": 2,
+        #             }
+        #         ),
+        #         # ("entrance_time", {"datetime": None}),
+        #     ]
+        # }
+
+    # @staticmethod
+    # def _create_map(col_map: dict[Any, Number]) -> pd.DataFrame:
+    #     return pd.DataFrame(
+    #         {
+    #             "mapped_value": list(col_map.values()),
+    #             "true_value": list(col_map.keys()),
+    #         }
+    #     )
+
+    def setup(self, builder: Builder) -> None:
+        self.clock = builder.time.clock()
+
+    def on_time_step_prepare(self, event: Event) -> None:
+        if self.initial_state.empty:
+            self.initial_state = self.population_view.get(event.index)
+            self.recorded_state = self.initial_state
+
+
+    def on_collect_metrics(self, event: Event) -> None:
+        current_state = self.population_view.get(event.index)
+        # todo deal with new rows
+        changed_elements = current_state != self.recorded_state
+        self.recorded_state = current_state.copy()
+        for column in current_state.columns:
+            unchanged = ~changed_elements[column]
+            # fixme this will have issue for dtypes that have no nan value
+            # fixme this will have issue if 0.0 is a valid value for the column
+            #  can address this by converting all 0.0 to nan first
+            current_state.loc[unchanged, column] = 0
+
+            # if column in self.column_maps:
+            #     mapper = self.column_maps[column].set_index("true_value").squeeze()
+            #     current_state.loc[~unchanged, column] = current_state.loc[~unchanged, column].map(mapper)
+            # else:
+            #     # todo fix this
+            #     current_state.loc[~unchanged, column] = 1.0
+            current_state.loc[~unchanged, column] = 12345
+
+        current_state = current_state.astype(float)
+        sparse_diffs = sparse.csc_array(current_state)
+        self.changes.append(sparse_diffs)
+        self.time_step_counter += 1
+
+
+    def on_simulation_end(self, event: Event) -> None:
+        root_dir = Path("/home/rmudambi/scratch/test-sim")
+        c = sparse.hstack(self.changes)
+        sparse.save_npz(root_dir / "changes.npz", c)
