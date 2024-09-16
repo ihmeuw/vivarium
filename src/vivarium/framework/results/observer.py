@@ -126,11 +126,11 @@ class FullHistoryObserver(Component):
     def on_time_step_prepare(self, event: Event) -> None:
         if self.initial_state.empty:
             self.initial_state = self.population_view.get(event.index)
-            self.recorded_state = self.initial_state
+            self.recorded_state = self.initial_state.drop(columns="age")
 
 
     def on_collect_metrics(self, event: Event) -> None:
-        current_state = self.population_view.get(event.index)
+        current_state = self.population_view.get(event.index).drop(columns="age")
         # todo deal with new rows
         changed_elements = current_state != self.recorded_state
         self.recorded_state = current_state.copy()
