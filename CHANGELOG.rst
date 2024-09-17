@@ -1,3 +1,7 @@
+**3.0.5 - 09/17/24**
+
+  - Pin Sphinx below 8.0
+
 **3.0.4 - 09/12/24**
 
   - Introduce static type checking with mypy
