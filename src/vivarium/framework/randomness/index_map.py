@@ -12,11 +12,12 @@ positional index within a stream of seeded random numbers.
 
 from __future__ import annotations
 
-import datetime
-from typing import Any, Optional, Union
+from datetime import datetime
+from typing import Any
 
 import numpy as np
 import pandas as pd
+from pandas.api import types as pdtypes
 
 from vivarium.framework.randomness.exceptions import RandomnessError
 
@@ -27,10 +28,10 @@ class IndexMap:
     SIM_INDEX_COLUMN = "simulant_index"
     TEN_DIGIT_MODULUS = 10_000_000_000
 
-    def __init__(self, key_columns: Optional[list[str]] = None, size: int = 1_000_000):
+    def __init__(self, key_columns: list[str] | None = None, size: int = 1_000_000):
         self._use_crn = bool(key_columns)
-        self._key_columns = [] if key_columns is None else key_columns
-        self._map: Optional[pd.Series[int]] = None
+        self._key_columns = key_columns if key_columns else []
+        self._map: pd.Series[int] | None = None
         """The mapping between the key columns and the randomness index."""
         self._size = size
 
@@ -153,9 +154,7 @@ class IndexMap:
             salt += 1
         return current_mapping
 
-    def _hash(
-        self, keys: pd.Index[Any], salt: Union[int, pd.Timestamp] = 0
-    ) -> pd.Series[int]:
+    def _hash(self, keys: pd.Index[Any], salt: int | pd.Timestamp = 0) -> pd.Series[int]:
         """Hashes the index into an integer index in the range [0, self.stride]
 
         Parameters
@@ -192,7 +191,7 @@ class IndexMap:
         return new_map % len(self)
 
     def _convert_to_ten_digit_int(
-        self, column: pd.Series[Union[datetime.datetime, int, float]]
+        self, column: pd.Series[datetime | int | float]
     ) -> pd.Series[int]:
         """Converts a column of datetimes, integers, or floats into a column
         of 10 digit integers.
@@ -212,15 +211,15 @@ class IndexMap:
             If the column contains data that is neither a datetime-like nor
             numeric.
         """
-        if pd.api.types.is_datetime64_any_dtype(column):
+        if pdtypes.is_datetime64_any_dtype(column):
             integers = self._clip_to_seconds(column.astype(np.int64))
-        elif pd.api.types.is_integer_dtype(column):
+        elif pdtypes.is_integer_dtype(column):
             if not len(column >= 0) == len(column):
                 raise RandomnessError(
                     "Values in integer columns must be greater than or equal to zero."
                 )
             integers = self._spread(column.astype(int))
-        elif pd.api.types.is_float_dtype(column):
+        elif pdtypes.is_float_dtype(column):
             integers = self._shift(column.astype(float))
         else:
             raise RandomnessError(
