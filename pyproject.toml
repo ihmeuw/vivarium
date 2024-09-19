@@ -53,7 +53,6 @@ exclude = [
     'src/vivarium/framework/configuration.py',
     'src/vivarium/framework/engine.py',
     'src/vivarium/framework/event.py',
-    'src/vivarium/framework/lifecycle.py',
     'src/vivarium/framework/logging/manager.py',
     'src/vivarium/framework/logging/utilities.py',
     'src/vivarium/framework/lookup/interpolation.py',
