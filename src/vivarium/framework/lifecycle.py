@@ -103,7 +103,7 @@ class LifeCycleState:
         else:
             self._next = next_state
 
-    def valid_next_state(self, state: "LifeCycleState" | None) -> bool:
+    def valid_next_state(self, state: LifeCycleState | None) -> bool:
         """Check if the provided state is valid for a life cycle transition.
 
         Parameters
