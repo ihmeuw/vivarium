@@ -17,7 +17,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from pandas.api import types as pdtypes
+import pandas.api.types as pdt
 
 from vivarium.framework.randomness.exceptions import RandomnessError
 
@@ -211,15 +211,15 @@ class IndexMap:
             If the column contains data that is neither a datetime-like nor
             numeric.
         """
-        if pdtypes.is_datetime64_any_dtype(column):
+        if pdt.is_datetime64_any_dtype(column):
             integers = self._clip_to_seconds(column.astype(np.int64))
-        elif pdtypes.is_integer_dtype(column):
+        elif pdt.is_integer_dtype(column):
             if not len(column >= 0) == len(column):
                 raise RandomnessError(
                     "Values in integer columns must be greater than or equal to zero."
                 )
             integers = self._spread(column.astype(int))
-        elif pdtypes.is_float_dtype(column):
+        elif pdt.is_float_dtype(column):
             integers = self._shift(column.astype(float))
         else:
             raise RandomnessError(
