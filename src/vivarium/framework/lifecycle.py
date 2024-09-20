@@ -32,13 +32,14 @@ The tools here also allow for introspection of the simulation life cycle.
 
 """
 
+from __future__ import annotations
+
 import functools
 import textwrap
 import time
 from collections import defaultdict
 from typing import Callable
 
-from __future__ import annotations
 from vivarium.exceptions import VivariumError
 from vivarium.manager import Manager
 
