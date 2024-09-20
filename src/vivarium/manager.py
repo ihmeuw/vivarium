@@ -46,3 +46,9 @@ class Manager:
 
     def setup(self, builder: "Builder") -> None:
         pass
+
+
+class Interface:
+    # This class could take a constructor with Manager passed in but that would still need
+    # to be overwritten in the subclass so it's not necessary
+    pass

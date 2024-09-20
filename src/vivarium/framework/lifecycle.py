@@ -37,11 +37,15 @@ import functools
 import textwrap
 import time
 from collections import defaultdict
+<<<<<<< HEAD
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
+=======
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
+>>>>>>> cf0cdd66 (Add Interface class with refactor)
 
 from vivarium.exceptions import VivariumError
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.event import Event
@@ -617,7 +621,7 @@ class LifeCycleManager(Manager):
         return str(self.lifecycle)
 
 
-class LifeCycleInterface:
+class LifeCycleInterface(Interface):
     """Interface to the life cycle management system.
 
     The life cycle management system allows components to constrain
