@@ -1,3 +1,8 @@
+**3.0.6 - 09/21/24**
+
+  - Fix mypy errors: vivarium/framework/population/manager.py
+  - Fix mypy errors: vivarium/framework/population/population_view.py
+
 **3.0.5 - 09/17/24**
 
   - Pin Sphinx below 8.0

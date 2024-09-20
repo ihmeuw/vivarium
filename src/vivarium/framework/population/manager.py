@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ======================
 The Population Manager
@@ -8,18 +7,26 @@ The manager and :ref:`builder <builder_concept>` interface for the
 :ref:`population management system <population_concept>`.
 
 """
+from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import dataclass
 from types import MethodType
-from typing import Any, Callable, Dict, List, NamedTuple, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable
 
 import pandas as pd
 
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.manager import Manager
+from vivarium.types import ClockStepSize, ClockTime
+
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
 
 
-class SimulantData(NamedTuple):
+@dataclass
+class SimulantData:
     """Data to help components initialize simulants.
 
     Any time simulants are added to the simulation, each initializer is called
@@ -29,25 +36,27 @@ class SimulantData(NamedTuple):
     """
 
     #: The index representing the new simulants being added to the simulation.
-    index: pd.Index
+    index: pd.Index[int]
     #: A dictionary of extra data passed in by the component creating the
     #: population.
-    user_data: Dict[str, Any]
+    user_data: dict[str, Any]
     #: The time when the simulants enter the simulation.
-    creation_time: pd.Timestamp
+    creation_time: ClockTime
     #: The span of time over which the simulants are created.  Useful for,
     #: e.g., distributing ages over the window.
-    creation_window: pd.Timedelta
+    creation_window: ClockStepSize
 
 
 class InitializerComponentSet:
     """Set of unique components with population initializers."""
 
-    def __init__(self):
-        self._components = {}
-        self._columns_produced = {}
+    def __init__(self) -> None:
+        self._components: dict[str, list[str]] = {}
+        self._columns_produced: dict[str, str] = {}
 
-    def add(self, initializer: Callable, columns_produced: List[str]) -> None:
+    def add(
+        self, initializer: Callable[[SimulantData], None], columns_produced: list[str]
+    ) -> None:
         """Adds an initializer and columns to the set, enforcing uniqueness.
 
         Parameters
@@ -108,10 +117,10 @@ class InitializerComponentSet:
             self._columns_produced[column] = component_name
         self._components[component_name] = columns_produced
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return repr(self._components)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self._components)
 
 
@@ -126,8 +135,15 @@ class PopulationManager(Manager):
         },
     }
 
-    def __init__(self):
-        self._population = None
+    @property
+    def population(self) -> pd.DataFrame:
+        """The current population state table."""
+        if self._population is None:
+            raise PopulationError("Population has not been initialized.")
+        return self._population
+
+    def __init__(self) -> None:
+        self._population: pd.DataFrame | None = None
         self._initializer_components = InitializerComponentSet()
         self.creating_initial_population = False
         self.adding_simulants = False
@@ -138,11 +154,11 @@ class PopulationManager(Manager):
     ############################
 
     @property
-    def name(self):
+    def name(self) -> str:
         """The name of this component."""
         return "population_manager"
 
-    def setup(self, builder):
+    def setup(self, builder: "Builder") -> None:
         """Registers the population manager with other vivarium systems."""
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
@@ -169,26 +185,19 @@ class PopulationManager(Manager):
         )
         self._view = self.get_view(["tracked"])
 
-    def on_initialize_simulants(self, pop_data: SimulantData):
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Adds a ``tracked`` column to the state table for new simulants."""
         status = pd.Series(True, index=pop_data.index)
         self._view.update(status)
 
-    @property
-    def columns(self) -> List[str]:
-        """The columns that currently exist in the state table."""
-        return list(self._population.columns)
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "PopulationManager()"
 
     ###########################
     # Builder API and helpers #
     ###########################
 
-    def get_view(
-        self, columns: Union[List[str], Tuple[str]], query: Optional[str] = None
-    ) -> PopulationView:
+    def get_view(self, columns: Sequence[str], query: str = "") -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -235,11 +244,9 @@ class PopulationManager(Manager):
         )
         return view
 
-    def _get_view(
-        self, columns: Union[List[str], Tuple[str]], query: Optional[str] = None
-    ) -> PopulationView:
+    def _get_view(self, columns: Sequence[str], query: str) -> PopulationView:
         if columns and "tracked" not in columns:
-            if query is None:
+            if not query:
                 query = "tracked == True"
             elif "tracked" not in query:
                 query += " and tracked == True"
@@ -248,11 +255,11 @@ class PopulationManager(Manager):
 
     def register_simulant_initializer(
         self,
-        initializer: Callable,
-        creates_columns: List[str] = (),
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
-        requires_streams: List[str] = (),
+        initializer: Callable[[SimulantData], None],
+        creates_columns: Sequence[str] = (),
+        requires_columns: Sequence[str] = (),
+        requires_values: Sequence[str] = (),
+        requires_streams: Sequence[str] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
@@ -275,7 +282,7 @@ class PopulationManager(Manager):
             A list of the randomness streams necessary to initialize the
             simulant attributes.
         """
-        self._initializer_components.add(initializer, creates_columns)
+        self._initializer_components.add(initializer, list(creates_columns))
         dependencies = (
             [f"column.{name}" for name in requires_columns]
             + [f"value.{name}" for name in requires_values]
@@ -289,7 +296,7 @@ class PopulationManager(Manager):
             "column", list(creates_columns), initializer, dependencies
         )
 
-    def get_simulant_creator(self) -> Callable[[int, Optional[Dict[str, Any]]], pd.Index]:
+    def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.
 
         The creator function takes the number of simulants to be created as it's
@@ -308,8 +315,8 @@ class PopulationManager(Manager):
         return self._create_simulants
 
     def _create_simulants(
-        self, count: int, population_configuration: Dict[str, Any] = None
-    ) -> pd.Index:
+        self, count: int, population_configuration: dict[str, Any] | None = None
+    ) -> pd.Index[int]:
         population_configuration = (
             population_configuration if population_configuration else {}
         )
@@ -379,9 +386,7 @@ class PopulationInterface:
     def __init__(self, manager: PopulationManager):
         self._manager = manager
 
-    def get_view(
-        self, columns: Union[List[str], Tuple[str]], query: Optional[str] = None
-    ) -> PopulationView:
+    def get_view(self, columns: Sequence[str], query: str = "") -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -413,7 +418,7 @@ class PopulationInterface:
         """
         return self._manager.get_view(columns, query)
 
-    def get_simulant_creator(self) -> Callable[[int, Optional[Dict[str, Any]]], pd.Index]:
+    def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.
 
         The creator function takes the number of simulants to be created as it's
@@ -434,10 +439,10 @@ class PopulationInterface:
     def initializes_simulants(
         self,
         initializer: Callable[[SimulantData], None],
-        creates_columns: List[str] = (),
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
-        requires_streams: List[str] = (),
+        creates_columns: Sequence[str] = (),
+        requires_columns: Sequence[str] = (),
+        requires_values: Sequence[str] = (),
+        requires_streams: Sequence[str] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 

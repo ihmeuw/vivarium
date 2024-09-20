@@ -60,8 +60,6 @@ exclude = [
     'src/vivarium/framework/lookup/manager.py',
     'src/vivarium/framework/lookup/table.py',
     'src/vivarium/framework/plugins.py',
-    'src/vivarium/framework/population/manager.py',
-    'src/vivarium/framework/population/population_view.py',
     'src/vivarium/framework/randomness/index_map.py',
     'src/vivarium/framework/randomness/manager.py',
     'src/vivarium/framework/randomness/stream.py',

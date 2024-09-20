@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ===================
 The Population View
@@ -12,15 +11,16 @@ to the underlying simulation :term:`State Table`. It has two primary responsibil
     2. To allow the user to update the simulation state in a controlled way.
 
 """
+from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
 from vivarium.framework.population.exceptions import PopulationError
 
 if TYPE_CHECKING:
-    # Cyclic import
     from vivarium.framework.population.manager import PopulationManager
 
 
@@ -43,8 +43,8 @@ class PopulationView:
         self,
         manager: "PopulationManager",
         view_id: int,
-        columns: Union[List[str], Tuple[str]] = (),
-        query: Optional[str] = None,
+        columns: Sequence[str] = (),
+        query: str = "",
     ):
         """
 
@@ -64,14 +64,14 @@ class PopulationView:
         self._manager = manager
         self._id = view_id
         self._columns = list(columns)
-        self._query = query
+        self.query = query
 
     @property
-    def name(self):
+    def name(self) -> str:
         return f"population_view_{self._id}"
 
     @property
-    def columns(self) -> List[str]:
+    def columns(self) -> list[str]:
         """The columns that the view can read and update.
 
         If the view was created with ``None`` as the columns argument, then
@@ -83,16 +83,16 @@ class PopulationView:
             return list(self._manager.get_population(True).columns)
         return list(self._columns)
 
-    @property
-    def query(self) -> Optional[str]:
-        """A :mod:`pandas` style query to filter the rows of this view.
+    # @property
+    # def query(self) -> str:
+    #     """A :mod:`pandas` style query to filter the rows of this view.
+    #
+    #     This query will be applied any time the view is read. This query may
+    #     reference columns not in the view's columns.
+    #     """
+    #     return self._query
 
-        This query will be applied any time the view is read. This query may
-        reference columns not in the view's columns.
-        """
-        return self._query
-
-    def subview(self, columns: Union[List[str], Tuple[str]]) -> "PopulationView":
+    def subview(self, columns: Sequence[str]) -> "PopulationView":
         """Retrieves a new view with a subset of this view's columns.
 
         Parameters
@@ -130,7 +130,7 @@ class PopulationView:
         # Skip constraints for requesting subviews.
         return self._manager._get_view(columns, self.query)
 
-    def get(self, index: pd.Index, query: str = "") -> pd.DataFrame:
+    def get(self, index: pd.Index[int], query: str = "") -> pd.DataFrame:
         """Select the rows represented by the given index from this view.
 
         For the rows in ``index`` get the columns from the simulation's
@@ -165,8 +165,8 @@ class PopulationView:
         pop = self._manager.get_population(True).loc[index]
 
         if not index.empty:
-            if self._query:
-                pop = pop.query(self._query)
+            if self.query:
+                pop = pop.query(self.query)
             if query:
                 pop = pop.query(query)
 
@@ -184,7 +184,7 @@ class PopulationView:
             )
         return pop.loc[:, self.columns]
 
-    def update(self, population_update: Union[pd.DataFrame, pd.Series]) -> None:
+    def update(self, population_update: pd.Series[Any] | pd.DataFrame) -> None:
         """Updates the state table with the provided data.
 
         Parameters
@@ -215,7 +215,7 @@ class PopulationView:
         )
         if self._manager.creating_initial_population:
             new_columns = list(set(population_update).difference(state_table))
-            self._manager._population[new_columns] = population_update[new_columns]
+            self._manager.population[new_columns] = population_update[new_columns]
         elif not population_update.empty:
             update_columns = list(set(population_update).intersection(state_table))
             for column in update_columns:
@@ -224,12 +224,10 @@ class PopulationView:
                     state_table[column],
                     self._manager.adding_simulants,
                 )
-                self._manager._population[column] = column_update
+                self._manager.population[column] = column_update
 
-    def __repr__(self):
-        return (
-            f"PopulationView(_id={self._id}, _columns={self.columns}, _query={self._query})"
-        )
+    def __repr__(self) -> str:
+        return f"PopulationView(_id={self._id}, _columns={self.columns}, query={self.query})"
 
     ##################
     # Helper methods #
@@ -237,9 +235,9 @@ class PopulationView:
 
     @staticmethod
     def _format_update_and_check_preconditions(
-        population_update: Union[pd.Series, pd.DataFrame],
+        population_update: pd.Series[Any] | pd.DataFrame,
         state_table: pd.DataFrame,
-        view_columns: List[str],
+        view_columns: list[str],
         creating_initial_population: bool,
         adding_simulants: bool,
     ) -> pd.DataFrame:
@@ -346,8 +344,8 @@ class PopulationView:
 
     @staticmethod
     def _coerce_to_dataframe(
-        population_update: Union[pd.Series, pd.DataFrame],
-        view_columns: List[str],
+        population_update: pd.Series[Any] | pd.DataFrame,
+        view_columns: list[str],
     ) -> pd.DataFrame:
         """Coerce all population updates to a :class:`pandas.DataFrame` format.
 
@@ -453,10 +451,10 @@ class PopulationView:
 
     @staticmethod
     def _update_column_and_ensure_dtype(
-        update: pd.Series,
-        existing: pd.Series,
+        update: pd.Series[Any],
+        existing: pd.Series[Any],
         adding_simulants: bool,
-    ) -> pd.Series:
+    ) -> pd.Series[Any]:
         """Build the updated state table column with an appropriate dtype.
 
         Parameters
@@ -484,9 +482,9 @@ class PopulationView:
         #  to do all these sequential operations on a single underlying dataframe during
         #  the creation of new simulants besides the fact that it's the existing
         #  implementation.
-        update_values = update.values.copy()
-        new_state_table_values = existing.values.copy()
-        update_index_positional = existing.index.get_indexer(update.index)
+        update_values = update.array.copy()
+        new_state_table_values = existing.array.copy()
+        update_index_positional = existing.index.get_indexer(update.index)  # type: ignore [no-untyped-call]
 
         # Assumes the update index labels can be interpreted as an array position.
         new_state_table_values[update_index_positional] = update_values

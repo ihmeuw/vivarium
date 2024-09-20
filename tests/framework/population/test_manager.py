@@ -86,5 +86,5 @@ def test_initializer_set():
 
 def test_get_view_with_no_query():
     manager = PopulationManager()
-    view = manager._get_view(columns=["age", "sex"])
+    view = manager._get_view(columns=["age", "sex"], query="")
     assert view.query == "tracked == True"
