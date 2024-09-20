@@ -158,7 +158,7 @@ class PopulationManager(Manager):
         """The name of this component."""
         return "population_manager"
 
-    def setup(self, builder: "Builder") -> None:
+    def setup(self, builder: Builder) -> None:
         """Registers the population manager with other vivarium systems."""
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()

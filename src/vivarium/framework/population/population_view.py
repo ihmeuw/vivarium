@@ -41,7 +41,7 @@ class PopulationView:
 
     def __init__(
         self,
-        manager: "PopulationManager",
+        manager: PopulationManager,
         view_id: int,
         columns: Sequence[str] = (),
         query: str = "",
