@@ -499,7 +499,7 @@ class Machine(Component):
                 state.next_state(
                     affected.index,
                     event_time,
-                    self.population_view.subview([self.state_column]),
+                    self.population_view.subview(self.state_column),
                 )
 
     def cleanup(self, index: pd.Index, event_time: "ClockTime") -> None:

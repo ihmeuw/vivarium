@@ -83,7 +83,7 @@ class PopulationView:
             return list(self._manager.get_population(True).columns)
         return list(self._columns)
 
-    def subview(self, columns: Sequence[str]) -> "PopulationView":
+    def subview(self, columns: str | Sequence[str]) -> PopulationView:
         """Retrieves a new view with a subset of this view's columns.
 
         Parameters
@@ -111,6 +111,8 @@ class PopulationView:
         without running the risk of trying to access uncreated columns
         because the component itself has not created them.
         """
+        if isinstance(columns, str):
+            columns = [columns]
 
         if not columns or set(columns) - set(self.columns):
             raise PopulationError(

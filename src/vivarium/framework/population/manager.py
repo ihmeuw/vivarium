@@ -181,9 +181,9 @@ class PopulationManager(Manager):
         )
 
         self.register_simulant_initializer(
-            self.on_initialize_simulants, creates_columns=["tracked"]
+            self.on_initialize_simulants, creates_columns="tracked"
         )
-        self._view = self.get_view(["tracked"])
+        self._view = self.get_view("tracked")
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Adds a ``tracked`` column to the state table for new simulants."""
@@ -197,7 +197,7 @@ class PopulationManager(Manager):
     # Builder API and helpers #
     ###########################
 
-    def get_view(self, columns: Sequence[str], query: str = "") -> PopulationView:
+    def get_view(self, columns: str | Sequence[str], query: str = "") -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -244,7 +244,10 @@ class PopulationManager(Manager):
         )
         return view
 
-    def _get_view(self, columns: Sequence[str], query: str) -> PopulationView:
+    def _get_view(self, columns: str | Sequence[str], query: str) -> PopulationView:
+        if isinstance(columns, str):
+            columns = [columns]
+
         if columns and "tracked" not in columns:
             if not query:
                 query = "tracked == True"
@@ -256,10 +259,10 @@ class PopulationManager(Manager):
     def register_simulant_initializer(
         self,
         initializer: Callable[[SimulantData], None],
-        creates_columns: Sequence[str] = (),
-        requires_columns: Sequence[str] = (),
-        requires_values: Sequence[str] = (),
-        requires_streams: Sequence[str] = (),
+        creates_columns: str | Sequence[str] = (),
+        requires_columns: str | Sequence[str] = (),
+        requires_values: str | Sequence[str] = (),
+        requires_streams: str | Sequence[str] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
@@ -269,26 +272,35 @@ class PopulationManager(Manager):
             A callable that adds or updates initial state information about
             new simulants.
         creates_columns
-            A list of the state table columns that the given initializer
-            provides the initial state information for.
+            The state table columns that the given initializer provides the
+            initial state information for.
         requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the provided initializer
-            is called.
+            The state table columns that already need to be present and
+            populated in the state table before the provided initializer is
+            called.
         requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the provided initializer is called.
+            The value pipelines that need to be properly sourced before the
+            provided initializer is called.
         requires_streams
-            A list of the randomness streams necessary to initialize the
-            simulant attributes.
+            The randomness streams necessary to initialize the simulant
+            attributes.
         """
+        if isinstance(creates_columns, str):
+            creates_columns = [creates_columns]
+        if isinstance(requires_columns, str):
+            requires_columns = [requires_columns]
+        if isinstance(requires_values, str):
+            requires_values = [requires_values]
+        if isinstance(requires_streams, str):
+            requires_streams = [requires_streams]
+
         self._initializer_components.add(initializer, list(creates_columns))
         dependencies = (
             [f"column.{name}" for name in requires_columns]
             + [f"value.{name}" for name in requires_values]
             + [f"stream.{name}" for name in requires_streams]
         )
-        if creates_columns != ["tracked"]:
+        if "tracked" not in creates_columns:
             # The population view itself uses the tracked column, so include
             # to be safe.
             dependencies += ["column.tracked"]
@@ -386,7 +398,7 @@ class PopulationInterface:
     def __init__(self, manager: PopulationManager):
         self._manager = manager
 
-    def get_view(self, columns: Sequence[str], query: str = "") -> PopulationView:
+    def get_view(self, columns: str | Sequence[str], query: str = "") -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -439,10 +451,10 @@ class PopulationInterface:
     def initializes_simulants(
         self,
         initializer: Callable[[SimulantData], None],
-        creates_columns: Sequence[str] = (),
-        requires_columns: Sequence[str] = (),
-        requires_values: Sequence[str] = (),
-        requires_streams: Sequence[str] = (),
+        creates_columns: str | Sequence[str] = (),
+        requires_columns: str | Sequence[str] = (),
+        requires_values: str | Sequence[str] = (),
+        requires_streams: str | Sequence[str] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
@@ -452,17 +464,17 @@ class PopulationInterface:
             A callable that adds or updates initial state information about
             new simulants.
         creates_columns
-            A list of the state table columns that the given initializer
+            The state table columns that the given initializer
             provides the initial state information for.
         requires_columns
-            A list of the state table columns that already need to be present
+            The state table columns that already need to be present
             and populated in the state table before the provided initializer
             is called.
         requires_values
-            A list of the value pipelines that need to be properly sourced
+            The value pipelines that need to be properly sourced
             before the provided initializer is called.
         requires_streams
-            A list of the randomness streams necessary to initialize the
+            The randomness streams necessary to initialize the
             simulant attributes.
         """
         self._manager.register_simulant_initializer(
