@@ -1,3 +1,7 @@
+**3.0.6 - 09/20/24**
+
+  - Fix mypy errors: vivarium/framework/randomness/index_map.py
+
 **3.0.5 - 09/17/24**
 
   - Pin Sphinx below 8.0
