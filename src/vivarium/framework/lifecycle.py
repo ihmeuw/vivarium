@@ -38,11 +38,13 @@ import textwrap
 import time
 from collections import defaultdict
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from vivarium.exceptions import VivariumError
-from vivarium.framework.event import Event
 from vivarium.manager import Manager
+
+if TYPE_CHECKING:
+    from vivarium.framework.event import Event
 
 
 class LifeCycleError(VivariumError):
