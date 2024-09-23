@@ -98,9 +98,9 @@ class PluginConfigurationError(VivariumError):
 class PluginManager(Manager):
     def __init__(
         self,
-        plugin_configuration: dict[str, dict[str, dict[str, str]]]
-        | LayeredConfigTree
-        | None = None,
+        plugin_configuration: (
+            dict[str, dict[str, dict[str, str]]] | LayeredConfigTree | None
+        ) = None,
     ):
         self._plugin_configuration = LayeredConfigTree(
             DEFAULT_PLUGINS["plugins"], layers=["base", "override"]  # type: ignore [arg-type]
