@@ -31,6 +31,7 @@ py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
 
 # layered_config_tree
 py:class layered_config_tree.main.LayeredConfigTree
+py:class LayeredConfigTree
 py:exc layered_config_tree.exceptions.ConfigurationError
 
 # TODO: Need to revisit this. Nitpicking here to avoid failing builds on 3.9 in state_machine and testing_utils
