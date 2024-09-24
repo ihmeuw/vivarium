@@ -328,7 +328,7 @@ class ConstraintMaker:
         self.constraints: set[str] = set()
 
     def check_valid_state(
-        self, method: Callable[[Any], Any], permitted_states: list[str]
+        self, method: Callable[..., Any], permitted_states: list[str]
     ) -> None:
         """Ensures a component method is being called during an allowed state.
 
@@ -352,8 +352,8 @@ class ConstraintMaker:
             )
 
     def constrain_normal_method(
-        self, method: Callable[[Any], Any], permitted_states: list[str]
-    ) -> Callable[[Any], Any]:
+        self, method: Callable[..., Any], permitted_states: list[str]
+    ) -> Callable[..., Any]:
         """Only permit a method to be called during the provided states.
 
         Constraints are applied by dynamically wrapping and binding a method
@@ -381,14 +381,14 @@ class ConstraintMaker:
 
         # Invoke the descriptor protocol to bind the wrapped method to the
         # component instance.
-        rebound_method: Callable[[Any], Any] = _wrapped.__get__(method.__self__, method.__self__.__class__)  # type: ignore [attr-defined]
+        rebound_method: Callable[..., Any] = _wrapped.__get__(method.__self__, method.__self__.__class__)  # type: ignore [attr-defined]
         # Then update the instance dictionary to reflect that the wrapped
         # method is bound to the original name.
         setattr(method.__self__, method.__name__, rebound_method)  # type: ignore [attr-defined]
         return rebound_method
 
     @staticmethod
-    def to_guid(method: Callable[[Any], Any]) -> str:
+    def to_guid(method: Callable[..., Any]) -> str:
         """Convert a method on to a global id.
 
         Because we dynamically rebind methods, the old ones will get garbage
@@ -407,8 +407,8 @@ class ConstraintMaker:
         return f"{method.__self__.name}.{method.__name__}"  # type: ignore [attr-defined]
 
     def __call__(
-        self, method: Callable[[Any], Any], permitted_states: list[str]
-    ) -> Callable[[Any], Any]:
+        self, method: Callable[..., Any], permitted_states: list[str]
+    ) -> Callable[..., Any]:
         """Only permit a method to be called during the provided states.
 
         Constraints are applied by dynamically wrapping and binding a method
@@ -561,7 +561,7 @@ class LifeCycleManager(Manager):
 
     def add_constraint(
         self,
-        method: Callable[[Any], Any],
+        method: Callable[..., Any],
         allow_during: tuple[str, ...] | list[str] = (),
         restrict_during: tuple[str, ...] | list[str] = (),
     ) -> None:
@@ -646,7 +646,7 @@ class LifeCycleInterface:
 
     def add_constraint(
         self,
-        method: Callable[[Any], Any],
+        method: Callable[..., Any],
         allow_during: tuple[str, ...] | list[str] = (),
         restrict_during: tuple[str, ...] | list[str] = (),
     ) -> None:
