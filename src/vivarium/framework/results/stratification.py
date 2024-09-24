@@ -150,7 +150,7 @@ class Stratification:
             return lambda population: population.apply(user_provided_mapper, axis=1)
 
     @staticmethod
-    def _default_mapper(population: pd.DataFrame) -> pd.Series[Any]:
+    def _default_mapper(pop: pd.DataFrame) -> pd.Series[Any]:
         """Default stratification mapper that squeezes a DataFrame to a Series.
 
         Parameters
@@ -166,7 +166,7 @@ class Stratification:
         -----
         The input DataFrame is guaranteed to have a single column.
         """
-        squeezed_pop: pd.Series[Any] = population.squeeze(axis=1)
+        squeezed_pop: pd.Series[Any] = pop.squeeze(axis=1)
         return squeezed_pop
 
 
