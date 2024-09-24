@@ -135,7 +135,7 @@ class Stratification:
         is_vectorized: bool,
     ) -> VectorMapper:
         """
-        Check the signature of the mapper callable to determine if it expects a DataFrame or individual values (strings).
+        Choose a VectorMapper based on the inputted callable mapper.
         """
         if user_provided_mapper is None:
             if len(self.sources) != 1:
