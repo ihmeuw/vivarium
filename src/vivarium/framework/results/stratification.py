@@ -13,7 +13,7 @@ from pandas.api.types import CategoricalDtype
 
 STRATIFICATION_COLUMN_SUFFIX: str = "mapped_values"
 
-
+# TODO: Parameterizing pandas objects fails below python 3.12
 VectorMapper = Callable[[pd.DataFrame], pd.Series]  # type: ignore [type-arg]
 ScalarMapper = Callable[[pd.Series], str]  # type: ignore [type-arg]
 
