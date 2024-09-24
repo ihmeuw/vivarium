@@ -54,6 +54,17 @@ class Stratification:
         )
 
     def __post_init__(self) -> None:
+        """Assign a default `mapper` if none was provided and check for non-empty
+        `categories` and `sources` otherwise.
+        Raises
+        ------
+        ValueError
+            If no mapper is provided and the number of sources is not 1.
+        ValueError
+            If the categories argument is empty.
+        ValueError
+            If the sources argument is empty.
+        """
         self.mapper = self._get_vector_mapper(self.mapping_function, self.is_vectorized)
         if not self.categories:
             raise ValueError("The categories argument must be non-empty.")
