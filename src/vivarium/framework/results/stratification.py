@@ -65,7 +65,7 @@ class Stratification:
         ValueError
             If the sources argument is empty.
         """
-        self.vector_mapper = self._get_vector_mapper(self.mapper, self.is_vectorized)
+        self.vectorized_mapper = self._get_vectorized_mapper(self.mapper, self.is_vectorized)
         if not self.categories:
             raise ValueError("The categories argument must be non-empty.")
         if not self.sources:
@@ -93,7 +93,7 @@ class Stratification:
         ValueError
             If the mapper returns any values not in `categories` or `excluded_categories`.
         """
-        mapped_column = self.vector_mapper(population[self.sources])
+        mapped_column = self.vectorized_mapper(population[self.sources])
         unknown_categories = set(mapped_column) - set(
             self.categories + self.excluded_categories
         )
@@ -110,7 +110,7 @@ class Stratification:
             CategoricalDtype(categories=self.categories, ordered=True)
         )
 
-    def _get_vector_mapper(
+    def _get_vectorized_mapper(
         self,
         user_provided_mapper: VectorMapper | ScalarMapper | None,
         is_vectorized: bool,
