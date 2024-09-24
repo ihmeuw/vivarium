@@ -10,7 +10,7 @@ from loguru import logger
 from loguru._logger import Logger
 
 from vivarium.framework.logging.utilities import configure_logging_to_terminal
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 
 
 class LoggingManager(Manager):
@@ -51,7 +51,7 @@ class LoggingManager(Manager):
         return logger.bind(**bind_args)
 
 
-class LoggingInterface:
+class LoggingInterface(Interface):
     def __init__(self, manager: LoggingManager):
         self._manager = manager
 
