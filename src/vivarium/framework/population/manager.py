@@ -18,7 +18,7 @@ import pandas as pd
 
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 from vivarium.types import ClockStepSize, ClockTime
 
 if TYPE_CHECKING:
