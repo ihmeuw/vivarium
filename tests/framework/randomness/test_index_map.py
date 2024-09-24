@@ -61,13 +61,6 @@ def map_size_and_hashed_values(request):
     return len(m), m._hash(keys)
 
 
-def test_digit_scalar():
-    m = IndexMap()
-    k = 123456789
-    for i in range(10):
-        assert m._digit(k, i) == 10 - (i + 1)
-
-
 def test_digit_series():
     m = IndexMap()
     k = pd.Series(123456789, index=range(10000))
@@ -94,21 +87,11 @@ def test_clip_to_seconds_series():
     assert m._clip_to_seconds(k).unique()[0] == stamp
 
 
-def test_spread_scalar():
-    m = IndexMap()
-    assert m._spread(1234567890) == 4072825790
-
-
 def test_spread_series():
     m = IndexMap()
     s = pd.Series(1234567890, index=range(10000))
     assert len(m._spread(s).unique()) == 1
     assert m._spread(s).unique()[0] == 4072825790
-
-
-def test_shift_scalar():
-    m = IndexMap()
-    assert m._shift(1.1234567890) == 1234567890
 
 
 def test_shift_series():
