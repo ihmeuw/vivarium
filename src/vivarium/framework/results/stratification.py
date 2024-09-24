@@ -37,7 +37,7 @@ class Stratification:
     excluded_categories: list[str]
     """List of possible stratification values to exclude from results processing.
     If None (the default), will use exclusions as defined in the configuration."""
-    mapping_function: VectorMapper | ScalarMapper | None
+    mapper: VectorMapper | ScalarMapper | None
     """A callable that maps the columns and value pipelines specified by the
     `requires_columns` and `requires_values` arguments to the stratification
     categories. It can either map the entire population or an individual
@@ -50,7 +50,7 @@ class Stratification:
     def __str__(self) -> str:
         return (
             f"Stratification '{self.name}' with sources {self.sources}, "
-            f"categories {self.categories}, and mapper {getattr(self.mapping_function, '__name__', repr(self.mapping_function))}"
+            f"categories {self.categories}, and mapper {getattr(self.mapper, '__name__', repr(self.mapper))}"
         )
 
     def __post_init__(self) -> None:
@@ -65,7 +65,7 @@ class Stratification:
         ValueError
             If the sources argument is empty.
         """
-        self.mapper = self._get_vector_mapper(self.mapping_function, self.is_vectorized)
+        self.vector_mapper = self._get_vector_mapper(self.mapper, self.is_vectorized)
         if not self.categories:
             raise ValueError("The categories argument must be non-empty.")
         if not self.sources:
@@ -93,7 +93,7 @@ class Stratification:
         ValueError
             If the mapper returns any values not in `categories` or `excluded_categories`.
         """
-        mapped_column = self.mapper(population[self.sources])
+        mapped_column = self.vector_mapper(population[self.sources])
         unknown_categories = set(mapped_column) - set(
             self.categories + self.excluded_categories
         )
