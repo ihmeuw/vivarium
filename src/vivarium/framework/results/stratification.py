@@ -5,6 +5,7 @@ Stratifications
 
 """
 from __future__ import annotations
+
 from typing import Any, Callable
 
 import pandas as pd
@@ -13,8 +14,8 @@ from pandas.api.types import CategoricalDtype
 STRATIFICATION_COLUMN_SUFFIX: str = "mapped_values"
 
 
-VectorizedMapper = Callable[[pd.DataFrame], pd.Series] # type: ignore [type-arg]
-ScalarMapper = Callable[[pd.Series], str] # type: ignore [type-arg]
+VectorMapper = Callable[[pd.DataFrame], pd.Series]  # type: ignore [type-arg]
+ScalarMapper = Callable[[pd.Series], str]  # type: ignore [type-arg]
 
 
 class Stratification:
@@ -34,7 +35,7 @@ class Stratification:
         sources: list[str],
         categories: list[str],
         excluded_categories: list[str],
-        mapper: VectorizedMapper | ScalarMapper | None = None,
+        mapper: VectorMapper | ScalarMapper | None = None,
         is_vectorized: bool = False,
     ):
         """
@@ -128,11 +129,11 @@ class Stratification:
             CategoricalDtype(categories=self.categories, ordered=True)
         )
 
-    def _get_vectorized_mapper(
+    def _get_vector_mapper(
         self,
-        user_provided_mapper: VectorizedMapper | ScalarMapper | None,
+        user_provided_mapper: VectorMapper | ScalarMapper | None,
         is_vectorized: bool,
-    ) -> VectorizedMapper:
+    ) -> VectorMapper:
         """
         Check the signature of the mapper callable to determine if it expects a DataFrame or individual values (strings).
         """
