@@ -6,6 +6,7 @@ Stratifications
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Callable
 
 import pandas as pd
@@ -18,79 +19,46 @@ VectorMapper = Callable[[pd.DataFrame], pd.Series]  # type: ignore [type-arg]
 ScalarMapper = Callable[[pd.Series], str]  # type: ignore [type-arg]
 
 
+@dataclass
 class Stratification:
     """Class for stratifying observed quantities by specified characteristics.
-
     Each Stratification represents a set of mutually exclusive and collectively
     exhaustive categories into which simulants can be assigned.
-
     This class includes a :meth:`stratify <stratify>` method that produces an
     output column by calling the mapper on the source columns.
-
     """
 
-    def __init__(
-        self,
-        name: str,
-        sources: list[str],
-        categories: list[str],
-        excluded_categories: list[str],
-        mapper: VectorMapper | ScalarMapper | None = None,
-        is_vectorized: bool = False,
-    ):
-        """
-        Assign a default `mapper` if none was provided and check for non-empty
-        `categories` and `sources` otherwise.
-
-        Parameters
-        ----------
-        name
-            Name of the stratification.
-        sources
-            A list of the columns and values needed as input for the `mapper`.
-        categories
-            Exhaustive list of all possible stratification values.
-        excluded_categories
-            List of possible stratification values to exclude from results processing.
-            If None (the default), will use exclusions as defined in the configuration.
-        mapper
-            A callable that maps the columns and value pipelines specified by the
-            `requires_columns` and `requires_values` arguments to the stratification
-            categories. It can either map the entire population or an individual
-            simulant. A simulation will fail if the `mapper` ever produces an invalid
-            value.
-        is_vectorized
-            True if the `mapper` function will map the entire population, and False
-            if it will only map a single simulant.
-
-        Raises
-        ------
-        ValueError
-            If no mapper is provided and the number of sources is not 1.
-        ValueError
-            If the categories argument is empty.
-        ValueError
-            If the sources argument is empty.
-        """
-        self.name = name
-        self.sources = sources
-        self._user_provided_mapper = mapper
-        self.is_vectorized = is_vectorized
-        self.mapper = self._get_vector_mapper(mapper, is_vectorized)
-        if not self.sources:
-            raise ValueError("The sources argument must be non-empty.")
-
-        self.categories = categories
-        if not self.categories:
-            raise ValueError("The categories argument must be non-empty.")
-
-        self.excluded_categories = excluded_categories
+    name: str
+    """Name of the stratification."""
+    sources: list[str]
+    """A list of the columns and values needed as input for the `mapper`."""
+    categories: list[str]
+    """Exhaustive list of all possible stratification values."""
+    excluded_categories: list[str]
+    """List of possible stratification values to exclude from results processing.
+    If None (the default), will use exclusions as defined in the configuration."""
+    mapping_function: VectorMapper | ScalarMapper | None
+    """A callable that maps the columns and value pipelines specified by the
+    `requires_columns` and `requires_values` arguments to the stratification
+    categories. It can either map the entire population or an individual
+    simulant. A simulation will fail if the `mapper` ever produces an invalid
+    value."""
+    is_vectorized: bool = False
+    """True if the `mapper` function will map the entire population, and False
+    if it will only map a single simulant."""
 
     def __str__(self) -> str:
         return (
             f"Stratification '{self.name}' with sources {self.sources}, "
-            f"categories {self.categories}, and mapper {getattr(self.mapper, '__name__', repr(self.mapper))}"
+            f"categories {self.categories}, and mapper {getattr(self.mapping_function, '__name__', repr(self.mapping_function))}"
         )
+
+    def __post_init__(self) -> None:
+        self.mapper = self._get_vector_mapper(self.mapping_function, self.is_vectorized)
+        if not self.categories:
+            raise ValueError("The categories argument must be non-empty.")
+        if not self.sources:
+            raise ValueError("The sources argument must be non-empty.")
 
     def stratify(self, population: pd.DataFrame) -> pd.Series[CategoricalDtype]:
         """Apply the `mapper` to the population `sources` columns to create a new

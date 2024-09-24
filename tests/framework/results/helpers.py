@@ -322,7 +322,7 @@ def verify_stratification_added(
             and sorted(stratification.categories)
             == sorted([cat for cat in categories if cat not in excluded_categories])
             and sorted(stratification.excluded_categories) == sorted(excluded_categories)
-            and stratification._user_provided_mapper == mapper
+            and stratification.mapping_function == mapper
             and stratification.is_vectorized == is_vectorized
             and sorted(stratification.sources) == sorted(sources)
         ):

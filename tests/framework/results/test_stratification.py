@@ -42,7 +42,7 @@ def test_stratification(mapper, is_vectorized):
         sources=NAME_COLUMNS,
         categories=HOUSE_CATEGORIES,
         excluded_categories=[],
-        mapper=mapper,
+        mapping_function=mapper,
         is_vectorized=is_vectorized,
     )
     output = my_stratification.stratify(STUDENT_TABLE)

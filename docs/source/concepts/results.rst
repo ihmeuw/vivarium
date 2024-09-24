@@ -373,20 +373,20 @@ results of an observation:
   * - | :attr:`name <vivarium.framework.results.stratification.Stratification.name>`
     - | Name of the stratification.
   * - | :attr:`sources <vivarium.framework.results.stratification.Stratification.sources>`
-    - | A list of the columns and values needed as input for the `mapper`.
+    - | A list of the columns and values needed as input for the `mapping_function`.
   * - | :attr:`categories <vivarium.framework.results.stratification.Stratification.categories>`
     - | Exhaustive list of all possible stratification values.
   * - | :attr:`excluded_categories <vivarium.framework.results.stratification.Stratification.excluded_categories>`
     - | List of possible stratification values to exclude from results processing.
       | If None (the default), will use exclusions as defined in the configuration.
-  * - | :attr:`mapper <vivarium.framework.results.stratification.Stratification.mapper>`
+  * - | :attr:`mapping_function <vivarium.framework.results.stratification.Stratification.mapping_function>`
     - | A callable that maps the columns and value pipelines specified by the
       | `requires_columns` and `requires_values` arguments to the stratification
       | categories. It can either map the entire population or an individual
-      | simulant. A simulation will fail if the `mapper` ever produces an invalid
+      | simulant. A simulation will fail if the `mapping_function` ever produces an invalid
       | value.
   * - | :attr:`is_vectorized <vivarium.framework.results.stratification.Stratification.is_vectorized>`
-    - | True if the `mapper` function will map the entire population, and False
+    - | True if the `mapping_function` will map the entire population, and False
       | if it will only map a single simulant.
 
 Each **Stratification** also contains the 
