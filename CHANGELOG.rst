@@ -1,5 +1,6 @@
-**3.0.7 - 09/23/24**
+**3.0.7 - 09/24/24**
 
+  - Fix mypy errors: vivarium/framework/lifecycle.py
   - Fix mypy errors: vivarium/framework/population/manager.py
   - Fix mypy errors: vivarium/framework/population/population_view.py
 
