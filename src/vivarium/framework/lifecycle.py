@@ -37,12 +37,8 @@ import functools
 import textwrap
 import time
 from collections import defaultdict
-<<<<<<< HEAD
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
-=======
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple
->>>>>>> cf0cdd66 (Add Interface class with refactor)
 
 from vivarium.exceptions import VivariumError
 from vivarium.manager import Interface, Manager
