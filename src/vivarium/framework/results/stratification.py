@@ -4,17 +4,24 @@ Stratifications
 ===============
 
 """
+from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Callable, List, Optional, Union, TypeVar
+from typing import Any, Protocol
+
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from vivarium.types import ScalarValue
-
 STRATIFICATION_COLUMN_SUFFIX: str = "mapped_values"
 
-S = TypeVar("S", str, ScalarValue)
+
+class VectorizedMapper(Protocol):
+    def __call__(self, population: pd.DataFrame) -> pd.Series[Any]:
+        ...
+
+
+class ScalarMapper(Protocol):
+    def __call__(self, simulant_row: pd.Series[str]) -> str:
+        ...
 
 
 class Stratification:
@@ -31,14 +38,10 @@ class Stratification:
     def __init__(
         self,
         name: str,
-        sources: List[str],
-        categories: List[str],
-        excluded_categories: List[str],
-        mapper: (
-            Callable[[pd.DataFrame], pd.Series[ScalarValue | str]]
-            | Callable[[ScalarValue | str], ScalarValue | str]
-            | None
-        ),
+        sources: list[str],
+        categories: list[str],
+        excluded_categories: list[str],
+        mapper: VectorizedMapper | ScalarMapper | None = None,
         is_vectorized: bool = False,
     ):
         """
@@ -77,6 +80,7 @@ class Stratification:
         """
         self.name = name
         self.sources = sources
+        self.mapper = self._get_vectorized_mapper(mapper, is_vectorized)
         if not self.sources:
             raise ValueError("The sources argument must be non-empty.")
 
@@ -85,22 +89,11 @@ class Stratification:
             raise ValueError("The categories argument must be non-empty.")
 
         self.excluded_categories = excluded_categories
-        self.mapper = mapper
-        self.is_vectorized = is_vectorized
-        if self.mapper is None:
-            if len(self.sources) != 1:
-                raise ValueError(
-                    f"No mapper but {len(self.sources)} stratification sources are "
-                    f"provided for stratification {self.name}. The list of sources "
-                    "must be of length 1 if no mapper is provided."
-                )
-            self.mapper = self._default_mapper
-            self.is_vectorized = True
 
     def __str__(self) -> str:
         return (
             f"Stratification '{self.name}' with sources {self.sources}, "
-            f"categories {self.categories}, and mapper {self.mapper.__name__}"
+            f"categories {self.categories}, and mapper {getattr(self.mapper, '__name__', repr(self.mapper))}"
         )
 
     def stratify(self, population: pd.DataFrame) -> pd.Series[CategoricalDtype]:
@@ -125,10 +118,7 @@ class Stratification:
         ValueError
             If the mapper returns any values not in `categories` or `excluded_categories`.
         """
-        if self.is_vectorized:
-            mapped_column = self.mapper(population[self.sources])
-        else:
-            mapped_column = population[self.sources].apply(self.mapper, axis=1).squeeze(axis=1)
+        mapped_column = self.mapper(population[self.sources])
         unknown_categories = set(mapped_column) - set(
             self.categories + self.excluded_categories
         )
@@ -145,8 +135,29 @@ class Stratification:
             CategoricalDtype(categories=self.categories, ordered=True)
         )
 
+    def _get_vectorized_mapper(
+        self,
+        user_provided_mapper: VectorizedMapper | ScalarMapper | None,
+        is_vectorized: bool,
+    ) -> VectorizedMapper:
+        """
+        Check the signature of the mapper callable to determine if it expects a DataFrame or individual values (strings).
+        """
+        if user_provided_mapper is None:
+            if len(self.sources) != 1:
+                raise ValueError(
+                    f"No mapper but {len(self.sources)} stratification sources are "
+                    f"provided for stratification {self.name}. The list of sources "
+                    "must be of length 1 if no mapper is provided."
+                )
+            return self._default_mapper
+        elif is_vectorized:
+            return user_provided_mapper  # type: ignore [return-value]
+        else:
+            return self._wrap_mapper(user_provided_mapper)  # type: ignore [arg-type]
+
     @staticmethod
-    def _default_mapper(pop: pd.DataFrame) -> pd.Series[ScalarValue | str]:
+    def _default_mapper(population: pd.DataFrame) -> pd.Series[Any]:
         """Default stratification mapper that squeezes a DataFrame to a Series.
 
         Parameters
@@ -162,8 +173,19 @@ class Stratification:
         -----
         The input DataFrame is guaranteed to have a single column.
         """
-        squeezed_pop: pd.Series[ScalarValue | str] = pop.squeeze(axis=1)
+        squeezed_pop: pd.Series[Any] = population.squeeze(axis=1)
         return squeezed_pop
+
+    @staticmethod
+    def _wrap_mapper(mapper: ScalarMapper) -> VectorizedMapper:
+        """
+        Wrap a scalar mapper in a vectorized mapper that applies the scalar mapper to each row of a DataFrame.
+        """
+
+        def vectorized_mapper(population: pd.DataFrame) -> pd.Series[Any]:
+            return population.apply(mapper, axis=1)
+
+        return vectorized_mapper
 
 
 def get_mapped_col_name(col_name: str) -> str:
