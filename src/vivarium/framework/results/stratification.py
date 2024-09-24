@@ -74,7 +74,7 @@ class Stratification:
         """
         self.name = name
         self.sources = sources
-        self.mapper = self._get_vectorized_mapper(mapper, is_vectorized)
+        self.mapper = self._get_vector_mapper(mapper, is_vectorized)
         if not self.sources:
             raise ValueError("The sources argument must be non-empty.")
 
