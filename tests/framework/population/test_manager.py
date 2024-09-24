@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from vivarium import Component
@@ -84,7 +86,33 @@ def test_initializer_set():
         component_set.add(component.initializer, columns)
 
 
-def test_get_view_with_no_query():
+@pytest.mark.parametrize(
+    "contains_tracked, query, expected_query",
+    [
+        (True, "", ""),
+        (True, "foo == True", "foo == True"),
+        (False, "", "tracked == True"),
+        (False, "foo == True", "foo == True and tracked == True"),
+    ],
+)
+def test_setting_query_with_get_view(
+    contains_tracked: bool, query: str, expected_query: str
+) -> None:
     manager = PopulationManager()
-    view = manager._get_view(columns=["age", "sex"], query="")
-    assert view.query == "tracked == True"
+    columns = ["age", "sex"]
+    if contains_tracked:
+        columns.append("tracked")
+    view = manager._get_view(columns=columns, query=query)
+    assert view.query == expected_query
+
+
+@pytest.mark.parametrize(
+    "columns, expected_columns", [("age", ["age"]), (["age"], None), (["age", "sex"], None)]
+)
+def test_setting_columns_with_get_view(
+    columns: str | list[str], expected_columns: list[str] | None
+) -> None:
+    expected_columns = expected_columns or columns
+    manager = PopulationManager()
+    view = manager._get_view(columns=columns, query="")
+    assert view._columns == expected_columns
