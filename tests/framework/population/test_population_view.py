@@ -98,7 +98,7 @@ def test_initialization(population_manager):
     assert pv._id == 0
     assert pv.name == "population_view_0"
     assert set(pv.columns) == set(COL_NAMES)
-    assert pv.query is None
+    assert pv.query == ""
 
     # Failure here is lazy.  The manager should give you back views for
     # columns that don't exist since views are built during setup when
@@ -108,7 +108,7 @@ def test_initialization(population_manager):
     assert pv._id == 1
     assert pv.name == "population_view_1"
     assert set(pv.columns) == set(cols)
-    assert pv.query is None
+    assert pv.query == ""
 
     col_subset = ["color", "count"]
     pv = population_manager.get_view(col_subset)
