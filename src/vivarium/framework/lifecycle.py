@@ -328,7 +328,7 @@ class ConstraintMaker:
         self.constraints: set[str] = set()
 
     def check_valid_state(
-        self, method: Callable[[Any], Any], permitted_states: tuple[str, ...] | list[str]
+        self, method: Callable[[Any], Any], permitted_states: list[str]
     ) -> None:
         """Ensures a component method is being called during an allowed state.
 
@@ -352,7 +352,7 @@ class ConstraintMaker:
             )
 
     def constrain_normal_method(
-        self, method: Callable[[Any], Any], permitted_states: tuple[str, ...] | list[str]
+        self, method: Callable[[Any], Any], permitted_states: list[str]
     ) -> Callable[[Any], Any]:
         """Only permit a method to be called during the provided states.
 
@@ -407,7 +407,7 @@ class ConstraintMaker:
         return f"{method.__self__.name}.{method.__name__}"  # type: ignore [attr-defined]
 
     def __call__(
-        self, method: Callable[[Any], Any], permitted_states: tuple[str, ...] | list[str]
+        self, method: Callable[[Any], Any], permitted_states: list[str]
     ) -> Callable[[Any], Any]:
         """Only permit a method to be called during the provided states.
 
@@ -605,6 +605,8 @@ class LifeCycleManager(Manager):
             allow_during = [
                 s for s in self.lifecycle._state_names if s not in restrict_during
             ]
+        if isinstance(allow_during, tuple):
+            allow_during = list(allow_during)
 
         self._make_constraint(method, allow_during)
 
