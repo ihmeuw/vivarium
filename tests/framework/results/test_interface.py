@@ -67,7 +67,7 @@ def test_register_stratification(mocker):
     ]
     assert stratification.categories == ["some-category", "some-other-category"]
     assert stratification.excluded_categories == ["some-unwanted-category"]
-    assert stratification.user_provided_mapper == _silly_mapper
+    assert stratification._user_provided_mapper == _silly_mapper
     assert stratification.is_vectorized is False
 
 
@@ -118,7 +118,7 @@ def test_register_binned_stratification_foo(target, target_type, mocker):
     assert stratification.excluded_categories == ["2_to_3"]
     # Cannot access the mapper because it's in local scope, so check __repr__
     assert "function ResultsManager.register_binned_stratification.<locals>._bin_data" in str(
-        stratification.user_provided_mapper
+        stratification._user_provided_mapper
     )
     assert stratification.is_vectorized is True
 
