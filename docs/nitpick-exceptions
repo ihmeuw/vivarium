@@ -1,5 +1,5 @@
 # pandas
-py:class pandas.api.types.CategoricalDtype
+py:class CategoricalDtype
 py:class pandas.core.indexes.base.Index
 py:class pandas.core.indexes.multi.MultiIndex
 py:class pandas._libs.tslibs.timestamps.Timestamp
