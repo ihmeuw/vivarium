@@ -7,8 +7,9 @@ py:class pandas.core.frame.DataFrame
 py:class pandas.core.series.Series
 py:class pandas.core.generic.PandasObject
 py:class pandas.core.groupby.generic.DataFrameGroupBy
-py:class pd.Series
 py:class pd.Index
+py:class pd.Series
+py:class pd.DataFrame
 
 #scipy
 py:class scipy.stats._distn_infrastructure.rv_continuous
@@ -21,10 +22,10 @@ py:class loguru._logger.Logger
 # elsewhere.  Works fine for static type checker though.  I think this
 # is because sphinx does runtime checks.
 py:class NumericArray
+py:class ClockTime
 py:class Time
-py:class vivarium.framework.time.Time
+py:class ClockStepSize
 py:class Timedelta
-py:class vivarium.framework.time.Timedelta
 py:exc ResultsConfigurationError
 py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
 
@@ -32,5 +33,5 @@ py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
 py:class layered_config_tree.main.LayeredConfigTree
 py:exc layered_config_tree.exceptions.ConfigurationError
 
-# TODO: Need to revisit this. Nitpicking here to avoid failing builds on 3.8 and 3.9 in state_machine and testing_utils
+# TODO: Need to revisit this. Nitpicking here to avoid failing builds on 3.9 in state_machine and testing_utils
 py:class Logger
