@@ -1,3 +1,7 @@
+**3.0.7 - 09/24/24**
+
+  - Fix mypy errors: vivarium/framework/lifecycle.py
+
 **3.0.6 - 09/20/24**
 
   - Fix mypy errors: vivarium/framework/randomness/index_map.py
