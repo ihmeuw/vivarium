@@ -562,8 +562,8 @@ class LifeCycleManager(Manager):
     def add_constraint(
         self,
         method: Callable[[Any], Any],
-        allow_during: list[str] = [],
-        restrict_during: list[str] = [],
+        allow_during: tuple | list[str] = (),
+        restrict_during: tuple | list[str] = (),
     ) -> None:
         """Constrains a function to be executable only during certain states.
 
@@ -605,6 +605,8 @@ class LifeCycleManager(Manager):
             allow_during = [
                 s for s in self.lifecycle._state_names if s not in restrict_during
             ]
+        elif not allow_during:
+            allow_during = []
 
         self._make_constraint(method, allow_during)
 
@@ -645,8 +647,8 @@ class LifeCycleInterface:
     def add_constraint(
         self,
         method: Callable[[Any], Any],
-        allow_during: list[str] = [],
-        restrict_during: list[str] = [],
+        allow_during: tuple | list[str] = (),
+        restrict_during: tuple | list[str] = (),
     ) -> None:
         """Constrains a function to be executable only during certain states.
 
