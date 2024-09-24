@@ -18,7 +18,7 @@ import pandas as pd
 
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 from vivarium.types import ClockStepSize, ClockTime
 
 if TYPE_CHECKING:
@@ -372,7 +372,7 @@ class PopulationManager(Manager):
         return pop
 
 
-class PopulationInterface:
+class PopulationInterface(Interface):
     """Provides access to the system for reading and updating the population.
 
     The most important aspect of the simulation state is the ``population

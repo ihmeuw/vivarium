@@ -24,7 +24,7 @@ from typing import Any, Callable, Iterable, List
 import networkx as nx
 
 from vivarium.exceptions import VivariumError
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 
 
 class ResourceError(VivariumError):
@@ -283,7 +283,7 @@ class ResourceManager(Manager):
         return "\n".join([f"{produced} : {depends}" for produced, depends in out.items()])
 
 
-class ResourceInterface:
+class ResourceInterface(Interface):
     """The resource management system.
 
     A resource in :mod:`vivarium` is something like a state table column

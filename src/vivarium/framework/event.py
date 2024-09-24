@@ -33,7 +33,7 @@ from typing import Any, Callable, Dict, List, NamedTuple, Optional
 import pandas as pd
 
 from vivarium.framework.lifecycle import ConstraintError
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 from vivarium.types import ClockStepSize, ClockTime
 
 
@@ -253,7 +253,7 @@ class EventManager(Manager):
         return "EventManager()"
 
 
-class EventInterface:
+class EventInterface(Interface):
     """The public interface for the event system."""
 
     def __init__(self, manager: EventManager):

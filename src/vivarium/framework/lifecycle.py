@@ -41,7 +41,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from vivarium.exceptions import VivariumError
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.event import Event
@@ -617,7 +617,7 @@ class LifeCycleManager(Manager):
         return str(self.lifecycle)
 
 
-class LifeCycleInterface:
+class LifeCycleInterface(Interface):
     """Interface to the life cycle management system.
 
     The life cycle management system allows components to constrain

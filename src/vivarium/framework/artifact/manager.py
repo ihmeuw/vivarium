@@ -17,7 +17,7 @@ import pandas as pd
 from layered_config_tree.main import LayeredConfigTree
 
 from vivarium.framework.artifact.artifact import Artifact
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 
 _Filter = Union[str, int, Sequence[int], Sequence[str]]
 
@@ -124,7 +124,7 @@ class ArtifactManager(Manager):
         return "ArtifactManager()"
 
 
-class ArtifactInterface:
+class ArtifactInterface(Interface):
     """The builder interface for accessing a data artifact."""
 
     def __init__(self, manager: ArtifactManager):

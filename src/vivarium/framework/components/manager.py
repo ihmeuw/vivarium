@@ -29,7 +29,7 @@ from layered_config_tree import (
 from vivarium import Component
 from vivarium.exceptions import VivariumError
 from vivarium.framework.lifecycle import LifeCycleManager
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -313,7 +313,7 @@ class ComponentManager(Manager):
         return "ComponentManager()"
 
 
-class ComponentInterface:
+class ComponentInterface(Interface):
     """The builder interface for the component manager system.
 
     This class defines component manager methods a ``vivarium`` component can
