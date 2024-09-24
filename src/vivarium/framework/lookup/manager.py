@@ -25,7 +25,7 @@ from vivarium.framework.lookup.table import (
     LookupTable,
     ScalarTable,
 )
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
@@ -118,7 +118,7 @@ class LookupTableManager(Manager):
         return "LookupTableManager()"
 
 
-class LookupTableInterface:
+class LookupTableInterface(Interface):
     """The lookup table management system.
 
     Simulations tend to require a large quantity of data to run. ``vivarium``

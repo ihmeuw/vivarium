@@ -46,3 +46,9 @@ class Manager:
 
     def setup(self, builder: "Builder") -> None:
         pass
+
+
+class Interface:
+    """An interface class to be used to manage different systems for a simulation  in ``vivarium``"""
+
+    pass

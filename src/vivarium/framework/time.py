@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from vivarium.framework.population import SimulantData
 
 from vivarium.framework.values import list_combiner
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 
 
 class SimulationClock(Manager):
@@ -287,7 +287,7 @@ class DateTimeClock(SimulationClock):
         return "DateTimeClock()"
 
 
-class TimeInterface:
+class TimeInterface(Interface):
     def __init__(self, manager: SimulationClock):
         self._manager = manager
 
