@@ -5,8 +5,7 @@ Stratifications
 
 """
 from __future__ import annotations
-
-from typing import Any, Protocol
+from typing import Any, Callable
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -14,14 +13,8 @@ from pandas.api.types import CategoricalDtype
 STRATIFICATION_COLUMN_SUFFIX: str = "mapped_values"
 
 
-class VectorizedMapper(Protocol):
-    def __call__(self, population: pd.DataFrame) -> pd.Series[Any]:
-        ...
-
-
-class ScalarMapper(Protocol):
-    def __call__(self, simulant_row: pd.Series[str]) -> str:
-        ...
+VectorizedMapper = Callable[[pd.DataFrame], pd.Series] # type: ignore [type-arg]
+ScalarMapper = Callable[[pd.Series], str] # type: ignore [type-arg]
 
 
 class Stratification:
@@ -154,7 +147,7 @@ class Stratification:
         elif is_vectorized:
             return user_provided_mapper  # type: ignore [return-value]
         else:
-            return self._wrap_mapper(user_provided_mapper)  # type: ignore [arg-type]
+            return lambda population: population.apply(user_provided_mapper, axis=1)
 
     @staticmethod
     def _default_mapper(population: pd.DataFrame) -> pd.Series[Any]:
@@ -175,17 +168,6 @@ class Stratification:
         """
         squeezed_pop: pd.Series[Any] = population.squeeze(axis=1)
         return squeezed_pop
-
-    @staticmethod
-    def _wrap_mapper(mapper: ScalarMapper) -> VectorizedMapper:
-        """
-        Wrap a scalar mapper in a vectorized mapper that applies the scalar mapper to each row of a DataFrame.
-        """
-
-        def vectorized_mapper(population: pd.DataFrame) -> pd.Series[Any]:
-            return population.apply(mapper, axis=1)
-
-        return vectorized_mapper
 
 
 def get_mapped_col_name(col_name: str) -> str:
