@@ -235,8 +235,8 @@ def make_dummy_column(name, initial_value):
             return "dummy_column_maker"
 
         def setup(self, builder):
-            self.population_view = builder.population.get_view([name])
-            builder.population.initializes_simulants(self.make_column, creates_columns=[name])
+            self.population_view = builder.population.get_view(name)
+            builder.population.initializes_simulants(self.make_column, creates_columns=name)
 
         def make_column(self, pop_data):
             self.population_view.update(
