@@ -25,6 +25,8 @@ py:class Time
 py:class vivarium.framework.time.Time
 py:class Timedelta
 py:class vivarium.framework.time.Timedelta
+py:class VectorMapper
+py:class ScalarMapper
 py:exc ResultsConfigurationError
 py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
 
