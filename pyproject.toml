@@ -68,7 +68,6 @@ exclude = [
     'src/vivarium/framework/results/manager.py',
     'src/vivarium/framework/results/observation.py',
     'src/vivarium/framework/results/observer.py',
-    'src/vivarium/framework/results/stratification.py',
     'src/vivarium/framework/state_machine.py',
     'src/vivarium/framework/time.py',
     'src/vivarium/framework/values.py',
