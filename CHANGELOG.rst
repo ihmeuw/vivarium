@@ -1,10 +1,11 @@
-**3.0.7 - 09/24/24**
+**3.0.7 - 09/25/24**
 
   - Fix mypy errors: vivarium/framework/lifecycle.py
   - Fix mypy errors: vivarium/framework/population/manager.py
   - Fix mypy errors: vivarium/framework/population/population_view.py
   - Enable population manager and population view methods to accept strings
   - Fix mypy errors: vivarium/framework/plugins.py
+  - Fix mypy errors: vivarium/framework/results/stratification.py
 
 **3.0.6 - 09/20/24**
 
