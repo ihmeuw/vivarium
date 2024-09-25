@@ -1,4 +1,5 @@
 # pandas
+py:class CategoricalDtype
 py:class pandas.core.indexes.base.Index
 py:class pandas.core.indexes.multi.MultiIndex
 py:class pandas._libs.tslibs.timestamps.Timestamp
@@ -26,6 +27,8 @@ py:class ClockTime
 py:class Time
 py:class ClockStepSize
 py:class Timedelta
+py:class VectorMapper
+py:class ScalarMapper
 py:exc ResultsConfigurationError
 py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
 
