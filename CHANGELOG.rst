@@ -1,3 +1,7 @@
+**3.0.8 - TBD**
+
+  - Fix mypy errors: vivarium/framework/resource.py
+
 **3.0.7 - 09/25/24**
 
   - Enable population manager and population view methods to accept strings  
