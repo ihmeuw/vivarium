@@ -39,3 +39,4 @@ py:exc layered_config_tree.exceptions.ConfigurationError
 
 # TODO: Need to revisit this. Nitpicking here to avoid failing builds on 3.9 in state_machine and testing_utils
 py:class Logger
+py:class Path
