@@ -1,6 +1,7 @@
 **3.0.8 - 10/03/24**
 
-  = Fix mypy errors: vivarium/framework/artifact/hdf.py
+  - Fix mypy errors: vivarium/framework/resource.py
+  - Fix mypy errors: vivarium/framework/artifact/hdf.py
 
 **3.0.7 - 09/25/24**
 
