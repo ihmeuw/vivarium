@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 =============
 HDF Interface
@@ -40,23 +39,23 @@ Contracts
 
 """
 
+from __future__ import annotations
+
 import json
 import re
 from pathlib import Path
-from typing import Any, List, Optional, Union
+from typing import Any, Literal
 
 import pandas as pd
-import tables
-from tables.nodes import filenode
-
-_PandasObj = (pd.DataFrame, pd.Series)
+import tables  # type: ignore [import-untyped]
+from tables.nodes import filenode  # type: ignore [import-untyped]
 
 ####################
 # Public interface #
 ####################
 
 
-def touch(path: Union[str, Path]) -> None:
+def touch(path: Path | str) -> None:
     """Creates an HDF file, wiping an existing file if necessary.
 
     If the given path is proper to create a HDF file, it creates a new
@@ -79,7 +78,7 @@ def touch(path: Union[str, Path]) -> None:
         pass
 
 
-def write(path: Union[str, Path], entity_key: str, data: Any) -> None:
+def write(path: Path | str, entity_key: str, data: Any) -> None:
     """Writes data to the HDF file at the given path to the given key.
 
     Parameters
@@ -104,20 +103,20 @@ def write(path: Union[str, Path], entity_key: str, data: Any) -> None:
         If the path or entity_key are improperly formatted.
 
     """
-    path = _get_valid_hdf_path(path)
+    hdf_path: Path = _get_valid_hdf_path(path)
     entity_key = EntityKey(entity_key)
 
-    if isinstance(data, _PandasObj):
-        _write_pandas_data(path, entity_key, data)
+    if isinstance(data, (pd.DataFrame, pd.Series)):
+        _write_pandas_data(hdf_path, entity_key, data)
     else:
-        _write_json_blob(path, entity_key, data)
+        _write_json_blob(hdf_path, entity_key, data)
 
 
 def load(
-    path: Union[str, Path],
+    path: Path | str,
     entity_key: str,
-    filter_terms: Optional[List[str]],
-    column_filters: Optional[List[str]],
+    filter_terms: list[str] | None,
+    column_filters: list[str] | None,
 ) -> Any:
     """Loads data from an HDF file.
 
@@ -156,24 +155,24 @@ def load(
         else:
             filter_terms = _get_valid_filter_terms(filter_terms, node.table.colnames)
             with pd.HDFStore(str(path), complevel=9, mode="r") as store:
-                metadata = store.get_storer(
+                metadata = store.get_storer(  # type: ignore [operator]
                     entity_key.path
                 ).attrs.metadata  # NOTE: must use attrs. write this up
 
             if metadata.get("is_empty", False):
-                data = pd.read_hdf(path, entity_key.path, where=filter_terms)
+                data = pd.read_hdf(path, entity_key.path, where=filter_terms)  # type: ignore [arg-type]
                 data = data.set_index(
                     list(data.columns)
                 )  # undoing transform performed on write
             else:
                 data = pd.read_hdf(
-                    path, entity_key.path, where=filter_terms, columns=column_filters
+                    path, entity_key.path, where=filter_terms, columns=column_filters  # type: ignore [arg-type]
                 )
 
     return data
 
 
-def remove(path: Union[str, Path], entity_key: str) -> None:
+def remove(path: Path | str, entity_key: str) -> None:
     """Removes a piece of data from an HDF file.
 
     Parameters
@@ -195,7 +194,7 @@ def remove(path: Union[str, Path], entity_key: str) -> None:
         file.remove_node(entity_key.path, recursive=True)
 
 
-def get_keys(path: Union[str, Path]) -> List[str]:
+def get_keys(path: Path | str) -> list[str]:
     """Gets key representation of all paths in an HDF file.
 
     Parameters
@@ -222,7 +221,7 @@ class EntityKey(str):
 
     """
 
-    def __init__(self, key):
+    def __init__(self, key: str) -> None:
         """
         Parameters
         ----------
@@ -299,13 +298,13 @@ class EntityKey(str):
         else:
             return EntityKey(f"{self.type}.{measure}")
 
-    def __eq__(self, other: "EntityKey") -> bool:
+    def __eq__(self, other: object) -> bool:
         return isinstance(other, str) and str(self) == str(other)
 
-    def __ne__(self, other: "EntityKey") -> bool:
+    def __ne__(self, other: object) -> bool:
         return not self == other
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(str(self))
 
     def __repr__(self) -> str:
@@ -317,7 +316,7 @@ class EntityKey(str):
 #####################
 
 
-def _get_valid_hdf_path(path: Union[str, Path]) -> Path:
+def _get_valid_hdf_path(path: Path | str) -> Path:
     valid_suffixes = [".hdf", ".h5"]
 
     path = Path(path)
@@ -329,7 +328,9 @@ def _get_valid_hdf_path(path: Union[str, Path]) -> Path:
     return path
 
 
-def _write_pandas_data(path: Path, entity_key: EntityKey, data: _PandasObj):
+def _write_pandas_data(
+    path: Path, entity_key: EntityKey, data: pd.DataFrame | pd.Series[Any]
+) -> None:
     """Write data in a pandas format to an HDF file.
 
     This method currently supports :class:`pandas DataFrame` objects, with or
@@ -343,7 +344,7 @@ def _write_pandas_data(path: Path, entity_key: EntityKey, data: _PandasObj):
         if data.empty:
             raise ValueError("Cannot write an empty dataframe that does not have an index.")
         metadata = {"is_empty": True}
-        data_columns = True
+        data_columns: Literal[True] | None = True
     else:
         metadata = {"is_empty": False}
         data_columns = None
@@ -351,7 +352,7 @@ def _write_pandas_data(path: Path, entity_key: EntityKey, data: _PandasObj):
     with pd.HDFStore(str(path), complevel=9) as store:
         store.put(entity_key.path, data, format="table", data_columns=data_columns)
         # NOTE: must use attrs. write this up
-        store.get_storer(entity_key.path).attrs.metadata = metadata
+        store.get_storer(entity_key.path).attrs.metadata = metadata  # type: ignore [operator]
 
 
 def _write_json_blob(path: Path, entity_key: EntityKey, data: Any) -> None:
@@ -369,7 +370,7 @@ def _write_json_blob(path: Path, entity_key: EntityKey, data: Any) -> None:
             fnode.write(bytes(json.dumps(data), "utf-8"))
 
 
-def _get_keys(root: tables.node.Node, prefix: str = "") -> List[str]:
+def _get_keys(root: tables.node.Node, prefix: str = "") -> list[str]:
     """Recursively formats the paths in an HDF file into a key format."""
     keys = []
     for child in root:
@@ -395,7 +396,9 @@ def _get_node_name(node: tables.node.Node) -> str:
     return node_name
 
 
-def _get_valid_filter_terms(filter_terms, colnames) -> Optional[list[str]]:
+def _get_valid_filter_terms(
+    filter_terms: list[str] | None, colnames: list[str]
+) -> list[str] | None:
     """Removes any filter terms referencing non-existent columns
 
     Parameters
@@ -418,11 +421,11 @@ def _get_valid_filter_terms(filter_terms, colnames) -> Optional[list[str]]:
     for term in filter_terms:
         # first strip out all the parentheses - the where in read_hdf
         # requires all references to be valid
-        t = re.sub("[()]", "", term)
+        sub_term = re.sub("[()]", "", term)
         # then split each condition out
-        t = re.split("[&|]", t)
+        split: list[str] = re.split("[&|]", sub_term)
         # get the unique columns referenced by this term
-        term_columns = set([re.split(r"[<=>\s]", i.strip())[0] for i in t])
+        term_columns = set([re.split(r"[<=>\s]", i.strip())[0] for i in split])
         if not term_columns.issubset(colnames):
             valid_terms.remove(term)
     return valid_terms if valid_terms else None

@@ -46,7 +46,6 @@ exclude = [
     'src/vivarium/examples/disease_model/population.py',
     'src/vivarium/examples/disease_model/risk.py',
     'src/vivarium/framework/artifact/artifact.py',
-    'src/vivarium/framework/artifact/hdf.py',
     'src/vivarium/framework/artifact/manager.py',
     'src/vivarium/framework/components/manager.py',
     'src/vivarium/framework/components/parser.py',
