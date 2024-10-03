@@ -1,3 +1,7 @@
+**3.0.8 - 10/03/24**
+
+  = Fix mypy errors: vivarium/framework/artifact/hdf.py
+
 **3.0.7 - 09/25/24**
 
   - Enable population manager and population view methods to accept strings  
