@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 =================
 Logging Utilities
@@ -7,10 +6,12 @@ Logging Utilities
 This module contains utilities for configuring logging.
 
 """
+from __future__ import annotations
 
 import logging
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING, TextIO
 
 from loguru import logger
 
@@ -55,7 +56,7 @@ def configure_logging_to_file(output_directory: Path) -> None:
     )
 
 
-def _clear_default_configuration():
+def _clear_default_configuration() -> None:
     try:
         logger.remove(0)  # Clear default configuration
     except ValueError:
@@ -63,7 +64,7 @@ def _clear_default_configuration():
 
 
 def _add_logging_sink(
-    sink,
+    sink: Path | TextIO,
     verbosity: int,
     long_format: bool,
     colorize: bool,
@@ -112,7 +113,10 @@ class _LogFormatter:
     def __init__(self, long_format: bool = False):
         self.long_format = long_format
 
-    def format(self, record):
+    if TYPE_CHECKING:
+        from loguru import Record
+
+    def format(self, record: Record) -> str:
         fmt = self.time + " | "
 
         if self.long_format:
@@ -130,16 +134,18 @@ class _LogFormatter:
         return fmt
 
 
-def _get_log_level(verbosity: int):
+def _get_log_level(verbosity: int) -> str:
     if verbosity == 0:
         return "WARNING"
     elif verbosity == 1:
         return "INFO"
     elif verbosity >= 2:
         return "DEBUG"
+    else:
+        raise ValueError(f"Invalid verbosity level: {verbosity}")
 
 
-def list_loggers():
+def list_loggers() -> None:
     """Utility function for analyzing the logging environment."""
     root_logger = logging.getLogger()
     print("Root logger: ", root_logger)
