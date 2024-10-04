@@ -1,3 +1,7 @@
+**3.0.9 - 10/04/24**
+
+  - Fix mypy errors: vivarium/framework/logging/utilities.py
+
 **3.0.8 - 10/03/24**
 
   - Fix mypy errors: vivarium/framework/resource.py
