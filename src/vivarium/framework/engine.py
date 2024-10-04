@@ -368,6 +368,8 @@ class SimulationContext:
                 "'End' and 'step_size' or 'simulation_events' are required."
             )
 
+        return num_steps
+
 
 class Builder:
     """Toolbox for constructing and configuring simulation components.
