@@ -1,3 +1,7 @@
+**3.0.10 - 10/07/24**
+
+  - Add method to SimulationClock to get number of simulation steps remaining
+
 **3.0.9 - 10/04/24**
 
   - Fix mypy errors: vivarium/framework/logging/utilities.py
