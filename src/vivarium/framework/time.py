@@ -48,42 +48,51 @@ class SimulationClock(Manager):
     @property
     def time(self) -> ClockTime:
         """The current simulation time."""
-        if not self._clock_time:
+        if self._clock_time is None:
             raise ValueError("No start time provided")
         return self._clock_time
 
     @property
     def stop_time(self) -> ClockTime:
         """The time at which the simulation will stop."""
-        if not self._stop_time:
+        if self._stop_time is None:
             raise ValueError("No stop time provided")
         return self._stop_time
 
     @property
     def minimum_step_size(self) -> ClockStepSize:
         """The minimum step size."""
-        if not self._minimum_step_size:
+        if self._minimum_step_size is None:
             raise ValueError("No minimum step size provided")
         return self._minimum_step_size
 
     @property
     def standard_step_size(self) -> ClockStepSize:
         """The standard varied step size."""
-        if not self._standard_step_size:
+        if self._standard_step_size is None:
             raise ValueError("No standard step size provided")
+        elif self._clock_step_size == 0:
+            raise ValueError("Step size cannot be equal to zero")
         return self._standard_step_size
 
     @property
     def step_size(self) -> ClockStepSize:
         """The size of the next time step."""
-        if not self._clock_step_size:
+        if self._clock_step_size is None:
             raise ValueError("No step size provided")
+        elif self._clock_step_size == 0:
+            raise ValueError("Step size cannot be equal to zero")
         return self._clock_step_size
 
     @property
     def event_time(self) -> ClockTime:
         "Convenience method for event time, or clock + step"
         return self.time + self.step_size
+
+    @property
+    def time_steps_remaining(self) -> int:
+        # TODO: confirm this is correct and not off by one if not a round number
+        return int((self.stop_time - self.time) / self.step_size)
 
     def __init__(self):
         self._clock_time: ClockTime = None

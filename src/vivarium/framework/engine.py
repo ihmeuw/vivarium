@@ -350,25 +350,8 @@ class SimulationContext:
     def __repr__(self):
         return f"SimulationContext({self.name})"
 
-    def get_number_of_steps(self, start_time: pd.Timestamp) -> int:
-        time_config = self.configuration.time.to_dict()
-        end_time = pd.Timestamp(**time_config["end"]) if "end" in time_config else None
-        step_size = (
-            pd.Timedelta(days=time_config["step_size"])
-            if "step_size" in time_config
-            else None
-        )
-        if end_time and step_size:
-            num_steps = int(math.ceil((end_time - start_time) / step_size))
-        elif "simulation_events" in time_config:
-            num_steps = len(time_config["simulation_events"])
-        else:
-            ConfigurationKeyError(
-                "Time configuration is missing a necessary key. "
-                "'End' and 'step_size' or 'simulation_events' are required."
-            )
-
-        return num_steps
+    def get_number_of_steps_remaining(self) -> int:
+        return self._clock.time_steps_remaining
 
 
 class Builder:
