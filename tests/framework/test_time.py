@@ -512,31 +512,16 @@ def test_step_size_post_processor(builder):
     assert np.all(value == pd.Timedelta(days=2))
 
 
-def test_number_of_remaining_steps(SimulationContext, base_config):
-    UselessComponent = MockGenericComponent("Placeholder")
-    base_config.update(
-        {
-            "configuration": {
-                "time": {
-                    "start": {"year": 2021, "month": 1, "day": 1},
-                    "end": {"year": 2021, "month": 1, "day": 5},
-                    "step_size": 1,  # Days
-                },
-            },
-        },
-    )
-    sim = SimulationContext(
-        base_config,
-        [UselessComponent],
-    )
-    sim.setup()
-    sim.initialize_simulants()
-    assert sim.get_number_of_steps_remaining() == 4
-    sim.step()
-    assert sim.get_number_of_steps_remaining() == 3
-
-
-def test_uneven_number_of_steps_remaining(SimulationContext, base_config):
+@pytest.mark.parametrize(
+    "end_day, clock",
+    [
+        (31, "DateTimeClock"),
+        (23, "DateTimeClock"),
+        (31, "SimpleClock"),
+        (23, "SimpleClock"),
+    ],
+)
+def test_time_steps_remaining(SimulationContext, base_config, end_day, clock):
     # This test is to confirm we do not have a off by one error in the number of steps remaining
     UselessComponent = MockGenericComponent("Placeholder")
     base_config.update(
@@ -544,8 +529,13 @@ def test_uneven_number_of_steps_remaining(SimulationContext, base_config):
             "configuration": {
                 "time": {
                     "start": {"year": 2021, "month": 1, "day": 1},
-                    "end": {"year": 2021, "month": 1, "day": 25},
+                    "end": {"year": 2021, "month": 1, "day": end_day},
                     "step_size": 10,  # Days
+                },
+            },
+            "plugins": {
+                "required": {
+                    "controller": f"vivarium.framework..plugins.time.{clock}",
                 },
             },
         },
