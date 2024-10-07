@@ -512,17 +512,8 @@ def test_step_size_post_processor(builder):
     assert np.all(value == pd.Timedelta(days=2))
 
 
-@pytest.mark.parametrize(
-    "end_day, clock",
-    [
-        (31, "DateTimeClock"),
-        (23, "DateTimeClock"),
-        (31, "SimpleClock"),
-        (23, "SimpleClock"),
-    ],
-)
-def test_time_steps_remaining(SimulationContext, base_config, end_day, clock):
-    # This test is to confirm we do not have a off by one error in the number of steps remaining
+@pytest.mark.parametrize("end_day", [31, 23])
+def test_time_steps_remaining(SimulationContext, base_config, end_day):
     UselessComponent = MockGenericComponent("Placeholder")
     base_config.update(
         {
@@ -533,10 +524,37 @@ def test_time_steps_remaining(SimulationContext, base_config, end_day, clock):
                     "step_size": 10,  # Days
                 },
             },
+        },
+    )
+    sim = SimulationContext(
+        base_config,
+        [UselessComponent],
+    )
+    sim.setup()
+    sim.initialize_simulants()
+    assert sim.get_number_of_steps_remaining() == 3
+    sim.step()
+    assert sim.get_number_of_steps_remaining() == 2
+
+
+@pytest.mark.parametrize("end", [31, 23])
+def test_simple_clock_time_steps_remaining(SimulationContext, base_config, end):
+    UselessComponent = MockGenericComponent("Placeholder")
+    base_config.update(
+        {
+            "configuration": {
+                "time": {
+                    "start": 1,
+                    "end": end,
+                    "step_size": 10,
+                },
+            },
             "plugins": {
                 "required": {
-                    "controller": f"vivarium.framework..plugins.time.{clock}",
-                },
+                    "clock": {
+                        "controller": "vivarium.framework.time.SimpleClock",
+                    },
+                }
             },
         },
     )
