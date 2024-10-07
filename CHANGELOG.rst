@@ -1,6 +1,6 @@
 **3.0.10 - 10/07/24**
 
-  - Add method to InteractiveContext to get number of simulation steps
+  - Add method to SimulationClock to get number of simulation steps remaining
 
 **3.0.9 - 10/04/24**
 
