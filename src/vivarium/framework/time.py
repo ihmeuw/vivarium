@@ -12,6 +12,7 @@ For more information about time in the simulation, see the associated
 
 """
 
+import math
 from functools import partial
 from typing import TYPE_CHECKING, Callable, List
 
@@ -91,8 +92,7 @@ class SimulationClock(Manager):
 
     @property
     def time_steps_remaining(self) -> int:
-        # TODO: confirm this is correct and not off by one if not a round number
-        return int((self.stop_time - self.time) / self.step_size)
+        return math.ceil((self.stop_time - self.time) / self.step_size)
 
     def __init__(self):
         self._clock_time: ClockTime = None

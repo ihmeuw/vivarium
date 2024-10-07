@@ -510,3 +510,52 @@ def test_step_size_post_processor(builder):
     clock.register_step_modifier(lambda idx: pd.Series(pd.Timedelta(days=0.5), index=idx))
     value = clock._step_size_pipeline(index)
     assert np.all(value == pd.Timedelta(days=2))
+
+
+def test_number_of_remaining_steps(SimulationContext, base_config):
+    UselessComponent = MockGenericComponent("Placeholder")
+    base_config.update(
+        {
+            "configuration": {
+                "time": {
+                    "start": {"year": 2021, "month": 1, "day": 1},
+                    "end": {"year": 2021, "month": 1, "day": 5},
+                    "step_size": 1,  # Days
+                },
+            },
+        },
+    )
+    sim = SimulationContext(
+        base_config,
+        [UselessComponent],
+    )
+    sim.setup()
+    sim.initialize_simulants()
+    assert sim.get_number_of_steps_remaining() == 4
+    sim.step()
+    assert sim.get_number_of_steps_remaining() == 3
+
+
+def test_uneven_number_of_steps_remaining(SimulationContext, base_config):
+    # This test is to confirm we do not have a off by one error in the number of steps remaining
+    UselessComponent = MockGenericComponent("Placeholder")
+    base_config.update(
+        {
+            "configuration": {
+                "time": {
+                    "start": {"year": 2021, "month": 1, "day": 1},
+                    "end": {"year": 2021, "month": 1, "day": 25},
+                    "step_size": 10,  # Days
+                },
+            },
+        },
+    )
+    sim = SimulationContext(
+        base_config,
+        [UselessComponent],
+    )
+    sim.setup()
+    sim.initialize_simulants()
+    assert sim.get_number_of_steps_remaining() == 3
+    sim.step()
+    assert sim.get_number_of_steps_remaining() == 2
