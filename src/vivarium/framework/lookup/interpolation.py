@@ -7,13 +7,12 @@ Provides interpolation algorithms across tabular data for ``vivarium``
 simulations.
 
 """
-from typing import Any, List, Tuple, Union
+from typing import Any, Union
 
 import numpy as np
 import pandas as pd
-from pandas.core.groupby import DataFrameGroupBy
 
-_ParameterType = Union[List[List[str]], List[Tuple[str, str, str]]]
+_ParameterType = Union[list[list[str]], list[tuple[str, str, str]]]
 
 
 class Interpolation:
