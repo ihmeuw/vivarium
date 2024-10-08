@@ -1,3 +1,16 @@
+**3.0.10 - 10/07/24**
+
+  - Add method to SimulationClock to get number of simulation steps remaining
+
+**3.0.9 - 10/04/24**
+
+  - Fix mypy errors: vivarium/framework/logging/utilities.py
+
+**3.0.8 - 10/03/24**
+
+  - Fix mypy errors: vivarium/framework/resource.py
+  - Fix mypy errors: vivarium/framework/artifact/hdf.py
+
 **3.0.7 - 09/25/24**
 
   - Enable population manager and population view methods to accept strings  

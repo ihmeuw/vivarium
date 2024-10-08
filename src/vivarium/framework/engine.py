@@ -20,6 +20,7 @@ tools to easily setup and run a simulation.
 
 """
 
+import math
 from pathlib import Path
 from pprint import pformat
 from time import time
@@ -348,6 +349,9 @@ class SimulationContext:
 
     def __repr__(self):
         return f"SimulationContext({self.name})"
+
+    def get_number_of_steps_remaining(self) -> int:
+        return self._clock.time_steps_remaining
 
 
 class Builder:
