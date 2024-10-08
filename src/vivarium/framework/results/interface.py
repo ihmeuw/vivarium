@@ -21,6 +21,7 @@ from vivarium.framework.results.observation import (
     StratifiedObservation,
     UnstratifiedObservation,
 )
+from vivarium.manager import Interface
 from vivarium.types import ScalarValue
 
 if TYPE_CHECKING:
@@ -32,7 +33,7 @@ def _required_function_placeholder(*args, **kwargs) -> pd.DataFrame:
     return pd.DataFrame()
 
 
-class ResultsInterface:
+class ResultsInterface(Interface):
     """Builder interface for the results management system.
 
     The results management system allows users to delegate results production

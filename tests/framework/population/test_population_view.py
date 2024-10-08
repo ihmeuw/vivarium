@@ -98,7 +98,7 @@ def test_initialization(population_manager):
     assert pv._id == 0
     assert pv.name == "population_view_0"
     assert set(pv.columns) == set(COL_NAMES)
-    assert pv.query is None
+    assert pv.query == ""
 
     # Failure here is lazy.  The manager should give you back views for
     # columns that don't exist since views are built during setup when
@@ -108,7 +108,7 @@ def test_initialization(population_manager):
     assert pv._id == 1
     assert pv.name == "population_view_1"
     assert set(pv.columns) == set(cols)
-    assert pv.query is None
+    assert pv.query == ""
 
     col_subset = ["color", "count"]
     pv = population_manager.get_view(col_subset)
@@ -131,34 +131,47 @@ def test_initialization(population_manager):
 ##########################
 
 
-def test_subview(population_manager):
+@pytest.mark.parametrize(
+    "columns",
+    [["color", "count"], ["color"], ["color", "count", "tracked"]],
+    ids=["multiple columns", "single column", "including tracked"],
+)
+def test_subview_columns_list_input(
+    population_manager: PopulationManager, columns: list[str]
+) -> None:
     pv = population_manager.get_view(COL_NAMES)
+    sub_pv = pv.subview(columns)
+    assert set(sub_pv.columns) == set(columns)
 
-    # columns without tracked
-    col_subset = ["color", "count"]
-    sub_pv = pv.subview(col_subset)
-    assert set(sub_pv.columns) == set(col_subset)
-    assert sub_pv.query == "tracked == True"
 
-    # columns with tracked
-    col_subset = ["color", "count", "tracked"]
-    sub_pv = pv.subview(col_subset)
-    assert set(sub_pv.columns) == set(col_subset)
-    assert sub_pv.query == pv.query
+def test_subview_columns_string_input(population_manager: PopulationManager) -> None:
+    pv = population_manager.get_view(COL_NAMES)
+    sub_pv = pv.subview("color")
+    assert set(sub_pv.columns) == {"color"}
 
-    # Columns not in the table
-    col_subset = ["age", "sex"]
+
+@pytest.mark.parametrize("columns", [["color", "count"], ["color", "count", "tracked"]])
+def test_subview_queries(population_manager: PopulationManager, columns: list[str]) -> None:
+    pv = population_manager.get_view(COL_NAMES, query="foo == 'red'")
+
+    # get subview
+    sub_pv = pv.subview(columns)
+
+    expected_query = pv.query if "tracked" in columns else f"{pv.query} and tracked == True"
+    assert sub_pv.query == expected_query
+
+
+@pytest.mark.parametrize(
+    "columns",
+    [["age", "sex"], COL_NAMES + ["age"], []],
+    ids=["columns not in pop_view", "one column not in pop_view", "no columns"],
+)
+def test_subview_bad_columns_input(
+    population_manager: PopulationManager, columns: list[str]
+) -> None:
+    pv = population_manager.get_view(COL_NAMES)
     with pytest.raises(PopulationError):
-        pv.subview(col_subset)
-
-    # One column not in the table
-    col_subset = COL_NAMES + ["age"]
-    with pytest.raises(PopulationError):
-        pv.subview(col_subset)
-
-    # No columns provided
-    with pytest.raises(PopulationError):
-        pv.subview([])
+        pv.subview(columns)
 
 
 ######################

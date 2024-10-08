@@ -11,7 +11,7 @@ import pandas as pd
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import RandomnessStream, get_hash
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 
 
 class RandomnessManager(Manager):
@@ -182,7 +182,7 @@ class RandomnessManager(Manager):
         return f"RandomnessManager(seed={self._seed}, key_columns={self._key_columns})"
 
 
-class RandomnessInterface:
+class RandomnessInterface(Interface):
     def __init__(self, manager: RandomnessManager):
         self._manager = manager
 
