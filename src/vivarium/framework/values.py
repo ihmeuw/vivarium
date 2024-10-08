@@ -12,18 +12,21 @@ For more information about when and how you should use pipelines in your
 simulations, see the value system :ref:`concept note <values_concept>`.
 
 """
+from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Callable, Iterable, Protocol
+from typing import Any, Callable, Iterable, Protocol, TYPE_CHECKING
 
 import pandas as pd
 
 from vivarium.exceptions import VivariumError
-from vivarium.framework.engine import Builder
 from vivarium.framework.utilities import from_yearly
 from vivarium.manager import Manager
 from vivarium.types import NumberLike
+
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
 
 ValueSource = Callable[..., NumberLike]
 
@@ -302,7 +305,11 @@ class Pipeline:
         DynamicValueError
             If the pipeline is invoked without a source set.
         """
+        return self._call(*args, skip_post_processor=skip_post_processor, **kwargs)
 
+    def _call(
+        self, *args: Any, skip_post_processor: bool = False, **kwargs: Any
+    ) -> NumberLike:
         value = self.source(*args, **kwargs)
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
@@ -328,7 +335,7 @@ class ValuesManager(Manager):
     def name(self) -> str:
         return "values_manager"
 
-    def setup(self, builder: Builder) -> None:
+    def setup(self, builder: "Builder") -> None:
         self.logger = builder.logging.get_logger(self.name)
         self.step_size = builder.time.step_size()
         self.simulant_step_sizes = builder.time.simulant_step_sizes()
@@ -363,7 +370,7 @@ class ValuesManager(Manager):
             for i, m in enumerate(pipe.mutators):
                 mutator_name = self._get_modifier_name(m)
                 dependencies.append(f"value_modifier.{name}.{i+1}.{mutator_name}")
-            self.resources.add_resources("value", [name], pipe.__call__, dependencies)
+            self.resources.add_resources("value", [name], pipe._call, dependencies)
 
     def register_value_producer(
         self,
@@ -394,7 +401,7 @@ class ValuesManager(Manager):
         )
         self.resources.add_resources("value_source", [value_name], source, dependencies)
         self.add_constraint(
-            pipeline.__call__, restrict_during=["initialization", "setup", "post_setup"]
+            pipeline._call, restrict_during=["initialization", "setup", "post_setup"]
         )
 
         return pipeline
