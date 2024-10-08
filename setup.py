@@ -44,6 +44,7 @@ if __name__ == "__main__":
         "dill",
         # Type stubs
         "pandas-stubs",
+        "networkx-stubs",
     ]
 
     setup_requires = ["setuptools_scm"]

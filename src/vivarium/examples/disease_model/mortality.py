@@ -73,7 +73,7 @@ class Mortality(Component):
         effective_probability = 1 - np.exp(-effective_rate)
         draw = self.randomness.get_draw(event.index)
         affected_simulants = draw < effective_probability
-        self.population_view.subview(["alive"]).update(
+        self.population_view.subview("alive").update(
             pd.Series("dead", index=event.index[affected_simulants])
         )
 

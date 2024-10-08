@@ -1,3 +1,29 @@
+**3.0.10 - 10/07/24**
+
+  - Add method to SimulationClock to get number of simulation steps remaining
+
+**3.0.9 - 10/04/24**
+
+  - Fix mypy errors: vivarium/framework/logging/utilities.py
+
+**3.0.8 - 10/03/24**
+
+  - Fix mypy errors: vivarium/framework/resource.py
+  - Fix mypy errors: vivarium/framework/artifact/hdf.py
+
+**3.0.7 - 09/25/24**
+
+  - Enable population manager and population view methods to accept strings  
+  - Fix mypy errors: vivarium/framework/lifecycle.py
+  - Fix mypy errors: vivarium/framework/population/manager.py
+  - Fix mypy errors: vivarium/framework/population/population_view.p
+  - Fix mypy errors: vivarium/framework/plugins.py
+  - Fix mypy errors: vivarium/framework/results/stratification.py
+
+**3.0.6 - 09/20/24**
+
+  - Fix mypy errors: vivarium/framework/randomness/index_map.py
+
 **3.0.5 - 09/17/24**
 
   - Pin Sphinx below 8.0

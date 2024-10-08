@@ -22,7 +22,7 @@ import pandas as pd
 from vivarium.exceptions import VivariumError
 from vivarium.framework.engine import Builder
 from vivarium.framework.utilities import from_yearly
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
 from vivarium.types import NumberLike
 
 ValueSource = Callable[..., NumberLike]
@@ -541,7 +541,7 @@ class ValuesManager(Manager):
         return "ValuesManager()"
 
 
-class ValuesInterface:
+class ValuesInterface(Interface):
     """Public interface for the simulation values management system.
 
     The values system provides tools to build up a value across many

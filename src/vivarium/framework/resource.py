@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ===================
 Resource Management
@@ -18,13 +17,18 @@ dependencies or raise exceptions if this is not possible.
 
 """
 
-from types import MethodType
-from typing import Any, Callable, Iterable, List
+from __future__ import annotations
+
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 
 from vivarium.exceptions import VivariumError
-from vivarium.manager import Manager
+from vivarium.manager import Interface, Manager
+
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
 
 
 class ResourceError(VivariumError):
@@ -59,9 +63,9 @@ class ResourceGroup:
     def __init__(
         self,
         resource_type: str,
-        resource_names: List[str],
-        producer: Callable,
-        dependencies: List[str],
+        resource_names: list[str],
+        producer: Any,
+        dependencies: list[str],
     ):
         self._resource_type = resource_type
         self._resource_names = resource_names
@@ -77,7 +81,7 @@ class ResourceGroup:
         return self._resource_type
 
     @property
-    def names(self) -> List[str]:
+    def names(self) -> list[str]:
         """The long names (including type) of all resources in this group."""
         return [f"{self._resource_type}.{name}" for name in self._resource_names]
 
@@ -87,11 +91,11 @@ class ResourceGroup:
         return self._producer
 
     @property
-    def dependencies(self) -> List[str]:
+    def dependencies(self) -> list[str]:
         """The long names (including type) of dependencies for this group."""
         return self._dependencies
 
-    def __iter__(self) -> Iterable[str]:
+    def __iter__(self) -> Iterator[str]:
         return iter(self.names)
 
     def __repr__(self) -> str:
@@ -106,20 +110,20 @@ class ResourceGroup:
 class ResourceManager(Manager):
     """Manages all the resources needed for population initialization."""
 
-    def __init__(self):
-        # This will be a dict with string keys representing the the resource
-        # and the resource group they belong to. This is a one to many mapping
-        # as some resource groups contain many resources.
-        self._resource_group_map = {}
-        # null producers are those that don't produce any resources externally
-        # but still consume other resources (i.e., have dependencies) - these
-        # are only pop initializers as of 9/26/2019. Tracker is here to assign
-        # them unique ids.
+    def __init__(self) -> None:
+        self._resource_group_map: dict[str, ResourceGroup] = {}
+        """Resource - resource group mapping. This will be a dict with string keys 
+        representing the the resource and the resource group they belong to. This 
+        is a one to many mapping as some resource groups contain many resources."""
         self._null_producer_count = 0
-        # Attribute used for lazy (but cached) graph initialization.
-        self._graph = None
-        # Attribute used for lazy (but cached) graph topo sort.
-        self._sorted_nodes = None
+        """Null producer counter. Null producers are those that don't produce any 
+        resources externally but still consume other resources (i.e., have 
+        dependencies) - these are only pop initializers as of 9/26/2019. Tracker 
+        is here to assign them unique ids."""
+        self._graph: nx.DiGraph | None = None
+        """Attribute used for lazy (but cached) graph initialization."""
+        self._sorted_nodes: list[ResourceGroup] | None = None
+        """Attribute used for lazy (but cached) graph topo sort."""
 
     @property
     def name(self) -> str:
@@ -134,7 +138,7 @@ class ResourceManager(Manager):
         return self._graph
 
     @property
-    def sorted_nodes(self):
+    def sorted_nodes(self) -> list[ResourceGroup]:
         """Returns a topological sort of the resource graph.
 
         Notes
@@ -144,7 +148,7 @@ class ResourceManager(Manager):
         """
         if self._sorted_nodes is None:
             try:
-                self._sorted_nodes = list(nx.algorithms.topological_sort(self.graph))
+                self._sorted_nodes = list(nx.algorithms.topological_sort(self.graph))  # type: ignore[func-returns-value]
             except nx.NetworkXUnfeasible:
                 raise ResourceError(
                     f"The resource pool contains at least one cycle: "
@@ -152,16 +156,17 @@ class ResourceManager(Manager):
                 )
         return self._sorted_nodes
 
-    def setup(self, builder):
+    def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
 
+    # TODO [MIC-5380]: Refactor add_resources for better type hinting
     def add_resources(
         self,
         resource_type: str,
-        resource_names: List[str],
+        resource_names: list[str],
         producer: Any,
-        dependencies: List[str],
-    ):
+        dependencies: list[str],
+    ) -> None:
         """Adds managed resources to the resource pool.
 
         Parameters
@@ -206,9 +211,9 @@ class ResourceManager(Manager):
     def _get_resource_group(
         self,
         resource_type: str,
-        resource_names: List[str],
-        producer: MethodType,
-        dependencies: List[str],
+        resource_names: list[str],
+        producer: Any,
+        dependencies: list[str],
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -250,7 +255,7 @@ class ResourceManager(Manager):
                 if dependency not in self._resource_group_map:
                     # Warn here because this sometimes happens naturally
                     # if observer components are missing from a simulation.
-                    self.logger.warning(
+                    self.logger.warning(  # type: ignore[no-untyped-call]
                         f"Resource {dependency} is not provided by any component but is needed to "
                         f"compute {resource_group}."
                     )
@@ -260,7 +265,7 @@ class ResourceManager(Manager):
 
         return resource_graph
 
-    def __iter__(self) -> Iterable[MethodType]:
+    def __iter__(self) -> Iterator[Any]:
         """Returns a dependency-sorted iterable of population initializers.
 
         We exclude all non-initializer dependencies. They were necessary in
@@ -275,7 +280,7 @@ class ResourceManager(Manager):
             ]
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         out = {}
         for resource_group in set(self._resource_group_map.values()):
             produced = ", ".join(resource_group)
@@ -283,7 +288,7 @@ class ResourceManager(Manager):
         return "\n".join([f"{produced} : {depends}" for produced, depends in out.items()])
 
 
-class ResourceInterface:
+class ResourceInterface(Interface):
     """The resource management system.
 
     A resource in :mod:`vivarium` is something like a state table column
@@ -307,9 +312,9 @@ class ResourceInterface:
     def add_resources(
         self,
         resource_type: str,
-        resource_names: List[str],
+        resource_names: list[str],
         producer: Any,
-        dependencies: List[str],
+        dependencies: list[str],
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -335,7 +340,7 @@ class ResourceInterface:
         """
         self._manager.add_resources(resource_type, resource_names, producer, dependencies)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         """Returns a dependency-sorted iterable of population initializers.
 
         We exclude all non-initializer dependencies. They were necessary in
