@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import Any, Callable, Iterable, Protocol, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Protocol
 
 import pandas as pd
 
