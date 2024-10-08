@@ -203,7 +203,7 @@ class Pipeline:
     generic components that create a set of pipeline modifiers for
     values that won't be used in the particular simulation.
 
-    Attributes
+    Parameters
     ----------
     name
         The name of the value represented by this pipeline.
