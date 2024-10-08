@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Protocol
+from typing import TYPE_CHECKING, Any, Iterable, Protocol
 
 import pandas as pd
 
@@ -30,11 +30,11 @@ if TYPE_CHECKING:
 
 
 class ValueSource(Protocol):
-    def __call__(self, *args: Any, **kwargs: Any) -> NumberLike: ...
+    def __call__(self, *args: Any, **kwargs: Any) -> NumberLike:
+        ...
 
 
 class ValueMutator(Protocol):
-
     def __call__(self, *args: Any, value: NumberLike, **kwargs: Any) -> NumberLike:
         ...
 
@@ -47,7 +47,8 @@ class ValueCombiner(Protocol):
 
 
 class PostProcessor(Protocol):
-    def __call__(self, value: NumberLike, manager: ValuesManager) -> NumberLike: ...
+    def __call__(self, value: NumberLike, manager: ValuesManager) -> NumberLike:
+        ...
 
 
 class DynamicValueError(VivariumError):
