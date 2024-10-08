@@ -22,6 +22,7 @@ py:class loguru._logger.Logger
 # Type aliases don't play nicely with sphinx when you import them
 # elsewhere.  Works fine for static type checker though.  I think this
 # is because sphinx does runtime checks.
+py:class _ParameterType
 py:class NumericArray
 py:class ClockTime
 py:class Time
