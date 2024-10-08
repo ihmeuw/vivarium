@@ -28,13 +28,14 @@ from vivarium.types import NumberLike
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
-ValueSource = Callable[..., NumberLike]
 
-PostProcessor = Callable[[NumberLike, "ValuesManager"], NumberLike]
+class ValueSource(Protocol):
+    def __call__(self, *args: Any, **kwargs: Any) -> NumberLike: ...
 
 
 class ValueMutator(Protocol):
-    def __call__(self, *args: Any, value: NumberLike, kwargs: Any) -> NumberLike:
+
+    def __call__(self, *args: Any, value: NumberLike, **kwargs: Any) -> NumberLike:
         ...
 
 
@@ -43,6 +44,10 @@ class ValueCombiner(Protocol):
         self, value: NumberLike, mutator: ValueMutator, *args: Any, **kwargs: Any
     ) -> NumberLike:
         ...
+
+
+class PostProcessor(Protocol):
+    def __call__(self, value: NumberLike, manager: ValuesManager) -> NumberLike: ...
 
 
 class DynamicValueError(VivariumError):
