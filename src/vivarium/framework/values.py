@@ -31,13 +31,15 @@ PostProcessor = Callable[[NumberLike, "ValuesManager"], NumberLike]
 
 
 class ValueMutator(Protocol):
-    def __call__(self, *args: Any, value: NumberLike, kwargs: Any) -> NumberLike: ...
+    def __call__(self, *args: Any, value: NumberLike, kwargs: Any) -> NumberLike:
+        ...
 
 
 class ValueCombiner(Protocol):
     def __call__(
         self, value: NumberLike, mutator: ValueMutator, *args: Any, **kwargs: Any
-    ) -> NumberLike: ...
+    ) -> NumberLike:
+        ...
 
 
 class DynamicValueError(VivariumError):
