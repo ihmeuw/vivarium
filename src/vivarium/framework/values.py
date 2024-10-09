@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Protocol, TypeVar
 import pandas as pd
 
 from vivarium.exceptions import VivariumError
+from vivarium.framework.event import Event
 from vivarium.framework.utilities import from_yearly
 from vivarium.manager import Interface, Manager
 from vivarium.types import NumberLike
