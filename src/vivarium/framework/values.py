@@ -16,14 +16,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Iterable,
-    Protocol,
-    TypeVar,
-    Callable,
-)
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Protocol, TypeVar
 
 import pandas as pd
 
@@ -38,8 +31,8 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
-class ValueCombiner(Protocol):
 
+class ValueCombiner(Protocol):
     def __call__(
         self, value: Any, mutator: Callable[..., Any], *args: Any, **kwargs: Any
     ) -> Any:
