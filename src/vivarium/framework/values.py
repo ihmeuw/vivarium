@@ -30,24 +30,26 @@ if TYPE_CHECKING:
 
 
 class ValueSource(Protocol):
-    def __call__(self, *args: Any, **kwargs: Any) -> NumberLike:
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         ...
 
 
 class ValueMutator(Protocol):
-    def __call__(self, *args: Any, value: NumberLike, **kwargs: Any) -> NumberLike:
+
+    def __call__(self, *args: Any, value: Any, **kwargs: Any) -> Any:
         ...
 
 
 class ValueCombiner(Protocol):
-    def __call__(
-        self, value: NumberLike, mutator: ValueMutator, *args: Any, **kwargs: Any
-    ) -> NumberLike:
+
+    def __call__(self, value: Any, mutator: ValueMutator, *args: Any, **kwargs: Any) -> Any:
         ...
 
 
 class PostProcessor(Protocol):
-    def __call__(self, value: NumberLike, manager: ValuesManager) -> NumberLike:
+
+    def __call__(self, value: Any, manager: ValuesManager) -> Any:
         ...
 
 
@@ -57,9 +59,7 @@ class DynamicValueError(VivariumError):
     pass
 
 
-def replace_combiner(
-    value: NumberLike, mutator: ValueMutator, *args: Any, **kwargs: Any
-) -> NumberLike:
+def replace_combiner(value: Any, mutator: ValueMutator, *args: Any, **kwargs: Any) -> Any:
     """Replace the previous pipeline output with the output of the mutator.
 
     This is the default combiner.
@@ -85,8 +85,8 @@ def replace_combiner(
 
 
 def list_combiner(
-    value: list[NumberLike], mutator: ValueMutator, *args: Any, **kwargs: Any
-) -> list[NumberLike]:
+    value: list[Any], mutator: ValueMutator, *args: Any, **kwargs: Any
+) -> list[Any]:
     """Aggregates source and mutator output into a list.
 
     This combiner is meant to be used with a post-processor that does some
@@ -286,9 +286,7 @@ class Pipeline:
             raise DynamicValueError(self._set_attr_error("manager", manager))
         self._manager = manager
 
-    def __call__(
-        self, *args: Any, skip_post_processor: bool = False, **kwargs: Any
-    ) -> NumberLike:
+    def __call__(self, *args: Any, skip_post_processor: bool = False, **kwargs: Any) -> Any:
         """Generates the value represented by this pipeline.
 
         Arguments
@@ -313,9 +311,7 @@ class Pipeline:
         """
         return self._call(*args, skip_post_processor=skip_post_processor, **kwargs)
 
-    def _call(
-        self, *args: Any, skip_post_processor: bool = False, **kwargs: Any
-    ) -> NumberLike:
+    def _call(self, *args: Any, skip_post_processor: bool = False, **kwargs: Any) -> Any:
         value = self.source(*args, **kwargs)
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
