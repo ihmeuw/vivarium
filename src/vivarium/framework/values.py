@@ -110,7 +110,7 @@ def list_combiner(
     return value
 
 
-def rescale_post_processor(value: NumberLike, manager: "ValuesManager") -> NumberLike:
+def rescale_post_processor(value: NumberLike, manager: ValuesManager) -> NumberLike:
     """Rescales annual rates to time-step appropriate rates.
 
     This should only be used with a simulation using a
@@ -277,11 +277,11 @@ class Pipeline:
         self._set_property("combiner", combiner)
 
     @property
-    def manager(self) -> "ValuesManager":
+    def manager(self) -> ValuesManager:
         return self._get_property(self._manager, "manager")
 
     @manager.setter
-    def manager(self, manager: "ValuesManager") -> None:
+    def manager(self, manager: ValuesManager) -> None:
         self._set_property("manager", manager)
 
     def __call__(self, *args: Any, skip_post_processor: bool = False, **kwargs: Any) -> Any:
@@ -335,7 +335,7 @@ class ValuesManager(Manager):
     def name(self) -> str:
         return "values_manager"
 
-    def setup(self, builder: "Builder") -> None:
+    def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
         self.step_size = builder.time.step_size()
         self.simulant_step_sizes = builder.time.simulant_step_sizes()
