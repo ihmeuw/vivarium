@@ -9,12 +9,12 @@ simulations.
 """
 from __future__ import annotations
 
-from typing import Any, Union
+from collections.abc import Hashable, Sequence
 
 import numpy as np
 import pandas as pd
 
-_ParameterType = Union[list[list[str]], list[tuple[str, str, str]]]
+_SubTablesType = list[tuple[tuple[Hashable, ...] | Hashable | None, pd.DataFrame]]
 
 
 class Interpolation:
@@ -40,9 +40,9 @@ class Interpolation:
     def __init__(
         self,
         data: pd.DataFrame,
-        categorical_parameters: list[str] | tuple[str, ...],
-        continuous_parameters: _ParameterType,
-        value_columns: list[str] | tuple[str, ...],
+        categorical_parameters: Sequence[str],
+        continuous_parameters: list[Sequence[str]],
+        value_columns: Sequence[str],
         order: int,
         extrapolate: bool,
         validate: bool,
@@ -61,12 +61,13 @@ class Interpolation:
         self.categorical_parameters = categorical_parameters
         self.data = data.copy()
         self.continuous_parameters = continuous_parameters
-        self.value_columns = value_columns
+        self.value_columns = list(value_columns)
         self.order = order
         self.extrapolate = extrapolate
         self.validate = validate
 
-        sub_tables: list[tuple[tuple[Any, ...] | None, pd.DataFrame]]
+        sub_tables: _SubTablesType
+
         if self.categorical_parameters:
             # Since there are categorical_parameters we need to group the table
             # by those columns to get the sub-tables to fit
@@ -109,7 +110,8 @@ class Interpolation:
                 interpolants, self.categorical_parameters, self.continuous_parameters
             )
 
-        sub_tables: list[tuple[tuple[Any, ...] | None, pd.DataFrame]]
+        sub_tables: _SubTablesType
+
         if self.categorical_parameters:
             sub_tables = list(
                 interpolants.groupby(list(self.categorical_parameters), observed=False)
@@ -138,10 +140,10 @@ class Interpolation:
 
 def validate_parameters(
     data: pd.DataFrame,
-    categorical_parameters: list[str] | tuple[str, ...],
-    continuous_parameters: _ParameterType,
-    value_columns: list[str] | tuple[str, ...],
-) -> list[str] | tuple[str, ...]:
+    categorical_parameters: Sequence[str],
+    continuous_parameters: list[Sequence[str]],
+    value_columns: Sequence[str],
+) -> Sequence[str]:
     if data.empty:
         raise ValueError("You must supply non-empty data to create the interpolation.")
 
@@ -171,8 +173,8 @@ def validate_parameters(
 
 def validate_call_data(
     data: pd.DataFrame,
-    categorical_parameters: list[str] | tuple[str, ...],
-    continuous_parameters: _ParameterType,
+    categorical_parameters: Sequence[str],
+    continuous_parameters: list[Sequence[str]],
 ) -> None:
     if not isinstance(data, pd.DataFrame):
         raise TypeError(
@@ -200,7 +202,9 @@ def validate_call_data(
         )
 
 
-def check_data_complete(data: pd.DataFrame, continuous_parameters: _ParameterType) -> None:
+def check_data_complete(
+    data: pd.DataFrame, continuous_parameters: list[Sequence[str]]
+) -> None:
     """Check that data is complete for interpolation.
 
     For any parameters specified with edges, make sure edges
@@ -227,11 +231,9 @@ def check_data_complete(data: pd.DataFrame, continuous_parameters: _ParameterTyp
     NotImplementedError
         If a parameter contains non-continuous bins.
     """
+    param_edges = [p[1:] for p in continuous_parameters]  # strip out call column name
 
-    sub_tables: list[tuple[tuple[Any, ...] | None, pd.DataFrame]]
-    param_edges = [
-        p[1:] for p in continuous_parameters if isinstance(p, (tuple, list))
-    ]  # strip out call column name
+    sub_tables: _SubTablesType
 
     # check no overlaps/gaps
     for p in param_edges:
@@ -294,8 +296,8 @@ class Order0Interp:
     def __init__(
         self,
         data: pd.DataFrame,
-        continuous_parameters: _ParameterType,
-        value_columns: list[str] | tuple[str, ...],
+        continuous_parameters: list[Sequence[str]],
+        value_columns: list[str],
         extrapolate: bool,
         validate: bool,
     ):
