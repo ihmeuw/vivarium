@@ -347,7 +347,7 @@ class ValuesManager(Manager):
         builder.lifecycle.add_constraint(self.register_value_producer, allow_during=["setup"])
         builder.lifecycle.add_constraint(self.register_value_modifier, allow_during=["setup"])
 
-    def on_post_setup(self, _: Any) -> None:
+    def on_post_setup(self, _event: Event) -> None:
         """Finalizes dependency structure for the pipelines."""
         # Unsourced pipelines might occur when generic components register
         # modifiers to values that aren't required in a simulation.
