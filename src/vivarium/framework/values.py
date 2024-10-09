@@ -16,7 +16,16 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Iterable, Protocol, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    Protocol,
+    TypeVar,
+    ParamSpec,
+    Callable,
+    Concatenate,
+)
 
 import pandas as pd
 
@@ -31,19 +40,11 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
-
-class ValueSource(Protocol):
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        ...
-
-
-class ValueMutator(Protocol):
-    def __call__(self, *args: Any, value: Any, **kwargs: Any) -> Any:
-        ...
-
-
 class ValueCombiner(Protocol):
-    def __call__(self, value: Any, mutator: ValueMutator, *args: Any, **kwargs: Any) -> Any:
+
+    def __call__(
+        self, value: Any, mutator: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> Any:
         ...
 
 
@@ -58,7 +59,9 @@ class DynamicValueError(VivariumError):
     pass
 
 
-def replace_combiner(value: Any, mutator: ValueMutator, *args: Any, **kwargs: Any) -> Any:
+def replace_combiner(
+    value: Any, mutator: Callable[..., Any], *args: Any, **kwargs: Any
+) -> Any:
     """Replace the previous pipeline output with the output of the mutator.
 
     This is the default combiner.
@@ -79,12 +82,12 @@ def replace_combiner(value: Any, mutator: ValueMutator, *args: Any, **kwargs: An
     -------
         A modified version of the input value.
     """
-    new_args = list(args) + [value]
-    return mutator(*new_args, **kwargs)
+    expanded_args = list(args) + [value]
+    return mutator(*expanded_args, **kwargs)
 
 
 def list_combiner(
-    value: list[Any], mutator: ValueMutator, *args: Any, **kwargs: Any
+    value: list[Any], mutator: Callable[..., Any], *args: Any, **kwargs: Any
 ) -> list[Any]:
     """Aggregates source and mutator output into a list.
 
@@ -207,31 +210,24 @@ class Pipeline:
     need a source or to be configured. This might occur when writing
     generic components that create a set of pipeline modifiers for
     values that won't be used in the particular simulation.
-
-    Parameters
-    ----------
-    name
-        The name of the value represented by this pipeline.
-    source
-        A callable source for this pipeline's value.
-    mutators
-        A list of callables that directly modify the pipeline source or
-        contribute portions of the value.
-    combiner
-        A strategy for combining the source and mutator values into the
-        final value represented by the pipeline.
-    post_processor
-        An optional final transformation to perform on the combined output of
-        the source and mutators.
-    manager
-        A reference to the simulation values manager.
-
     """
 
     def __init__(self) -> None:
+        """
+        Parameters
+        ----------
+        name
+            The name of the value represented by this pipeline.
+        mutators
+            A list of callables that directly modify the pipeline source or
+            contribute portions of the value.
+        post_processor
+            An optional final transformation to perform on the combined output of
+            the source and mutators.
+        """
         self.name: str | None = None
-        self._source: ValueSource | None = None
-        self.mutators: list[ValueMutator] = []
+        self._source: Callable[..., Any] | None = None
+        self.mutators: list[Callable[..., Any]] = []
         self._combiner: ValueCombiner | None = None
         self.post_processor: PostProcessor | None = None
         self._manager: ValuesManager | None = None
@@ -262,15 +258,18 @@ class Pipeline:
         setattr(self, private_name, new_value)
 
     @property
-    def source(self) -> ValueSource:
+    def source(self) -> Callable[..., Any]:
+        "A callable source for this pipeline's value."
         return self._get_property(self._source, "source")
 
     @source.setter
-    def source(self, source: ValueSource) -> None:
+    def source(self, source: Callable[..., Any]) -> None:
         self._set_property("source", source)
 
     @property
     def combiner(self) -> ValueCombiner:
+        """A strategy for combining the source and mutator values into the
+        final value represented by the pipeline."""
         return self._get_property(self._combiner, "combiner")
 
     @combiner.setter
@@ -279,6 +278,7 @@ class Pipeline:
 
     @property
     def manager(self) -> ValuesManager:
+        """A reference to the simulation values manager."""
         return self._get_property(self._manager, "manager")
 
     @manager.setter
@@ -376,7 +376,7 @@ class ValuesManager(Manager):
     def register_value_producer(
         self,
         value_name: str,
-        source: ValueSource,
+        source: Callable[..., Any],
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
@@ -410,7 +410,7 @@ class ValuesManager(Manager):
     def _register_value_producer(
         self,
         value_name: str,
-        source: ValueSource,
+        source: Callable[..., Any],
         preferred_combiner: ValueCombiner,
         preferred_post_processor: PostProcessor | None,
     ) -> Pipeline:
@@ -427,7 +427,7 @@ class ValuesManager(Manager):
     def register_value_modifier(
         self,
         value_name: str,
-        modifier: ValueSource | ValueMutator,
+        modifier: Callable[..., Any],
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
@@ -488,7 +488,7 @@ class ValuesManager(Manager):
 
     @staticmethod
     def _convert_dependencies(
-        func: ValueSource | ValueMutator,
+        func: Callable[..., Any],
         requires_columns: Iterable[str],
         requires_values: Iterable[str],
         requires_streams: Iterable[str],
@@ -509,7 +509,7 @@ class ValuesManager(Manager):
         return dependencies
 
     @staticmethod
-    def _get_modifier_name(modifier: ValueSource | ValueMutator) -> str:
+    def _get_modifier_name(modifier: Callable[..., Any]) -> str:
         """Get reproducible modifier names based on the modifier type."""
         if hasattr(modifier, "name"):  # This is Pipeline or lookup table or something similar
             modifier_name: str = modifier.name
@@ -564,7 +564,7 @@ class ValuesInterface(Interface):
     def register_value_producer(
         self,
         value_name: str,
-        source: ValueSource,
+        source: Callable[..., Any],
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
@@ -619,7 +619,7 @@ class ValuesInterface(Interface):
     def register_rate_producer(
         self,
         rate_name: str,
-        source: ValueSource,
+        source: Callable[..., Any],
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
@@ -666,7 +666,7 @@ class ValuesInterface(Interface):
     def register_value_modifier(
         self,
         value_name: str,
-        modifier: ValueSource | ValueMutator,
+        modifier: Callable[..., Any],
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
