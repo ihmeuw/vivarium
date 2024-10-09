@@ -118,4 +118,3 @@ src/vivarium/_version.py
 
 # macOS
 *.DS_Store
-vivarium.code-workspace
