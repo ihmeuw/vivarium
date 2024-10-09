@@ -16,7 +16,7 @@ py:class pd.DataFrame
 py:class scipy.stats._distn_infrastructure.rv_continuous
 
 # loguru
-py:class loguru._logger.Logger
+py:class loguru.Logger
 
 # vivarium
 # Type aliases don't play nicely with sphinx when you import them

@@ -255,7 +255,7 @@ class ResourceManager(Manager):
                 if dependency not in self._resource_group_map:
                     # Warn here because this sometimes happens naturally
                     # if observer components are missing from a simulation.
-                    self.logger.warning(  # type: ignore[no-untyped-call]
+                    self.logger.warning(
                         f"Resource {dependency} is not provided by any component but is needed to "
                         f"compute {resource_group}."
                     )
