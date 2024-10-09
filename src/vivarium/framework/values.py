@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Iterable, Protocol
+from typing import TYPE_CHECKING, Any, Iterable, Protocol, TypeVar
 
 import pandas as pd
 
@@ -28,27 +28,25 @@ from vivarium.types import NumberLike
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
+T = TypeVar("T")
+
 
 class ValueSource(Protocol):
-
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         ...
 
 
 class ValueMutator(Protocol):
-
     def __call__(self, *args: Any, value: Any, **kwargs: Any) -> Any:
         ...
 
 
 class ValueCombiner(Protocol):
-
     def __call__(self, value: Any, mutator: ValueMutator, *args: Any, **kwargs: Any) -> Any:
         ...
 
 
 class PostProcessor(Protocol):
-
     def __call__(self, value: Any, manager: ValuesManager) -> Any:
         ...
 
@@ -146,7 +144,7 @@ def rescale_post_processor(value: NumberLike, manager: "ValuesManager") -> Numbe
         if not isinstance(time_step, (pd.Timedelta, timedelta)):
             raise DynamicValueError(
                 "The rescale post processor requires a time step size that is a "
-                "pandas Timedelta object."
+                "datetime timedelta or pandas Timedelta object."
             )
         return from_yearly(value, time_step)
 
@@ -250,41 +248,41 @@ class Pipeline:
             f"with {new_value}, but it already has a {attribute}: {current_value}."
         )
 
+    def _get_property(self, property: T | None, property_name: str) -> T:
+        if property is None:
+            raise DynamicValueError(self._get_attr_error(property_name))
+        return property
+
+    def _set_property(self, property_name: str, new_value: Any) -> None:
+        private_name = f"_{property_name}"
+        old_value = getattr(self, private_name)
+        if old_value is not None:
+            raise DynamicValueError(self._set_attr_error(property_name, new_value))
+        setattr(self, private_name, new_value)
+
     @property
     def source(self) -> ValueSource:
-        if self._source is None:
-            raise DynamicValueError(self._get_attr_error("source"))
-        return self._source
+        return self._get_property(self._source, "source")
 
     @source.setter
     def source(self, source: ValueSource) -> None:
-        if self._source is not None:
-            raise DynamicValueError(self._set_attr_error("source", source))
-        self._source = source
+        self._set_property("source", source)
 
     @property
     def combiner(self) -> ValueCombiner:
-        if self._combiner is None:
-            raise DynamicValueError(self._get_attr_error("combiner"))
-        return self._combiner
+        return self._get_property(self._combiner, "combiner")
 
     @combiner.setter
     def combiner(self, combiner: ValueCombiner) -> None:
-        if self._combiner is not None:
-            raise DynamicValueError(self._set_attr_error("combiner", combiner))
-        self._combiner = combiner
+        self._set_property("combiner", combiner)
 
     @property
     def manager(self) -> "ValuesManager":
-        if self._manager is None:
-            raise DynamicValueError(self._get_attr_error("manager"))
-        return self._manager
+        return self._get_property(self._manager, "manager")
 
     @manager.setter
     def manager(self, manager: "ValuesManager") -> None:
-        if self._manager is not None:
-            raise DynamicValueError(self._set_attr_error("manager", manager))
-        self._manager = manager
+        self._set_property("manager", manager)
 
     def __call__(self, *args: Any, skip_post_processor: bool = False, **kwargs: Any) -> Any:
         """Generates the value represented by this pipeline.
