@@ -15,7 +15,7 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-_SubTablesType = Union[list[tuple[tuple[Hashable, ...], Hashable | None, pd.DataFrame]]]
+_SubTablesType = Union[list[tuple[tuple[Hashable, ...] | Hashable | None, pd.DataFrame]]]
 
 
 class Interpolation:
