@@ -8,13 +8,14 @@ simulations.
 
 """
 from __future__ import annotations
+from typing import Union
 
 from collections.abc import Hashable, Sequence
 
 import numpy as np
 import pandas as pd
 
-_SubTablesType = list[tuple[tuple[Hashable, ...] | Hashable | None, pd.DataFrame]]
+_SubTablesType = Union[list[tuple[tuple[Hashable, ...], Hashable | None, pd.DataFrame]]]
 
 
 class Interpolation:
