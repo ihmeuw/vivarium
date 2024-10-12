@@ -1,5 +1,6 @@
-**3.0.12 - 10/14/24**
+**3.1.0 - 10/14/24**
 
+  - Enable Machine to be used directly to model a state machine
   - Support passing callables directly when building lookup tables
 
 **3.0.11 - 10/08/24**
