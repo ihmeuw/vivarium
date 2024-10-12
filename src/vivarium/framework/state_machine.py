@@ -10,17 +10,22 @@ A state machine implementation for use in ``vivarium`` simulations.
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Tuple
 
 import numpy as np
 import pandas as pd
 
 from vivarium import Component
+from vivarium.framework.event import Event
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.framework.population import PopulationView
-    from vivarium.types import ClockTime
+    from vivarium.framework.population import PopulationView, SimulantData
+    from vivarium.types import ClockTime, LookupTableData
+
+
+def default_initializer(_builder: Builder) -> LookupTableData:
+    return 0.0
 
 
 def _next_state(
@@ -192,6 +197,16 @@ class State(Component):
     ##############
 
     @property
+    def configuration_defaults(self) -> Dict[str, Any]:
+        return {
+            f"{self.name}": {
+                "data_sources": {
+                    "initialization_weights": self.get_initialization_weights,
+                },
+            },
+        }
+
+    @property
     def model(self) -> str:
         return self._model
 
@@ -199,12 +214,18 @@ class State(Component):
     # Lifecycle methods #
     #####################
 
-    def __init__(self, state_id: str, allow_self_transition: bool = False):
+    def __init__(
+        self,
+        state_id: str,
+        allow_self_transition: bool = False,
+        initialization_weights: Callable[[Builder], LookupTableData] = default_initializer,
+    ) -> None:
         super().__init__()
         self.state_id = state_id
         self.transition_set = TransitionSet(
             self.state_id, allow_self_transition=allow_self_transition
         )
+        self.initialization_weights = initialization_weights
         self._model = None
         self._sub_components = [self.transition_set]
 
@@ -268,6 +289,9 @@ class State(Component):
     ##################
     # Helper methods #
     ##################
+
+    def get_initialization_weights(self, builder: Builder) -> LookupTableData:
+        return self.initialization_weights(builder)
 
     def transition_side_effect(self, index: pd.Index, event_time: ClockTime) -> None:
         pass
@@ -463,19 +487,69 @@ class Machine(Component):
         return self.states
 
     @property
-    def columns_required(self) -> Optional[List[str]]:
+    def columns_created(self) -> List[str]:
         return [self.state_column]
 
     #####################
     # Lifecycle methods #
     #####################
 
-    def __init__(self, state_column: str, states: Iterable[State] = ()):
+    def __init__(
+        self,
+        state_column: str,
+        states: Iterable[State] = (),
+        initial_state: State | None = None,
+    ) -> None:
         super().__init__()
         self.states = []
         self.state_column = state_column
         if states:
             self.add_states(states)
+
+        states_with_initialization_weights = [
+            s for s in self.states if s.initialization_weights != default_initializer
+        ]
+
+        if initial_state is not None:
+            if initial_state not in self.states:
+                raise ValueError(
+                    f"Initial state '{initial_state}' must be one of the"
+                    f" states: {self.states}."
+                )
+            if states_with_initialization_weights:
+                raise ValueError(
+                    "Cannot specify both an initial state and provide"
+                    " initialization weights to states."
+                )
+
+            initial_state.initialization_weights = lambda _builder: 1.0
+
+        elif not states_with_initialization_weights:
+            raise ValueError(
+                "Must specify either an initial state or provide"
+                " initialization weights to states."
+            )
+
+    def setup(self, builder: Builder) -> None:
+        self.randomness = builder.randomness.get_stream(self.name)
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        state_ids = [s.state_id for s in self.states]
+        state_weights = pd.concat(
+            [
+                state.lookup_tables["initialization_weights"](pop_data.index)
+                for state in self.states
+            ],
+            axis=1,
+        ).to_numpy()
+
+        initial_states = self.randomness.choice(
+            pop_data.index, state_ids, state_weights, "initialization"
+        ).rename(self.state_column)
+        self.population_view.update(initial_states)
+
+    def on_time_step(self, event: Event) -> None:
+        self.transition(event.index, event.time)
 
     ##################
     # Public methods #

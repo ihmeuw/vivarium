@@ -1,31 +1,19 @@
-from typing import List, Optional
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import pytest
+from layered_config_tree import LayeredConfigTree
 
-from vivarium import Component, InteractiveContext
+from tests.helpers import ColumnCreator
+from vivarium import InteractiveContext
+from vivarium.framework.configuration import build_simulation_configuration
 from vivarium.framework.population import SimulantData
 from vivarium.framework.state_machine import Machine, State, Transition
 from vivarium.types import ClockTime
 
 
-def _population_fixture(column, initial_value):
-    class PopFixture(Component):
-        @property
-        def name(self) -> str:
-            return f"test_pop_fixture_{column}_{initial_value}"
-
-        @property
-        def columns_created(self) -> List[str]:
-            return [column]
-
-        def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-            self.population_view.update(pd.Series(initial_value, index=pop_data.index))
-
-    return PopFixture()
-
-
-def test_initialize_allowing_self_transition():
+def test_initialize_allowing_self_transition() -> None:
     self_transitions = State("self-transitions", allow_self_transition=True)
     no_self_transitions = State("no-self-transitions", allow_self_transition=False)
     undefined_self_transitions = State("self-transitions")
@@ -35,38 +23,120 @@ def test_initialize_allowing_self_transition():
     assert not undefined_self_transitions.transition_set.allow_null_transition
 
 
-def test_transition():
-    done_state = State("done")
+def test_initialize_with_initial_state() -> None:
     start_state = State("start")
-    start_state.add_transition(Transition(start_state, done_state))
-    machine = Machine("state", states=[start_state, done_state])
-
-    simulation = InteractiveContext(
-        components=[machine, _population_fixture("state", "start")]
-    )
-    event_time = simulation._clock.time + simulation._clock.step_size
-    machine.transition(simulation.get_population().index, event_time)
-    assert np.all(simulation.get_population().state == "done")
+    other_state = State("other")
+    machine = Machine("state", states=[start_state, other_state], initial_state=start_state)
+    simulation = InteractiveContext(components=[machine])
+    assert simulation.get_population()["state"].unique() == ["start"]
 
 
-def test_single_transition(base_config):
+def test_initialize_with_scalar_initialization_weights(
+    base_config: LayeredConfigTree,
+) -> None:
     base_config.update(
-        {"population": {"population_size": 1}, "randomness": {"key_columns": []}}
+        {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
+    )
+    state_a = State("a", initialization_weights=lambda _: 0.2)
+    state_b = State("b", initialization_weights=lambda _: 0.8)
+    machine = Machine("state", states=[state_a, state_b])
+    simulation = InteractiveContext(components=[machine], configuration=base_config)
+
+    state = simulation.get_population()["state"]
+    assert np.all(simulation.get_population().state != "start")
+    assert round((state == "a").mean(), 1) == 0.2
+    assert round((state == "b").mean(), 1) == 0.8
+
+
+@pytest.mark.parametrize(
+    "use_artifact", [True, False], ids=["with_artifact", "without_artifact"]
+)
+def test_initialize_with_array_initialization_weights(use_artifact) -> None:
+    state_weights = {
+        "state_a.weights": pd.DataFrame(
+            {"test_column_1": [0, 1, 2], "value": [0.2, 0.7, 0.4]}
+        ),
+        "state_b.weights": pd.DataFrame(
+            {"test_column_1": [0, 1, 2], "value": [0.8, 0.3, 0.6]}
+        ),
+    }
+
+    def mock_load(key: str) -> pd.DataFrame:
+        return state_weights.get(key)
+
+    config = build_simulation_configuration()
+    config.update(
+        {"population": {"population_size": 10000}, "randomness ": {"key_columns": []}}
+    )
+
+    class TestMachine(Machine):
+        @property
+        def initialization_requirements(self) -> dict[str, list[str]]:
+            # FIXME - MIC-5408: We shouldn't need to specify the columns in the
+            #  lookup tables here, since the component can't know what will be
+            #  specified by the states or the configuration.
+            return {
+                "requires_columns": ["test_column_1"],
+                "requires_values": [],
+                "requires_streams": [],
+            }
+
+    def initialization_weights(key: str):
+        if use_artifact:
+            return lambda builder: builder.data.load(key)
+        else:
+            return lambda _: state_weights[key]
+
+    state_a = State("a", initialization_weights=initialization_weights("state_a.weights"))
+    state_b = State("b", initialization_weights=initialization_weights("state_b.weights"))
+    machine = TestMachine("state", states=[state_a, state_b])
+    simulation = InteractiveContext(
+        components=[machine, ColumnCreator()], configuration=config, setup=False
+    )
+    simulation._builder.data.load = mock_load
+    simulation.setup()
+
+    pop = simulation.get_population()[["state", "test_column_1"]]
+    state_a_weights = state_weights["state_a.weights"]
+    state_b_weights = state_weights["state_b.weights"]
+    for i in range(3):
+        pop_i_state = pop.loc[pop["test_column_1"] == i, "state"]
+        assert round((pop_i_state == "a").mean(), 1) == state_a_weights.loc[i, "value"]
+        assert round((pop_i_state == "b").mean(), 1) == state_b_weights.loc[i, "value"]
+
+
+def test_error_if_initialize_with_both_initial_state_and_initialization_weights() -> None:
+    start_state = State("start")
+    other_state = State("other", initialization_weights=lambda _: 0.8)
+    with pytest.raises(ValueError, match="Cannot specify both"):
+        Machine("state", states=[start_state, other_state], initial_state=start_state)
+
+
+def test_error_if_initialize_with_neither_initial_state_nor_initialization_weights() -> None:
+    with pytest.raises(ValueError, match="Must specify either"):
+        Machine("state", states=[State("a"), State("b")])
+
+
+@pytest.mark.parametrize("population_size", [1, 100])
+def test_transition(base_config: LayeredConfigTree, population_size: int) -> None:
+    base_config.update(
+        {
+            "population": {"population_size": population_size},
+            "randomness": {"key_columns": []},
+        }
     )
     done_state = State("done")
     start_state = State("start")
     start_state.add_transition(Transition(start_state, done_state))
-    machine = Machine("state", states=[start_state, done_state])
+    machine = Machine("state", states=[start_state, done_state], initial_state=start_state)
 
-    simulation = InteractiveContext(
-        components=[machine, _population_fixture("state", "start")], configuration=base_config
-    )
-    event_time = simulation._clock.time + simulation._clock.step_size
-    machine.transition(simulation.get_population().index, event_time)
+    simulation = InteractiveContext(components=[machine], configuration=base_config)
+    assert np.all(simulation.get_population().state == "start")
+    simulation.step()
     assert np.all(simulation.get_population().state == "done")
 
 
-def test_choice(base_config):
+def test_no_null_transition(base_config: LayeredConfigTree) -> None:
     base_config.update(
         {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
     )
@@ -75,108 +145,81 @@ def test_choice(base_config):
     start_state = State("start")
     start_state.add_transition(
         Transition(
-            start_state, a_state, probability_func=lambda agents: np.full(len(agents), 0.5)
+            start_state, a_state, probability_func=lambda index: pd.Series(0.4, index=index)
         )
     )
     start_state.add_transition(
         Transition(
-            start_state, b_state, probability_func=lambda agents: np.full(len(agents), 0.5)
+            start_state, b_state, probability_func=lambda index: pd.Series(0.6, index=index)
         )
     )
-    machine = Machine("state", states=[start_state, a_state, b_state])
-
-    simulation = InteractiveContext(
-        components=[machine, _population_fixture("state", "start")], configuration=base_config
+    machine = Machine(
+        "state", states=[start_state, a_state, b_state], initial_state=start_state
     )
-    event_time = simulation._clock.time + simulation._clock.step_size
-    machine.transition(simulation.get_population().index, event_time)
-    a_count = (simulation.get_population().state == "a").sum()
-    assert round(a_count / len(simulation.get_population()), 1) == 0.5
+
+    simulation = InteractiveContext(components=[machine], configuration=base_config)
+    assert np.all(simulation.get_population().state == "start")
+
+    simulation.step()
+
+    state = simulation.get_population()["state"]
+    assert np.all(simulation.get_population().state != "start")
+    assert round((state == "a").mean(), 1) == 0.4
+    assert round((state == "b").mean(), 1) == 0.6
 
 
-def test_null_transition(base_config):
+def test_null_transition(base_config: LayeredConfigTree) -> None:
     base_config.update(
         {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
     )
     a_state = State("a")
-    start_state = State("start")
+    start_state = State("start", allow_self_transition=True)
     start_state.add_transition(
         Transition(
-            start_state, a_state, probability_func=lambda agents: np.full(len(agents), 0.5)
+            start_state, a_state, probability_func=lambda index: pd.Series(0.4, index=index)
         )
     )
-    start_state.allow_self_transitions()
 
-    machine = Machine("state", states=[start_state, a_state])
+    machine = Machine("state", states=[start_state, a_state], initial_state=start_state)
 
-    simulation = InteractiveContext(
-        components=[machine, _population_fixture("state", "start")], configuration=base_config
-    )
-    event_time = simulation._clock.time + simulation._clock.step_size
-    machine.transition(simulation.get_population().index, event_time)
-    a_count = (simulation.get_population().state == "a").sum()
-    assert round(a_count / len(simulation.get_population()), 1) == 0.5
+    simulation = InteractiveContext(components=[machine], configuration=base_config)
+    simulation.step()
+    state = simulation.get_population()["state"]
+    assert round((state == "a").mean(), 1) == 0.4
 
 
-def test_no_null_transition(base_config):
-    base_config.update(
-        {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
-    )
-    a_state = State("a")
-    b_state = State("b")
-    start_state = State("start")
-    a_transition = Transition(
-        start_state, a_state, probability_func=lambda index: pd.Series(0.5, index=index)
-    )
-    b_transition = Transition(
-        start_state, b_state, probability_func=lambda index: pd.Series(0.5, index=index)
-    )
-    start_state.transition_set.allow_null_transition = False
-    start_state.transition_set.extend((a_transition, b_transition))
-    machine = Machine("state")
-    machine.states.extend([start_state, a_state, b_state])
-
-    simulation = InteractiveContext(
-        components=[machine, _population_fixture("state", "start")], configuration=base_config
-    )
-    event_time = simulation._clock.time + simulation._clock.step_size
-    machine.transition(simulation.get_population().index, event_time)
-    a_count = (simulation.get_population().state == "a").sum()
-    assert round(a_count / len(simulation.get_population()), 1) == 0.5
-
-
-def test_side_effects():
-    class DoneState(State):
+def test_side_effects() -> None:
+    class CountingState(State):
         @property
-        def name(self) -> str:
-            return "test_done_state"
-
-        @property
-        def columns_required(self) -> Optional[List[str]]:
+        def columns_created(self) -> list[str]:
             return ["count"]
 
-        def transition_side_effect(self, index: pd.Index, _: ClockTime) -> None:
+        def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+            self.population_view.update(pd.Series(0, index=pop_data.index, name="count"))
+
+        def transition_side_effect(self, index: pd.Index[int], _: ClockTime) -> None:
             pop = self.population_view.get(index)
             self.population_view.update(pop["count"] + 1)
 
-    done_state = DoneState("done")
+    counting_state = CountingState("counting")
     start_state = State("start")
-    start_state.add_transition(Transition(start_state, done_state))
-    done_state.add_transition(Transition(done_state, start_state))
+    start_state.add_transition(Transition(start_state, counting_state))
+    counting_state.add_transition(Transition(counting_state, start_state))
 
-    machine = Machine("state", states=[start_state, done_state])
-
-    simulation = InteractiveContext(
-        components=[
-            machine,
-            _population_fixture("state", "start"),
-            _population_fixture("count", 0),
-        ]
+    machine = Machine(
+        "state", states=[start_state, counting_state], initial_state=start_state
     )
-    event_time = simulation._clock.time + simulation._clock.step_size
-    machine.transition(simulation.get_population().index, event_time)
+    simulation = InteractiveContext(components=[machine])
+    assert np.all(simulation.get_population()["count"] == 0)
+
+    # transitioning to counting state
+    simulation.step()
     assert np.all(simulation.get_population()["count"] == 1)
-    machine.transition(simulation.get_population().index, event_time)
+
+    # transitioning back to start state
+    simulation.step()
     assert np.all(simulation.get_population()["count"] == 1)
-    machine.transition(simulation.get_population().index, event_time)
+
+    # transitioning to counting state again
+    simulation.step()
     assert np.all(simulation.get_population()["count"] == 2)
