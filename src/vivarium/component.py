@@ -8,11 +8,14 @@ A base Component class to be used to create components for use in ``vivarium``
 simulations.
 
 """
+from __future__ import annotations
 
 import re
 from abc import ABC
+from datetime import datetime, timedelta
 from importlib import import_module
 from inspect import signature
+from numbers import Number
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
@@ -23,6 +26,7 @@ from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.event import Event
 from vivarium.framework.lookup import LookupTable
 from vivarium.framework.population import PopulationError, PopulationView
+from vivarium.types import LookupTableData, Time, Timedelta
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -574,10 +578,9 @@ class Component(ABC):
 
     def build_lookup_table(
         self,
-        builder: "Builder",
-        # todo: replace with LookupTableData
-        data_source: Union[str, float, int, list, pd.DataFrame],
-        value_columns: Optional[Iterable[str]] = None,
+        builder: Builder,
+        data_source: LookupTableData | str | Callable[[Builder], LookupTableData],
+        value_columns: Iterable[str] | None = None,
     ) -> LookupTable:
         """Builds a LookupTable from a data source.
 
@@ -640,11 +643,10 @@ class Component(ABC):
         return builder.lookup.build_table(data)
 
     def get_data(
-        # TODO: replace with LookupTableData
         self,
-        builder: "Builder",
-        data_source: Union[str, float, pd.DataFrame],
-    ) -> Union[float, pd.DataFrame]:
+        builder: Builder,
+        data_source: LookupTableData | str | Callable[[Builder], LookupTableData],
+    ) -> float | pd.DataFrame:
         """Retrieves data from a data source.
 
         If the data source is a float or a DataFrame, it is treated as the data
@@ -671,32 +673,49 @@ class Component(ABC):
         layered_config_tree.exceptions.ConfigurationError
             If the data source is invalid.
         """
-        if isinstance(data_source, (float, int, list, pd.DataFrame)):
-            return data_source
+        # TODO update this to use vivarium.types.LookupTableData once we drop
+        #  support for Python 3.9
+        valid_data_types = (Number, timedelta, datetime, pd.DataFrame, list, tuple)
+        if isinstance(data_source, valid_data_types):
+            data = data_source
+        elif isinstance(data_source, str):
+            if "::" in data_source:
+                module, method = data_source.split("::")
+                try:
+                    if module == "self":
+                        data_source = getattr(self, method)
+                    else:
+                        data_source = getattr(import_module(module), method)
+                except ModuleNotFoundError:
+                    raise ConfigurationError(f"Unable to find module '{module}'.")
+                except AttributeError:
+                    module_string = (
+                        f"component {self.name}" if module == "self" else f"module '{module}'"
+                    )
+                    raise ConfigurationError(
+                        f"There is no method '{method}' for the {module_string}."
+                    )
+                data = data_source(builder)
+            else:
+                try:
+                    data = builder.data.load(data_source)
+                except ArtifactException:
+                    raise ConfigurationError(
+                        f"Failed to find key '{data_source}' in artifact."
+                    )
+        elif isinstance(data_source, Callable):
+            data = data_source(builder)
+        else:
+            raise ConfigurationError(
+                f"Data source '{data_source}' is not a valid data source. It "
+                f"must be a LookupTableData instance, a string corresponding to "
+                f"an artifact key, a callable that returns a LookupTableData "
+                f"instance, or a string defining such a callable."
+            )
 
-        if "::" in data_source:
-            module, method = data_source.split("::")
-            try:
-                if module == "self":
-                    data_getter = getattr(self, method)
-                else:
-                    data_getter = getattr(import_module(module), method)
-            except ModuleNotFoundError:
-                raise ConfigurationError(f"Unable to find module '{module}'.")
-            except AttributeError:
-                module_string = (
-                    f"component {self.name}." if module == "self" else f"module '{module}'."
-                )
-                raise ConfigurationError(
-                    f"There is no method '{method}' for the {module_string}."
-                )
-
-            return data_getter(builder)
-
-        try:
-            return builder.data.load(data_source)
-        except ArtifactException:
-            raise ConfigurationError(f"Failed to find key '{data_source}' in artifact.")
+        if not isinstance(data, valid_data_types):
+            raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
+        return data
 
     def _set_population_view(self, builder: "Builder") -> None:
         """Creates the PopulationView for this component if it needs access to
