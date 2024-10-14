@@ -174,6 +174,14 @@ configuration by simply printing it.
                 component_configs: []
             include:
                 component_configs: []
+    disease_state.susceptible_to_lower_respiratory_infections:
+        data_sources:
+            initialization_weights:
+                component_configs: <bound method State.get_initialization_weights of DiseaseState(state_id=susceptible_to_lower_respiratory_infections)>
+    disease_state.infected_with_lower_respiratory_infections:
+        data_sources:
+            initialization_weights:
+                component_configs: <bound method State.get_initialization_weights of DiseaseState(state_id=infected_with_lower_respiratory_infections)>
 
 
 What do we see here?  The configuration is *hierarchical*.  There are a set of
