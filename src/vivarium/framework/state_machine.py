@@ -7,6 +7,7 @@ State Machine
 A state machine implementation for use in ``vivarium`` simulations.
 
 """
+from __future__ import annotations
 
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple
@@ -24,9 +25,9 @@ if TYPE_CHECKING:
 
 def _next_state(
     index: pd.Index,
-    event_time: "ClockTime",
-    transition_set: "TransitionSet",
-    population_view: "PopulationView",
+    event_time: ClockTime,
+    transition_set: TransitionSet,
+    population_view: PopulationView,
 ) -> None:
     """Moves a population between different states using information from a `TransitionSet`.
 
@@ -107,20 +108,7 @@ def _process_trigger(trigger):
 
 
 class Transition(Component):
-    """A process by which an entity might change into a particular state.
-
-    Attributes
-    ----------
-    input_state
-        The start state of the entity that undergoes the transition.
-    output_state
-        The end state of the entity that undergoes the transition.
-    probability_func
-        A method or function that describing the probability of this
-        transition occurring.
-    triggered
-        A flag indicating whether this transition is triggered by some event.
-    """
+    """A process by which an entity might change into a particular state."""
 
     #####################
     # Lifecycle methods #
@@ -128,13 +116,27 @@ class Transition(Component):
 
     def __init__(
         self,
-        input_state: "State",
-        output_state: "State",
+        input_state: State,
+        output_state: State,
         probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(
             1.0, index=index
         ),
         triggered=Trigger.NOT_TRIGGERED,
     ):
+        """Initializes a transition between two states.
+
+        Parameters
+        ----------
+        input_state
+            The start state of the entity that undergoes the transition.
+        output_state
+            The end state of the entity that undergoes the transition.
+        probability_func
+            A method or function that describing the probability of this
+            transition occurring.
+        triggered
+            A flag indicating whether this transition is triggered by some event.
+        """
         super().__init__()
         self.input_state = input_state
         self.output_state = output_state
@@ -215,7 +217,7 @@ class State(Component):
         self._model = model_name
 
     def next_state(
-        self, index: pd.Index, event_time: "ClockTime", population_view: "PopulationView"
+        self, index: pd.Index, event_time: ClockTime, population_view: PopulationView
     ) -> None:
         """Moves a population between different states.
 
@@ -231,7 +233,7 @@ class State(Component):
         return _next_state(index, event_time, self.transition_set, population_view)
 
     def transition_effect(
-        self, index: pd.Index, event_time: "ClockTime", population_view: "PopulationView"
+        self, index: pd.Index, event_time: ClockTime, population_view: PopulationView
     ) -> None:
         """Updates the simulation state and triggers any side-effects associated with entering this state.
 
@@ -247,7 +249,7 @@ class State(Component):
         population_view.update(pd.Series(self.state_id, index=index))
         self.transition_side_effect(index, event_time)
 
-    def cleanup_effect(self, index: pd.Index, event_time: "ClockTime") -> None:
+    def cleanup_effect(self, index: pd.Index, event_time: ClockTime) -> None:
         pass
 
     def add_transition(self, transition: Transition) -> None:
@@ -267,7 +269,7 @@ class State(Component):
     # Helper methods #
     ##################
 
-    def transition_side_effect(self, index: pd.Index, event_time: "ClockTime") -> None:
+    def transition_side_effect(self, index: pd.Index, event_time: ClockTime) -> None:
         pass
 
 
@@ -321,7 +323,7 @@ class TransitionSet(Component):
 
         self.extend(transitions)
 
-    def setup(self, builder: "Builder") -> None:
+    def setup(self, builder: Builder) -> None:
         """Performs this component's simulation setup and return sub-components.
 
         Parameters
@@ -484,7 +486,7 @@ class Machine(Component):
             self.states.append(state)
             state.set_model(self.state_column)
 
-    def transition(self, index: pd.Index, event_time: "ClockTime") -> None:
+    def transition(self, index: pd.Index, event_time: ClockTime) -> None:
         """Finds the population in each state and moves them to the next state.
 
         Parameters
@@ -502,7 +504,7 @@ class Machine(Component):
                     self.population_view.subview(self.state_column),
                 )
 
-    def cleanup(self, index: pd.Index, event_time: "ClockTime") -> None:
+    def cleanup(self, index: pd.Index, event_time: ClockTime) -> None:
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
                 state.cleanup_effect(affected.index, event_time)
