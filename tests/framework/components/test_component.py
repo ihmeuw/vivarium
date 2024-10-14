@@ -167,12 +167,13 @@ def test_component_initializer_is_not_registered_if_not_defined():
 
 
 def test_component_initializer_is_registered_and_called_if_defined():
+    pop_size = 1000
     component = ColumnCreator()
-    simulation = InteractiveContext(components=[component])
+    expected_pop_view = component.get_initial_state(pd.RangeIndex(pop_size))
+
+    config = {"population": {"population_size": pop_size}}
+    simulation = InteractiveContext(components=[component], configuration=config)
     population = simulation.get_population()
-    expected_pop_view = pd.DataFrame(
-        {column: 9 for column in component.columns_created}, index=population.index
-    )
 
     # Assert that simulant initializer has been registered
     assert component.on_initialize_simulants in simulation._resource

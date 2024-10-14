@@ -1,12 +1,10 @@
 # mypy: ignore-errors
-from typing import List, Optional
+from __future__ import annotations
 
 import pandas as pd
 
 from vivarium import Component
 from vivarium.framework.engine import Builder
-from vivarium.framework.event import Event
-from vivarium.framework.population import SimulantData
 from vivarium.framework.state_machine import Machine, State, Transition
 from vivarium.framework.utilities import rate_to_probability
 from vivarium.framework.values import list_combiner, union_post_processor
@@ -72,11 +70,11 @@ class DiseaseState(State):
     ##############
 
     @property
-    def columns_required(self) -> Optional[List[str]]:
+    def columns_required(self) -> list[str] | None:
         return [self.model, "alive"]
 
     @property
-    def population_view_query(self) -> Optional[str]:
+    def population_view_query(self) -> str | None:
         return f"alive == 'alive' and {self.model} == '{self.state_id}'"
 
     #####################
@@ -150,25 +148,10 @@ class DiseaseState(State):
 
 
 class DiseaseModel(Machine):
-    ##############
-    # Properties #
-    ##############
-
-    @property
-    def columns_created(self) -> List[str]:
-        return [self.state_column]
-
-    @property
-    def columns_required(self) -> Optional[List[str]]:
-        return ["age", "sex"]
 
     #####################
     # Lifecycle methods #
     #####################
-
-    def __init__(self, disease: str, initial_state: DiseaseState, **kwargs):
-        super().__init__(disease, **kwargs)
-        self.initial_state = initial_state.state_id
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
@@ -187,19 +170,6 @@ class DiseaseModel(Machine):
         builder.value.register_value_modifier(
             "mortality_rate", modifier=self.delete_cause_specific_mortality
         )
-
-    ########################
-    # Event-driven methods #
-    ########################
-
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        condition_column = pd.Series(
-            self.initial_state, index=pop_data.index, name=self.state_column
-        )
-        self.population_view.update(condition_column)
-
-    def on_time_step(self, event: Event) -> None:
-        self.transition(event.index, event.time)
 
     ##################################
     # Pipeline sources and modifiers #
