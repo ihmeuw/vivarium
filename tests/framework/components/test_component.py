@@ -1,6 +1,5 @@
 import pandas as pd
 import pytest
-from layered_config_tree import LayeredConfigTree
 from layered_config_tree.exceptions import ConfigurationError
 
 from tests.helpers import (
