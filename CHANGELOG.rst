@@ -1,3 +1,7 @@
+**3.0.14 - TBD**
+
+  - Support passing callables directly when building lookup tables
+
 **3.0.13 - 10/15/24**
 
   - Fix mypy errors: vivarium/framework/lookup/interpolation.py
