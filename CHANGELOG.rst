@@ -1,3 +1,7 @@
+**3.0.17 - TBD**
+
+  - Support passing callables directly when building lookup tables
+
 **3.0.16 - 10/31/24**
 
   - Bugfix to prevent a LookupTable from changing order of the value columns
