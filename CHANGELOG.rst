@@ -1,3 +1,7 @@
+**3.2.0 - TBD**
+
+  - Support passing callables directly when building lookup tables
+
 **3.1.0 - 11/07/24**
 
   - Drop support for python 3.9
