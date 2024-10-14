@@ -1,3 +1,7 @@
+**3.0.12 - 10/14/24**
+
+  - Bugfix for mypy errors: vivarium/framework/values.py
+
 **3.0.11 - 10/08/24**
 
   - Fix mypy errors: vivarium/framework/values.py
