@@ -699,11 +699,11 @@ class Component(ABC):
         elif isinstance(data_source, Callable):
             data = data_source(builder)
         else:
-            raise TypeError(
-                f"Data source is of type '{type(data_source)}'. It must be a "
-                "LookupTableData instance, a string corresponding to an "
-                "artifact key, a callable that returns a LookupTableData "
-                "instance, or a string defining such a callable."
+            raise ConfigurationError(
+                f"Data source '{data_source}' is not a valid data source. It "
+                f"must be a LookupTableData instance, a string corresponding to "
+                f"an artifact key, a callable that returns a LookupTableData "
+                f"instance, or a string defining such a callable."
             )
 
         if not isinstance(data, valid_data_types):
