@@ -1,19 +1,7 @@
 """
-===================
-Resource Management
-===================
-
-This module provides a tool to manage dependencies on resources within a
-:mod:`vivarium` simulation. These resources take the form of things that can
-be created and utilized by components, for example columns in the
-:mod:`state table <vivarium.framework.population>`
-or :mod:`named value pipelines <vivarium.framework.values>`.
-
-Because these resources need to be created before they can be used, they are
-sensitive to ordering. The intent behind this tool is to provide an interface
-that allows other managers to register resources with the resource manager
-and in turn ask for ordered sequences of these resources according to their
-dependencies or raise exceptions if this is not possible.
+================
+Resource Manager
+================
 
 """
 
@@ -24,17 +12,12 @@ from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 
-from vivarium.exceptions import VivariumError
+from vivarium.framework.resource.exceptions import ResourceError
+from vivarium.framework.resource.group import ResourceGroup
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-
-
-class ResourceError(VivariumError):
-    """Error raised when a dependency requirement is violated."""
-
-    pass
 
 
 RESOURCE_TYPES = {
@@ -46,65 +29,6 @@ RESOURCE_TYPES = {
     "stream",
 }
 NULL_RESOURCE_TYPE = "null"
-
-
-class ResourceGroup:
-    """Resource groups are the nodes in the resource dependency graph.
-
-    A resource group represents the pool of resources produced by a single
-    callable and all the dependencies necessary to produce that resource.
-    When thinking of the dependency graph, this represents a vertex and
-    all in-edges.  This is a local-information representation that can be
-    used to construct the entire dependency graph once all resources are
-    specified.
-
-    """
-
-    def __init__(
-        self,
-        resource_type: str,
-        resource_names: list[str],
-        producer: Any,
-        dependencies: list[str],
-    ):
-        self._resource_type = resource_type
-        self._resource_names = resource_names
-        self._producer = producer
-        self._dependencies = dependencies
-
-    @property
-    def type(self) -> str:
-        """The type of resource produced by this resource group's producer.
-
-        Must be one of `RESOURCE_TYPES`.
-        """
-        return self._resource_type
-
-    @property
-    def names(self) -> list[str]:
-        """The long names (including type) of all resources in this group."""
-        return [f"{self._resource_type}.{name}" for name in self._resource_names]
-
-    @property
-    def producer(self) -> Any:
-        """The method or object that produces this group of resources."""
-        return self._producer
-
-    @property
-    def dependencies(self) -> list[str]:
-        """The long names (including type) of dependencies for this group."""
-        return self._dependencies
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self.names)
-
-    def __repr__(self) -> str:
-        resources = ", ".join(self)
-        return f"ResourceProducer({resources})"
-
-    def __str__(self) -> str:
-        resources = ", ".join(self)
-        return f"({resources})"
 
 
 class ResourceManager(Manager):
