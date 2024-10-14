@@ -148,25 +148,6 @@ class DiseaseState(State):
 
 
 class DiseaseModel(Machine):
-    ##############
-    # Properties #
-    ##############
-
-    @property
-    def columns_required(self) -> Optional[List[str]]:
-        return ["age", "sex"]
-
-    @property
-    def initialization_requirements(self) -> Dict[str, List[str]]:
-        return {
-            # FIXME - MIC-5406: We should be able to say that we require a
-            #  randomness stream here and have vivarium identify the sim's key
-            #  columns, which will be required.
-            "requires_columns": ["entrance_time", "age"],
-            "requires_values": [],
-            "requires_streams": [],
-        }
-
 
     #####################
     # Lifecycle methods #
