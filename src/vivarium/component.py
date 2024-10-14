@@ -26,7 +26,7 @@ from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.event import Event
 from vivarium.framework.lookup import LookupTable
 from vivarium.framework.population import PopulationError, PopulationView
-from vivarium.types import LookupTableData, Time, Timedelta
+from vivarium.types import LookupTableData
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
