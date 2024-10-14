@@ -1,3 +1,7 @@
+**3.0.15 - TBD**
+
+  - Support passing callables directly when building lookup tables
+
 **3.0.14 - 10/18/24**
 
   - Fix mypy errors in vivarium/framework/artifact/artifact.py
