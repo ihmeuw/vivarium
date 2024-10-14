@@ -217,7 +217,7 @@ class Pipeline:
             the source and mutators.
         """
         self.name: str | None = None
-        self._source: Callable[..., Any] | None = None
+        self.source: Callable[..., Any] | None = None
         self.mutators: list[Callable[..., Any]] = []
         self._combiner: ValueCombiner | None = None
         self.post_processor: PostProcessor | None = None
@@ -247,15 +247,6 @@ class Pipeline:
         if old_value is not None:
             raise DynamicValueError(self._set_attr_error(property_name, new_value))
         setattr(self, private_name, new_value)
-
-    @property
-    def source(self) -> Callable[..., Any]:
-        "A callable source for this pipeline's value."
-        return self._get_property(self._source, "source")
-
-    @source.setter
-    def source(self, source: Callable[..., Any]) -> None:
-        self._set_property("source", source)
 
     @property
     def combiner(self) -> ValueCombiner:
@@ -302,6 +293,11 @@ class Pipeline:
         return self._call(*args, skip_post_processor=skip_post_processor, **kwargs)
 
     def _call(self, *args: Any, skip_post_processor: bool = False, **kwargs: Any) -> Any:
+        if not self.source:
+            raise DynamicValueError(
+                f"The dynamic value pipeline for {self.name} has no source. This likely means "
+                f"you are attempting to modify a value that hasn't been created."
+            )
         value = self.source(*args, **kwargs)
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
