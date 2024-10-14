@@ -1,5 +1,5 @@
 # mypy: ignore-errors
-from typing import List, Optional, Dict
+from __future__ import annotations
 
 import pandas as pd
 
@@ -70,11 +70,11 @@ class DiseaseState(State):
     ##############
 
     @property
-    def columns_required(self) -> Optional[List[str]]:
+    def columns_required(self) -> list[str] | None:
         return [self.model, "alive"]
 
     @property
-    def population_view_query(self) -> Optional[str]:
+    def population_view_query(self) -> str | None:
         return f"alive == 'alive' and {self.model} == '{self.state_id}'"
 
     #####################

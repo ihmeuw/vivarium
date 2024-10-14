@@ -9,8 +9,9 @@ A state machine implementation for use in ``vivarium`` simulations.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -197,7 +198,7 @@ class State(Component):
     ##############
 
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         return {
             f"{self.name}": {
                 "data_sources": {
