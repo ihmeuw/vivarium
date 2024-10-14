@@ -1,3 +1,7 @@
+**3.0.18 - TBD**
+
+  - Support passing callables directly when building lookup tables
+
 **3.0.17 - 11/04/24**
 
   - Fix mypy errors in vivarium/framework/configuration.py
