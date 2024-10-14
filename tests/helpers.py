@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
@@ -146,10 +148,12 @@ class ColumnCreator(Component):
         builder.randomness.get_stream("stream_1")
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        initialization_data = pd.DataFrame(
-            {column: 9 for column in self.columns_created}, index=pop_data.index
+        self.population_view.update(self.get_initial_state(pop_data.index))
+
+    def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
+        return pd.DataFrame(
+            {column: [i % 3 for i in index] for column in self.columns_created}, index=index
         )
-        self.population_view.update(initialization_data)
 
 
 class LookupCreator(ColumnCreator):
