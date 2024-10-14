@@ -490,6 +490,14 @@ class Machine(Component):
     def columns_created(self) -> List[str]:
         return [self.state_column]
 
+    @property
+    def initialization_requirements(self) -> Dict[str, List[str]]:
+        return {
+            "requires_columns": [],
+            "requires_values": [],
+            "requires_streams": [self.randomness.key],
+        }
+
     #####################
     # Lifecycle methods #
     #####################
