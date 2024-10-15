@@ -4,6 +4,8 @@ import pytest
 
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import (
+    DynamicValueError,
+    Pipeline,
     ValuesManager,
     list_combiner,
     rescale_post_processor,
@@ -118,3 +120,13 @@ def test_rescale_post_processor_variable(manager_with_step_size):
     odds = value.iloc[lambda x: x.index % 2 == 1]
     assert np.all(evens == from_yearly(0.5, pd.Timedelta(days=3)))
     assert np.all(odds == from_yearly(0.5, pd.Timedelta(days=5)))
+
+
+def test_unsourced_pipeline():
+    pipeline = Pipeline()
+    assert pipeline.source is None
+    with pytest.raises(
+        DynamicValueError,
+        match=f"The dynamic value pipeline for {pipeline.name} has no source.",
+    ):
+        pipeline()
