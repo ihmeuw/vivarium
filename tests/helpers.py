@@ -145,7 +145,6 @@ class ColumnCreator(Component):
 
     def setup(self, builder: Builder) -> None:
         builder.value.register_value_producer("pipeline_1", lambda x: x)
-        builder.randomness.get_stream("stream_1")
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         self.population_view.update(self.get_initial_state(pop_data.index))
