@@ -14,9 +14,9 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 """
 from __future__ import annotations
 
-from collections import defaultdict
+from collections.abc import Callable, Iterable
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 import pandas as pd
 
@@ -118,9 +118,8 @@ def rescale_post_processor(value: NumberLike, manager: ValuesManager) -> NumberL
         Annual rates, either as a number or something we can broadcast
         multiplication over like a :mod:`numpy` array or :mod:`pandas`
         data frame.
-    time_step
-        A pandas time delta representing the size of the upcoming time
-        step.
+    manager
+        The ValuesManager for this simulation
 
     Returns
     -------
@@ -203,24 +202,18 @@ class Pipeline:
     values that won't be used in the particular simulation.
     """
 
-    def __init__(self) -> None:
-        """
-        Parameters
-        ----------
-        name
-            The name of the value represented by this pipeline.
-        mutators
-            A list of callables that directly modify the pipeline source or
-            contribute portions of the value.
-        post_processor
-            An optional final transformation to perform on the combined output of
-            the source and mutators.
-        """
-        self.name: str | None = None
+    def __init__(self, name: str) -> None:
+        self.name: str = name
+        """The name of the value represented by this pipeline."""
         self.source: Callable[..., Any] | None = None
+        """The callable source of the value represented by the pipeline."""
         self.mutators: list[Callable[..., Any]] = []
+        """A list of callables that directly modify the pipeline source or
+        contribute portions of the value."""
         self._combiner: ValueCombiner | None = None
         self.post_processor: PostProcessor | None = None
+        """An optional final transformation to perform on the combined output of
+        the source and mutators."""
         self._manager: ValuesManager | None = None
 
     def _get_attr_error(self, attribute: str) -> str:
@@ -241,31 +234,16 @@ class Pipeline:
             raise DynamicValueError(self._get_attr_error(property_name))
         return property
 
-    def _set_property(self, property_name: str, new_value: Any) -> None:
-        private_name = f"_{property_name}"
-        old_value = getattr(self, private_name)
-        if old_value is not None:
-            raise DynamicValueError(self._set_attr_error(property_name, new_value))
-        setattr(self, private_name, new_value)
-
     @property
     def combiner(self) -> ValueCombiner:
         """A strategy for combining the source and mutator values into the
         final value represented by the pipeline."""
         return self._get_property(self._combiner, "combiner")
 
-    @combiner.setter
-    def combiner(self, combiner: ValueCombiner) -> None:
-        self._set_property("combiner", combiner)
-
     @property
     def manager(self) -> ValuesManager:
         """A reference to the simulation values manager."""
         return self._get_property(self._manager, "manager")
-
-    @manager.setter
-    def manager(self, manager: ValuesManager) -> None:
-        self._set_property("manager", manager)
 
     def __call__(self, *args: Any, skip_post_processor: bool = False, **kwargs: Any) -> Any:
         """Generates the value represented by this pipeline.
@@ -311,13 +289,45 @@ class Pipeline:
     def __repr__(self) -> str:
         return f"_Pipeline({self.name})"
 
+    @classmethod
+    def setup_pipeline(
+        cls,
+        pipeline: Pipeline,
+        source: Callable[..., Any],
+        combiner: ValueCombiner,
+        post_processor: PostProcessor | None,
+        manager: ValuesManager,
+    ) -> None:
+        """
+        Add a source, combiner, and post-processor to a pipeline.
+
+        Parameters
+        ----------
+        pipeline
+            The pipeline to configure.
+        source
+            The callable source of the value represented by the pipeline.
+        combiner
+            A strategy for combining the source and mutator values into the
+            final value represented by the pipeline.
+        post_processor
+            An optional final transformation to perform on the combined output
+            of the source and mutators.
+        manager
+            The simulation values manager.
+        """
+        pipeline.source = source
+        pipeline._combiner = combiner
+        pipeline.post_processor = post_processor
+        pipeline._manager = manager
+
 
 class ValuesManager(Manager):
     """Manager for the dynamic value system."""
 
     def __init__(self) -> None:
         # Pipelines are lazily initialized by _register_value_producer
-        self._pipelines: dict[str, Pipeline] = defaultdict(Pipeline)
+        self._pipelines: dict[str, Pipeline] = {}
 
     @property
     def name(self) -> str:
@@ -403,12 +413,10 @@ class ValuesManager(Manager):
     ) -> Pipeline:
         """Configure the named value pipeline with a source, combiner, and post-processor."""
         self.logger.debug(f"Registering value pipeline {value_name}")
-        pipeline = self._pipelines[value_name]
-        pipeline.name = value_name
-        pipeline.source = source
-        pipeline.combiner = preferred_combiner
-        pipeline.post_processor = preferred_post_processor
-        pipeline.manager = self
+        pipeline = self.get_value(value_name)
+        Pipeline.setup_pipeline(
+            pipeline, source, preferred_combiner, preferred_post_processor, self
+        )
         return pipeline
 
     def register_value_modifier(
@@ -446,7 +454,7 @@ class ValuesManager(Manager):
         """
         modifier_name = self._get_modifier_name(modifier)
 
-        pipeline = self._pipelines[value_name]  # May create a pipeline
+        pipeline = self.get_value(value_name)
         pipeline.mutators.append(modifier)
 
         name = f"{value_name}.{len(pipeline.mutators)}.{modifier_name}"
@@ -471,7 +479,9 @@ class ValuesManager(Manager):
             (frequently just a :class:`pandas.Index` representing the
             simulants).
         """
-        return self._pipelines[name]  # May create a pipeline.
+        pipeline = self._pipelines.get(name) or Pipeline(name)
+        self._pipelines[name] = pipeline
+        return pipeline
 
     @staticmethod
     def _convert_dependencies(
