@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 =============
 Interpolation
@@ -8,13 +7,15 @@ Provides interpolation algorithms across tabular data for ``vivarium``
 simulations.
 
 """
+from __future__ import annotations
 
-from typing import List, Tuple, Union
+from collections.abc import Hashable, Sequence
+from typing import Union
 
 import numpy as np
 import pandas as pd
 
-_ParameterType = Union[List[List[str]], List[Tuple[str, str, str]]]
+_SubTablesType = list[tuple[Union[tuple[Hashable, ...], Hashable, None], pd.DataFrame]]
 
 
 class Interpolation:
@@ -40,9 +41,9 @@ class Interpolation:
     def __init__(
         self,
         data: pd.DataFrame,
-        categorical_parameters: Union[List[str], Tuple[str, ...]],
-        continuous_parameters: _ParameterType,
-        value_columns: Union[List[str], Tuple[str, ...]],
+        categorical_parameters: Sequence[str],
+        continuous_parameters: list[Sequence[str]],
+        value_columns: Sequence[str],
         order: int,
         extrapolate: bool,
         validate: bool,
@@ -61,22 +62,23 @@ class Interpolation:
         self.categorical_parameters = categorical_parameters
         self.data = data.copy()
         self.continuous_parameters = continuous_parameters
-        self.value_columns = value_columns
+        self.value_columns = list(value_columns)
         self.order = order
         self.extrapolate = extrapolate
         self.validate = validate
 
+        sub_tables: _SubTablesType
+
         if self.categorical_parameters:
             # Since there are categorical_parameters we need to group the table
             # by those columns to get the sub-tables to fit
-            sub_tables = self.data.groupby(list(self.categorical_parameters))
+            sub_tables = list(self.data.groupby(list(self.categorical_parameters)))
         else:
             # There are no categorical parameters, so we will fit the whole table
-            sub_tables = {None: self.data}.items()
+            sub_tables = [(None, self.data)]
 
         self.interpolations = {}
 
-        sub_tables = list(sub_tables)
         for key, base_table in sub_tables:
             if (
                 base_table.empty
@@ -109,9 +111,11 @@ class Interpolation:
                 interpolants, self.categorical_parameters, self.continuous_parameters
             )
 
+        sub_tables: _SubTablesType
+
         if self.categorical_parameters:
-            sub_tables = interpolants.groupby(
-                list(self.categorical_parameters), observed=False
+            sub_tables = list(
+                interpolants.groupby(list(self.categorical_parameters), observed=False)
             )
         else:
             sub_tables = [(None, interpolants)]
@@ -120,22 +124,27 @@ class Interpolation:
         result = pd.DataFrame(
             index=interpolants.index, columns=self.value_columns, dtype=np.float64
         )
-        sub_tables = list(sub_tables)
+
         for key, sub_table in sub_tables:
             if sub_table.empty:
                 continue
             df = self.interpolations[key](sub_table)
-            result.loc[sub_table.index, self.value_columns] = df.loc[
-                sub_table.index, self.value_columns
+            result.loc[sub_table.index, list(self.value_columns)] = df.loc[
+                sub_table.index, list(self.value_columns)
             ]
 
         return result
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "Interpolation()"
 
 
-def validate_parameters(data, categorical_parameters, continuous_parameters, value_columns):
+def validate_parameters(
+    data: pd.DataFrame,
+    categorical_parameters: Sequence[str],
+    continuous_parameters: list[Sequence[str]],
+    value_columns: Sequence[str],
+) -> Sequence[str]:
     if data.empty:
         raise ValueError("You must supply non-empty data to create the interpolation.")
 
@@ -145,7 +154,7 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, val
         )
 
     for p in continuous_parameters:
-        if not isinstance(p, (List, Tuple)) or len(p) != 3:
+        if not isinstance(p, (tuple, list)) or len(p) != 3:
             raise ValueError(
                 f"Interpolation is only supported for binned data. You must specify a list or tuple "
                 f"containing, in order, the column name used when interpolation is called, "
@@ -163,7 +172,11 @@ def validate_parameters(data, categorical_parameters, continuous_parameters, val
     return value_columns
 
 
-def validate_call_data(data, categorical_parameters, continuous_parameters):
+def validate_call_data(
+    data: pd.DataFrame,
+    categorical_parameters: Sequence[str],
+    continuous_parameters: list[Sequence[str]],
+) -> None:
     if not isinstance(data, pd.DataFrame):
         raise TypeError(
             f"Interpolations can only be called on pandas.DataFrames. You"
@@ -190,7 +203,9 @@ def validate_call_data(data, categorical_parameters, continuous_parameters):
         )
 
 
-def check_data_complete(data, continuous_parameters) -> None:
+def check_data_complete(
+    data: pd.DataFrame, continuous_parameters: list[Sequence[str]]
+) -> None:
     """Check that data is complete for interpolation.
 
     For any parameters specified with edges, make sure edges
@@ -217,22 +232,20 @@ def check_data_complete(data, continuous_parameters) -> None:
     NotImplementedError
         If a parameter contains non-continuous bins.
     """
+    param_edges = [p[1:] for p in continuous_parameters]  # strip out call column name
 
-    param_edges = [
-        p[1:] for p in continuous_parameters if isinstance(p, (Tuple, List))
-    ]  # strip out call column name
+    sub_tables: _SubTablesType
 
     # check no overlaps/gaps
     for p in param_edges:
         other_params = [p_ed[0] for p_ed in param_edges if p_ed != p]
         if other_params:
-            sub_tables = data.groupby(list(other_params))
+            sub_tables = list(data.groupby(list(other_params)))
         else:
-            sub_tables = {None: data}.items()
+            sub_tables = [(None, data)]
 
         n_p_total = len(set(data[p[0]]))
 
-        sub_tables = list(sub_tables)
         for _, table in sub_tables:
             param_data = table[[p[0], p[1]]].copy().sort_values(by=p[0])
             start, end = param_data[p[0]].reset_index(drop=True), param_data[
@@ -283,9 +296,9 @@ class Order0Interp:
 
     def __init__(
         self,
-        data,
-        continuous_parameters: _ParameterType,
-        value_columns: List[str],
+        data: pd.DataFrame,
+        continuous_parameters: list[Sequence[str]],
+        value_columns: list[str],
         extrapolate: bool,
         validate: bool,
     ):
