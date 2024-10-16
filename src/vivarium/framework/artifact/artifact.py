@@ -16,7 +16,7 @@ import re
 import warnings
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Iterable, Union
+from typing import Any, Iterable
 
 from vivarium.framework.artifact import hdf
 
@@ -30,7 +30,7 @@ class ArtifactException(Exception):
 class Artifact:
     """An interface for interacting with :mod:`vivarium` artifacts."""
 
-    def __init__(self, path: Union[str, Path], filter_terms: list[str] | None = None) -> None:
+    def __init__(self, path: str | Path, filter_terms: list[str] | None = None) -> None:
         """
         Parameters
         ----------
