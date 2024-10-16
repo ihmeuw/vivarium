@@ -36,14 +36,16 @@ class DiseaseTransition(Transition):
         rate = builder.configuration[self.cause_key][self.measure]
 
         self.base_rate = lambda index: pd.Series(rate, index=index)
-        self.transition_rate = builder.value.register_rate_producer(
-            self.rate_name, source=self._risk_deleted_rate
-        )
         self.joint_population_attributable_fraction = builder.value.register_value_producer(
             f"{self.rate_name}.population_attributable_fraction",
             source=lambda index: [pd.Series(0.0, index=index)],
             preferred_combiner=list_combiner,
             preferred_post_processor=union_post_processor,
+        )
+        self.transition_rate = builder.value.register_rate_producer(
+            self.rate_name,
+            source=self._risk_deleted_rate,
+            required_resources=[self.joint_population_attributable_fraction],
         )
 
     ##################################
@@ -104,11 +106,6 @@ class DiseaseState(State):
             self._excess_mortality_rate = 0
 
         self.clock = builder.time.clock()
-
-        self.excess_mortality_rate = builder.value.register_rate_producer(
-            f"{self.state_id}.excess_mortality_rate",
-            source=self.risk_deleted_excess_mortality_rate,
-        )
         self.excess_mortality_rate_paf = builder.value.register_value_producer(
             f"{self.state_id}.excess_mortality_rate.population_attributable_fraction",
             source=lambda index: [pd.Series(0.0, index=index)],
@@ -116,7 +113,17 @@ class DiseaseState(State):
             preferred_post_processor=union_post_processor,
         )
 
-        builder.value.register_value_modifier("mortality_rate", self.add_in_excess_mortality)
+        self.excess_mortality_rate = builder.value.register_rate_producer(
+            f"{self.state_id}.excess_mortality_rate",
+            source=self.risk_deleted_excess_mortality_rate,
+            required_resources=[self.excess_mortality_rate_paf],
+        )
+
+        builder.value.register_value_modifier(
+            "mortality_rate",
+            self.add_in_excess_mortality,
+            required_resources=[self.excess_mortality_rate]
+        )
 
     ##################
     # Public methods #
@@ -141,9 +148,7 @@ class DiseaseState(State):
     def add_in_excess_mortality(
         self, index: pd.Index, mortality_rates: pd.Series
     ) -> pd.Series:
-        affected = self.population_view.get(index)
-        mortality_rates.loc[affected.index] += self.excess_mortality_rate(affected.index)
-
+        mortality_rates.loc[index] += self.excess_mortality_rate(index)
         return mortality_rates
 
 
@@ -168,7 +173,9 @@ class DiseaseModel(Machine):
             source=lambda index: pd.Series(cause_specific_mortality_rate, index=index),
         )
         builder.value.register_value_modifier(
-            "mortality_rate", modifier=self.delete_cause_specific_mortality
+            "mortality_rate",
+            modifier=self.delete_cause_specific_mortality,
+            required_resources=[self.cause_specific_mortality_rate],
         )
 
     ##################################
