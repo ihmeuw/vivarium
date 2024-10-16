@@ -14,6 +14,7 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 """
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable, Iterable, Sequence
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
@@ -120,7 +121,7 @@ def rescale_post_processor(value: NumberLike, manager: ValuesManager) -> NumberL
         multiplication over like a :mod:`numpy` array or :mod:`pandas`
         data frame.
     manager
-        The values manager for the simulation
+        The ValuesManager for this simulation.
 
     Returns
     -------
@@ -504,9 +505,11 @@ class ValuesManager(Manager):
             return [f"value.{func.name}"]
 
         if requires_columns or requires_values or requires_streams:
-            self.logger.warning(
+            warnings.warn(
                 "Specifying requirements individually is deprecated. You should "
-                "specify them using the 'required_resources' argument instead."
+                "specify them using the 'required_resources' argument instead.",
+                DeprecationWarning,
+                stacklevel=2,
             )
             if required_resources:
                 raise ValueError(

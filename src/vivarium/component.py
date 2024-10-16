@@ -11,6 +11,7 @@ simulations.
 from __future__ import annotations
 
 import re
+import warnings
 from abc import ABC
 from datetime import datetime, timedelta
 from importlib import import_module
@@ -237,17 +238,9 @@ class Component(ABC):
     @property
     def initialization_requirements(
         self,
-    ) -> dict[str, list[str]] | list[str | Pipeline | RandomnessStream]:
-        """Provides the names of all values required by this component during
-        simulant initialization.
-
-        Returns
-        -------
-            A dictionary containing the additional requirements of this
-            component during simulant initialization. An omitted key or an empty
-            list for a key implies no requirements for that key during
-            initialization.
-        """
+    ) -> list[str | Pipeline | RandomnessStream]:
+        """A list containing the columns, pipelines, and randomness streams
+        required by this component's simulant initializer."""
         return []
 
     @property
@@ -787,9 +780,11 @@ class Component(ABC):
             }
         else:
             initialization_requirements = self.initialization_requirements
-            self.logger.warning(
+            warnings.warn(
                 "The dict format for initialization_requirements is deprecated."
-                " You should use provide a list of the required resources."
+                " You should use provide a list of the required resources.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
         if type(self).on_initialize_simulants != Component.on_initialize_simulants:
