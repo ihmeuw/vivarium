@@ -1,10 +1,16 @@
 # mypy: ignore-errors
-from typing import Any, Dict, List
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Dict, List
 
 import pandas as pd
 
 from vivarium import Component
-from vivarium.framework.engine import Builder
+
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
+    from vivarium.framework.randomness import RandomnessStream
+    from vivarium.framework.values import Pipeline
 
 
 class Risk(Component):
@@ -27,12 +33,8 @@ class Risk(Component):
         return [f"{self.risk}_propensity"]
 
     @property
-    def initialization_requirements(self) -> Dict[str, List[str]]:
-        return {
-            "requires_columns": [],
-            "requires_values": [],
-            "requires_streams": [self.risk],
-        }
+    def initialization_requirements(self) -> list[str | Pipeline | RandomnessStream]:
+        return [self.randomness]
 
     #####################
     # Lifecycle methods #
