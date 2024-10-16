@@ -119,7 +119,7 @@ def rescale_post_processor(value: NumberLike, manager: ValuesManager) -> NumberL
         multiplication over like a :mod:`numpy` array or :mod:`pandas`
         data frame.
     manager
-        The ValuesManager for this simulation
+        The ValuesManager for this simulation.
 
     Returns
     -------
