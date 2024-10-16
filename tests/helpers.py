@@ -8,6 +8,8 @@ from vivarium import Component, Observer
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
+from vivarium.framework.randomness import RandomnessStream
+from vivarium.framework.values import Pipeline
 
 
 class MockComponentA(Observer):
@@ -145,7 +147,6 @@ class ColumnCreator(Component):
 
     def setup(self, builder: Builder) -> None:
         builder.value.register_value_producer("pipeline_1", lambda x: x)
-        builder.randomness.get_stream("stream_1")
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         self.population_view.update(self.get_initial_state(pop_data.index))
@@ -208,12 +209,12 @@ class ColumnCreatorAndRequirer(Component):
         return ["test_column_4"]
 
     @property
-    def initialization_requirements(self) -> Dict[str, List[str]]:
-        return {
-            "requires_columns": ["test_column_2"],
-            "requires_values": ["pipeline_1"],
-            "requires_streams": ["stream_1"],
-        }
+    def initialization_requirements(self) -> list[str | Pipeline | RandomnessStream]:
+        return ["test_column_2", self.pipeline, self.randomness]
+
+    def setup(self, builder: Builder) -> None:
+        self.pipeline = builder.value.get_value("pipeline_1")
+        self.randomness = builder.randomness.get_stream("stream_1")
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame({"test_column_4": 8}, index=pop_data.index)

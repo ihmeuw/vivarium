@@ -18,6 +18,8 @@ import pandas as pd
 
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
+from vivarium.framework.randomness import RandomnessStream
+from vivarium.framework.values import Pipeline
 from vivarium.manager import Interface, Manager
 from vivarium.types import ClockStepSize, ClockTime
 
@@ -263,6 +265,7 @@ class PopulationManager(Manager):
         requires_columns: str | Sequence[str] = (),
         requires_values: str | Sequence[str] = (),
         requires_streams: str | Sequence[str] = (),
+        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
@@ -284,9 +287,21 @@ class PopulationManager(Manager):
         requires_streams
             The randomness streams necessary to initialize the simulant
             attributes.
+        required_resources
+            The resources that the initializer requires to run. Strings are
+            interpreted as column names, and Pipelines and RandomnessStreams
+            are interpreted as value pipelines and randomness streams,
+            respectively.
         """
-        if isinstance(creates_columns, str):
-            creates_columns = [creates_columns]
+
+        has_individual_requires = requires_columns or requires_values or requires_streams
+
+        if has_individual_requires and required_resources:
+            raise ValueError(
+                "If requires_columns, requires_values, or requires_streams are provided, "
+                "requirements must be empty."
+            )
+
         if isinstance(requires_columns, str):
             requires_columns = [requires_columns]
         if isinstance(requires_values, str):
@@ -294,12 +309,33 @@ class PopulationManager(Manager):
         if isinstance(requires_streams, str):
             requires_streams = [requires_streams]
 
-        self._initializer_components.add(initializer, list(creates_columns))
+        if required_resources:
+            requires_columns = []
+            requires_values = []
+            requires_streams = []
+            for required_resource in required_resources:
+                if isinstance(required_resource, str):
+                    requires_columns.append(required_resource)
+                elif isinstance(required_resource, Pipeline):
+                    requires_values.append(required_resource.name)
+                elif isinstance(required_resource, RandomnessStream):
+                    requires_streams.append(required_resource.key)
+                else:
+                    raise TypeError(
+                        "requirements must be a sequence of strings, Pipelines,"
+                        f" and RandomnessStreams. Provided: '{type(required_resource)}'."
+                    )
+
         dependencies = (
             [f"column.{name}" for name in requires_columns]
             + [f"value.{name}" for name in requires_values]
             + [f"stream.{name}" for name in requires_streams]
         )
+
+        if isinstance(creates_columns, str):
+            creates_columns = [creates_columns]
+        self._initializer_components.add(initializer, list(creates_columns))
+
         if "tracked" not in creates_columns:
             # The population view itself uses the tracked column, so include
             # to be safe.
@@ -455,6 +491,7 @@ class PopulationInterface(Interface):
         requires_columns: str | Sequence[str] = (),
         requires_values: str | Sequence[str] = (),
         requires_streams: str | Sequence[str] = (),
+        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
@@ -476,7 +513,16 @@ class PopulationInterface(Interface):
         requires_streams
             The randomness streams necessary to initialize the
             simulant attributes.
+        required_resources
+            The resources that the initializer requires to run. Strings are
+            interpreted as column names, and Pipelines and RandomnessStreams
+            are interpreted as value pipelines and randomness streams,
         """
         self._manager.register_simulant_initializer(
-            initializer, creates_columns, requires_columns, requires_values, requires_streams
+            initializer,
+            creates_columns,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            required_resources,
         )

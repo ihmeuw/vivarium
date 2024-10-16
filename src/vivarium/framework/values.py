@@ -5,7 +5,7 @@ The Value Pipeline System
 
 The value pipeline system is a vital part of the :mod:`vivarium`
 infrastructure. It allows for values that determine the behavior of individual
-:term:`simulants <Simulant>` to be constructed across across multiple
+:term:`simulants <Simulant>` to be constructed across multiple
 :ref:`components <components_concept>`.
 
 For more information about when and how you should use pipelines in your
@@ -14,7 +14,8 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 """
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+import warnings
+from collections.abc import Callable, Iterable, Sequence
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
@@ -22,6 +23,7 @@ import pandas as pd
 
 from vivarium.exceptions import VivariumError
 from vivarium.framework.event import Event
+from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.utilities import from_yearly
 from vivarium.manager import Interface, Manager
 from vivarium.types import NumberLike
@@ -377,6 +379,7 @@ class ValuesManager(Manager):
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
+        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
     ) -> Pipeline:
@@ -395,7 +398,7 @@ class ValuesManager(Manager):
         # declare that resource at post-setup once all sources and modifiers
         # are registered.
         dependencies = self._convert_dependencies(
-            source, requires_columns, requires_values, requires_streams
+            source, requires_columns, requires_values, requires_streams, required_resources
         )
         self.resources.add_resources("value_source", [value_name], source, dependencies)
         self.add_constraint(
@@ -426,6 +429,7 @@ class ValuesManager(Manager):
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
+        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
 
@@ -451,6 +455,10 @@ class ValuesManager(Manager):
         requires_streams
             A list of the randomness streams that need to be properly sourced
             before the pipeline modifier is called.
+        required_resources
+            A list of resources that need to be properly sourced before the
+            pipeline modifier is called.  This is a list of strings, pipeline
+            names, or randomness streams.
         """
         modifier_name = self._get_modifier_name(modifier)
 
@@ -460,7 +468,7 @@ class ValuesManager(Manager):
         name = f"{value_name}.{len(pipeline.mutators)}.{modifier_name}"
         self.logger.debug(f"Registering {name} as modifier to {value_name}")
         dependencies = self._convert_dependencies(
-            modifier, requires_columns, requires_values, requires_streams
+            modifier, requires_columns, requires_values, requires_streams, required_resources
         )
         self.resources.add_resources("value_modifier", [name], modifier, dependencies)
 
@@ -483,26 +491,54 @@ class ValuesManager(Manager):
         self._pipelines[name] = pipeline
         return pipeline
 
-    @staticmethod
     def _convert_dependencies(
+        self,
         func: Callable[..., Any],
         requires_columns: Iterable[str],
         requires_values: Iterable[str],
         requires_streams: Iterable[str],
+        required_resources: Iterable[str | Pipeline | RandomnessStream],
     ) -> list[str]:
-        # If declaring a pipeline as a value source or modifier, columns and
-        # streams are optional since the pipeline itself will have all the
-        # appropriate dependencies. In any situation, make sure we don't have
-        # provide the pipeline function to source/modifier as well as
-        # explicitly stating the pipeline name in 'requires_values'.
         if isinstance(func, Pipeline):
-            dependencies = [f"value.{func.name}"]
-        else:
-            dependencies = (
-                [f"column.{name}" for name in requires_columns]
-                + [f"value.{name}" for name in requires_values]
-                + [f"stream.{name}" for name in requires_streams]
+            # The dependencies of the pipeline itself will have been declared
+            # when the pipeline was registered.
+            return [f"value.{func.name}"]
+
+        if requires_columns or requires_values or requires_streams:
+            warnings.warn(
+                "Specifying requirements individually is deprecated. You should "
+                "specify them using the 'required_resources' argument instead.",
+                DeprecationWarning,
+                stacklevel=2,
             )
+            if required_resources:
+                raise ValueError(
+                    "If requires_columns, requires_values, or requires_streams"
+                    " are provided, requirements must be empty."
+                )
+
+        if required_resources:
+            requires_columns = []
+            requires_values = []
+            requires_streams = []
+            for required_resource in required_resources:
+                if isinstance(required_resource, str):
+                    requires_columns.append(required_resource)
+                elif isinstance(required_resource, Pipeline):
+                    requires_values.append(required_resource.name)
+                elif isinstance(required_resource, RandomnessStream):
+                    requires_streams.append(required_resource.key)
+                else:
+                    raise TypeError(
+                        "requirements must be a sequence of strings, Pipelines,"
+                        f" and RandomnessStreams. Provided: '{type(required_resource)}'."
+                    )
+
+        dependencies = (
+            [f"column.{name}" for name in requires_columns]
+            + [f"value.{name}" for name in requires_values]
+            + [f"stream.{name}" for name in requires_streams]
+        )
         return dependencies
 
     @staticmethod
@@ -565,6 +601,7 @@ class ValuesInterface(Interface):
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
+        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
     ) -> Pipeline:
@@ -586,6 +623,10 @@ class ValuesInterface(Interface):
         requires_streams
             A list of the randomness streams that need to be properly sourced
             before the pipeline source is called.
+        required_resources
+            A list of resources that need to be properly sourced before the
+            pipeline source is called.  This is a list of strings, pipeline
+            names, or randomness streams.
         preferred_combiner
             A strategy for combining the source and the results of any calls
             to mutators in the pipeline. ``vivarium`` provides the strategies
@@ -609,6 +650,7 @@ class ValuesInterface(Interface):
             requires_columns,
             requires_values,
             requires_streams,
+            required_resources,
             preferred_combiner,
             preferred_post_processor,
         )
@@ -620,6 +662,7 @@ class ValuesInterface(Interface):
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
+        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
     ) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named rate.
 
@@ -646,6 +689,10 @@ class ValuesInterface(Interface):
         requires_streams
             A list of the randomness streams that need to be properly sourced
             before the pipeline source is called.
+        required_resources
+            A list of resources that need to be properly sourced before the
+            pipeline source is called.  This is a list of strings, pipeline
+            names, or randomness streams.
 
         Returns
         -------
@@ -657,6 +704,7 @@ class ValuesInterface(Interface):
             requires_columns,
             requires_values,
             requires_streams,
+            required_resources,
             preferred_post_processor=rescale_post_processor,
         )
 
@@ -667,6 +715,7 @@ class ValuesInterface(Interface):
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
+        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
 
@@ -692,9 +741,18 @@ class ValuesInterface(Interface):
         requires_streams
             A list of the randomness streams that need to be properly sourced
             before the pipeline modifier is called.
+        required_resources
+            A list of resources that need to be properly sourced before the
+            pipeline modifier is called.  This is a list of strings, pipeline
+            names, or randomness streams.
         """
         self._manager.register_value_modifier(
-            value_name, modifier, requires_columns, requires_values, requires_streams
+            value_name,
+            modifier,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            required_resources,
         )
 
     def get_value(self, name: str) -> Pipeline:
