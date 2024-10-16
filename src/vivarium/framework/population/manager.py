@@ -291,6 +291,7 @@ class PopulationManager(Manager):
             The resources that the initializer requires to run. Strings are
             interpreted as column names, and Pipelines and RandomnessStreams
             are interpreted as value pipelines and randomness streams,
+            respectively.
         """
 
         has_individual_requires = requires_columns or requires_values or requires_streams
