@@ -7,7 +7,6 @@ Resource Manager
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
@@ -189,20 +188,16 @@ class ResourceManager(Manager):
 
         return resource_graph
 
-    def __iter__(self) -> Iterator[Any]:
-        """Returns a dependency-sorted iterable of population initializers.
+    def get_population_initializers(self) -> list[Any]:
+        """Returns a dependency-sorted list of population initializers.
 
         We exclude all non-initializer dependencies. They were necessary in
         graph construction, but we only need the column producers at population
         creation time.
         """
-        return iter(
-            [
-                r.producer
-                for r in self.sorted_nodes
-                if r.type in {"column", NULL_RESOURCE_TYPE}
-            ]
-        )
+        return [
+            r.producer for r in self.sorted_nodes if r.type in {"column", NULL_RESOURCE_TYPE}
+        ]
 
     def __repr__(self) -> str:
         out = {}
@@ -264,11 +259,11 @@ class ResourceInterface(Interface):
         """
         self._manager.add_resources(resource_type, resource_names, producer, dependencies)
 
-    def __iter__(self) -> Iterator[Any]:
-        """Returns a dependency-sorted iterable of population initializers.
+    def get_population_initializers(self) -> list[Any]:
+        """Returns a dependency-sorted list of population initializers.
 
         We exclude all non-initializer dependencies. They were necessary in
         graph construction, but we only need the column producers at population
         creation time.
         """
-        return iter(self._manager)
+        return self._manager.get_population_initializers()
