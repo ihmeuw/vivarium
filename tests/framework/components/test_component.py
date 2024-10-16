@@ -163,7 +163,10 @@ def test_component_initializer_is_not_registered_if_not_defined():
     simulation = InteractiveContext(components=[component])
 
     # Assert that simulant initializer has been registered
-    assert component.on_initialize_simulants not in simulation._resource
+    assert (
+        component.on_initialize_simulants
+        not in simulation._resource.get_population_initializers()
+    )
 
 
 def test_component_initializer_is_registered_and_called_if_defined():
@@ -176,7 +179,10 @@ def test_component_initializer_is_registered_and_called_if_defined():
     population = simulation.get_population()
 
     # Assert that simulant initializer has been registered
-    assert component.on_initialize_simulants in simulation._resource
+    assert (
+        component.on_initialize_simulants
+        in simulation._resource.get_population_initializers()
+    )
     # and that created columns are correctly initialized
     pd.testing.assert_frame_equal(population[component.columns_created], expected_pop_view)
 

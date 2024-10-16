@@ -341,7 +341,7 @@ class PopulationManager(Manager):
         index = new_population.index.difference(self._population.index)
         self._population = new_population
         self.adding_simulants = True
-        for initializer in self.resources:
+        for initializer in self.resources.get_population_initializers():
             initializer(
                 SimulantData(index, population_configuration, self.clock(), self.step_size())
             )
