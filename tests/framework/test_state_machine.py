@@ -71,15 +71,11 @@ def test_initialize_with_array_initialization_weights(use_artifact) -> None:
 
     class TestMachine(Machine):
         @property
-        def initialization_requirements(self) -> dict[str, list[str]]:
+        def initialization_requirements(self) -> list[str | Pipeline | RandomnessStream]:
             # FIXME - MIC-5408: We shouldn't need to specify the columns in the
             #  lookup tables here, since the component can't know what will be
             #  specified by the states or the configuration.
-            return {
-                "requires_columns": ["test_column_1"],
-                "requires_values": [],
-                "requires_streams": [],
-            }
+            return ["test_column_1"]
 
     def initialization_weights(key: str):
         if use_artifact:
