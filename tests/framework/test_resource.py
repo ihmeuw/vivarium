@@ -1,14 +1,10 @@
-import networkx as nx
 import pytest
 
 from vivarium import Component
-from vivarium.framework.resource import (
-    NULL_RESOURCE_TYPE,
-    RESOURCE_TYPES,
-    ResourceError,
-    ResourceGroup,
-    ResourceManager,
-)
+from vivarium.framework.resource import ResourceManager
+from vivarium.framework.resource.exceptions import ResourceError
+from vivarium.framework.resource.group import ResourceGroup
+from vivarium.framework.resource.manager import NULL_RESOURCE_TYPE, RESOURCE_TYPES
 
 
 class ResourceProducer(Component):
