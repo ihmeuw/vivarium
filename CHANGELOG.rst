@@ -1,3 +1,7 @@
+**3.0.14 - TBD**
+
+  - Fix mypy errors: vivarium/framework/artifact/artifact.py
+
 **3.0.13 - 10/15/24**
 
   - Fix mypy errors: vivarium/framework/lookup/interpolation.py
