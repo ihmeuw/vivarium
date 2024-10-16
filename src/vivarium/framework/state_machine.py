@@ -17,11 +17,13 @@ import numpy as np
 import pandas as pd
 
 from vivarium import Component
-from vivarium.framework.event import Event
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+    from vivarium.framework.event import Event
     from vivarium.framework.population import PopulationView, SimulantData
+    from vivarium.framework.randomness import RandomnessStream
+    from vivarium.framework.values import Pipeline
     from vivarium.types import ClockTime, LookupTableData
 
 
@@ -492,12 +494,10 @@ class Machine(Component):
         return [self.state_column]
 
     @property
-    def initialization_requirements(self) -> Dict[str, List[str]]:
-        return {
-            "requires_columns": [],
-            "requires_values": [],
-            "requires_streams": [self.randomness.key],
-        }
+    def initialization_requirements(
+        self,
+    ) -> list[str | Pipeline | RandomnessStream]:
+        return [self.randomness]
 
     #####################
     # Lifecycle methods #
