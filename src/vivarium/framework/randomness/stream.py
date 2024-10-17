@@ -435,7 +435,7 @@ def _normalize_shape(
         | pd.Series[Any]
     ),
     index: pd.Index[int] | pd.MultiIndex,
-) -> npt.NDArray[Any]:
+) -> npt.NDArray[np.number[npt.NBitBase] | np.object_]:
     p = np.array(p)
     # We got a 1-d array => same weights for every index.
     if len(p.shape) == 1:
