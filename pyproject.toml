@@ -58,7 +58,6 @@ exclude = [
     'src/vivarium/framework/population/manager.py',
     'src/vivarium/framework/population/population_view.py',
     'src/vivarium/framework/randomness/manager.py',
-    'src/vivarium/framework/randomness/stream.py',
     'src/vivarium/framework/results/context.py',
     'src/vivarium/framework/results/interface.py',
     'src/vivarium/framework/results/manager.py',
@@ -115,7 +114,7 @@ disable_error_code = []
 # handle mypy errors when 3rd party packages are not typed.
 [[tool.mypy.overrides]]
 module = [
-    # "scipy.*",
+    "scipy.*",
     # "sklearn.*",
 ]
 ignore_missing_imports = true
