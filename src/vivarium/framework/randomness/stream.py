@@ -27,20 +27,23 @@ module.
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Callable, Optional, Union, TypeVar
-import numpy.typing as npt
+from typing import Any, Callable, TypeVar
+
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 from scipy import stats
-from vivarium.types import ClockTime, NumericArray
+
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.utilities import rate_to_probability
+from vivarium.types import ClockTime, NumericArray
 
 RESIDUAL_CHOICE = object()
 
 # TODO: Parameterizing pandas objects fails below python 3.12
 P = TypeVar("P", pd.DataFrame, pd.Series, pd.Index)  # type: ignore [type-arg]
+
 
 def get_hash(key: str) -> int:
     """Gets a hash of the provided key.
@@ -190,7 +193,7 @@ class RandomnessStream:
     def filter_for_rate(
         self,
         population: P,
-        rate: Union[float, list[float], tuple[float], NumericArray, pd.Series[float]],
+        rate: float | list[float] | tuple[float] | NumericArray | pd.Series[float],
         additional_key: Any = None,
     ) -> P:
         """Decide an event outcome for each individual from rates.
@@ -226,7 +229,7 @@ class RandomnessStream:
     def filter_for_probability(
         self,
         population: P,
-        probability: Union[float, list[float], tuple[float], NumericArray, pd.Series[float]],
+        probability: float | list[float] | tuple[float] | NumericArray | pd.Series[float],
         additional_key: Any = None,
     ) -> P:
         """Decide an outcome for each individual from probabilities.
@@ -277,7 +280,7 @@ class RandomnessStream:
             | pd.Series[Any]
             | None
         ) = None,
-        additional_key: Optional[Any] = None,
+        additional_key: Any = None,
     ) -> pd.Series[Any]:
         """Decides between a weighted or unweighted set of choices.
 
@@ -365,14 +368,12 @@ class RandomnessStream:
 
 def _choice(
     draws: pd.Series[float],
-    choices: Union[list[Any], tuple[Any], npt.NDArray[Any], pd.Series[Any]],
+    choices: list[Any] | tuple[Any] | npt.NDArray[Any] | pd.Series[Any],
     p: (
-        Union[
-            list[float | object],
-            tuple[float | object],
-            npt.NDArray[np.number[npt.NBitBase] | np.object_],
-            pd.Series[Any],
-        ]
+        list[float | object]
+        | tuple[float | object]
+        | npt.NDArray[np.number[npt.NBitBase] | np.object_]
+        | pd.Series[Any]
         | None
     ) = None,
 ) -> pd.Series[Any]:
@@ -427,13 +428,13 @@ def _choice(
 
 
 def _normalize_shape(
-    p: Union[
-        list[float | object],
-        tuple[float | object],
-        npt.NDArray[np.number[npt.NBitBase] | np.object_],
-        pd.Series[Any],
-    ],
-    index: Union[pd.Index[int], pd.MultiIndex],
+    p: (
+        list[float | object]
+        | tuple[float | object]
+        | npt.NDArray[np.number[npt.NBitBase] | np.object_]
+        | pd.Series[Any]
+    ),
+    index: pd.Index[int] | pd.MultiIndex,
 ) -> npt.NDArray[Any]:
     p = np.array(p)
     # We got a 1-d array => same weights for every index.
