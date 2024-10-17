@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ==================
 Randomness Streams
@@ -25,19 +24,23 @@ module.
 
 """
 
-import hashlib
-from typing import Any, Callable, List, Optional, Tuple, Union
+from __future__ import annotations
 
+import hashlib
+from typing import Any, Callable, Optional, Union, TypeVar
+import numpy.typing as npt
 import numpy as np
 import pandas as pd
 from scipy import stats
-
+from vivarium.types import ClockTime, NumericArray
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.utilities import rate_to_probability
 
 RESIDUAL_CHOICE = object()
 
+# TODO: Parameterizing pandas objects fails below python 3.12
+P = TypeVar("P", pd.DataFrame, pd.Series, pd.Index)  # type: ignore [type-arg]
 
 def get_hash(key: str) -> int:
     """Gets a hash of the provided key.
@@ -93,7 +96,7 @@ class RandomnessStream:
     def __init__(
         self,
         key: str,
-        clock: Callable,
+        clock: Callable[[], ClockTime],
         seed: Any,
         index_map: IndexMap,
         initializes_crn_attributes: bool = False,
@@ -105,7 +108,7 @@ class RandomnessStream:
         self.initializes_crn_attributes = initializes_crn_attributes
 
     @property
-    def name(self):
+    def name(self) -> str:
         return f"randomness_stream_{self.key}"
 
     def _key(self, additional_key: Any = None) -> str:
@@ -122,7 +125,7 @@ class RandomnessStream:
         """
         return "_".join([self.key, str(self.clock()), str(additional_key), str(self.seed)])
 
-    def get_draw(self, index: pd.Index, additional_key: Any = None) -> pd.Series:
+    def get_draw(self, index: pd.Index[int], additional_key: Any = None) -> pd.Series[float]:
         """Get an indexed set of numbers uniformly drawn from the unit interval.
 
         Parameters
@@ -186,10 +189,10 @@ class RandomnessStream:
 
     def filter_for_rate(
         self,
-        population: Union[pd.DataFrame, pd.Series, pd.Index],
-        rate: Union[float, List, Tuple, np.ndarray, pd.Series],
+        population: P,
+        rate: Union[float, list[float], tuple[float], NumericArray, pd.Series[float]],
         additional_key: Any = None,
-    ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
+    ) -> P:
         """Decide an event outcome for each individual from rates.
 
         Given a population or its index and an array of associated rates for
@@ -222,10 +225,10 @@ class RandomnessStream:
 
     def filter_for_probability(
         self,
-        population: Union[pd.DataFrame, pd.Series, pd.Index],
-        probability: Union[float, List, Tuple, np.ndarray, pd.Series],
+        population: P,
+        probability: Union[float, list[float], tuple[float], NumericArray, pd.Series[float]],
         additional_key: Any = None,
-    ) -> Union[pd.DataFrame, pd.Series, pd.Index]:
+    ) -> P:
         """Decide an outcome for each individual from probabilities.
 
         Given a population or its index and an array of associated probabilities
@@ -254,18 +257,28 @@ class RandomnessStream:
         if population.empty:
             return population
 
-        index = population if isinstance(population, pd.Index) else population.index
+        if isinstance(population, pd.Index):
+            index = population
+        else:
+            index = population.index
+
         draws = self.get_draw(index, additional_key)
         mask = np.array(draws < probability)
         return population[mask]
 
     def choice(
         self,
-        index: pd.Index,
-        choices: Union[List, Tuple, np.ndarray, pd.Series],
-        p: Optional[Union[List, Tuple, np.ndarray, pd.Series]] = None,
+        index: pd.Index[int],
+        choices: list[Any] | tuple[Any] | npt.NDArray[Any] | pd.Series[Any],
+        p: (
+            list[float | object]
+            | tuple[float | object]
+            | npt.NDArray[np.number[npt.NBitBase] | np.object_]
+            | pd.Series[Any]
+            | None
+        ) = None,
         additional_key: Optional[Any] = None,
-    ) -> pd.Series:
+    ) -> pd.Series[Any]:
         """Decides between a weighted or unweighted set of choices.
 
         Given a set of choices with or without corresponding weights,
@@ -305,12 +318,12 @@ class RandomnessStream:
 
     def sample_from_distribution(
         self,
-        index: pd.Index,
-        distribution: Optional[stats.rv_continuous] = None,
-        ppf: Optional[Callable[[pd.Series, dict[str, Any]], pd.Series]] = None,
+        index: pd.Index[int],
+        distribution: stats.rv_continuous | None = None,
+        ppf: Callable[[pd.Series[Any], dict[str, Any]], pd.Series[Any]] | None = None,
         additional_key: Any = None,
         **distribution_kwargs: dict[str, Any],
-    ) -> pd.Series:
+    ) -> pd.Series[Any]:
         """Given a distribution, returns an indexed set of samples from that
         distribution.
 
@@ -332,16 +345,16 @@ class RandomnessStream:
         -------
             An indexed set of samples from the provided distribution.
         """
-        if ppf is None and distribution is None:
-            raise ValueError("Either distribution or ppf must be provided")
-        if ppf is not None and distribution is not None:
-            raise ValueError("Only one of distribution or ppf can be provided")
-
-        if distribution is not None:
+        if ppf is None:
+            if distribution is None:
+                raise ValueError("Either distribution or ppf must be provided")
             ppf = distribution.ppf
+        else:
+            if distribution is not None:
+                raise ValueError("Only one of distribution or ppf can be provided")
 
         draws = self.get_draw(index, additional_key)
-        samples = pd.Series(ppf(draws, **distribution_kwargs), index=index)
+        samples = pd.Series(ppf(draws, **distribution_kwargs), index=index)  # type: ignore [call-arg]
         return samples
 
     def __repr__(self) -> str:
@@ -351,10 +364,18 @@ class RandomnessStream:
 
 
 def _choice(
-    draws: pd.Series,
-    choices: Union[List, Tuple, np.ndarray, pd.Series],
-    p: Optional[Union[List, Tuple, np.ndarray, pd.Series]] = None,
-) -> pd.Series:
+    draws: pd.Series[float],
+    choices: Union[list[Any], tuple[Any], npt.NDArray[Any], pd.Series[Any]],
+    p: (
+        Union[
+            list[float | object],
+            tuple[float | object],
+            npt.NDArray[np.number[npt.NBitBase] | np.object_],
+            pd.Series[Any],
+        ]
+        | None
+    ) = None,
+) -> pd.Series[Any]:
     """Decides between a weighted or unweighted set of choices.
 
     Given a set of choices with or without corresponding weights,
@@ -389,24 +410,31 @@ def _choice(
         more than one reference to `RESIDUAL_CHOICE`.
     """
     # Convert p to normalized probabilities broadcasted over index.
-    p = (
+    p_norm = (
         _set_residual_probability(_normalize_shape(p, draws.index))
         if p is not None
         else np.ones((len(draws.index), len(choices)))
     )
-    p = p / p.sum(axis=1, keepdims=True)
+    p_norm = p_norm / p_norm.sum(axis=1, keepdims=True)
 
-    p_bins = np.cumsum(p, axis=1)
+    p_bins = np.cumsum(p_norm, axis=1)
     # Use the random draw to make a choice for every row in index.
     choice_index = (draws.values[np.newaxis].T > p_bins).sum(axis=1)
 
-    return pd.Series(np.array(choices)[choice_index], index=draws.index)
+    decisions: pd.Series[Any] = pd.Series(np.array(choices)[choice_index], index=draws.index)
+
+    return decisions
 
 
 def _normalize_shape(
-    p: Union[List, Tuple, np.ndarray, pd.Series],
-    index: Union[pd.Index, pd.MultiIndex],
-) -> np.ndarray:
+    p: Union[
+        list[float | object],
+        tuple[float | object],
+        npt.NDArray[np.number[npt.NBitBase] | np.object_],
+        pd.Series[Any],
+    ],
+    index: Union[pd.Index[int], pd.MultiIndex],
+) -> npt.NDArray[Any]:
     p = np.array(p)
     # We got a 1-d array => same weights for every index.
     if len(p.shape) == 1:
@@ -415,7 +443,9 @@ def _normalize_shape(
     return p
 
 
-def _set_residual_probability(p: np.ndarray) -> np.ndarray:
+def _set_residual_probability(
+    p: npt.NDArray[np.number[npt.NBitBase] | np.object_],
+) -> npt.NDArray[np.float64]:
     """Turns any use of `RESIDUAL_CHOICE` into a residual probability.
 
     Parameters
@@ -455,4 +485,4 @@ def _set_residual_probability(p: np.ndarray) -> np.ndarray:
             raise RandomnessError(msg)
 
         p[residual_mask] = residual_p
-    return p
+    return p.astype(np.float64)
