@@ -16,7 +16,7 @@ import re
 import warnings
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterator
 
 from vivarium.framework.artifact import hdf
 
@@ -193,7 +193,7 @@ class Artifact:
         """
         self._cache = {}
 
-    def __iter__(self) -> Iterable[str]:
+    def __iter__(self) -> Iterator[str]:
         return iter(self.keys)
 
     def __contains__(self, item: str) -> bool:
