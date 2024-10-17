@@ -1,8 +1,8 @@
 # numpy
-py:class numpy.number
-py:class numpy.object_
-py:class numpy.typing.NDArray
-py:class numpy.typing.NBitBase
+py:class np.number
+py:class np.object_
+py:class npt.NDArray
+py:class npt.NBitBase
 # pandas
 py:class CategoricalDtype
 py:class pandas.core.indexes.base.Index
@@ -19,7 +19,7 @@ py:class pd.DataFrame
 
 #scipy
 py:class scipy.stats._distn_infrastructure.rv_continuous
-py:class scipy.stats.rv_continuous
+py:class stats.rv_continuous
 
 # loguru
 py:class loguru.Logger
