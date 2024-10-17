@@ -1,10 +1,25 @@
 import pytest
 
 from vivarium import Component
+from vivarium.framework.randomness import RandomnessStream
+from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.resource import ResourceManager
 from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.group import ResourceGroup
 from vivarium.framework.resource.manager import NULL_RESOURCE_TYPE, RESOURCE_TYPES
+from vivarium.framework.values import Pipeline
+
+
+@pytest.fixture
+def resource_manager(mocker):
+    manager = ResourceManager()
+    manager.logger = mocker.Mock()
+    return manager
+
+
+@pytest.fixture
+def randomness_stream():
+    return RandomnessStream("stream.1", lambda x: x, 1, IndexMap())
 
 
 class ResourceProducer(Component):
@@ -109,24 +124,24 @@ def test_resource_manager_add_resources():
             old_names = names
 
 
-def test_resource_manager_sorted_nodes_two_node_cycle():
-    rm = ResourceManager()
+def test_resource_manager_sorted_nodes_two_node_cycle(resource_manager, randomness_stream):
     c = ResourceProducer("test")
 
-    rm.add_resources("column", ["1"], c.producer, ["stream.2"])
-    rm.add_resources("stream", ["2"], c.producer, ["column.1"])
+    resource_manager.add_resources("column", ["c_1"], c.producer, [randomness_stream])
+    resource_manager.add_resources("stream", [randomness_stream.key], c.producer, ["c_1"])
 
     with pytest.raises(ResourceError, match="cycle"):
-        _ = rm.sorted_nodes
+        _ = resource_manager.sorted_nodes
 
 
-def test_resource_manager_sorted_nodes_three_node_cycle():
+def test_resource_manager_sorted_nodes_three_node_cycle(resource_manager, randomness_stream):
     rm = ResourceManager()
     c = ResourceProducer("test")
+    pipeline = Pipeline("some_pipeline")
 
-    rm.add_resources("column", ["1"], c.producer, ["stream.3"])
-    rm.add_resources("stream", ["2"], c.producer, ["column.1"])
-    rm.add_resources("stream", ["3"], c.producer, ["stream.2"])
+    rm.add_resources("column", ["c_1"], c.producer, [randomness_stream])
+    rm.add_resources("value", [pipeline.name], c.producer, ["c_1"])
+    rm.add_resources("stream", [randomness_stream.key], c.producer, [pipeline])
 
     with pytest.raises(ResourceError, match="cycle"):
         _ = rm.sorted_nodes
@@ -137,7 +152,7 @@ def test_resource_manager_sorted_nodes_large_cycle():
     c = ResourceProducer("test")
 
     for i in range(10):
-        rm.add_resources("column", [f"{i}"], c.producer, [f"column.{i%10}"])
+        rm.add_resources("column", [f"c_{i}"], c.producer, [f"c_{i%10}"])
 
     with pytest.raises(ResourceError, match="cycle"):
         _ = rm.sorted_nodes
@@ -148,9 +163,9 @@ def test_resource_manager_sorted_nodes_diamond():
     c = ResourceProducer("test")
 
     rm.add_resources("column", ["1"], c.producer, [])
-    rm.add_resources("column", ["2"], c.producer, ["column.1"])
-    rm.add_resources("column", ["3"], c.producer, ["column.1"])
-    rm.add_resources("column", ["4"], c.producer, ["column.2", "column.3"])
+    rm.add_resources("column", ["2"], c.producer, ["1"])
+    rm.add_resources("column", ["3"], c.producer, ["1"])
+    rm.add_resources("column", ["4"], c.producer, ["2", "3"])
 
     n = [str(node) for node in rm.sorted_nodes]
 

@@ -7,26 +7,21 @@ Resource Manager
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 
 from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.group import ResourceGroup
+from vivarium.framework.resource.resource import RESOURCE_TYPES, Resource
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+    from vivarium.framework.randomness import RandomnessStream
+    from vivarium.framework.values import Pipeline
 
-
-RESOURCE_TYPES = {
-    "value",
-    "value_source",
-    "missing_value_source",
-    "value_modifier",
-    "column",
-    "stream",
-}
 NULL_RESOURCE_TYPE = "null"
 
 
@@ -88,7 +83,7 @@ class ResourceManager(Manager):
         resource_type: str,
         resource_names: list[str],
         producer: Any,
-        dependencies: list[str],
+        dependencies: Iterable[str | Pipeline | RandomnessStream | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -102,15 +97,15 @@ class ResourceManager(Manager):
         producer
             A method or object that will produce the resources.
         dependencies
-            A list of resource names formatted as
-            ``resource_type.resource_name`` that the producer requires.
+            A list of resources that the producer requires.
 
         Raises
         ------
         ResourceError
             If either the resource type is invalid, a component has multiple
-            resource producers for the ``column`` resource type, or
-            there are multiple producers of the same resource.
+            resource producers for the ``column`` resource type,
+            there are multiple producers of the same resource, or .
+            the dependencies are of an invalid type.
         """
         if resource_type not in RESOURCE_TYPES:
             raise ResourceError(
@@ -136,7 +131,7 @@ class ResourceManager(Manager):
         resource_type: str,
         resource_names: list[str],
         producer: Any,
-        dependencies: list[str],
+        dependencies: Iterable[str | Pipeline | RandomnessStream | Resource],
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -233,7 +228,7 @@ class ResourceInterface(Interface):
         resource_type: str,
         resource_names: list[str],
         producer: Any,
-        dependencies: list[str],
+        dependencies: Iterable[str | Pipeline | RandomnessStream | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -247,15 +242,15 @@ class ResourceInterface(Interface):
         producer
             A method or object that will produce the resources.
         dependencies
-            A list of resource names formatted as
-            ``resource_type.resource_name`` that the producer requires.
+            A list of resources that the producer requires.
 
         Raises
         ------
         ResourceError
             If either the resource type is invalid, a component has multiple
-            resource producers for the ``column`` resource type, or
-            there are multiple producers of the same resource.
+            resource producers for the ``column`` resource type,
+            there are multiple producers of the same resource, or .
+            the dependencies are of an invalid type.
         """
         self._manager.add_resources(resource_type, resource_names, producer, dependencies)
 
