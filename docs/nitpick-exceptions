@@ -35,7 +35,7 @@ py:class ClockStepSize
 py:class Timedelta
 py:class VectorMapper
 py:class ScalarMapper
-py:class P
+py:class PandasObject
 py:exc ResultsConfigurationError
 py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
 

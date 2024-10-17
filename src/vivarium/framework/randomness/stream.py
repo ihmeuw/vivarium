@@ -27,7 +27,8 @@ module.
 from __future__ import annotations
 
 import hashlib
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -42,7 +43,7 @@ from vivarium.types import ClockTime, NumericArray
 RESIDUAL_CHOICE = object()
 
 # TODO: Parameterizing pandas objects fails below python 3.12
-P = TypeVar("P", pd.DataFrame, pd.Series, pd.Index)  # type: ignore [type-arg]
+PandasObject = TypeVar("P", pd.DataFrame, pd.Series, pd.Index)  # type: ignore [type-arg]
 
 
 def get_hash(key: str) -> int:
@@ -192,10 +193,10 @@ class RandomnessStream:
 
     def filter_for_rate(
         self,
-        population: P,
+        population: PandasObject,
         rate: float | list[float] | tuple[float] | NumericArray | pd.Series[float],
         additional_key: Any = None,
-    ) -> P:
+    ) -> PandasObject:
         """Decide an event outcome for each individual from rates.
 
         Given a population or its index and an array of associated rates for
@@ -228,10 +229,10 @@ class RandomnessStream:
 
     def filter_for_probability(
         self,
-        population: P,
+        population: PandasObject,
         probability: float | list[float] | tuple[float] | NumericArray | pd.Series[float],
         additional_key: Any = None,
-    ) -> P:
+    ) -> PandasObject:
         """Decide an outcome for each individual from probabilities.
 
         Given a population or its index and an array of associated probabilities
