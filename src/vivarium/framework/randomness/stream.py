@@ -43,7 +43,7 @@ from vivarium.types import ClockTime, NumericArray
 RESIDUAL_CHOICE = object()
 
 # TODO: Parameterizing pandas objects fails below python 3.12
-PandasObject = TypeVar("P", pd.DataFrame, pd.Series, pd.Index)  # type: ignore [type-arg]
+PandasObject = TypeVar("PandasObject", pd.DataFrame, pd.Series, pd.Index)  # type: ignore [type-arg]
 
 
 def get_hash(key: str) -> int:
