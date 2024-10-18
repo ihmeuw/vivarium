@@ -24,6 +24,7 @@ import pandas as pd
 from vivarium.exceptions import VivariumError
 from vivarium.framework.event import Event
 from vivarium.framework.randomness import RandomnessStream
+from vivarium.framework.resource import Resource
 from vivarium.framework.utilities import from_yearly
 from vivarium.manager import Interface, Manager
 from vivarium.types import NumberLike
@@ -364,12 +365,14 @@ class ValuesManager(Manager):
         for name, pipe in self._pipelines.items():
             dependencies = []
             if pipe.source is not None:
-                dependencies += [f"value_source.{name}"]
+                dependencies.append(Resource("value_source", name))
             else:
-                dependencies += [f"missing_value_source.{name}"]
+                dependencies.append(Resource("missing_value_source", name))
             for i, m in enumerate(pipe.mutators):
                 mutator_name = self._get_modifier_name(m)
-                dependencies.append(f"value_modifier.{name}.{i+1}.{mutator_name}")
+                dependencies.append(
+                    Resource("value_modifier", f"{name}.{i+1}.{mutator_name}")
+                )
             self.resources.add_resources("value", [name], pipe._call, dependencies)
 
     def register_value_producer(
@@ -498,11 +501,11 @@ class ValuesManager(Manager):
         requires_values: Iterable[str],
         requires_streams: Iterable[str],
         required_resources: Iterable[str | Pipeline | RandomnessStream],
-    ) -> list[str]:
+    ) -> Iterable[str | Pipeline | RandomnessStream | Resource]:
         if isinstance(func, Pipeline):
             # The dependencies of the pipeline itself will have been declared
             # when the pipeline was registered.
-            return [f"value.{func.name}"]
+            return [Resource("value", func.name)]
 
         if requires_columns or requires_values or requires_streams:
             warnings.warn(
@@ -517,29 +520,13 @@ class ValuesManager(Manager):
                     " are provided, requirements must be empty."
                 )
 
-        if required_resources:
-            requires_columns = []
-            requires_values = []
-            requires_streams = []
-            for required_resource in required_resources:
-                if isinstance(required_resource, str):
-                    requires_columns.append(required_resource)
-                elif isinstance(required_resource, Pipeline):
-                    requires_values.append(required_resource.name)
-                elif isinstance(required_resource, RandomnessStream):
-                    requires_streams.append(required_resource.key)
-                else:
-                    raise TypeError(
-                        "requirements must be a sequence of strings, Pipelines,"
-                        f" and RandomnessStreams. Provided: '{type(required_resource)}'."
-                    )
-
-        dependencies = (
-            [f"column.{name}" for name in requires_columns]
-            + [f"value.{name}" for name in requires_values]
-            + [f"stream.{name}" for name in requires_streams]
-        )
-        return dependencies
+            return (
+                list(requires_columns)
+                + [Resource("value", name) for name in requires_values]
+                + [Resource("stream", name) for name in requires_streams]
+            )
+        else:
+            return required_resources
 
     @staticmethod
     def _get_modifier_name(modifier: Callable[..., Any]) -> str:

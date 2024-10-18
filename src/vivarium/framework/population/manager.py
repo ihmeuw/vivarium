@@ -9,7 +9,7 @@ The manager and :ref:`builder <builder_concept>` interface for the
 """
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
 from typing import TYPE_CHECKING, Any
@@ -19,6 +19,7 @@ import pandas as pd
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.randomness import RandomnessStream
+from vivarium.framework.resource import Resource
 from vivarium.framework.values import Pipeline
 from vivarium.manager import Interface, Manager
 from vivarium.types import ClockStepSize, ClockTime
@@ -265,7 +266,7 @@ class PopulationManager(Manager):
         requires_columns: str | Sequence[str] = (),
         requires_values: str | Sequence[str] = (),
         requires_streams: str | Sequence[str] = (),
-        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
+        required_resources: Iterable[str | Pipeline | RandomnessStream] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
@@ -302,6 +303,8 @@ class PopulationManager(Manager):
                 "requirements must be empty."
             )
 
+        if isinstance(creates_columns, str):
+            creates_columns = [creates_columns]
         if isinstance(requires_columns, str):
             requires_columns = [requires_columns]
         if isinstance(requires_values, str):
@@ -309,39 +312,26 @@ class PopulationManager(Manager):
         if isinstance(requires_streams, str):
             requires_streams = [requires_streams]
 
-        if required_resources:
-            requires_columns = []
-            requires_values = []
-            requires_streams = []
-            for required_resource in required_resources:
-                if isinstance(required_resource, str):
-                    requires_columns.append(required_resource)
-                elif isinstance(required_resource, Pipeline):
-                    requires_values.append(required_resource.name)
-                elif isinstance(required_resource, RandomnessStream):
-                    requires_streams.append(required_resource.key)
-                else:
-                    raise TypeError(
-                        "requirements must be a sequence of strings, Pipelines,"
-                        f" and RandomnessStreams. Provided: '{type(required_resource)}'."
-                    )
-
-        dependencies = (
-            [f"column.{name}" for name in requires_columns]
-            + [f"value.{name}" for name in requires_values]
-            + [f"stream.{name}" for name in requires_streams]
-        )
-
-        if isinstance(creates_columns, str):
-            creates_columns = [creates_columns]
-        self._initializer_components.add(initializer, list(creates_columns))
+        declared_dependencies: Iterable[str | Pipeline | RandomnessStream | Resource]
+        if has_individual_requires:
+            declared_dependencies = (
+                list(requires_columns)
+                + [Resource("value", name) for name in requires_values]
+                + [Resource("stream", name) for name in requires_streams]
+            )
+        else:
+            declared_dependencies = list(required_resources)
 
         if "tracked" not in creates_columns:
             # The population view itself uses the tracked column, so include
             # to be safe.
-            dependencies += ["column.tracked"]
+            all_dependencies = list(declared_dependencies) + ["tracked"]
+        else:
+            all_dependencies = list(declared_dependencies)
+
+        self._initializer_components.add(initializer, list(creates_columns))
         self.resources.add_resources(
-            "column", list(creates_columns), initializer, dependencies
+            "column", list(creates_columns), initializer, all_dependencies
         )
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
