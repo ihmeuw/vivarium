@@ -1,3 +1,8 @@
+**3.0.14 - 10/18/24**
+
+  - Fix mypy errors in vivarium/framework/artifact/artifact.py
+  - Fix mypy errors in vivarium/framework/randomness/stream.py
+
 **3.0.13 - 10/15/24**
 
   - Fix mypy errors: vivarium/framework/lookup/interpolation.py
