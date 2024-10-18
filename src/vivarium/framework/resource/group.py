@@ -87,5 +87,7 @@ class ResourceGroup:
             return str(dependency)
         else:
             raise ResourceError(
-                f"Dependency '{dependency}' of unknown type: {type(dependency)}"
+                f"Dependency '{dependency}' of unknown type: {type(dependency)}."
+                " Dependencies must be strings, Pipelines, RandomnessStreams, or"
+                " Resources."
             )

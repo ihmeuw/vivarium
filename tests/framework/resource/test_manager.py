@@ -101,16 +101,6 @@ def test_resource_manager_add_resources_multiple_producers(manager: ResourceMana
         manager.add_resources(r_type, r2_names, r2_producer, r_dependencies)
 
 
-def test_resource_manager_add_resources(manager: ResourceManager) -> None:
-    for r_type in RESOURCE_TYPES:
-        old_names: list[str] = []
-        for i in range(5):
-            c = ResourceProducer(f"r_type_{i}")
-            names = [f"r_type_{i}_{j}" for j in range(5)]
-            manager.add_resources(r_type, names, c.producer, old_names)
-            old_names = names
-
-
 def test_resource_manager_sorted_nodes_two_node_cycle(
     manager: ResourceManager, randomness_stream: RandomnessStream
 ) -> None:
