@@ -14,13 +14,11 @@ import networkx as nx
 
 from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.group import ResourceGroup
-from vivarium.framework.resource.resource import RESOURCE_TYPES, Resource
+from vivarium.framework.resource.resource import RESOURCE_TYPES, Column, Resource
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.framework.randomness import RandomnessStream
-    from vivarium.framework.values import Pipeline
 
 NULL_RESOURCE_TYPE = "null"
 
@@ -83,7 +81,7 @@ class ResourceManager(Manager):
         resource_type: str,
         resource_names: list[str],
         producer: Any,
-        dependencies: Iterable[str | Pipeline | RandomnessStream | Resource],
+        dependencies: Iterable[str | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -97,15 +95,15 @@ class ResourceManager(Manager):
         producer
             A method or object that will produce the resources.
         dependencies
-            A list of resources that the producer requires.
+            A list of resources that the producer requires. A string represents
+            a column resource.
 
         Raises
         ------
         ResourceError
             If either the resource type is invalid, a component has multiple
-            resource producers for the ``column`` resource type,
-            there are multiple producers of the same resource, or .
-            the dependencies are of an invalid type.
+            resource producers for the ``column`` resource type, or
+            there are multiple producers of the same resource.
         """
         if resource_type not in RESOURCE_TYPES:
             raise ResourceError(
@@ -131,7 +129,7 @@ class ResourceManager(Manager):
         resource_type: str,
         resource_names: list[str],
         producer: Any,
-        dependencies: Iterable[str | Pipeline | RandomnessStream | Resource],
+        dependencies: Iterable[str | Resource],
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -139,6 +137,7 @@ class ResourceManager(Manager):
         --------
         :class:`ResourceGroup`
         """
+        dependencies_ = [Column(d) if isinstance(d, str) else d for d in dependencies]
         if not resource_names:
             # We have a "producer" that doesn't produce anything, but
             # does have dependencies. This is necessary for components that
@@ -147,7 +146,7 @@ class ResourceManager(Manager):
             resource_names = [str(self._null_producer_count)]
             self._null_producer_count += 1
 
-        return ResourceGroup(resource_type, resource_names, producer, dependencies)
+        return ResourceGroup(resource_type, resource_names, producer, dependencies_)
 
     def _to_graph(self) -> nx.DiGraph:
         """Constructs the full resource graph from information in the groups.
@@ -228,7 +227,7 @@ class ResourceInterface(Interface):
         resource_type: str,
         resource_names: list[str],
         producer: Any,
-        dependencies: Iterable[str | Pipeline | RandomnessStream | Resource],
+        dependencies: Iterable[str | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -242,15 +241,15 @@ class ResourceInterface(Interface):
         producer
             A method or object that will produce the resources.
         dependencies
-            A list of resources that the producer requires.
+            A list of resources that the producer requires. A string represents
+            a column resource.
 
         Raises
         ------
         ResourceError
             If either the resource type is invalid, a component has multiple
-            resource producers for the ``column`` resource type,
-            there are multiple producers of the same resource, or .
-            the dependencies are of an invalid type.
+            resource producers for the ``column`` resource type, or
+            there are multiple producers of the same resource.
         """
         self._manager.add_resources(resource_type, resource_names, producer, dependencies)
 

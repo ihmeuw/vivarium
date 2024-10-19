@@ -191,7 +191,28 @@ def union_post_processor(values: list[NumberLike], _: Any) -> NumberLike:
     return joint_value
 
 
-class Pipeline:
+class ValueSource(Resource):
+    """A resource representing the source of a value pipeline."""
+
+    def __init__(self, name: str) -> None:
+        super().__init__("value_source", name)
+
+
+class MissingValueSource(Resource):
+    """A resource representing an undefined source of a value pipeline."""
+
+    def __init__(self, name: str) -> None:
+        super().__init__("missing_value_source", name)
+
+
+class ValueModifier(Resource):
+    """A resource representing a modifier of a value pipeline."""
+
+    def __init__(self, name: str) -> None:
+        super().__init__("value_modifier", name)
+
+
+class Pipeline(Resource):
     """A tool for building up values across several components.
 
     Pipelines are lazily initialized so that we don't have to put constraints
@@ -206,8 +227,8 @@ class Pipeline:
     """
 
     def __init__(self, name: str) -> None:
-        self.name: str = name
-        """The name of the value represented by this pipeline."""
+        super().__init__("value", name)
+
         self.source: Callable[..., Any] | None = None
         """The callable source of the value represented by the pipeline."""
         self.mutators: list[Callable[..., Any]] = []
@@ -363,16 +384,12 @@ class ValuesManager(Manager):
         # we say the pipeline value depends on its source and all its
         # modifiers.
         for name, pipe in self._pipelines.items():
-            dependencies = []
-            if pipe.source is not None:
-                dependencies.append(Resource("value_source", name))
-            else:
-                dependencies.append(Resource("missing_value_source", name))
+            dependencies: list[Resource] = [
+                ValueSource(name) if pipe.source else MissingValueSource(name)
+            ]
             for i, m in enumerate(pipe.mutators):
                 mutator_name = self._get_modifier_name(m)
-                dependencies.append(
-                    Resource("value_modifier", f"{name}.{i+1}.{mutator_name}")
-                )
+                dependencies.append(ValueModifier(f"{name}.{i + 1}.{mutator_name}"))
             self.resources.add_resources("value", [name], pipe._call, dependencies)
 
     def register_value_producer(
@@ -500,12 +517,12 @@ class ValuesManager(Manager):
         requires_columns: Iterable[str],
         requires_values: Iterable[str],
         requires_streams: Iterable[str],
-        required_resources: Iterable[str | Pipeline | RandomnessStream],
-    ) -> Iterable[str | Pipeline | RandomnessStream | Resource]:
+        required_resources: Iterable[str | Resource],
+    ) -> Iterable[str | Resource]:
         if isinstance(func, Pipeline):
             # The dependencies of the pipeline itself will have been declared
             # when the pipeline was registered.
-            return [Resource("value", func.name)]
+            return [func]
 
         if requires_columns or requires_values or requires_streams:
             warnings.warn(
