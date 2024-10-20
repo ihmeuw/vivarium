@@ -37,6 +37,7 @@ from scipy import stats
 
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
+from vivarium.framework.resource import Resource
 from vivarium.framework.utilities import rate_to_probability
 from vivarium.types import ClockTime, NumericArray
 
@@ -62,26 +63,13 @@ def get_hash(key: str) -> int:
     return int(hashlib.sha1(key.encode("utf8")).hexdigest(), 16) % max_allowable_numpy_seed
 
 
-class RandomnessStream:
+class RandomnessStream(Resource):
     """A stream for producing common random numbers.
 
     `RandomnessStream` objects provide an interface to Vivarium's
     common random number generation.  They provide a number of methods
     for doing common simulation tasks that require random numbers like
     making decisions among a number of choices.
-
-    Attributes
-    ----------
-    key
-        The name of the randomness stream.
-    clock
-        A way to get the current simulation time.
-    seed
-        An extra number used to seed the random number generation.
-    index_map
-        A key-index mapping with a fectorized hash and vectorized lookups.
-    initializes_crn_attributes
-        A boolean indicating whether the stram is used to initialize CRN attributes.
 
     Notes
     -----
@@ -105,15 +93,17 @@ class RandomnessStream:
         index_map: IndexMap,
         initializes_crn_attributes: bool = False,
     ):
+        super().__init__("stream", key)
         self.key = key
+        """The name of the randomness stream."""
         self.clock = clock
+        """A way to get the current simulation time."""
         self.seed = seed
+        """An extra number used to seed the random number generation."""
         self.index_map = index_map
+        """A key-index mapping with a vectorized hash and vectorized lookups."""
         self.initializes_crn_attributes = initializes_crn_attributes
-
-    @property
-    def name(self) -> str:
-        return f"randomness_stream_{self.key}"
+        """A boolean indicating whether the stream is used to initialize CRN attributes."""
 
     def _key(self, additional_key: Any = None) -> str:
         """Construct a hashable key from this object's state.

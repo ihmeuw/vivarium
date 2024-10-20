@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from datetime import datetime
 
 import pytest
 import pytest_mock
@@ -24,7 +25,7 @@ def manager(mocker: pytest_mock.MockFixture) -> ResourceManager:
 
 @pytest.fixture
 def randomness_stream() -> RandomnessStream:
-    return RandomnessStream("stream.1", lambda x: x, 1, IndexMap())
+    return RandomnessStream("stream.1", lambda: datetime.now(), 1, IndexMap())
 
 
 class ResourceProducer(Component):
@@ -137,6 +138,17 @@ def test_resource_manager_sorted_nodes_large_cycle(manager: ResourceManager) -> 
         _ = manager.sorted_nodes
 
 
+def test_large_dependency_chain(manager: ResourceManager) -> None:
+    for i in range(9, 0, -1):
+        manager.add_resources(
+            "column", [f"c_{i}"], ResourceProducer(f"p_{i}").producer, [f"c_{i - 1}"]
+        )
+    manager.add_resources("column", ["c_0"], ResourceProducer("producer_0").producer, [])
+
+    for i, resource in enumerate(manager.sorted_nodes):
+        assert str(resource) == f"(column.c_{i})"
+
+
 def test_resource_manager_sorted_nodes_acyclic(manager: ResourceManager) -> None:
     _add_resources(manager)
 
@@ -170,7 +182,7 @@ def test_get_population_initializers(manager: ResourceManager) -> None:
 def _add_resources(manager: ResourceManager) -> Mapping[int, Callable[[SimulantData], None]]:
     producers = {i: ResourceProducer(f"test_{i}").producer for i in range(5)}
 
-    stream = RandomnessStream("B", lambda x: x, 1, IndexMap())
+    stream = RandomnessStream("B", lambda: datetime.now(), 1, IndexMap())
     pipeline = Pipeline("C")
 
     manager.add_resources("column", ["D"], producers[3], [stream, pipeline])

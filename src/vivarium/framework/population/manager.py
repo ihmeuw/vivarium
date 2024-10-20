@@ -266,7 +266,7 @@ class PopulationManager(Manager):
         requires_columns: str | Sequence[str] = (),
         requires_values: str | Sequence[str] = (),
         requires_streams: str | Sequence[str] = (),
-        required_resources: Iterable[str | Pipeline | RandomnessStream] = (),
+        required_resources: Iterable[str | Resource] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
@@ -290,44 +290,37 @@ class PopulationManager(Manager):
             attributes.
         required_resources
             The resources that the initializer requires to run. Strings are
-            interpreted as column names, and Pipelines and RandomnessStreams
-            are interpreted as value pipelines and randomness streams,
-            respectively.
+            interpreted as column names.
         """
+        if requires_columns or requires_values or requires_streams:
+            if required_resources:
+                raise ValueError(
+                    "If requires_columns, requires_values, or requires_streams are provided, "
+                    "requirements must be empty."
+                )
 
-        has_individual_requires = requires_columns or requires_values or requires_streams
+            if isinstance(requires_columns, str):
+                requires_columns = [requires_columns]
+            if isinstance(requires_values, str):
+                requires_values = [requires_values]
+            if isinstance(requires_streams, str):
+                requires_streams = [requires_streams]
 
-        if has_individual_requires and required_resources:
-            raise ValueError(
-                "If requires_columns, requires_values, or requires_streams are provided, "
-                "requirements must be empty."
-            )
-
-        if isinstance(creates_columns, str):
-            creates_columns = [creates_columns]
-        if isinstance(requires_columns, str):
-            requires_columns = [requires_columns]
-        if isinstance(requires_values, str):
-            requires_values = [requires_values]
-        if isinstance(requires_streams, str):
-            requires_streams = [requires_streams]
-
-        declared_dependencies: Iterable[str | Pipeline | RandomnessStream | Resource]
-        if has_individual_requires:
-            declared_dependencies = (
+            required_resources = (
                 list(requires_columns)
                 + [Resource("value", name) for name in requires_values]
                 + [Resource("stream", name) for name in requires_streams]
             )
-        else:
-            declared_dependencies = list(required_resources)
+
+        if isinstance(creates_columns, str):
+            creates_columns = [creates_columns]
 
         if "tracked" not in creates_columns:
             # The population view itself uses the tracked column, so include
             # to be safe.
-            all_dependencies = list(declared_dependencies) + ["tracked"]
+            all_dependencies = list(required_resources) + ["tracked"]
         else:
-            all_dependencies = list(declared_dependencies)
+            all_dependencies = list(required_resources)
 
         self._initializer_components.add(initializer, list(creates_columns))
         self.resources.add_resources(
