@@ -14,13 +14,11 @@ import networkx as nx
 
 from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.group import ResourceGroup
-from vivarium.framework.resource.resource import RESOURCE_TYPES, Column, Resource
+from vivarium.framework.resource.resource import Column, NullResource, Resource
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-
-NULL_RESOURCE_TYPE = "null"
 
 
 class ResourceManager(Manager):
@@ -78,8 +76,7 @@ class ResourceManager(Manager):
     # TODO [MIC-5380]: Refactor add_resources for better type hinting
     def add_resources(
         self,
-        resource_type: str,
-        resource_names: list[str],
+        resources: Iterable[str | Resource],
         producer: Any,
         dependencies: Iterable[str | Resource],
     ) -> None:
@@ -87,11 +84,8 @@ class ResourceManager(Manager):
 
         Parameters
         ----------
-        resource_type
-            The type of the resources being added. Must be one of
-            `RESOURCE_TYPES`.
-        resource_names
-            A list of names of the resources being added.
+        resources
+            The resources being added. A string represents a column resource.
         producer
             A method or object that will produce the resources.
         dependencies
@@ -101,19 +95,10 @@ class ResourceManager(Manager):
         Raises
         ------
         ResourceError
-            If either the resource type is invalid, a component has multiple
-            resource producers for the ``column`` resource type, or
-            there are multiple producers of the same resource.
+            If a component has multiple resource producers for the ``column``
+            resource type or there are multiple producers of the same resource.
         """
-        if resource_type not in RESOURCE_TYPES:
-            raise ResourceError(
-                f"Unknown resource type {resource_type}. "
-                f"Permitted types are {RESOURCE_TYPES}."
-            )
-
-        resource_group = self._get_resource_group(
-            resource_type, resource_names, producer, dependencies
-        )
+        resource_group = self._get_resource_group(resources, producer, dependencies)
 
         for resource in resource_group:
             if resource in self._resource_group_map:
@@ -126,8 +111,7 @@ class ResourceManager(Manager):
 
     def _get_resource_group(
         self,
-        resource_type: str,
-        resource_names: list[str],
+        resources: Iterable[str | Resource],
         producer: Any,
         dependencies: Iterable[str | Resource],
     ) -> ResourceGroup:
@@ -137,16 +121,17 @@ class ResourceManager(Manager):
         --------
         :class:`ResourceGroup`
         """
+        resources_ = [Column(r) if isinstance(r, str) else r for r in resources]
         dependencies_ = [Column(d) if isinstance(d, str) else d for d in dependencies]
-        if not resource_names:
+
+        if not resources_:
             # We have a "producer" that doesn't produce anything, but
             # does have dependencies. This is necessary for components that
             # want to track private state information.
-            resource_type = NULL_RESOURCE_TYPE
-            resource_names = [str(self._null_producer_count)]
+            resources_ = [NullResource(self._null_producer_count)]
             self._null_producer_count += 1
 
-        return ResourceGroup(resource_type, resource_names, producer, dependencies_)
+        return ResourceGroup(resources_, producer, dependencies_)
 
     def _to_graph(self) -> nx.DiGraph:
         """Constructs the full resource graph from information in the groups.
@@ -189,9 +174,7 @@ class ResourceManager(Manager):
         graph construction, but we only need the column producers at population
         creation time.
         """
-        return [
-            r.producer for r in self.sorted_nodes if r.type in {"column", NULL_RESOURCE_TYPE}
-        ]
+        return [r.producer for r in self.sorted_nodes if r.type in {"column", "null"}]
 
     def __repr__(self) -> str:
         out = {}
@@ -224,8 +207,7 @@ class ResourceInterface(Interface):
 
     def add_resources(
         self,
-        resource_type: str,
-        resource_names: list[str],
+        resources: Iterable[str | Resource],
         producer: Any,
         dependencies: Iterable[str | Resource],
     ) -> None:
@@ -233,11 +215,8 @@ class ResourceInterface(Interface):
 
         Parameters
         ----------
-        resource_type
-            The type of the resources being added. Must be one of
-            `RESOURCE_TYPES`.
-        resource_names
-            A list of names of the resources being added.
+        resources
+            The resources being added. A string represents a column resource.
         producer
             A method or object that will produce the resources.
         dependencies
@@ -251,7 +230,7 @@ class ResourceInterface(Interface):
             resource producers for the ``column`` resource type, or
             there are multiple producers of the same resource.
         """
-        self._manager.add_resources(resource_type, resource_names, producer, dependencies)
+        self._manager.add_resources(resources, producer, dependencies)
 
     def get_population_initializers(self) -> list[Any]:
         """Returns a dependency-sorted list of population initializers.
