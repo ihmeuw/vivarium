@@ -2,15 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-RESOURCE_TYPES = {
-    "value",
-    "value_source",
-    "missing_value_source",
-    "value_modifier",
-    "column",
-    "stream",
-}
-
 
 @dataclass
 class Resource:
