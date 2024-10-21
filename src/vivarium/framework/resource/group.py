@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from typing import Any
 
-from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.resource import Resource
 
 
