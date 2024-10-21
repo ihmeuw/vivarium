@@ -69,12 +69,11 @@ class ResourceGroup:
     @property
     def names(self) -> list[str]:
         """The long names (including type) of all resources in this group."""
-        return list(self._resources.keys())
+        return list(self._resources)
 
     @property
     def initializer(self) -> Callable[[SimulantData], None]:
         """The method that initializes this group of resources."""
-        # todo see if we can call is_initializer instead
         if self._initializer is None:
             raise ResourceError("This resource group does not have an initializer.")
         return self._initializer

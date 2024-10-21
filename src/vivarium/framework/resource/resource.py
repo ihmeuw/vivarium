@@ -17,7 +17,7 @@ class Resource:
         """The long name of the resource, including the type."""
         return f"{self.resource_type}.{self.name}"
 
-    # TODO [MIC_TBD]: make this an abstract method when support for old
+    # TODO [MIC-5452]: make this an abstract method when support for old
     #  requirements specification is dropped
     @property
     def is_initialized(self) -> bool:
