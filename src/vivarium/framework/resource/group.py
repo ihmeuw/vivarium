@@ -56,15 +56,11 @@ class ResourceGroup:
                 "Resource groups with an initializer must have initialized resources."
             )
 
-        self._type = list(produced_resources)[0].resource_type
+        self.type = list(produced_resources)[0].resource_type
+        """The type of resource produced by this resource group's producer."""
         self._resources = {resource.resource_id: resource for resource in produced_resources}
         self._initializer = initializer
         self._dependencies = dependencies
-
-    @property
-    def type(self) -> str:
-        """The type of resource produced by this resource group's producer."""
-        return self._type
 
     @property
     def names(self) -> list[str]:
