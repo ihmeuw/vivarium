@@ -1,14 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.resource import Resource
-
-if TYPE_CHECKING:
-    from vivarium.framework.randomness import RandomnessStream
-    from vivarium.framework.values import Pipeline
 
 
 class ResourceGroup:
@@ -28,14 +23,14 @@ class ResourceGroup:
         resource_type: str,
         resource_names: list[str],
         producer: Any,
-        dependencies: Iterable[str | Pipeline | RandomnessStream | Resource],
+        dependencies: Iterable[Resource] = (),
     ):
         self._resource_type = resource_type
         self._resource_names = resource_names
         self._producer = producer
-        self._dependency_keys = [
-            self._get_dependency_key(dependency) for dependency in dependencies
-        ]
+        """The method or object that produces this group of resources."""
+        self._dependencies = dependencies
+        """The resources this resource group's producer depends on."""
 
     @property
     def type(self) -> str:
@@ -58,7 +53,7 @@ class ResourceGroup:
     @property
     def dependencies(self) -> list[str]:
         """The long names (including type) of dependencies for this group."""
-        return self._dependency_keys
+        return [dependency.resource_id for dependency in self._dependencies]
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.names)
@@ -70,24 +65,3 @@ class ResourceGroup:
     def __str__(self) -> str:
         resources = ", ".join(self)
         return f"({resources})"
-
-    @staticmethod
-    def _get_dependency_key(dependency: str | Pipeline | RandomnessStream | Resource) -> str:
-        # local import to avoid circular dependency
-        from vivarium.framework.randomness import RandomnessStream
-        from vivarium.framework.values import Pipeline
-
-        if isinstance(dependency, str):
-            return f"column.{dependency}"
-        elif isinstance(dependency, Pipeline):
-            return f"value.{dependency.name}"
-        elif isinstance(dependency, RandomnessStream):
-            return f"stream.{dependency.key}"
-        elif isinstance(dependency, Resource):
-            return str(dependency)
-        else:
-            raise ResourceError(
-                f"Dependency '{dependency}' of unknown type: {type(dependency)}."
-                " Dependencies must be strings, Pipelines, RandomnessStreams, or"
-                " Resources."
-            )
