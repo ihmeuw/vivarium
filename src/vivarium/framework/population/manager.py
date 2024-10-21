@@ -323,7 +323,7 @@ class PopulationManager(Manager):
             all_dependencies = list(required_resources)
 
         self._initializer_components.add(initializer, list(creates_columns))
-        self.resources.add_resources(creates_columns, initializer, all_dependencies)
+        self.resources.add_resources(creates_columns, all_dependencies, initializer)
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.
