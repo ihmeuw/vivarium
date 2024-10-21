@@ -103,18 +103,21 @@ def test_component_that_creates_and_requires_columns_population_view():
 
 
 def test_component_with_initialization_requirements():
-    component = ColumnCreatorAndRequirer()
-    simulation = InteractiveContext(components=[ColumnCreator(), component])
+    simulation = InteractiveContext(
+        components=[ColumnCreator(), ColumnCreatorAndRequirer()],
+    )
 
     # Assert required resources have been recorded by the ResourceManager
     component_dependencies_list = [
         r.dependencies
         # get all resources in the dependency graph
         for r in simulation._resource.sorted_nodes
-        # if the producer is an instance method
-        if hasattr(r.producer, "__self__")
+        # if the resource is an initializer
+        if r.is_initializer
+        # its initializer is an instance method
+        and hasattr(r.initializer, "__self__")
         # and is a method of ColumnCreatorAndRequirer
-        and isinstance(r.producer.__self__, ColumnCreatorAndRequirer)
+        and isinstance(r.initializer.__self__, ColumnCreatorAndRequirer)
     ]
     assert len(component_dependencies_list) == 1
     component_dependencies = component_dependencies_list[0]
