@@ -7,7 +7,7 @@ Resource Manager
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
@@ -19,6 +19,7 @@ from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+    from vivarium.framework.population import SimulantData
 
 
 class ResourceManager(Manager):
@@ -73,12 +74,11 @@ class ResourceManager(Manager):
     def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
 
-    # TODO [MIC-5380]: Refactor add_resources for better type hinting
     def add_resources(
         self,
         resources: Iterable[str | Resource],
-        producer: Any,
         dependencies: Iterable[str | Resource],
+        initializer: Callable[[SimulantData], None] | None,
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -86,11 +86,12 @@ class ResourceManager(Manager):
         ----------
         resources
             The resources being added. A string represents a column resource.
-        producer
-            A method or object that will produce the resources.
         dependencies
             A list of resources that the producer requires. A string represents
             a column resource.
+        initializer
+            A method that will be called to initialize the resources. This is
+            called during population initialization.
 
         Raises
         ------
@@ -98,22 +99,27 @@ class ResourceManager(Manager):
             If a component has multiple resource producers for the ``column``
             resource type or there are multiple producers of the same resource.
         """
-        resource_group = self._get_resource_group(resources, producer, dependencies)
+        resource_group = self._get_resource_group(resources, dependencies, initializer)
 
-        for resource in resource_group:
-            if resource in self._resource_group_map:
-                other_producer = self._resource_group_map[resource].producer
+        for resource_id in resource_group:
+            if resource_id in self._resource_group_map:
+                other_resource = self._resource_group_map[resource_id]
+                if resource_group.is_initializer:
+                    raise ResourceError(
+                        f"Both {initializer} and {other_resource.initializer}"
+                        f" are registered as initializers for {resource_id}."
+                    )
+                resource = resource_group.get_resource(resource_id)
                 raise ResourceError(
-                    f"Both {producer} and {other_producer} are registered as "
-                    f"producers for {resource}."
+                    f"Resource {resource} is not allowed to be registered more" " than once."
                 )
-            self._resource_group_map[resource] = resource_group
+            self._resource_group_map[resource_id] = resource_group
 
     def _get_resource_group(
         self,
         resources: Iterable[str | Resource],
-        producer: Any,
         dependencies: Iterable[str | Resource],
+        initializer: Callable[[SimulantData], None] | None,
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -131,7 +137,7 @@ class ResourceManager(Manager):
             resources_ = [NullResource(self._null_producer_count)]
             self._null_producer_count += 1
 
-        return ResourceGroup(resources_, producer, dependencies_)
+        return ResourceGroup(resources_, dependencies_, initializer)
 
     def _to_graph(self) -> nx.DiGraph:
         """Constructs the full resource graph from information in the groups.
@@ -174,7 +180,7 @@ class ResourceManager(Manager):
         graph construction, but we only need the column producers at population
         creation time.
         """
-        return [r.producer for r in self.sorted_nodes if r.type in {"column", "null"}]
+        return [r.initializer for r in self.sorted_nodes if r.is_initializer]
 
     def __repr__(self) -> str:
         out = {}
@@ -208,8 +214,8 @@ class ResourceInterface(Interface):
     def add_resources(
         self,
         resources: Iterable[str | Resource],
-        producer: Any,
         dependencies: Iterable[str | Resource],
+        initializer: Callable[[SimulantData], None] | None = None,
     ) -> None:
         """Adds managed resources to the resource pool.
 
@@ -217,11 +223,12 @@ class ResourceInterface(Interface):
         ----------
         resources
             The resources being added. A string represents a column resource.
-        producer
-            A method or object that will produce the resources.
         dependencies
             A list of resources that the producer requires. A string represents
             a column resource.
+        initializer
+            A method that will be called to initialize the resources. This is
+            called during population initialization.
 
         Raises
         ------
@@ -230,7 +237,7 @@ class ResourceInterface(Interface):
             resource producers for the ``column`` resource type, or
             there are multiple producers of the same resource.
         """
-        self._manager.add_resources(resources, producer, dependencies)
+        self._manager.add_resources(resources, dependencies, initializer)
 
     def get_population_initializers(self) -> list[Any]:
         """Returns a dependency-sorted list of population initializers.

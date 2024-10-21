@@ -37,66 +37,82 @@ class ResourceProducer(Component):
         super().__init__()
         self._name = name
 
-    def producer(self, _simulant_data: SimulantData) -> None:
+    def initializer(self, _simulant_data: SimulantData) -> None:
         pass
 
 
 @pytest.mark.parametrize(
-    "resource_class, type_string",
+    "resource_class, type_string, is_initializer",
     [
-        (Pipeline, "value"),
-        (ValueSource, "value_source"),
-        (MissingValueSource, "missing_value_source"),
-        (ValueModifier, "value_modifier"),
-        (Column, "column"),
-        (NullResource, "null"),
+        (Pipeline, "value", False),
+        (ValueSource, "value_source", False),
+        (MissingValueSource, "missing_value_source", False),
+        (ValueModifier, "value_modifier", False),
+        (Column, "column", True),
+        (NullResource, "null", True),
     ],
     ids=lambda x: {x.__name__ if isinstance(x, type) else x},
 )
 def test_resource_manager_get_resource_group(
-    resource_class: type, type_string: str, manager: ResourceManager
+    resource_class: type, type_string: str, is_initializer: bool, manager: ResourceManager
 ) -> None:
-    producer = ResourceProducer("base").producer
+    initializer = ResourceProducer("base").initializer
 
-    group = manager._get_resource_group([resource_class("foo")], producer, [])
+    group = manager._get_resource_group(
+        [resource_class("foo")], [], initializer if is_initializer else None
+    )
 
     assert group.type == type_string
     assert group.names == [f"{type_string}.foo"]
-    assert group.producer == producer
     assert not group.dependencies
+    assert group.is_initializer == is_initializer
+    if is_initializer:
+        assert group.initializer == initializer
+    else:
+        with pytest.raises(ResourceError, match="does not have an initializer"):
+            _ = group.initializer
 
 
 def test_resource_manager_get_resource_group_null(manager: ResourceManager) -> None:
-    producer = ResourceProducer("base").producer
+    initializer = ResourceProducer("base").initializer
 
-    group_1 = manager._get_resource_group([], producer, [])
-    group_2 = manager._get_resource_group([], producer, [])
+    group_1 = manager._get_resource_group([], [], initializer)
+    group_2 = manager._get_resource_group([], [], initializer)
 
     assert group_1.type == "null"
     assert group_1.names == ["null.0"]
-    assert group_1.producer == producer
+    assert group_1.initializer == initializer
     assert not group_1.dependencies
 
     assert group_2.type == "null"
     assert group_2.names == ["null.1"]
-    assert group_2.producer == producer
+    assert group_2.initializer == initializer
     assert not group_2.dependencies
 
 
-def test_resource_manager_add_resources_multiple_producers(manager: ResourceManager) -> None:
+def test_resource_manager_add_same_column_twice(manager: ResourceManager) -> None:
     r1 = [str(i) for i in range(5)]
     r2 = [str(i) for i in range(5, 10)] + ["1"]
 
-    manager.add_resources(r1, ResourceProducer("1").producer, [])
-    with pytest.raises(ResourceError, match="producers for column.1"):
-        manager.add_resources(r2, ResourceProducer("2").producer, [])
+    manager.add_resources(r1, [], ResourceProducer("1").initializer)
+    with pytest.raises(ResourceError, match="initializers for column.1"):
+        manager.add_resources(r2, [], ResourceProducer("2").initializer)
+
+
+def test_resource_manager_add_same_pipeline_twice(manager: ResourceManager) -> None:
+    r1 = [Pipeline(str(i)) for i in range(5)]
+    r2 = [Pipeline(str(i)) for i in range(5, 10)] + [Pipeline("1")]
+
+    manager.add_resources(r1, [], None)
+    with pytest.raises(ResourceError, match="registered more than once"):
+        manager.add_resources(r2, [], None)
 
 
 def test_resource_manager_sorted_nodes_two_node_cycle(
     manager: ResourceManager, randomness_stream: RandomnessStream
 ) -> None:
-    manager.add_resources(["c_1"], ResourceProducer("1").producer, [randomness_stream])
-    manager.add_resources([randomness_stream], ResourceProducer("2").producer, ["c_1"])
+    manager.add_resources(["c_1"], [randomness_stream], ResourceProducer("1").initializer)
+    manager.add_resources([randomness_stream], ["c_1"], None)
 
     with pytest.raises(ResourceError, match="cycle"):
         _ = manager.sorted_nodes
@@ -107,9 +123,9 @@ def test_resource_manager_sorted_nodes_three_node_cycle(
 ) -> None:
     pipeline = Pipeline("some_pipeline")
 
-    manager.add_resources(["c_1"], ResourceProducer("1").producer, [randomness_stream])
-    manager.add_resources([pipeline], ResourceProducer("2").producer, ["c_1"])
-    manager.add_resources([randomness_stream], ResourceProducer("3").producer, [pipeline])
+    manager.add_resources(["c_1"], [randomness_stream], ResourceProducer("1").initializer)
+    manager.add_resources([pipeline], ["c_1"], None)
+    manager.add_resources([randomness_stream], [pipeline], None)
 
     with pytest.raises(ResourceError, match="cycle"):
         _ = manager.sorted_nodes
@@ -117,7 +133,7 @@ def test_resource_manager_sorted_nodes_three_node_cycle(
 
 def test_resource_manager_sorted_nodes_large_cycle(manager: ResourceManager) -> None:
     for i in range(10):
-        manager.add_resources([f"c_{i}"], ResourceProducer("1").producer, [f"c_{i % 10}"])
+        manager.add_resources([f"c_{i}"], [f"c_{i % 10}"], ResourceProducer("1").initializer)
 
     with pytest.raises(ResourceError, match="cycle"):
         _ = manager.sorted_nodes
@@ -125,8 +141,10 @@ def test_resource_manager_sorted_nodes_large_cycle(manager: ResourceManager) -> 
 
 def test_large_dependency_chain(manager: ResourceManager) -> None:
     for i in range(9, 0, -1):
-        manager.add_resources([f"c_{i}"], ResourceProducer(f"p_{i}").producer, [f"c_{i - 1}"])
-    manager.add_resources(["c_0"], ResourceProducer("producer_0").producer, [])
+        manager.add_resources(
+            [f"c_{i}"], [f"c_{i - 1}"], ResourceProducer(f"p_{i}").initializer
+        )
+    manager.add_resources(["c_0"], [], ResourceProducer("producer_0").initializer)
 
     for i, resource in enumerate(manager.sorted_nodes):
         assert str(resource) == f"(column.c_{i})"
@@ -163,15 +181,15 @@ def test_get_population_initializers(manager: ResourceManager) -> None:
 
 
 def _add_resources(manager: ResourceManager) -> Mapping[int, Callable[[SimulantData], None]]:
-    producers = {i: ResourceProducer(f"test_{i}").producer for i in range(5)}
+    producers = {i: ResourceProducer(f"test_{i}").initializer for i in range(5)}
 
     stream = RandomnessStream("B", lambda: datetime.now(), 1, IndexMap())
     pipeline = Pipeline("C")
 
-    manager.add_resources(["D"], producers[3], [stream, pipeline])
-    manager.add_resources([stream], producers[1], ["A"])
-    manager.add_resources([pipeline], producers[2], ["A"])
-    manager.add_resources(["A"], producers[0], [])
-    manager.add_resources([], producers[4], [stream])
+    manager.add_resources(["D"], [stream, pipeline], producers[3])
+    manager.add_resources([stream], ["A"], None)
+    manager.add_resources([pipeline], ["A"], None)
+    manager.add_resources(["A"], [], producers[0])
+    manager.add_resources([], [stream], producers[4])
 
     return producers
