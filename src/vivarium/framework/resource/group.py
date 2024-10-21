@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Iterator
 from typing import Any
 
+from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.resource import Resource
 
 
@@ -20,13 +21,18 @@ class ResourceGroup:
 
     def __init__(
         self,
-        resource_type: str,
-        resource_names: list[str],
+        produced_resources: Iterable[Resource],
         producer: Any,
         dependencies: Iterable[Resource] = (),
     ):
-        self._resource_type = resource_type
-        self._resource_names = resource_names
+        if not produced_resources:
+            raise ResourceError("Resource groups must have at least one resource.")
+
+        if len(set(r.resource_type for r in produced_resources)) != 1:
+            raise ResourceError("All produced resources must be of the same type.")
+
+        self._resources = list(produced_resources)
+        """The resources produced by this resource group's producer."""
         self._producer = producer
         """The method or object that produces this group of resources."""
         self._dependencies = dependencies
@@ -34,16 +40,13 @@ class ResourceGroup:
 
     @property
     def type(self) -> str:
-        """The type of resource produced by this resource group's producer.
-
-        Must be one of `RESOURCE_TYPES`.
-        """
-        return self._resource_type
+        """The type of resource produced by this resource group's producer."""
+        return self._resources[0].resource_type
 
     @property
     def names(self) -> list[str]:
         """The long names (including type) of all resources in this group."""
-        return [f"{self._resource_type}.{name}" for name in self._resource_names]
+        return [resource.resource_id for resource in self._resources]
 
     @property
     def producer(self) -> Any:

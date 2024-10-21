@@ -10,10 +10,10 @@ from vivarium import Component
 from vivarium.framework.population import SimulantData
 from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.randomness.index_map import IndexMap
-from vivarium.framework.resource import Resource, ResourceManager
+from vivarium.framework.resource import ResourceManager
 from vivarium.framework.resource.exceptions import ResourceError
-from vivarium.framework.resource.manager import NULL_RESOURCE_TYPE, RESOURCE_TYPES
-from vivarium.framework.values import Pipeline
+from vivarium.framework.resource.resource import Column, NullResource
+from vivarium.framework.values import MissingValueSource, Pipeline, ValueModifier, ValueSource
 
 
 @pytest.fixture
@@ -41,74 +41,62 @@ class ResourceProducer(Component):
         pass
 
 
-@pytest.mark.parametrize("r_type", RESOURCE_TYPES, ids=lambda x: f"r_type_{x}")
-def test_resource_manager_get_resource_group(r_type: str, manager: ResourceManager) -> None:
-    component = ResourceProducer("base")
-    r_names = ["foo"]
-    r_producer = component.producer
-    r_dependencies: list[str | Resource] = []
+@pytest.mark.parametrize(
+    "resource_class, type_string",
+    [
+        (Pipeline, "value"),
+        (ValueSource, "value_source"),
+        (MissingValueSource, "missing_value_source"),
+        (ValueModifier, "value_modifier"),
+        (Column, "column"),
+        (NullResource, "null"),
+    ],
+    ids=lambda x: {x.__name__ if isinstance(x, type) else x},
+)
+def test_resource_manager_get_resource_group(
+    resource_class: type, type_string: str, manager: ResourceManager
+) -> None:
+    producer = ResourceProducer("base").producer
 
-    group = manager._get_resource_group(r_type, r_names, r_producer, r_dependencies)
+    group = manager._get_resource_group([resource_class("foo")], producer, [])
 
-    assert group.type == r_type
-    assert group.names == [f"{r_type}.foo"]
-    assert group.producer == component.producer
+    assert group.type == type_string
+    assert group.names == [f"{type_string}.foo"]
+    assert group.producer == producer
     assert not group.dependencies
 
 
 def test_resource_manager_get_resource_group_null(manager: ResourceManager) -> None:
-    component = ResourceProducer("base")
-    r_names: list[str] = []
-    r_producer = component.producer
-    r_dependencies: list[str | Resource] = []
+    producer = ResourceProducer("base").producer
 
-    group_1 = manager._get_resource_group("column", r_names, r_producer, r_dependencies)
-    group_2 = manager._get_resource_group("column", r_names, r_producer, r_dependencies)
+    group_1 = manager._get_resource_group([], producer, [])
+    group_2 = manager._get_resource_group([], producer, [])
 
-    assert group_1.type == NULL_RESOURCE_TYPE
-    assert group_1.names == [f"{NULL_RESOURCE_TYPE}.0"]
-    assert group_1.producer == component.producer
+    assert group_1.type == "null"
+    assert group_1.names == ["null.0"]
+    assert group_1.producer == producer
     assert not group_1.dependencies
 
-    assert group_2.type == NULL_RESOURCE_TYPE
-    assert group_2.names == [f"{NULL_RESOURCE_TYPE}.1"]
-    assert group_2.producer == component.producer
+    assert group_2.type == "null"
+    assert group_2.names == ["null.1"]
+    assert group_2.producer == producer
     assert not group_2.dependencies
 
 
-def test_resource_manager_add_resources_bad_type(manager: ResourceManager) -> None:
-    c = ResourceProducer("base")
-    r_type = "unknown"
-    r_names = [str(i) for i in range(5)]
-    r_producer = c.producer
-    r_dependencies: list[str | Resource] = []
-
-    with pytest.raises(ResourceError, match="Unknown resource type"):
-        manager.add_resources(r_type, r_names, r_producer, r_dependencies)
-
-
 def test_resource_manager_add_resources_multiple_producers(manager: ResourceManager) -> None:
-    c1 = ResourceProducer("1")
-    c2 = ResourceProducer("2")
-    r_type = "column"
-    r1_names = [str(i) for i in range(5)]
-    r2_names = [str(i) for i in range(5, 10)] + ["1"]
-    r1_producer = c1.producer
-    r2_producer = c2.producer
-    r_dependencies: list[str | Resource] = []
+    r1 = [str(i) for i in range(5)]
+    r2 = [str(i) for i in range(5, 10)] + ["1"]
 
-    manager.add_resources(r_type, r1_names, r1_producer, r_dependencies)
+    manager.add_resources(r1, ResourceProducer("1").producer, [])
     with pytest.raises(ResourceError, match="producers for column.1"):
-        manager.add_resources(r_type, r2_names, r2_producer, r_dependencies)
+        manager.add_resources(r2, ResourceProducer("2").producer, [])
 
 
 def test_resource_manager_sorted_nodes_two_node_cycle(
     manager: ResourceManager, randomness_stream: RandomnessStream
 ) -> None:
-    c = ResourceProducer("test")
-
-    manager.add_resources("column", ["c_1"], c.producer, [randomness_stream])
-    manager.add_resources("stream", [randomness_stream.key], c.producer, ["c_1"])
+    manager.add_resources(["c_1"], ResourceProducer("1").producer, [randomness_stream])
+    manager.add_resources([randomness_stream], ResourceProducer("2").producer, ["c_1"])
 
     with pytest.raises(ResourceError, match="cycle"):
         _ = manager.sorted_nodes
@@ -117,22 +105,19 @@ def test_resource_manager_sorted_nodes_two_node_cycle(
 def test_resource_manager_sorted_nodes_three_node_cycle(
     manager: ResourceManager, randomness_stream: RandomnessStream
 ) -> None:
-    c = ResourceProducer("test")
     pipeline = Pipeline("some_pipeline")
 
-    manager.add_resources("column", ["c_1"], c.producer, [randomness_stream])
-    manager.add_resources("value", [pipeline.name], c.producer, ["c_1"])
-    manager.add_resources("stream", [randomness_stream.key], c.producer, [pipeline])
+    manager.add_resources(["c_1"], ResourceProducer("1").producer, [randomness_stream])
+    manager.add_resources([pipeline], ResourceProducer("2").producer, ["c_1"])
+    manager.add_resources([randomness_stream], ResourceProducer("3").producer, [pipeline])
 
     with pytest.raises(ResourceError, match="cycle"):
         _ = manager.sorted_nodes
 
 
 def test_resource_manager_sorted_nodes_large_cycle(manager: ResourceManager) -> None:
-    c = ResourceProducer("test")
-
     for i in range(10):
-        manager.add_resources("column", [f"c_{i}"], c.producer, [f"c_{i%10}"])
+        manager.add_resources([f"c_{i}"], ResourceProducer("1").producer, [f"c_{i % 10}"])
 
     with pytest.raises(ResourceError, match="cycle"):
         _ = manager.sorted_nodes
@@ -140,10 +125,8 @@ def test_resource_manager_sorted_nodes_large_cycle(manager: ResourceManager) -> 
 
 def test_large_dependency_chain(manager: ResourceManager) -> None:
     for i in range(9, 0, -1):
-        manager.add_resources(
-            "column", [f"c_{i}"], ResourceProducer(f"p_{i}").producer, [f"c_{i - 1}"]
-        )
-    manager.add_resources("column", ["c_0"], ResourceProducer("producer_0").producer, [])
+        manager.add_resources([f"c_{i}"], ResourceProducer(f"p_{i}").producer, [f"c_{i - 1}"])
+    manager.add_resources(["c_0"], ResourceProducer("producer_0").producer, [])
 
     for i, resource in enumerate(manager.sorted_nodes):
         assert str(resource) == f"(column.c_{i})"
@@ -161,7 +144,7 @@ def test_resource_manager_sorted_nodes_acyclic(manager: ResourceManager) -> None
     assert n.index("(stream.B)") < n.index("(column.D)")
     assert n.index("(value.C)") < n.index("(column.D)")
 
-    assert n.index("(stream.B)") < n.index(f"({NULL_RESOURCE_TYPE}.0)")
+    assert n.index("(stream.B)") < n.index(f"(null.0)")
 
 
 def test_get_population_initializers(manager: ResourceManager) -> None:
@@ -185,10 +168,10 @@ def _add_resources(manager: ResourceManager) -> Mapping[int, Callable[[SimulantD
     stream = RandomnessStream("B", lambda: datetime.now(), 1, IndexMap())
     pipeline = Pipeline("C")
 
-    manager.add_resources("column", ["D"], producers[3], [stream, pipeline])
-    manager.add_resources("stream", ["B"], producers[1], ["A"])
-    manager.add_resources("value", ["C"], producers[2], ["A"])
-    manager.add_resources("column", ["A"], producers[0], [])
-    manager.add_resources("column", [], producers[4], [stream])
+    manager.add_resources(["D"], producers[3], [stream, pipeline])
+    manager.add_resources([stream], producers[1], ["A"])
+    manager.add_resources([pipeline], producers[2], ["A"])
+    manager.add_resources(["A"], producers[0], [])
+    manager.add_resources([], producers[4], [stream])
 
     return producers
