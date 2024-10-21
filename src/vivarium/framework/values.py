@@ -390,7 +390,7 @@ class ValuesManager(Manager):
             for i, m in enumerate(pipe.mutators):
                 mutator_name = self._get_modifier_name(m)
                 dependencies.append(ValueModifier(f"{name}.{i + 1}.{mutator_name}"))
-            self.resources.add_resources("value", [name], pipe._call, dependencies)
+            self.resources.add_resources([pipe], pipe._call, dependencies)
 
     def register_value_producer(
         self,
@@ -420,7 +420,7 @@ class ValuesManager(Manager):
         dependencies = self._convert_dependencies(
             source, requires_columns, requires_values, requires_streams, required_resources
         )
-        self.resources.add_resources("value_source", [value_name], source, dependencies)
+        self.resources.add_resources([ValueSource(value_name)], source, dependencies)
         self.add_constraint(
             pipeline._call, restrict_during=["initialization", "setup", "post_setup"]
         )
@@ -490,7 +490,7 @@ class ValuesManager(Manager):
         dependencies = self._convert_dependencies(
             modifier, requires_columns, requires_values, requires_streams, required_resources
         )
-        self.resources.add_resources("value_modifier", [name], modifier, dependencies)
+        self.resources.add_resources([ValueModifier(name)], modifier, dependencies)
 
     def get_value(self, name: str) -> Pipeline:
         """Retrieve the pipeline representing the named value.
@@ -511,8 +511,8 @@ class ValuesManager(Manager):
         self._pipelines[name] = pipeline
         return pipeline
 
+    @staticmethod
     def _convert_dependencies(
-        self,
         func: Callable[..., Any],
         requires_columns: Iterable[str],
         requires_values: Iterable[str],
