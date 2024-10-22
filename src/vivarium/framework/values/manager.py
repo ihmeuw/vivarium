@@ -7,16 +7,14 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from vivarium.framework.event import Event
 from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.resource import Resource
-from vivarium.framework.values.combiners import replace_combiner
+from vivarium.framework.values.combiners import ValueCombiner, replace_combiner
 from vivarium.framework.values.pipeline import (
     MissingValueSource,
     Pipeline,
-    PostProcessor,
-    ValueCombiner,
     ValueModifier,
     ValueSource,
 )
-from vivarium.framework.values.post_processors import rescale_post_processor
+from vivarium.framework.values.post_processors import PostProcessor, rescale_post_processor
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import pandas as pd
 
@@ -9,7 +9,9 @@ from vivarium.framework.resource import Resource
 from vivarium.framework.values.exceptions import DynamicValueError
 
 if TYPE_CHECKING:
+    from vivarium.framework.values.combiners import ValueCombiner
     from vivarium.framework.values.manager import ValuesManager
+    from vivarium.framework.values.post_processors import PostProcessor
 
 T = TypeVar("T")
 
@@ -33,18 +35,6 @@ class ValueModifier(Resource):
 
     def __init__(self, name: str) -> None:
         super().__init__("value_modifier", name)
-
-
-class ValueCombiner(Protocol):
-    def __call__(
-        self, value: Any, mutator: Callable[..., Any], *args: Any, **kwargs: Any
-    ) -> Any:
-        ...
-
-
-class PostProcessor(Protocol):
-    def __call__(self, value: Any, manager: ValuesManager) -> Any:
-        ...
 
 
 class Pipeline(Resource):

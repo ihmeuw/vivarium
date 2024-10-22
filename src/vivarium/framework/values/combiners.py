@@ -1,5 +1,12 @@
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Protocol
+
+
+class ValueCombiner(Protocol):
+    def __call__(
+        self, value: Any, mutator: Callable[..., Any], *args: Any, **kwargs: Any
+    ) -> Any:
+        ...
 
 
 def replace_combiner(

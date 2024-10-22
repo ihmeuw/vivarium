@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 import pandas as pd
 
@@ -11,6 +11,11 @@ from vivarium.types import NumberLike
 
 if TYPE_CHECKING:
     from vivarium.framework.values.manager import ValuesManager
+
+
+class PostProcessor(Protocol):
+    def __call__(self, value: Any, manager: ValuesManager) -> Any:
+        ...
 
 
 def rescale_post_processor(value: NumberLike, manager: ValuesManager) -> NumberLike:
