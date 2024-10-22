@@ -42,7 +42,7 @@ class ResultsInterface(Interface):
     DataFrames. The representation of state in the simulation is complex,
     however, as it includes information both in the population state table
     and dynamically generated information available from the
-    :class:`value pipelines <vivarium.framework.values.Pipeline>`.
+    :class:`value pipelines <vivarium.framework.values.pipeline.Pipeline>`.
     Additionally, good encapsulation of simulation logic typically has
     results production separated from the modeling code into specialized
     `Observer` components. This often highlights the need for transformations
