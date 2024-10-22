@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
+from typing import Any
 
 import pytest
 import pytest_mock
@@ -13,7 +14,7 @@ from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.resource import ResourceManager
 from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.resource import Column, NullResource
-from vivarium.framework.values import MissingValueSource, Pipeline, ValueModifier, ValueSource
+from vivarium.framework.values import Pipeline, ValueModifier, ValueSource
 
 
 @pytest.fixture
@@ -42,28 +43,31 @@ class ResourceProducer(Component):
 
 
 @pytest.mark.parametrize(
-    "resource_class, type_string, is_initializer",
+    "resource_class, init_args, type_string, is_initializer",
     [
-        (Pipeline, "value", False),
-        (ValueSource, "value_source", False),
-        (MissingValueSource, "missing_value_source", False),
-        (ValueModifier, "value_modifier", False),
-        (Column, "column", True),
-        (NullResource, "null", True),
+        (Pipeline, ["foo"], "value", False),
+        (ValueSource, [Pipeline("foo"), lambda: 1], "value_source", False),
+        (ValueModifier, [Pipeline("foo"), lambda: 1], "value_modifier", False),
+        (Column, ["foo"], "column", True),
+        (NullResource, ["foo"], "null", True),
     ],
-    ids=lambda x: {x.__name__ if isinstance(x, type) else x},
+    ids=lambda x: [x.__name__ if isinstance(x, type) else x],
 )
 def test_resource_manager_get_resource_group(
-    resource_class: type, type_string: str, is_initializer: bool, manager: ResourceManager
+    resource_class: type,
+    init_args: list[Any],
+    type_string: str,
+    is_initializer: bool,
+    manager: ResourceManager,
 ) -> None:
     initializer = ResourceProducer("base").initializer
 
     group = manager._get_resource_group(
-        [resource_class("foo")], [], initializer if is_initializer else None
+        [resource_class(*init_args)], [], initializer if is_initializer else None
     )
 
     assert group.type == type_string
-    assert group.names == [f"{type_string}.foo"]
+    assert group.names == [r.resource_id for r in group._resources.values()]
     assert not group.dependencies
     assert group.is_initializer == is_initializer
     if is_initializer:

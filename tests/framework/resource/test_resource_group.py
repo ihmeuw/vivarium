@@ -23,7 +23,7 @@ def test_resource_group() -> None:
         Column("an_interesting_column"),
         Pipeline("baz"),
         RandomnessStream("bar", lambda: datetime.now(), 1, IndexMap()),
-        ValueSource("foo"),
+        ValueSource(Pipeline("foo"), lambda: 1),
     ]
 
     rg = ResourceGroup(resources, r_dependencies, dummy_initializer)
@@ -41,7 +41,7 @@ def test_resource_group() -> None:
 
 
 def test_resource_group_is_initializer() -> None:
-    resources = [ValueModifier("foo")]
+    resources = [ValueModifier(Pipeline("foo"), lambda: 1)]
     rg = ResourceGroup(resources, [Column("bar")])
 
     with pytest.raises(ResourceError, match="does not have an initializer"):
@@ -54,7 +54,10 @@ def test_resource_group_with_no_resources() -> None:
 
 
 def test_resource_group_with_multiple_resource_types() -> None:
-    resources = [ValueModifier("foo"), ValueSource("bar")]
+    resources = [
+        ValueModifier(Pipeline("foo"), lambda: 1),
+        ValueSource(Pipeline("bar"), lambda: 2),
+    ]
 
     with pytest.raises(ResourceError, match="resources must be of the same type"):
         _ = ResourceGroup(resources, [])
