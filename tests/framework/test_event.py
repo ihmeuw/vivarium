@@ -122,3 +122,13 @@ def test_contains():
     assert event not in manager
     manager.get_emitter(event)
     assert event in manager
+
+
+def test_list_events():
+    manager = EventManager()
+    manager.add_constraint = lambda f, **kwargs: f
+    _ = manager.get_channel("event1")
+    _ = manager.get_emitter("event2")
+    _ = manager.register_listener("event3", lambda: None)
+    _ = manager.get_listeners("event4")
+    assert manager.list_events() == ["event1", "event2", "event3", "event4"]
