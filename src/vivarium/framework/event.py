@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ============================
 The Vivarium Event Framework
@@ -28,7 +27,10 @@ For more information, see the associated event
 
 """
 
-from typing import Any, Callable, Dict, List, NamedTuple, Optional
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import Any, NamedTuple
 
 import pandas as pd
 
@@ -50,7 +52,7 @@ class Event(NamedTuple):
     #: by this event.
     index: pd.Index
     #: Any additional data provided by the user about the event.
-    user_data: Dict[str, Any]
+    user_data: dict[str, Any]
     #: The simulation time at which this event will resolve. The current
     #: simulation size plus the current time step size.
     time: ClockTime
@@ -93,7 +95,7 @@ class EventChannel:
         self.manager = manager
         self.listeners = [[] for _ in range(10)]
 
-    def emit(self, index: pd.Index, user_data: Optional[Dict] = None) -> Event:
+    def emit(self, index: pd.Index, user_data: dict | None = None) -> Event:
         """Notifies all listeners to this channel that an event has occurred.
 
         Events are emitted to listeners in order of priority (with order 0 being
@@ -174,7 +176,7 @@ class EventManager(Manager):
         for name, channel in self._event_types.items():
             self.add_handlers(name, [h for level in channel.listeners for h in level])
 
-    def get_emitter(self, name: str) -> Callable[[pd.Index, Optional[Dict]], Event]:
+    def get_emitter(self, name: str) -> Callable[[pd.Index, dict | None], Event]:
         """Get an emitter function for the named event.
 
         Parameters
@@ -212,7 +214,7 @@ class EventManager(Manager):
         """
         self.get_channel(name).listeners[priority].append(listener)
 
-    def get_listeners(self, name: str) -> Dict[int, List[Callable]]:
+    def get_listeners(self, name: str) -> dict[int, list[Callable]]:
         """Get all listeners registered for the named event.
 
         Parameters
@@ -232,7 +234,7 @@ class EventManager(Manager):
             if listeners
         }
 
-    def list_events(self) -> List[Event]:
+    def list_events(self) -> list[Event]:
         """List all event names known to the event system.
 
         Returns
@@ -259,7 +261,7 @@ class EventInterface(Interface):
     def __init__(self, manager: EventManager):
         self._manager = manager
 
-    def get_emitter(self, name: str) -> Callable[[pd.Index, Optional[Dict]], Event]:
+    def get_emitter(self, name: str) -> Callable[[pd.Index, dict | None], Event]:
         """Gets an emitter for a named event.
 
         Parameters
