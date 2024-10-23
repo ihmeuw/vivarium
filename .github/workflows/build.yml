@@ -15,4 +15,4 @@ jobs:
     uses: 
       ihmeuw/vivarium_build_utils/.github/workflows/build.yml@albrja/mic-5267/build-from-vbu
     with:
-      dependencies: "layered_config_tree"
+      dependencies: "layered_config_tree,vivarium_public_health"
