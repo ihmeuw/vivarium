@@ -11,8 +11,9 @@ on:
     - cron: "0 8 * * *"
 
 jobs:
+  inputs:
+    dependencies: "layered_config_tree"
   build:
     uses: 
       ihmeuw/vivarium_build_utils/.github/workflows/build.yml@albrja/mic-5267/build-from-vbu
-  inputs:
-    dependencies: "layered_config_tree"
+  
