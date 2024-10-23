@@ -7,15 +7,13 @@ on:
   push:
   pull_request:
   workflow_dispatch:
-    inputs:
-      dependencies:
-        type: string
-        default: "layered_config_tree"
   schedule:
     - cron: "0 8 * * *"
-  
   
 jobs:
   build:
     uses: 
       ihmeuw/vivarium_build_utils/.github/workflows/build.yml@albrja/mic-5267/build-from-vbu
+
+    with:
+      dependencies: "layered_config_tree"
