@@ -1,6 +1,7 @@
-**3.0.15 - TBD/TBD/TBD**
+**3.0.15 - 10/24/24**
 
   - Fix mypy errors in vivarium/framework/event.py
+  - Update CI to run from reusable workflow
 
 **3.0.14 - 10/18/24**
 

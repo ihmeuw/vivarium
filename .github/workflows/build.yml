@@ -9,81 +9,11 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 8 * * *"
-
+  
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10", "3.11"]
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: get upstream branch name
-        run: |
-          if "${{ github.event_name == 'pull_request' }}" ; then
-          echo "branch_name=${GITHUB_HEAD_REF}" >> $GITHUB_ENV
-          else
-          echo "branch_name=${GITHUB_REF_NAME}" >> $GITHUB_ENV
-          fi
-      - name: Update pip
-        run: |
-          python -m pip install --upgrade pip
-      - name: Install dependencies
-        run: |
-          pip install .[dev]
-      - name: check for dependency branches and install if needed
-        run: |
-          cd ..
-          git clone https://github.com/ihmeuw/vivarium_build_utils.git
-          cd vivarium
-          echo "Contents of install_dependency_branch.sh"
-          echo "----------------------------------------"
-          cat ../vivarium_build_utils/install_dependency_branch.sh
-          echo ""
-          echo "----------------------------------------"
-          sh ../vivarium_build_utils/install_dependency_branch.sh layered_config_tree ${branch_name} github
-      - name: print environment values
-        run: |
-          cat $GITHUB_ENV
-      - name: Lint
-        run: |
-          pip install black==22.3.0 isort mypy
-          isort . --check --verbose --only-modified --diff
-          black . --check --diff
-          mypy .
-      - name: Test
-        run: |
-          if "${{ github.event_name == 'schedule' }}"; then
-            pytest --runslow ./tests
-          else
-            pytest ./tests
-          fi
-      - name: Doc build
-        run: |
-          make html -C docs/ SPHINXOPTS="-W --keep-going -n"
-      - name: Doctest
-        run: |
-          make doctest -C docs/
-      - name: Send mail
-        # Notify when cron job fails
-        if: (github.event_name == 'schedule' && failure())
-        uses: dawidd6/action-send-mail@v2
-        with:
-          # mail server settings
-          server_address: smtp.gmail.com
-          server_port: 465
-          # user credentials
-          username: ${{ secrets.NOTIFY_EMAIL }}
-          password: ${{ secrets.NOTIFY_PASSWORD }}
-          # email subject
-          subject: ${{ github.job }} job of ${{ github.repository }} has ${{ job.status }}
-          # email body as text
-          body: ${{ github.job }} job in worflow ${{ github.workflow }} of ${{ github.repository }} has ${{ job.status }}
-          # comma-separated string, send email to
-          to: uw_ihme_simulationscience@uw.edu
-          # from email name
-          from: Vivarium Notifications
+  call_build:
+    uses: 
+      ihmeuw/vivarium_build_utils/.github/workflows/build.yml@main
+    with:
+      dependencies: "layered_config_tree"
+      use_mypy: true
