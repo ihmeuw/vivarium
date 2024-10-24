@@ -1,3 +1,7 @@
+**3.0.15 - TBD/TBD/TBD**
+
+  - Fix mypy errors in vivarium/framework/event.py
+
 **3.0.14 - 10/18/24**
 
   - Fix mypy errors in vivarium/framework/artifact/artifact.py
