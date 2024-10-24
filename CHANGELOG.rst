@@ -1,4 +1,4 @@
-**3.0.15 - TBD/TBD/TBD**
+**3.0.15 - 10/24/24**
 
   - Fix mypy errors in vivarium/framework/event.py
 
