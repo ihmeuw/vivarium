@@ -20,3 +20,6 @@ jobs:
     with:
       dependencies: "layered_config_tree"
       skip_mypy: false
+    secrets:
+      NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
+      NOTIFY_PASSWORD: ${{ secrets.NOTIFY_PASSWORD }}
