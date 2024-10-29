@@ -1,6 +1,6 @@
 **3.0.16 - 10/29/24**
 
-  - Fix mypy errors in vivarium/framework/table.py
+  - Fix mypy errors in vivarium/framework/lookup/table.py
   - Revert to some old typing in vivarium/framework/lookup/interpolation.py
 
 **3.0.15 - 10/24/24**
