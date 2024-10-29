@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 =================
 The Data Artifact
@@ -11,12 +10,14 @@ relevant to a particular simulation. This module provides a class to wrap that
 archive file for convenient access and inspection.
 
 """
+from __future__ import annotations
 
 import re
 import warnings
 from collections import defaultdict
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from vivarium.framework.artifact import hdf
 
@@ -30,7 +31,7 @@ class ArtifactException(Exception):
 class Artifact:
     """An interface for interacting with :mod:`vivarium` artifacts."""
 
-    def __init__(self, path: Union[str, Path], filter_terms: Optional[List[str]] = None):
+    def __init__(self, path: str | Path, filter_terms: list[str] | None = None) -> None:
         """
         Parameters
         ----------
@@ -43,28 +44,28 @@ class Artifact:
         self._path = Path(path)
         self._filter_terms = filter_terms
         self._draw_column_filter = _parse_draw_filters(filter_terms)
-        self._cache = {}
+        self._cache: dict[str, Any] = {}
 
         self.create_hdf_with_keyspace(self._path)
         self._keys = Keys(self._path)
 
     @property
-    def path(self):
+    def path(self) -> str:
         """The path to the artifact file."""
         return str(self._path)
 
     @property
-    def keys(self) -> List[str]:
+    def keys(self) -> list[str]:
         """A list of all the keys contained within the artifact."""
         return self._keys.to_list()
 
     @property
-    def filter_terms(self) -> List[str]:
+    def filter_terms(self) -> list[str] | None:
         """Filters that will be applied to the requested data on loads."""
         return self._filter_terms
 
     @staticmethod
-    def create_hdf_with_keyspace(path: Path):
+    def create_hdf_with_keyspace(path: Path) -> None:
         """Creates the artifact HDF file and adds a node to track keys."""
         if not path.is_file():
             warnings.warn(f"No artifact found at {path}. Building new artifact.")
@@ -193,16 +194,16 @@ class Artifact:
         """
         self._cache = {}
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(self.keys)
 
-    def __contains__(self, item: str):
+    def __contains__(self, item: str) -> bool:
         return item in self.keys
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Artifact(keys={self.keys})"
 
-    def __str__(self):
+    def __str__(self) -> str:
         key_tree = _to_tree(self.keys)
         out = "Artifact containing the following keys:\n"
         for root, children in key_tree.items():
@@ -214,15 +215,15 @@ class Artifact:
         return out
 
 
-def _to_tree(keys: List[str]) -> Dict[str, Dict[str, List[str]]]:
-    out = defaultdict(lambda: defaultdict(list))
+def _to_tree(keys: list[str]) -> dict[str, dict[str, list[str]]]:
+    out: defaultdict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
     for k in keys:
         key = k.split(".")
         if len(key) == 3:
             out[key[0]][key[1]].append(key[2])
         else:
             out[key[0]][key[1]] = []
-    return out
+    return dict(out)
 
 
 class Keys:
@@ -256,16 +257,16 @@ class Keys:
         hdf.remove(self._path, self.keyspace_node)
         hdf.write(self._path, self.keyspace_node, self._keys)
 
-    def to_list(self) -> List[str]:
+    def to_list(self) -> list[str]:
         """A list of all the entity keys in the associated artifact."""
 
         return self._keys
 
-    def __contains__(self, item):
+    def __contains__(self, item: str) -> bool:
         return item in self._keys
 
 
-def _parse_draw_filters(filter_terms) -> Optional[list[str]]:
+def _parse_draw_filters(filter_terms: list[str] | None) -> list[str] | None:
     """Given a list of filter terms, parse out any related to draws and convert
     to the list of column names.
 
@@ -277,9 +278,9 @@ def _parse_draw_filters(filter_terms) -> Optional[list[str]]:
         draw_terms = []
         for term in filter_terms:
             # first strip out all the parentheses
-            t = re.sub("[()]", "", term)
+            strip_t: str = re.sub("[()]", "", term)
             # then split each condition out
-            t = re.split("[&|]", t)
+            t: list[str] = re.split("[&|]", strip_t)
             # then split condition to see if it relates to draws
             split_term = [re.split("([<=>in])", i) for i in t]
             draw_terms.extend([t for t in split_term if t[0].strip() == "draw"])
@@ -292,17 +293,21 @@ def _parse_draw_filters(filter_terms) -> Optional[list[str]]:
 
         if draw_terms:
             # convert term to columns
-            term = [s.strip() for s in draw_terms[0] if s.strip()]
-            if len(term) == 4 and term[1].lower() == "i" and term[2].lower() == "n":
-                draws = [int(d) for d in term[-1][1:-1].split(",")]
-            elif (len(term) == 4 and term[1] == term[2] == "=") or (
-                len(term) == 3 and term[1] == "="
+            columns_term: list[str] = [s.strip() for s in draw_terms[0] if s.strip()]
+            if (
+                len(columns_term) == 4
+                and columns_term[1].lower() == "i"
+                and columns_term[2].lower() == "n"
             ):
-                draws = [int(term[-1])]
+                draws = [int(d) for d in columns_term[-1][1:-1].split(",")]
+            elif (len(columns_term) == 4 and columns_term[1] == columns_term[2] == "=") or (
+                len(columns_term) == 3 and columns_term[1] == "="
+            ):
+                draws = [int(columns_term[-1])]
             else:
                 raise NotImplementedError(
                     f"The only supported draw filters are =, ==, or in. "
-                    f'You supplied {"".join(term)}.'
+                    f'You supplied {"".join(columns_term)}.'
                 )
 
             columns = [f"draw_{n}" for n in draws] + ["value"]

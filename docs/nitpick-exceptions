@@ -1,3 +1,8 @@
+# numpy
+py:class np.number
+py:class np.object_
+py:class npt.NDArray
+py:class npt.NBitBase
 # pandas
 py:class CategoricalDtype
 py:class pandas.core.indexes.base.Index
@@ -14,6 +19,7 @@ py:class pd.DataFrame
 
 #scipy
 py:class scipy.stats._distn_infrastructure.rv_continuous
+py:class stats.rv_continuous
 
 # loguru
 py:class loguru.Logger
@@ -30,6 +36,7 @@ py:class ClockStepSize
 py:class Timedelta
 py:class VectorMapper
 py:class ScalarMapper
+py:class PandasObject
 py:exc ResultsConfigurationError
 py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
 

@@ -1,3 +1,18 @@
+**3.0.16 - 10/29/24**
+
+  - Fix mypy errors in vivarium/framework/table.py
+  - Revert to some old typing in vivarium/framework/lookup/interpolation.py
+
+**3.0.15 - 10/24/24**
+
+  - Fix mypy errors in vivarium/framework/event.py
+  - Update CI to run from reusable workflow
+
+**3.0.14 - 10/18/24**
+
+  - Fix mypy errors in vivarium/framework/artifact/artifact.py
+  - Fix mypy errors in vivarium/framework/randomness/stream.py
+
 **3.0.13 - 10/15/24**
 
   - Fix mypy errors: vivarium/framework/lookup/interpolation.py
