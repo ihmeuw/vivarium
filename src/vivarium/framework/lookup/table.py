@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 =============
 Lookup Tables
@@ -11,16 +10,19 @@ population index and returns data specific to the individuals represented by
 that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 
 """
+from __future__ import annotations
 
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import Callable, List, Tuple, Union
+from datetime import datetime
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
 
 from vivarium.framework.lookup.interpolation import Interpolation
-from vivarium.types import ScalarValue
+from vivarium.framework.population.population_view import PopulationView
+from vivarium.types import ClockTime, ScalarValue, Time
 
 
 @dataclasses.dataclass
@@ -42,20 +44,20 @@ class LookupTable(ABC):
 
     table_number: int
     """Unique identifier of the table."""
-    data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]]
+    data: ScalarValue | pd.DataFrame | list[ScalarValue] | tuple[ScalarValue]
     """The data from which to build the interpolation."""
-    population_view_builder: Callable = None
+    population_view_builder: Callable[..., PopulationView] | None = None
     """Callable to get a population view to be used by the lookup table."""
-    key_columns: Union[List[str], Tuple[str]] = ()
+    key_columns: list[str] | tuple[str, ...] = ()
     """Column names to be used as categorical parameters in Interpolation
     to select between interpolation functions."""
-    parameter_columns: Union[List[str], Tuple] = ()
+    parameter_columns: list[str] | tuple[str, ...] = ()
     """Column names to be used as continuous parameters in Interpolation."""
-    value_columns: Union[List[str], Tuple[str]] = ()
+    value_columns: list[str] | tuple[str, ...] = ()
     """Names of value columns to be interpolated over."""
     interpolation_order: int = 0
     """Order of interpolation. Used to decide interpolation strategy."""
-    clock: Callable = None
+    clock: Callable[[], ClockTime] | None = None
     """Callable for current time in simulation."""
     extrapolate: bool = True
     """Whether to extrapolate beyond edges of given bins."""
@@ -67,7 +69,7 @@ class LookupTable(ABC):
         """Tables are generically named after the order they were created."""
         return f"lookup_table_{self.table_number}"
 
-    def __call__(self, index: pd.Index) -> Union[pd.Series, pd.DataFrame]:
+    def __call__(self, index: pd.Index[int]) -> pd.Series[Any] | pd.DataFrame:
         """Get the mapped values for the given index.
 
         Parameters
@@ -81,10 +83,11 @@ class LookupTable(ABC):
             columns
 
         """
-        return self.call(index).squeeze(axis=1)
+        mapped_values: pd.Series[Any] | pd.DataFrame = self.call(index).squeeze(axis=1)
+        return mapped_values
 
     @abstractmethod
-    def call(self, index: pd.Index) -> pd.DataFrame:
+    def call(self, index: pd.Index[int]) -> pd.DataFrame:
         """Private method to allow LookupManager to add constraints."""
         pass
 
@@ -105,13 +108,13 @@ class InterpolatedTable(LookupTable):
     def __init__(
         self,
         table_number: int,
-        data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
-        population_view_builder: Callable,
-        key_columns: Union[List[str], Tuple[str]],
-        parameter_columns: Union[List[str], Tuple],
-        value_columns: Union[List[str], Tuple[str]],
+        data: pd.DataFrame,
+        population_view_builder: Callable[..., PopulationView],
+        key_columns: list[str] | tuple[str],
+        parameter_columns: list[str] | tuple[str, ...],
+        value_columns: list[str] | tuple[str, ...],
         interpolation_order: int,
-        clock: Callable,
+        clock: Callable[[], Time],
         extrapolate: bool,
         validate: bool,
     ):
@@ -136,16 +139,23 @@ class InterpolatedTable(LookupTable):
 
         self.parameter_columns_with_edges = param_cols_with_edges
 
-        extra_columns = self.data.columns.difference(
+        if not isinstance(self.data, pd.DataFrame):
+            raise ValueError(
+                f"The data used to create an interpolated LookupTable must be a DataFrame, but {type(self.data)} was provided instead."
+            )
+
+        required_cols = (
             set(self.key_columns)
             | set([col for p in self.parameter_columns_with_edges for col in p])
             | set(self.value_columns)
         )
+        extra_columns = self.data.columns.difference(list(required_cols))
 
         if not self.value_columns:
             self.value_columns = list(extra_columns)
         else:
-            self.data = self.data.drop(columns=extra_columns)
+            if isinstance(self.data, pd.DataFrame):
+                self.data = self.data.drop(columns=extra_columns)
 
         self.population_view = population_view_builder(view_columns)
         self.interpolation = Interpolation(
@@ -158,7 +168,7 @@ class InterpolatedTable(LookupTable):
             validate=self.validate,
         )
 
-    def call(self, index: pd.Index) -> pd.DataFrame:
+    def call(self, index: pd.Index[int]) -> pd.DataFrame:
         """Get the interpolated values for the rows in ``index``.
 
         Parameters
@@ -173,11 +183,19 @@ class InterpolatedTable(LookupTable):
         """
         pop = self.population_view.get(index)
         del pop["tracked"]
+        if self.clock is None:
+            raise ValueError("An interpolated table must be initialized with a clock.")
         if "year" in [col for col in self.parameter_columns]:
             current_time = self.clock()
-            fractional_year = current_time.year
-            fractional_year += current_time.timetuple().tm_yday / 365.25
-            pop["year"] = fractional_year
+            # TODO: [MIC-5478] handle Number output from clock
+            if isinstance(current_time, pd.Timestamp) or isinstance(current_time, datetime):
+                fractional_year: float = float(current_time.year)
+                fractional_year += current_time.timetuple().tm_yday / 365.25
+                pop["year"] = fractional_year
+            else:
+                raise ValueError(
+                    "The output of your clock is incompatible with your simulation data."
+                )
 
         return self.interpolation(pop)
 
@@ -200,11 +218,11 @@ class CategoricalTable(LookupTable):
     def __init__(
         self,
         table_number: int,
-        data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
-        population_view_builder: Callable,
-        key_columns: Union[List[str], Tuple[str]],
-        value_columns: Union[List[str], Tuple[str]],
-        **kwargs,
+        data: pd.DataFrame,
+        population_view_builder: Callable[..., PopulationView],
+        key_columns: list[str] | tuple[str],
+        value_columns: list[str] | tuple[str],
+        **kwargs: Any,
     ):
         super().__init__(
             table_number=table_number,
@@ -214,10 +232,15 @@ class CategoricalTable(LookupTable):
             value_columns=value_columns,
             **kwargs,
         )
-        self.population_view = population_view_builder(self.key_columns + ["tracked"])
+        self.population_view = population_view_builder(list(self.key_columns) + ["tracked"])
+
+        if not isinstance(self.data, pd.DataFrame):
+            raise ValueError(
+                f"The data used to create an categorical LookupTable must be a DataFrame, but {type(self.data)} was provided instead."
+            )
 
         extra_columns = self.data.columns.difference(
-            set(self.key_columns) | set(self.value_columns)
+            list(set(self.key_columns) | set(self.value_columns))
         )
 
         if not self.value_columns:
@@ -225,7 +248,7 @@ class CategoricalTable(LookupTable):
         else:
             self.data = self.data.drop(columns=extra_columns)
 
-    def call(self, index: pd.Index) -> pd.DataFrame:
+    def call(self, index: pd.Index[int]) -> pd.DataFrame:
         """Get the mapped values for the rows in ``index``.
 
         Parameters
@@ -237,6 +260,11 @@ class CategoricalTable(LookupTable):
         -------
             A table with the mapped values for the population requested.
         """
+        if not isinstance(self.data, pd.DataFrame):
+            raise ValueError(
+                f"The data used to create an categorical LookupTable must be a DataFrame, but {type(self.data)} was provided instead."
+            )
+
         pop = self.population_view.get(index)
         del pop["tracked"]
 
@@ -249,13 +277,13 @@ class CategoricalTable(LookupTable):
             if sub_table.empty:
                 continue
 
-            category_masks = [
+            category_masks: list[pd.Series[bool]] = [
                 self.data[self.key_columns[i]] == category for i, category in enumerate(key)
             ]
-            joint_mask = True
-            for category_mask in category_masks:
+            joint_mask: pd.Series[bool] = True & category_masks[0]
+            for category_mask in category_masks[1:]:
                 joint_mask = joint_mask & category_mask
-            values = self.data.loc[joint_mask, self.value_columns].values
+            values = self.data.loc[joint_mask.index, list(self.value_columns)].values
             result.loc[sub_table.index, self.value_columns] = values
 
         return result
@@ -273,7 +301,7 @@ class ScalarTable(LookupTable):
     builder during setup.
     """
 
-    def call(self, index: pd.Index) -> pd.DataFrame:
+    def call(self, index: pd.Index[int]) -> pd.DataFrame:
         """Broadcast this tables values over the provided index.
 
         Parameters
@@ -288,16 +316,17 @@ class ScalarTable(LookupTable):
 
         """
         if not isinstance(self.data, (list, tuple)):
-            values = pd.Series(
+            values_series: pd.Series[Any] = pd.Series(
                 self.data,
                 index=index,
                 name=self.value_columns[0] if self.value_columns else None,
             )
+            values = pd.DataFrame(values_series)
         else:
-            values = dict(
-                zip(self.value_columns, [pd.Series(v, index=index) for v in self.data])
-            )
-        return pd.DataFrame(values)
+            values_list: list[pd.Series[Any]] = [pd.Series(v, index=index) for v in self.data]
+            values_dict = dict(zip(self.value_columns, values_list))
+            values = pd.DataFrame(values_dict)
+        return values
 
     def __repr__(self) -> str:
         return "ScalarTable(value(s)={})".format(self.data)
