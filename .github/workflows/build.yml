@@ -12,11 +12,9 @@ on:
   
 jobs:
   build:
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.10", "3.11"]
     uses: 
-      ihmeuw/vivarium_build_utils/.github/workflows/build.yml@main
+      ihmeuw/vivarium_build_utils/.github/workflows/build.yml@mainalbrja/mic-5469/modularize-workflows
     with:
+      python_version: "3.9,3.10,3.11"
       dependencies: "layered_config_tree"
       skip_mypy: false
