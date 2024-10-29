@@ -19,22 +19,57 @@ T = TypeVar("T")
 class ValueSource(Resource):
     """A resource representing the source of a value pipeline."""
 
-    def __init__(self, name: str) -> None:
-        super().__init__("value_source", name)
+    def __init__(self, pipeline: Pipeline, source: Callable[..., Any] | None = None) -> None:
+        super().__init__("value_source" if source else "missing_value_source", pipeline.name)
+        self._pipeline = pipeline
+        self._source = source
 
+    def __bool__(self) -> bool:
+        return self._source is not None
 
-class MissingValueSource(Resource):
-    """A resource representing an undefined source of a value pipeline."""
-
-    def __init__(self, name: str) -> None:
-        super().__init__("missing_value_source", name)
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        if not self._source:
+            raise DynamicValueError(
+                f"The dynamic value pipeline for {self.name} has no source."
+                " This likely means you are attempting to modify a value that"
+                " hasn't been created."
+            )
+        return self._source(*args, **kwargs)
 
 
 class ValueModifier(Resource):
     """A resource representing a modifier of a value pipeline."""
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, pipeline: Pipeline, modifier: Callable[..., Any]) -> None:
+        mutator_name = self._get_modifier_name(modifier)
+        mutator_index = len(pipeline.mutators) + 1
+        name = f"{pipeline.name}.{mutator_index}.{mutator_name}"
         super().__init__("value_modifier", name)
+
+        self._pipeline = pipeline
+        self._source = modifier
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        return self._source(*args, **kwargs)
+
+    @staticmethod
+    def _get_modifier_name(modifier: Callable[..., Any]) -> str:
+        """Get reproducible modifier names based on the modifier type."""
+        if hasattr(modifier, "name"):  # This is Pipeline or lookup table or something similar
+            modifier_name: str = modifier.name
+        elif hasattr(modifier, "__self__") and hasattr(
+            modifier, "__name__"
+        ):  # This is a bound method of a component or other object
+            owner = modifier.__self__
+            owner_name = owner.name if hasattr(owner, "name") else owner.__class__.__name__
+            modifier_name = f"{owner_name}.{modifier.__name__}"
+        elif hasattr(modifier, "__name__"):  # Some unbound function
+            modifier_name = modifier.__name__
+        elif hasattr(modifier, "__call__"):  # Some anonymous callable
+            modifier_name = f"{modifier.__class__.__name__}.__call__"
+        else:  # I don't know what this is.
+            raise ValueError(f"Unknown modifier type: {type(modifier)}")
+        return modifier_name
 
 
 class Pipeline(Resource):
@@ -54,9 +89,9 @@ class Pipeline(Resource):
     def __init__(self, name: str) -> None:
         super().__init__("value", name)
 
-        self.source: Callable[..., Any] | None = None
+        self.source: ValueSource = ValueSource(self)
         """The callable source of the value represented by the pipeline."""
-        self.mutators: list[Callable[..., Any]] = []
+        self.mutators: list[ValueModifier] = []
         """A list of callables that directly modify the pipeline source or
         contribute portions of the value."""
         self._combiner: ValueCombiner | None = None
@@ -142,7 +177,7 @@ class Pipeline(Resource):
     def setup_pipeline(
         cls,
         pipeline: Pipeline,
-        source: Callable[..., Any],
+        source: ValueSource,
         combiner: ValueCombiner,
         post_processor: PostProcessor | None,
         manager: ValuesManager,

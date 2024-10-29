@@ -8,12 +8,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.resource import Resource
 from vivarium.framework.values.combiners import ValueCombiner, replace_combiner
-from vivarium.framework.values.pipeline import (
-    MissingValueSource,
-    Pipeline,
-    ValueModifier,
-    ValueSource,
-)
+from vivarium.framework.values.pipeline import Pipeline, ValueModifier, ValueSource
 from vivarium.framework.values.post_processors import PostProcessor, rescale_post_processor
 from vivarium.manager import Interface, Manager
 
@@ -50,24 +45,18 @@ class ValuesManager(Manager):
         """Finalizes dependency structure for the pipelines."""
         # Unsourced pipelines might occur when generic components register
         # modifiers to values that aren't required in a simulation.
-        unsourced_pipelines = [p for p, v in self._pipelines.items() if v.source is None]
+        unsourced_pipelines = [p for p, v in self._pipelines.items() if not v.source]
         if unsourced_pipelines:
             self.logger.warning(f"Unsourced pipelines: {unsourced_pipelines}")
 
         # register_value_producer and register_value_modifier record the
         # dependency structure for the pipeline source and pipeline modifiers,
-        # respectively.  We don't have enough information to record the
+        # respectively. We don't have enough information to record the
         # dependency structure for the pipeline itself until now, where
         # we say the pipeline value depends on its source and all its
         # modifiers.
         for name, pipe in self._pipelines.items():
-            dependencies: list[Resource] = [
-                ValueSource(name) if pipe.source else MissingValueSource(name)
-            ]
-            for i, m in enumerate(pipe.mutators):
-                mutator_name = self._get_modifier_name(m)
-                dependencies.append(ValueModifier(f"{name}.{i + 1}.{mutator_name}"))
-            self.resources.add_resources([pipe], dependencies)
+            self.resources.add_resources([pipe], [pipe.source] + list(pipe.mutators))
 
     def register_value_producer(
         self,
@@ -97,7 +86,7 @@ class ValuesManager(Manager):
         dependencies = self._convert_dependencies(
             source, requires_columns, requires_values, requires_streams, required_resources
         )
-        self.resources.add_resources([ValueSource(value_name)], dependencies)
+        self.resources.add_resources([pipeline.source], dependencies)
         self.add_constraint(
             pipeline._call, restrict_during=["initialization", "setup", "post_setup"]
         )
@@ -108,15 +97,14 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         source: Callable[..., Any],
-        preferred_combiner: ValueCombiner,
-        preferred_post_processor: PostProcessor | None,
+        combiner: ValueCombiner,
+        post_processor: PostProcessor | None,
     ) -> Pipeline:
         """Configure the named value pipeline with a source, combiner, and post-processor."""
         self.logger.debug(f"Registering value pipeline {value_name}")
         pipeline = self.get_value(value_name)
-        Pipeline.setup_pipeline(
-            pipeline, source, preferred_combiner, preferred_post_processor, self
-        )
+        value_source = ValueSource(pipeline, source)
+        Pipeline.setup_pipeline(pipeline, value_source, combiner, post_processor, self)
         return pipeline
 
     def register_value_modifier(
@@ -157,17 +145,16 @@ class ValuesManager(Manager):
             pipeline modifier is called.  This is a list of strings, pipeline
             names, or randomness streams.
         """
-        modifier_name = self._get_modifier_name(modifier)
 
         pipeline = self.get_value(value_name)
-        pipeline.mutators.append(modifier)
+        value_modifier = ValueModifier(pipeline, modifier)
+        self.logger.debug(f"Registering {value_modifier.name} as modifier to {value_name}")
+        pipeline.mutators.append(value_modifier)
 
-        name = f"{value_name}.{len(pipeline.mutators)}.{modifier_name}"
-        self.logger.debug(f"Registering {name} as modifier to {value_name}")
         dependencies = self._convert_dependencies(
             modifier, requires_columns, requires_values, requires_streams, required_resources
         )
-        self.resources.add_resources([ValueModifier(name)], dependencies)
+        self.resources.add_resources([value_modifier], dependencies)
 
     def get_value(self, name: str) -> Pipeline:
         """Retrieve the pipeline representing the named value.
@@ -221,25 +208,6 @@ class ValuesManager(Manager):
             )
         else:
             return required_resources
-
-    @staticmethod
-    def _get_modifier_name(modifier: Callable[..., Any]) -> str:
-        """Get reproducible modifier names based on the modifier type."""
-        if hasattr(modifier, "name"):  # This is Pipeline or lookup table or something similar
-            modifier_name: str = modifier.name
-        elif hasattr(modifier, "__self__") and hasattr(
-            modifier, "__name__"
-        ):  # This is a bound method of a component or other object
-            owner = modifier.__self__
-            owner_name = owner.name if hasattr(owner, "name") else owner.__class__.__name__
-            modifier_name = f"{owner_name}.{modifier.__name__}"
-        elif hasattr(modifier, "__name__"):  # Some unbound function
-            modifier_name = modifier.__name__
-        elif hasattr(modifier, "__call__"):  # Some anonymous callable
-            modifier_name = f"{modifier.__class__.__name__}.__call__"
-        else:  # I don't know what this is.
-            raise ValueError(f"Unknown modifier type: {type(modifier)}")
-        return modifier_name
 
     def keys(self) -> Iterable[str]:
         """Get an iterable of pipeline names."""

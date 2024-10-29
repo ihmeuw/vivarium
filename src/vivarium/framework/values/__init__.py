@@ -15,12 +15,7 @@ simulations, see the value system :ref:`concept note <values_concept>`.
 from vivarium.framework.values.combiners import ValueCombiner, list_combiner, replace_combiner
 from vivarium.framework.values.exceptions import DynamicValueError
 from vivarium.framework.values.manager import ValuesInterface, ValuesManager
-from vivarium.framework.values.pipeline import (
-    MissingValueSource,
-    Pipeline,
-    ValueModifier,
-    ValueSource,
-)
+from vivarium.framework.values.pipeline import Pipeline, ValueModifier, ValueSource
 from vivarium.framework.values.post_processors import (
     PostProcessor,
     rescale_post_processor,
