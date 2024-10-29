@@ -18,6 +18,5 @@ jobs:
     uses: 
       ihmeuw/vivarium_build_utils/.github/workflows/build.yml@albrja/mic-5469/modularize-workflows
     with:
-      python_version: "3.9,3.10,3.11"
       dependencies: "layered_config_tree"
       skip_mypy: false
