@@ -13,7 +13,7 @@ import re
 from abc import ABC
 from importlib import import_module
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence, Union
 
 import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
@@ -577,7 +577,7 @@ class Component(ABC):
         builder: "Builder",
         # todo: replace with LookupTableData
         data_source: Union[str, float, int, list, pd.DataFrame],
-        value_columns: Optional[Iterable[str]] = None,
+        value_columns: Optional[Sequence[str]] = None,
     ) -> LookupTable:
         """Builds a LookupTable from a data source.
 
@@ -610,31 +610,38 @@ class Component(ABC):
         if isinstance(data, list):
             return builder.lookup.build_table(data, value_columns=list(value_columns))
         if isinstance(data, pd.DataFrame):
-            all_columns = set(data.columns)
+            duplicated_columns = set(data.columns[data.columns.duplicated()])
+            if duplicated_columns:
+                raise ConfigurationError(
+                    f"Dataframe contains duplicate columns {duplicated_columns}."
+                )
+            all_columns = list(data.columns)
             if value_columns is None:
-                value_columns = set(self.get_value_columns(data))
-            else:
-                value_columns = set(value_columns)
+                value_columns = self.get_value_columns(data)
 
             potential_parameter_columns = [
                 str(col).removesuffix("_start")
                 for col in all_columns
                 if str(col).endswith("_start")
             ]
-            parameter_columns = set()
-            bin_edge_columns = set()
+            parameter_columns = []
+            bin_edge_columns = []
             for column in potential_parameter_columns:
                 if f"{column}_end" in all_columns:
-                    parameter_columns.add(column)
-                    bin_edge_columns.update([f"{column}_start", f"{column}_end"])
+                    parameter_columns.append(column)
+                    bin_edge_columns += [f"{column}_start", f"{column}_end"]
 
-            key_columns = all_columns - value_columns - bin_edge_columns
+            key_columns = [
+                col
+                for col in all_columns
+                if col not in value_columns and col not in bin_edge_columns
+            ]
 
             return builder.lookup.build_table(
                 data=data,
-                key_columns=list(key_columns),
-                parameter_columns=list(parameter_columns),
-                value_columns=list(value_columns),
+                key_columns=key_columns,
+                parameter_columns=parameter_columns,
+                value_columns=value_columns,
             )
 
         return builder.lookup.build_table(data)

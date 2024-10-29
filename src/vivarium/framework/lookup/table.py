@@ -14,7 +14,7 @@ that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 
 import dataclasses
 from abc import ABC, abstractmethod
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -46,12 +46,12 @@ class LookupTable(ABC):
     """The data from which to build the interpolation."""
     population_view_builder: Callable = None
     """Callable to get a population view to be used by the lookup table."""
-    key_columns: Union[List[str], Tuple[str]] = ()
+    key_columns: Sequence[str] = ()
     """Column names to be used as categorical parameters in Interpolation
     to select between interpolation functions."""
-    parameter_columns: Union[List[str], Tuple] = ()
+    parameter_columns: Sequence[str] = ()
     """Column names to be used as continuous parameters in Interpolation."""
-    value_columns: Union[List[str], Tuple[str]] = ()
+    value_columns: Sequence[str] = ()
     """Names of value columns to be interpolated over."""
     interpolation_order: int = 0
     """Order of interpolation. Used to decide interpolation strategy."""
@@ -107,9 +107,9 @@ class InterpolatedTable(LookupTable):
         table_number: int,
         data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
         population_view_builder: Callable,
-        key_columns: Union[List[str], Tuple[str]],
-        parameter_columns: Union[List[str], Tuple],
-        value_columns: Union[List[str], Tuple[str]],
+        key_columns: Sequence[str],
+        parameter_columns: Sequence[str],
+        value_columns: Sequence[str],
         interpolation_order: int,
         clock: Callable,
         extrapolate: bool,
@@ -202,8 +202,8 @@ class CategoricalTable(LookupTable):
         table_number: int,
         data: Union[ScalarValue, pd.DataFrame, List[ScalarValue], Tuple[ScalarValue]],
         population_view_builder: Callable,
-        key_columns: Union[List[str], Tuple[str]],
-        value_columns: Union[List[str], Tuple[str]],
+        key_columns: Sequence[str],
+        value_columns: Sequence[str],
         **kwargs,
     ):
         super().__init__(

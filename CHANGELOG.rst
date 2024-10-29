@@ -1,3 +1,7 @@
+**3.0.16 - 10/30/24**
+
+  - Bugfix to prevent a LookupTable from changing order of the value columns
+
 **3.0.15 - 10/24/24**
 
   - Fix mypy errors in vivarium/framework/event.py

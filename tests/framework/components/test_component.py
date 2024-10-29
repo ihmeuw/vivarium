@@ -12,13 +12,14 @@ from tests.helpers import (
     FilteredPopulationView,
     LookupCreator,
     NoPopulationView,
+    OrderedColumnsLookupCreator,
     Parameterized,
     ParameterizedByComponent,
     SingleLookupCreator,
 )
 from vivarium import Artifact, InteractiveContext
 from vivarium.framework.engine import Builder
-from vivarium.framework.lookup.table import ScalarTable
+from vivarium.framework.lookup.table import CategoricalTable, InterpolatedTable, ScalarTable
 from vivarium.framework.population import PopulationError
 
 
@@ -244,7 +245,7 @@ def test_listeners_are_registered_at_custom_priorities():
     assert component.on_simulation_end in set(simulation_end_methods.get(1, []))
 
 
-def test_component_configuration_gets_set(base_config):
+def test_component_configuration_gets_set():
     without_config = ColumnCreator()
     with_config = ColumnRequirer()
 
@@ -383,3 +384,27 @@ def test_failing_component_lookup_table_configurations(
     sim.configuration.update(override_config)
     with pytest.raises(error_type, match=match):
         sim.setup()
+
+
+@pytest.mark.parametrize(
+    "table", ["ordered_columns_categorical", "ordered_columns_interpolated"]
+)
+def test_value_column_order_is_maintained(table):
+    """Tests that the order of value columns is maintained when creating a LookupTable.
+
+    Notes
+    -----
+    This test is a bit of a hack. We found an issue where the order of value columns
+    was changing due to casting the value columns as a set on the back end (which
+    does not guarantee order). The problem is that we can't actually guarantee
+    that casting as a set will change the order either. However, with a large
+    enough number of value columns, it seems likely that the order will change.
+    """
+    component = OrderedColumnsLookupCreator()
+    sim = InteractiveContext(components=[component])
+    lookup_table = component.lookup_tables[table]
+    assert isinstance(
+        lookup_table, CategoricalTable if "categorical" in table else InterpolatedTable
+    )
+    data = lookup_table(sim.get_population().index)
+    assert list(data.columns) == ["one", "two", "three", "four", "five", "six", "seven"]
