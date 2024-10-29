@@ -11,9 +11,12 @@ on:
     - cron: "0 8 * * *"
   
 jobs:
-  call_build:
+  build:
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
     uses: 
       ihmeuw/vivarium_build_utils/.github/workflows/build.yml@main
     with:
       dependencies: "layered_config_tree"
-      use_mypy: true
+      skip_mypy: false
