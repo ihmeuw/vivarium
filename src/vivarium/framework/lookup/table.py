@@ -236,7 +236,7 @@ class CategoricalTable(LookupTable):
 
         if not isinstance(self.data, pd.DataFrame):
             raise ValueError(
-                f"The data used to create an categorical LookupTable must be a DataFrame, but {type(self.data)} was provided instead."
+                f"The data used to create a categorical LookupTable must be a DataFrame, but {type(self.data)} was provided instead."
             )
 
         extra_columns = self.data.columns.difference(
@@ -262,7 +262,7 @@ class CategoricalTable(LookupTable):
         """
         if not isinstance(self.data, pd.DataFrame):
             raise ValueError(
-                f"The data used to create an categorical LookupTable must be a DataFrame, but {type(self.data)} was provided instead."
+                f"The data used to create a categorical LookupTable must be a DataFrame, but {type(self.data)} was provided instead."
             )
 
         pop = self.population_view.get(index)
@@ -283,7 +283,7 @@ class CategoricalTable(LookupTable):
             joint_mask: pd.Series[bool] = True & category_masks[0]
             for category_mask in category_masks[1:]:
                 joint_mask = joint_mask & category_mask
-            values = self.data.loc[joint_mask.index, list(self.value_columns)].values
+            values = self.data.loc[joint_mask, list(self.value_columns)].values
             result.loc[sub_table.index, self.value_columns] = values
 
         return result
