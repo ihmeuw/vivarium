@@ -29,6 +29,7 @@ py:class loguru.Logger
 # elsewhere.  Works fine for static type checker though.  I think this
 # is because sphinx does runtime checks.
 py:class _ParameterType
+py:class ScalarValue
 py:class NumericArray
 py:class ClockTime
 py:class Time
