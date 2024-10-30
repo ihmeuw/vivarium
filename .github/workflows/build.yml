@@ -16,7 +16,7 @@ jobs:
       matrix:
         python-version: ["3.9", "3.10", "3.11"]
     uses: 
-      ihmeuw/vivarium_build_utils/.github/workflows/build.yml@albrja/mic-5469/modularize-workflows
+      ihmeuw/vivarium_build_utils/.github/workflows/build.yml@main
     with:
       dependencies: "layered_config_tree"
     secrets:
