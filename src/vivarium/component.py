@@ -615,27 +615,9 @@ class Component(ABC):
                 raise ConfigurationError(
                     f"Dataframe contains duplicate columns {duplicated_columns}."
                 )
-            all_columns = list(data.columns)
-            if value_columns is None:
-                value_columns = self.get_value_columns(data)
-
-            potential_parameter_columns = [
-                str(col).removesuffix("_start")
-                for col in all_columns
-                if str(col).endswith("_start")
-            ]
-            parameter_columns = []
-            bin_edge_columns = []
-            for column in potential_parameter_columns:
-                if f"{column}_end" in all_columns:
-                    parameter_columns.append(column)
-                    bin_edge_columns += [f"{column}_start", f"{column}_end"]
-
-            key_columns = [
-                col
-                for col in all_columns
-                if col not in value_columns and col not in bin_edge_columns
-            ]
+            value_columns, parameter_columns, key_columns = self._get_columns(
+                value_columns, data
+            )
 
             return builder.lookup.build_table(
                 data=data,
@@ -645,6 +627,33 @@ class Component(ABC):
             )
 
         return builder.lookup.build_table(data)
+
+    def _get_columns(
+        self, value_columns: Optional[Sequence[str]], data: float | pd.DataFrame
+    ) -> tuple[list[str], list[str], list[str]]:
+        all_columns = list(data.columns)
+        if value_columns is None:
+            value_columns = self.get_value_columns(data)
+
+        potential_parameter_columns = [
+            str(col).removesuffix("_start")
+            for col in all_columns
+            if str(col).endswith("_start")
+        ]
+        parameter_columns = []
+        bin_edge_columns = []
+        for column in potential_parameter_columns:
+            if f"{column}_end" in all_columns:
+                parameter_columns.append(column)
+                bin_edge_columns += [f"{column}_start", f"{column}_end"]
+
+        key_columns = [
+            col
+            for col in all_columns
+            if col not in value_columns and col not in bin_edge_columns
+        ]
+
+        return value_columns, parameter_columns, key_columns
 
     def get_data(
         # TODO: replace with LookupTableData
