@@ -1,4 +1,4 @@
-**3.0.16 - 10/31/24**
+**3.0.16 - 10/30/24**
 
   - Bugfix to prevent a LookupTable from changing order of the value columns
   - Fix mypy errors in vivarium/framework/lookup/table.py
