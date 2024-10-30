@@ -19,6 +19,5 @@ jobs:
       ihmeuw/vivarium_build_utils/.github/workflows/build.yml@test-default
     with:
       dependencies: "layered_config_tree"
-    secrets:
-      NOTIFY_EMAIL: ${{ secrets.NOTIFY_EMAIL }}
-      NOTIFY_PASSWORD: ${{ secrets.NOTIFY_PASSWORD }}
+      notify_email: ${{ secrets.NOTIFY_EMAIL }}
+      notify_password: ${{ secrets.NOTIFY_PASSWORD }}
