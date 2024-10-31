@@ -163,5 +163,5 @@ def get_output_root(
     """
     launch_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     model_name = get_output_model_name_string(artifact_path, model_specification_file)
-    output_root = Path(str(results_directory) + f"/{model_name}/{launch_time}")
+    output_root = Path(results_directory) / model_name / launch_time
     return output_root
