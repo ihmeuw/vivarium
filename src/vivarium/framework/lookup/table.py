@@ -14,9 +14,9 @@ that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from collections.abc import Callable, Sequence
 from datetime import datetime
-from collections.abc import Sequence, Callable
+from typing import Any
 
 import numpy as np
 import pandas as pd
