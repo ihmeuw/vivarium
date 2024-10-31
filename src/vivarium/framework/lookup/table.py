@@ -106,7 +106,7 @@ class InterpolatedTable(LookupTable):
         self,
         table_number: int,
         data: pd.DataFrame,
-        population_view_builder: Callable[..., PopulationView],
+        population_view_builder: Callable[[list[str]], PopulationView],
         key_columns: list[str] | tuple[str],
         parameter_columns: list[str] | tuple[str, ...],
         value_columns: list[str] | tuple[str, ...],
@@ -208,7 +208,7 @@ class CategoricalTable(LookupTable):
         self,
         table_number: int,
         data: pd.DataFrame,
-        population_view_builder: Callable[..., PopulationView],
+        population_view_builder: Callable[[list[str]], PopulationView],
         key_columns: list[str] | tuple[str],
         value_columns: list[str] | tuple[str],
     ):
