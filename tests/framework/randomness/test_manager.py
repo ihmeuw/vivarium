@@ -16,7 +16,7 @@ def test_randomness_manager_get_randomness_stream():
     rm = RandomnessManager()
     rm._add_constraint = lambda f, **kwargs: f
     rm._seed = seed
-    rm._clock = mock_clock
+    rm.__clock = mock_clock
     stream = rm._get_randomness_stream("test")
 
     assert stream.key == "test"
@@ -33,9 +33,9 @@ def test_randomness_manager_register_simulants():
     rm = RandomnessManager()
     rm._add_constraint = lambda f, **kwargs: f
     rm._seed = seed
-    rm._clock = mock_clock
+    rm.__clock = mock_clock
     rm._key_columns = ["age", "sex"]
-    rm._key_mapping = IndexMap(["age", "sex"])
+    rm.__key_mapping = IndexMap(["age", "sex"])
 
     bad_df = pd.DataFrame({"age": range(10), "not_sex": [1] * 5 + [2] * 5})
     with pytest.raises(RandomnessError):
@@ -56,6 +56,6 @@ def test_get_random_seed():
     rm = RandomnessManager()
     rm._add_constraint = lambda f, **kwargs: f
     rm._seed = seed
-    rm._clock = mock_clock
+    rm.__clock = mock_clock
 
     assert rm.get_seed(decision_point) == get_hash(f"{decision_point}_{rm._clock()}_{seed}")

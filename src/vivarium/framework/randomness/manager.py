@@ -48,13 +48,13 @@ class RandomnessManager(Manager):
     def _clock(self) -> Callable[[], ClockTime]:
         if self.__clock is None:
             raise RandomnessError("RandomnessManager clock was invoked before being set.")
-        return self._clock
+        return self.__clock
 
     @property
     def _key_mapping(self) -> IndexMap:
         if self.__key_mapping is None:
             raise RandomnessError("RandomnessManager clock was invoked before being set.")
-        return self._key_mapping
+        return self.__key_mapping
 
     def setup(self, builder: Builder) -> None:
         self._seed = str(builder.configuration.randomness.random_seed)
