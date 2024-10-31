@@ -49,7 +49,7 @@ _MANAGERS = {
         "builder_interface": "vivarium.framework.resource.ResourceInterface",
     },
 }
-DEFAULT_PLUGINS: dict[str, dict[str, dict[str, dict[str, str | None]]]] = {
+DEFAULT_PLUGINS = {
     "plugins": {
         "required": {
             "component_manager": {
