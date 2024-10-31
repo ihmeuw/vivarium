@@ -1,3 +1,7 @@
+**3.0.16 - 10/31/24**
+  
+  - Fix broken build from LayeredConfigTree typing
+
 **3.0.15 - 10/24/24**
 
   - Fix mypy errors in vivarium/framework/event.py
