@@ -64,7 +64,6 @@ exclude = [
     'src/vivarium/framework/time.py',
     'src/vivarium/interface/cli.py',
     'src/vivarium/interface/interactive.py',
-    'src/vivarium/interface/utilities.py',
     'src/vivarium/testing_utilities.py',
     'tests/conftest.py',
     'tests/framework/artifact/test_artifact.py',
@@ -112,6 +111,7 @@ disable_error_code = []
 [[tool.mypy.overrides]]
 module = [
     "scipy.*",
-    # "sklearn.*",
+    "ipywidgets.*",
+    "Ipython.*",
 ]
 ignore_missing_imports = true
