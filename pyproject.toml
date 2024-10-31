@@ -52,7 +52,6 @@ exclude = [
     'src/vivarium/framework/engine.py',
     'src/vivarium/framework/logging/manager.py',
     'src/vivarium/framework/lookup/manager.py',
-    'src/vivarium/framework/lookup/table.py',
     'src/vivarium/framework/population/manager.py',
     'src/vivarium/framework/population/population_view.py',
     'src/vivarium/framework/results/context.py',
