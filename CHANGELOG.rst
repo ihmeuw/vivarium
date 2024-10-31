@@ -1,7 +1,11 @@
-**3.0.16 - 10/29/24**
+**3.0.17 - 10/31/24**
 
   - Fix mypy errors in vivarium/framework/lookup/table.py
   - Revert to some old typing in vivarium/framework/lookup/interpolation.py
+
+**3.0.16 - 10/31/24**
+  
+  - Fix broken build from LayeredConfigTree typing
 
 **3.0.15 - 10/24/24**
 
