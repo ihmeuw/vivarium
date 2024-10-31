@@ -12,7 +12,6 @@ The Plugin Management System
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Union
 
 from layered_config_tree.main import LayeredConfigTree
 
@@ -50,7 +49,7 @@ _MANAGERS = {
         "builder_interface": "vivarium.framework.resource.ResourceInterface",
     },
 }
-DEFAULT_PLUGINS = {
+DEFAULT_PLUGINS: dict[str, dict[str, dict[str, dict[str, str | None]]]] = {
     "plugins": {
         "required": {
             "component_manager": {
@@ -103,7 +102,7 @@ class PluginManager(Manager):
         ) = None,
     ):
         self._plugin_configuration = LayeredConfigTree(
-            DEFAULT_PLUGINS["plugins"], layers=["base", "override"]  # type: ignore [arg-type]
+            DEFAULT_PLUGINS["plugins"], layers=["base", "override"]
         )
         self._plugin_configuration.update(plugin_configuration, source="initialization_args")
         self._plugins: dict[str, PluginGroup] = {}
@@ -120,26 +119,26 @@ class PluginManager(Manager):
 
     def get_core_controllers(self) -> dict[str, Manager]:
         core_components = [
-            name for name in self._plugin_configuration["required"].keys()  # type: ignore [union-attr]
+            name for name in self._plugin_configuration["required"].keys()
         ] + list(_MANAGERS.keys())
         return {name: self.get_plugin(name) for name in core_components}
 
     def get_core_interfaces(self) -> dict[str, Interface | None]:
         core_components = [
-            name for name in self._plugin_configuration["required"].keys()  # type: ignore [union-attr]
+            name for name in self._plugin_configuration["required"].keys()
         ] + list(_MANAGERS.keys())
         return {name: self.get_plugin_interface(name) for name in core_components}
 
     def get_optional_controllers(self) -> dict[str, Manager]:
         return {
             name: self.get_plugin(name)
-            for name in self._plugin_configuration["optional"].keys()  # type: ignore [union-attr]
+            for name in self._plugin_configuration["optional"].keys()
         }
 
     def get_optional_interfaces(self) -> dict[str, Interface | None]:
         return {
             name: self.get_plugin_interface(name)
-            for name in self._plugin_configuration["optional"].keys()  # type: ignore [union-attr]
+            for name in self._plugin_configuration["optional"].keys()
         }
 
     def _get(self, name: str) -> PluginGroup:
@@ -170,10 +169,10 @@ class PluginManager(Manager):
         return PluginGroup(controller=controller, builder_interface=interface)
 
     def _lookup(self, name: str) -> dict[str, str]:
-        if name in self._plugin_configuration["required"]:  # type: ignore [operator]
-            return self._plugin_configuration["required"][name]  # type: ignore [call-overload, index, return-value]
-        elif name in self._plugin_configuration["optional"]:  # type: ignore [operator]
-            return self._plugin_configuration["optional"][name]  # type: ignore [call-overload, index, return-value]
+        if name in self._plugin_configuration["required"]:
+            return self._plugin_configuration["required"][name]  # type: ignore [no-any-return]
+        elif name in self._plugin_configuration["optional"]:
+            return self._plugin_configuration["optional"][name]  # type: ignore [no-any-return]
         elif name in _MANAGERS:
             return _MANAGERS[name]
         else:
