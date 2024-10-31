@@ -35,9 +35,9 @@ class RandomnessManager(Manager):
 
     def __init__(self) -> None:
         self._seed: str = ""
-        self.__clock: Callable[[], ClockTime] | None = None
+        self._clock_: Callable[[], ClockTime] | None = None
         self._key_columns: list[str] = []
-        self.__key_mapping: IndexMap | None = None
+        self._key_mapping_: IndexMap | None = None
         self._decision_points: dict[str, RandomnessStream] = dict()
 
     @property
@@ -46,27 +46,29 @@ class RandomnessManager(Manager):
 
     @property
     def _clock(self) -> Callable[[], ClockTime]:
-        if self.__clock is None:
+        if self._clock_ is None:
             raise RandomnessError("RandomnessManager clock was invoked before being set.")
-        return self.__clock
+        return self._clock_
 
     @property
     def _key_mapping(self) -> IndexMap:
-        if self.__key_mapping is None:
-            raise RandomnessError("RandomnessManager clock was invoked before being set.")
-        return self.__key_mapping
+        if self._key_mapping_ is None:
+            raise RandomnessError(
+                "RandomnessManager key_mapping was invoked before being set."
+            )
+        return self._key_mapping_
 
     def setup(self, builder: Builder) -> None:
         self._seed = str(builder.configuration.randomness.random_seed)
         if builder.configuration.randomness.additional_seed is not None:
             self._seed += str(builder.configuration.randomness.additional_seed)
-        self.__clock = builder.time.clock()
+        self._clock_ = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
 
         map_size = builder.configuration.randomness.map_size
         pop_size = builder.configuration.population.population_size
         map_size = max(map_size, 10 * pop_size)
-        self.__key_mapping = IndexMap(self._key_columns, map_size)
+        self._key_mapping_ = IndexMap(self._key_columns, map_size)
 
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
