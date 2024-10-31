@@ -11,9 +11,10 @@ simulations.
 
 import re
 from abc import ABC
+from collections.abc import Sequence
 from importlib import import_module
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
@@ -629,7 +630,7 @@ class Component(ABC):
         return builder.lookup.build_table(data)
 
     def _get_columns(
-        self, value_columns: Optional[Sequence[str]], data: float | pd.DataFrame
+        self, value_columns: Sequence[str] | None, data: float | pd.DataFrame
     ) -> tuple[list[str], list[str], list[str]]:
         all_columns = list(data.columns)
         if value_columns is None:
