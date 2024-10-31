@@ -60,13 +60,13 @@ class RandomnessManager(Manager):
         self._seed = str(builder.configuration.randomness.random_seed)
         if builder.configuration.randomness.additional_seed is not None:
             self._seed += str(builder.configuration.randomness.additional_seed)
-        self._clock = builder.time.clock()
+        self.__clock = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
 
         map_size = builder.configuration.randomness.map_size
         pop_size = builder.configuration.population.population_size
         map_size = max(map_size, 10 * pop_size)
-        self._key_mapping = IndexMap(self._key_columns, map_size)
+        self.__key_mapping = IndexMap(self._key_columns, map_size)
 
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
