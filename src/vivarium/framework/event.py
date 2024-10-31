@@ -133,7 +133,6 @@ class EventChannel:
             user_data,
             event_time,
             step_size,
-
         )
 
         for priority_bucket in self.listeners:
