@@ -1,10 +1,11 @@
-**3.0.16 - 10/31/24**
+**3.0.16 - 10/30/24**
 
   - Bugfix to prevent a LookupTable from changing order of the value columns
   - Fix mypy errors in vivarium/framework/lookup/table.py
   - Fix mypy errors in vivarium/framework/randomness/manager.py
   - Typing changes in vivarium/framework/lookup/interpolation.py
   - Fix broken build from LayeredConfigTree typing
+  - Fix type handling for clock and step size in vivarium/framework/event.py
 
 **3.0.15 - 10/24/24**
 

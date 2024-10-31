@@ -30,7 +30,7 @@ For more information, see the associated event
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import pandas as pd
@@ -115,11 +115,25 @@ class EventChannel:
         """
         if not user_data:
             user_data = {}
+
+        clock = self.manager.clock()
+        step_size = self.manager.step_size()
+        event_time: ClockTime
+        if isinstance(clock, int) and isinstance(step_size, int):
+            event_time = clock + step_size
+        elif isinstance(clock, datetime) and isinstance(step_size, timedelta):
+            event_time = clock + step_size
+        else:
+            raise ValueError(
+                f"Clock ({type(clock)}) and step size ({type(step_size)}) are not compatible."
+            )
+
         e = Event(
             index,
             user_data,
-            self.manager.clock() + self.manager.step_size(),  # type: ignore[operator]
-            self.manager.step_size(),
+            event_time,
+            step_size,
+
         )
 
         for priority_bucket in self.listeners:
