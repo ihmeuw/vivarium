@@ -183,9 +183,46 @@ class LookupCreator(ColumnCreator):
 
 
 class SingleLookupCreator(ColumnCreator):
+    pass
+
+
+class OrderedColumnsLookupCreator(Component):
     @property
-    def standard_lookup_tables(self) -> List[str]:
-        return ["favorite_color"]
+    def columns_created(self) -> List[str]:
+        return ["foo", "bar"]
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        initialization_data = pd.DataFrame(
+            {
+                "foo": "key1",
+                "bar": 15,
+            },
+            index=pop_data.index,
+        )
+        self.population_view.update(initialization_data)
+
+    def build_all_lookup_tables(self, builder: "Builder") -> None:
+        value_columns = ["one", "two", "three", "four", "five", "six", "seven"]
+        ordered_columns = pd.DataFrame(
+            [[1, 2, 3, 4, 5, 6, 7], [8, 9, 10, 11, 12, 13, 14]],
+            columns=value_columns,
+        )
+        ordered_columns_categorical = ordered_columns.copy()
+        ordered_columns_categorical["foo"] = ["key1", "key2"]
+        ordered_columns_interpolated = ordered_columns.copy()
+        ordered_columns_interpolated["foo"] = ["key1", "key1"]
+        ordered_columns_interpolated["bar_start"] = [10, 20]
+        ordered_columns_interpolated["bar_end"] = [20, 30]
+        self.lookup_tables["ordered_columns_categorical"] = self.build_lookup_table(
+            builder,
+            ordered_columns_categorical,
+            value_columns,
+        )
+        self.lookup_tables["ordered_columns_interpolated"] = self.build_lookup_table(
+            builder,
+            ordered_columns_interpolated,
+            value_columns,
+        )
 
 
 class ColumnRequirer(Component):
