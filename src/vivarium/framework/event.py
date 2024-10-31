@@ -121,9 +121,7 @@ class EventChannel:
         event_time: ClockTime
         if isinstance(clock, int) and isinstance(step_size, int):
             event_time = clock + step_size
-        elif isinstance(clock, (pd.Timestamp, datetime)) and isinstance(
-            step_size, (pd.Timedelta, timedelta)
-        ):
+        elif isinstance(clock, datetime) and isinstance(step_size, timedelta):
             event_time = clock + step_size
         else:
             raise ValueError(
