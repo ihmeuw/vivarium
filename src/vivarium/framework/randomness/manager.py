@@ -4,17 +4,21 @@ Randomness System Manager
 =========================
 
 """
+from __future__ import annotations
 
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from vivarium.framework.engine import Builder
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import RandomnessStream, get_hash
 from vivarium.manager import Interface, Manager
 from vivarium.types import ClockTime
+
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
 
 
 class RandomnessManager(Manager):
