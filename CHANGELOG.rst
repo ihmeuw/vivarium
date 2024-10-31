@@ -1,3 +1,7 @@
+**3.0.18 - 10/31/24**
+
+  - Fix mypy errors in vivarium/interface/utilities.py
+
 **3.0.17 - 10/31/24**
 
   - Fix mypy errors in vivarium/framework/lookup/table.py
