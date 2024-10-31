@@ -15,7 +15,7 @@ the individuals represented by that index. See the
 
 from datetime import datetime, timedelta
 from numbers import Number
-from typing import TYPE_CHECKING, List, Tuple, Union
+from typing import TYPE_CHECKING, List, Sequence, Tuple, Union
 
 import pandas as pd
 
@@ -64,9 +64,9 @@ class LookupTableManager(Manager):
     def build_table(
         self,
         data: LookupTableData,
-        key_columns: Union[List[str], Tuple[str, ...]],
-        parameter_columns: Union[List[str], Tuple[str, ...]],
-        value_columns: Union[List[str], Tuple[str, ...]],
+        key_columns: Sequence[str],
+        parameter_columns: Sequence[str],
+        value_columns: Sequence[str],
     ) -> LookupTable:
         """Construct a lookup table from input data."""
         table = self._build_table(data, key_columns, parameter_columns, value_columns)
@@ -78,9 +78,9 @@ class LookupTableManager(Manager):
     def _build_table(
         self,
         data: LookupTableData,
-        key_columns: Union[List[str], Tuple[str, ...]],
-        parameter_columns: Union[List[str], Tuple[str, ...]],
-        value_columns: Union[List[str], Tuple[str, ...]],
+        key_columns: Sequence[str],
+        parameter_columns: Sequence[str],
+        value_columns: Sequence[str],
     ) -> LookupTable:
         # We don't want to require explicit names for tables, but giving them
         # generic names is useful for introspection.
@@ -147,9 +147,9 @@ class LookupTableInterface(Interface):
     def build_table(
         self,
         data: LookupTableData,
-        key_columns: Union[List[str], Tuple[str, ...]] = (),
-        parameter_columns: Union[List[str], Tuple[str, ...]] = (),
-        value_columns: Union[List[str], Tuple[str, ...]] = (),
+        key_columns: Sequence[str] = (),
+        parameter_columns: Sequence[str] = (),
+        value_columns: Sequence[str] = (),
     ) -> LookupTable:
         """Construct a LookupTable from input data.
 
@@ -192,9 +192,9 @@ class LookupTableInterface(Interface):
 
 def validate_build_table_parameters(
     data: LookupTableData,
-    key_columns: Union[List[str], Tuple[str, ...]],
-    parameter_columns: Union[List[str], Tuple[str, ...]],
-    value_columns: Union[List[str], Tuple[str, ...]],
+    key_columns: Sequence[str],
+    parameter_columns: Sequence[str],
+    value_columns: Sequence[str],
 ) -> None:
     """Makes sure the data format agrees with the provided column layout."""
     if (
