@@ -20,6 +20,7 @@ import pandas as pd
 import pandas.api.types as pdt
 
 from vivarium.framework.randomness.exceptions import RandomnessError
+from vivarium.types import ClockTime
 
 
 class IndexMap:
@@ -35,7 +36,7 @@ class IndexMap:
         """The mapping between the key columns and the randomness index."""
         self._size = size
 
-    def update(self, new_keys: pd.DataFrame, clock_time: pd.Timestamp) -> None:
+    def update(self, new_keys: pd.DataFrame, clock_time: ClockTime) -> None:
         """Adds the new keys to the mapping.
 
         Parameters
@@ -95,7 +96,7 @@ class IndexMap:
         return new_mapping_index, final_mapping_index
 
     def _build_final_mapping(
-        self, new_mapping_index: pd.Index[Any], clock_time: pd.Timestamp
+        self, new_mapping_index: pd.Index[Any], clock_time: ClockTime
     ) -> pd.Series[int]:
         """Builds a new mapping between key columns and the randomness index from the
         new mapping index and the existing map.
@@ -154,7 +155,7 @@ class IndexMap:
             salt += 1
         return current_mapping
 
-    def _hash(self, keys: pd.Index[Any], salt: int | pd.Timestamp = 0) -> pd.Series[int]:
+    def _hash(self, keys: pd.Index[Any], salt: ClockTime = 0) -> pd.Series[int]:
         """Hashes the index into an integer index in the range [0, self.stride]
 
         Parameters

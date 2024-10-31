@@ -1,10 +1,13 @@
-# mypy: ignore-errors
 """
 =========================
 Randomness System Manager
 =========================
 
 """
+from __future__ import annotations
+
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -12,6 +15,10 @@ from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import RandomnessStream, get_hash
 from vivarium.manager import Interface, Manager
+from vivarium.types import ClockTime
+
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
 
 
 class RandomnessManager(Manager):
@@ -26,28 +33,42 @@ class RandomnessManager(Manager):
         }
     }
 
-    def __init__(self):
-        self._seed = None
-        self._clock = None
-        self._key_columns = None
-        self._key_mapping = None
-        self._decision_points = dict()
+    def __init__(self) -> None:
+        self._seed: str = ""
+        self._clock_: Callable[[], ClockTime] | None = None
+        self._key_columns: list[str] = []
+        self._key_mapping_: IndexMap | None = None
+        self._decision_points: dict[str, RandomnessStream] = dict()
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "randomness_manager"
 
-    def setup(self, builder):
+    @property
+    def _clock(self) -> Callable[[], ClockTime]:
+        if self._clock_ is None:
+            raise RandomnessError("RandomnessManager clock was invoked before being set.")
+        return self._clock_
+
+    @property
+    def _key_mapping(self) -> IndexMap:
+        if self._key_mapping_ is None:
+            raise RandomnessError(
+                "RandomnessManager key_mapping was invoked before being set."
+            )
+        return self._key_mapping_
+
+    def setup(self, builder: Builder) -> None:
         self._seed = str(builder.configuration.randomness.random_seed)
         if builder.configuration.randomness.additional_seed is not None:
             self._seed += str(builder.configuration.randomness.additional_seed)
-        self._clock = builder.time.clock()
+        self._clock_ = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
 
         map_size = builder.configuration.randomness.map_size
         pop_size = builder.configuration.population.population_size
         map_size = max(map_size, 10 * pop_size)
-        self._key_mapping = IndexMap(self._key_columns, map_size)
+        self._key_mapping_ = IndexMap(self._key_columns, map_size)
 
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
@@ -175,7 +196,7 @@ class RandomnessManager(Manager):
             )
         self._key_mapping.update(simulants.loc[:, self._key_columns], self._clock())
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "RandomnessManager()"
 
     def __repr__(self) -> str:
