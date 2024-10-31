@@ -45,6 +45,7 @@ if __name__ == "__main__":
         # Type stubs
         "pandas-stubs",
         "networkx-stubs",
+        "types-PyYAML",
     ]
 
     setup_requires = ["setuptools_scm"]

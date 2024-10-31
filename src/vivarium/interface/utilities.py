@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ===========================
 Interface Utility Functions
@@ -8,11 +7,13 @@ The functions defined here are used to support the interactive and command-line
 interfaces for ``vivarium``.
 
 """
+from __future__ import annotations
 
 import functools
+from collections.abc import Callable, Generator, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Any
 
 import yaml
 
@@ -22,13 +23,18 @@ from vivarium.exceptions import VivariumError
 def run_from_ipython() -> bool:
     """Taken from https://stackoverflow.com/questions/5376837/how-can-i-do-an-if-run-from-ipython-test-in-python"""
     try:
-        __IPYTHON__
+        __IPYTHON__  # type: ignore [name-defined]
         return True
     except NameError:
         return False
 
 
-def log_progress(sequence, every=None, size=None, name="Items"):
+def log_progress(
+    sequence: Sequence[int],
+    every: int | None = None,
+    size: int | None = None,
+    name: str = "Items",
+) -> Generator[int, None, None]:
     """Taken from https://github.com/alexanderkuk/log-progress"""
     from IPython.display import display
     from ipywidgets import HTML, IntProgress, VBox
@@ -55,7 +61,7 @@ def log_progress(sequence, every=None, size=None, name="Items"):
         progress = IntProgress(min=0, max=size, value=0)
     label = HTML()
     box = VBox(children=[label, progress])
-    display(box)
+    display(box)  # type: ignore [no-untyped-call]
 
     index = 0
     try:
@@ -84,7 +90,7 @@ class InteractiveError(VivariumError):
     pass
 
 
-def raise_if_not_setup(system_type):
+def raise_if_not_setup(system_type: str) -> Callable[..., Any]:
     type_error_map = {
         "run": "Simulation must be setup before it can be run",
         "value": "Value pipeline configuration is not complete until the simulation is setup.",
@@ -94,9 +100,9 @@ def raise_if_not_setup(system_type):
     }
     err_msg = type_error_map[system_type]
 
-    def method_wrapper(context_method):
+    def method_wrapper(context_method: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(context_method)
-        def wrapped_method(*args, **kwargs):
+        def wrapped_method(*args: Any, **kwargs: Any) -> Any:
             instance = args[0]
             if not instance._setup:
                 raise InteractiveError(err_msg)
@@ -108,8 +114,8 @@ def raise_if_not_setup(system_type):
 
 
 def get_output_model_name_string(
-    artifact_path: Union[str, Path],
-    model_spec_path: Union[str, Path],
+    artifact_path: str | Path,
+    model_spec_path: str | Path,
 ) -> str:
     """Find a good string to use as model name in output path creation.
 
@@ -137,9 +143,9 @@ def get_output_model_name_string(
 
 
 def get_output_root(
-    results_directory: Union[str, Path],
-    model_specification_file: Union[str, Path],
-    artifact_path: Union[str, Path],
+    results_directory: str | Path,
+    model_specification_file: str | Path,
+    artifact_path: str | Path,
 ) -> Path:
     """Create a root directory for output files.
 
@@ -158,5 +164,5 @@ def get_output_root(
     """
     launch_time = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
     model_name = get_output_model_name_string(artifact_path, model_specification_file)
-    output_root = Path(results_directory + f"/{model_name}/{launch_time}")
+    output_root = Path(results_directory) / model_name / launch_time
     return output_root
