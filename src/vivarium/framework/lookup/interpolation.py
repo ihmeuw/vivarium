@@ -15,7 +15,6 @@ from typing import Union
 import numpy as np
 import pandas as pd
 
-_ParameterType = Union[list[list[str]], list[tuple[str, str, str]]]
 _SubTablesType = list[tuple[Union[tuple[Hashable, ...], Hashable, None], pd.DataFrame]]
 
 
@@ -43,7 +42,7 @@ class Interpolation:
         self,
         data: pd.DataFrame,
         categorical_parameters: Sequence[str],
-        continuous_parameters: _ParameterType,
+        continuous_parameters: Sequence[Sequence[str]],
         value_columns: Sequence[str],
         order: int,
         extrapolate: bool,
@@ -143,7 +142,7 @@ class Interpolation:
 def validate_parameters(
     data: pd.DataFrame,
     categorical_parameters: Sequence[str],
-    continuous_parameters: _ParameterType,
+    continuous_parameters: Sequence[Sequence[str]],
     value_columns: Sequence[str],
 ) -> Sequence[str]:
     if data.empty:
@@ -176,7 +175,7 @@ def validate_parameters(
 def validate_call_data(
     data: pd.DataFrame,
     categorical_parameters: Sequence[str],
-    continuous_parameters: _ParameterType,
+    continuous_parameters: Sequence[Sequence[str]],
 ) -> None:
     if not isinstance(data, pd.DataFrame):
         raise TypeError(
@@ -204,7 +203,9 @@ def validate_call_data(
         )
 
 
-def check_data_complete(data: pd.DataFrame, continuous_parameters: _ParameterType) -> None:
+def check_data_complete(
+    data: pd.DataFrame, continuous_parameters: Sequence[Sequence[str]]
+) -> None:
     """Check that data is complete for interpolation.
 
     For any parameters specified with edges, make sure edges
@@ -296,7 +297,7 @@ class Order0Interp:
     def __init__(
         self,
         data: pd.DataFrame,
-        continuous_parameters: _ParameterType,
+        continuous_parameters: Sequence[Sequence[str]],
         value_columns: list[str],
         extrapolate: bool,
         validate: bool,
