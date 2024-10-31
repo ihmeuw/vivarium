@@ -45,9 +45,9 @@ class LookupTable(ABC):
     def __init__(
         self,
         table_number: int,
-        key_columns: list[str] | tuple[str, ...] = (),
-        parameter_columns: list[str] | tuple[str, ...] = (),
-        value_columns: list[str] | tuple[str, ...] = (),
+        key_columns: Sequence[str] = (),
+        parameter_columns: Sequence[str] = (),
+        value_columns: Sequence[str] = (),
         validate: bool = True,
     ):
         self.table_number = table_number
@@ -57,7 +57,7 @@ class LookupTable(ABC):
         to select between interpolation functions."""
         self.parameter_columns = parameter_columns
         """Column names to be used as continuous parameters in Interpolation."""
-        self.value_columns = value_columns
+        self.value_columns = list(value_columns)
         """Names of value columns to be interpolated over."""
         self.validate = validate
         """Whether to validate the data before building the LookupTable."""
@@ -260,7 +260,7 @@ class CategoricalTable(LookupTable):
             joint_mask = pd.Series(True, index=self.data.index)
             for category_mask in category_masks:
                 joint_mask = joint_mask & category_mask
-            values = self.data.loc[joint_mask, list(self.value_columns)].values
+            values = self.data.loc[joint_mask, self.value_columns].values
             result.loc[sub_table.index, self.value_columns] = values
 
         return result
@@ -282,9 +282,9 @@ class ScalarTable(LookupTable):
         self,
         table_number: int,
         data: ScalarValue | list[ScalarValue] | tuple[ScalarValue],
-        key_columns: list[str] | tuple[str, ...] = (),
-        parameter_columns: list[str] | tuple[str, ...] = (),
-        value_columns: list[str] | tuple[str, ...] = (),
+        key_columns: Sequence[str] = (),
+        parameter_columns: Sequence[str] = (),
+        value_columns: Sequence[str] = (),
         validate: bool = True,
     ):
         super().__init__(
