@@ -37,11 +37,11 @@ def test_PluginManager__lookup_fail(test_plugin_manager):
 def test_PluginManager__lookup(test_plugin_manager):
     for plugin in ["component_manager", "clock", "component_configuration_parser"]:
         assert (
-            test_plugin_manager._lookup(plugin).to_dict()
+            test_plugin_manager._lookup(plugin)
             == DEFAULT_PLUGINS["plugins"]["required"][plugin]
         )
 
-    assert test_plugin_manager._lookup("george").to_dict() == plugin_config["george"]
+    assert test_plugin_manager._lookup("george") == plugin_config["george"]
 
 
 def test_PluginManager__get_fail(test_plugin_manager, mocker):

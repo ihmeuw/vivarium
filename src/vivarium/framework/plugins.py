@@ -170,9 +170,9 @@ class PluginManager(Manager):
 
     def _lookup(self, name: str) -> dict[str, str]:
         if name in self._plugin_configuration["required"]:
-            return self._plugin_configuration["required"][name]  # type: ignore [no-any-return]
+            return self._plugin_configuration.get_tree("required").get_tree(name).to_dict()
         elif name in self._plugin_configuration["optional"]:
-            return self._plugin_configuration["optional"][name]  # type: ignore [no-any-return]
+            return self._plugin_configuration.get_tree("optional").get_tree(name).to_dict()
         elif name in _MANAGERS:
             return _MANAGERS[name]
         else:
