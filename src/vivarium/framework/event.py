@@ -118,7 +118,7 @@ class EventChannel:
         e = Event(
             index,
             user_data,
-            self.manager.clock() + self.manager.step_size(),  # type: ignore[operator, arg-type]
+            self.manager.clock() + self.manager.step_size(),  # type: ignore[operator]
             self.manager.step_size(),
         )
 
