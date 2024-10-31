@@ -93,24 +93,36 @@ class LookupTableManager(Manager):
 
         # Note datetime catches pandas timestamps
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
-            table_type = ScalarTable
+            table = ScalarTable(
+                table_number=table_number,
+                data=data,
+                key_columns=key_columns,
+                parameter_columns=parameter_columns,
+                value_columns=value_columns,
+                validate=self._validate,
+            )
         elif parameter_columns:
-            table_type = InterpolatedTable
+            table = InterpolatedTable(
+                table_number=table_number,
+                data=data,
+                population_view_builder=self._pop_view_builder,
+                key_columns=key_columns,
+                parameter_columns=parameter_columns,
+                value_columns=value_columns,
+                interpolation_order=self._interpolation_order,
+                clock=self.clock,
+                extrapolate=self._extrapolate,
+                validate=self._validate,
+            )
         else:
-            table_type = CategoricalTable
+            table = CategoricalTable(
+                table_number=table_number,
+                data=data,
+                population_view_builder=self._pop_view_builder,
+                key_columns=key_columns,
+                value_columns=value_columns,
+            )
 
-        table = table_type(
-            table_number=table_number,
-            data=data,
-            population_view_builder=self._pop_view_builder,
-            key_columns=key_columns,
-            parameter_columns=parameter_columns,
-            value_columns=value_columns,
-            interpolation_order=self._interpolation_order,
-            clock=self.clock,
-            extrapolate=self._extrapolate,
-            validate=self._validate,
-        )
         self.tables[table_number] = table
         return table
 
