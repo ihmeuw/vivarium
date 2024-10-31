@@ -8,6 +8,7 @@ A base Component class to be used to create components for use in ``vivarium``
 simulations.
 
 """
+from __future__ import annotations
 
 import re
 from abc import ABC
