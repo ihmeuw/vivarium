@@ -2,6 +2,7 @@
 
   - Bugfix to prevent a LookupTable from changing order of the value columns
   - Fix mypy errors in vivarium/framework/lookup/table.py
+  - Fix mypy errors in vivarium/framework/randomness/manager.py
   - Typing changes in vivarium/framework/lookup/interpolation.py
   - Fix broken build from LayeredConfigTree typing
 
