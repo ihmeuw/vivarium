@@ -19,8 +19,8 @@ NumberLike = Union[
     float,
     int,
 ]
-# todo need to use TypeVars here
+# TODO: [MIC-5481] need to use TypeVars here
 Time = Union[pd.Timestamp, datetime]
 Timedelta = Union[pd.Timedelta, timedelta]
-ClockTime = Union[Time, Number]
-ClockStepSize = Union[Timedelta, Number]
+ClockTime = Union[Time, int]
+ClockStepSize = Union[Timedelta, int]
