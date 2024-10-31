@@ -35,9 +35,9 @@ class RandomnessManager(Manager):
 
     def __init__(self) -> None:
         self._seed: str = ""
-        self._clock: Callable[[], ClockTime] | None = None
+        self.__clock: Callable[[], ClockTime] | None = None
         self._key_columns: list[str] = []
-        self._key_mapping: IndexMap | None = None
+        self.__key_mapping: IndexMap | None = None
         self._decision_points: dict[str, RandomnessStream] = dict()
 
     @property
@@ -45,14 +45,14 @@ class RandomnessManager(Manager):
         return "randomness_manager"
 
     @property
-    def clock(self) -> Callable[[], ClockTime]:
-        if self._clock is None:
+    def _clock(self) -> Callable[[], ClockTime]:
+        if self.__clock is None:
             raise RandomnessError("RandomnessManager clock was invoked before being set.")
         return self._clock
 
     @property
-    def key_mapping(self) -> IndexMap:
-        if self._key_mapping is None:
+    def _key_mapping(self) -> IndexMap:
+        if self.__key_mapping is None:
             raise RandomnessError("RandomnessManager clock was invoked before being set.")
         return self._key_mapping
 
@@ -148,9 +148,9 @@ class RandomnessManager(Manager):
             )
         stream = RandomnessStream(
             key=decision_point,
-            clock=self.clock,
+            clock=self._clock,
             seed=self._seed,
-            index_map=self.key_mapping,
+            index_map=self._key_mapping,
             initializes_crn_attributes=initializes_crn_attributes,
         )
         self._decision_points[decision_point] = stream
@@ -171,7 +171,7 @@ class RandomnessManager(Manager):
             A seed for a random number generation that is linked to Vivarium's
             common random number framework.
         """
-        return get_hash("_".join([decision_point, str(self.clock()), str(self._seed)]))
+        return get_hash("_".join([decision_point, str(self._clock()), str(self._seed)]))
 
     def register_simulants(self, simulants: pd.DataFrame) -> None:
         """Adds new simulants to the randomness mapping.
@@ -192,7 +192,7 @@ class RandomnessManager(Manager):
             raise RandomnessError(
                 "The simulants dataframe does not have all specified key_columns."
             )
-        self.key_mapping.update(simulants.loc[:, self._key_columns], self.clock())
+        self._key_mapping.update(simulants.loc[:, self._key_columns], self._clock())
 
     def __str__(self) -> str:
         return "RandomnessManager()"
