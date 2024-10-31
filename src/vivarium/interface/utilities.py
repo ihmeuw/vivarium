@@ -10,10 +10,10 @@ interfaces for ``vivarium``.
 from __future__ import annotations
 
 import functools
-from collections.abc import Sequence
+from collections.abc import Callable, Generator, Sequence
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Generator, Union
+from typing import Any
 
 import yaml
 
@@ -114,8 +114,8 @@ def raise_if_not_setup(system_type: str) -> Callable[..., Any]:
 
 
 def get_output_model_name_string(
-    artifact_path: Union[str, Path],
-    model_spec_path: Union[str, Path],
+    artifact_path: str | Path,
+    model_spec_path: str | Path,
 ) -> str:
     """Find a good string to use as model name in output path creation.
 
@@ -143,9 +143,9 @@ def get_output_model_name_string(
 
 
 def get_output_root(
-    results_directory: Union[str, Path],
-    model_specification_file: Union[str, Path],
-    artifact_path: Union[str, Path],
+    results_directory: str | Path,
+    model_specification_file: str | Path,
+    artifact_path: str | Path,
 ) -> Path:
     """Create a root directory for output files.
 
