@@ -19,10 +19,12 @@ provided as attributes to the parent class.
 
 """
 
+from __future__ import annotations
+
 import itertools
 from abc import ABC
 from dataclasses import dataclass
-from typing import Callable, Iterable, Optional, Sequence, Tuple, Union
+from typing import Callable, Iterable, Sequence
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -57,9 +59,8 @@ class BaseObservation(ABC):
     prior to starting the simulation. This could return, for example, an empty
     DataFrame or one with a complete set of stratifications as the index and
     all values set to 0.0."""
-    results_gatherer: Union[
-        Callable[[pd.DataFrame, Sequence[str]], pd.DataFrame],
-        Callable[[pd.DataFrame], pd.DataFrame],
+    results_gatherer: Callable[[pd.DataFrame, Sequence[str]], pd.DataFrame] | Callable[
+        [pd.DataFrame], pd.DataFrame
     ]
     """Method or function that gathers the new observation results."""
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
@@ -67,7 +68,7 @@ class BaseObservation(ABC):
     gathered results."""
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
     """Method or function that formats the raw observation results."""
-    stratifications: Optional[Tuple[str]]
+    stratifications: tuple[str] | None
     """Optional tuple of column names for the observation to stratify by."""
     to_observe: Callable[[Event], bool]
     """Method or function that determines whether to perform an observation on this Event."""
@@ -75,9 +76,9 @@ class BaseObservation(ABC):
     def observe(
         self,
         event: Event,
-        df: Union[pd.DataFrame, DataFrameGroupBy],
-        stratifications: Optional[tuple[str, ...]],
-    ) -> Optional[pd.DataFrame]:
+        df: pd.DataFrame | DataFrameGroupBy,
+        stratifications: tuple[str, ...] | None,
+    ) -> pd.DataFrame | None:
         """Determine whether to observe the given event, and if so, gather the results.
 
         Parameters
@@ -214,9 +215,9 @@ class StratifiedObservation(BaseObservation):
         when: str,
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-        stratifications: Tuple[str, ...],
-        aggregator_sources: Optional[list[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series]],
+        stratifications: tuple[str, ...],
+        aggregator_sources: list[str] | None,
+        aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         super().__init__(
@@ -289,7 +290,7 @@ class StratifiedObservation(BaseObservation):
     def get_complete_stratified_results(
         self,
         pop_groups: DataFrameGroupBy,
-        stratifications: Tuple[str, ...],
+        stratifications: tuple[str, ...],
     ) -> pd.DataFrame:
         """Gather results for this observation.
 
@@ -314,9 +315,9 @@ class StratifiedObservation(BaseObservation):
     @staticmethod
     def _aggregate(
         pop_groups: DataFrameGroupBy,
-        aggregator_sources: Optional[list[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series]],
-    ) -> Union[pd.Series, pd.DataFrame]:
+        aggregator_sources: list[str] | None,
+        aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
+    ) -> pd.Series | pd.DataFrame:
         """Apply the `aggregator` to the population groups and their
         `aggregator_sources` columns.
         """
@@ -328,7 +329,7 @@ class StratifiedObservation(BaseObservation):
         return aggregates
 
     @staticmethod
-    def _format(aggregates: Union[pd.Series, pd.DataFrame]) -> pd.DataFrame:
+    def _format(aggregates: pd.Series[float] | pd.DataFrame) -> pd.DataFrame:
         """Convert the results to a pandas DataFrame if necessary and ensure the
         results column name is 'value'.
         """
@@ -384,9 +385,9 @@ class AddingObservation(StratifiedObservation):
         pop_filter: str,
         when: str,
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-        stratifications: Tuple[str, ...],
-        aggregator_sources: Optional[list[str]],
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series]],
+        stratifications: tuple[str, ...],
+        aggregator_sources: list[str] | None,
+        aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         super().__init__(
