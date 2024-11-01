@@ -173,10 +173,18 @@ class Pipeline(Resource):
     def __repr__(self) -> str:
         return f"_Pipeline({self.name})"
 
-    @classmethod
-    def setup_pipeline(
-        cls,
-        pipeline: Pipeline,
+    def add_modifier(self, value_modifier: ValueModifier) -> None:
+        """Add a value modifier to the pipeline.
+
+        Parameters
+        ----------
+        value_modifier
+            The value modifier to add to the pipeline.
+        """
+        self.mutators.append(value_modifier)
+
+    def setup(
+        self,
         source: ValueSource,
         combiner: ValueCombiner,
         post_processor: PostProcessor | None,
@@ -187,8 +195,6 @@ class Pipeline(Resource):
 
         Parameters
         ----------
-        pipeline
-            The pipeline to configure.
         source
             The callable source of the value represented by the pipeline.
         combiner
@@ -200,7 +206,7 @@ class Pipeline(Resource):
         manager
             The simulation values manager.
         """
-        pipeline.source = source
-        pipeline._combiner = combiner
-        pipeline.post_processor = post_processor
-        pipeline._manager = manager
+        self.source = source
+        self._combiner = combiner
+        self.post_processor = post_processor
+        self._manager = manager

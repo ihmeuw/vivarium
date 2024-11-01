@@ -1,6 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from vivarium import Component
+    from vivarium.framework.resource.group import ResourceGroup
+    from vivarium.manager import Manager
 
 
 @dataclass
@@ -11,18 +17,26 @@ class Resource:
     """The type of the resource."""
     name: str
     """The name of the resource."""
+    resource_group: ResourceGroup | None = None
+    """The component that produces the resource."""
 
     @property
     def resource_id(self) -> str:
         """The long name of the resource, including the type."""
         return f"{self.resource_type}.{self.name}"
 
-    # TODO [MIC-5452]: make this an abstract method when support for old
-    #  requirements specification is dropped
     @property
     def is_initialized(self) -> bool:
         """Return True if the resource needs to be initialized."""
         return False
+
+    # TODO [MIC-5452]: all resources should have a component
+    @property
+    def component(self) -> Component | Manager | None:
+        """The component that produces the resource."""
+        if not self.resource_group:
+            return None
+        return None if not self.resource_group else self.resource_group.component
 
 
 class NullResource(Resource):

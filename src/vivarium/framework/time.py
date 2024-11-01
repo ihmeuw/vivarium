@@ -115,9 +115,7 @@ class SimulationClock(Manager):
         self.register_step_modifier = partial(
             builder.value.register_value_modifier, self._pipeline_name
         )
-        builder.population.initializes_simulants(
-            self.on_initialize_simulants, creates_columns=self.columns_created
-        )
+        builder.population.initializes_simulants(self, creates_columns=self.columns_created)
         builder.event.register_listener("post_setup", self.on_post_setup)
         self._individual_clocks = builder.population.get_view(
             columns=self.columns_created + self.columns_required

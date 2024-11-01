@@ -27,7 +27,7 @@ def test_randomness_manager_get_randomness_stream():
     assert set(rm._decision_points.keys()) == {"test"}
 
     with pytest.raises(RandomnessError):
-        rm.get_randomness_stream("test")
+        rm._get_randomness_stream("test")
 
 
 def test_randomness_manager_register_simulants():
