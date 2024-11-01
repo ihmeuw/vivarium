@@ -23,8 +23,8 @@ from __future__ import annotations
 
 import itertools
 from abc import ABC
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from typing import Callable, Iterable, Sequence
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
