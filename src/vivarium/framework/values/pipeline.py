@@ -183,7 +183,7 @@ class Pipeline(Resource):
         """
         self.mutators.append(value_modifier)
 
-    def setup(
+    def set_attributes(
         self,
         source: ValueSource,
         combiner: ValueCombiner,
@@ -191,7 +191,7 @@ class Pipeline(Resource):
         manager: ValuesManager,
     ) -> None:
         """
-        Add a source, combiner, and post-processor to a pipeline.
+        Add a source, combiner, post-processor, and manager to a pipeline.
 
         Parameters
         ----------

@@ -81,8 +81,9 @@ class ValuesManager(Manager):
         """
         self.logger.debug(f"Registering value pipeline {value_name}")
         pipeline = self.get_value(value_name)
-        value_source = ValueSource(pipeline, source)
-        pipeline.setup(value_source, preferred_combiner, preferred_post_processor, self)
+        pipeline.set_attributes(
+            ValueSource(pipeline, source), preferred_combiner, preferred_post_processor, self
+        )
 
         # The resource we add here is just the pipeline source.
         # The value will depend on the source and its modifiers, and we'll

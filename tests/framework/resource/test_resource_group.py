@@ -52,7 +52,7 @@ def test_resource_group() -> None:
 )
 def test_resource_group_is_initializer(resource: Resource, has_initializer: bool) -> None:
     rg = ResourceGroup(ColumnCreator(), [resource], [Column("bar")])
-    assert rg.is_initializer == has_initializer
+    assert rg.is_initialized == has_initializer
 
 
 def test_resource_group_no_initializer_raises_when_called() -> None:

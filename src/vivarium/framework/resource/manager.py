@@ -86,7 +86,7 @@ class ResourceManager(Manager):
         Parameters
         ----------
         component
-            The component adding the resources
+            The component or manager adding the resources
         resources
             The resources being added. A string represents a column resource.
         dependencies
@@ -104,6 +104,7 @@ class ResourceManager(Manager):
         for resource_id in resource_group:
             if resource_id in self._resource_group_map:
                 other_resource = self._resource_group_map[resource_id]
+                # TODO [MIC-5452]: all resource groups should have a component
                 other_resource_name = (
                     other_resource.component.name if other_resource.component else None
                 )
@@ -164,7 +165,7 @@ class ResourceManager(Manager):
                     # Warn here because this sometimes happens naturally
                     # if observer components are missing from a simulation.
                     self.logger.warning(
-                        f"Resource {dependency} is not provided by any"
+                        f"Resource {dependency} is not produced by any"
                         f" component but is needed to compute {resource_group}."
                     )
                     continue
@@ -180,7 +181,7 @@ class ResourceManager(Manager):
         graph construction, but we only need the column producers at population
         creation time.
         """
-        return [r.initializer for r in self.sorted_nodes if r.is_initializer]
+        return [r.initializer for r in self.sorted_nodes if r.is_initialized]
 
     def __repr__(self) -> str:
         out = {}
@@ -223,7 +224,7 @@ class ResourceInterface(Interface):
         Parameters
         ----------
         component
-            The component adding the resources
+            The component or manager adding the resources
         resources
             The resources being added. A string represents a column resource.
         dependencies

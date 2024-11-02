@@ -113,7 +113,7 @@ def test_component_with_initialization_requirements():
         # get all resources in the dependency graph
         for r in simulation._resource.sorted_nodes
         # if the resource is an initializer
-        if r.is_initializer
+        if r.is_initialized
         # its initializer is an instance method
         and hasattr(r.initializer, "__self__")
         # and is a method of ColumnCreatorAndRequirer

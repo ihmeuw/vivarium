@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
 from vivarium.framework.resource.exceptions import ResourceError
@@ -28,8 +28,8 @@ class ResourceGroup:
         self,
         # TODO [MIC-5452]: all resource groups should have a component
         component: Component | Manager | None,
-        initialized_resources: Iterable[Resource],
-        dependencies: Iterable[Resource],
+        initialized_resources: Sequence[Resource],
+        dependencies: Sequence[Resource],
     ):
         """Create a new resource group.
 
@@ -38,11 +38,11 @@ class ResourceGroup:
         Parameters
         ----------
         component
-            The component that produces the resources in this group.
+            The component or manager that produces the resources in this group.
         initialized_resources
-            The resources produced by this resource group's producer.
+            The resources initialized by this resource group's initializer.
         dependencies
-            The resources this resource group's producer depends on.
+            The resources this resource group's initializer depends on.
 
         Raises
         ------
@@ -57,18 +57,15 @@ class ResourceGroup:
 
         self.component = component
         """The component that produces the resources in this group."""
+        self.type = initialized_resources[0].resource_type
+        """The type of resource produced by this resource group's producer."""
+        self.is_initialized = initialized_resources[0].is_initialized
+        """Whether this resource group contains initialized resources."""
         self._dependencies = dependencies
 
-        self._resources = {}
-        for i, resource in enumerate(initialized_resources):
-            if i == 0:
-                self.type = resource.resource_type
-                """The type of resource produced by this resource group's producer."""
-                self.is_initializer = resource.is_initialized
-                """Whether this resource group is an initializer."""
-
+        self._resources = {r.resource_id: r for r in initialized_resources}
+        for resource in self._resources.values():
             resource.resource_group = self
-            self._resources[resource.resource_id] = resource
 
     @property
     def names(self) -> list[str]:
@@ -78,11 +75,13 @@ class ResourceGroup:
     @property
     def initializer(self) -> Callable[[SimulantData], None]:
         """The method that initializes this group of resources."""
-        if not self.is_initializer:
-            raise ResourceError("Resource group is not an initializer.")
+        if not self.is_initialized:
+            raise ResourceError(
+                f"Resource group {self} is not an initialized resource group."
+            )
         # TODO [MIC-5452]: all resource groups should have a component
         if not self.component:
-            raise ResourceError("Resource group does not have an initializer.")
+            raise ResourceError(f"Resource group {self} does not have an initializer.")
         return self.component.on_initialize_simulants
 
     @property

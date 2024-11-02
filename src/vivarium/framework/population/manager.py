@@ -20,12 +20,11 @@ from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
 from vivarium.manager import Interface, Manager
-from vivarium.types import ClockStepSize, ClockTime
 
 if TYPE_CHECKING:
     from vivarium import Component
     from vivarium.framework.engine import Builder
-    from vivarium.framework.time import SimulationClock
+    from vivarium.types import ClockStepSize, ClockTime
 
 
 @dataclass
@@ -262,7 +261,7 @@ class PopulationManager(Manager):
 
     def register_simulant_initializer(
         self,
-        component: Component | PopulationManager | SimulationClock,
+        component: Component | Manager,
         creates_columns: str | Sequence[str] = (),
         requires_columns: str | Sequence[str] = (),
         requires_values: str | Sequence[str] = (),
@@ -274,8 +273,8 @@ class PopulationManager(Manager):
         Parameters
         ----------
         component
-            The component that will add or update initial state information about
-            new simulants.
+            The component or manager that will add or update initial state
+            information about new simulants.
         creates_columns
             The state table columns that the given initializer provides the
             initial state information for.
@@ -468,8 +467,7 @@ class PopulationInterface(Interface):
 
     def initializes_simulants(
         self,
-        # TODO [MIC-5464]: update the type hint to be Component | Manager
-        component: Component | SimulationClock,
+        component: Component | Manager,
         creates_columns: str | Sequence[str] = (),
         requires_columns: str | Sequence[str] = (),
         requires_values: str | Sequence[str] = (),
@@ -481,8 +479,8 @@ class PopulationInterface(Interface):
         Parameters
         ----------
         component
-            The component that will add or update initial state information about
-            new simulants.
+            The component or manager that will add or update initial state
+            information about new simulants.
         creates_columns
             The state table columns that the given initializer
             provides the initial state information for.

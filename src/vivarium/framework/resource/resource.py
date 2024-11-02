@@ -17,8 +17,9 @@ class Resource:
     """The type of the resource."""
     name: str
     """The name of the resource."""
+    # todo why are we attaching the component to the resource group instead of the resource itself?
     resource_group: ResourceGroup | None = None
-    """The component that produces the resource."""
+    """The resource group of the resource."""
 
     @property
     def resource_id(self) -> str:
@@ -33,7 +34,7 @@ class Resource:
     # TODO [MIC-5452]: all resources should have a component
     @property
     def component(self) -> Component | Manager | None:
-        """The component that produces the resource."""
+        """The component or manager that produces the resource."""
         if not self.resource_group:
             return None
         return None if not self.resource_group else self.resource_group.component
