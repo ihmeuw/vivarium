@@ -186,20 +186,26 @@ class Pipeline(Resource):
     def __repr__(self) -> str:
         return f"_Pipeline({self.name})"
 
-    def add_modifier(self, value_modifier: ValueModifier) -> None:
-        """Add a value modifier to the pipeline.
+    def get_value_modifier(
+        self, modifier: Callable[..., Any], component: Component | None
+    ) -> ValueModifier:
+        """Add a value modifier to the pipeline and return it.
 
         Parameters
         ----------
-        value_modifier
-            The value modifier to add to the pipeline.
+        modifier
+            The value modifier callable for the ValueModifier.
+        component
+            The component that creates the value modifier.
         """
+        value_modifier = ValueModifier(self, modifier, component)
         self.mutators.append(value_modifier)
+        return value_modifier
 
     def set_attributes(
         self,
         component: Component | None,
-        source: ValueSource,
+        source: Callable[..., Any],
         combiner: ValueCombiner,
         post_processor: PostProcessor | None,
         manager: ValuesManager,
@@ -223,7 +229,7 @@ class Pipeline(Resource):
             The simulation values manager.
         """
         self.component = component
-        self.source = source
+        self.source = ValueSource(self, source, component)
         self._combiner = combiner
         self.post_processor = post_processor
         self._manager = manager

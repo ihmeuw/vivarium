@@ -86,7 +86,7 @@ class ResourceManager(Manager):
         Parameters
         ----------
         component
-            The component or manager adding the resources
+            The component or manager adding the resources.
         resources
             The resources being added. A string represents a column resource.
         dependencies
@@ -138,7 +138,10 @@ class ResourceManager(Manager):
             resources_ = [NullResource(self._null_producer_count, component)]
             self._null_producer_count += 1
 
-        if have_other_component := [r for r in resources_ if r.component != component]:
+        # TODO [MIC-5452]: all resource groups should have a component
+        if component and (
+            have_other_component := [r for r in resources_ if r.component != component]
+        ):
             raise ResourceError(
                 f"All initialized resources must have the component '{component.name}'."
                 f" The following resources have a different component: {have_other_component}"
@@ -230,7 +233,7 @@ class ResourceInterface(Interface):
         Parameters
         ----------
         component
-            The component or manager adding the resources
+            The component or manager adding the resources.
         resources
             The resources being added. A string represents a column resource.
         dependencies

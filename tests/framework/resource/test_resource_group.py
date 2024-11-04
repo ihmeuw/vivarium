@@ -54,14 +54,6 @@ def test_resource_group_is_initializer(resource: Resource, has_initializer: bool
     assert rg.is_initialized == has_initializer
 
 
-def test_resource_group_no_initializer_raises_when_called() -> None:
-    resources = [ValueModifier(Pipeline("foo"), lambda: 1, ColumnCreator())]
-    rg = ResourceGroup(resources, [Column("bar", None)])
-
-    with pytest.raises(ResourceError, match="is not an initialized resource group"):
-        _ = rg.initializer
-
-
 def test_resource_group_with_no_resources() -> None:
     with pytest.raises(ResourceError, match="must have at least one resource"):
         _ = ResourceGroup([], [Column("foo", None)])

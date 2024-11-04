@@ -308,8 +308,8 @@ class PopulationManager(Manager):
 
             required_resources = (
                 list(requires_columns)
-                + [Resource("value", name) for name in requires_values]
-                + [Resource("stream", name) for name in requires_streams]
+                + [Resource("value", name, component) for name in requires_values]
+                + [Resource("stream", name, component) for name in requires_streams]
             )
 
         if isinstance(creates_columns, str):

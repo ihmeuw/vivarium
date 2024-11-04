@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 from vivarium.framework.event import Event
 from vivarium.framework.resource import Resource
 from vivarium.framework.values.combiners import ValueCombiner, replace_combiner
-from vivarium.framework.values.pipeline import Pipeline, ValueModifier, ValueSource
+from vivarium.framework.values.pipeline import Pipeline
 from vivarium.framework.values.post_processors import PostProcessor, rescale_post_processor
 from vivarium.manager import Interface, Manager
 
@@ -83,7 +83,7 @@ class ValuesManager(Manager):
         pipeline = self.get_value(value_name)
         pipeline.set_attributes(
             component,
-            ValueSource(pipeline, source, component),
+            source,
             preferred_combiner,
             preferred_post_processor,
             self,
@@ -96,7 +96,7 @@ class ValuesManager(Manager):
         dependencies = self._convert_dependencies(
             source, requires_columns, requires_values, requires_streams, required_resources
         )
-        self.resources.add_resources(component, [pipeline.source], dependencies)
+        self.resources.add_resources(pipeline.component, [pipeline.source], dependencies)
 
         self.add_constraint(
             pipeline._call, restrict_during=["initialization", "setup", "post_setup"]
@@ -147,9 +147,8 @@ class ValuesManager(Manager):
             names, or randomness streams.
         """
         pipeline = self.get_value(value_name)
-        value_modifier = ValueModifier(pipeline, modifier, component)
+        value_modifier = pipeline.get_value_modifier(modifier, component)
         self.logger.debug(f"Registering {value_modifier.name} as modifier to {value_name}")
-        pipeline.add_modifier(value_modifier)
 
         dependencies = self._convert_dependencies(
             modifier, requires_columns, requires_values, requires_streams, required_resources

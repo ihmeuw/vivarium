@@ -95,11 +95,7 @@ def test_resource_manager_get_resource_group(
     assert group.names == [r.resource_id for r in group.resources.values()]
     assert not group.dependencies
     assert group.is_initialized == is_initializer
-    if is_initializer:
-        assert group.initializer == component.on_initialize_simulants
-    else:
-        with pytest.raises(ResourceError, match="is not an initialized resource group"):
-            _ = group.initializer
+    assert group.initializer == component.on_initialize_simulants
 
 
 def test_resource_manager_get_resource_group_null(manager: ResourceManager) -> None:
