@@ -1,6 +1,7 @@
 **3.0.17 - 11/04/24**
 
   - Fix mypy errors in vivarium/framework/configuration.py
+  - Fix mypy errors in vivarium/framework/artifact/manager.py
 
 **3.0.16 - 10/31/24**
 
