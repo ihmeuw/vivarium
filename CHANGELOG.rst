@@ -1,3 +1,7 @@
+**3.0.17 - 11/04/24**
+
+  - Fix mypy errors in vivarium/framework/configuration.py
+
 **3.0.16 - 10/31/24**
 
   - Bugfix to prevent a LookupTable from changing order of the value columns
