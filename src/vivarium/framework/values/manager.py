@@ -82,7 +82,11 @@ class ValuesManager(Manager):
         self.logger.debug(f"Registering value pipeline {value_name}")
         pipeline = self.get_value(value_name)
         pipeline.set_attributes(
-            ValueSource(pipeline, source), preferred_combiner, preferred_post_processor, self
+            component,
+            ValueSource(pipeline, source, component),
+            preferred_combiner,
+            preferred_post_processor,
+            self,
         )
 
         # The resource we add here is just the pipeline source.
@@ -143,7 +147,7 @@ class ValuesManager(Manager):
             names, or randomness streams.
         """
         pipeline = self.get_value(value_name)
-        value_modifier = ValueModifier(pipeline, modifier)
+        value_modifier = ValueModifier(pipeline, modifier, component)
         self.logger.debug(f"Registering {value_modifier.name} as modifier to {value_name}")
         pipeline.add_modifier(value_modifier)
 
@@ -199,8 +203,8 @@ class ValuesManager(Manager):
 
             return (
                 list(requires_columns)
-                + [Resource("value", name) for name in requires_values]
-                + [Resource("stream", name) for name in requires_streams]
+                + [Resource("value", name, None) for name in requires_values]
+                + [Resource("stream", name, None) for name in requires_streams]
             )
         else:
             return required_resources

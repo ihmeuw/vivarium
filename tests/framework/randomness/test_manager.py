@@ -1,6 +1,7 @@
 import pandas as pd
 import pytest
 
+from tests.helpers import ColumnCreator, ColumnRequirer
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.manager import RandomnessError, RandomnessManager
 from vivarium.framework.randomness.stream import get_hash
@@ -12,6 +13,7 @@ def mock_clock():
 
 def test_randomness_manager_get_randomness_stream():
     seed = 123456
+    component = ColumnCreator()
 
     rm = RandomnessManager()
     rm._add_constraint = lambda f, **kwargs: f
@@ -19,15 +21,16 @@ def test_randomness_manager_get_randomness_stream():
     rm._clock_ = mock_clock
     rm._key_columns = ["age", "sex"]
     rm._key_mapping_ = IndexMap(["age", "sex"])
-    stream = rm._get_randomness_stream("test")
+    stream = rm._get_randomness_stream("test", component)
 
     assert stream.key == "test"
     assert stream.seed == seed
     assert stream.clock is mock_clock
     assert set(rm._decision_points.keys()) == {"test"}
+    assert stream.component == component
 
     with pytest.raises(RandomnessError):
-        rm._get_randomness_stream("test")
+        rm._get_randomness_stream("test", ColumnRequirer())
 
 
 def test_randomness_manager_register_simulants():

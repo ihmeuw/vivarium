@@ -123,7 +123,9 @@ class RandomnessManager(Manager):
             If another location in the simulation has already created a randomness stream
             with the same identifier.
         """
-        stream = self._get_randomness_stream(decision_point, initializes_crn_attributes)
+        stream = self._get_randomness_stream(
+            decision_point, component, initializes_crn_attributes
+        )
         if not initializes_crn_attributes:
             # We need the key columns to be created before this stream can be called.
             self.resources.add_resources(component, [stream], self._key_columns)
@@ -144,7 +146,10 @@ class RandomnessManager(Manager):
         return stream
 
     def _get_randomness_stream(
-        self, decision_point: str, initializes_crn_attributes: bool = False
+        self,
+        decision_point: str,
+        component: Component | None,
+        initializes_crn_attributes: bool = False,
     ) -> RandomnessStream:
         if decision_point in self._decision_points:
             raise RandomnessError(
@@ -156,6 +161,7 @@ class RandomnessManager(Manager):
             clock=self._clock,
             seed=self._seed,
             index_map=self._key_mapping,
+            component=component,
             initializes_crn_attributes=initializes_crn_attributes,
         )
         self._decision_points[decision_point] = stream

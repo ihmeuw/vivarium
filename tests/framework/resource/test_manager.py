@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 import pytest_mock
 
-from tests.helpers import ColumnCreator, ColumnCreatorAndRequirer
+from tests.helpers import ColumnCreator, ColumnCreatorAndRequirer, ColumnRequirer
 from vivarium import Component
 from vivarium.framework.population import SimulantData
 from vivarium.framework.randomness import RandomnessStream
@@ -34,12 +34,14 @@ def resource_producers() -> dict[int, ResourceProducer]:
 def manager_with_resources(
     manager: ResourceManager, resource_producers: dict[int, ResourceProducer]
 ) -> ResourceManager:
-    stream = RandomnessStream("B", lambda: datetime.now(), 1, IndexMap())
-    pipeline = Pipeline("C")
+    stream = RandomnessStream(
+        "B", lambda: datetime.now(), 1, IndexMap(), resource_producers[1]
+    )
+    pipeline = Pipeline("C", resource_producers[2])
 
     manager.add_resources(resource_producers[3], ["D"], [stream, pipeline])
-    manager.add_resources(resource_producers[1], [stream], ["A"])
-    manager.add_resources(resource_producers[2], [pipeline], ["A"])
+    manager.add_resources(stream.component, [stream], ["A"])
+    manager.add_resources(pipeline.component, [pipeline], ["A"])
     manager.add_resources(resource_producers[0], ["A"], [])
     manager.add_resources(resource_producers[4], [], [stream])
     return manager
@@ -47,7 +49,9 @@ def manager_with_resources(
 
 @pytest.fixture
 def randomness_stream() -> RandomnessStream:
-    return RandomnessStream("stream.1", lambda: datetime.now(), 1, IndexMap())
+    return RandomnessStream(
+        "stream.1", lambda: datetime.now(), 1, IndexMap(), component=ColumnCreator()
+    )
 
 
 class ResourceProducer(Component):
@@ -70,7 +74,7 @@ class ResourceProducer(Component):
         (ValueSource, [Pipeline("foo"), lambda: 1], "value_source", False),
         (ValueModifier, [Pipeline("foo"), lambda: 1], "value_modifier", False),
         (Column, ["foo"], "column", True),
-        (NullResource, ["foo"], "null", True),
+        (NullResource, [1], "null", True),
     ],
     ids=lambda x: [x.__name__ if isinstance(x, type) else x],
 )
@@ -83,16 +87,18 @@ def test_resource_manager_get_resource_group(
 ) -> None:
     component = ColumnCreator()
 
-    group = manager._get_resource_group(component, [resource_class(*init_args)], [])
+    group = manager._get_resource_group(
+        component, [resource_class(*init_args, component=component)], []
+    )
 
     assert group.type == type_string
-    assert group.names == [r.resource_id for r in group._resources.values()]
+    assert group.names == [r.resource_id for r in group.resources.values()]
     assert not group.dependencies
     assert group.is_initialized == is_initializer
     if is_initializer:
         assert group.initializer == component.on_initialize_simulants
     else:
-        with pytest.raises(ResourceError, match="is not an initializer"):
+        with pytest.raises(ResourceError, match="is not an initialized resource group"):
             _ = group.initializer
 
 
@@ -114,20 +120,29 @@ def test_resource_manager_get_resource_group_null(manager: ResourceManager) -> N
     assert not group_2.dependencies
 
 
+def test_add_resource_wrong_component(manager: ResourceManager) -> None:
+    resource = Pipeline("foo", ColumnCreatorAndRequirer())
+    error_message = "All initialized resources must have the component 'column_creator'."
+    with pytest.raises(ResourceError, match=error_message):
+        manager.add_resources(ColumnCreator(), [resource], [])
+
+
 @pytest.mark.parametrize(
     "resource_type, resource_creator",
     [
-        ("column", lambda x: x),
-        ("value", lambda x: Pipeline(x)),
+        ("column", lambda name, component: name),
+        ("value", lambda name, component: Pipeline(name, component)),
     ],
 )
 def test_resource_manager_add_same_resource_twice(
-    resource_type: str, resource_creator: Callable[[str], Any], manager: ResourceManager
+    resource_type: str,
+    resource_creator: Callable[[str, Component], Any],
+    manager: ResourceManager,
 ) -> None:
     c1 = ColumnCreator()
     c2 = ColumnCreatorAndRequirer()
-    r1 = [resource_creator(str(i)) for i in range(5)]
-    r2 = [resource_creator(str(i)) for i in range(5, 10)] + [resource_creator("1")]
+    r1 = [resource_creator(str(i), c1) for i in range(5)]
+    r2 = [resource_creator(str(i), c2) for i in range(5, 10)] + [resource_creator("1", c2)]
 
     manager.add_resources(c1, r1, [])
     error_message = (
@@ -135,15 +150,14 @@ def test_resource_manager_add_same_resource_twice(
         f" '{resource_type}.1' but it is already registered by '{c1.name}'."
     )
     with pytest.raises(ResourceError, match=error_message):
-        manager.add_resources(ColumnCreatorAndRequirer(), r2, [])
+        manager.add_resources(c2, r2, [])
 
 
 def test_resource_manager_sorted_nodes_two_node_cycle(
     manager: ResourceManager, randomness_stream: RandomnessStream
 ) -> None:
-    component = ColumnCreator()
-    manager.add_resources(component, ["c_1"], [randomness_stream])
-    manager.add_resources(component, [randomness_stream], ["c_1"])
+    manager.add_resources(ColumnCreatorAndRequirer(), ["c_1"], [randomness_stream])
+    manager.add_resources(randomness_stream.component, [randomness_stream], ["c_1"])
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
         _ = manager.sorted_nodes
@@ -152,12 +166,11 @@ def test_resource_manager_sorted_nodes_two_node_cycle(
 def test_resource_manager_sorted_nodes_three_node_cycle(
     manager: ResourceManager, randomness_stream: RandomnessStream
 ) -> None:
-    component = ColumnCreator()
-    pipeline = Pipeline("some_pipeline")
+    pipeline = Pipeline("some_pipeline", ColumnRequirer())
 
-    manager.add_resources(component, ["c_1"], [randomness_stream])
-    manager.add_resources(component, [pipeline], ["c_1"])
-    manager.add_resources(component, [randomness_stream], [pipeline])
+    manager.add_resources(ColumnCreatorAndRequirer(), ["c_1"], [randomness_stream])
+    manager.add_resources(pipeline.component, [pipeline], ["c_1"])
+    manager.add_resources(randomness_stream.component, [randomness_stream], [pipeline])
 
     with pytest.raises(ResourceError, match="The resource pool contains at least one cycle"):
         _ = manager.sorted_nodes

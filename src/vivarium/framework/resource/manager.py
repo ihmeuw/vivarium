@@ -101,23 +101,23 @@ class ResourceManager(Manager):
         """
         resource_group = self._get_resource_group(component, resources, dependencies)
 
-        for resource_id in resource_group:
+        for resource_id, resource in resource_group.resources.items():
             if resource_id in self._resource_group_map:
                 other_resource = self._resource_group_map[resource_id]
                 # TODO [MIC-5452]: all resource groups should have a component
-                other_resource_name = (
+                resource_component = resource.component.name if resource.component else None
+                other_resource_component = (
                     other_resource.component.name if other_resource.component else None
                 )
                 raise ResourceError(
-                    f"Component '{component.name if component else None}' is"
-                    f" attempting to register resource '{resource_id}' but it"
-                    f" is already registered by '{other_resource_name}'."
+                    f"Component '{resource_component}' is attempting to register"
+                    f" resource '{resource_id}' but it is already registered by"
+                    f" '{other_resource_component}'."
                 )
             self._resource_group_map[resource_id] = resource_group
 
     def _get_resource_group(
         self,
-        # TODO [MIC-5452]: all resource groups should have a component
         component: Component | Manager | None,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
@@ -128,17 +128,23 @@ class ResourceManager(Manager):
         --------
         :class:`ResourceGroup`
         """
-        resources_ = [Column(r) if isinstance(r, str) else r for r in resources]
-        dependencies_ = [Column(d) if isinstance(d, str) else d for d in dependencies]
+        resources_ = [Column(r, component) if isinstance(r, str) else r for r in resources]
+        dependencies_ = [Column(d, None) if isinstance(d, str) else d for d in dependencies]
 
         if not resources_:
             # We have a "producer" that doesn't produce anything, but
             # does have dependencies. This is necessary for components that
             # want to track private state information.
-            resources_ = [NullResource(self._null_producer_count)]
+            resources_ = [NullResource(self._null_producer_count, component)]
             self._null_producer_count += 1
 
-        return ResourceGroup(component, resources_, dependencies_)
+        if have_other_component := [r for r in resources_ if r.component != component]:
+            raise ResourceError(
+                f"All initialized resources must have the component '{component.name}'."
+                f" The following resources have a different component: {have_other_component}"
+            )
+
+        return ResourceGroup(resources_, dependencies_)
 
     def _to_graph(self) -> nx.DiGraph:
         """Constructs the full resource graph from information in the groups.

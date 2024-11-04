@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
 from vivarium.framework.resource.exceptions import ResourceError
 from vivarium.framework.resource.resource import Resource
 
 if TYPE_CHECKING:
-    from vivarium import Component
     from vivarium.framework.population import SimulantData
-    from vivarium.manager import Manager
 
 
 class ResourceGroup:
@@ -25,20 +23,12 @@ class ResourceGroup:
     """
 
     def __init__(
-        self,
-        # TODO [MIC-5452]: all resource groups should have a component
-        component: Component | Manager | None,
-        initialized_resources: Sequence[Resource],
-        dependencies: Sequence[Resource],
+        self, initialized_resources: Sequence[Resource], dependencies: Sequence[Resource]
     ):
         """Create a new resource group.
 
-        Also sets the resource group on each resource in the group.
-
         Parameters
         ----------
-        component
-            The component or manager that produces the resources in this group.
         initialized_resources
             The resources initialized by this resource group's initializer.
         dependencies
@@ -52,25 +42,26 @@ class ResourceGroup:
         if not initialized_resources:
             raise ResourceError("Resource groups must have at least one resource.")
 
-        if len(set(r.resource_type for r in initialized_resources)) != 1:
-            raise ResourceError("All produced resources must be of the same type.")
+        if len(set(r.component for r in initialized_resources)) != 1:
+            raise ResourceError("All initialized resources must have the same component.")
 
-        self.component = component
-        """The component that produces the resources in this group."""
+        if len(set(r.resource_type for r in initialized_resources)) != 1:
+            raise ResourceError("All initialized resources must be of the same type.")
+
+        self.component = initialized_resources[0].component
+        """The component or manager that produces the resources in this group."""
         self.type = initialized_resources[0].resource_type
-        """The type of resource produced by this resource group's producer."""
+        """The type of resource in this group."""
         self.is_initialized = initialized_resources[0].is_initialized
         """Whether this resource group contains initialized resources."""
         self._dependencies = dependencies
-
-        self._resources = {r.resource_id: r for r in initialized_resources}
-        for resource in self._resources.values():
-            resource.resource_group = self
+        self.resources = {r.resource_id: r for r in initialized_resources}
+        """A dictionary of resources produced by this group, keyed by resource_id."""
 
     @property
     def names(self) -> list[str]:
         """The long names (including type) of all resources in this group."""
-        return list(self._resources)
+        return list(self.resources)
 
     @property
     def initializer(self) -> Callable[[SimulantData], None]:
@@ -102,4 +93,4 @@ class ResourceGroup:
 
     def get_resource(self, resource_id: str) -> Resource:
         """Get a resource by its resource_id."""
-        return self._resources[resource_id]
+        return self.resources[resource_id]
