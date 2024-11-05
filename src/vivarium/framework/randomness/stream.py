@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -40,6 +40,9 @@ from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.resource import Resource
 from vivarium.framework.utilities import rate_to_probability
 from vivarium.types import ClockTime, NumericArray
+
+if TYPE_CHECKING:
+    from vivarium import Component
 
 RESIDUAL_CHOICE = object()
 
@@ -91,9 +94,11 @@ class RandomnessStream(Resource):
         clock: Callable[[], ClockTime],
         seed: Any,
         index_map: IndexMap,
+        # TODO [MIC-5452]: all resources should have a component
+        component: Component | None = None,
         initializes_crn_attributes: bool = False,
     ):
-        super().__init__("stream", key)
+        super().__init__("stream", key, component)
         self.key = key
         """The name of the randomness stream."""
         self.clock = clock

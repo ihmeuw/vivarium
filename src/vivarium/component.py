@@ -717,10 +717,10 @@ class Component(ABC):
             data = data_source(builder)
         else:
             raise ConfigurationError(
-                f"Data source '{data_source}' is not a valid data source. It "
-                f"must be a LookupTableData instance, a string corresponding to "
-                f"an artifact key, a callable that returns a LookupTableData "
-                f"instance, or a string defining such a callable."
+                f"Data source is of type '{type(data_source)}'. It must be a "
+                "LookupTableData instance, a string corresponding to an "
+                "artifact key, a callable that returns a LookupTableData "
+                "instance, or a string defining such a callable."
             )
 
         if not isinstance(data, valid_data_types):
@@ -806,9 +806,7 @@ class Component(ABC):
 
         if type(self).on_initialize_simulants != Component.on_initialize_simulants:
             builder.population.initializes_simulants(
-                self.on_initialize_simulants,
-                creates_columns=self.columns_created,
-                **initialization_requirements,
+                self, creates_columns=self.columns_created, **initialization_requirements
             )
 
     def _register_time_step_prepare_listener(self, builder: "Builder") -> None:

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, TypeVar
 
 import pandas as pd
 
+from vivarium import Component
 from vivarium.framework.resource import Resource
 from vivarium.framework.values.exceptions import DynamicValueError
 
@@ -19,8 +20,15 @@ T = TypeVar("T")
 class ValueSource(Resource):
     """A resource representing the source of a value pipeline."""
 
-    def __init__(self, pipeline: Pipeline, source: Callable[..., Any] | None = None) -> None:
-        super().__init__("value_source" if source else "missing_value_source", pipeline.name)
+    def __init__(
+        self,
+        pipeline: Pipeline,
+        source: Callable[..., Any] | None,
+        component: Component | None,
+    ) -> None:
+        super().__init__(
+            "value_source" if source else "missing_value_source", pipeline.name, component
+        )
         self._pipeline = pipeline
         self._source = source
 
@@ -40,11 +48,16 @@ class ValueSource(Resource):
 class ValueModifier(Resource):
     """A resource representing a modifier of a value pipeline."""
 
-    def __init__(self, pipeline: Pipeline, modifier: Callable[..., Any]) -> None:
+    def __init__(
+        self,
+        pipeline: Pipeline,
+        modifier: Callable[..., Any],
+        component: Component | None,
+    ) -> None:
         mutator_name = self._get_modifier_name(modifier)
         mutator_index = len(pipeline.mutators) + 1
         name = f"{pipeline.name}.{mutator_index}.{mutator_name}"
-        super().__init__("value_modifier", name)
+        super().__init__("value_modifier", name, component)
 
         self._pipeline = pipeline
         self._source = modifier
@@ -86,10 +99,10 @@ class Pipeline(Resource):
     values that won't be used in the particular simulation.
     """
 
-    def __init__(self, name: str) -> None:
-        super().__init__("value", name)
+    def __init__(self, name: str, component: Component | None = None) -> None:
+        super().__init__("value", name, component=component)
 
-        self.source: ValueSource = ValueSource(self)
+        self.source: ValueSource = ValueSource(self, source=None, component=None)
         """The callable source of the value represented by the pipeline."""
         self.mutators: list[ValueModifier] = []
         """A list of callables that directly modify the pipeline source or
@@ -173,22 +186,37 @@ class Pipeline(Resource):
     def __repr__(self) -> str:
         return f"_Pipeline({self.name})"
 
-    @classmethod
-    def setup_pipeline(
-        cls,
-        pipeline: Pipeline,
-        source: ValueSource,
+    def get_value_modifier(
+        self, modifier: Callable[..., Any], component: Component | None
+    ) -> ValueModifier:
+        """Add a value modifier to the pipeline and return it.
+
+        Parameters
+        ----------
+        modifier
+            The value modifier callable for the ValueModifier.
+        component
+            The component that creates the value modifier.
+        """
+        value_modifier = ValueModifier(self, modifier, component)
+        self.mutators.append(value_modifier)
+        return value_modifier
+
+    def set_attributes(
+        self,
+        component: Component | None,
+        source: Callable[..., Any],
         combiner: ValueCombiner,
         post_processor: PostProcessor | None,
         manager: ValuesManager,
     ) -> None:
         """
-        Add a source, combiner, and post-processor to a pipeline.
+        Add a source, combiner, post-processor, and manager to a pipeline.
 
         Parameters
         ----------
-        pipeline
-            The pipeline to configure.
+        component
+            The component that creates the pipeline.
         source
             The callable source of the value represented by the pipeline.
         combiner
@@ -200,7 +228,8 @@ class Pipeline(Resource):
         manager
             The simulation values manager.
         """
-        pipeline.source = source
-        pipeline._combiner = combiner
-        pipeline.post_processor = post_processor
-        pipeline._manager = manager
+        self.component = component
+        self.source = ValueSource(self, source, component)
+        self._combiner = combiner
+        self.post_processor = post_processor
+        self._manager = manager

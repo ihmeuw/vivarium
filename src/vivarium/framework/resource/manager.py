@@ -7,7 +7,7 @@ Resource Manager
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
@@ -18,8 +18,8 @@ from vivarium.framework.resource.resource import Column, NullResource, Resource
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
+    from vivarium import Component
     from vivarium.framework.engine import Builder
-    from vivarium.framework.population import SimulantData
 
 
 class ResourceManager(Manager):
@@ -66,7 +66,7 @@ class ResourceManager(Manager):
                 self._sorted_nodes = list(nx.algorithms.topological_sort(self.graph))  # type: ignore[func-returns-value]
             except nx.NetworkXUnfeasible:
                 raise ResourceError(
-                    f"The resource pool contains at least one cycle: "
+                    "The resource pool contains at least one cycle: "
                     f"{nx.find_cycle(self.graph)}."
                 )
         return self._sorted_nodes
@@ -76,22 +76,22 @@ class ResourceManager(Manager):
 
     def add_resources(
         self,
+        # TODO [MIC-5452]: all resource groups should have a component
+        component: Component | Manager | None,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
-        initializer: Callable[[SimulantData], None] | None,
     ) -> None:
         """Adds managed resources to the resource pool.
 
         Parameters
         ----------
+        component
+            The component or manager adding the resources.
         resources
             The resources being added. A string represents a column resource.
         dependencies
             A list of resources that the producer requires. A string represents
             a column resource.
-        initializer
-            A method that will be called to initialize the resources. This is
-            called during population initialization.
 
         Raises
         ------
@@ -99,27 +99,28 @@ class ResourceManager(Manager):
             If a component has multiple resource producers for the ``column``
             resource type or there are multiple producers of the same resource.
         """
-        resource_group = self._get_resource_group(resources, dependencies, initializer)
+        resource_group = self._get_resource_group(component, resources, dependencies)
 
-        for resource_id in resource_group:
+        for resource_id, resource in resource_group.resources.items():
             if resource_id in self._resource_group_map:
                 other_resource = self._resource_group_map[resource_id]
-                if resource_group.is_initializer:
-                    raise ResourceError(
-                        f"Both {initializer} and {other_resource.initializer}"
-                        f" are registered as initializers for {resource_id}."
-                    )
-                resource = resource_group.get_resource(resource_id)
+                # TODO [MIC-5452]: all resource groups should have a component
+                resource_component = resource.component.name if resource.component else None
+                other_resource_component = (
+                    other_resource.component.name if other_resource.component else None
+                )
                 raise ResourceError(
-                    f"Resource {resource} is not allowed to be registered more" " than once."
+                    f"Component '{resource_component}' is attempting to register"
+                    f" resource '{resource_id}' but it is already registered by"
+                    f" '{other_resource_component}'."
                 )
             self._resource_group_map[resource_id] = resource_group
 
     def _get_resource_group(
         self,
+        component: Component | Manager | None,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
-        initializer: Callable[[SimulantData], None] | None,
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -127,17 +128,26 @@ class ResourceManager(Manager):
         --------
         :class:`ResourceGroup`
         """
-        resources_ = [Column(r) if isinstance(r, str) else r for r in resources]
-        dependencies_ = [Column(d) if isinstance(d, str) else d for d in dependencies]
+        resources_ = [Column(r, component) if isinstance(r, str) else r for r in resources]
+        dependencies_ = [Column(d, None) if isinstance(d, str) else d for d in dependencies]
 
         if not resources_:
             # We have a "producer" that doesn't produce anything, but
             # does have dependencies. This is necessary for components that
             # want to track private state information.
-            resources_ = [NullResource(self._null_producer_count)]
+            resources_ = [NullResource(self._null_producer_count, component)]
             self._null_producer_count += 1
 
-        return ResourceGroup(resources_, dependencies_, initializer)
+        # TODO [MIC-5452]: all resource groups should have a component
+        if component and (
+            have_other_component := [r for r in resources_ if r.component != component]
+        ):
+            raise ResourceError(
+                f"All initialized resources must have the component '{component.name}'."
+                f" The following resources have a different component: {have_other_component}"
+            )
+
+        return ResourceGroup(resources_, dependencies_)
 
     def _to_graph(self) -> nx.DiGraph:
         """Constructs the full resource graph from information in the groups.
@@ -164,8 +174,8 @@ class ResourceManager(Manager):
                     # Warn here because this sometimes happens naturally
                     # if observer components are missing from a simulation.
                     self.logger.warning(
-                        f"Resource {dependency} is not provided by any component but is needed to "
-                        f"compute {resource_group}."
+                        f"Resource {dependency} is not produced by any"
+                        f" component but is needed to compute {resource_group}."
                     )
                     continue
                 dependency_group = self._resource_group_map[dependency]
@@ -180,7 +190,7 @@ class ResourceManager(Manager):
         graph construction, but we only need the column producers at population
         creation time.
         """
-        return [r.initializer for r in self.sorted_nodes if r.is_initializer]
+        return [r.initializer for r in self.sorted_nodes if r.is_initialized]
 
     def __repr__(self) -> str:
         out = {}
@@ -213,22 +223,22 @@ class ResourceInterface(Interface):
 
     def add_resources(
         self,
+        # TODO [MIC-5452]: all resource groups should have a component
+        component: Component | Manager | None,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
-        initializer: Callable[[SimulantData], None] | None = None,
     ) -> None:
         """Adds managed resources to the resource pool.
 
         Parameters
         ----------
+        component
+            The component or manager adding the resources.
         resources
             The resources being added. A string represents a column resource.
         dependencies
             A list of resources that the producer requires. A string represents
             a column resource.
-        initializer
-            A method that will be called to initialize the resources. This is
-            called during population initialization.
 
         Raises
         ------
@@ -237,7 +247,7 @@ class ResourceInterface(Interface):
             resource producers for the ``column`` resource type, or
             there are multiple producers of the same resource.
         """
-        self._manager.add_resources(resources, dependencies, initializer)
+        self._manager.add_resources(component, resources, dependencies)
 
     def get_population_initializers(self) -> list[Any]:
         """Returns a dependency-sorted list of population initializers.

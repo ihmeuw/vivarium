@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from typing import TYPE_CHECKING
 
 from vivarium.framework.resource.exceptions import ResourceError
@@ -23,66 +23,58 @@ class ResourceGroup:
     """
 
     def __init__(
-        self,
-        produced_resources: Iterable[Resource],
-        dependencies: Iterable[Resource],
-        initializer: Callable[[SimulantData], None] | None = None,
+        self, initialized_resources: Sequence[Resource], dependencies: Sequence[Resource]
     ):
         """Create a new resource group.
 
         Parameters
         ----------
-        produced_resources
-            The resources produced by this resource group's producer.
+        initialized_resources
+            The resources initialized by this resource group's initializer.
         dependencies
-            The resources this resource group's producer depends on.
-        initializer
-            The method that initializes this group of resources. If this is
-            None, the resources don't need to be initialized.
+            The resources this resource group's initializer depends on.
 
         Raises
         ------
         ResourceError
             If the resource group is not well-formed.
         """
-        if not produced_resources:
+        if not initialized_resources:
             raise ResourceError("Resource groups must have at least one resource.")
 
-        if len(set(r.resource_type for r in produced_resources)) != 1:
-            raise ResourceError("All produced resources must be of the same type.")
+        if len(set(r.component for r in initialized_resources)) != 1:
+            raise ResourceError("All initialized resources must have the same component.")
 
-        if list(produced_resources)[0].is_initialized != (initializer is not None):
-            raise ResourceError(
-                "Resource groups with an initializer must have initialized resources."
-            )
+        if len(set(r.resource_type for r in initialized_resources)) != 1:
+            raise ResourceError("All initialized resources must be of the same type.")
 
-        self.type = list(produced_resources)[0].resource_type
-        """The type of resource produced by this resource group's producer."""
-        self._resources = {resource.resource_id: resource for resource in produced_resources}
-        self._initializer = initializer
+        self.component = initialized_resources[0].component
+        """The component or manager that produces the resources in this group."""
+        self.type = initialized_resources[0].resource_type
+        """The type of resource in this group."""
+        self.is_initialized = initialized_resources[0].is_initialized
+        """Whether this resource group contains initialized resources."""
         self._dependencies = dependencies
+        self.resources = {r.resource_id: r for r in initialized_resources}
+        """A dictionary of resources produced by this group, keyed by resource_id."""
 
     @property
     def names(self) -> list[str]:
         """The long names (including type) of all resources in this group."""
-        return list(self._resources)
+        return list(self.resources)
 
     @property
     def initializer(self) -> Callable[[SimulantData], None]:
         """The method that initializes this group of resources."""
-        if self._initializer is None:
-            raise ResourceError("This resource group does not have an initializer.")
-        return self._initializer
+        # TODO [MIC-5452]: all resource groups should have a component
+        if not self.component:
+            raise ResourceError(f"Resource group {self} does not have an initializer.")
+        return self.component.on_initialize_simulants
 
     @property
     def dependencies(self) -> list[str]:
         """The long names (including type) of dependencies for this group."""
         return [dependency.resource_id for dependency in self._dependencies]
-
-    @property
-    def is_initializer(self) -> bool:
-        """Return True if this resource group's producer is an initializer."""
-        return self._initializer is not None
 
     def __iter__(self) -> Iterator[str]:
         return iter(self.names)
@@ -97,4 +89,4 @@ class ResourceGroup:
 
     def get_resource(self, resource_id: str) -> Resource:
         """Get a resource by its resource_id."""
-        return self._resources[resource_id]
+        return self.resources[resource_id]

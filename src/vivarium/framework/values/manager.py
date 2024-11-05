@@ -5,14 +5,14 @@ from collections.abc import Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from vivarium.framework.event import Event
-from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.resource import Resource
 from vivarium.framework.values.combiners import ValueCombiner, replace_combiner
-from vivarium.framework.values.pipeline import Pipeline, ValueModifier, ValueSource
+from vivarium.framework.values.pipeline import Pipeline
 from vivarium.framework.values.post_processors import PostProcessor, rescale_post_processor
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
+    from vivarium import Component
     from vivarium.framework.engine import Builder
 
 T = TypeVar("T")
@@ -56,16 +56,20 @@ class ValuesManager(Manager):
         # we say the pipeline value depends on its source and all its
         # modifiers.
         for name, pipe in self._pipelines.items():
-            self.resources.add_resources([pipe], [pipe.source] + list(pipe.mutators))
+            self.resources.add_resources(
+                pipe.component, [pipe], [pipe.source] + list(pipe.mutators)
+            )
 
     def register_value_producer(
         self,
         value_name: str,
         source: Callable[..., Any],
+        # TODO [MIC-5452]: all calls should have a component
+        component: Component | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
-        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
+        required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
     ) -> Pipeline:
@@ -75,8 +79,14 @@ class ValuesManager(Manager):
         --------
             :meth:`ValuesInterface.register_value_producer`
         """
-        pipeline = self._register_value_producer(
-            value_name, source, preferred_combiner, preferred_post_processor
+        self.logger.debug(f"Registering value pipeline {value_name}")
+        pipeline = self.get_value(value_name)
+        pipeline.set_attributes(
+            component,
+            source,
+            preferred_combiner,
+            preferred_post_processor,
+            self,
         )
 
         # The resource we add here is just the pipeline source.
@@ -86,35 +96,24 @@ class ValuesManager(Manager):
         dependencies = self._convert_dependencies(
             source, requires_columns, requires_values, requires_streams, required_resources
         )
-        self.resources.add_resources([pipeline.source], dependencies)
+        self.resources.add_resources(pipeline.component, [pipeline.source], dependencies)
+
         self.add_constraint(
             pipeline._call, restrict_during=["initialization", "setup", "post_setup"]
         )
 
         return pipeline
 
-    def _register_value_producer(
-        self,
-        value_name: str,
-        source: Callable[..., Any],
-        combiner: ValueCombiner,
-        post_processor: PostProcessor | None,
-    ) -> Pipeline:
-        """Configure the named value pipeline with a source, combiner, and post-processor."""
-        self.logger.debug(f"Registering value pipeline {value_name}")
-        pipeline = self.get_value(value_name)
-        value_source = ValueSource(pipeline, source)
-        Pipeline.setup_pipeline(pipeline, value_source, combiner, post_processor, self)
-        return pipeline
-
     def register_value_modifier(
         self,
         value_name: str,
         modifier: Callable[..., Any],
+        # TODO [MIC-5452]: all calls should have a component
+        component: Component | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
-        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
+        required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
 
@@ -130,6 +129,8 @@ class ValuesManager(Manager):
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
             source.
+        component
+            The component that is registering the value modifier.
         requires_columns
             A list of the state table columns that already need to be present
             and populated in the state table before the pipeline modifier
@@ -145,16 +146,14 @@ class ValuesManager(Manager):
             pipeline modifier is called.  This is a list of strings, pipeline
             names, or randomness streams.
         """
-
         pipeline = self.get_value(value_name)
-        value_modifier = ValueModifier(pipeline, modifier)
+        value_modifier = pipeline.get_value_modifier(modifier, component)
         self.logger.debug(f"Registering {value_modifier.name} as modifier to {value_name}")
-        pipeline.mutators.append(value_modifier)
 
         dependencies = self._convert_dependencies(
             modifier, requires_columns, requires_values, requires_streams, required_resources
         )
-        self.resources.add_resources([value_modifier], dependencies)
+        self.resources.add_resources(component, [value_modifier], dependencies)
 
     def get_value(self, name: str) -> Pipeline:
         """Retrieve the pipeline representing the named value.
@@ -203,8 +202,8 @@ class ValuesManager(Manager):
 
             return (
                 list(requires_columns)
-                + [Resource("value", name) for name in requires_values]
-                + [Resource("stream", name) for name in requires_streams]
+                + [Resource("value", name, None) for name in requires_values]
+                + [Resource("stream", name, None) for name in requires_streams]
             )
         else:
             return required_resources
@@ -247,10 +246,12 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         source: Callable[..., Any],
+        # TODO [MIC-5452]: all calls should have a component
+        component: Component | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
-        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
+        required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
     ) -> Pipeline:
@@ -262,6 +263,8 @@ class ValuesInterface(Interface):
             The name of the new dynamic value pipeline.
         source
             A callable source for the dynamic value pipeline.
+        component
+            The component that is registering the value producer.
         requires_columns
             A list of the state table columns that already need to be present
             and populated in the state table before the pipeline source
@@ -296,6 +299,7 @@ class ValuesInterface(Interface):
         return self._manager.register_value_producer(
             value_name,
             source,
+            component,
             requires_columns,
             requires_values,
             requires_streams,
@@ -308,10 +312,12 @@ class ValuesInterface(Interface):
         self,
         rate_name: str,
         source: Callable[..., Any],
+        # TODO [MIC-5452]: all calls should have a component
+        component: Component | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
-        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
+        required_resources: Sequence[str | Resource] = (),
     ) -> Pipeline:
         """Marks a ``Callable`` as the producer of a named rate.
 
@@ -328,6 +334,8 @@ class ValuesInterface(Interface):
             The name of the new dynamic rate pipeline.
         source
             A callable source for the dynamic rate pipeline.
+        component
+            The component that is registering the rate producer.
         requires_columns
             A list of the state table columns that already need to be present
             and populated in the state table before the pipeline source
@@ -350,6 +358,7 @@ class ValuesInterface(Interface):
         return self.register_value_producer(
             rate_name,
             source,
+            component,
             requires_columns,
             requires_values,
             requires_streams,
@@ -361,10 +370,12 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         modifier: Callable[..., Any],
+        # TODO [MIC-5452]: all calls should have a component
+        component: Component | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
-        required_resources: Sequence[str | Pipeline | RandomnessStream] = (),
+        required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named value.
 
@@ -380,6 +391,8 @@ class ValuesInterface(Interface):
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
             source.
+        component
+            The component that is registering the value modifier.
         requires_columns
             A list of the state table columns that already need to be present
             and populated in the state table before the pipeline modifier
@@ -398,6 +411,7 @@ class ValuesInterface(Interface):
         self._manager.register_value_modifier(
             value_name,
             modifier,
+            component,
             requires_columns,
             requires_values,
             requires_streams,
