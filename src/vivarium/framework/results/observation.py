@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ============
 Observations
@@ -25,6 +24,7 @@ import itertools
 from abc import ABC
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -54,21 +54,22 @@ class BaseObservation(ABC):
     when: str
     """Name of the lifecycle phase the observation should happen. Valid values are:
     "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics"."""
-    results_initializer: Callable[[Iterable[str], Iterable[Stratification]], pd.DataFrame]
+    results_initializer: Callable[[set[str], list[Stratification]], pd.DataFrame]
     """Method or function that initializes the raw observation results
     prior to starting the simulation. This could return, for example, an empty
     DataFrame or one with a complete set of stratifications as the index and
     all values set to 0.0."""
-    results_gatherer: Callable[[pd.DataFrame, Sequence[str]], pd.DataFrame] | Callable[
-        [pd.DataFrame], pd.DataFrame
+    results_gatherer: Callable[
+        [pd.DataFrame | DataFrameGroupBy[Any], tuple[str, ...] | None], pd.DataFrame
     ]
+    # results_gatherer: Callable[[DataFrameGroupBy[Any], tuple[str, ...]], pd.DataFrame] | Callable[[pd.DataFrame, tuple[str, ...] | None], pd.DataFrame]
     """Method or function that gathers the new observation results."""
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
     """Method or function that updates existing raw observation results with newly
     gathered results."""
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
     """Method or function that formats the raw observation results."""
-    stratifications: tuple[str] | None
+    stratifications: tuple[str, ...] | None
     """Optional tuple of column names for the observation to stratify by."""
     to_observe: Callable[[Event], bool]
     """Method or function that determines whether to perform an observation on this Event."""
@@ -76,7 +77,7 @@ class BaseObservation(ABC):
     def observe(
         self,
         event: Event,
-        df: pd.DataFrame | DataFrameGroupBy,
+        df: pd.DataFrame | DataFrameGroupBy[Any],
         stratifications: tuple[str, ...] | None,
     ) -> pd.DataFrame | None:
         """Determine whether to observe the given event, and if so, gather the results.
@@ -97,10 +98,7 @@ class BaseObservation(ABC):
         if not self.to_observe(event):
             return None
         else:
-            if stratifications is None:
-                return self.results_gatherer(df)
-            else:
-                return self.results_gatherer(df, stratifications)
+            return self.results_gatherer(df, stratifications)
 
 
 class UnstratifiedObservation(BaseObservation):
@@ -141,12 +139,17 @@ class UnstratifiedObservation(BaseObservation):
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
+        def _wrap_results_gatherer(
+            df: pd.DataFrame, _: tuple[str, ...] | None
+        ) -> pd.DataFrame:
+            return results_gatherer(df)
+
         super().__init__(
             name=name,
             pop_filter=pop_filter,
             when=when,
             results_initializer=self.create_empty_df,
-            results_gatherer=results_gatherer,
+            results_gatherer=_wrap_results_gatherer,  # type: ignore [arg-type]
             results_updater=results_updater,
             results_formatter=results_formatter,
             stratifications=None,
@@ -225,7 +228,7 @@ class StratifiedObservation(BaseObservation):
             pop_filter=pop_filter,
             when=when,
             results_initializer=self.create_expanded_df,
-            results_gatherer=self.get_complete_stratified_results,
+            results_gatherer=self.get_complete_stratified_results,  # type: ignore [arg-type]
             results_updater=results_updater,
             results_formatter=results_formatter,
             stratifications=stratifications,
@@ -289,7 +292,7 @@ class StratifiedObservation(BaseObservation):
 
     def get_complete_stratified_results(
         self,
-        pop_groups: DataFrameGroupBy,
+        pop_groups: DataFrameGroupBy[Any],
         stratifications: tuple[str, ...],
     ) -> pd.DataFrame:
         """Gather results for this observation.
@@ -314,17 +317,17 @@ class StratifiedObservation(BaseObservation):
 
     @staticmethod
     def _aggregate(
-        pop_groups: DataFrameGroupBy,
+        pop_groups: DataFrameGroupBy[Any],
         aggregator_sources: list[str] | None,
         aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
-    ) -> pd.Series | pd.DataFrame:
+    ) -> pd.Series[float] | pd.DataFrame:
         """Apply the `aggregator` to the population groups and their
         `aggregator_sources` columns.
         """
         aggregates = (
-            pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)
+            pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)  # type: ignore [arg-type]
             if aggregator_sources
-            else pop_groups.apply(aggregator)
+            else pop_groups.apply(aggregator)  # type: ignore [arg-type]
         ).astype(float)
         return aggregates
 
@@ -341,10 +344,11 @@ class StratifiedObservation(BaseObservation):
     @staticmethod
     def _expand_index(aggregates: pd.DataFrame) -> pd.DataFrame:
         """Include all stratifications in the results by filling missing values with 0."""
-        if isinstance(aggregates.index, pd.MultiIndex):
-            full_idx = pd.MultiIndex.from_product(aggregates.index.levels)
-        else:
-            full_idx = aggregates.index
+        full_idx = (
+            pd.MultiIndex.from_product(aggregates.index.levels)
+            if isinstance(aggregates.index, pd.MultiIndex)
+            else aggregates.index
+        )
         aggregates = aggregates.reindex(full_idx).fillna(0.0)
         return aggregates
 
