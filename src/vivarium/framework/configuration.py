@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 =======================
 Configuration Utilities
@@ -9,9 +8,10 @@ representations of :term:`model specifications <Model Specification>` and
 :term:`configurations <Configuration>`.
 
 """
+from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Any
 
 import yaml
 from layered_config_tree import ConfigurationError, LayeredConfigTree
@@ -20,10 +20,12 @@ from vivarium.framework.plugins import DEFAULT_PLUGINS
 
 
 def build_model_specification(
-    model_specification: Optional[Union[str, Path, LayeredConfigTree]] = None,
-    component_configuration: Optional[Union[Dict, LayeredConfigTree]] = None,
-    configuration: Optional[Union[Dict, LayeredConfigTree]] = None,
-    plugin_configuration: Optional[Union[Dict, LayeredConfigTree]] = None,
+    model_specification: str | Path | LayeredConfigTree | None = None,
+    component_configuration: dict[str, Any] | LayeredConfigTree | None = None,
+    configuration: dict[str, Any] | LayeredConfigTree | None = None,
+    plugin_configuration: dict[str, dict[str, dict[str, str]]]
+    | LayeredConfigTree
+    | None = None,
 ) -> LayeredConfigTree:
     if isinstance(model_specification, (str, Path)):
         validate_model_specification_file(model_specification)
@@ -46,7 +48,7 @@ def build_model_specification(
     return output_spec
 
 
-def validate_model_specification_file(file_path: Union[str, Path]) -> None:
+def validate_model_specification_file(file_path: str | Path) -> None:
     """Ensures the provided file is a yaml file"""
     file_path = Path(file_path)
     if not file_path.exists():
@@ -75,10 +77,10 @@ def validate_model_specification_file(file_path: Union[str, Path]) -> None:
 
 
 def build_simulation_configuration() -> LayeredConfigTree:
-    return _get_default_specification().configuration
+    return _get_default_specification().get_tree("configuration")
 
 
-def _get_default_specification():
+def _get_default_specification() -> LayeredConfigTree:
     default_config_layers = [
         "base",
         "user_configs",
