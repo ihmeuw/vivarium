@@ -20,6 +20,9 @@ from vivarium.types import ClockTime
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
+if TYPE_CHECKING:
+    from vivarium import Component
+
 
 class RandomnessManager(Manager):
     """Access point for common random number generation."""
@@ -86,7 +89,10 @@ class RandomnessManager(Manager):
         )
 
     def get_randomness_stream(
-        self, decision_point: str, initializes_crn_attributes: bool = False
+        self,
+        decision_point: str,
+        component: Component | None,
+        initializes_crn_attributes: bool = False,
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -96,6 +102,8 @@ class RandomnessManager(Manager):
             A unique identifier for a stream of random numbers.  Typically
             represents a decision that needs to be made each time step like
             'moves_left' or 'gets_disease'.
+        component
+            The component that is requesting the randomness stream.
         initializes_crn_attributes
             A flag indicating whether this stream is used to generate key
             initialization information that will be used to identify simulants
@@ -115,10 +123,12 @@ class RandomnessManager(Manager):
             If another location in the simulation has already created a randomness stream
             with the same identifier.
         """
-        stream = self._get_randomness_stream(decision_point, initializes_crn_attributes)
+        stream = self._get_randomness_stream(
+            decision_point, component, initializes_crn_attributes
+        )
         if not initializes_crn_attributes:
             # We need the key columns to be created before this stream can be called.
-            self.resources.add_resources([stream], self._key_columns)
+            self.resources.add_resources(component, [stream], self._key_columns)
         self._add_constraint(
             stream.get_draw, restrict_during=["initialization", "setup", "post_setup"]
         )
@@ -136,7 +146,10 @@ class RandomnessManager(Manager):
         return stream
 
     def _get_randomness_stream(
-        self, decision_point: str, initializes_crn_attributes: bool = False
+        self,
+        decision_point: str,
+        component: Component | None,
+        initializes_crn_attributes: bool = False,
     ) -> RandomnessStream:
         if decision_point in self._decision_points:
             raise RandomnessError(
@@ -148,6 +161,7 @@ class RandomnessManager(Manager):
             clock=self._clock,
             seed=self._seed,
             index_map=self._key_mapping,
+            component=component,
             initializes_crn_attributes=initializes_crn_attributes,
         )
         self._decision_points[decision_point] = stream
@@ -203,7 +217,11 @@ class RandomnessInterface(Interface):
         self._manager = manager
 
     def get_stream(
-        self, decision_point: str, initializes_crn_attributes: bool = False
+        self,
+        decision_point: str,
+        # TODO [MIC-5452]: all calls should have a component
+        component: Component | None = None,
+        initializes_crn_attributes: bool = False,
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -216,9 +234,11 @@ class RandomnessInterface(Interface):
         Parameters
         ----------
         decision_point
-            A unique identifier for a stream of random numbers.  Typically
+            A unique identifier for a stream of random numbers.  Typically, this
             represents a decision that needs to be made each time step like
             'moves_left' or 'gets_disease'.
+        component
+            The component that is requesting the randomness stream.
         initializes_crn_attributes
             A flag indicating whether this stream is used to generate key
             initialization information that will be used to identify simulants
@@ -232,7 +252,9 @@ class RandomnessInterface(Interface):
             The stream provides vectorized access to random numbers and a few
             other utilities.
         """
-        return self._manager.get_randomness_stream(decision_point, initializes_crn_attributes)
+        return self._manager.get_randomness_stream(
+            decision_point, component, initializes_crn_attributes
+        )
 
     def get_seed(self, decision_point: str) -> int:
         """Get a randomly generated seed for use with external randomness tools.
