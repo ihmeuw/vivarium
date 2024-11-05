@@ -48,7 +48,6 @@ exclude = [
     'src/vivarium/framework/components/manager.py',
     'src/vivarium/framework/components/parser.py',
     'src/vivarium/framework/engine.py',
-    'src/vivarium/framework/logging/manager.py',
     'src/vivarium/framework/lookup/manager.py',
     'src/vivarium/framework/population/manager.py',
     'src/vivarium/framework/population/population_view.py',
