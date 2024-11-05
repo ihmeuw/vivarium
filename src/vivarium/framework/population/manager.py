@@ -87,7 +87,6 @@ class InitializerComponentSet:
                 f"You provided {initializer} which is of type {type(initializer)}."
             )
         component = initializer.__self__
-        # TODO: consider if we can initialize the tracked column with a component instead
         # TODO: raise error once all active Component implementations have been refactored
         # if not (isinstance(component, Component) or isinstance(component, PopulationManager)):
         #     raise AttributeError(
@@ -161,6 +160,10 @@ class PopulationManager(Manager):
         """The name of this component."""
         return "population_manager"
 
+    @property
+    def columns_created(self) -> list[str]:
+        return ["tracked"]
+
     def setup(self, builder: Builder) -> None:
         """Registers the population manager with other vivarium systems."""
         self.clock = builder.time.clock()
@@ -184,7 +187,7 @@ class PopulationManager(Manager):
         )
 
         self.register_simulant_initializer(
-            self.on_initialize_simulants, creates_columns="tracked"
+            self.on_initialize_simulants, creates_columns=self.columns_created
         )
         self._view = self.get_view("tracked")
 
