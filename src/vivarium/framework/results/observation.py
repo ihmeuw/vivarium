@@ -60,7 +60,7 @@ class BaseObservation(ABC):
     DataFrame or one with a complete set of stratifications as the index and
     all values set to 0.0."""
     results_gatherer: Callable[
-        [pd.DataFrame | DataFrameGroupBy[Any], tuple[str, ...] | None], pd.DataFrame
+        [pd.DataFrame | DataFrameGroupBy[str], tuple[str, ...] | None], pd.DataFrame
     ]
     """Method or function that gathers the new observation results."""
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
@@ -76,7 +76,7 @@ class BaseObservation(ABC):
     def observe(
         self,
         event: Event,
-        df: pd.DataFrame | DataFrameGroupBy[Any],
+        df: pd.DataFrame | DataFrameGroupBy[str],
         stratifications: tuple[str, ...] | None,
     ) -> pd.DataFrame | None:
         """Determine whether to observe the given event, and if so, gather the results.
@@ -291,7 +291,7 @@ class StratifiedObservation(BaseObservation):
 
     def get_complete_stratified_results(
         self,
-        pop_groups: DataFrameGroupBy[Any],
+        pop_groups: DataFrameGroupBy[str],
         stratifications: tuple[str, ...],
     ) -> pd.DataFrame:
         """Gather results for this observation.
@@ -316,7 +316,7 @@ class StratifiedObservation(BaseObservation):
 
     @staticmethod
     def _aggregate(
-        pop_groups: DataFrameGroupBy[Any],
+        pop_groups: DataFrameGroupBy[str],
         aggregator_sources: list[str] | None,
         aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
     ) -> pd.Series[float] | pd.DataFrame:
