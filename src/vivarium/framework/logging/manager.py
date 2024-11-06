@@ -1,10 +1,10 @@
-# mypy: ignore-errors
 """
 =====================
 The Logging Subsystem
 =====================
 
 """
+
 from __future__ import annotations
 
 import loguru
@@ -15,8 +15,8 @@ from vivarium.manager import Interface, Manager
 
 
 class LoggingManager(Manager):
-    def __init__(self):
-        self._simulation_name = None
+    def __init__(self) -> None:
+        self._simulation_name: str | None = None
 
     def configure_logging(
         self,
@@ -39,13 +39,13 @@ class LoggingManager(Manager):
         # fragile since it depends on a loguru's internals as well as the stability of code
         # paths in vivarium, but both are quite stable at this point, so I think it's pretty,
         # low risk.
-        return 1 not in logger._core.handlers
+        return 1 not in logger._core.handlers  # type: ignore[attr-defined]
 
     @property
-    def name(self):
+    def name(self) -> str:
         return "logging_manager"
 
-    def get_logger(self, component_name: str = None) -> loguru.Logger:
+    def get_logger(self, component_name: str | None = None) -> loguru.Logger:
         bind_args = {"simulation": self._simulation_name}
         if component_name:
             bind_args["component"] = component_name
@@ -53,8 +53,8 @@ class LoggingManager(Manager):
 
 
 class LoggingInterface(Interface):
-    def __init__(self, manager: LoggingManager):
+    def __init__(self, manager: LoggingManager) -> None:
         self._manager = manager
 
-    def get_logger(self, component_name: str = None) -> loguru.Logger:
+    def get_logger(self, component_name: str | None = None) -> loguru.Logger:
         return self._manager.get_logger(component_name)
