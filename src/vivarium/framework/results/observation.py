@@ -62,7 +62,6 @@ class BaseObservation(ABC):
     results_gatherer: Callable[
         [pd.DataFrame | DataFrameGroupBy[Any], tuple[str, ...] | None], pd.DataFrame
     ]
-    # results_gatherer: Callable[[DataFrameGroupBy[Any], tuple[str, ...]], pd.DataFrame] | Callable[[pd.DataFrame, tuple[str, ...] | None], pd.DataFrame]
     """Method or function that gathers the new observation results."""
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
     """Method or function that updates existing raw observation results with newly
