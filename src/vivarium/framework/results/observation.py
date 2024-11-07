@@ -139,8 +139,13 @@ class UnstratifiedObservation(BaseObservation):
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         def _wrap_results_gatherer(
-            df: pd.DataFrame, _: tuple[str, ...] | None
+            df: pd.DataFrame | DataFrameGroupBy[str], _: tuple[str, ...] | None
         ) -> pd.DataFrame:
+            if isinstance(df, DataFrameGroupBy):
+                raise TypeError(
+                    "Must provide a dataframe to an UnstratifiedObservation. "
+                    f"Provided DataFrameGroupBy instead."
+                )
             return results_gatherer(df)
 
         super().__init__(
@@ -148,7 +153,7 @@ class UnstratifiedObservation(BaseObservation):
             pop_filter=pop_filter,
             when=when,
             results_initializer=self.create_empty_df,
-            results_gatherer=_wrap_results_gatherer,  # type: ignore [arg-type]
+            results_gatherer=_wrap_results_gatherer,
             results_updater=results_updater,
             results_formatter=results_formatter,
             stratifications=None,
