@@ -18,4 +18,5 @@ To configure the repo/branch go to
 Updating the shared repo will take affect on the next pipeline invocation.
 */ 
 @Library("vivarium_build_utils") _
-reusable_pipeline(pipeline_name: "test_poc_resuable_workflow")
+// reusable_pipeline(pipeline_name: "test_poc_resuable_workflow")
+reusable_pipeline()
