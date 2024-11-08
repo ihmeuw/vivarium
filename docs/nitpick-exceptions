@@ -37,6 +37,7 @@ py:class Timedelta
 py:class VectorMapper
 py:class ScalarMapper
 py:class PandasObject
+py:class DataFrameGroupBy
 py:exc ResultsConfigurationError
 py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
 
