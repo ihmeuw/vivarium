@@ -186,6 +186,9 @@ class Pipeline(Resource):
     def __repr__(self) -> str:
         return f"_Pipeline({self.name})"
 
+    def __hash__(self) -> int:
+        return hash(self.name)
+
     def get_value_modifier(
         self, modifier: Callable[..., Any], component: Component | None
     ) -> ValueModifier:

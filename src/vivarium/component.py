@@ -603,6 +603,10 @@ class Component(ABC):
             If the data source is invalid.
         """
         data = self.get_data(builder, data_source)
+        # TODO update this to use vivarium.types.LookupTableData once we drop
+        #  support for Python 3.9
+        if not isinstance(data, (Number, timedelta, datetime, pd.DataFrame, list, tuple)):
+            raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
 
         if isinstance(data, list):
             return builder.lookup.build_table(data, value_columns=list(value_columns))
@@ -656,7 +660,7 @@ class Component(ABC):
         self,
         builder: Builder,
         data_source: LookupTableData | str | Callable[[Builder], LookupTableData],
-    ) -> float | pd.DataFrame:
+    ) -> Any:
         """Retrieves data from a data source.
 
         If the data source is a float or a DataFrame, it is treated as the data
@@ -683,12 +687,7 @@ class Component(ABC):
         layered_config_tree.exceptions.ConfigurationError
             If the data source is invalid.
         """
-        # TODO update this to use vivarium.types.LookupTableData once we drop
-        #  support for Python 3.9
-        valid_data_types = (Number, timedelta, datetime, pd.DataFrame, list, tuple)
-        if isinstance(data_source, valid_data_types):
-            data = data_source
-        elif isinstance(data_source, str):
+        if isinstance(data_source, str):
             if "::" in data_source:
                 module, method = data_source.split("::")
                 try:
@@ -716,15 +715,8 @@ class Component(ABC):
         elif isinstance(data_source, Callable):
             data = data_source(builder)
         else:
-            raise ConfigurationError(
-                f"Data source is of type '{type(data_source)}'. It must be a "
-                "LookupTableData instance, a string corresponding to an "
-                "artifact key, a callable that returns a LookupTableData "
-                "instance, or a string defining such a callable."
-            )
+            data = data_source
 
-        if not isinstance(data, valid_data_types):
-            raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
         return data
 
     def _set_population_view(self, builder: "Builder") -> None:
