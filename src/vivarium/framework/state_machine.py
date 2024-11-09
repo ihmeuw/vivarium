@@ -502,12 +502,6 @@ class Machine(Component):
     # Lifecycle methods #
     #####################
 
-    # todo:
-    #  get VPH builds passing with the fewest possible changes
-    #  introduce residual_state arg to DiseaseModel and deprecate usage of initial_state
-    #  change meaning of initial_state in DiseaseModel to match the usage in Machine
-    #  move functionality from VPH to Vivarium
-
     def __init__(
         self,
         state_column: str,
@@ -521,7 +515,7 @@ class Machine(Component):
             self.add_states(states)
 
         states_with_initialization_weights = [
-            s for s in self.states if s.initialization_weights
+            state for state in self.states if state.initialization_weights
         ]
 
         if initial_state is not None:
@@ -538,6 +532,8 @@ class Machine(Component):
 
             initial_state.initialization_weights = lambda _builder: 1.0
 
+        # TODO: [MIC-5403] remove this on_initialize_simulants check once
+        #  VPH's DiseaseModel has a compatible simulation strategy
         elif (
             type(self).on_initialize_simulants == Machine.on_initialize_simulants
             and not states_with_initialization_weights
