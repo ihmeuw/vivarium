@@ -533,7 +533,7 @@ class Machine(Component):
             initial_state.initialization_weights = lambda _builder: 1.0
 
         # TODO: [MIC-5403] remove this on_initialize_simulants check once
-        #  VPH's DiseaseModel has a compatible simulation strategy
+        #  VPH's DiseaseModel has a compatible initialization strategy
         elif (
             type(self).on_initialize_simulants == Machine.on_initialize_simulants
             and not states_with_initialization_weights
