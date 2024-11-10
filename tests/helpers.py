@@ -9,8 +9,7 @@ from vivarium import Component, Observer
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
-from vivarium.framework.randomness import RandomnessStream
-from vivarium.framework.values import Pipeline
+from vivarium.framework.resource import Resource
 
 
 class MockComponentA(Observer):
@@ -247,7 +246,7 @@ class ColumnCreatorAndRequirer(Component):
         return ["test_column_4"]
 
     @property
-    def initialization_requirements(self) -> list[str | Pipeline | RandomnessStream]:
+    def initialization_requirements(self) -> list[str | Resource]:
         return ["test_column_2", self.pipeline, self.randomness]
 
     def setup(self, builder: Builder) -> None:
