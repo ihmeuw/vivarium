@@ -51,7 +51,6 @@ exclude = [
     'src/vivarium/framework/lookup/manager.py',
     'src/vivarium/framework/population/manager.py',
     'src/vivarium/framework/population/population_view.py',
-    'src/vivarium/framework/results/context.py',
     'src/vivarium/framework/results/interface.py',
     'src/vivarium/framework/results/manager.py',
     'src/vivarium/framework/results/observer.py',

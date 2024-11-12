@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ===============
 Results Context
@@ -7,7 +6,8 @@ Results Context
 """
 
 from collections import defaultdict
-from typing import Callable, Generator, List, Optional, Tuple, Type, Union
+from collections.abc import Callable, Generator
+from typing import Type
 
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
@@ -52,8 +52,8 @@ class ResultsContext:
     """
 
     def __init__(self) -> None:
-        self.default_stratifications: List[str] = []
-        self.stratifications: List[Stratification] = []
+        self.default_stratifications: list[str] = []
+        self.stratifications: list[Stratification] = []
         self.excluded_categories: dict[str, list[str]] = {}
         self.observations: defaultdict = defaultdict(lambda: defaultdict(list))
 
@@ -73,7 +73,7 @@ class ResultsContext:
         )
 
     # noinspection PyAttributeOutsideInit
-    def set_default_stratifications(self, default_grouping_columns: List[str]) -> None:
+    def set_default_stratifications(self, default_grouping_columns: list[str]) -> None:
         """Set the default stratifications to be used by stratified observations.
 
         Parameters
@@ -96,15 +96,14 @@ class ResultsContext:
     def add_stratification(
         self,
         name: str,
-        sources: List[str],
-        categories: List[str],
-        excluded_categories: Optional[List[str]],
-        mapper: Optional[
-            Union[
-                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series],
-                Callable[[ScalarValue], str],
-            ]
-        ],
+        sources: list[str],
+        categories: list[str],
+        excluded_categories: list[str] | None,
+        mapper: (
+            Callable[[pd.Series | pd.DataFrame], pd.Series]
+            | Callable[[ScalarValue], str]
+            | None
+        ),
         is_vectorized: bool,
     ) -> None:
         """Add a stratification to the results context.
@@ -242,10 +241,10 @@ class ResultsContext:
     def gather_results(
         self, population: pd.DataFrame, lifecycle_phase: str, event: Event
     ) -> Generator[
-        Tuple[
-            Optional[pd.DataFrame],
-            Optional[str],
-            Optional[Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]],
+        tuple[
+            pd.DataFrame | None,
+            str | None,
+            Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame] | None,
         ],
         None,
         None,
@@ -317,7 +316,7 @@ class ResultsContext:
         self,
         population: pd.DataFrame,
         pop_filter: str,
-        stratification_names: Optional[tuple[str, ...]],
+        stratification_names: tuple[str, ...] | None,
     ) -> pd.DataFrame:
         """Filter out simulants not to observe."""
         pop = population.query(pop_filter) if pop_filter else population.copy()
@@ -334,7 +333,7 @@ class ResultsContext:
 
     @staticmethod
     def _get_groups(
-        stratifications: Tuple[str, ...], filtered_pop: pd.DataFrame
+        stratifications: tuple[str, ...], filtered_pop: pd.DataFrame
     ) -> DataFrameGroupBy:
         """Group the population by stratification.
 

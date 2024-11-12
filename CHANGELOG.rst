@@ -1,3 +1,7 @@
+**3.1.1 - TBD/TBD/TBD**
+
+  - Fix mypy errors in vivarium/framework/results/context.py
+
 **3.1.0 - 11/07/24**
 
   - Drop support for python 3.9
