@@ -9,8 +9,7 @@ from vivarium import Component
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.framework.randomness import RandomnessStream
-    from vivarium.framework.values import Pipeline
+    from vivarium.framework.resource import Resource
 
 
 class Risk(Component):
@@ -33,7 +32,7 @@ class Risk(Component):
         return [self.propensity_column]
 
     @property
-    def initialization_requirements(self) -> list[str | Pipeline | RandomnessStream]:
+    def initialization_requirements(self) -> list[str | Resource]:
         return [self.randomness]
 
     #####################
