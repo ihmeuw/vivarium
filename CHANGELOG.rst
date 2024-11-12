@@ -1,7 +1,19 @@
-**3.2.0 - TBD**
+**3.2.0 - 11/12/24**
 
-  - Enable Machine to be used directly to model a state machine
-  - Support passing callables directly when building lookup tables
+  - Feature: Supports passing callables directly when building lookup tables
+  - Feature: Enables columns and pipelines to specify dependencies directly, instead of by name
+  - Feature: Enables identification of which component produced a Pipeline or RandomnessStream
+  - Bugfix: Enables Machine to be used directly to model a state machine
+  - Bugfix: Ensures that a Pipeline will always have a name
+  - Bugfix: Appropriately declares dependencies in example models
+  - Testing: Adds coverage for example DiseaseModel
+  - Refactor: Converts resource module into a package
+  - Refactor: Converts values module into a package
+  = Refactor: Simplifies code to allow Managers to create columns
+  - Refactor: Converts ResourceManager __iter__ to a well-named instance method
+  - Refactor: Creates ResourceTypes for each type of resource
+  - Refactor: Makes Pipeline and RandomnessStream inherit from Resource
+  - Refactor: Creates ValueSource and ValueModifer resources and attaches them to Pipelines
 
 **3.1.0 - 11/07/24**
 
