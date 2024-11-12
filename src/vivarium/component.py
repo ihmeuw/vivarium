@@ -32,8 +32,7 @@ if TYPE_CHECKING:
     from vivarium.framework.event import Event
     from vivarium.framework.lookup import LookupTable
     from vivarium.framework.population import PopulationView, SimulantData
-    from vivarium.framework.randomness import RandomnessStream
-    from vivarium.framework.values import Pipeline
+    from vivarium.framework.resource import Resource
     from vivarium.types import LookupTableData
 
 DEFAULT_EVENT_PRIORITY = 5
@@ -239,7 +238,7 @@ class Component(ABC):
     @property
     def initialization_requirements(
         self,
-    ) -> list[str | Pipeline | RandomnessStream]:
+    ) -> list[str | Resource]:
         """A list containing the columns, pipelines, and randomness streams
         required by this component's simulant initializer."""
         return []
