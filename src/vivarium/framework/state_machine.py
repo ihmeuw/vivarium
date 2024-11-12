@@ -27,10 +27,6 @@ if TYPE_CHECKING:
     from vivarium.types import ClockTime, LookupTableData
 
 
-def default_initializer(_builder: Builder) -> LookupTableData:
-    return 0.0
-
-
 def _next_state(
     index: pd.Index,
     event_time: ClockTime,
@@ -221,7 +217,7 @@ class State(Component):
         self,
         state_id: str,
         allow_self_transition: bool = False,
-        initialization_weights: Callable[[Builder], LookupTableData] = default_initializer,
+        initialization_weights: Callable[[Builder], LookupTableData] | None = None,
     ) -> None:
         super().__init__()
         self.state_id = state_id
@@ -294,7 +290,10 @@ class State(Component):
     ##################
 
     def get_initialization_weights(self, builder: Builder) -> LookupTableData:
-        return self.initialization_weights(builder)
+        if self.initialization_weights:
+            return self.initialization_weights(builder)
+        else:
+            return 0.0
 
     def transition_side_effect(self, index: pd.Index, event_time: ClockTime) -> None:
         pass
@@ -516,7 +515,7 @@ class Machine(Component):
             self.add_states(states)
 
         states_with_initialization_weights = [
-            s for s in self.states if s.initialization_weights != default_initializer
+            state for state in self.states if state.initialization_weights
         ]
 
         if initial_state is not None:
@@ -533,7 +532,12 @@ class Machine(Component):
 
             initial_state.initialization_weights = lambda _builder: 1.0
 
-        elif not states_with_initialization_weights:
+        # TODO: [MIC-5403] remove this on_initialize_simulants check once
+        #  VPH's DiseaseModel has a compatible initialization strategy
+        elif (
+            type(self).on_initialize_simulants == Machine.on_initialize_simulants
+            and not states_with_initialization_weights
+        ):
             raise ValueError(
                 "Must specify either an initial state or provide"
                 " initialization weights to states."
