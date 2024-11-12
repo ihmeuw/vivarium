@@ -1,3 +1,7 @@
+**3.1.0 - 11/07/24**
+
+  - Drop support for python 3.9
+
 **3.0.18 - 11/06/24**
 
   - Fix mypy errors in vivarium/framework/logging/manager.py
