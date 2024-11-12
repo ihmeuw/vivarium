@@ -1,7 +1,16 @@
-**3.1.0 - TBD**
+**3.2.0 - TBD**
 
   - Enable Machine to be used directly to model a state machine
   - Support passing callables directly when building lookup tables
+
+**3.1.0 - 11/07/24**
+
+  - Drop support for python 3.9
+
+**3.0.18 - 11/06/24**
+
+  - Fix mypy errors in vivarium/framework/logging/manager.py
+  - Fix mypy errors in vivarium/framework/results/observations.py
 
 **3.0.17 - 11/04/24**
 
