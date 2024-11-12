@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ====================
 The Simulation Clock
