@@ -5,6 +5,7 @@
 **3.0.18 - 11/06/24**
 
   - Fix mypy errors in vivarium/framework/logging/manager.py
+  - Fix mypy errors in vivarium/framework/results/observations.py
 
 **3.0.17 - 11/04/24**
 
