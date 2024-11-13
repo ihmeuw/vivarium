@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Generator
-from typing import Any, Type
+from typing import Any
 
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
@@ -186,7 +186,7 @@ class ResultsContext:
 
     def register_observation(
         self,
-        observation_type: Type[Observation],
+        observation_type: type[Observation],
         name: str,
         pop_filter: str,
         when: str,
