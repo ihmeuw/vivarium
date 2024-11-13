@@ -1,5 +1,4 @@
 import itertools
-from typing import List
 
 import numpy as np
 import pandas as pd
@@ -55,7 +54,7 @@ RNG = np.random.default_rng(42)
 
 class Hogwarts(Component):
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return [
             "student_id",
             "student_house",

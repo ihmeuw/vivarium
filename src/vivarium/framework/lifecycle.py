@@ -31,8 +31,6 @@ The tools here also allow for introspection of the simulation life cycle.
 
 """
 
-from __future__ import annotations
-
 import functools
 import textwrap
 import time

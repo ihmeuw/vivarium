@@ -7,8 +7,6 @@ The manager and :ref:`builder <builder_concept>` interface for the
 :ref:`population management system <population_concept>`.
 
 """
-from __future__ import annotations
-
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType

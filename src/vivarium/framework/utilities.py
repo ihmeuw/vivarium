@@ -7,13 +7,11 @@ Framework Utility Functions
 Collection of utility functions shared by the ``vivarium`` framework.
 
 """
-from __future__ import annotations
-
 import functools
 from bdb import BdbQuit
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from importlib import import_module
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 import numpy as np
 
@@ -28,7 +26,7 @@ def to_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
     return value / (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
-def rate_to_probability(rate: Union[Sequence[float], NumberLike]) -> NumericArray:
+def rate_to_probability(rate: Sequence[float] | NumberLike) -> NumericArray:
     # encountered underflow from rate > 30k
     # for rates greater than 250, exp(-rate) evaluates to 1e-109
     # beware machine-specific floating point issues
@@ -39,14 +37,14 @@ def rate_to_probability(rate: Union[Sequence[float], NumberLike]) -> NumericArra
     return probability
 
 
-def probability_to_rate(probability: Union[Sequence[float], NumberLike]) -> NumericArray:
+def probability_to_rate(probability: Sequence[float] | NumberLike) -> NumericArray:
     probability = np.array(probability)
     rate: NumericArray = -np.log(1 - probability)
     return rate
 
 
 def collapse_nested_dict(
-    d: dict[str, Any], prefix: Optional[str] = None
+    d: dict[str, Any], prefix: str | None = None
 ) -> list[tuple[str, Any]]:
     results = []
     for k, v in d.items():

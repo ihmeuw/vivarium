@@ -18,8 +18,6 @@ provided as attributes to the parent class.
 
 """
 
-from __future__ import annotations
-
 import itertools
 from abc import ABC
 from collections.abc import Callable

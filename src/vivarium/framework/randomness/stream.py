@@ -24,8 +24,6 @@ module.
 
 """
 
-from __future__ import annotations
-
 import hashlib
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, TypeVar

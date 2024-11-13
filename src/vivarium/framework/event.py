@@ -27,8 +27,6 @@ For more information, see the associated event
 
 """
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, NamedTuple

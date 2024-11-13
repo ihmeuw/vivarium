@@ -7,15 +7,12 @@ Provides interpolation algorithms across tabular data for ``vivarium``
 simulations.
 
 """
-from __future__ import annotations
-
 from collections.abc import Hashable, Sequence
-from typing import Union
 
 import numpy as np
 import pandas as pd
 
-_SubTablesType = list[tuple[Union[tuple[Hashable, ...], Hashable, None], pd.DataFrame]]
+_SubTablesType = list[tuple[tuple[Hashable, ...] | Hashable | None, pd.DataFrame]]
 
 
 class Interpolation:

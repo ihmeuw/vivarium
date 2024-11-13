@@ -1,5 +1,3 @@
-from typing import Dict
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -157,7 +155,7 @@ def test_sample_from_distribution_bad_args(
     ],
 )
 def test_sample_from_distribution_using_scipy(
-    index: pd.Index, distribution: stats.rv_continuous, params: Dict
+    index: pd.Index, distribution: stats.rv_continuous, params: dict
 ):
     randomness_stream = RandomnessStream(
         "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()

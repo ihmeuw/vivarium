@@ -1,7 +1,5 @@
 # mypy: ignore-errors
-from __future__ import annotations
-
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -85,7 +83,7 @@ class MockGenericComponent(Component):
         return self._name
 
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         return {self.name: self.CONFIGURATION_DEFAULTS["component"]}
 
     def __init__(self, name: str):
@@ -143,7 +141,7 @@ class Listener(MockComponentB):
 
 class ColumnCreator(Component):
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return ["test_column_1", "test_column_2", "test_column_3"]
 
     def setup(self, builder: Builder) -> None:
@@ -194,7 +192,7 @@ class SingleLookupCreator(ColumnCreator):
 
 class OrderedColumnsLookupCreator(Component):
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return ["foo", "bar"]
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -233,17 +231,17 @@ class OrderedColumnsLookupCreator(Component):
 
 class ColumnRequirer(Component):
     @property
-    def columns_required(self) -> List[str]:
+    def columns_required(self) -> list[str]:
         return ["test_column_1", "test_column_2"]
 
 
 class ColumnCreatorAndRequirer(Component):
     @property
-    def columns_required(self) -> List[str]:
+    def columns_required(self) -> list[str]:
         return ["test_column_1", "test_column_2"]
 
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return ["test_column_4"]
 
     @property
@@ -261,13 +259,13 @@ class ColumnCreatorAndRequirer(Component):
 
 class AllColumnsRequirer(Component):
     @property
-    def columns_required(self) -> List[str]:
+    def columns_required(self) -> list[str]:
         return []
 
 
 class FilteredPopulationView(ColumnRequirer):
     @property
-    def population_view_query(self) -> Optional[str]:
+    def population_view_query(self) -> str | None:
         return "test_column_1 == 5"
 
 

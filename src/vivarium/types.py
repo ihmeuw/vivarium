@@ -9,13 +9,13 @@ import pandas as pd
 NumericArray = npt.NDArray[np.number[npt.NBitBase]]
 
 # todo need to use TypeVars here
-Time = Union[pd.Timestamp, datetime]
-Timedelta = Union[pd.Timedelta, timedelta]
-ClockTime = Union[Time, int]
-ClockStepSize = Union[Timedelta, int]
+Time = pd.Timestamp | datetime
+Timedelta = pd.Timedelta | timedelta
+ClockTime = Time | int
+ClockStepSize = Timedelta | int
 
-ScalarValue = Union[Number, Timedelta, Time]
-LookupTableData = Union[ScalarValue, pd.DataFrame, list[ScalarValue], tuple[ScalarValue]]
+ScalarValue = Number | Timedelta | Time
+LookupTableData = ScalarValue | pd.DataFrame | list[ScalarValue] | tuple[ScalarValue]
 # TODO: For some of the uses of NumberLike, we probably want a TypeVar here instead.
 NumberLike = Union[
     NumericArray,

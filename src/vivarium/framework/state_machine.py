@@ -7,11 +7,9 @@ State Machine
 A state machine implementation for use in ``vivarium`` simulations.
 
 """
-from __future__ import annotations
-
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
@@ -68,8 +66,8 @@ def _next_state(
 
 
 def _groupby_new_state(
-    index: pd.Index, outputs: List, decisions: pd.Series
-) -> List[Tuple[str, pd.Index]]:
+    index: pd.Index, outputs: list, decisions: pd.Series
+) -> list[tuple[str, pd.Index]]:
     """Groups the simulants in the index by their new output state.
 
     Parameters
@@ -364,7 +362,7 @@ class TransitionSet(Component):
     # Public methods #
     ##################
 
-    def choose_new_state(self, index: pd.Index) -> Tuple[List, pd.Series]:
+    def choose_new_state(self, index: pd.Index) -> tuple[list, pd.Series]:
         """Chooses a new state for each simulant in the index.
 
         Parameters
@@ -489,7 +487,7 @@ class Machine(Component):
         return self.states
 
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return [self.state_column]
 
     @property
@@ -596,7 +594,7 @@ class Machine(Component):
             if not affected.empty:
                 state.cleanup_effect(affected.index, event_time)
 
-    def _get_state_pops(self, index: pd.Index) -> List[Tuple[State, pd.DataFrame]]:
+    def _get_state_pops(self, index: pd.Index) -> list[tuple[State, pd.DataFrame]]:
         population = self.population_view.get(index)
         return [
             (state, population[population[self.state_column] == state.state_id])
@@ -607,7 +605,7 @@ class Machine(Component):
     # Helper methods #
     ##################
 
-    def get_initialization_parameters(self) -> Dict[str, Any]:
+    def get_initialization_parameters(self) -> dict[str, Any]:
         """
         Gets the values of the state column specified in the __init__`.
 

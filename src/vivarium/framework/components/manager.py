@@ -18,7 +18,8 @@ setup everything it holds when the context itself is setup.
 """
 
 import inspect
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Sequence, Tuple, Union
+from collections.abc import Iterator, Sequence
+from typing import TYPE_CHECKING, Any
 
 from layered_config_tree import (
     ConfigurationError,
@@ -49,8 +50,8 @@ class OrderedComponentSet:
 
     """
 
-    def __init__(self, *args: Union[Component, Manager]):
-        self.components: List[Union[Component, Manager]] = []
+    def __init__(self, *args: Component | Manager):
+        self.components: list[Component | Manager] = []
         if args:
             self.update(args)
 
@@ -63,21 +64,21 @@ class OrderedComponentSet:
 
     def update(
         self,
-        components: Union[List[Union[Component, Manager]], Tuple[Union[Component, Manager]]],
+        components: list[Component | Manager] | tuple[Component | Manager],
     ) -> None:
         for c in components:
             self.add(c)
 
-    def pop(self) -> Union[Component, Manager]:
+    def pop(self) -> Component | Manager:
         component = self.components.pop(0)
         return component
 
-    def __contains__(self, component: Union[Component, Manager]) -> bool:
+    def __contains__(self, component: Component | Manager) -> bool:
         if not hasattr(component, "name"):
             raise ComponentConfigError(f"Component {component} has no name attribute")
         return component.name in [c.name for c in self.components]
 
-    def __iter__(self) -> Iterator[Union[Component, Manager]]:
+    def __iter__(self) -> Iterator[Component | Manager]:
         return iter(self.components)
 
     def __len__(self) -> int:
@@ -149,7 +150,7 @@ class ComponentManager(Manager):
             self.list_components, restrict_during=["initialization"]
         )
 
-    def add_managers(self, managers: Union[List[Manager], Tuple[Manager]]) -> None:
+    def add_managers(self, managers: list[Manager] | tuple[Manager]) -> None:
         """Registers new managers with the component manager.
 
         Managers are configured and setup before components.
@@ -163,7 +164,7 @@ class ComponentManager(Manager):
             self.apply_configuration_defaults(m)
             self._managers.add(m)
 
-    def add_components(self, components: Union[List[Component], Tuple[Component]]) -> None:
+    def add_components(self, components: list[Component] | tuple[Component]) -> None:
         """Register new components with the component manager.
 
         Components are configured and setup after managers.
@@ -178,8 +179,8 @@ class ComponentManager(Manager):
             self._components.add(c)
 
     def get_components_by_type(
-        self, component_type: Union[type, Sequence[type]]
-    ) -> List[Component]:
+        self, component_type: type | Sequence[type]
+    ) -> list[Component]:
         """Get all components that are an instance of ``component_type``.
 
         Parameters
@@ -218,7 +219,7 @@ class ComponentManager(Manager):
                 return c
         raise ValueError(f"No component found with name {name}")
 
-    def list_components(self) -> Dict[str, Component]:
+    def list_components(self) -> dict[str, Component]:
         """Get a mapping of component names to components held by the manager.
 
         Returns
@@ -244,7 +245,7 @@ class ComponentManager(Manager):
         """
         self._setup_components(builder, self._managers + self._components)
 
-    def apply_configuration_defaults(self, component: Union[Component, Manager]) -> None:
+    def apply_configuration_defaults(self, component: Component | Manager) -> None:
         try:
             self.configuration.update(
                 component.configuration_defaults,
@@ -271,7 +272,7 @@ class ComponentManager(Manager):
             )
 
     @staticmethod
-    def _get_file(component: Union[Component, Manager]) -> str:
+    def _get_file(component: Component | Manager) -> str:
         if component.__module__ == "__main__":
             # This is defined directly in a script or notebook so there's no
             # file to attribute it to.
@@ -281,8 +282,8 @@ class ComponentManager(Manager):
 
     @staticmethod
     def _flatten(
-        components: List[Union[Component, Manager]]
-    ) -> List[Union[Component, Manager]]:
+        components: list[Component | Manager]
+    ) -> list[Component | Manager]:
         out = []
         components = components[::-1]
         while components:
@@ -340,8 +341,8 @@ class ComponentInterface(Interface):
         return self._manager.get_component(name)
 
     def get_components_by_type(
-        self, component_type: Union[type, Sequence[type]]
-    ) -> List[Component]:
+        self, component_type: type | Sequence[type]
+    ) -> list[Component]:
         """Get all components that are an instance of ``component_type``.
 
         Parameters
@@ -356,7 +357,7 @@ class ComponentInterface(Interface):
         """
         return self._manager.get_components_by_type(component_type)
 
-    def list_components(self) -> Dict[str, Component]:
+    def list_components(self) -> dict[str, Component]:
         """Get a mapping of component names to components held by the manager.
 
         Returns

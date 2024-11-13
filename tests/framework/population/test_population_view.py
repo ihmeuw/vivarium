@@ -1,7 +1,6 @@
 import itertools
 import math
 import random
-from typing import Union
 
 import pandas as pd
 import pytest
@@ -71,7 +70,7 @@ def update_index(request) -> pd.Index:
         BASE_POPULATION[COL_NAMES[0]].copy(),
     ]
 )
-def population_update(request, update_index) -> Union[pd.Series, pd.DataFrame]:
+def population_update(request, update_index) -> pd.Series | pd.DataFrame:
     return request.param.loc[update_index]
 
 
