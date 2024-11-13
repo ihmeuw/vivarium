@@ -24,7 +24,6 @@ import itertools
 from abc import ABC
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -34,9 +33,6 @@ from vivarium.framework.event import Event
 from vivarium.framework.results.stratification import Stratification
 
 VALUE_COLUMN = "value"
-
-if TYPE_CHECKING:
-    _PandasGroup = pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str]
 
 
 @dataclass
@@ -63,7 +59,7 @@ class BaseObservation(ABC):
     DataFrame or one with a complete set of stratifications as the index and
     all values set to 0.0."""
     results_gatherer: Callable[
-        [_PandasGroup, tuple[str, ...] | None],
+        [pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str], tuple[str, ...] | None],
         pd.DataFrame,
     ]
     """Method or function that gathers the new observation results."""
@@ -80,7 +76,7 @@ class BaseObservation(ABC):
     def observe(
         self,
         event: Event,
-        df: _PandasGroup,
+        df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str],
         stratifications: tuple[str, ...] | None,
     ) -> pd.DataFrame | None:
         """Determine whether to observe the given event, and if so, gather the results.
@@ -143,7 +139,7 @@ class UnstratifiedObservation(BaseObservation):
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         def _wrap_results_gatherer(
-            df: _PandasGroup,
+            df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str],
             _: tuple[str, ...] | None,
         ) -> pd.DataFrame:
             if isinstance(df, DataFrameGroupBy):
