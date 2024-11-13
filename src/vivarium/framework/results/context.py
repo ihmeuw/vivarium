@@ -5,9 +5,11 @@ Results Context
 
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Callable, Generator
-from typing import Type
+from typing import Any, Type
 
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
@@ -21,7 +23,7 @@ from vivarium.framework.results.stratification import (
     get_mapped_col_name,
     get_original_col_name,
 )
-from vivarium.types import ScalarValue
+from vivarium.types import ScalarMapper, VectorMapper
 
 
 class ResultsContext:
@@ -55,7 +57,9 @@ class ResultsContext:
         self.default_stratifications: list[str] = []
         self.stratifications: list[Stratification] = []
         self.excluded_categories: dict[str, list[str]] = {}
-        self.observations: defaultdict = defaultdict(lambda: defaultdict(list))
+        self.observations: defaultdict[
+            str, defaultdict[tuple[str, tuple[str, ...] | None], list[BaseObservation]]
+        ] = defaultdict(lambda: defaultdict(list))
 
     @property
     def name(self) -> str:
@@ -99,11 +103,7 @@ class ResultsContext:
         sources: list[str],
         categories: list[str],
         excluded_categories: list[str] | None,
-        mapper: (
-            Callable[[pd.Series | pd.DataFrame], pd.Series]
-            | Callable[[ScalarValue], str]
-            | None
-        ),
+        mapper: VectorMapper | ScalarMapper | None,
         is_vectorized: bool,
     ) -> None:
         """Add a stratification to the results context.
@@ -190,7 +190,7 @@ class ResultsContext:
         name: str,
         pop_filter: str,
         when: str,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Add an observation to the results context.
 
@@ -301,6 +301,7 @@ class ResultsContext:
             if filtered_pop.empty:
                 yield None, None, None
             else:
+                pop: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str]
                 if stratification_names is None:
                     pop = filtered_pop
                 else:
@@ -334,7 +335,7 @@ class ResultsContext:
     @staticmethod
     def _get_groups(
         stratifications: tuple[str, ...], filtered_pop: pd.DataFrame
-    ) -> DataFrameGroupBy:
+    ) -> DataFrameGroupBy[tuple[str, ...] | str]:
         """Group the population by stratification.
 
         Notes
@@ -355,7 +356,7 @@ class ResultsContext:
             )
         else:
             pop_groups = filtered_pop.groupby(lambda _: "all")
-        return pop_groups
+        return pop_groups  # type: ignore[return-value]
 
     def _rename_stratification_columns(self, results: pd.DataFrame) -> None:
         """Convert the temporary stratified mapped index names back to their original names."""
