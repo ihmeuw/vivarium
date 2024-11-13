@@ -13,8 +13,9 @@ For more information about time in the simulation, see the associated
 """
 
 import math
+from collections.abc import Callable
 from functools import partial
-from typing import TYPE_CHECKING, Callable, List
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -39,11 +40,11 @@ class SimulationClock(Manager):
         return "simulation_clock"
 
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return ["next_event_time", "step_size"]
 
     @property
-    def columns_required(self) -> List[str]:
+    def columns_required(self) -> list[str]:
         return ["tracked"]
 
     @property
@@ -191,7 +192,7 @@ class SimulationClock(Manager):
         if self._individual_clocks and index.any():
             self._simulants_to_snooze = self._simulants_to_snooze.union(index)
 
-    def step_size_post_processor(self, values: List[NumberLike], _) -> pd.Series:
+    def step_size_post_processor(self, values: list[NumberLike], _) -> pd.Series:
         """Computes the largest feasible step size for each simulant.
 
         This is the smallest component-modified step size (rounded down to increments
@@ -321,9 +322,9 @@ class TimeInterface(Interface):
     def register_step_size_modifier(
         self,
         modifier: Callable[[pd.Index], pd.Series],
-        requires_columns: List[str] = (),
-        requires_values: List[str] = (),
-        requires_streams: List[str] = (),
+        requires_columns: list[str] = (),
+        requires_values: list[str] = (),
+        requires_streams: list[str] = (),
     ) -> None:
         """Registers a step size modifier.
 

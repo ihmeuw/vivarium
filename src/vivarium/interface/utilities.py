@@ -7,8 +7,6 @@ The functions defined here are used to support the interactive and command-line
 interfaces for ``vivarium``.
 
 """
-from __future__ import annotations
-
 import functools
 from collections.abc import Callable, Generator, Sequence
 from datetime import datetime

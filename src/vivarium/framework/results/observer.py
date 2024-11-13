@@ -15,7 +15,7 @@ by concrete observers. Each concrete observer is required to implement a
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 from vivarium import Component
 from vivarium.framework.engine import Builder
@@ -35,7 +35,7 @@ class Observer(Component, ABC):
         self.results_dir = None
 
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         return {
             "stratification": {
                 self.get_configuration_name(): {

@@ -1,7 +1,7 @@
 # mypy: ignore-errors
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -24,11 +24,11 @@ class Risk(Component):
     ##############
 
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         return {self.risk: self.CONFIGURATION_DEFAULTS["risk"]}
 
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return [self.propensity_column]
 
     @property
@@ -91,7 +91,7 @@ class RiskEffect(Component):
     ##############
 
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         return {self.risk: self.CONFIGURATION_DEFAULTS["risk_effect"]}
 
     #####################

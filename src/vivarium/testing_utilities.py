@@ -10,7 +10,7 @@ Utility functions and classes to make testing ``vivarium`` components easier.
 
 from itertools import product
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -33,7 +33,7 @@ class NonCRNTestPopulation(Component):
     }
 
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return ["age", "sex", "location", "alive", "entrance_time", "exit_time"]
 
     def setup(self, builder: Builder) -> None:
@@ -152,12 +152,12 @@ def _non_crn_build_population(
 
 def build_table(
     value: Any,
-    parameter_columns: Dict = {
+    parameter_columns: dict = {
         "age": (0, 125),
         "year": (1990, 2020),
     },
-    key_columns: Dict = {"sex": ("Female", "Male")},
-    value_columns: List = ["value"],
+    key_columns: dict = {"sex": ("Female", "Male")},
+    value_columns: list = ["value"],
 ) -> pd.DataFrame:
     """
 

@@ -14,8 +14,9 @@ See the associated tutorials for :ref:`running <interactive_tutorial>` and
 
 """
 
+from collections.abc import Callable
 from math import ceil
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -43,7 +44,7 @@ class InteractiveContext(SimulationContext):
         super().setup()
         self.initialize_simulants()
 
-    def step(self, step_size: Optional[ClockStepSize] = None) -> None:
+    def step(self, step_size: ClockStepSize | None = None) -> None:
         """Advance the simulation one step.
 
         Parameters
@@ -133,7 +134,7 @@ class InteractiveContext(SimulationContext):
     def take_steps(
         self,
         number_of_steps: int = 1,
-        step_size: Optional[ClockStepSize] = None,
+        step_size: ClockStepSize | None = None,
         with_logging: bool = True,
     ):
         """Run the simulation for the given number of steps.
@@ -174,7 +175,7 @@ class InteractiveContext(SimulationContext):
         """
         return self._population.get_population(untracked)
 
-    def list_values(self) -> List[str]:
+    def list_values(self) -> list[str]:
         """List the names of all pipelines in the simulation."""
         return list(self._values.keys())
 
@@ -182,11 +183,11 @@ class InteractiveContext(SimulationContext):
         """Get the value pipeline associated with the given name."""
         return self._values.get_value(value_pipeline_name)
 
-    def list_events(self) -> List[str]:
+    def list_events(self) -> list[str]:
         """List all event types registered with the simulation."""
         return self._events.list_events()
 
-    def get_listeners(self, event_type: str) -> Dict[int, List[Callable]]:
+    def get_listeners(self, event_type: str) -> dict[int, list[Callable]]:
         """Get all listeners of a particular type of event.
 
         Available event types can be found by calling
@@ -225,7 +226,7 @@ class InteractiveContext(SimulationContext):
             raise ValueError(f"No event {event_type} in system.")
         return self._events.get_emitter(event_type)
 
-    def list_components(self) -> Dict[str, Any]:
+    def list_components(self) -> dict[str, Any]:
         """Get a mapping of component names to components currently in the simulation.
 
         Returns

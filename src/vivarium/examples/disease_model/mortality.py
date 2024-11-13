@@ -1,5 +1,5 @@
 # mypy: ignore-errors
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,7 @@ class Mortality(Component):
     ##############
 
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         """A set of default configuration values for this component.
 
         These can be overwritten in the simulation model specification or by
@@ -28,7 +28,7 @@ class Mortality(Component):
         }
 
     @property
-    def columns_required(self) -> Optional[List[str]]:
+    def columns_required(self) -> list[str] | None:
         return ["tracked", "alive"]
 
     #####################

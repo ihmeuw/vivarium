@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -223,7 +223,7 @@ def test_apply_configuration_defaults_duplicate():
 def test_apply_configuration_defaults_bad_structure():
     class BadConfigComponent(MockComponentA):
         @property
-        def configuration_defaults(self) -> Dict[str, Any]:
+        def configuration_defaults(self) -> dict[str, Any]:
             return {"test_component": "val"}
 
     config = build_simulation_configuration()

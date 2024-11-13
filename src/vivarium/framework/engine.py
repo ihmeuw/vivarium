@@ -23,7 +23,6 @@ tools to easily setup and run a simulation.
 from pathlib import Path
 from pprint import pformat
 from time import time
-from typing import Dict, List, Optional, Set, Union
 
 import dill
 import numpy as np
@@ -51,10 +50,10 @@ from vivarium.types import ClockTime
 
 
 class SimulationContext:
-    _created_simulation_contexts: Set[str] = set()
+    _created_simulation_contexts: set[str] = set()
 
     @staticmethod
-    def _get_context_name(sim_name: Union[str, None]) -> str:
+    def _get_context_name(sim_name: str | None) -> str:
         """Get a unique name for a simulation context.
 
         Parameters
@@ -99,11 +98,11 @@ class SimulationContext:
 
     def __init__(
         self,
-        model_specification: Optional[Union[str, Path, LayeredConfigTree]] = None,
-        components: Optional[Union[List[Component], Dict, LayeredConfigTree]] = None,
-        configuration: Optional[Union[Dict, LayeredConfigTree]] = None,
-        plugin_configuration: Optional[Union[Dict, LayeredConfigTree]] = None,
-        sim_name: Optional[str] = None,
+        model_specification: str | Path | LayeredConfigTree | None = None,
+        components: list[Component] | dict | LayeredConfigTree | None = None,
+        configuration: dict | LayeredConfigTree | None = None,
+        plugin_configuration: dict | LayeredConfigTree | None = None,
+        sim_name: str | None = None,
         logging_verbosity: int = 1,
     ):
         self._name = self._get_context_name(sim_name)
@@ -112,7 +111,7 @@ class SimulationContext:
         component_configuration = (
             components if isinstance(components, (dict, LayeredConfigTree)) else None
         )
-        self._additional_components = components if isinstance(components, List) else []
+        self._additional_components = components if isinstance(components, list) else []
         self.model_specification = build_model_specification(
             model_specification, component_configuration, configuration, plugin_configuration
         )
@@ -214,7 +213,7 @@ class SimulationContext:
         """Returns the current simulation time."""
         return self._clock.time
 
-    def get_results(self) -> Dict[str, pd.DataFrame]:
+    def get_results(self) -> dict[str, pd.DataFrame]:
         """Return the formatted results."""
         return self._results.get_results()
 
@@ -268,8 +267,8 @@ class SimulationContext:
 
     def run(
         self,
-        backup_path: Optional[Path] = None,
-        backup_freq: Optional[Union[int, float]] = None,
+        backup_path: Path | None = None,
+        backup_freq: int | float = None,
     ) -> None:
         if backup_freq:
             time_to_save = time() + backup_freq
@@ -339,7 +338,7 @@ class SimulationContext:
         performance_metrics = pd.DataFrame(records)
         return performance_metrics
 
-    def add_components(self, component_list: List[Component]) -> None:
+    def add_components(self, component_list: list[Component]) -> None:
         """Adds new components to the simulation."""
         self._component_manager.add_components(component_list)
 

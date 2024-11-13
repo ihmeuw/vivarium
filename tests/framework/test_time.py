@@ -1,5 +1,4 @@
 import math
-from typing import List
 
 import numpy as np
 import pandas as pd
@@ -171,7 +170,7 @@ class StepModifierWithUntracking(StepModifierWithRatePipeline):
     """Add an event step that untracks/tracks even simulants every timestep"""
 
     @property
-    def columns_required(self) -> List[str]:
+    def columns_required(self) -> list[str]:
         return ["tracked"]
 
     def on_time_step(self, event: Event) -> None:

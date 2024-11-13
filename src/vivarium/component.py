@@ -13,12 +13,12 @@ from __future__ import annotations
 import re
 import warnings
 from abc import ABC
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 from importlib import import_module
 from inspect import signature
 from numbers import Number
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
@@ -87,7 +87,7 @@ class Component(ABC):
 
     """
 
-    CONFIGURATION_DEFAULTS: Dict[str, Any] = {}
+    CONFIGURATION_DEFAULTS: dict[str, Any] = {}
     """A dictionary containing the defaults for any configurations managed by this
     component. An empty dictionary indicates no managed configurations.
     """
@@ -187,7 +187,7 @@ class Component(ABC):
         return self._population_view
 
     @property
-    def sub_components(self) -> List["Component"]:
+    def sub_components(self) -> list["Component"]:
         """Provide components managed by this component.
 
         Returns
@@ -198,7 +198,7 @@ class Component(ABC):
         return self._sub_components
 
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         """Provides a dictionary containing the defaults for any configurations
         managed by this component.
 
@@ -213,7 +213,7 @@ class Component(ABC):
         return self.CONFIGURATION_DEFAULTS
 
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         """Provides names of columns created by the component.
 
         Returns
@@ -224,7 +224,7 @@ class Component(ABC):
         return []
 
     @property
-    def columns_required(self) -> Optional[List[str]]:
+    def columns_required(self) -> list[str] | None:
         """Provides names of columns required by the component.
 
         Returns
@@ -244,7 +244,7 @@ class Component(ABC):
         return []
 
     @property
-    def population_view_query(self) -> Optional[str]:
+    def population_view_query(self) -> str | None:
         """Provides a query to use when filtering the component's `PopulationView`.
 
         Returns
@@ -334,14 +334,12 @@ class Component(ABC):
         """
         self._repr: str = ""
         self._name: str = ""
-        self._sub_components: List["Component"] = []
-        self.logger: Optional[Logger] = None
-        self.get_value_columns: Optional[
-            Callable[[Union[str, pd.DataFrame]], List[str]]
-        ] = None
-        self.configuration: Optional[LayeredConfigTree] = None
-        self._population_view: Optional[PopulationView] = None
-        self.lookup_tables: Dict[str, LookupTable] = {}
+        self._sub_components: list["Component"] = []
+        self.logger: Logger | None = None
+        self.get_value_columns: Callable[[str | pd.DataFrame], list[str]] | None = None
+        self.configuration: LayeredConfigTree | None = None
+        self._population_view: PopulationView | None = None
+        self.lookup_tables: dict[str, LookupTable] = {}
 
     def setup_component(self, builder: "Builder") -> None:
         """Sets up the component for a Vivarium simulation.
@@ -501,7 +499,7 @@ class Component(ABC):
     # Helper methods #
     ##################
 
-    def get_initialization_parameters(self) -> Dict[str, Any]:
+    def get_initialization_parameters(self) -> dict[str, Any]:
         """Retrieves the values of all parameters specified in the `__init__` that
         have an attribute with the same name.
 
@@ -521,7 +519,7 @@ class Component(ABC):
             if hasattr(self, parameter_name)
         }
 
-    def get_configuration(self, builder: "Builder") -> Optional[LayeredConfigTree]:
+    def get_configuration(self, builder: "Builder") -> LayeredConfigTree | None:
         """Retrieves the configuration for this component from the builder.
 
         This method retrieves the configuration for this component from the
