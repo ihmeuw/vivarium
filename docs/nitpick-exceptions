@@ -29,6 +29,7 @@ py:class loguru.Logger
 # elsewhere.  Works fine for static type checker though.  I think this
 # is because sphinx does runtime checks.
 py:class ScalarValue
+py:class NumberLike
 py:class NumericArray
 py:class ClockTime
 py:class Time
@@ -46,6 +47,7 @@ py:class layered_config_tree.main.LayeredConfigTree
 py:class LayeredConfigTree
 py:exc layered_config_tree.exceptions.ConfigurationError
 
-# TODO: Need to revisit this. Nitpicking here to avoid failing builds on 3.9 in state_machine and testing_utils
+# TODO: Need to revisit this. Nitpicking here to avoid failing builds on 3.9
 py:class Logger
 py:class Path
+py:class LookupTableData

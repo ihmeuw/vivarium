@@ -11,10 +11,13 @@ simulations.
 from __future__ import annotations
 
 import re
+import warnings
 from abc import ABC
 from collections.abc import Sequence
+from datetime import datetime, timedelta
 from importlib import import_module
 from inspect import signature
+from numbers import Number
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import pandas as pd
@@ -22,13 +25,15 @@ from layered_config_tree import ConfigurationError, LayeredConfigTree
 from loguru._logger import Logger
 
 from vivarium.framework.artifact import ArtifactException
-from vivarium.framework.event import Event
-from vivarium.framework.lookup import LookupTable
-from vivarium.framework.population import PopulationError, PopulationView
+from vivarium.framework.population import PopulationError
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.framework.population import SimulantData
+    from vivarium.framework.event import Event
+    from vivarium.framework.lookup import LookupTable
+    from vivarium.framework.population import PopulationView, SimulantData
+    from vivarium.framework.resource import Resource
+    from vivarium.types import LookupTableData
 
 DEFAULT_EVENT_PRIORITY = 5
 """The default priority at which events will be triggered."""
@@ -231,22 +236,12 @@ class Component(ABC):
         return None
 
     @property
-    def initialization_requirements(self) -> Dict[str, List[str]]:
-        """Provides the names of all values required by this component during
-        simulant initialization.
-
-        Returns
-        -------
-            A dictionary containing the additional requirements of this
-            component during simulant initialization. An omitted key or an empty
-            list for a key implies no requirements for that key during
-            initialization.
-        """
-        return {
-            "requires_columns": [],
-            "requires_values": [],
-            "requires_streams": [],
-        }
+    def initialization_requirements(
+        self,
+    ) -> list[str | Resource]:
+        """A list containing the columns, pipelines, and randomness streams
+        required by this component's simulant initializer."""
+        return []
 
     @property
     def population_view_query(self) -> Optional[str]:
@@ -576,10 +571,9 @@ class Component(ABC):
 
     def build_lookup_table(
         self,
-        builder: "Builder",
-        # todo: replace with LookupTableData
-        data_source: Union[str, float, int, list, pd.DataFrame],
-        value_columns: Optional[Sequence[str]] = None,
+        builder: Builder,
+        data_source: LookupTableData | str | Callable[[Builder], LookupTableData],
+        value_columns: Sequence[str] | None = None,
     ) -> LookupTable:
         """Builds a LookupTable from a data source.
 
@@ -608,6 +602,10 @@ class Component(ABC):
             If the data source is invalid.
         """
         data = self.get_data(builder, data_source)
+        # TODO update this to use vivarium.types.LookupTableData once we drop
+        #  support for Python 3.9
+        if not isinstance(data, (Number, timedelta, datetime, pd.DataFrame, list, tuple)):
+            raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
 
         if isinstance(data, list):
             return builder.lookup.build_table(data, value_columns=list(value_columns))
@@ -658,11 +656,10 @@ class Component(ABC):
         return value_columns, parameter_columns, key_columns
 
     def get_data(
-        # TODO: replace with LookupTableData
         self,
-        builder: "Builder",
-        data_source: Union[str, float, pd.DataFrame],
-    ) -> Union[float, pd.DataFrame]:
+        builder: Builder,
+        data_source: LookupTableData | str | Callable[[Builder], LookupTableData],
+    ) -> Any:
         """Retrieves data from a data source.
 
         If the data source is a float or a DataFrame, it is treated as the data
@@ -689,32 +686,37 @@ class Component(ABC):
         layered_config_tree.exceptions.ConfigurationError
             If the data source is invalid.
         """
-        if isinstance(data_source, (float, int, list, pd.DataFrame)):
-            return data_source
+        if isinstance(data_source, str):
+            if "::" in data_source:
+                module, method = data_source.split("::")
+                try:
+                    if module == "self":
+                        data_source = getattr(self, method)
+                    else:
+                        data_source = getattr(import_module(module), method)
+                except ModuleNotFoundError:
+                    raise ConfigurationError(f"Unable to find module '{module}'.")
+                except AttributeError:
+                    module_string = (
+                        f"component {self.name}" if module == "self" else f"module '{module}'"
+                    )
+                    raise ConfigurationError(
+                        f"There is no method '{method}' for the {module_string}."
+                    )
+                data = data_source(builder)
+            else:
+                try:
+                    data = builder.data.load(data_source)
+                except ArtifactException:
+                    raise ConfigurationError(
+                        f"Failed to find key '{data_source}' in artifact."
+                    )
+        elif isinstance(data_source, Callable):
+            data = data_source(builder)
+        else:
+            data = data_source
 
-        if "::" in data_source:
-            module, method = data_source.split("::")
-            try:
-                if module == "self":
-                    data_getter = getattr(self, method)
-                else:
-                    data_getter = getattr(import_module(module), method)
-            except ModuleNotFoundError:
-                raise ConfigurationError(f"Unable to find module '{module}'.")
-            except AttributeError:
-                module_string = (
-                    f"component {self.name}." if module == "self" else f"module '{module}'."
-                )
-                raise ConfigurationError(
-                    f"There is no method '{method}' for the {module_string}."
-                )
-
-            return data_getter(builder)
-
-        try:
-            return builder.data.load(data_source)
-        except ArtifactException:
-            raise ConfigurationError(f"Failed to find key '{data_source}' in artifact.")
+        return data
 
     def _set_population_view(self, builder: "Builder") -> None:
         """Creates the PopulationView for this component if it needs access to
@@ -767,7 +769,7 @@ class Component(ABC):
                 self.post_setup_priority,
             )
 
-    def _register_simulant_initializer(self, builder: "Builder") -> None:
+    def _register_simulant_initializer(self, builder: Builder) -> None:
         """Registers a simulant initializer if this component has defined one.
 
         This method allows the component to initialize simulants if it has its
@@ -780,11 +782,22 @@ class Component(ABC):
         builder
             The builder with which to register the initializer.
         """
+        if isinstance(self.initialization_requirements, list):
+            initialization_requirements = {
+                "required_resources": self.initialization_requirements
+            }
+        else:
+            initialization_requirements = self.initialization_requirements
+            warnings.warn(
+                "The dict format for initialization_requirements is deprecated."
+                " You should use provide a list of the required resources.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         if type(self).on_initialize_simulants != Component.on_initialize_simulants:
             builder.population.initializes_simulants(
-                self.on_initialize_simulants,
-                creates_columns=self.columns_created,
-                **self.initialization_requirements,
+                self, creates_columns=self.columns_created, **initialization_requirements
             )
 
     def _register_time_step_prepare_listener(self, builder: "Builder") -> None:

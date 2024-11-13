@@ -9,7 +9,7 @@ The manager and :ref:`builder <builder_concept>` interface for the
 """
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
 from typing import TYPE_CHECKING, Any
@@ -18,11 +18,13 @@ import pandas as pd
 
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
+from vivarium.framework.resource import Resource
 from vivarium.manager import Interface, Manager
-from vivarium.types import ClockStepSize, ClockTime
 
 if TYPE_CHECKING:
+    from vivarium import Component
     from vivarium.framework.engine import Builder
+    from vivarium.types import ClockStepSize, ClockTime
 
 
 @dataclass
@@ -55,7 +57,7 @@ class InitializerComponentSet:
         self._columns_produced: dict[str, str] = {}
 
     def add(
-        self, initializer: Callable[[SimulantData], None], columns_produced: list[str]
+        self, initializer: Callable[[SimulantData], None], columns_produced: Sequence[str]
     ) -> None:
         """Adds an initializer and columns to the set, enforcing uniqueness.
 
@@ -84,7 +86,6 @@ class InitializerComponentSet:
                 f"You provided {initializer} which is of type {type(initializer)}."
             )
         component = initializer.__self__
-        # TODO: consider if we can initialize the tracked column with a component instead
         # TODO: raise error once all active Component implementations have been refactored
         # if not (isinstance(component, Component) or isinstance(component, PopulationManager)):
         #     raise AttributeError(
@@ -115,7 +116,7 @@ class InitializerComponentSet:
                     f"for column {column}."
                 )
             self._columns_produced[column] = component_name
-        self._components[component_name] = columns_produced
+        self._components[component_name] = list(columns_produced)
 
     def __repr__(self) -> str:
         return repr(self._components)
@@ -158,6 +159,10 @@ class PopulationManager(Manager):
         """The name of this component."""
         return "population_manager"
 
+    @property
+    def columns_created(self) -> list[str]:
+        return ["tracked"]
+
     def setup(self, builder: Builder) -> None:
         """Registers the population manager with other vivarium systems."""
         self.clock = builder.time.clock()
@@ -180,9 +185,7 @@ class PopulationManager(Manager):
             self.register_simulant_initializer, allow_during=["setup"]
         )
 
-        self.register_simulant_initializer(
-            self.on_initialize_simulants, creates_columns="tracked"
-        )
+        self.register_simulant_initializer(self, creates_columns=self.columns_created)
         self._view = self.get_view("tracked")
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -258,19 +261,20 @@ class PopulationManager(Manager):
 
     def register_simulant_initializer(
         self,
-        initializer: Callable[[SimulantData], None],
+        component: Component | Manager,
         creates_columns: str | Sequence[str] = (),
         requires_columns: str | Sequence[str] = (),
         requires_values: str | Sequence[str] = (),
         requires_streams: str | Sequence[str] = (),
+        required_resources: Iterable[str | Resource] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
         Parameters
         ----------
-        initializer
-            A callable that adds or updates initial state information about
-            new simulants.
+        component
+            The component or manager that will add or update initial state
+            information about new simulants.
         creates_columns
             The state table columns that the given initializer provides the
             initial state information for.
@@ -284,29 +288,42 @@ class PopulationManager(Manager):
         requires_streams
             The randomness streams necessary to initialize the simulant
             attributes.
+        required_resources
+            The resources that the initializer requires to run. Strings are
+            interpreted as column names.
         """
+        if requires_columns or requires_values or requires_streams:
+            if required_resources:
+                raise ValueError(
+                    "If requires_columns, requires_values, or requires_streams are provided, "
+                    "requirements must be empty."
+                )
+
+            if isinstance(requires_columns, str):
+                requires_columns = [requires_columns]
+            if isinstance(requires_values, str):
+                requires_values = [requires_values]
+            if isinstance(requires_streams, str):
+                requires_streams = [requires_streams]
+
+            required_resources = (
+                list(requires_columns)
+                + [Resource("value", name, component) for name in requires_values]
+                + [Resource("stream", name, component) for name in requires_streams]
+            )
+
         if isinstance(creates_columns, str):
             creates_columns = [creates_columns]
-        if isinstance(requires_columns, str):
-            requires_columns = [requires_columns]
-        if isinstance(requires_values, str):
-            requires_values = [requires_values]
-        if isinstance(requires_streams, str):
-            requires_streams = [requires_streams]
 
-        self._initializer_components.add(initializer, list(creates_columns))
-        dependencies = (
-            [f"column.{name}" for name in requires_columns]
-            + [f"value.{name}" for name in requires_values]
-            + [f"stream.{name}" for name in requires_streams]
-        )
         if "tracked" not in creates_columns:
             # The population view itself uses the tracked column, so include
             # to be safe.
-            dependencies += ["column.tracked"]
-        self.resources.add_resources(
-            "column", list(creates_columns), initializer, dependencies
-        )
+            all_dependencies = list(required_resources) + ["tracked"]
+        else:
+            all_dependencies = list(required_resources)
+
+        self._initializer_components.add(component.on_initialize_simulants, creates_columns)
+        self.resources.add_resources(component, creates_columns, all_dependencies)
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.
@@ -341,7 +358,7 @@ class PopulationManager(Manager):
         index = new_population.index.difference(self._population.index)
         self._population = new_population
         self.adding_simulants = True
-        for initializer in self.resources:
+        for initializer in self.resources.get_population_initializers():
             initializer(
                 SimulantData(index, population_configuration, self.clock(), self.step_size())
             )
@@ -450,19 +467,20 @@ class PopulationInterface(Interface):
 
     def initializes_simulants(
         self,
-        initializer: Callable[[SimulantData], None],
+        component: Component | Manager,
         creates_columns: str | Sequence[str] = (),
         requires_columns: str | Sequence[str] = (),
         requires_values: str | Sequence[str] = (),
         requires_streams: str | Sequence[str] = (),
+        required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a source of initial state information for new simulants.
 
         Parameters
         ----------
-        initializer
-            A callable that adds or updates initial state information about
-            new simulants.
+        component
+            The component or manager that will add or update initial state
+            information about new simulants.
         creates_columns
             The state table columns that the given initializer
             provides the initial state information for.
@@ -476,7 +494,16 @@ class PopulationInterface(Interface):
         requires_streams
             The randomness streams necessary to initialize the
             simulant attributes.
+        required_resources
+            The resources that the initializer requires to run. Strings are
+            interpreted as column names, and Pipelines and RandomnessStreams
+            are interpreted as value pipelines and randomness streams,
         """
         self._manager.register_simulant_initializer(
-            initializer, creates_columns, requires_columns, requires_values, requires_streams
+            component,
+            creates_columns,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            required_resources,
         )

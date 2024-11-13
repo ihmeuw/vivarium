@@ -20,7 +20,6 @@ tools to easily setup and run a simulation.
 
 """
 
-import math
 from pathlib import Path
 from pprint import pformat
 from time import time
@@ -360,44 +359,6 @@ class Builder:
     This is the access point for components through which they are able to
     utilize a variety of interfaces to interact with the simulation framework.
 
-    Attributes
-    ----------
-    configuration : ``LayeredConfigTree``
-        Provides access to the :ref:`configuration<configuration_concept>`
-    logging : LoggingInterface
-        Provides access to the :ref:`logging<logging_concept>` system.
-    lookup : LookupTableInterface
-        Provides access to simulant-specific data via the
-        :ref:`lookup table<lookup_concept>` abstraction.
-    value : ValuesInterface
-        Provides access to computed simulant attribute values via the
-        :ref:`value pipeline<values_concept>` system.
-    event : EventInterface
-        Provides access to event listeners utilized in the
-        :ref:`event<event_concept>` system.
-    population : PopulationInterface
-        Provides access to simulant state table via the
-        :ref:`population<population_concept>` system.
-    resources : ResourceInterface
-        Provides access to the :ref:`resource<resource_concept>` system,
-        which manages dependencies between components.
-    results : ResultsInterface
-        Provides access to the :ref:`results<results_concept>` system.
-    randomness : RandomnessInterface
-        Provides access to the :ref:`randomness<crn_concept>` system.
-    time : TimeInterface
-        Provides access to the simulation's :ref:`clock<time_concept>`.
-    components : ComponentInterface
-        Provides access to the :ref:`component management<components_concept>`
-        system, which maintains a reference to all managers and components in
-        the simulation.
-    lifecycle : LifeCycleInterface
-        Provides access to the :ref:`life-cycle<lifecycle_concept>` system,
-        which manages the simulation's execution life-cycle.
-    data : ArtifactInterface
-        Provides access to the simulation's input data housed in the
-        :ref:`data artifact<data_concept>`.
-
     Notes
     -----
     A `Builder` should never be created directly. It will automatically be
@@ -405,37 +366,61 @@ class Builder:
 
     """
 
-    def __init__(self, configuration, plugin_manager):
+    def __init__(self, configuration: LayeredConfigTree, plugin_manager):
         self.configuration = configuration
+        """Provides access to the :ref:`configuration<configuration_concept>`"""
 
-        self.logging = plugin_manager.get_plugin_interface(
-            "logging"
-        )  # type: LoggingInterface
-        self.lookup = plugin_manager.get_plugin_interface(
-            "lookup"
-        )  # type: LookupTableInterface
-        self.value = plugin_manager.get_plugin_interface("value")  # type: ValuesInterface
-        self.event = plugin_manager.get_plugin_interface("event")  # type: EventInterface
-        self.population = plugin_manager.get_plugin_interface(
+        self.logging: LoggingInterface = plugin_manager.get_plugin_interface("logging")
+        """Provides access to the :ref:`logging<logging_concept>` system."""
+
+        self.lookup: LookupTableInterface = plugin_manager.get_plugin_interface("lookup")
+        """Provides access to simulant-specific data via the
+        :ref:`lookup table<lookup_concept>` abstraction."""
+
+        self.value: ValuesInterface = plugin_manager.get_plugin_interface("value")
+        """Provides access to computed simulant attribute values via the
+        :ref:`value pipeline<values_concept>` system."""
+
+        self.event: EventInterface = plugin_manager.get_plugin_interface("event")
+        """Provides access to event listeners utilized in the
+        :ref:`event<event_concept>` system."""
+
+        self.population: PopulationInterface = plugin_manager.get_plugin_interface(
             "population"
-        )  # type: PopulationInterface
-        self.resources = plugin_manager.get_plugin_interface(
-            "resource"
-        )  # type: ResourceInterface
-        self.results = plugin_manager.get_plugin_interface(
-            "results"
-        )  # type: ResultsInterface
-        self.randomness = plugin_manager.get_plugin_interface(
+        )
+        """Provides access to simulant state table via the
+        :ref:`population<population_concept>` system."""
+
+        self.resources: ResourceInterface = plugin_manager.get_plugin_interface("resource")
+        """Provides access to the :ref:`resource<resource_concept>` system,
+         which manages dependencies between components.
+         """
+
+        self.results: ResultsInterface = plugin_manager.get_plugin_interface("results")
+        """Provides access to the :ref:`results<results_concept>` system."""
+
+        self.randomness: RandomnessInterface = plugin_manager.get_plugin_interface(
             "randomness"
-        )  # type: RandomnessInterface
-        self.time = plugin_manager.get_plugin_interface("clock")  # type: TimeInterface
-        self.components = plugin_manager.get_plugin_interface(
+        )
+        """Provides access to the :ref:`randomness<crn_concept>` system."""
+
+        self.time: TimeInterface = plugin_manager.get_plugin_interface("clock")
+        """Provides access to the simulation's :ref:`clock<time_concept>`."""
+
+        self.components: ComponentInterface = plugin_manager.get_plugin_interface(
             "component_manager"
-        )  # type: ComponentInterface
-        self.lifecycle = plugin_manager.get_plugin_interface(
-            "lifecycle"
-        )  # type: LifeCycleInterface
+        )
+        """Provides access to the :ref:`component management<components_concept>`
+        system, which maintains a reference to all managers and components in
+        the simulation."""
+
+        self.lifecycle: LifeCycleInterface = plugin_manager.get_plugin_interface("lifecycle")
+        """Provides access to the :ref:`life-cycle<lifecycle_concept>` system,
+        which manages the simulation's execution life-cycle."""
+
         self.data = plugin_manager.get_plugin_interface("data")  # type: ArtifactInterface
+        """Provides access to the simulation's input data housed in the
+        :ref:`data artifact<data_concept>`."""
 
         for name, interface in plugin_manager.get_optional_interfaces().items():
             setattr(self, name, interface)

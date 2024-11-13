@@ -123,8 +123,8 @@ def test_rescale_post_processor_variable(manager_with_step_size):
 
 
 def test_unsourced_pipeline():
-    pipeline = Pipeline()
-    assert pipeline.source is None
+    pipeline = Pipeline("some_name")
+    assert pipeline.source.resource_id == "missing_value_source.some_name"
     with pytest.raises(
         DynamicValueError,
         match=f"The dynamic value pipeline for {pipeline.name} has no source.",

@@ -21,7 +21,7 @@ class Force(Component, ABC):
             },
         }
 
-    columns_required = ["x", "y", "vx", "vy"]
+    columns_required = []
 
     #####################
     # Lifecycle methods #
@@ -36,6 +36,7 @@ class Force(Component, ABC):
         builder.value.register_value_modifier(
             "acceleration",
             modifier=self.apply_force,
+            required_resources=self.columns_required + [self.neighbors],
         )
 
     ##################################
