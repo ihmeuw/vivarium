@@ -1,6 +1,7 @@
 **3.2.1 - TBD/TBD/TBD**
 
   - Fix mypy errors in vivarium/framework/results/context.py
+  - Fix mypy errors in vivarium/framework/time.py
 
 **3.2.0 - 11/12/24**
 
