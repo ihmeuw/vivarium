@@ -281,9 +281,7 @@ class ComponentManager(Manager):
             return inspect.getfile(component.__class__)
 
     @staticmethod
-    def _flatten(
-        components: list[Component | Manager]
-    ) -> list[Component | Manager]:
+    def _flatten(components: list[Component | Manager]) -> list[Component | Manager]:
         out = []
         components = components[::-1]
         while components:

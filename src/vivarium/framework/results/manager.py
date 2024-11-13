@@ -190,7 +190,9 @@ class ResultsManager(Manager):
         name: str,
         categories: list[str],
         excluded_categories: list[str] | None,
-        mapper: Callable[[pd.Series | pd.DataFrame], pd.Series] | Callable[[ScalarValue], str] | None,
+        mapper: Callable[[pd.Series | pd.DataFrame], pd.Series]
+        | Callable[[ScalarValue], str]
+        | None,
         is_vectorized: bool,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],

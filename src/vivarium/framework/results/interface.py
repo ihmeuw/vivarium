@@ -75,7 +75,9 @@ class ResultsInterface(Interface):
         name: str,
         categories: list[str],
         excluded_categories: list[str] | None = None,
-        mapper: Callable[[pd.Series | pd.DataFrame], pd.Series] | Callable[[ScalarValue], str] | None = None,
+        mapper: Callable[[pd.Series | pd.DataFrame], pd.Series]
+        | Callable[[ScalarValue], str]
+        | None = None,
         is_vectorized: bool = False,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
