@@ -22,8 +22,7 @@ if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.event import Event
     from vivarium.framework.population import PopulationView, SimulantData
-    from vivarium.framework.randomness import RandomnessStream
-    from vivarium.framework.values import Pipeline
+    from vivarium.framework.resource import Resource
     from vivarium.types import ClockTime, LookupTableData
 
 
@@ -495,7 +494,7 @@ class Machine(Component):
     @property
     def initialization_requirements(
         self,
-    ) -> list[str | Pipeline | RandomnessStream]:
+    ) -> list[str | Resource]:
         return [self.randomness]
 
     #####################

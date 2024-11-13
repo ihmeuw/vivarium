@@ -9,7 +9,7 @@
   - Testing: Adds coverage for example DiseaseModel
   - Refactor: Converts resource module into a package
   - Refactor: Converts values module into a package
-  = Refactor: Simplifies code to allow Managers to create columns
+  - Refactor: Simplifies code to allow Managers to create columns
   - Refactor: Converts ResourceManager __iter__ to a well-named instance method
   - Refactor: Creates ResourceTypes for each type of resource
   - Refactor: Makes Pipeline and RandomnessStream inherit from Resource
