@@ -11,6 +11,8 @@ that index. See the :ref:`lookup concept note <lookup_concept>` for more.
 
 """
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
 from datetime import datetime

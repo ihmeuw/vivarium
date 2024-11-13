@@ -4,18 +4,19 @@ Stratifications
 ===============
 
 """
-from collections.abc import Callable
+from __future__ import annotations
+
 from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
+from vivarium.types import ScalarMapper, VectorMapper
+
 STRATIFICATION_COLUMN_SUFFIX: str = "mapped_values"
 
 # TODO: Parameterizing pandas objects fails below python 3.12
-VectorMapper = Callable[[pd.DataFrame], pd.Series]  # type: ignore [type-arg]
-ScalarMapper = Callable[[pd.Series], str]  # type: ignore [type-arg]
 
 
 @dataclass

@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ===============
 Results Context
@@ -6,9 +5,11 @@ Results Context
 
 """
 
+from __future__ import annotations
+
 from collections import defaultdict
 from collections.abc import Callable, Generator
-from typing import Type
+from typing import Any
 
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
@@ -16,13 +17,13 @@ from pandas.core.groupby.generic import DataFrameGroupBy
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.results.exceptions import ResultsConfigurationError
-from vivarium.framework.results.observation import BaseObservation
+from vivarium.framework.results.observation import Observation
 from vivarium.framework.results.stratification import (
     Stratification,
     get_mapped_col_name,
     get_original_col_name,
 )
-from vivarium.types import ScalarValue
+from vivarium.types import ScalarMapper, VectorMapper
 
 
 class ResultsContext:
@@ -56,7 +57,9 @@ class ResultsContext:
         self.default_stratifications: list[str] = []
         self.stratifications: list[Stratification] = []
         self.excluded_categories: dict[str, list[str]] = {}
-        self.observations: defaultdict = defaultdict(lambda: defaultdict(list))
+        self.observations: defaultdict[
+            str, defaultdict[tuple[str, tuple[str, ...] | None], list[Observation]]
+        ] = defaultdict(lambda: defaultdict(list))
 
     @property
     def name(self) -> str:
@@ -100,7 +103,7 @@ class ResultsContext:
         sources: list[str],
         categories: list[str],
         excluded_categories: list[str] | None,
-        mapper: Callable[[pd.Series | pd.DataFrame], pd.Series] | Callable[[ScalarValue], str],
+        mapper: VectorMapper | ScalarMapper | None,
         is_vectorized: bool,
     ) -> None:
         """Add a stratification to the results context.
@@ -183,11 +186,11 @@ class ResultsContext:
 
     def register_observation(
         self,
-        observation_type: Type[BaseObservation],
+        observation_type: type[Observation],
         name: str,
         pop_filter: str,
         when: str,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Add an observation to the results context.
 
@@ -237,7 +240,15 @@ class ResultsContext:
 
     def gather_results(
         self, population: pd.DataFrame, lifecycle_phase: str, event: Event
-    ) -> Generator[tuple[pd.DataFrame | None, str | None, Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame] | None], None, None]:
+    ) -> Generator[
+        tuple[
+            pd.DataFrame | None,
+            str | None,
+            Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame] | None,
+        ],
+        None,
+        None,
+    ]:
         """Generate and yield current results for all observations at this lifecycle
         phase and event.
 
@@ -290,6 +301,7 @@ class ResultsContext:
             if filtered_pop.empty:
                 yield None, None, None
             else:
+                pop: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str]
                 if stratification_names is None:
                     pop = filtered_pop
                 else:
@@ -323,7 +335,7 @@ class ResultsContext:
     @staticmethod
     def _get_groups(
         stratifications: tuple[str, ...], filtered_pop: pd.DataFrame
-    ) -> DataFrameGroupBy:
+    ) -> DataFrameGroupBy[tuple[str, ...] | str]:
         """Group the population by stratification.
 
         Notes
@@ -344,7 +356,7 @@ class ResultsContext:
             )
         else:
             pop_groups = filtered_pop.groupby(lambda _: "all")
-        return pop_groups
+        return pop_groups  # type: ignore[return-value]
 
     def _rename_stratification_columns(self, results: pd.DataFrame) -> None:
         """Convert the temporary stratified mapped index names back to their original names."""

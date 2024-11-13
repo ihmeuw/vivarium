@@ -7,6 +7,8 @@ State Machine
 A state machine implementation for use in ``vivarium`` simulations.
 
 """
+from __future__ import annotations
+
 from collections.abc import Callable, Iterable
 from enum import Enum
 from typing import TYPE_CHECKING, Any
@@ -20,8 +22,7 @@ if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.event import Event
     from vivarium.framework.population import PopulationView, SimulantData
-    from vivarium.framework.randomness import RandomnessStream
-    from vivarium.framework.values import Pipeline
+    from vivarium.framework.resource import Resource
     from vivarium.types import ClockTime, LookupTableData
 
 
@@ -493,7 +494,7 @@ class Machine(Component):
     @property
     def initialization_requirements(
         self,
-    ) -> list[str | Pipeline | RandomnessStream]:
+    ) -> list[str | Resource]:
         return [self.randomness]
 
     #####################
@@ -561,6 +562,9 @@ class Machine(Component):
 
     def on_time_step(self, event: Event) -> None:
         self.transition(event.index, event.time)
+
+    def on_time_step_cleanup(self, event: Event) -> None:
+        self.cleanup(event.index, event.time)
 
     ##################
     # Public methods #

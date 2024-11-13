@@ -5,7 +5,7 @@ Observers
 =========
 
 An observer is a component that is responsible for registering
-:class:`observations <vivarium.framework.results.observation.BaseObservation>`
+:class:`observations <vivarium.framework.results.observation.Observation>`
 to the simulation.
 
 The provided :class:`Observer` class is an abstract base class that should be subclassed

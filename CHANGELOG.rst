@@ -1,3 +1,9 @@
+**3.2.1 - 11/13/24**
+
+  - Fix mypy errors in vivarium/framework/results/context.py
+  - Modernize type hinting
+  - Remove unnecessary "from future import annotation" imports
+
 **3.2.0 - 11/12/24**
 
   - Feature: Supports passing callables directly when building lookup tables
@@ -9,7 +15,7 @@
   - Testing: Adds coverage for example DiseaseModel
   - Refactor: Converts resource module into a package
   - Refactor: Converts values module into a package
-  = Refactor: Simplifies code to allow Managers to create columns
+  - Refactor: Simplifies code to allow Managers to create columns
   - Refactor: Converts ResourceManager __iter__ to a well-named instance method
   - Refactor: Creates ResourceTypes for each type of resource
   - Refactor: Makes Pipeline and RandomnessStream inherit from Resource

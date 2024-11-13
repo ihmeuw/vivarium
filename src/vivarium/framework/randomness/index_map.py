@@ -10,6 +10,8 @@ positional index within a stream of seeded random numbers.
 
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any
 
