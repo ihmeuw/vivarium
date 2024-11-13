@@ -14,7 +14,7 @@ import pandas as pd
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.context import ResultsContext
-from vivarium.framework.results.observation import BaseObservation
+from vivarium.framework.results.observation import Observation
 from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
 from vivarium.types import ScalarValue
@@ -302,7 +302,7 @@ class ResultsManager(Manager):
 
     def register_observation(
         self,
-        observation_type: Type[BaseObservation],
+        observation_type: Type[Observation],
         is_stratified: bool,
         name: str,
         pop_filter: str,

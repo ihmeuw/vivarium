@@ -17,7 +17,7 @@ from pandas.core.groupby.generic import DataFrameGroupBy
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.results.exceptions import ResultsConfigurationError
-from vivarium.framework.results.observation import BaseObservation
+from vivarium.framework.results.observation import Observation
 from vivarium.framework.results.stratification import (
     Stratification,
     get_mapped_col_name,
@@ -58,7 +58,7 @@ class ResultsContext:
         self.stratifications: list[Stratification] = []
         self.excluded_categories: dict[str, list[str]] = {}
         self.observations: defaultdict[
-            str, defaultdict[tuple[str, tuple[str, ...] | None], list[BaseObservation]]
+            str, defaultdict[tuple[str, tuple[str, ...] | None], list[Observation]]
         ] = defaultdict(lambda: defaultdict(list))
 
     @property
@@ -186,7 +186,7 @@ class ResultsContext:
 
     def register_observation(
         self,
-        observation_type: Type[BaseObservation],
+        observation_type: Type[Observation],
         name: str,
         pop_filter: str,
         when: str,

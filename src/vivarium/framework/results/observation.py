@@ -6,7 +6,7 @@ Observations
 An observation is a class object that records simulation results; they are responsible
 for initializing, gathering, updating, and formatting results.
 
-The provided :class:`BaseObservation` class is an abstract base class that should
+The provided :class:`Observation` class is an abstract base class that should
 be subclassed by concrete observations. While there are no required abstract methods
 to define when subclassing, the class does provide common attributes as well
 as an `observe` method that determines whether to observe results for a given event.
@@ -36,7 +36,7 @@ VALUE_COLUMN = "value"
 
 
 @dataclass
-class BaseObservation(ABC):
+class Observation(ABC):
     """An abstract base dataclass to be inherited by concrete observations.
 
     This class includes an :meth:`observe <observe>` method that determines whether
@@ -100,7 +100,7 @@ class BaseObservation(ABC):
             return self.results_gatherer(df, stratifications)
 
 
-class UnstratifiedObservation(BaseObservation):
+class UnstratifiedObservation(Observation):
     """Concrete class for observing results that are not stratified.
 
     The parent class `stratifications` are set to None and the `results_initializer`
@@ -182,7 +182,7 @@ class UnstratifiedObservation(BaseObservation):
         return pd.DataFrame()
 
 
-class StratifiedObservation(BaseObservation):
+class StratifiedObservation(Observation):
     """Concrete class for observing stratified results.
 
     The parent class `results_initializer` and `results_gatherer` methods are
