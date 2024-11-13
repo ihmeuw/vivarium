@@ -1,7 +1,9 @@
-**3.2.1 - TBD/TBD/TBD**
+**3.2.1 - 11/13/24**
 
   - Fix mypy errors in vivarium/framework/results/context.py
   - Fix mypy errors in vivarium/framework/time.py
+  - Modernize type hinting
+  - Remove unnecessary "from future import annotation" imports
 
 **3.2.0 - 11/12/24**
 

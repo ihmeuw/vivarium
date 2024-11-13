@@ -10,7 +10,8 @@ to a simulation.
 
 """
 
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -72,17 +73,14 @@ class ResultsInterface(Interface):
     def register_stratification(
         self,
         name: str,
-        categories: List[str],
-        excluded_categories: Optional[List[str]] = None,
-        mapper: Optional[
-            Union[
-                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series],
-                Callable[[ScalarValue], str],
-            ]
-        ] = None,
+        categories: list[str],
+        excluded_categories: list[str] | None = None,
+        mapper: Callable[[pd.Series | pd.DataFrame], pd.Series]
+        | Callable[[ScalarValue], str]
+        | None = None,
         is_vectorized: bool = False,
-        requires_columns: List[str] = [],
-        requires_values: List[str] = [],
+        requires_columns: list[str] = [],
+        requires_values: list[str] = [],
     ) -> None:
         """Registers a stratification that can be used by stratified observations.
 
@@ -125,11 +123,11 @@ class ResultsInterface(Interface):
         self,
         target: str,
         binned_column: str,
-        bin_edges: List[Union[int, float]] = [],
-        labels: List[str] = [],
-        excluded_categories: Optional[List[str]] = None,
+        bin_edges: list[int | float] = [],
+        labels: list[str] = [],
+        excluded_categories: list[str] | None = None,
         target_type: str = "column",
-        **cut_kwargs: Dict,
+        **cut_kwargs: dict,
     ) -> None:
         """Registers a binned stratification that can be used by stratified observations.
 
@@ -173,18 +171,18 @@ class ResultsInterface(Interface):
         name: str,
         pop_filter: str = "tracked==True",
         when: str = "collect_metrics",
-        requires_columns: List[str] = [],
-        requires_values: List[str] = [],
+        requires_columns: list[str] = [],
+        requires_values: list[str] = [],
         results_updater: Callable[
             [pd.DataFrame, pd.DataFrame], pd.DataFrame
         ] = _required_function_placeholder,
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
-        additional_stratifications: List[str] = [],
-        excluded_stratifications: List[str] = [],
-        aggregator_sources: Optional[List[str]] = None,
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series]] = len,
+        additional_stratifications: list[str] = [],
+        excluded_stratifications: list[str] = [],
+        aggregator_sources: list[str] | None = None,
+        aggregator: Callable[[pd.DataFrame], float | pd.Series] = len,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Registers a stratified observation to the results system.
@@ -249,8 +247,8 @@ class ResultsInterface(Interface):
         name: str,
         pop_filter: str = "tracked==True",
         when: str = "collect_metrics",
-        requires_columns: List[str] = [],
-        requires_values: List[str] = [],
+        requires_columns: list[str] = [],
+        requires_values: list[str] = [],
         results_gatherer: Callable[
             [pd.DataFrame], pd.DataFrame
         ] = _required_function_placeholder,
@@ -317,15 +315,15 @@ class ResultsInterface(Interface):
         name: str,
         pop_filter: str = "tracked==True",
         when: str = "collect_metrics",
-        requires_columns: List[str] = [],
-        requires_values: List[str] = [],
+        requires_columns: list[str] = [],
+        requires_values: list[str] = [],
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results.reset_index(),
-        additional_stratifications: List[str] = [],
-        excluded_stratifications: List[str] = [],
-        aggregator_sources: Optional[List[str]] = None,
-        aggregator: Callable[[pd.DataFrame], Union[float, pd.Series]] = len,
+        additional_stratifications: list[str] = [],
+        excluded_stratifications: list[str] = [],
+        aggregator_sources: list[str] | None = None,
+        aggregator: Callable[[pd.DataFrame], float | pd.Series] = len,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Registers an adding observation to the results system.
@@ -388,8 +386,8 @@ class ResultsInterface(Interface):
         name: str,
         pop_filter: str = "tracked==True",
         when: str = "collect_metrics",
-        requires_columns: List[str] = [],
-        requires_values: List[str] = [],
+        requires_columns: list[str] = [],
+        requires_values: list[str] = [],
         results_formatter: Callable[
             [str, pd.DataFrame], pd.DataFrame
         ] = lambda measure, results: results,
@@ -440,7 +438,7 @@ class ResultsInterface(Interface):
 
     @staticmethod
     def _check_for_required_callables(
-        observation_name: str, required_callables: Dict[str, Callable]
+        observation_name: str, required_callables: dict[str, Callable]
     ) -> None:
         """Raises a ValueError if any required callable arguments are missing."""
         missing = []

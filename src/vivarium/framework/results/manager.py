@@ -7,8 +7,9 @@ Results System Manager
 """
 
 from collections import defaultdict
+from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -55,7 +56,7 @@ class ResultsManager(Manager):
     def name(self) -> str:
         return self._name
 
-    def get_results(self) -> Dict[str, pd.DataFrame]:
+    def get_results(self) -> dict[str, pd.DataFrame]:
         """Return the measure-specific formatted results in a dictionary.
 
         Notes
@@ -187,17 +188,14 @@ class ResultsManager(Manager):
     def register_stratification(
         self,
         name: str,
-        categories: List[str],
-        excluded_categories: Optional[List[str]],
-        mapper: Optional[
-            Union[
-                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series],
-                Callable[[ScalarValue], str],
-            ]
-        ],
+        categories: list[str],
+        excluded_categories: list[str] | None,
+        mapper: Callable[[pd.Series | pd.DataFrame], pd.Series]
+        | Callable[[ScalarValue], str]
+        | None,
         is_vectorized: bool,
-        requires_columns: List[str] = [],
-        requires_values: List[str] = [],
+        requires_columns: list[str] = [],
+        requires_values: list[str] = [],
     ) -> None:
         """Manager-level stratification registration.
 
@@ -242,9 +240,9 @@ class ResultsManager(Manager):
         self,
         target: str,
         binned_column: str,
-        bin_edges: List[Union[int, float]],
-        labels: List[str],
-        excluded_categories: Optional[List[str]],
+        bin_edges: list[int | float],
+        labels: list[str],
+        excluded_categories: list[str] | None,
         target_type: str,
         **cut_kwargs,
     ) -> None:
@@ -273,7 +271,7 @@ class ResultsManager(Manager):
             Keyword arguments for :meth: pandas.cut.
         """
 
-        def _bin_data(data: Union[pd.Series, pd.DataFrame]) -> pd.Series:
+        def _bin_data(data: pd.Series | pd.DataFrame) -> pd.Series:
             """Use pandas.cut to bin continuous values"""
             data = data.squeeze()
             if not isinstance(data, pd.Series):
@@ -302,13 +300,13 @@ class ResultsManager(Manager):
 
     def register_observation(
         self,
-        observation_type: Type[Observation],
+        observation_type: type[Observation],
         is_stratified: bool,
         name: str,
         pop_filter: str,
         when: str,
-        requires_columns: List[str],
-        requires_values: List[str],
+        requires_columns: list[str],
+        requires_values: list[str],
         **kwargs,
     ) -> None:
         """Manager-level observation registration.
@@ -375,10 +373,10 @@ class ResultsManager(Manager):
 
     def _get_stratifications(
         self,
-        stratifications: List[str] = [],
-        additional_stratifications: List[str] = [],
-        excluded_stratifications: List[str] = [],
-    ) -> Tuple[str, ...]:
+        stratifications: list[str] = [],
+        additional_stratifications: list[str] = [],
+        excluded_stratifications: list[str] = [],
+    ) -> tuple[str, ...]:
         """Resolve the stratifications required for the observation."""
         stratifications = list(
             set(
@@ -391,7 +389,7 @@ class ResultsManager(Manager):
         # Makes sure measure identifiers have fields in the same relative order.
         return tuple(sorted(stratifications))
 
-    def _add_resources(self, target: List[str], target_type: SourceType) -> None:
+    def _add_resources(self, target: list[str], target_type: SourceType) -> None:
         """Add required resources to the manager's list of required columns and values."""
         if len(target) == 0:
             return  # do nothing on empty lists
@@ -416,7 +414,7 @@ class ResultsManager(Manager):
         return population
 
     def _warn_check_stratifications(
-        self, additional_stratifications: List[str], excluded_stratifications: List[str]
+        self, additional_stratifications: list[str], excluded_stratifications: list[str]
     ) -> None:
         """Check additional and excluded stratifications if they'd not affect
         stratifications (i.e., would be NOP), and emit warning."""

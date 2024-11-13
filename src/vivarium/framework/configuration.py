@@ -8,8 +8,6 @@ representations of :term:`model specifications <Model Specification>` and
 :term:`configurations <Configuration>`.
 
 """
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Any
 

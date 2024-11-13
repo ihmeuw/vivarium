@@ -9,8 +9,6 @@ The Plugin Management System
 
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 from layered_config_tree.main import LayeredConfigTree

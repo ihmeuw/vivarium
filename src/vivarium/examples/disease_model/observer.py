@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 
@@ -14,7 +14,7 @@ class DeathsObserver(Observer):
     ##############
 
     @property
-    def columns_required(self) -> Optional[list[str]]:
+    def columns_required(self) -> list[str] | None:
         return ["alive"]
 
     #################
@@ -39,7 +39,7 @@ class YllsObserver(Observer):
     ##############
 
     @property
-    def columns_required(self) -> Optional[list[str]]:
+    def columns_required(self) -> list[str] | None:
         return ["age", "alive"]
 
     @property

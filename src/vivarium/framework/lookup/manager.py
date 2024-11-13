@@ -13,9 +13,10 @@ the individuals represented by that index. See the
 
 """
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from numbers import Number
-from typing import TYPE_CHECKING, List, Sequence, Tuple, Union
+from typing import TYPE_CHECKING
 
 import pandas as pd
 

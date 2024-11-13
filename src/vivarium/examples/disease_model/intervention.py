@@ -1,5 +1,5 @@
 # mypy: ignore-errors
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
@@ -8,7 +8,7 @@ from vivarium.framework.engine import Builder
 
 
 class TreatmentIntervention(Component):
-    CONFIGURATION_DEFAULTS: Dict[str, Any] = {
+    CONFIGURATION_DEFAULTS: dict[str, Any] = {
         "intervention": {
             "effect_size": 0.5,
         }
@@ -19,7 +19,7 @@ class TreatmentIntervention(Component):
     ##############
 
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         return {self.intervention: self.CONFIGURATION_DEFAULTS["intervention"]}
 
     #####################

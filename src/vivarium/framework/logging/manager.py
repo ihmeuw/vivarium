@@ -4,7 +4,6 @@ The Logging Subsystem
 =====================
 
 """
-
 from __future__ import annotations
 
 import loguru

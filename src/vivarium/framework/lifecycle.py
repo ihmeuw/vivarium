@@ -30,7 +30,6 @@ There are two flavors of contracts that this system enforces:
 The tools here also allow for introspection of the simulation life cycle.
 
 """
-
 from __future__ import annotations
 
 import functools

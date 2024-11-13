@@ -21,14 +21,14 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-from vivarium.types import ClockStepSize, ClockTime, NumberLike
+from vivarium.types import ClockStepSize, ClockTime
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.population.population_view import PopulationView
     from vivarium.framework.event import Event
     from vivarium.framework.population import SimulantData
-    from vivarium.framework.values import PostProcessor, ValuesManager
+    from vivarium.framework.values import ValuesManager
 
 from vivarium.framework.values import list_combiner
 from vivarium.manager import Interface, Manager
@@ -95,7 +95,6 @@ class SimulationClock(Manager):
 
     @property
     def time_steps_remaining(self) -> int:
-        # return math.ceil((self.stop_time - self.time) / self.step_size)  # type: ignore [operator]
         number_steps_remaining = (self.stop_time - self.time) / self.step_size  # type: ignore [operator]
         if not isinstance(number_steps_remaining, (float, int)):
             raise ValueError("Invalid type for number of steps remaining")

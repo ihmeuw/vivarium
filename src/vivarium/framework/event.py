@@ -26,7 +26,6 @@ For more information, see the associated event
 :ref:`concept note <event_concept>`.
 
 """
-
 from __future__ import annotations
 
 from collections.abc import Callable

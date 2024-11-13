@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import random
 from pathlib import Path
 
@@ -98,7 +100,7 @@ def test_parse_artifact_path_relative_no_source(base_config):
 def test_parse_artifact_path_relative(base_config, test_data_dir):
     base_config.update(
         {"input_data": {"artifact_path": "../../test_data/artifact.hdf"}},
-        **metadata(__file__)
+        **metadata(__file__),
     )
     assert parse_artifact_path_config(base_config) == str(test_data_dir / "artifact.hdf")
 

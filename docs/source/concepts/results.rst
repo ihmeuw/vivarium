@@ -66,7 +66,7 @@ to the existing number of people who have died from previous time steps.
 
 .. testcode::
 
-  from typing import Any, Optional
+  from typing import Any
 
   import pandas as pd
 
@@ -84,7 +84,7 @@ to the existing number of people who have died from previous time steps.
       }
 
     @property
-    def columns_required(self) -> Optional[list[str]]:
+    def columns_required(self) -> list[str] | None:
       return ["age", "alive"]
 
     def register_observations(self, builder: Builder) -> None:
