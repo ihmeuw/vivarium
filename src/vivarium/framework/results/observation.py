@@ -6,7 +6,7 @@ Observations
 An observation is a class object that records simulation results; they are responsible
 for initializing, gathering, updating, and formatting results.
 
-The provided :class:`BaseObservation` class is an abstract base class that should
+The provided :class:`Observation` class is an abstract base class that should
 be subclassed by concrete observations. While there are no required abstract methods
 to define when subclassing, the class does provide common attributes as well
 as an `observe` method that determines whether to observe results for a given event.
@@ -24,7 +24,6 @@ import itertools
 from abc import ABC
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -37,7 +36,7 @@ VALUE_COLUMN = "value"
 
 
 @dataclass
-class BaseObservation(ABC):
+class Observation(ABC):
     """An abstract base dataclass to be inherited by concrete observations.
 
     This class includes an :meth:`observe <observe>` method that determines whether
@@ -60,7 +59,8 @@ class BaseObservation(ABC):
     DataFrame or one with a complete set of stratifications as the index and
     all values set to 0.0."""
     results_gatherer: Callable[
-        [pd.DataFrame | DataFrameGroupBy[str], tuple[str, ...] | None], pd.DataFrame
+        [pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str], tuple[str, ...] | None],
+        pd.DataFrame,
     ]
     """Method or function that gathers the new observation results."""
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
@@ -76,7 +76,7 @@ class BaseObservation(ABC):
     def observe(
         self,
         event: Event,
-        df: pd.DataFrame | DataFrameGroupBy[str],
+        df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str],
         stratifications: tuple[str, ...] | None,
     ) -> pd.DataFrame | None:
         """Determine whether to observe the given event, and if so, gather the results.
@@ -100,7 +100,7 @@ class BaseObservation(ABC):
             return self.results_gatherer(df, stratifications)
 
 
-class UnstratifiedObservation(BaseObservation):
+class UnstratifiedObservation(Observation):
     """Concrete class for observing results that are not stratified.
 
     The parent class `stratifications` are set to None and the `results_initializer`
@@ -139,7 +139,8 @@ class UnstratifiedObservation(BaseObservation):
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         def _wrap_results_gatherer(
-            df: pd.DataFrame | DataFrameGroupBy[str], _: tuple[str, ...] | None
+            df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str],
+            _: tuple[str, ...] | None,
         ) -> pd.DataFrame:
             if isinstance(df, DataFrameGroupBy):
                 raise TypeError(
@@ -181,7 +182,7 @@ class UnstratifiedObservation(BaseObservation):
         return pd.DataFrame()
 
 
-class StratifiedObservation(BaseObservation):
+class StratifiedObservation(Observation):
     """Concrete class for observing stratified results.
 
     The parent class `results_initializer` and `results_gatherer` methods are

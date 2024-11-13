@@ -8,12 +8,13 @@ Results System Manager
 
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import pandas as pd
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.context import ResultsContext
+from vivarium.framework.results.observation import Observation
 from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
 from vivarium.types import ScalarValue
@@ -301,7 +302,7 @@ class ResultsManager(Manager):
 
     def register_observation(
         self,
-        observation_type,
+        observation_type: Type[Observation],
         is_stratified: bool,
         name: str,
         pop_filter: str,

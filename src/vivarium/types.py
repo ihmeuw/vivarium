@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from numbers import Number
 from typing import Union
@@ -25,3 +26,6 @@ NumberLike = Union[
     float,
     int,
 ]
+
+VectorMapper = Callable[[pd.DataFrame], pd.Series]  # type: ignore [type-arg]
+ScalarMapper = Callable[[pd.Series], str]  # type: ignore [type-arg]
