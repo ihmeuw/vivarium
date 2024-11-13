@@ -8,6 +8,7 @@ import pandas as pd
 from vivarium import Component
 from vivarium.framework.resource import Resource
 from vivarium.framework.values.exceptions import DynamicValueError
+from vivarium.manager import Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.values.combiners import ValueCombiner
@@ -52,7 +53,7 @@ class ValueModifier(Resource):
         self,
         pipeline: Pipeline,
         modifier: Callable[..., Any],
-        component: Component | None,
+        component: Component | Manager | None,
     ) -> None:
         mutator_name = self._get_modifier_name(modifier)
         mutator_index = len(pipeline.mutators) + 1
@@ -190,7 +191,7 @@ class Pipeline(Resource):
         return hash(self.name)
 
     def get_value_modifier(
-        self, modifier: Callable[..., Any], component: Component | None
+        self, modifier: Callable[..., Any], component: Component | Manager | None
     ) -> ValueModifier:
         """Add a value modifier to the pipeline and return it.
 

@@ -120,7 +120,9 @@ class SimulationClock(Manager):
             preferred_post_processor=self.step_size_post_processor,
         )
         self.register_step_modifier = partial(
-            builder.value.register_value_modifier, self._pipeline_name
+            builder.value.register_value_modifier,
+            self._pipeline_name,
+            component=self,
         )
         builder.population.initializes_simulants(self, creates_columns=self.columns_created)
         builder.event.register_listener("post_setup", self.on_post_setup)
@@ -352,5 +354,8 @@ class TimeInterface(Interface):
             A list of the randomness streams that need to be properly sourced
             before the modifier is called."""
         return self._manager.register_step_modifier(
-            modifier, requires_columns, requires_values, requires_streams
+            modifier=modifier,
+            requires_columns=requires_columns,
+            requires_values=requires_values,
+            requires_streams=requires_streams,
         )
