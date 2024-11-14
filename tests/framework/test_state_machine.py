@@ -9,6 +9,7 @@ from tests.helpers import ColumnCreator
 from vivarium import InteractiveContext
 from vivarium.framework.configuration import build_simulation_configuration
 from vivarium.framework.population import SimulantData
+from vivarium.framework.resource import Resource
 from vivarium.framework.state_machine import Machine, State, Transition
 from vivarium.types import ClockTime
 
@@ -71,7 +72,7 @@ def test_initialize_with_array_initialization_weights(use_artifact) -> None:
 
     class TestMachine(Machine):
         @property
-        def initialization_requirements(self) -> list[str | Pipeline | RandomnessStream]:
+        def initialization_requirements(self) -> list[str | Resource]:
             # FIXME - MIC-5408: We shouldn't need to specify the columns in the
             #  lookup tables here, since the component can't know what will be
             #  specified by the states or the configuration.
@@ -114,7 +115,10 @@ def test_error_if_initialize_with_neither_initial_state_nor_initialization_weigh
 
 
 @pytest.mark.parametrize("population_size", [1, 100])
-def test_transition(base_config: LayeredConfigTree, population_size: int) -> None:
+@pytest.mark.parametrize("use_transition_arg", [True, False])
+def test_transition(
+    base_config: LayeredConfigTree, population_size: int, use_transition_arg: bool
+) -> None:
     base_config.update(
         {
             "population": {"population_size": population_size},
@@ -123,7 +127,10 @@ def test_transition(base_config: LayeredConfigTree, population_size: int) -> Non
     )
     done_state = State("done")
     start_state = State("start")
-    start_state.add_transition(Transition(start_state, done_state))
+    if use_transition_arg:
+        start_state.add_transition(Transition(start_state, done_state))
+    else:
+        start_state.add_transition(output_state=done_state)
     machine = Machine("state", states=[start_state, done_state], initial_state=start_state)
 
     simulation = InteractiveContext(components=[machine], configuration=base_config)
@@ -140,14 +147,10 @@ def test_no_null_transition(base_config: LayeredConfigTree) -> None:
     b_state = State("b")
     start_state = State("start")
     start_state.add_transition(
-        Transition(
-            start_state, a_state, probability_func=lambda index: pd.Series(0.4, index=index)
-        )
+        output_state=a_state, probability_function=lambda index: pd.Series(0.4, index=index)
     )
     start_state.add_transition(
-        Transition(
-            start_state, b_state, probability_func=lambda index: pd.Series(0.6, index=index)
-        )
+        output_state=b_state, probability_function=lambda index: pd.Series(0.6, index=index)
     )
     machine = Machine(
         "state", states=[start_state, a_state, b_state], initial_state=start_state
@@ -171,9 +174,7 @@ def test_null_transition(base_config: LayeredConfigTree) -> None:
     a_state = State("a")
     start_state = State("start", allow_self_transition=True)
     start_state.add_transition(
-        Transition(
-            start_state, a_state, probability_func=lambda index: pd.Series(0.4, index=index)
-        )
+        output_state=a_state, probability_function=lambda index: pd.Series(0.4, index=index)
     )
 
     machine = Machine("state", states=[start_state, a_state], initial_state=start_state)
@@ -199,8 +200,8 @@ def test_side_effects() -> None:
 
     counting_state = CountingState("counting")
     start_state = State("start")
-    start_state.add_transition(Transition(start_state, counting_state))
-    counting_state.add_transition(Transition(counting_state, start_state))
+    start_state.add_transition(output_state=counting_state)
+    counting_state.add_transition(output_state=start_state)
 
     machine = Machine(
         "state", states=[start_state, counting_state], initial_state=start_state
