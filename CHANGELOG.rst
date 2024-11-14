@@ -1,3 +1,7 @@
+**3.2.2 - 11/14/24**
+
+  - Feature: Enable adding transition to a state by defining the output state and the transition probability
+
 **3.2.1 - 11/13/24**
 
   - Fix mypy errors in vivarium/framework/results/context.py
@@ -20,7 +24,7 @@
   - Refactor: Converts ResourceManager __iter__ to a well-named instance method
   - Refactor: Creates ResourceTypes for each type of resource
   - Refactor: Makes Pipeline and RandomnessStream inherit from Resource
-  - Refactor: Creates ValueSource and ValueModifer resources and attaches them to Pipelines
+  - Refactor: Creates ValueSource and ValueModifier resources and attaches them to Pipelines
 
 **3.1.0 - 11/07/24**
 

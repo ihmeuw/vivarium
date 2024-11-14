@@ -26,6 +26,11 @@ if TYPE_CHECKING:
     from vivarium.types import ClockTime, LookupTableData
 
 
+def default_decision_function(index: pd.Index) -> pd.Series:
+    """Transition decision function that always triggers this transition."""
+    return pd.Series(1.0, index=index)
+
+
 def _next_state(
     index: pd.Index,
     event_time: ClockTime,
@@ -271,14 +276,39 @@ class State(Component):
     def cleanup_effect(self, index: pd.Index, event_time: ClockTime) -> None:
         pass
 
-    def add_transition(self, transition: Transition) -> None:
+    def add_transition(
+        self,
+        transition: Transition | None = None,
+        output_state: State | None = None,
+        probability_function: Callable[[pd.Index], pd.Series] | None = None,
+    ) -> None:
         """Adds a transition to this state and its `TransitionSet`.
+
+        A transition can be added by passing a `Transition` object or by
+        specifying an output state and a decision function.
 
         Parameters
         ----------
         transition
-            The transition to add
+            The transition to add.
+        output_state
+            The state to transition to
+        probability_function
+            A function that determines the probability that this transition should happen
         """
+        if transition is not None:
+            if output_state is not None or probability_function is not None:
+                raise ValueError(
+                    "Cannot specify both a Transition and an output state or"
+                    " decision function."
+                )
+        else:
+            if output_state is None:
+                raise ValueError("Must specify either a Transition or an output state.")
+
+            if probability_function is None:
+                probability_function = default_decision_function
+            transition = Transition(self, output_state, probability_function)
         self.transition_set.append(transition)
 
     def allow_self_transitions(self) -> None:
