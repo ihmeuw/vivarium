@@ -109,7 +109,7 @@ class ValuesManager(Manager):
         value_name: str,
         modifier: Callable[..., Any],
         # TODO [MIC-5452]: all calls should have a component
-        component: Component | None = None,
+        component: Component | Manager | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
@@ -371,7 +371,7 @@ class ValuesInterface(Interface):
         value_name: str,
         modifier: Callable[..., Any],
         # TODO [MIC-5452]: all calls should have a component
-        component: Component | None = None,
+        component: Component | Manager | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),

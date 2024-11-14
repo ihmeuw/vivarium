@@ -55,7 +55,6 @@ exclude = [
     'src/vivarium/framework/results/manager.py',
     'src/vivarium/framework/results/observer.py',
     'src/vivarium/framework/state_machine.py',
-    'src/vivarium/framework/time.py',
     'src/vivarium/interface/cli.py',
     'src/vivarium/interface/interactive.py',
     'src/vivarium/testing_utilities.py',
