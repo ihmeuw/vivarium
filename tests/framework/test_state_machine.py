@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -8,10 +10,11 @@ from layered_config_tree import LayeredConfigTree
 from tests.helpers import ColumnCreator
 from vivarium import InteractiveContext
 from vivarium.framework.configuration import build_simulation_configuration
+from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
 from vivarium.framework.resource import Resource
 from vivarium.framework.state_machine import Machine, State, Transition
-from vivarium.types import ClockTime
+from vivarium.types import ClockTime, LookupTableData
 
 
 def test_initialize_allowing_self_transition() -> None:
@@ -32,16 +35,36 @@ def test_initialize_with_initial_state() -> None:
     assert simulation.get_population()["state"].unique() == ["start"]
 
 
+@pytest.mark.parametrize("weights_type", ["artifact", "callable", "scalar"])
 def test_initialize_with_scalar_initialization_weights(
-    base_config: LayeredConfigTree,
+    base_config: LayeredConfigTree, weights_type: str
 ) -> None:
+    state_weights = {"state_a.weights": 0.2, "state_b.weights": 0.8}
+
+    def mock_load(key: str) -> float:
+        return state_weights.get(key)
+
     base_config.update(
         {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
     )
-    state_a = State("a", initialization_weights=lambda _: 0.2)
-    state_b = State("b", initialization_weights=lambda _: 0.8)
+
+    def initialization_weights(
+        key: str,
+    ) -> LookupTableData | str | Callable[[Builder], LookupTableData]:
+        return {
+            "artifact": key,
+            "callable": lambda _: state_weights[key],
+            "scalar": state_weights[key],
+        }[weights_type]
+
+    state_a = State("a", initialization_weights=initialization_weights("state_a.weights"))
+    state_b = State("b", initialization_weights=initialization_weights("state_b.weights"))
     machine = Machine("state", states=[state_a, state_b])
-    simulation = InteractiveContext(components=[machine], configuration=base_config)
+    simulation = InteractiveContext(
+        components=[machine], configuration=base_config, setup=False
+    )
+    simulation._builder.data.load = mock_load
+    simulation.setup()
 
     state = simulation.get_population()["state"]
     assert np.all(simulation.get_population().state != "start")
@@ -49,10 +72,8 @@ def test_initialize_with_scalar_initialization_weights(
     assert round((state == "b").mean(), 1) == 0.8
 
 
-@pytest.mark.parametrize(
-    "use_artifact", [True, False], ids=["with_artifact", "without_artifact"]
-)
-def test_initialize_with_array_initialization_weights(use_artifact) -> None:
+@pytest.mark.parametrize("weights_type", ["artifact", "callable", "dataframe"])
+def test_initialize_with_array_initialization_weights(weights_type: str) -> None:
     state_weights = {
         "state_a.weights": pd.DataFrame(
             {"test_column_1": [0, 1, 2], "value": [0.2, 0.7, 0.4]}
@@ -78,11 +99,14 @@ def test_initialize_with_array_initialization_weights(use_artifact) -> None:
             #  specified by the states or the configuration.
             return ["test_column_1"]
 
-    def initialization_weights(key: str):
-        if use_artifact:
-            return lambda builder: builder.data.load(key)
-        else:
-            return lambda _: state_weights[key]
+    def initialization_weights(
+        key: str,
+    ) -> LookupTableData | str | Callable[[Builder], LookupTableData]:
+        return {
+            "artifact": key,
+            "callable": lambda _: state_weights[key],
+            "dataframe": state_weights[key],
+        }[weights_type]
 
     state_a = State("a", initialization_weights=initialization_weights("state_a.weights"))
     state_b = State("b", initialization_weights=initialization_weights("state_b.weights"))

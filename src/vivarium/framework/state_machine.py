@@ -221,7 +221,10 @@ class State(Component):
         self,
         state_id: str,
         allow_self_transition: bool = False,
-        initialization_weights: Callable[[Builder], LookupTableData] | None = None,
+        initialization_weights: LookupTableData
+        | str
+        | Callable[[Builder], LookupTableData]
+        | None = None,
     ) -> None:
         super().__init__()
         self.state_id = state_id
@@ -235,6 +238,20 @@ class State(Component):
     ##################
     # Public methods #
     ##################
+
+    def is_initial_state(self) -> bool:
+        """Determines if simulants could be initialized into this state.
+
+        Note: this will incorrectly return True if initialization_weights is a
+        callable or an artifact key that will always return 0.
+        """
+        if self.initialization_weights is None:
+            return False
+        if isinstance(self.initialization_weights, pd.DataFrame):
+            return not (self.initialization_weights == 0.0).all().all()
+        if isinstance(self.initialization_weights, pd.Series):
+            return not (self.initialization_weights == 0.0).all()
+        return bool(self.initialization_weights)
 
     def set_model(self, model_name: str) -> None:
         """Defines the column name for the model this state belongs to"""
@@ -323,8 +340,8 @@ class State(Component):
     ##################
 
     def get_initialization_weights(self, builder: Builder) -> LookupTableData:
-        if self.initialization_weights:
-            return self.initialization_weights(builder)
+        if self.is_initial_state():
+            return self.get_data(builder, self.initialization_weights)
         else:
             return 0.0
 
@@ -548,7 +565,7 @@ class Machine(Component):
             self.add_states(states)
 
         states_with_initialization_weights = [
-            state for state in self.states if state.initialization_weights
+            state for state in self.states if state.is_initial_state()
         ]
 
         if initial_state is not None:

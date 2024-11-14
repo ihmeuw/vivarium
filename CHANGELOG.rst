@@ -1,3 +1,7 @@
+**3.2.3 - 11/15/24**
+
+  - Feature: Allow users to define initialization weights as LookupTableData or an artifact key
+
 **3.2.2 - 11/14/24**
 
   - Feature: Enable adding transition to a state by defining the output state and the transition probability
