@@ -26,6 +26,11 @@ if TYPE_CHECKING:
     from vivarium.types import ClockTime, LookupTableData
 
 
+def default_probability_function(index: pd.Index) -> pd.Series:
+    """Transition decision function that always triggers this transition."""
+    return pd.Series(1.0, index=index)
+
+
 def _next_state(
     index: pd.Index,
     event_time: ClockTime,
@@ -271,14 +276,43 @@ class State(Component):
     def cleanup_effect(self, index: pd.Index, event_time: ClockTime) -> None:
         pass
 
-    def add_transition(self, transition: Transition) -> None:
+    def add_transition(
+        self,
+        transition: Transition | None = None,
+        output_state: State | None = None,
+        probability_function: Callable[[pd.Index], pd.Series] = default_probability_function,
+    ) -> None:
         """Adds a transition to this state and its `TransitionSet`.
+
+        A transition can be added by passing a `Transition` object or by
+        specifying an output state and a decision function. If a transition is
+        provided, the output state and decision function must not be.
 
         Parameters
         ----------
         transition
-            The transition to add
+            The transition to add.
+        output_state
+            The state to transition to
+        probability_function
+            A function that determines the probability that this transition
+            should happen. By default, this is a function that will produce a
+            probability of 1.0 for all simulants in the state.
         """
+        if transition is not None:
+            if (
+                output_state is not None
+                or probability_function != default_probability_function
+            ):
+                raise ValueError(
+                    "Cannot provide an output state or a decision function if a"
+                    " transition is provided."
+                )
+        else:
+            if output_state is None:
+                raise ValueError("Must specify either a transition or an output state.")
+
+            transition = Transition(self, output_state, probability_function)
         self.transition_set.append(transition)
 
     def allow_self_transitions(self) -> None:
