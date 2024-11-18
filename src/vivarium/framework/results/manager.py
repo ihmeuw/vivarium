@@ -239,7 +239,7 @@ class ResultsManager(Manager):
         labels: list[str],
         excluded_categories: list[str] | None,
         target_type: str,
-        **cut_kwargs: dict[str, int | str | bool],
+        **cut_kwargs: int | str | bool,
     ) -> None:
         """Manager-level registration of a continuous `target` quantity to observe
         into bins in a `binned_column`.
