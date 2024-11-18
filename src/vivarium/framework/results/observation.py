@@ -53,7 +53,9 @@ class Observation(ABC):
     when: str
     """Name of the lifecycle phase the observation should happen. Valid values are:
     "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics"."""
-    results_initializer: Callable[[set[str], list[Stratification]], pd.DataFrame]
+    results_initializer: Callable[
+        [tuple[str, ...] | None, list[Stratification]], pd.DataFrame
+    ]
     """Method or function that initializes the raw observation results
     prior to starting the simulation. This could return, for example, an empty
     DataFrame or one with a complete set of stratifications as the index and
@@ -163,7 +165,7 @@ class UnstratifiedObservation(Observation):
 
     @staticmethod
     def create_empty_df(
-        requested_stratification_names: set[str],
+        requested_stratification_names: tuple[str, ...] | None,
         registered_stratifications: list[Stratification],
     ) -> pd.DataFrame:
         """Initialize an empty dataframe.
@@ -244,7 +246,7 @@ class StratifiedObservation(Observation):
 
     @staticmethod
     def create_expanded_df(
-        requested_stratification_names: set[str],
+        requested_stratification_names: tuple[str, ...] | None,
         registered_stratifications: list[Stratification],
     ) -> pd.DataFrame:
         """Initialize a dataframe of 0s with complete set of stratifications as the index.
@@ -267,11 +269,15 @@ class StratifiedObservation(Observation):
         """
 
         # Set up the complete index of all used stratifications
-        requested_and_registered_stratifications = [
-            stratification
-            for stratification in registered_stratifications
-            if stratification.name in requested_stratification_names
-        ]
+        requested_and_registered_stratifications = (
+            [
+                stratification
+                for stratification in registered_stratifications
+                if stratification.name in requested_stratification_names
+            ]
+            if requested_stratification_names is not None
+            else []
+        )
         stratification_values = {
             stratification.name: stratification.categories
             for stratification in requested_and_registered_stratifications
