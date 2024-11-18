@@ -35,6 +35,7 @@ py:class ClockTime
 py:class Time
 py:class ClockStepSize
 py:class Timedelta
+py:class DataInput
 py:class VectorMapper
 py:class ScalarMapper
 py:class PandasObject

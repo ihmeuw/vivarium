@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from vivarium.framework.event import Event
     from vivarium.framework.population import PopulationView, SimulantData
     from vivarium.framework.resource import Resource
-    from vivarium.types import ClockTime, LookupTableData
+    from vivarium.types import ClockTime, DataInput, LookupTableData
 
 
 def default_probability_function(index: pd.Index) -> pd.Series:
@@ -221,9 +221,7 @@ class State(Component):
         self,
         state_id: str,
         allow_self_transition: bool = False,
-        initialization_weights: LookupTableData
-        | str
-        | Callable[[Builder], LookupTableData] = 0.0,
+        initialization_weights: DataInput = 0.0,
     ) -> None:
         super().__init__()
         self.state_id = state_id

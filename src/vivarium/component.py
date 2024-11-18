@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from vivarium.framework.lookup import LookupTable
     from vivarium.framework.population import PopulationView, SimulantData
     from vivarium.framework.resource import Resource
-    from vivarium.types import LookupTableData
+    from vivarium.types import DataInput
 
 DEFAULT_EVENT_PRIORITY = 5
 """The default priority at which events will be triggered."""
@@ -570,7 +570,7 @@ class Component(ABC):
     def build_lookup_table(
         self,
         builder: Builder,
-        data_source: LookupTableData | str | Callable[[Builder], LookupTableData],
+        data_source: DataInput,
         value_columns: Sequence[str] | None = None,
     ) -> LookupTable:
         """Builds a LookupTable from a data source.
@@ -653,11 +653,7 @@ class Component(ABC):
 
         return value_columns, parameter_columns, key_columns
 
-    def get_data(
-        self,
-        builder: Builder,
-        data_source: LookupTableData | str | Callable[[Builder], LookupTableData],
-    ) -> Any:
+    def get_data(self, builder: Builder, data_source: DataInput) -> Any:
         """Retrieves data from a data source.
 
         If the data source is a float or a DataFrame, it is treated as the data

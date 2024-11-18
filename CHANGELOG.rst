@@ -1,6 +1,7 @@
-**3.2.3 - 11/15/24**
+**3.2.3 - TBD**
 
   - Feature: Allow users to define initialization weights as LookupTableData or an artifact key
+  - Typing: Introduce DataInput type
 
 **3.2.2 - 11/14/24**
 
