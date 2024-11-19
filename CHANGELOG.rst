@@ -1,6 +1,8 @@
-**3.2.3 - TBD**
+**3.2.3 - 11/19/24**
 
   - Feature: Allow users to define initialization weights as LookupTableData or an artifact key
+  - Feature: Make State's add_transition function return the Transition
+  - Feature: Add triggered argument to State's add_transition function
   - Typing: Introduce DataInput type
 
 **3.2.2 - 11/14/24**

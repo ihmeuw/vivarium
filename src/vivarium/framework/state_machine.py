@@ -288,7 +288,8 @@ class State(Component):
         transition: Transition | None = None,
         output_state: State | None = None,
         probability_function: Callable[[pd.Index], pd.Series] = default_probability_function,
-    ) -> None:
+        triggered=Trigger.NOT_TRIGGERED,
+    ) -> Transition:
         """Adds a transition to this state and its `TransitionSet`.
 
         A transition can be added by passing a `Transition` object or by
@@ -305,11 +306,14 @@ class State(Component):
             A function that determines the probability that this transition
             should happen. By default, this is a function that will produce a
             probability of 1.0 for all simulants in the state.
+        triggered
+            A flag indicating whether this transition is triggered by some event.
         """
         if transition is not None:
             if (
                 output_state is not None
                 or probability_function != default_probability_function
+                or triggered != Trigger.NOT_TRIGGERED
             ):
                 raise ValueError(
                     "Cannot provide an output state or a decision function if a"
@@ -319,8 +323,9 @@ class State(Component):
             if output_state is None:
                 raise ValueError("Must specify either a transition or an output state.")
 
-            transition = Transition(self, output_state, probability_function)
+            transition = Transition(self, output_state, probability_function, triggered)
         self.transition_set.append(transition)
+        return transition
 
     def allow_self_transitions(self) -> None:
         self.transition_set.allow_null_transition = True
