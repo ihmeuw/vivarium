@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from vivarium.framework.event import Event
     from vivarium.framework.population import PopulationView, SimulantData
     from vivarium.framework.resource import Resource
-    from vivarium.types import ClockTime, DataInput, LookupTableData
+    from vivarium.types import ClockTime, DataInput
 
 
 def default_probability_function(index: pd.Index) -> pd.Series:
@@ -204,7 +204,7 @@ class State(Component):
         return {
             f"{self.name}": {
                 "data_sources": {
-                    "initialization_weights": self.get_initialization_weights,
+                    "initialization_weights": self.initialization_weights,
                 },
             },
         }
@@ -328,12 +328,6 @@ class State(Component):
     ##################
     # Helper methods #
     ##################
-
-    def get_initialization_weights(self, builder: Builder) -> LookupTableData:
-        if self.has_initialization_weights():
-            return self.get_data(builder, self.initialization_weights)
-        else:
-            return 0.0
 
     def transition_side_effect(self, index: pd.Index, event_time: ClockTime) -> None:
         pass
@@ -570,7 +564,7 @@ class Machine(Component):
                     " initialization weights to states."
                 )
 
-            initial_state.initialization_weights = lambda _builder: 1.0
+            initial_state.initialization_weights = 1.0
 
         # TODO: [MIC-5403] remove this on_initialize_simulants check once
         #  VPH's DiseaseModel has a compatible initialization strategy
