@@ -1,3 +1,7 @@
+**3.2.3 - 11/20/24**
+
+  - Fix mypy errors in vivarium/framework/results/manager.py
+
 **3.2.2 - 11/14/24**
 
   - Feature: Enable adding transition to a state by defining the output state and the transition probability
