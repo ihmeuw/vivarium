@@ -1,15 +1,14 @@
-# mypy: ignore-errors
 """
 ======================
 Results System Manager
 ======================
 
 """
+from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -18,7 +17,7 @@ from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import Observation
 from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
-from vivarium.types import ScalarValue
+from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -78,9 +77,7 @@ class ResultsManager(Manager):
                 for observation in observations:
                     measure = observation.name
                     results = self._raw_results[measure].copy()
-                    formatted[measure] = observation.results_formatter(
-                        measure=measure, results=results
-                    )
+                    formatted[measure] = observation.results_formatter(measure, results)
         return formatted
 
     # noinspection PyAttributeOutsideInit
@@ -190,9 +187,7 @@ class ResultsManager(Manager):
         name: str,
         categories: list[str],
         excluded_categories: list[str] | None,
-        mapper: Callable[[pd.Series | pd.DataFrame], pd.Series]
-        | Callable[[ScalarValue], str]
-        | None,
+        mapper: VectorMapper | ScalarMapper | None,
         is_vectorized: bool,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
@@ -244,7 +239,7 @@ class ResultsManager(Manager):
         labels: list[str],
         excluded_categories: list[str] | None,
         target_type: str,
-        **cut_kwargs,
+        **cut_kwargs: int | str | bool,
     ) -> None:
         """Manager-level registration of a continuous `target` quantity to observe
         into bins in a `binned_column`.
@@ -270,15 +265,24 @@ class ResultsManager(Manager):
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
         """
+        if not isinstance(labels, list) or not all(
+            [isinstance(label, str) for label in labels]
+        ):
+            raise ValueError(
+                f"Labels must be a list of strings when registering a binned stratification, but labels was {labels} when registering the {binned_column} stratification."
+            )
 
-        def _bin_data(data: pd.Series | pd.DataFrame) -> pd.Series:
+        def _bin_data(data: pd.Series[int | float] | pd.DataFrame) -> pd.Series[Any]:
             """Use pandas.cut to bin continuous values"""
-            data = data.squeeze()
+            data = data.squeeze() if isinstance(data, pd.DataFrame) else data
             if not isinstance(data, pd.Series):
                 raise ValueError(f"Expected a Series, but got type {type(data)}.")
-            return pd.cut(
+            data = pd.cut(
                 data, bin_edges, labels=labels, right=False, include_lowest=True, **cut_kwargs
-            )
+            )  # type: ignore [call-overload]
+            # we know pd.cut will return a Series because data is a Series
+            # and labels is a list of strings but mypy doesn't know that
+            return data  # type: ignore [return-value]
 
         if len(bin_edges) != len(labels) + 1:
             raise ValueError(
@@ -307,7 +311,7 @@ class ResultsManager(Manager):
         when: str,
         requires_columns: list[str],
         requires_values: list[str],
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         """Manager-level observation registration.
 
@@ -406,7 +410,7 @@ class ResultsManager(Manager):
         )
         population["current_time"] = self.clock()
         population["event_step_size"] = event.step_size
-        population["event_time"] = self.clock() + event.step_size
+        population["event_time"] = self.clock() + event.step_size  # type: ignore [operator]
         for k, v in event.user_data.items():
             population[k] = v
         for pipeline in self._required_values:
