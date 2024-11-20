@@ -265,23 +265,24 @@ class ResultsManager(Manager):
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
         """
+        if not isinstance(labels, list) or not all(
+            [isinstance(label, str) for label in labels]
+        ):
+            raise ValueError(
+                f"Labels must be a list of strings when registering a binned stratification, but labels was {labels} when registering the {binned_column} stratification."
+            )
 
         def _bin_data(data: pd.Series[int | float] | pd.DataFrame) -> pd.Series[Any]:
             """Use pandas.cut to bin continuous values"""
-            # mypy wants this squeeze to return a Series or DataFrame
-            if isinstance(data, pd.DataFrame):
-                data = data.squeeze()
+            data = data.squeeze() if isinstance(data, pd.DataFrame) else data
             if not isinstance(data, pd.Series):
                 raise ValueError(f"Expected a Series, but got type {type(data)}.")
             data = pd.cut(
                 data, bin_edges, labels=labels, right=False, include_lowest=True, **cut_kwargs
             )  # type: ignore [call-overload]
-            if isinstance(data, pd.Series):
-                return data
-            else:
-                raise ValueError(
-                    f"The output of pd.cut should be a Series, but is a {type(data)} instead."
-                )
+            # we know pd.cut will return a Series because data is a Series
+            # and labels is a list of strings but mypy doesn't know that
+            return data  # type: ignore [return-value]
 
         if len(bin_edges) != len(labels) + 1:
             raise ValueError(

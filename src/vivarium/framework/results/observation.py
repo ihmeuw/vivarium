@@ -269,15 +269,14 @@ class StratifiedObservation(Observation):
         """
 
         # Set up the complete index of all used stratifications
-        requested_and_registered_stratifications = (
-            [
+        if requested_stratification_names is not None:
+            requested_and_registered_stratifications = [
                 stratification
                 for stratification in registered_stratifications
                 if stratification.name in requested_stratification_names
             ]
-            if requested_stratification_names is not None
-            else []
-        )
+        else:
+            requested_and_registered_stratifications = []
         stratification_values = {
             stratification.name: stratification.categories
             for stratification in requested_and_registered_stratifications
