@@ -1,6 +1,7 @@
 **3.2.3 - 11/20/24**
 
   - Fix mypy errors in vivarium/framework/results/manager.py
+  - Fix mypy errors in vivarium/framework/lookup/manager.py
 
 **3.2.2 - 11/14/24**
 
