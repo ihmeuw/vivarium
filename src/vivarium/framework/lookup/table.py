@@ -23,7 +23,7 @@ import pandas as pd
 
 from vivarium.framework.lookup.interpolation import Interpolation
 from vivarium.framework.population.population_view import PopulationView
-from vivarium.types import ScalarValue, Time
+from vivarium.types import ClockTime, ScalarValue
 
 
 class LookupTable(ABC):
@@ -112,7 +112,7 @@ class InterpolatedTable(LookupTable):
         parameter_columns: Sequence[str],
         value_columns: Sequence[str],
         interpolation_order: int,
-        clock: Callable[[], Time],
+        clock: Callable[[], ClockTime],
         extrapolate: bool,
         validate: bool,
     ):
