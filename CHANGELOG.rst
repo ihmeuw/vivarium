@@ -1,7 +1,9 @@
-**3.2.3 - TBD**
+**3.2.3 - 11/21/24**
 
   - Feature: Allow users to define initialization weights as LookupTableData or an artifact key
-  - Typing: Introduce DataInput type
+  - Type-hinting: Introduce DataInput type
+  - Type-hinting: Fix mypy errors in vivarium/framework/results/manager.py
+  - Type-hinting: Fix mypy errors in vivarium/framework/lookup/manager.py
 
 **3.2.2 - 11/14/24**
 
