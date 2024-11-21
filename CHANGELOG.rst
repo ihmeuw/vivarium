@@ -1,9 +1,11 @@
-**3.2.3 - 11/19/24**
+**3.2.3 - 11/21/24**
 
   - Feature: Allow users to define initialization weights as LookupTableData or an artifact key
   - Feature: Make State's add_transition function return the Transition
   - Feature: Add triggered argument to State's add_transition function
-  - Typing: Introduce DataInput type
+  - Type-hinting: Introduce DataInput type
+  - Type-hinting: Fix mypy errors in vivarium/framework/results/manager.py
+  - Type-hinting: Fix mypy errors in vivarium/framework/lookup/manager.py
 
 **3.2.2 - 11/14/24**
 
