@@ -221,7 +221,9 @@ class State(Component):
         self,
         state_id: str,
         allow_self_transition: bool = False,
-        initialization_weights: Callable[[Builder], LookupTableData] | None = None,
+        initialization_weights: LookupTableData
+        | str
+        | Callable[[Builder], LookupTableData] = 0.0,
     ) -> None:
         super().__init__()
         self.state_id = state_id
@@ -235,6 +237,13 @@ class State(Component):
     ##################
     # Public methods #
     ##################
+
+    def has_initialization_weights(self) -> bool:
+        """Determines if state has explicitly defined initialization weights."""
+        return (
+            not isinstance(self.initialization_weights, (float, int))
+            or self.initialization_weights != 0.0
+        )
 
     def set_model(self, model_name: str) -> None:
         """Defines the column name for the model this state belongs to"""
@@ -323,8 +332,8 @@ class State(Component):
     ##################
 
     def get_initialization_weights(self, builder: Builder) -> LookupTableData:
-        if self.initialization_weights:
-            return self.initialization_weights(builder)
+        if self.has_initialization_weights():
+            return self.get_data(builder, self.initialization_weights)
         else:
             return 0.0
 
@@ -548,7 +557,7 @@ class Machine(Component):
             self.add_states(states)
 
         states_with_initialization_weights = [
-            state for state in self.states if state.initialization_weights
+            state for state in self.states if state.has_initialization_weights()
         ]
 
         if initial_state is not None:
