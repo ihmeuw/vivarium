@@ -356,7 +356,7 @@ class ResultsContext:
             )
         else:
             pop_groups = filtered_pop.groupby(lambda _: "all")
-        return pop_groups  # type: ignore [return-value]
+        return pop_groups  # type: ignore[return-value]
 
     def _rename_stratification_columns(self, results: pd.DataFrame) -> None:
         """Convert the temporary stratified mapped index names back to their original names."""
