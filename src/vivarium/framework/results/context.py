@@ -301,7 +301,7 @@ class ResultsContext:
             if filtered_pop.empty:
                 yield None, None, None
             else:
-                pop: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str]
+                pop: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool]
                 if stratification_names is None:
                     pop = filtered_pop
                 else:
@@ -335,7 +335,7 @@ class ResultsContext:
     @staticmethod
     def _get_groups(
         stratifications: tuple[str, ...], filtered_pop: pd.DataFrame
-    ) -> DataFrameGroupBy[tuple[str, ...] | str]:
+    ) -> DataFrameGroupBy[tuple[str, ...] | str, bool]:
         """Group the population by stratification.
 
         Notes
@@ -356,7 +356,7 @@ class ResultsContext:
             )
         else:
             pop_groups = filtered_pop.groupby(lambda _: "all")
-        return pop_groups  # type: ignore[return-value]
+        return pop_groups  # type: ignore [return-value]
 
     def _rename_stratification_columns(self, results: pd.DataFrame) -> None:
         """Convert the temporary stratified mapped index names back to their original names."""

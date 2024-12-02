@@ -61,7 +61,10 @@ class Observation(ABC):
     DataFrame or one with a complete set of stratifications as the index and
     all values set to 0.0."""
     results_gatherer: Callable[
-        [pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str], tuple[str, ...] | None],
+        [
+            pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
+            tuple[str, ...] | None,
+        ],
         pd.DataFrame,
     ]
     """Method or function that gathers the new observation results."""
@@ -78,7 +81,7 @@ class Observation(ABC):
     def observe(
         self,
         event: Event,
-        df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str],
+        df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
         stratifications: tuple[str, ...] | None,
     ) -> pd.DataFrame | None:
         """Determine whether to observe the given event, and if so, gather the results.
@@ -141,7 +144,7 @@ class UnstratifiedObservation(Observation):
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         def _wrap_results_gatherer(
-            df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str],
+            df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
             _: tuple[str, ...] | None,
         ) -> pd.DataFrame:
             if isinstance(df, DataFrameGroupBy):
@@ -302,7 +305,7 @@ class StratifiedObservation(Observation):
 
     def get_complete_stratified_results(
         self,
-        pop_groups: DataFrameGroupBy[str],
+        pop_groups: DataFrameGroupBy[str, bool],
         stratifications: tuple[str, ...],
     ) -> pd.DataFrame:
         """Gather results for this observation.
@@ -327,7 +330,7 @@ class StratifiedObservation(Observation):
 
     @staticmethod
     def _aggregate(
-        pop_groups: DataFrameGroupBy[str],
+        pop_groups: DataFrameGroupBy[str, bool],
         aggregator_sources: list[str] | None,
         aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
     ) -> pd.Series[float] | pd.DataFrame:
