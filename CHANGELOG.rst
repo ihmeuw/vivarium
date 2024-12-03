@@ -1,3 +1,7 @@
+**3.2.4 - 12/03/24**
+
+  - Fix type hints for pandas groupby objects
+
 **3.2.3 - 11/21/24**
 
   - Feature: Allow users to define initialization weights as LookupTableData or an artifact key

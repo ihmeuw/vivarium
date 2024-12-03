@@ -301,7 +301,7 @@ class ResultsContext:
             if filtered_pop.empty:
                 yield None, None, None
             else:
-                pop: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str]
+                pop: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool]
                 if stratification_names is None:
                     pop = filtered_pop
                 else:
@@ -335,7 +335,7 @@ class ResultsContext:
     @staticmethod
     def _get_groups(
         stratifications: tuple[str, ...], filtered_pop: pd.DataFrame
-    ) -> DataFrameGroupBy[tuple[str, ...] | str]:
+    ) -> DataFrameGroupBy[tuple[str, ...] | str, bool]:
         """Group the population by stratification.
 
         Notes
