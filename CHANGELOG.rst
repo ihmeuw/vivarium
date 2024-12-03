@@ -1,4 +1,4 @@
-**3.2.4 - 12/02/24**
+**3.2.4 - 12/03/24**
 
   - Fix type hints for pandas groupby objects
 
