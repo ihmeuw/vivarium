@@ -6,11 +6,15 @@ The Logging Subsystem
 """
 from __future__ import annotations
 
-import loguru
+from typing import TYPE_CHECKING
+
 from loguru import logger
 
 from vivarium.framework.logging.utilities import configure_logging_to_terminal
 from vivarium.manager import Interface, Manager
+
+if TYPE_CHECKING:
+    from loguru import Logger
 
 
 class LoggingManager(Manager):
@@ -44,7 +48,7 @@ class LoggingManager(Manager):
     def name(self) -> str:
         return "logging_manager"
 
-    def get_logger(self, component_name: str | None = None) -> loguru.Logger:
+    def get_logger(self, component_name: str | None = None) -> Logger:
         bind_args = {"simulation": self._simulation_name}
         if component_name:
             bind_args["component"] = component_name
@@ -55,5 +59,5 @@ class LoggingInterface(Interface):
     def __init__(self, manager: LoggingManager) -> None:
         self._manager = manager
 
-    def get_logger(self, component_name: str | None = None) -> loguru.Logger:
+    def get_logger(self, component_name: str | None = None) -> Logger:
         return self._manager.get_logger(component_name)
