@@ -8,6 +8,7 @@ methods to register stratifications and results producers (referred to as "obser
 to a simulation.
 
 """
+from __future__ import annotations
 
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
