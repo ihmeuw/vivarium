@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 =================
 Results Interface
@@ -11,7 +10,7 @@ to a simulation.
 """
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -23,13 +22,13 @@ from vivarium.framework.results.observation import (
     UnstratifiedObservation,
 )
 from vivarium.manager import Interface
-from vivarium.types import ScalarValue
+from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
     from vivarium.framework.results.manager import ResultsManager
 
 
-def _required_function_placeholder(*args, **kwargs) -> pd.DataFrame:
+def _required_function_placeholder(*args: Any, **kwargs: Any) -> pd.DataFrame:
     """Placeholder function to indicate that a required function is missing."""
     return pd.DataFrame()
 
@@ -75,9 +74,7 @@ class ResultsInterface(Interface):
         name: str,
         categories: list[str],
         excluded_categories: list[str] | None = None,
-        mapper: Callable[[pd.Series | pd.DataFrame], pd.Series]
-        | Callable[[ScalarValue], str]
-        | None = None,
+        mapper: VectorMapper | ScalarMapper | None = None,
         is_vectorized: bool = False,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
@@ -127,7 +124,7 @@ class ResultsInterface(Interface):
         labels: list[str] = [],
         excluded_categories: list[str] | None = None,
         target_type: str = "column",
-        **cut_kwargs: dict,
+        **cut_kwargs: int | str | bool,
     ) -> None:
         """Registers a binned stratification that can be used by stratified observations.
 
@@ -182,7 +179,7 @@ class ResultsInterface(Interface):
         additional_stratifications: list[str] = [],
         excluded_stratifications: list[str] = [],
         aggregator_sources: list[str] | None = None,
-        aggregator: Callable[[pd.DataFrame], float | pd.Series] = len,
+        aggregator: Callable[[pd.DataFrame], float | pd.Series[Any]] = len,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Registers a stratified observation to the results system.
@@ -295,7 +292,7 @@ class ResultsInterface(Interface):
             "results_gatherer": results_gatherer,
             "results_updater": results_updater,
         }
-        self._check_for_required_callables(name, required_callables)
+        self._check_for_required_callables(name, required_callables)  # type: ignore [arg-type]
         self._manager.register_observation(
             observation_type=UnstratifiedObservation,
             is_stratified=False,
@@ -323,7 +320,7 @@ class ResultsInterface(Interface):
         additional_stratifications: list[str] = [],
         excluded_stratifications: list[str] = [],
         aggregator_sources: list[str] | None = None,
-        aggregator: Callable[[pd.DataFrame], float | pd.Series] = len,
+        aggregator: Callable[[pd.DataFrame], float | pd.Series[Any]] = len,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Registers an adding observation to the results system.
@@ -438,7 +435,7 @@ class ResultsInterface(Interface):
 
     @staticmethod
     def _check_for_required_callables(
-        observation_name: str, required_callables: dict[str, Callable]
+        observation_name: str, required_callables: dict[str, Callable[..., pd.DataFrame]]
     ) -> None:
         """Raises a ValueError if any required callable arguments are missing."""
         missing = []
