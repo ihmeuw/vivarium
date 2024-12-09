@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 =============
 State Machine
@@ -7,11 +6,12 @@ State Machine
 A state machine implementation for use in ``vivarium`` simulations.
 
 """
+
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Iterator
 
 import numpy as np
 import pandas as pd
@@ -23,16 +23,16 @@ if TYPE_CHECKING:
     from vivarium.framework.event import Event
     from vivarium.framework.population import PopulationView, SimulantData
     from vivarium.framework.resource import Resource
-    from vivarium.types import ClockTime, DataInput
+    from vivarium.types import ClockTime, DataInput, NumericArray
 
 
-def default_probability_function(index: pd.Index) -> pd.Series:
+def default_probability_function(index: pd.Index[int]) -> pd.Series[float]:
     """Transition decision function that always triggers this transition."""
     return pd.Series(1.0, index=index)
 
 
 def _next_state(
-    index: pd.Index,
+    index: pd.Index[int],
     event_time: ClockTime,
     transition_set: TransitionSet,
     population_view: PopulationView,
@@ -72,8 +72,8 @@ def _next_state(
 
 
 def _groupby_new_state(
-    index: pd.Index, outputs: list, decisions: pd.Series
-) -> list[tuple[str, pd.Index]]:
+    index: pd.Index[int], outputs: list[State], decisions: pd.Series[State]
+) -> list[tuple[State, pd.Index[int]]]:
     """Groups the simulants in the index by their new output state.
 
     Parameters
@@ -104,7 +104,7 @@ class Trigger(Enum):
     START_ACTIVE = 2
 
 
-def _process_trigger(trigger):
+def _process_trigger(trigger: Trigger) -> tuple[pd.Index[int] | None, bool]:
     if trigger == Trigger.NOT_TRIGGERED:
         return None, False
     elif trigger == Trigger.START_INACTIVE:
@@ -126,10 +126,10 @@ class Transition(Component):
         self,
         input_state: State,
         output_state: State,
-        probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(
-            1.0, index=index
-        ),
-        triggered=Trigger.NOT_TRIGGERED,
+        probability_func: Callable[
+            [pd.Index[int]], pd.Series[float]
+        ] = lambda index: pd.Series(1.0, index=index),
+        triggered: Trigger = Trigger.NOT_TRIGGERED,
     ):
         """Initializes a transition between two states.
 
@@ -155,7 +155,7 @@ class Transition(Component):
     # Public methods #
     ##################
 
-    def set_active(self, index: pd.Index) -> None:
+    def set_active(self, index: pd.Index[int]) -> None:
         if self._active_index is None:
             raise ValueError(
                 "This transition is not triggered.  An active index cannot be set or modified."
@@ -163,7 +163,7 @@ class Transition(Component):
         else:
             self._active_index = self._active_index.union(pd.Index(index))
 
-    def set_inactive(self, index: pd.Index) -> None:
+    def set_inactive(self, index: pd.Index[int]) -> None:
         if self._active_index is None:
             raise ValueError(
                 "This transition is not triggered.  An active index cannot be set or modified."
@@ -171,7 +171,7 @@ class Transition(Component):
         else:
             self._active_index = self._active_index.difference(pd.Index(index))
 
-    def probability(self, index: pd.Index) -> pd.Series:
+    def probability(self, index: pd.Index[int]) -> pd.Series[float]:
         if self._active_index is None:
             return self._probability(index)
 
@@ -210,7 +210,7 @@ class State(Component):
         }
 
     @property
-    def model(self) -> str:
+    def model(self) -> str | None:
         return self._model
 
     #####################
@@ -248,7 +248,7 @@ class State(Component):
         self._model = model_name
 
     def next_state(
-        self, index: pd.Index, event_time: ClockTime, population_view: PopulationView
+        self, index: pd.Index[int], event_time: ClockTime, population_view: PopulationView
     ) -> None:
         """Moves a population between different states.
 
@@ -264,7 +264,7 @@ class State(Component):
         return _next_state(index, event_time, self.transition_set, population_view)
 
     def transition_effect(
-        self, index: pd.Index, event_time: ClockTime, population_view: PopulationView
+        self, index: pd.Index[int], event_time: ClockTime, population_view: PopulationView
     ) -> None:
         """Updates the simulation state and triggers any side-effects associated with entering this state.
 
@@ -280,15 +280,17 @@ class State(Component):
         population_view.update(pd.Series(self.state_id, index=index))
         self.transition_side_effect(index, event_time)
 
-    def cleanup_effect(self, index: pd.Index, event_time: ClockTime) -> None:
+    def cleanup_effect(self, index: pd.Index[int], event_time: ClockTime) -> None:
         pass
 
     def add_transition(
         self,
         transition: Transition | None = None,
         output_state: State | None = None,
-        probability_function: Callable[[pd.Index], pd.Series] = default_probability_function,
-        triggered=Trigger.NOT_TRIGGERED,
+        probability_function: Callable[
+            [pd.Index[int]], pd.Series[float]
+        ] = default_probability_function,
+        triggered: Trigger = Trigger.NOT_TRIGGERED,
     ) -> Transition:
         """Adds a transition to this state and its `TransitionSet`.
 
@@ -334,7 +336,7 @@ class State(Component):
     # Helper methods #
     ##################
 
-    def transition_side_effect(self, index: pd.Index, event_time: ClockTime) -> None:
+    def transition_side_effect(self, index: pd.Index[int], event_time: ClockTime) -> None:
         pass
 
 
@@ -383,7 +385,7 @@ class TransitionSet(Component):
         super().__init__()
         self.state_id = state_id
         self.allow_null_transition = allow_self_transition
-        self.transitions = []
+        self.transitions: list[Transition] = []
         self._sub_components = self.transitions
 
         self.extend(transitions)
@@ -403,7 +405,7 @@ class TransitionSet(Component):
     # Public methods #
     ##################
 
-    def choose_new_state(self, index: pd.Index) -> tuple[list, pd.Series]:
+    def choose_new_state(self, index: pd.Index[int]) -> tuple[list[State], pd.Series[State]]:
         """Chooses a new state for each simulant in the index.
 
         Parameters
@@ -443,7 +445,9 @@ class TransitionSet(Component):
     # Helper methods #
     ##################
 
-    def _normalize_probabilities(self, outputs, probabilities):
+    def _normalize_probabilities(
+        self, outputs: list[State], probabilities: NumericArray
+    ) -> tuple[list[State], NumericArray]:
         """Normalize probabilities to sum to 1 and add a null transition.
 
         Parameters
@@ -497,13 +501,13 @@ class TransitionSet(Component):
 
         return outputs, probabilities
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Transition]:
         return iter(self.transitions)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.transitions)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(id(self))
 
 
@@ -524,7 +528,7 @@ class Machine(Component):
     ##############
 
     @property
-    def sub_components(self):
+    def sub_components(self) -> list[Component]:
         return self.states
 
     @property
@@ -548,7 +552,7 @@ class Machine(Component):
         initial_state: State | None = None,
     ) -> None:
         super().__init__()
-        self.states = []
+        self.states: list[State] = []
         self.state_column = state_column
         if states:
             self.add_states(states)
@@ -615,7 +619,7 @@ class Machine(Component):
             self.states.append(state)
             state.set_model(self.state_column)
 
-    def transition(self, index: pd.Index, event_time: ClockTime) -> None:
+    def transition(self, index: pd.Index[int], event_time: ClockTime) -> None:
         """Finds the population in each state and moves them to the next state.
 
         Parameters
@@ -633,12 +637,12 @@ class Machine(Component):
                     self.population_view.subview(self.state_column),
                 )
 
-    def cleanup(self, index: pd.Index, event_time: ClockTime) -> None:
+    def cleanup(self, index: pd.Index[int], event_time: ClockTime) -> None:
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
                 state.cleanup_effect(affected.index, event_time)
 
-    def _get_state_pops(self, index: pd.Index) -> list[tuple[State, pd.DataFrame]]:
+    def _get_state_pops(self, index: pd.Index[int]) -> list[tuple[State, pd.DataFrame]]:
         population = self.population_view.get(index)
         return [
             (state, population[population[self.state_column] == state.state_id])
