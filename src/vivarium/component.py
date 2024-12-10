@@ -106,7 +106,7 @@ class Component(ABC):
         self.logger: loguru.Logger | None = None
         self.get_value_columns: Callable[[str | pd.DataFrame], list[str]] | None = None
         self.configuration: LayeredConfigTree | None = None
-        self._population_view: "PopulationView" | None = None
+        self._population_view: PopulationView | None = None
         self.lookup_tables: dict[str, LookupTable] = {}
 
     def __repr__(self) -> str:
