@@ -26,7 +26,7 @@ from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.population import PopulationError
 
 if TYPE_CHECKING:
-    from loguru import Logger
+    import loguru
 
     from vivarium.framework.engine import Builder
     from vivarium.framework.event import Event
@@ -103,10 +103,10 @@ class Component(ABC):
         self._repr: str = ""
         self._name: str = ""
         self._sub_components: list["Component"] = []
-        self.logger: Logger | None = None
+        self.logger: loguru.Logger | None = None
         self.get_value_columns: Callable[[str | pd.DataFrame], list[str]] | None = None
         self.configuration: LayeredConfigTree | None = None
-        self._population_view: PopulationView | None = None
+        self._population_view: "PopulationView" | None = None
         self.lookup_tables: dict[str, LookupTable] = {}
 
     def __repr__(self) -> str:
