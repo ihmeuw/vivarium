@@ -179,12 +179,8 @@ class ResultsInterface(Interface):
         when: str = "collect_metrics",
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
-        results_updater: Callable[
-            [pd.DataFrame, pd.DataFrame], pd.DataFrame
-        ] = _required_function_placeholder,
-        results_formatter: Callable[
-            [str, pd.DataFrame], pd.DataFrame
-        ] = lambda measure, results: results,
+        results_updater: ResultsUpdater = _required_function_placeholder,
+        results_formatter: ResultsFormatter = lambda measure, results: results,
         additional_stratifications: list[str] = [],
         excluded_stratifications: list[str] = [],
         aggregator_sources: list[str] | None = None,
@@ -255,15 +251,9 @@ class ResultsInterface(Interface):
         when: str = "collect_metrics",
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
-        results_gatherer: Callable[
-            [pd.DataFrame], pd.DataFrame
-        ] = _required_function_placeholder,
-        results_updater: Callable[
-            [pd.DataFrame, pd.DataFrame], pd.DataFrame
-        ] = _required_function_placeholder,
-        results_formatter: Callable[
-            [str, pd.DataFrame], pd.DataFrame
-        ] = lambda measure, results: results,
+        results_gatherer: ResultsGatherer = _required_function_placeholder,
+        results_updater: ResultsUpdater = _required_function_placeholder,
+        results_formatter: ResultsFormatter = lambda measure, results: results,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Registers an unstratified observation to the results system.
@@ -323,9 +313,7 @@ class ResultsInterface(Interface):
         when: str = "collect_metrics",
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
-        results_formatter: Callable[
-            [str, pd.DataFrame], pd.DataFrame
-        ] = lambda measure, results: results.reset_index(),
+        results_formatter: ResultsFormatter = lambda measure, results: results.reset_index(),
         additional_stratifications: list[str] = [],
         excluded_stratifications: list[str] = [],
         aggregator_sources: list[str] | None = None,
@@ -394,9 +382,7 @@ class ResultsInterface(Interface):
         when: str = "collect_metrics",
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
-        results_formatter: Callable[
-            [str, pd.DataFrame], pd.DataFrame
-        ] = lambda measure, results: results,
+        results_formatter: ResultsFormatter = lambda measure, results: results,
         to_observe: Callable[[Event], bool] = lambda event: True,
     ) -> None:
         """Registers a concatenating observation to the results system.
