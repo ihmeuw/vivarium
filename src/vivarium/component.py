@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from importlib import import_module
 from inspect import signature
 from numbers import Number
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
@@ -634,11 +634,11 @@ class Component(ABC):
     ) -> tuple[Sequence[str], list[str], list[str]]:
         all_columns = list(data.columns)
         if value_columns is None:
-            if not self.get_value_columns:
-                raise ConfigurationError(
-                    "Neither the value columns nor a 'get_value_columns' method are defined."
-                )
-            value_columns = self.get_value_columns(data)
+            # NOTE: self.get_value_columns cannot be None at this point of the call stack
+            value_column_getter = cast(
+                Callable[[str | pd.DataFrame], list[str]], self.get_value_columns
+            )
+            value_columns = value_column_getter(data)
 
         potential_parameter_columns = [
             str(col).removesuffix("_start")
