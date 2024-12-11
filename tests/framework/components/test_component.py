@@ -7,6 +7,7 @@ from layered_config_tree.exceptions import ConfigurationError
 from tests.helpers import (
     AllColumnsRequirer,
     ColumnCreator,
+    ColumnCreatorAndAllRequirer,
     ColumnCreatorAndRequirer,
     ColumnRequirer,
     CustomPriorities,
@@ -99,6 +100,19 @@ def test_component_that_creates_and_requires_columns_population_view():
 
     # Assert population view is set and has the correct columns
     expected_columns = component.columns_required + component.columns_created
+
+    assert component.population_view is not None
+    assert set(component.population_view.columns) == set(expected_columns)
+
+
+@pytest.mark.xfail(reason="This is due to a bug to be fixed by MIC-5373")
+def test_component_that_creates_column_and_requires_all_columns_population_view():
+    component = ColumnCreatorAndAllRequirer()
+    simulation = InteractiveContext(components=[ColumnCreator(), component])
+    population = simulation.get_population()
+
+    # Assert population view is set and has the correct columns
+    expected_columns = population.columns
 
     assert component.population_view is not None
     assert set(component.population_view.columns) == set(expected_columns)
