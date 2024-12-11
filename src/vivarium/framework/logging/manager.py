@@ -7,7 +7,6 @@ The Logging Subsystem
 from __future__ import annotations
 
 import loguru
-from loguru import logger
 
 from vivarium.framework.logging.utilities import configure_logging_to_terminal
 from vivarium.manager import Interface, Manager
@@ -38,7 +37,7 @@ class LoggingManager(Manager):
         # fragile since it depends on a loguru's internals as well as the stability of code
         # paths in vivarium, but both are quite stable at this point, so I think it's pretty,
         # low risk.
-        return 1 not in logger._core.handlers  # type: ignore[attr-defined]
+        return 1 not in loguru.logger._core.handlers  # type: ignore[attr-defined]
 
     @property
     def name(self) -> str:
@@ -48,7 +47,7 @@ class LoggingManager(Manager):
         bind_args = {"simulation": self._simulation_name}
         if component_name:
             bind_args["component"] = component_name
-        return logger.bind(**bind_args)
+        return loguru.logger.bind(**bind_args)
 
 
 class LoggingInterface(Interface):

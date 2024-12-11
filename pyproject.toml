@@ -32,7 +32,6 @@ exclude = [
     # You will need to remove the mypy: ignore-errors comment from the file heading as well
     'docs/source/conf.py',
     'setup.py',
-    'src/vivarium/component.py',
     'src/vivarium/examples/boids/forces.py',
     'src/vivarium/examples/boids/movement.py',
     'src/vivarium/examples/boids/neighbors.py',
@@ -50,7 +49,6 @@ exclude = [
     'src/vivarium/framework/engine.py',
     'src/vivarium/framework/population/manager.py',
     'src/vivarium/framework/population/population_view.py',
-    'src/vivarium/framework/results/observer.py',
     'src/vivarium/framework/state_machine.py',
     'src/vivarium/interface/cli.py',
     'src/vivarium/interface/interactive.py',
