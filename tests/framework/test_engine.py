@@ -62,7 +62,7 @@ def components():
 
 @pytest.fixture
 def log(mocker):
-    return mocker.patch("vivarium.framework.logging.manager.logger")
+    return mocker.patch("vivarium.framework.logging.manager.loguru.logger")
 
 
 def test_simulation_with_non_components(SimulationContext, components: list[Component]):
