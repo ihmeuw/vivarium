@@ -16,9 +16,10 @@ jobs:
       matrix:
         python-version: ["3.10", "3.11"]
     uses: 
-      ihmeuw/vivarium_build_utils/.github/workflows/build.yml@main
+      ihmeuw/vivarium_build_utils/.github/workflows/build.yml@bugfix/pytho-version
     with:
       dependencies: "layered_config_tree"
+      python_version: ${{ matrix.python-version }}
     secrets:
       notify_email: ${{ secrets.NOTIFY_EMAIL }}
       NOTIFY_PASSWORD: ${{ secrets.NOTIFY_PASSWORD }}
