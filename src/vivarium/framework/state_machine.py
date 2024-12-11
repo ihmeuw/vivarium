@@ -500,7 +500,7 @@ class TransitionSet(Component):
             if np.any(total == 0):
                 raise ValueError("No valid transitions for some simulants.")
             else:  # total might be less than zero in some places
-                probabilities /= total[:, np.newaxis]
+                probabilities = np.divide(probabilities, total[:, np.newaxis])
 
         return outputs, probabilities
 
