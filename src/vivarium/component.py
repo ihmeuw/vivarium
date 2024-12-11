@@ -102,7 +102,7 @@ class Component(ABC):
         """
         self._repr: str = ""
         self._name: str = ""
-        self._sub_components: list["Component"] = []
+        self._sub_components: Sequence["Component"] = []
         self.logger: loguru.Logger | None = None
         self.get_value_columns: Callable[[str | pd.DataFrame], list[str]] | None = None
         self.configuration: LayeredConfigTree | None = None
@@ -205,7 +205,7 @@ class Component(ABC):
         return self._population_view
 
     @property
-    def sub_components(self) -> list["Component"]:
+    def sub_components(self) -> Sequence["Component"]:
         """Provide components managed by this component.
 
         Returns

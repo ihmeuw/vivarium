@@ -9,7 +9,7 @@ A state machine implementation for use in ``vivarium`` simulations.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Iterator
 
@@ -528,7 +528,7 @@ class Machine(Component):
     ##############
 
     @property
-    def sub_components(self) -> list[Component]:
+    def sub_components(self) -> Sequence[Component]:
         return self.states
 
     @property
