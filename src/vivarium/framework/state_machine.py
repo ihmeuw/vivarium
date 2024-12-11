@@ -93,7 +93,7 @@ def _groupby_new_state(
         into that state.
     """
     groups = pd.Series(index).groupby(
-        pd.Categorical(decisions.values, categories=outputs), observed=False
+        pd.CategoricalIndex(decisions.values, categories=outputs), observed=False
     )
     return [(output, pd.Index(sub_group.values)) for output, sub_group in groups]
 
