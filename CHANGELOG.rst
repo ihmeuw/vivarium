@@ -1,6 +1,8 @@
-**3.2.5 - 12/09/24**
+**3.2.5 - 12/11/24**
 
   - Type-hinting: Fix mypy errors in vivarium/framework/results/interface.py
+  - Type-hinting: Fix mypy errors in vivarium/component.py
+  - Type-hinting: Fix mypy errors in vivarium/framework/results/observer.py
 
 **3.2.4 - 12/03/24**
 
