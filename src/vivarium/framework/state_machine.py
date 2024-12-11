@@ -72,8 +72,8 @@ def _next_state(
 
 
 def _groupby_new_state(
-    index: pd.Index[int], outputs: list[State], decisions: pd.Series[State]
-) -> list[tuple[State, pd.Index[int]]]:
+    index: pd.Index[int], outputs: list[State | str], decisions: pd.Series[Any]
+) -> list[tuple[State | str, pd.Index[int]]]:
     """Groups the simulants in the index by their new output state.
 
     Parameters
@@ -230,7 +230,7 @@ class State(Component):
             self.state_id, allow_self_transition=allow_self_transition
         )
         self.initialization_weights = initialization_weights
-        self._model = None
+        self._model: str | None = None
         self._sub_components = [self.transition_set]
 
     ##################
@@ -406,7 +406,9 @@ class TransitionSet(Component):
     # Public methods #
     ##################
 
-    def choose_new_state(self, index: pd.Index[int]) -> tuple[list[State], pd.Series[State]]:
+    def choose_new_state(
+        self, index: pd.Index[int]
+    ) -> tuple[list[State | str], pd.Series[Any]]:
         """Chooses a new state for each simulant in the index.
 
         Parameters
@@ -447,8 +449,8 @@ class TransitionSet(Component):
     ##################
 
     def _normalize_probabilities(
-        self, outputs: list[State], probabilities: NumericArray
-    ) -> tuple[list[State], NumericArray]:
+        self, outputs: list[State | str], probabilities: NumericArray
+    ) -> tuple[list[State | str], NumericArray]:
         """Normalize probabilities to sum to 1 and add a null transition.
 
         Parameters
