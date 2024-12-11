@@ -180,7 +180,8 @@ class Transition(Component):
         null_index = index.difference(self._active_index)
         activated = pd.Series(self._probability(activated_index), index=activated_index)
         null = pd.Series(np.zeros(len(null_index), dtype=float), index=null_index)
-        return activated.append(null)
+        activated.update(null)
+        return activated
 
 
 class State(Component):
