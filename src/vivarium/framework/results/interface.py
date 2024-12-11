@@ -11,9 +11,11 @@ to a simulation.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
 import pandas as pd
+
+from pandas.core.groupby.generic import DataFrameGroupBy
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.observation import (
@@ -30,12 +32,16 @@ if TYPE_CHECKING:
 
 
 ResultsUpdater = Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
+'''This is a Callable that takes existing results and new observations and returns updated results.'''
 ResultsFormatter = Callable[[str, pd.DataFrame], pd.DataFrame]
-ResultsGatherer = Callable[[pd.DataFrame], pd.DataFrame]
+'''This is a Callable that takes a measure as a string and a DataFrame of observation results and returns formatted results.'''
+ResultsGathererInput = Union[pd.DataFrame, DataFrameGroupBy[tuple[str, ...] | str, bool], tuple[str, ...], None]
+ResultsGatherer = Callable[[ResultsGathererInput], pd.DataFrame]
+'''This is a Callable that optionally takes a possibly stratified population and returns new observation results.'''
 
 
 def _required_function_placeholder(
-    *args: pd.DataFrame | tuple[pd.DataFrame, pd.DataFrame] | tuple[str, pd.DataFrame],
+    *args: ResultsGathererInput | tuple[pd.DataFrame, pd.DataFrame] | tuple[str, pd.DataFrame],
     **kwargs: Any,
 ) -> pd.DataFrame:
     """Placeholder function to indicate that a required function is missing."""
