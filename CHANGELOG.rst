@@ -1,6 +1,7 @@
-**TBD/TBD/TBD**
+**3.2.5 - TBD/TBD/TBD
 
   - Type-hinting: Fix mypy errors in vivarium/component.py
+  - Type-hinting: Fix mypy errors in vivarium/framework/results/observer.py
 
 **3.2.4 - 12/03/24**
 

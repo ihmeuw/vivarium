@@ -50,7 +50,6 @@ exclude = [
     'src/vivarium/framework/population/manager.py',
     'src/vivarium/framework/population/population_view.py',
     'src/vivarium/framework/results/interface.py',
-    'src/vivarium/framework/results/observer.py',
     'src/vivarium/framework/state_machine.py',
     'src/vivarium/interface/cli.py',
     'src/vivarium/interface/interactive.py',
