@@ -35,7 +35,7 @@ ResultsUpdater = Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
 ResultsFormatter = Callable[[str, pd.DataFrame], pd.DataFrame]
 """This is a Callable that takes a measure as a string and a DataFrame of observation results and returns formatted results."""
 ResultsGathererInput = Union[
-    pd.DataFrame, DataFrameGroupBy[tuple[str, ...] | str, bool], tuple[str, ...], None
+    pd.DataFrame, DataFrameGroupBy, tuple[str, ...], None  # type: ignore [type-arg]
 ]
 ResultsGatherer = Callable[[ResultsGathererInput], pd.DataFrame]
 """This is a Callable that optionally takes a possibly stratified population and returns new observation results."""
