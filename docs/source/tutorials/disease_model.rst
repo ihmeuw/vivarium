@@ -493,7 +493,7 @@ Now that we've done all this hard work, let's see what it gives us.
 
           tracked     sex        age entrance_time  alive
     0     True  Female  13.806775818385496  2005-07-01  alive
-    1     True  Female  59.17289327893596   2005-07-01  alive
+    1     True  Male    59.17289327893596   2005-07-01  alive
     2     True  Female  11.030887339897     2005-07-01  alive
     3     True  Female  27.72319127598699   2005-07-01  alive
     4     True  Female  51.05218820533359   2005-07-01  alive
@@ -510,7 +510,7 @@ Now that we've done all this hard work, let's see what it gives us.
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
    expected = pd.DataFrame({
       'age': [13.806775818385496, 59.17289327893596, 11.030887339897, 27.72319127598699, 51.05218820533359],
-      'sex': ['Female']*5,
+      'sex': ['Female', 'Male', 'Female', 'Female', 'Female'],
    })
    pd.testing.assert_frame_equal(sim.get_population().head()[['age', 'sex']], expected)
 
@@ -526,7 +526,7 @@ Let's see what happens when our simulation takes a time step.
 
           tracked     sex        age entrance_time  alive
     0     True  Female  13.806775818385496  2005-07-01  alive
-    1     True  Female  59.17289327893596   2005-07-01  alive
+    1     True  Male    59.17289327893596   2005-07-01  alive
     2     True  Female  11.030887339897     2005-07-01  alive
     3     True  Female  27.72319127598699   2005-07-01  alive
     4     True  Female  51.05218820533359   2005-07-01  alive
@@ -717,7 +717,7 @@ can see the impact of our mortality component without taking too many steps.
 
           tracked     sex        age entrance_time  alive
     0     True  Female  13.806775818385496  2005-07-01  alive
-    1     True  Female  59.17289327893596   2005-07-01  alive
+    1     True  Male    59.17289327893596   2005-07-01  alive
     2     True  Female  11.030887339897     2005-07-01  alive
     3     True  Female  27.72319127598699   2005-07-01  alive
     4     True  Female  51.05218820533359   2005-07-01  alive
@@ -739,7 +739,7 @@ can see the impact of our mortality component without taking too many steps.
 
    expected = pd.DataFrame({
       'age': [13.806775818385496, 59.17289327893596, 11.030887339897, 27.72319127598699, 51.05218820533359],
-      'sex': ['Female']*5,
+      'sex': ['Female', 'Male', 'Female', 'Female', 'Female'],
    })
    pd.testing.assert_frame_equal(sim.get_population().head()[['age', 'sex']], expected)
 
