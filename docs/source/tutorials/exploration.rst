@@ -336,8 +336,8 @@ the population as a whole.
     2021-12-31 12:00:00    100000
     Name: count, dtype: int64
     sex
-    Male      50185
-    Female    49815
+    Male      50011
+    Female    49989
     Name: count, dtype: int64
     tracked
     True    100000
