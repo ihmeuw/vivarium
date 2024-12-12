@@ -63,10 +63,10 @@ class RandomnessManager(Manager):
 
     def setup(self, builder: Builder) -> None:
         if builder.configuration.randomness.additional_seed is not None:
-            self.additional_seed = builder.configuration.randomness.additional_seed
+            additional_seed = builder.configuration.randomness.additional_seed
         else:
-            self.additional_seed = builder.configuration.input_data.input_draw_number
-        self._seed = f"{builder.configuration.randomness.random_seed}_{self.additional_seed}"
+            additional_seed = builder.configuration.input_data.input_draw_number
+        self._seed = f"{builder.configuration.randomness.random_seed}_{additional_seed}"
         self._clock_ = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
 
