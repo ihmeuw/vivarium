@@ -327,7 +327,7 @@ the population as a whole.
     25%      2.504689e-01
     50%      5.000226e-01
     75%      7.516029e-01
-    max      9.999966e-0
+    max      9.999966e-01
     Name: child_wasting_propensity, dtype: float64
     lower_respiratory_infections
     susceptible_to_lower_respiratory_infections    100000
@@ -336,8 +336,8 @@ the population as a whole.
     2021-12-31 12:00:00    100000
     Name: count, dtype: int64
     sex
-    Male      50011
-    Female    49989
+    Female    50011
+    Male      49989
     Name: count, dtype: int64
     tracked
     True    100000
