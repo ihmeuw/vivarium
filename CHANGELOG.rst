@@ -1,3 +1,7 @@
+**TBD - TBD/TBD/TBD**
+
+  - Update how addtional seed is defined in RandomnessManager
+
 **3.2.5 - TBD/TBD/TBD
 
   - Type-hinting: Fix mypy errors in vivarium/component.py
