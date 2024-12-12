@@ -309,25 +309,25 @@ the population as a whole.
 .. testoutput::
 
     count    100000.000000
-    mean          2.503326
-    std           1.439935
-    min           0.000040
-    25%           1.259632
-    50%           2.506636
-    75%           3.744090
-    max           4.999967
+    mean          2.490328
+    std           1.441763
+    min           0.000011
+    25%           1.242100
+    50%           2.487453
+    75%           3.730555
+    max           4.999957
     Name: age, dtype: float64
     alive
     alive    100000
     Name: count, dtype: int64
     count    100000.000000
-    mean          0.499756
-    std           0.288412
-    min           0.000015
-    25%           0.251550
-    50%           0.497587
-    75%           0.749215
-    max           0.999978
+    mean          0.5007716
+    std           0.2885722
+    min           0.0000005485898
+    25%           0.2504689
+    50%           0.5000226
+    75%           0.7516029
+    max           0.9999966
     Name: child_wasting_propensity, dtype: float64
     lower_respiratory_infections
     susceptible_to_lower_respiratory_infections    100000
