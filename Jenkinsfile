@@ -11,7 +11,7 @@ def githubUsernameToSlackName(github_author) {
 }
 
 pipeline_name="vivarium"
-conda_env_name="${pipeline_name}-${BUILD_NUMBER}"
+conda_env_name="${pipeline_name}-${BRANCH_NAME}-${BUILD_NUMBER}"
 conda_env_path="/tmp/${conda_env_name}"
 // defaults for conda and pip are a local directory /svc-simsci for improved speed.
 // In the past, we used /ihme/code/* on the NFS (which is slower)
