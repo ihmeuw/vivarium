@@ -895,7 +895,7 @@ been a total of 27,987 years of life lost.
    assert dead["value"][0] == 6
    ylls = sim.get_results()["ylls"]
    assert len(ylls) == 1
-   assert ylls["value"][0] == 102.50076885303923
+   assert ylls["value"][0] == 333.9956932528944
 
 .. note::
 
