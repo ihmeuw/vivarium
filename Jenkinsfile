@@ -1,8 +1,8 @@
 /*This file uses jenkins shared repo found at 
-https://stash.ihme.washington.edu/projects/FHSENG/repos/jenkins-shared-lib/browse
+https://github.com/ihmeuw/vivarium_build_utils
 The first line imports all modules with "_"
-The second line calls the standard pipeline at 
-https://stash.ihme.washington.edu/projects/FHSENG/repos/jenkins-shared-lib/browse/vars/fhs_standard_pipeline.groovy
+The second line calls the standard pipeline from 
+the vars folder in the shared repo.
 Jenkins needs to be configured globally to use the correct branch
 To configure the repo/branch go to
 * Manage Jenkins
