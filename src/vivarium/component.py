@@ -16,7 +16,6 @@ from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 from importlib import import_module
 from inspect import signature
-from numbers import Number
 from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
@@ -102,7 +101,7 @@ class Component(ABC):
         """
         self._repr: str = ""
         self._name: str = ""
-        self._sub_components: list["Component"] = []
+        self._sub_components: Sequence["Component"] = []
         self.logger: loguru.Logger | None = None
         self.get_value_columns: Callable[[str | pd.DataFrame], list[str]] | None = None
         self.configuration: LayeredConfigTree | None = None
@@ -205,7 +204,7 @@ class Component(ABC):
         return self._population_view
 
     @property
-    def sub_components(self) -> list["Component"]:
+    def sub_components(self) -> Sequence["Component"]:
         """Provide components managed by this component.
 
         Returns
@@ -603,7 +602,7 @@ class Component(ABC):
         data = self.get_data(builder, data_source)
         # TODO update this to use vivarium.types.LookupTableData once we drop
         #  support for Python 3.9
-        if not isinstance(data, (Number, timedelta, datetime, pd.DataFrame, list, tuple)):
+        if not isinstance(data, (float, int, timedelta, datetime, pd.DataFrame, list, tuple)):
             raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
 
         if isinstance(data, list):
