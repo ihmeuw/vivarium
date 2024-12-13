@@ -1,3 +1,17 @@
+**3.2.7 - 12/12/24**
+
+  - Type-hinting: Fix mypy errors in vivarium/framework/state_machine.py
+
+**3.2.6 - 12/12/24**
+
+  - Change Jenkins conda env name
+
+**3.2.5 - 12/11/24**
+
+  - Type-hinting: Fix mypy errors in vivarium/framework/results/interface.py
+  - Type-hinting: Fix mypy errors in vivarium/component.py
+  - Type-hinting: Fix mypy errors in vivarium/framework/results/observer.py
+
 **3.2.4 - 12/03/24**
 
   - Fix type hints for pandas groupby objects

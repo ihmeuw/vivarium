@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 =========
 Component
@@ -17,17 +16,17 @@ from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 from importlib import import_module
 from inspect import signature
-from numbers import Number
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
-from loguru._logger import Logger
 
 from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.population import PopulationError
 
 if TYPE_CHECKING:
+    import loguru
+
     from vivarium.framework.engine import Builder
     from vivarium.framework.event import Event
     from vivarium.framework.lookup import LookupTable
@@ -92,7 +91,24 @@ class Component(ABC):
     component. An empty dictionary indicates no managed configurations.
     """
 
-    def __repr__(self):
+    def __init__(self) -> None:
+        """Initializes a new instance of the Component class.
+
+        This method is the initializer for the Component class. It initializes
+        logger of type Logger and population_view of type PopulationView to None.
+        These attributes will be fully initialized in the setup_component method
+        of this class.
+        """
+        self._repr: str = ""
+        self._name: str = ""
+        self._sub_components: Sequence["Component"] = []
+        self.logger: loguru.Logger | None = None
+        self.get_value_columns: Callable[[str | pd.DataFrame], list[str]] | None = None
+        self.configuration: LayeredConfigTree | None = None
+        self._population_view: PopulationView | None = None
+        self.lookup_tables: dict[str, LookupTable] = {}
+
+    def __repr__(self) -> str:
         """Returns a string representation of the __init__ call made to create this
         object.
 
@@ -111,16 +127,17 @@ class Component(ABC):
             object.
         """
         if not self._repr:
-            args = [
-                f"{name}={value.__repr__() if isinstance(value, Component) else value}"
-                for name, value in self.get_initialization_parameters().items()
-            ]
-            args = ", ".join(args)
+            args = ", ".join(
+                [
+                    f"{name}={value.__repr__() if isinstance(value, Component) else value}"
+                    for name, value in self.get_initialization_parameters().items()
+                ]
+            )
             self._repr = f"{type(self).__name__}({args})"
 
         return self._repr
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self._repr
 
     ##############
@@ -187,7 +204,7 @@ class Component(ABC):
         return self._population_view
 
     @property
-    def sub_components(self) -> list["Component"]:
+    def sub_components(self) -> Sequence["Component"]:
         """Provide components managed by this component.
 
         Returns
@@ -244,15 +261,15 @@ class Component(ABC):
         return []
 
     @property
-    def population_view_query(self) -> str | None:
+    def population_view_query(self) -> str:
         """Provides a query to use when filtering the component's `PopulationView`.
 
         Returns
         -------
             A pandas query string for filtering the component's `PopulationView`.
-            Returns `None` if no filtering is required.
+            Returns an empty string if no filtering is required.
         """
-        return None
+        return ""
 
     @property
     def post_setup_priority(self) -> int:
@@ -323,23 +340,6 @@ class Component(ABC):
     #####################
     # Lifecycle methods #
     #####################
-
-    def __init__(self) -> None:
-        """Initializes a new instance of the Component class.
-
-        This method is the initializer for the Component class. It initializes
-        logger of type Logger and population_view of type PopulationView to None.
-        These attributes will be fully initialized in the setup_component method
-        of this class.
-        """
-        self._repr: str = ""
-        self._name: str = ""
-        self._sub_components: list["Component"] = []
-        self.logger: Logger | None = None
-        self.get_value_columns: Callable[[str | pd.DataFrame], list[str]] | None = None
-        self.configuration: LayeredConfigTree | None = None
-        self._population_view: PopulationView | None = None
-        self.lookup_tables: dict[str, LookupTable] = {}
 
     def setup_component(self, builder: "Builder") -> None:
         """Sets up the component for a Vivarium simulation.
@@ -515,7 +515,7 @@ class Component(ABC):
         """
         return {
             parameter_name: getattr(self, parameter_name)
-            for parameter_name in signature(self.__init__).parameters
+            for parameter_name in signature(self.__init__).parameters  # type: ignore[misc]
             if hasattr(self, parameter_name)
         }
 
@@ -538,7 +538,7 @@ class Component(ABC):
         """
 
         if self.name in builder.configuration:
-            return builder.configuration[self.name]
+            return builder.configuration.get_tree(self.name)
         return None
 
     def build_all_lookup_tables(self, builder: "Builder") -> None:
@@ -602,11 +602,13 @@ class Component(ABC):
         data = self.get_data(builder, data_source)
         # TODO update this to use vivarium.types.LookupTableData once we drop
         #  support for Python 3.9
-        if not isinstance(data, (Number, timedelta, datetime, pd.DataFrame, list, tuple)):
+        if not isinstance(data, (float, int, timedelta, datetime, pd.DataFrame, list, tuple)):
             raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
 
         if isinstance(data, list):
-            return builder.lookup.build_table(data, value_columns=list(value_columns))
+            return builder.lookup.build_table(
+                data, value_columns=list(value_columns) if value_columns else ()
+            )
         if isinstance(data, pd.DataFrame):
             duplicated_columns = set(data.columns[data.columns.duplicated()])
             if duplicated_columns:
@@ -627,11 +629,15 @@ class Component(ABC):
         return builder.lookup.build_table(data)
 
     def _get_columns(
-        self, value_columns: Sequence[str] | None, data: float | pd.DataFrame
-    ) -> tuple[list[str], list[str], list[str]]:
+        self, value_columns: Sequence[str] | None, data: pd.DataFrame
+    ) -> tuple[Sequence[str], list[str], list[str]]:
         all_columns = list(data.columns)
         if value_columns is None:
-            value_columns = self.get_value_columns(data)
+            # NOTE: self.get_value_columns cannot be None at this point of the call stack
+            value_column_getter = cast(
+                Callable[[str | pd.DataFrame], list[str]], self.get_value_columns
+            )
+            value_columns = value_column_getter(data)
 
         potential_parameter_columns = [
             str(col).removesuffix("_start")
@@ -685,9 +691,9 @@ class Component(ABC):
                 module, method = data_source.split("::")
                 try:
                     if module == "self":
-                        data_source = getattr(self, method)
+                        data_source_callable = getattr(self, method)
                     else:
-                        data_source = getattr(import_module(module), method)
+                        data_source_callable = getattr(import_module(module), method)
                 except ModuleNotFoundError:
                     raise ConfigurationError(f"Unable to find module '{module}'.")
                 except AttributeError:
@@ -697,7 +703,7 @@ class Component(ABC):
                     raise ConfigurationError(
                         f"There is no method '{method}' for the {module_string}."
                     )
-                data = data_source(builder)
+                data = data_source_callable(builder)
             else:
                 try:
                     data = builder.data.load(data_source)
@@ -705,7 +711,7 @@ class Component(ABC):
                     raise ConfigurationError(
                         f"Failed to find key '{data_source}' in artifact."
                     )
-        elif isinstance(data_source, Callable):
+        elif callable(data_source):
             data = data_source(builder)
         else:
             data = data_source
@@ -791,7 +797,7 @@ class Component(ABC):
 
         if type(self).on_initialize_simulants != Component.on_initialize_simulants:
             builder.population.initializes_simulants(
-                self, creates_columns=self.columns_created, **initialization_requirements
+                self, creates_columns=self.columns_created, **initialization_requirements  # type: ignore[arg-type]
             )
 
     def _register_time_step_prepare_listener(self, builder: "Builder") -> None:
