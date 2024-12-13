@@ -2,7 +2,6 @@ import math
 from itertools import product
 from pathlib import Path
 from time import time
-from typing import Dict, List
 
 import dill
 import pandas as pd
@@ -63,10 +62,10 @@ def components():
 
 @pytest.fixture
 def log(mocker):
-    return mocker.patch("vivarium.framework.logging.manager.logger")
+    return mocker.patch("vivarium.framework.logging.manager.loguru.logger")
 
 
-def test_simulation_with_non_components(SimulationContext, components: List[Component]):
+def test_simulation_with_non_components(SimulationContext, components: list[Component]):
     class NonComponent:
         def __init__(self):
             self.name = "non_component"
@@ -447,7 +446,7 @@ def test_get_results_formatting(SimulationContext, base_config):
 ####################
 # HELPER FUNCTIONS #
 ####################
-def _convert_to_datetime(date_dict: Dict[str, int]) -> pd.Timestamp:
+def _convert_to_datetime(date_dict: dict[str, int]) -> pd.Timestamp:
     return pd.to_datetime(
         "-".join([str(val) for val in date_dict.values()]), format="%Y-%m-%d"
     )

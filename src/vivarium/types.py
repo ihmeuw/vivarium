@@ -1,15 +1,27 @@
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from numbers import Number
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
 
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
+
 NumericArray = npt.NDArray[np.number[npt.NBitBase]]
 
-ScalarValue = Union[Number, timedelta, datetime]
-LookupTableData = Union[ScalarValue, pd.DataFrame, list[ScalarValue], tuple[ScalarValue]]
+Time = pd.Timestamp | datetime
+Timedelta = pd.Timedelta | timedelta
+ClockTime = Time | int
+ClockStepSize = Timedelta | int
+
+ScalarValue = Number | Timedelta | Time
+LookupTableData = ScalarValue | pd.DataFrame | list[ScalarValue] | tuple[ScalarValue]
+
+DataInput = LookupTableData | str | Callable[["Builder"], LookupTableData]
+
 # TODO: For some of the uses of NumberLike, we probably want a TypeVar here instead.
 NumberLike = Union[
     NumericArray,
@@ -19,8 +31,6 @@ NumberLike = Union[
     float,
     int,
 ]
-# TODO: [MIC-5481] need to use TypeVars here
-Time = Union[pd.Timestamp, datetime]
-Timedelta = Union[pd.Timedelta, timedelta]
-ClockTime = Union[Time, int]
-ClockStepSize = Union[Timedelta, int]
+
+VectorMapper = Callable[[pd.DataFrame], pd.Series]  # type: ignore [type-arg]
+ScalarMapper = Callable[[pd.Series], str]  # type: ignore [type-arg]

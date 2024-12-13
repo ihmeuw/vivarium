@@ -3,8 +3,9 @@ Integration tests primarily meant to test the CRN guarantees for the Randomness 
 
 """
 
+from collections.abc import Iterator
 from itertools import cycle
-from typing import Iterator, List, Type
+from typing import Type
 
 import numpy as np
 import pandas as pd
@@ -66,7 +67,7 @@ class BasePopulation(Component):
         return "population"
 
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return ["crn_attr1", "crn_attr2", "other_attr1"]
 
     def __init__(self, with_crn: bool, sims_to_add: Iterator = cycle([0])):

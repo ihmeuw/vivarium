@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 =============
 Lookup Tables
@@ -13,9 +12,10 @@ the individuals represented by that index. See the
 
 """
 
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from numbers import Number
-from typing import TYPE_CHECKING, List, Sequence, Tuple, Union
+from typing import TYPE_CHECKING
 
 import pandas as pd
 
@@ -51,7 +51,7 @@ class LookupTableManager(Manager):
         return "lookup_table_manager"
 
     def setup(self, builder: "Builder") -> None:
-        self.tables = {}
+        self.tables: dict[int, LookupTable] = {}
         self._pop_view_builder = builder.population.get_view
         self.clock = builder.time.clock()
         self._interpolation_order = builder.configuration.interpolation.order
@@ -93,7 +93,7 @@ class LookupTableManager(Manager):
 
         # Note datetime catches pandas timestamps
         if isinstance(data, (Number, datetime, timedelta, list, tuple)):
-            table = ScalarTable(
+            table: LookupTable = ScalarTable(
                 table_number=table_number,
                 data=data,
                 key_columns=key_columns,

@@ -174,6 +174,14 @@ configuration by simply printing it.
                 component_configs: []
             include:
                 component_configs: []
+    disease_state.susceptible_to_lower_respiratory_infections:
+        data_sources:
+            initialization_weights:
+                component_configs: 1.0
+    disease_state.infected_with_lower_respiratory_infections:
+        data_sources:
+            initialization_weights:
+                component_configs: 0.0
 
 
 What do we see here?  The configuration is *hierarchical*.  There are a set of
@@ -273,6 +281,7 @@ your starting population.
 ::
 
        tracked       age  alive     sex       entrance_time                 lower_respiratory_infections  child_wasting_propensity
+
     0     True  4.341734  alive    Male 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.612086
     1     True  1.009906  alive    Male 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.395465
     2     True  1.166290  alive    Male 2021-12-31 12:00:00  susceptible_to_lower_respiratory_infections                  0.670765

@@ -1,22 +1,23 @@
-# mypy: ignore-errors
 """
 ======================
 Results System Manager
 ======================
 
 """
+from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
 from vivarium.framework.event import Event
 from vivarium.framework.results.context import ResultsContext
+from vivarium.framework.results.observation import Observation
 from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
-from vivarium.types import ScalarValue
+from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
@@ -54,7 +55,7 @@ class ResultsManager(Manager):
     def name(self) -> str:
         return self._name
 
-    def get_results(self) -> Dict[str, pd.DataFrame]:
+    def get_results(self) -> dict[str, pd.DataFrame]:
         """Return the measure-specific formatted results in a dictionary.
 
         Notes
@@ -76,9 +77,7 @@ class ResultsManager(Manager):
                 for observation in observations:
                     measure = observation.name
                     results = self._raw_results[measure].copy()
-                    formatted[measure] = observation.results_formatter(
-                        measure=measure, results=results
-                    )
+                    formatted[measure] = observation.results_formatter(measure, results)
         return formatted
 
     # noinspection PyAttributeOutsideInit
@@ -186,17 +185,12 @@ class ResultsManager(Manager):
     def register_stratification(
         self,
         name: str,
-        categories: List[str],
-        excluded_categories: Optional[List[str]],
-        mapper: Optional[
-            Union[
-                Callable[[Union[pd.Series, pd.DataFrame]], pd.Series],
-                Callable[[ScalarValue], str],
-            ]
-        ],
+        categories: list[str],
+        excluded_categories: list[str] | None,
+        mapper: VectorMapper | ScalarMapper | None,
         is_vectorized: bool,
-        requires_columns: List[str] = [],
-        requires_values: List[str] = [],
+        requires_columns: list[str] = [],
+        requires_values: list[str] = [],
     ) -> None:
         """Manager-level stratification registration.
 
@@ -241,11 +235,11 @@ class ResultsManager(Manager):
         self,
         target: str,
         binned_column: str,
-        bin_edges: List[Union[int, float]],
-        labels: List[str],
-        excluded_categories: Optional[List[str]],
+        bin_edges: list[int | float],
+        labels: list[str],
+        excluded_categories: list[str] | None,
         target_type: str,
-        **cut_kwargs,
+        **cut_kwargs: int | str | bool,
     ) -> None:
         """Manager-level registration of a continuous `target` quantity to observe
         into bins in a `binned_column`.
@@ -271,15 +265,24 @@ class ResultsManager(Manager):
         **cut_kwargs
             Keyword arguments for :meth: pandas.cut.
         """
+        if not isinstance(labels, list) or not all(
+            [isinstance(label, str) for label in labels]
+        ):
+            raise ValueError(
+                f"Labels must be a list of strings when registering a binned stratification, but labels was {labels} when registering the {binned_column} stratification."
+            )
 
-        def _bin_data(data: Union[pd.Series, pd.DataFrame]) -> pd.Series:
+        def _bin_data(data: pd.Series[int | float] | pd.DataFrame) -> pd.Series[Any]:
             """Use pandas.cut to bin continuous values"""
-            data = data.squeeze()
+            data = data.squeeze() if isinstance(data, pd.DataFrame) else data
             if not isinstance(data, pd.Series):
                 raise ValueError(f"Expected a Series, but got type {type(data)}.")
-            return pd.cut(
+            data = pd.cut(
                 data, bin_edges, labels=labels, right=False, include_lowest=True, **cut_kwargs
-            )
+            )  # type: ignore [call-overload]
+            # we know pd.cut will return a Series because data is a Series
+            # and labels is a list of strings but mypy doesn't know that
+            return data  # type: ignore [return-value]
 
         if len(bin_edges) != len(labels) + 1:
             raise ValueError(
@@ -301,14 +304,14 @@ class ResultsManager(Manager):
 
     def register_observation(
         self,
-        observation_type,
+        observation_type: type[Observation],
         is_stratified: bool,
         name: str,
         pop_filter: str,
         when: str,
-        requires_columns: List[str],
-        requires_values: List[str],
-        **kwargs,
+        requires_columns: list[str],
+        requires_values: list[str],
+        **kwargs: Any,
     ) -> None:
         """Manager-level observation registration.
 
@@ -374,10 +377,10 @@ class ResultsManager(Manager):
 
     def _get_stratifications(
         self,
-        stratifications: List[str] = [],
-        additional_stratifications: List[str] = [],
-        excluded_stratifications: List[str] = [],
-    ) -> Tuple[str, ...]:
+        stratifications: list[str] = [],
+        additional_stratifications: list[str] = [],
+        excluded_stratifications: list[str] = [],
+    ) -> tuple[str, ...]:
         """Resolve the stratifications required for the observation."""
         stratifications = list(
             set(
@@ -390,7 +393,7 @@ class ResultsManager(Manager):
         # Makes sure measure identifiers have fields in the same relative order.
         return tuple(sorted(stratifications))
 
-    def _add_resources(self, target: List[str], target_type: SourceType) -> None:
+    def _add_resources(self, target: list[str], target_type: SourceType) -> None:
         """Add required resources to the manager's list of required columns and values."""
         if len(target) == 0:
             return  # do nothing on empty lists
@@ -407,7 +410,7 @@ class ResultsManager(Manager):
         )
         population["current_time"] = self.clock()
         population["event_step_size"] = event.step_size
-        population["event_time"] = self.clock() + event.step_size
+        population["event_time"] = self.clock() + event.step_size  # type: ignore [operator]
         for k, v in event.user_data.items():
             population[k] = v
         for pipeline in self._required_values:
@@ -415,7 +418,7 @@ class ResultsManager(Manager):
         return population
 
     def _warn_check_stratifications(
-        self, additional_stratifications: List[str], excluded_stratifications: List[str]
+        self, additional_stratifications: list[str], excluded_stratifications: list[str]
     ) -> None:
         """Check additional and excluded stratifications if they'd not affect
         stratifications (i.e., would be NOP), and emit warning."""

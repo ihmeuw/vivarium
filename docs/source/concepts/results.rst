@@ -66,7 +66,7 @@ to the existing number of people who have died from previous time steps.
 
 .. testcode::
 
-  from typing import Any, Optional
+  from typing import Any
 
   import pandas as pd
 
@@ -84,7 +84,7 @@ to the existing number of people who have died from previous time steps.
       }
 
     @property
-    def columns_required(self) -> Optional[list[str]]:
+    def columns_required(self) -> list[str] | None:
       return ["age", "alive"]
 
     def register_observations(self, builder: Builder) -> None:
@@ -303,7 +303,7 @@ A couple other more specific and commonly used observations are provided as well
   that gathers new results and concatenates them to any existing results.
 
 Ideally, all concrete classes should inherit from the 
-:class:`BaseObservation <vivarium.framework.results.observation.BaseObservation>`
+:class:`Observation <vivarium.framework.results.observation.Observation>`
 abstract base class, which contains the common attributes between observation types:
 
 .. list-table:: **Common Observation Attributes**
@@ -312,40 +312,40 @@ abstract base class, which contains the common attributes between observation ty
 
   * - Attribute
     - Description
-  * - | :attr:`name <vivarium.framework.results.observation.BaseObservation.name>`
+  * - | :attr:`name <vivarium.framework.results.observation.Observation.name>`
     - | Name of the observation. It will also be the name of the output results file
       | for this particular observation.
-  * - | :attr:`pop_filter <vivarium.framework.results.observation.BaseObservation.pop_filter>`
+  * - | :attr:`pop_filter <vivarium.framework.results.observation.Observation.pop_filter>`
     - | A Pandas query filter string to filter the population down to the simulants
       | who should be considered for the observation.
-  * - | :attr:`when <vivarium.framework.results.observation.BaseObservation.when>`
+  * - | :attr:`when <vivarium.framework.results.observation.Observation.when>`
     - | Name of the lifecycle phase the observation should happen. Valid values are:
       | "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
-  * - | :attr:`results_initializer <vivarium.framework.results.observation.BaseObservation.results_initializer>`
+  * - | :attr:`results_initializer <vivarium.framework.results.observation.Observation.results_initializer>`
     - | Method or function that initializes the raw observation results
       | prior to starting the simulation. This could return, for example, an empty
       | DataFrame or one with a complete set of stratifications as the index and
       | all values set to 0.0.
-  * - | :attr:`results_gatherer <vivarium.framework.results.observation.BaseObservation.results_gatherer>`
+  * - | :attr:`results_gatherer <vivarium.framework.results.observation.Observation.results_gatherer>`
     - | Method or function that gathers the new observation results.
-  * - | :attr:`results_updater <vivarium.framework.results.observation.BaseObservation.results_updater>`
+  * - | :attr:`results_updater <vivarium.framework.results.observation.Observation.results_updater>`
     - | Method or function that updates existing raw observation results with newly
       | gathered results.
-  * - | :attr:`results_formatter <vivarium.framework.results.observation.BaseObservation.results_formatter>`
+  * - | :attr:`results_formatter <vivarium.framework.results.observation.Observation.results_formatter>`
     - | Method or function that formats the raw observation results.
-  * - | :attr:`stratifications <vivarium.framework.results.observation.BaseObservation.stratifications>`
+  * - | :attr:`stratifications <vivarium.framework.results.observation.Observation.stratifications>`
     - | Optional tuple of column names for the observation to stratify by.
-  * - | :attr:`to_observe <vivarium.framework.results.observation.BaseObservation.to_observe>`
+  * - | :attr:`to_observe <vivarium.framework.results.observation.Observation.to_observe>`
     - | Method or function that determines whether to perform an observation on this Event.
 
-The **BaseObservation** also contains the 
-:meth:`observe <vivarium.framework.results.observation.BaseObservation.observe>`
+The **Observation** also contains the 
+:meth:`observe <vivarium.framework.results.observation.Observation.observe>`
 method which is called at each :ref:`event <event_concept>` and :ref:`time step <time_concept>` 
 to determine whether or not the observation should be recorded, and if so, gathers 
 the results and stores them in the results system.
 
 .. note::
-    All four observation types discussed above inherit from the **BaseObservation** 
+    All four observation types discussed above inherit from the **Observation** 
     abstract base class. What differentiates them are the assigned attributes 
     (e.g. defining the **results_updater** to be an adding method for the 
     **AddingObservation**) or adding other attributes as necessary (e.g. 

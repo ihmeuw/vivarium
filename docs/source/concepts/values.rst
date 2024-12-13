@@ -6,7 +6,7 @@ The Values System
 
 The values system provides an interface to an alternative representation of
 :term:`state <State Table>` in the simulation: pipelines.
-:class:`Pipelines <vivarium.framework.values.Pipeline>` are dynamically
+:class:`Pipelines <vivarium.framework.values.pipeline.Pipeline>` are dynamically
 calculated values that can be constructed across multiple
 :ref:`components <components_concept>`. This ability for multiple
 components to together compose a single value is the biggest advantage
@@ -49,13 +49,13 @@ three options for combiners, detailed in the following table.
    * - Combiner
      - Description
      - Modifier Signature
-   * - | :func:`Replace <vivarium.framework.values.replace_combiner>`
+   * - | :func:`Replace <vivarium.framework.values.combiners.replace_combiner>`
      - | Replaces the output of the source or modifier with the output of the
        | next modifier. This is the default combiner if none is specified on
        | pipeline registration.
      - | Arguments for the modifiers should be the same as the source with an
        | additional last argument of the results of the previous modifier.
-   * - | :func:`List <vivarium.framework.values.list_combiner>`
+   * - | :func:`List <vivarium.framework.values.combiners.list_combiner>`
      - | The output of the source should be a list to which the results of the
        | modifiers are appended.
      - | Modifiers should have the same signature as the source.
@@ -70,11 +70,11 @@ combiner to do some postprocessing.
 
    * - Post-processor
      - Description
-   * - | :func:`Rescale <vivarium.framework.values.rescale_post_processor>`
+   * - | :func:`Rescale <vivarium.framework.values.post_processors.rescale_post_processor>`
      - | Used for pipelines that produce rates.  Rescales the rates to the
        | size of the time step. Rates provided by source and modifiers are
        | presumed to be annual.
-   * - | :func:`Union <vivarium.framework.values.union_post_processor>`
+   * - | :func:`Union <vivarium.framework.values.post_processors.union_post_processor>`
      - | Used for pipelines that produce independent proportions or
        | probabilities. Combines values in a way that is consistent with a
        | union of the underlying sample space
@@ -99,19 +99,19 @@ The values system provides four interface methods, available off the
 
    * - Method
      - Description
-   * - | :meth:`register_value_producer <vivarium.framework.values.ValuesInterface.register_value_producer>`
+   * - | :meth:`register_value_producer <vivarium.framework.values.manager.ValuesInterface.register_value_producer>`
      - | Register a new pipeline with the values system. Provide a name for the
        | pipeline and a source. Optionally provide a combiner (defaults to
        | the replace combiner) and a postprocessor. Provide dependencies (see note).
-   * - | :meth:`register_rate_producer <vivarium.framework.values.ValuesInterface.register_rate_producer>`
-     - | A special case of :meth:`register_value_producer <vivarium.framework.values.ValuesInterface.register_value_producer>`
+   * - | :meth:`register_rate_producer <vivarium.framework.values.manager.ValuesInterface.register_rate_producer>`
+     - | A special case of :meth:`register_value_producer <vivarium.framework.values.manager.ValuesInterface.register_value_producer>`
        | for rates specifically.
        | Provide a name for the pipeline and a source and the values system will
        | automatically use the rescale postprocessor. Provide dependencies (see note).
-   * - | :meth:`register_value_modifier <vivarium.framework.values.ValuesInterface.register_value_modifier>`
+   * - | :meth:`register_value_modifier <vivarium.framework.values.manager.ValuesInterface.register_value_modifier>`
      - | Register a modifier to a pipeline. Provide a name for the pipeline to
        | modify and a modifier callable. Provide dependencies (see note).
-   * - | :meth:`get_value <vivarium.framework.values.ValuesInterface.get_value>`
+   * - | :meth:`get_value <vivarium.framework.values.manager.ValuesInterface.get_value>`
      - | Retrieve a reference to the pipeline with the given name.
 
 .. note::

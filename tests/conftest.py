@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 import pytest
@@ -5,6 +7,7 @@ import tables
 import yaml
 from _pytest.logging import LogCaptureFixture
 from loguru import logger
+from vivarium_testing_utils import FuzzyChecker
 
 from vivarium.framework.configuration import (
     build_model_specification,
@@ -29,6 +32,11 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "slow" in item.keywords:
             item.add_marker(skip_slow)
+
+
+@pytest.fixture(scope="session")
+def fuzzy_checker():
+    return FuzzyChecker()
 
 
 @pytest.fixture

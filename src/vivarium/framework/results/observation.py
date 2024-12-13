@@ -6,7 +6,7 @@ Observations
 An observation is a class object that records simulation results; they are responsible
 for initializing, gathering, updating, and formatting results.
 
-The provided :class:`BaseObservation` class is an abstract base class that should
+The provided :class:`Observation` class is an abstract base class that should
 be subclassed by concrete observations. While there are no required abstract methods
 to define when subclassing, the class does provide common attributes as well
 as an `observe` method that determines whether to observe results for a given event.
@@ -24,7 +24,6 @@ import itertools
 from abc import ABC
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
 
 import pandas as pd
 from pandas.api.types import CategoricalDtype
@@ -37,7 +36,7 @@ VALUE_COLUMN = "value"
 
 
 @dataclass
-class BaseObservation(ABC):
+class Observation(ABC):
     """An abstract base dataclass to be inherited by concrete observations.
 
     This class includes an :meth:`observe <observe>` method that determines whether
@@ -54,13 +53,19 @@ class BaseObservation(ABC):
     when: str
     """Name of the lifecycle phase the observation should happen. Valid values are:
     "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics"."""
-    results_initializer: Callable[[set[str], list[Stratification]], pd.DataFrame]
+    results_initializer: Callable[
+        [tuple[str, ...] | None, list[Stratification]], pd.DataFrame
+    ]
     """Method or function that initializes the raw observation results
     prior to starting the simulation. This could return, for example, an empty
     DataFrame or one with a complete set of stratifications as the index and
     all values set to 0.0."""
     results_gatherer: Callable[
-        [pd.DataFrame | DataFrameGroupBy[str], tuple[str, ...] | None], pd.DataFrame
+        [
+            pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
+            tuple[str, ...] | None,
+        ],
+        pd.DataFrame,
     ]
     """Method or function that gathers the new observation results."""
     results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]
@@ -76,7 +81,7 @@ class BaseObservation(ABC):
     def observe(
         self,
         event: Event,
-        df: pd.DataFrame | DataFrameGroupBy[str],
+        df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
         stratifications: tuple[str, ...] | None,
     ) -> pd.DataFrame | None:
         """Determine whether to observe the given event, and if so, gather the results.
@@ -100,7 +105,7 @@ class BaseObservation(ABC):
             return self.results_gatherer(df, stratifications)
 
 
-class UnstratifiedObservation(BaseObservation):
+class UnstratifiedObservation(Observation):
     """Concrete class for observing results that are not stratified.
 
     The parent class `stratifications` are set to None and the `results_initializer`
@@ -139,8 +144,14 @@ class UnstratifiedObservation(BaseObservation):
         to_observe: Callable[[Event], bool] = lambda event: True,
     ):
         def _wrap_results_gatherer(
-            df: pd.DataFrame, _: tuple[str, ...] | None
+            df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
+            _: tuple[str, ...] | None,
         ) -> pd.DataFrame:
+            if isinstance(df, DataFrameGroupBy):
+                raise TypeError(
+                    "Must provide a dataframe to an UnstratifiedObservation. "
+                    f"Provided DataFrameGroupBy instead."
+                )
             return results_gatherer(df)
 
         super().__init__(
@@ -148,7 +159,7 @@ class UnstratifiedObservation(BaseObservation):
             pop_filter=pop_filter,
             when=when,
             results_initializer=self.create_empty_df,
-            results_gatherer=_wrap_results_gatherer,  # type: ignore [arg-type]
+            results_gatherer=_wrap_results_gatherer,
             results_updater=results_updater,
             results_formatter=results_formatter,
             stratifications=None,
@@ -157,7 +168,7 @@ class UnstratifiedObservation(BaseObservation):
 
     @staticmethod
     def create_empty_df(
-        requested_stratification_names: set[str],
+        requested_stratification_names: tuple[str, ...] | None,
         registered_stratifications: list[Stratification],
     ) -> pd.DataFrame:
         """Initialize an empty dataframe.
@@ -176,7 +187,7 @@ class UnstratifiedObservation(BaseObservation):
         return pd.DataFrame()
 
 
-class StratifiedObservation(BaseObservation):
+class StratifiedObservation(Observation):
     """Concrete class for observing stratified results.
 
     The parent class `results_initializer` and `results_gatherer` methods are
@@ -238,7 +249,7 @@ class StratifiedObservation(BaseObservation):
 
     @staticmethod
     def create_expanded_df(
-        requested_stratification_names: set[str],
+        requested_stratification_names: tuple[str, ...] | None,
         registered_stratifications: list[Stratification],
     ) -> pd.DataFrame:
         """Initialize a dataframe of 0s with complete set of stratifications as the index.
@@ -261,11 +272,14 @@ class StratifiedObservation(BaseObservation):
         """
 
         # Set up the complete index of all used stratifications
-        requested_and_registered_stratifications = [
-            stratification
-            for stratification in registered_stratifications
-            if stratification.name in requested_stratification_names
-        ]
+        if requested_stratification_names is not None:
+            requested_and_registered_stratifications = [
+                stratification
+                for stratification in registered_stratifications
+                if stratification.name in requested_stratification_names
+            ]
+        else:
+            requested_and_registered_stratifications = []
         stratification_values = {
             stratification.name: stratification.categories
             for stratification in requested_and_registered_stratifications
@@ -291,7 +305,7 @@ class StratifiedObservation(BaseObservation):
 
     def get_complete_stratified_results(
         self,
-        pop_groups: DataFrameGroupBy[str],
+        pop_groups: DataFrameGroupBy[str, bool],
         stratifications: tuple[str, ...],
     ) -> pd.DataFrame:
         """Gather results for this observation.
@@ -316,7 +330,7 @@ class StratifiedObservation(BaseObservation):
 
     @staticmethod
     def _aggregate(
-        pop_groups: DataFrameGroupBy[str],
+        pop_groups: DataFrameGroupBy[str, bool],
         aggregator_sources: list[str] | None,
         aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
     ) -> pd.Series[float] | pd.DataFrame:

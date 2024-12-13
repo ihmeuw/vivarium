@@ -1,3 +1,58 @@
+**3.2.6 - 12/12/24**
+
+  - Change Jenkins conda env name
+
+**3.2.5 - 12/11/24**
+
+  - Type-hinting: Fix mypy errors in vivarium/framework/results/interface.py
+  - Type-hinting: Fix mypy errors in vivarium/component.py
+  - Type-hinting: Fix mypy errors in vivarium/framework/results/observer.py
+
+**3.2.4 - 12/03/24**
+
+  - Fix type hints for pandas groupby objects
+
+**3.2.3 - 11/21/24**
+
+  - Feature: Allow users to define initialization weights as LookupTableData or an artifact key
+  - Feature: Make State's add_transition function return the Transition
+  - Feature: Add triggered argument to State's add_transition function
+  - Type-hinting: Introduce DataInput type
+  - Type-hinting: Fix mypy errors in vivarium/framework/results/manager.py
+  - Type-hinting: Fix mypy errors in vivarium/framework/lookup/manager.py
+
+**3.2.2 - 11/14/24**
+
+  - Feature: Enable adding transition to a state by defining the output state and the transition probability
+
+**3.2.1 - 11/13/24**
+
+  - Fix mypy errors in vivarium/framework/results/context.py
+  - Fix mypy errors in vivarium/framework/time.py
+  - Modernize type hinting
+  - Remove unnecessary "from future import annotation" imports
+
+**3.2.0 - 11/12/24**
+
+  - Feature: Supports passing callables directly when building lookup tables
+  - Feature: Enables columns and pipelines to specify dependencies directly, instead of by name
+  - Feature: Enables identification of which component produced a Pipeline or RandomnessStream
+  - Bugfix: Enables Machine to be used directly to model a state machine
+  - Bugfix: Ensures that a Pipeline will always have a name
+  - Bugfix: Appropriately declares dependencies in example models
+  - Testing: Adds coverage for example DiseaseModel
+  - Refactor: Converts resource module into a package
+  - Refactor: Converts values module into a package
+  - Refactor: Simplifies code to allow Managers to create columns
+  - Refactor: Converts ResourceManager __iter__ to a well-named instance method
+  - Refactor: Creates ResourceTypes for each type of resource
+  - Refactor: Makes Pipeline and RandomnessStream inherit from Resource
+  - Refactor: Creates ValueSource and ValueModifier resources and attaches them to Pipelines
+
+**3.1.0 - 11/07/24**
+
+  - Drop support for python 3.9
+
 **3.0.18 - 11/06/24**
 
   - Fix mypy errors in vivarium/framework/logging/manager.py

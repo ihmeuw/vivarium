@@ -1,12 +1,8 @@
 # mypy: ignore-errors
-from typing import List, Optional
-
 import pandas as pd
 
 from vivarium import Component
 from vivarium.framework.engine import Builder
-from vivarium.framework.event import Event
-from vivarium.framework.population import SimulantData
 from vivarium.framework.state_machine import Machine, State, Transition
 from vivarium.framework.utilities import rate_to_probability
 from vivarium.framework.values import list_combiner, union_post_processor
@@ -38,14 +34,16 @@ class DiseaseTransition(Transition):
         rate = builder.configuration[self.cause_key][self.measure]
 
         self.base_rate = lambda index: pd.Series(rate, index=index)
-        self.transition_rate = builder.value.register_rate_producer(
-            self.rate_name, source=self._risk_deleted_rate
-        )
         self.joint_population_attributable_fraction = builder.value.register_value_producer(
             f"{self.rate_name}.population_attributable_fraction",
             source=lambda index: [pd.Series(0.0, index=index)],
             preferred_combiner=list_combiner,
             preferred_post_processor=union_post_processor,
+        )
+        self.transition_rate = builder.value.register_rate_producer(
+            self.rate_name,
+            source=self._risk_deleted_rate,
+            required_resources=[self.joint_population_attributable_fraction],
         )
 
     ##################################
@@ -72,11 +70,11 @@ class DiseaseState(State):
     ##############
 
     @property
-    def columns_required(self) -> Optional[List[str]]:
+    def columns_required(self) -> list[str] | None:
         return [self.model, "alive"]
 
     @property
-    def population_view_query(self) -> Optional[str]:
+    def population_view_query(self) -> str | None:
         return f"alive == 'alive' and {self.model} == '{self.state_id}'"
 
     #####################
@@ -106,11 +104,6 @@ class DiseaseState(State):
             self._excess_mortality_rate = 0
 
         self.clock = builder.time.clock()
-
-        self.excess_mortality_rate = builder.value.register_rate_producer(
-            f"{self.state_id}.excess_mortality_rate",
-            source=self.risk_deleted_excess_mortality_rate,
-        )
         self.excess_mortality_rate_paf = builder.value.register_value_producer(
             f"{self.state_id}.excess_mortality_rate.population_attributable_fraction",
             source=lambda index: [pd.Series(0.0, index=index)],
@@ -118,7 +111,17 @@ class DiseaseState(State):
             preferred_post_processor=union_post_processor,
         )
 
-        builder.value.register_value_modifier("mortality_rate", self.add_in_excess_mortality)
+        self.excess_mortality_rate = builder.value.register_rate_producer(
+            f"{self.state_id}.excess_mortality_rate",
+            source=self.risk_deleted_excess_mortality_rate,
+            required_resources=[self.excess_mortality_rate_paf],
+        )
+
+        builder.value.register_value_modifier(
+            "mortality_rate",
+            self.add_in_excess_mortality,
+            required_resources=[self.excess_mortality_rate]
+        )
 
     ##################
     # Public methods #
@@ -143,32 +146,15 @@ class DiseaseState(State):
     def add_in_excess_mortality(
         self, index: pd.Index, mortality_rates: pd.Series
     ) -> pd.Series:
-        affected = self.population_view.get(index)
-        mortality_rates.loc[affected.index] += self.excess_mortality_rate(affected.index)
-
+        mortality_rates.loc[index] += self.excess_mortality_rate(index)
         return mortality_rates
 
 
 class DiseaseModel(Machine):
-    ##############
-    # Properties #
-    ##############
-
-    @property
-    def columns_created(self) -> List[str]:
-        return [self.state_column]
-
-    @property
-    def columns_required(self) -> Optional[List[str]]:
-        return ["age", "sex"]
 
     #####################
     # Lifecycle methods #
     #####################
-
-    def __init__(self, disease: str, initial_state: DiseaseState, **kwargs):
-        super().__init__(disease, **kwargs)
-        self.initial_state = initial_state.state_id
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
@@ -185,21 +171,10 @@ class DiseaseModel(Machine):
             source=lambda index: pd.Series(cause_specific_mortality_rate, index=index),
         )
         builder.value.register_value_modifier(
-            "mortality_rate", modifier=self.delete_cause_specific_mortality
+            "mortality_rate",
+            modifier=self.delete_cause_specific_mortality,
+            required_resources=[self.cause_specific_mortality_rate],
         )
-
-    ########################
-    # Event-driven methods #
-    ########################
-
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        condition_column = pd.Series(
-            self.initial_state, index=pop_data.index, name=self.state_column
-        )
-        self.population_view.update(condition_column)
-
-    def on_time_step(self, event: Event) -> None:
-        self.transition(event.index, event.time)
 
     ##################################
     # Pipeline sources and modifiers #

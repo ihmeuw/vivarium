@@ -9,8 +9,6 @@ The Plugin Management System
 
 """
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 
 from layered_config_tree.main import LayeredConfigTree
@@ -95,6 +93,10 @@ class PluginConfigurationError(VivariumError):
 
 
 class PluginManager(Manager):
+    @property
+    def name(self) -> str:
+        return "plugin_manager"
+
     def __init__(
         self,
         plugin_configuration: (

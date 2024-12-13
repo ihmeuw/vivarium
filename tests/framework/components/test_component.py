@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pandas as pd
 import pytest
 from layered_config_tree.exceptions import ConfigurationError
@@ -103,18 +105,21 @@ def test_component_that_creates_and_requires_columns_population_view():
 
 
 def test_component_with_initialization_requirements():
-    component = ColumnCreatorAndRequirer()
-    simulation = InteractiveContext(components=[ColumnCreator(), component])
+    simulation = InteractiveContext(
+        components=[ColumnCreator(), ColumnCreatorAndRequirer()],
+    )
 
     # Assert required resources have been recorded by the ResourceManager
     component_dependencies_list = [
         r.dependencies
         # get all resources in the dependency graph
         for r in simulation._resource.sorted_nodes
-        # if the producer is an instance method
-        if hasattr(r.producer, "__self__")
+        # if the resource is an initializer
+        if r.is_initialized
+        # its initializer is an instance method
+        and hasattr(r.initializer, "__self__")
         # and is a method of ColumnCreatorAndRequirer
-        and isinstance(r.producer.__self__, ColumnCreatorAndRequirer)
+        and isinstance(r.initializer.__self__, ColumnCreatorAndRequirer)
     ]
     assert len(component_dependencies_list) == 1
     component_dependencies = component_dependencies_list[0]
@@ -163,19 +168,26 @@ def test_component_initializer_is_not_registered_if_not_defined():
     simulation = InteractiveContext(components=[component])
 
     # Assert that simulant initializer has been registered
-    assert component.on_initialize_simulants not in simulation._resource
+    assert (
+        component.on_initialize_simulants
+        not in simulation._resource.get_population_initializers()
+    )
 
 
 def test_component_initializer_is_registered_and_called_if_defined():
+    pop_size = 1000
     component = ColumnCreator()
-    simulation = InteractiveContext(components=[component])
+    expected_pop_view = component.get_initial_state(pd.RangeIndex(pop_size))
+
+    config = {"population": {"population_size": pop_size}}
+    simulation = InteractiveContext(components=[component], configuration=config)
     population = simulation.get_population()
-    expected_pop_view = pd.DataFrame(
-        {column: 9 for column in component.columns_created}, index=population.index
-    )
 
     # Assert that simulant initializer has been registered
-    assert component.on_initialize_simulants in simulation._resource
+    assert (
+        component.on_initialize_simulants
+        in simulation._resource.get_population_initializers()
+    )
     # and that created columns are correctly initialized
     pd.testing.assert_frame_equal(population[component.columns_created], expected_pop_view)
 

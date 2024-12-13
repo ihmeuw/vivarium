@@ -1,110 +1,25 @@
 """
-===================
-Resource Management
-===================
-
-This module provides a tool to manage dependencies on resources within a
-:mod:`vivarium` simulation. These resources take the form of things that can
-be created and utilized by components, for example columns in the
-:mod:`state table <vivarium.framework.population>`
-or :mod:`named value pipelines <vivarium.framework.values>`.
-
-Because these resources need to be created before they can be used, they are
-sensitive to ordering. The intent behind this tool is to provide an interface
-that allows other managers to register resources with the resource manager
-and in turn ask for ordered sequences of these resources according to their
-dependencies or raise exceptions if this is not possible.
+================
+Resource Manager
+================
 
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 
-from vivarium.exceptions import VivariumError
+from vivarium.framework.resource.exceptions import ResourceError
+from vivarium.framework.resource.group import ResourceGroup
+from vivarium.framework.resource.resource import Column, NullResource, Resource
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
+    from vivarium import Component
     from vivarium.framework.engine import Builder
-
-
-class ResourceError(VivariumError):
-    """Error raised when a dependency requirement is violated."""
-
-    pass
-
-
-RESOURCE_TYPES = {
-    "value",
-    "value_source",
-    "missing_value_source",
-    "value_modifier",
-    "column",
-    "stream",
-}
-NULL_RESOURCE_TYPE = "null"
-
-
-class ResourceGroup:
-    """Resource groups are the nodes in the resource dependency graph.
-
-    A resource group represents the pool of resources produced by a single
-    callable and all the dependencies necessary to produce that resource.
-    When thinking of the dependency graph, this represents a vertex and
-    all in-edges.  This is a local-information representation that can be
-    used to construct the entire dependency graph once all resources are
-    specified.
-
-    """
-
-    def __init__(
-        self,
-        resource_type: str,
-        resource_names: list[str],
-        producer: Any,
-        dependencies: list[str],
-    ):
-        self._resource_type = resource_type
-        self._resource_names = resource_names
-        self._producer = producer
-        self._dependencies = dependencies
-
-    @property
-    def type(self) -> str:
-        """The type of resource produced by this resource group's producer.
-
-        Must be one of `RESOURCE_TYPES`.
-        """
-        return self._resource_type
-
-    @property
-    def names(self) -> list[str]:
-        """The long names (including type) of all resources in this group."""
-        return [f"{self._resource_type}.{name}" for name in self._resource_names]
-
-    @property
-    def producer(self) -> Any:
-        """The method or object that produces this group of resources."""
-        return self._producer
-
-    @property
-    def dependencies(self) -> list[str]:
-        """The long names (including type) of dependencies for this group."""
-        return self._dependencies
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self.names)
-
-    def __repr__(self) -> str:
-        resources = ", ".join(self)
-        return f"ResourceProducer({resources})"
-
-    def __str__(self) -> str:
-        resources = ", ".join(self)
-        return f"({resources})"
 
 
 class ResourceManager(Manager):
@@ -151,7 +66,7 @@ class ResourceManager(Manager):
                 self._sorted_nodes = list(nx.algorithms.topological_sort(self.graph))  # type: ignore[func-returns-value]
             except nx.NetworkXUnfeasible:
                 raise ResourceError(
-                    f"The resource pool contains at least one cycle: "
+                    "The resource pool contains at least one cycle: "
                     f"{nx.find_cycle(self.graph)}."
                 )
         return self._sorted_nodes
@@ -159,61 +74,53 @@ class ResourceManager(Manager):
     def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
 
-    # TODO [MIC-5380]: Refactor add_resources for better type hinting
     def add_resources(
         self,
-        resource_type: str,
-        resource_names: list[str],
-        producer: Any,
-        dependencies: list[str],
+        # TODO [MIC-5452]: all resource groups should have a component
+        component: Component | Manager | None,
+        resources: Iterable[str | Resource],
+        dependencies: Iterable[str | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
         Parameters
         ----------
-        resource_type
-            The type of the resources being added. Must be one of
-            `RESOURCE_TYPES`.
-        resource_names
-            A list of names of the resources being added.
-        producer
-            A method or object that will produce the resources.
+        component
+            The component or manager adding the resources.
+        resources
+            The resources being added. A string represents a column resource.
         dependencies
-            A list of resource names formatted as
-            ``resource_type.resource_name`` that the producer requires.
+            A list of resources that the producer requires. A string represents
+            a column resource.
 
         Raises
         ------
         ResourceError
-            If either the resource type is invalid, a component has multiple
-            resource producers for the ``column`` resource type, or
-            there are multiple producers of the same resource.
+            If a component has multiple resource producers for the ``column``
+            resource type or there are multiple producers of the same resource.
         """
-        if resource_type not in RESOURCE_TYPES:
-            raise ResourceError(
-                f"Unknown resource type {resource_type}. "
-                f"Permitted types are {RESOURCE_TYPES}."
-            )
+        resource_group = self._get_resource_group(component, resources, dependencies)
 
-        resource_group = self._get_resource_group(
-            resource_type, resource_names, producer, dependencies
-        )
-
-        for resource in resource_group:
-            if resource in self._resource_group_map:
-                other_producer = self._resource_group_map[resource].producer
-                raise ResourceError(
-                    f"Both {producer} and {other_producer} are registered as "
-                    f"producers for {resource}."
+        for resource_id, resource in resource_group.resources.items():
+            if resource_id in self._resource_group_map:
+                other_resource = self._resource_group_map[resource_id]
+                # TODO [MIC-5452]: all resource groups should have a component
+                resource_component = resource.component.name if resource.component else None
+                other_resource_component = (
+                    other_resource.component.name if other_resource.component else None
                 )
-            self._resource_group_map[resource] = resource_group
+                raise ResourceError(
+                    f"Component '{resource_component}' is attempting to register"
+                    f" resource '{resource_id}' but it is already registered by"
+                    f" '{other_resource_component}'."
+                )
+            self._resource_group_map[resource_id] = resource_group
 
     def _get_resource_group(
         self,
-        resource_type: str,
-        resource_names: list[str],
-        producer: Any,
-        dependencies: list[str],
+        component: Component | Manager | None,
+        resources: Iterable[str | Resource],
+        dependencies: Iterable[str | Resource],
     ) -> ResourceGroup:
         """Packages resource information into a resource group.
 
@@ -221,15 +128,26 @@ class ResourceManager(Manager):
         --------
         :class:`ResourceGroup`
         """
-        if not resource_names:
+        resources_ = [Column(r, component) if isinstance(r, str) else r for r in resources]
+        dependencies_ = [Column(d, None) if isinstance(d, str) else d for d in dependencies]
+
+        if not resources_:
             # We have a "producer" that doesn't produce anything, but
             # does have dependencies. This is necessary for components that
             # want to track private state information.
-            resource_type = NULL_RESOURCE_TYPE
-            resource_names = [str(self._null_producer_count)]
+            resources_ = [NullResource(self._null_producer_count, component)]
             self._null_producer_count += 1
 
-        return ResourceGroup(resource_type, resource_names, producer, dependencies)
+        # TODO [MIC-5452]: all resource groups should have a component
+        if component and (
+            have_other_component := [r for r in resources_ if r.component != component]
+        ):
+            raise ResourceError(
+                f"All initialized resources must have the component '{component.name}'."
+                f" The following resources have a different component: {have_other_component}"
+            )
+
+        return ResourceGroup(resources_, dependencies_)
 
     def _to_graph(self) -> nx.DiGraph:
         """Constructs the full resource graph from information in the groups.
@@ -256,8 +174,8 @@ class ResourceManager(Manager):
                     # Warn here because this sometimes happens naturally
                     # if observer components are missing from a simulation.
                     self.logger.warning(
-                        f"Resource {dependency} is not provided by any component but is needed to "
-                        f"compute {resource_group}."
+                        f"Resource {dependency} is not produced by any"
+                        f" component but is needed to compute {resource_group}."
                     )
                     continue
                 dependency_group = self._resource_group_map[dependency]
@@ -265,20 +183,14 @@ class ResourceManager(Manager):
 
         return resource_graph
 
-    def __iter__(self) -> Iterator[Any]:
-        """Returns a dependency-sorted iterable of population initializers.
+    def get_population_initializers(self) -> list[Any]:
+        """Returns a dependency-sorted list of population initializers.
 
         We exclude all non-initializer dependencies. They were necessary in
         graph construction, but we only need the column producers at population
         creation time.
         """
-        return iter(
-            [
-                r.producer
-                for r in self.sorted_nodes
-                if r.type in {"column", NULL_RESOURCE_TYPE}
-            ]
-        )
+        return [r.initializer for r in self.sorted_nodes if r.is_initialized]
 
     def __repr__(self) -> str:
         out = {}
@@ -311,25 +223,22 @@ class ResourceInterface(Interface):
 
     def add_resources(
         self,
-        resource_type: str,
-        resource_names: list[str],
-        producer: Any,
-        dependencies: list[str],
+        # TODO [MIC-5452]: all resource groups should have a component
+        component: Component | Manager | None,
+        resources: Iterable[str | Resource],
+        dependencies: Iterable[str | Resource],
     ) -> None:
         """Adds managed resources to the resource pool.
 
         Parameters
         ----------
-        resource_type
-            The type of the resources being added. Must be one of
-            `RESOURCE_TYPES`.
-        resource_names
-            A list of names of the resources being added.
-        producer
-            A method or object that will produce the resources.
+        component
+            The component or manager adding the resources.
+        resources
+            The resources being added. A string represents a column resource.
         dependencies
-            A list of resource names formatted as
-            ``resource_type.resource_name`` that the producer requires.
+            A list of resources that the producer requires. A string represents
+            a column resource.
 
         Raises
         ------
@@ -338,13 +247,13 @@ class ResourceInterface(Interface):
             resource producers for the ``column`` resource type, or
             there are multiple producers of the same resource.
         """
-        self._manager.add_resources(resource_type, resource_names, producer, dependencies)
+        self._manager.add_resources(component, resources, dependencies)
 
-    def __iter__(self) -> Iterator[Any]:
-        """Returns a dependency-sorted iterable of population initializers.
+    def get_population_initializers(self) -> list[Any]:
+        """Returns a dependency-sorted list of population initializers.
 
         We exclude all non-initializer dependencies. They were necessary in
         graph construction, but we only need the column producers at population
         creation time.
         """
-        return iter(self._manager)
+        return self._manager.get_population_initializers()

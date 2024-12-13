@@ -1,5 +1,5 @@
 # mypy: ignore-errors
-from typing import Any, Dict, List
+from typing import Any
 
 import pandas as pd
 
@@ -17,7 +17,7 @@ class BasePopulation(Component):
     ##############
 
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         """A set of default configuration values for this component.
 
         These can be overwritten in the simulation model specification or by
@@ -33,7 +33,7 @@ class BasePopulation(Component):
         }
 
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return ["age", "sex", "alive", "entrance_time"]
 
     #####################

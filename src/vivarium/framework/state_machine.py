@@ -7,9 +7,11 @@ State Machine
 A state machine implementation for use in ``vivarium`` simulations.
 
 """
+from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
@@ -18,15 +20,22 @@ from vivarium import Component
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.framework.population import PopulationView
-    from vivarium.types import ClockTime
+    from vivarium.framework.event import Event
+    from vivarium.framework.population import PopulationView, SimulantData
+    from vivarium.framework.resource import Resource
+    from vivarium.types import ClockTime, DataInput
+
+
+def default_probability_function(index: pd.Index) -> pd.Series:
+    """Transition decision function that always triggers this transition."""
+    return pd.Series(1.0, index=index)
 
 
 def _next_state(
     index: pd.Index,
-    event_time: "ClockTime",
-    transition_set: "TransitionSet",
-    population_view: "PopulationView",
+    event_time: ClockTime,
+    transition_set: TransitionSet,
+    population_view: PopulationView,
 ) -> None:
     """Moves a population between different states using information from a `TransitionSet`.
 
@@ -63,8 +72,8 @@ def _next_state(
 
 
 def _groupby_new_state(
-    index: pd.Index, outputs: List, decisions: pd.Series
-) -> List[Tuple[str, pd.Index]]:
+    index: pd.Index, outputs: list, decisions: pd.Series
+) -> list[tuple[str, pd.Index]]:
     """Groups the simulants in the index by their new output state.
 
     Parameters
@@ -107,20 +116,7 @@ def _process_trigger(trigger):
 
 
 class Transition(Component):
-    """A process by which an entity might change into a particular state.
-
-    Attributes
-    ----------
-    input_state
-        The start state of the entity that undergoes the transition.
-    output_state
-        The end state of the entity that undergoes the transition.
-    probability_func
-        A method or function that describing the probability of this
-        transition occurring.
-    triggered
-        A flag indicating whether this transition is triggered by some event.
-    """
+    """A process by which an entity might change into a particular state."""
 
     #####################
     # Lifecycle methods #
@@ -128,13 +124,27 @@ class Transition(Component):
 
     def __init__(
         self,
-        input_state: "State",
-        output_state: "State",
+        input_state: State,
+        output_state: State,
         probability_func: Callable[[pd.Index], pd.Series] = lambda index: pd.Series(
             1.0, index=index
         ),
         triggered=Trigger.NOT_TRIGGERED,
     ):
+        """Initializes a transition between two states.
+
+        Parameters
+        ----------
+        input_state
+            The start state of the entity that undergoes the transition.
+        output_state
+            The end state of the entity that undergoes the transition.
+        probability_func
+            A method or function that describing the probability of this
+            transition occurring.
+        triggered
+            A flag indicating whether this transition is triggered by some event.
+        """
         super().__init__()
         self.input_state = input_state
         self.output_state = output_state
@@ -190,6 +200,16 @@ class State(Component):
     ##############
 
     @property
+    def configuration_defaults(self) -> dict[str, Any]:
+        return {
+            f"{self.name}": {
+                "data_sources": {
+                    "initialization_weights": self.initialization_weights,
+                },
+            },
+        }
+
+    @property
     def model(self) -> str:
         return self._model
 
@@ -197,12 +217,18 @@ class State(Component):
     # Lifecycle methods #
     #####################
 
-    def __init__(self, state_id: str, allow_self_transition: bool = False):
+    def __init__(
+        self,
+        state_id: str,
+        allow_self_transition: bool = False,
+        initialization_weights: DataInput = 0.0,
+    ) -> None:
         super().__init__()
         self.state_id = state_id
         self.transition_set = TransitionSet(
             self.state_id, allow_self_transition=allow_self_transition
         )
+        self.initialization_weights = initialization_weights
         self._model = None
         self._sub_components = [self.transition_set]
 
@@ -210,12 +236,19 @@ class State(Component):
     # Public methods #
     ##################
 
+    def has_initialization_weights(self) -> bool:
+        """Determines if state has explicitly defined initialization weights."""
+        return (
+            not isinstance(self.initialization_weights, (float, int))
+            or self.initialization_weights != 0.0
+        )
+
     def set_model(self, model_name: str) -> None:
         """Defines the column name for the model this state belongs to"""
         self._model = model_name
 
     def next_state(
-        self, index: pd.Index, event_time: "ClockTime", population_view: "PopulationView"
+        self, index: pd.Index, event_time: ClockTime, population_view: PopulationView
     ) -> None:
         """Moves a population between different states.
 
@@ -231,7 +264,7 @@ class State(Component):
         return _next_state(index, event_time, self.transition_set, population_view)
 
     def transition_effect(
-        self, index: pd.Index, event_time: "ClockTime", population_view: "PopulationView"
+        self, index: pd.Index, event_time: ClockTime, population_view: PopulationView
     ) -> None:
         """Updates the simulation state and triggers any side-effects associated with entering this state.
 
@@ -247,18 +280,52 @@ class State(Component):
         population_view.update(pd.Series(self.state_id, index=index))
         self.transition_side_effect(index, event_time)
 
-    def cleanup_effect(self, index: pd.Index, event_time: "ClockTime") -> None:
+    def cleanup_effect(self, index: pd.Index, event_time: ClockTime) -> None:
         pass
 
-    def add_transition(self, transition: Transition) -> None:
+    def add_transition(
+        self,
+        transition: Transition | None = None,
+        output_state: State | None = None,
+        probability_function: Callable[[pd.Index], pd.Series] = default_probability_function,
+        triggered=Trigger.NOT_TRIGGERED,
+    ) -> Transition:
         """Adds a transition to this state and its `TransitionSet`.
+
+        A transition can be added by passing a `Transition` object or by
+        specifying an output state and a decision function. If a transition is
+        provided, the output state and decision function must not be.
 
         Parameters
         ----------
         transition
-            The transition to add
+            The transition to add.
+        output_state
+            The state to transition to
+        probability_function
+            A function that determines the probability that this transition
+            should happen. By default, this is a function that will produce a
+            probability of 1.0 for all simulants in the state.
+        triggered
+            A flag indicating whether this transition is triggered by some event.
         """
+        if transition is not None:
+            if (
+                output_state is not None
+                or probability_function != default_probability_function
+                or triggered != Trigger.NOT_TRIGGERED
+            ):
+                raise ValueError(
+                    "Cannot provide an output state or a decision function if a"
+                    " transition is provided."
+                )
+        else:
+            if output_state is None:
+                raise ValueError("Must specify either a transition or an output state.")
+
+            transition = Transition(self, output_state, probability_function, triggered)
         self.transition_set.append(transition)
+        return transition
 
     def allow_self_transitions(self) -> None:
         self.transition_set.allow_null_transition = True
@@ -267,7 +334,7 @@ class State(Component):
     # Helper methods #
     ##################
 
-    def transition_side_effect(self, index: pd.Index, event_time: "ClockTime") -> None:
+    def transition_side_effect(self, index: pd.Index, event_time: ClockTime) -> None:
         pass
 
 
@@ -321,7 +388,7 @@ class TransitionSet(Component):
 
         self.extend(transitions)
 
-    def setup(self, builder: "Builder") -> None:
+    def setup(self, builder: Builder) -> None:
         """Performs this component's simulation setup and return sub-components.
 
         Parameters
@@ -336,7 +403,7 @@ class TransitionSet(Component):
     # Public methods #
     ##################
 
-    def choose_new_state(self, index: pd.Index) -> Tuple[List, pd.Series]:
+    def choose_new_state(self, index: pd.Index) -> tuple[list, pd.Series]:
         """Chooses a new state for each simulant in the index.
 
         Parameters
@@ -461,19 +528,83 @@ class Machine(Component):
         return self.states
 
     @property
-    def columns_required(self) -> Optional[List[str]]:
+    def columns_created(self) -> list[str]:
         return [self.state_column]
+
+    @property
+    def initialization_requirements(
+        self,
+    ) -> list[str | Resource]:
+        return [self.randomness]
 
     #####################
     # Lifecycle methods #
     #####################
 
-    def __init__(self, state_column: str, states: Iterable[State] = ()):
+    def __init__(
+        self,
+        state_column: str,
+        states: Iterable[State] = (),
+        initial_state: State | None = None,
+    ) -> None:
         super().__init__()
         self.states = []
         self.state_column = state_column
         if states:
             self.add_states(states)
+
+        states_with_initialization_weights = [
+            state for state in self.states if state.has_initialization_weights()
+        ]
+
+        if initial_state is not None:
+            if initial_state not in self.states:
+                raise ValueError(
+                    f"Initial state '{initial_state}' must be one of the"
+                    f" states: {self.states}."
+                )
+            if states_with_initialization_weights:
+                raise ValueError(
+                    "Cannot specify both an initial state and provide"
+                    " initialization weights to states."
+                )
+
+            initial_state.initialization_weights = 1.0
+
+        # TODO: [MIC-5403] remove this on_initialize_simulants check once
+        #  VPH's DiseaseModel has a compatible initialization strategy
+        elif (
+            type(self).on_initialize_simulants == Machine.on_initialize_simulants
+            and not states_with_initialization_weights
+        ):
+            raise ValueError(
+                "Must specify either an initial state or provide"
+                " initialization weights to states."
+            )
+
+    def setup(self, builder: Builder) -> None:
+        self.randomness = builder.randomness.get_stream(self.name)
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        state_ids = [s.state_id for s in self.states]
+        state_weights = pd.concat(
+            [
+                state.lookup_tables["initialization_weights"](pop_data.index)
+                for state in self.states
+            ],
+            axis=1,
+        ).to_numpy()
+
+        initial_states = self.randomness.choice(
+            pop_data.index, state_ids, state_weights, "initialization"
+        ).rename(self.state_column)
+        self.population_view.update(initial_states)
+
+    def on_time_step(self, event: Event) -> None:
+        self.transition(event.index, event.time)
+
+    def on_time_step_cleanup(self, event: Event) -> None:
+        self.cleanup(event.index, event.time)
 
     ##################
     # Public methods #
@@ -484,7 +615,7 @@ class Machine(Component):
             self.states.append(state)
             state.set_model(self.state_column)
 
-    def transition(self, index: pd.Index, event_time: "ClockTime") -> None:
+    def transition(self, index: pd.Index, event_time: ClockTime) -> None:
         """Finds the population in each state and moves them to the next state.
 
         Parameters
@@ -502,12 +633,12 @@ class Machine(Component):
                     self.population_view.subview(self.state_column),
                 )
 
-    def cleanup(self, index: pd.Index, event_time: "ClockTime") -> None:
+    def cleanup(self, index: pd.Index, event_time: ClockTime) -> None:
         for state, affected in self._get_state_pops(index):
             if not affected.empty:
                 state.cleanup_effect(affected.index, event_time)
 
-    def _get_state_pops(self, index: pd.Index) -> List[Tuple[State, pd.DataFrame]]:
+    def _get_state_pops(self, index: pd.Index) -> list[tuple[State, pd.DataFrame]]:
         population = self.population_view.get(index)
         return [
             (state, population[population[self.state_column] == state.state_id])
@@ -518,7 +649,7 @@ class Machine(Component):
     # Helper methods #
     ##################
 
-    def get_initialization_parameters(self) -> Dict[str, Any]:
+    def get_initialization_parameters(self) -> dict[str, Any]:
         """
         Gets the values of the state column specified in the __init__`.
 

@@ -1,5 +1,5 @@
 # mypy: ignore-errors
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 
@@ -8,7 +8,7 @@ from vivarium.framework.engine import Builder
 
 
 class TreatmentIntervention(Component):
-    CONFIGURATION_DEFAULTS: Dict[str, Any] = {
+    CONFIGURATION_DEFAULTS: dict[str, Any] = {
         "intervention": {
             "effect_size": 0.5,
         }
@@ -19,7 +19,7 @@ class TreatmentIntervention(Component):
     ##############
 
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         return {self.intervention: self.CONFIGURATION_DEFAULTS["intervention"]}
 
     #####################
@@ -34,12 +34,14 @@ class TreatmentIntervention(Component):
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
         effect_size = builder.configuration[self.intervention].effect_size
-        builder.value.register_value_modifier(
-            self.affected_value, modifier=self.intervention_effect
-        )
         self.effect_size = builder.value.register_value_producer(
             f"{self.intervention}.effect_size",
             source=lambda index: pd.Series(effect_size, index=index),
+        )
+        builder.value.register_value_modifier(
+            self.affected_value,
+            modifier=self.intervention_effect,
+            required_resources=[self.effect_size],
         )
 
     ##################################

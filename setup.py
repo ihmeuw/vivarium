@@ -60,6 +60,7 @@ if __name__ == "__main__":
         "pytest",
         "pytest-cov",
         "pytest-mock",
+        "vivarium_testing_utils",
     ]
 
     lint_requirements = [

@@ -1,4 +1,7 @@
-from typing import Any, Dict, List, Optional
+# mypy: ignore-errors
+from __future__ import annotations
+
+from typing import Any
 
 import pandas as pd
 
@@ -6,6 +9,7 @@ from vivarium import Component, Observer
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
+from vivarium.framework.resource import Resource
 
 
 class MockComponentA(Observer):
@@ -80,7 +84,7 @@ class MockGenericComponent(Component):
         return self._name
 
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         return {self.name: self.CONFIGURATION_DEFAULTS["component"]}
 
     def __init__(self, name: str):
@@ -138,18 +142,19 @@ class Listener(MockComponentB):
 
 class ColumnCreator(Component):
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return ["test_column_1", "test_column_2", "test_column_3"]
 
     def setup(self, builder: Builder) -> None:
         builder.value.register_value_producer("pipeline_1", lambda x: x)
-        builder.randomness.get_stream("stream_1")
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        initialization_data = pd.DataFrame(
-            {column: 9 for column in self.columns_created}, index=pop_data.index
+        self.population_view.update(self.get_initial_state(pop_data.index))
+
+    def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
+        return pd.DataFrame(
+            {column: [i % 3 for i in index] for column in self.columns_created}, index=index
         )
-        self.population_view.update(initialization_data)
 
 
 class LookupCreator(ColumnCreator):
@@ -188,7 +193,7 @@ class SingleLookupCreator(ColumnCreator):
 
 class OrderedColumnsLookupCreator(Component):
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return ["foo", "bar"]
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
@@ -227,26 +232,26 @@ class OrderedColumnsLookupCreator(Component):
 
 class ColumnRequirer(Component):
     @property
-    def columns_required(self) -> List[str]:
+    def columns_required(self) -> list[str]:
         return ["test_column_1", "test_column_2"]
 
 
 class ColumnCreatorAndRequirer(Component):
     @property
-    def columns_required(self) -> List[str]:
+    def columns_required(self) -> list[str]:
         return ["test_column_1", "test_column_2"]
 
     @property
-    def columns_created(self) -> List[str]:
+    def columns_created(self) -> list[str]:
         return ["test_column_4"]
 
     @property
-    def initialization_requirements(self) -> Dict[str, List[str]]:
-        return {
-            "requires_columns": ["test_column_2"],
-            "requires_values": ["pipeline_1"],
-            "requires_streams": ["stream_1"],
-        }
+    def initialization_requirements(self) -> list[str | Resource]:
+        return ["test_column_2", self.pipeline, self.randomness]
+
+    def setup(self, builder: Builder) -> None:
+        self.pipeline = builder.value.get_value("pipeline_1")
+        self.randomness = builder.randomness.get_stream("stream_1")
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         initialization_data = pd.DataFrame({"test_column_4": 8}, index=pop_data.index)
@@ -255,13 +260,13 @@ class ColumnCreatorAndRequirer(Component):
 
 class AllColumnsRequirer(Component):
     @property
-    def columns_required(self) -> List[str]:
+    def columns_required(self) -> list[str]:
         return []
 
 
 class FilteredPopulationView(ColumnRequirer):
     @property
-    def population_view_query(self) -> Optional[str]:
+    def population_view_query(self) -> str | None:
         return "test_column_1 == 5"
 
 

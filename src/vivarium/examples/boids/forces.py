@@ -1,6 +1,6 @@
 # mypy: ignore-errors
 from abc import ABC, abstractmethod
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -14,14 +14,14 @@ class Force(Component, ABC):
     # Properties #
     ##############
     @property
-    def configuration_defaults(self) -> Dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, Any]:
         return {
             self.__class__.__name__.lower(): {
                 "max_force": 0.03,
             },
         }
 
-    columns_required = ["x", "y", "vx", "vy"]
+    columns_required = []
 
     #####################
     # Lifecycle methods #
@@ -36,6 +36,7 @@ class Force(Component, ABC):
         builder.value.register_value_modifier(
             "acceleration",
             modifier=self.apply_force,
+            required_resources=self.columns_required + [self.neighbors],
         )
 
     ##################################
