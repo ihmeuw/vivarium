@@ -1,3 +1,7 @@
+**3.2.9 - 12/17/24**
+
+  - Bugfix: Replace certain cases of int or float types with Numeric
+
 **3.2.8 - 12/16/24**
 
   - Feature: Update how addtional seed is defined in RandomnessManager

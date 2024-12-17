@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
+from typing import SupportsFloat as Numeric
+from typing import Union
 
 import numpy as np
 import numpy.typing as npt
@@ -16,7 +18,7 @@ Timedelta = pd.Timedelta | timedelta
 ClockTime = Time | int
 ClockStepSize = Timedelta | int
 
-ScalarValue = float | int | Timedelta | Time
+ScalarValue = Numeric | Timedelta | Time
 LookupTableData = ScalarValue | pd.DataFrame | list[ScalarValue] | tuple[ScalarValue]
 
 DataInput = LookupTableData | str | Callable[["Builder"], LookupTableData]
