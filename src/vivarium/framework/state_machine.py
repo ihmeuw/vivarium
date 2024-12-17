@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
 from enum import Enum
-from numbers import Number
 from typing import TYPE_CHECKING, Any, Iterator
 
 import numpy as np
@@ -577,7 +576,6 @@ class Machine(Component):
                     " initialization weights to states."
                 )
 
-            # mypy complains that a float is not a Number
             initial_state.initialization_weights = 1.0
 
         # TODO: [MIC-5403] remove this on_initialize_simulants check once

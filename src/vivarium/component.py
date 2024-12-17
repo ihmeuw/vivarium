@@ -603,7 +603,7 @@ class Component(ABC):
         data = self.get_data(builder, data_source)
         # TODO update this to use vivarium.types.LookupTableData once we drop
         #  support for Python 3.9
-        if not isinstance(data, (float, int, Numeric, timedelta, datetime, pd.DataFrame, list, tuple)):
+        if not isinstance(data, (Numeric, timedelta, datetime, pd.DataFrame, list, tuple)):
             raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
 
         if isinstance(data, list):
