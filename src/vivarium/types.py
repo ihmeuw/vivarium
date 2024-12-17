@@ -18,7 +18,7 @@ Timedelta = pd.Timedelta | timedelta
 ClockTime = Time | int
 ClockStepSize = Timedelta | int
 
-ScalarValue = float | int | Numeric | Timedelta | Time
+ScalarValue = Numeric | Timedelta | Time
 LookupTableData = ScalarValue | pd.DataFrame | list[ScalarValue] | tuple[ScalarValue]
 
 DataInput = LookupTableData | str | Callable[["Builder"], LookupTableData]
