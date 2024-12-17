@@ -309,25 +309,25 @@ the population as a whole.
 .. testoutput::
 
     count    100000.000000
-    mean          2.503326
-    std           1.439935
-    min           0.000040
-    25%           1.259632
-    50%           2.506636
-    75%           3.744090
-    max           4.999967
+    mean          2.490328
+    std           1.441763
+    min           0.000011
+    25%           1.242100
+    50%           2.487453
+    75%           3.730555
+    max           4.999957
     Name: age, dtype: float64
     alive
     alive    100000
     Name: count, dtype: int64
-    count    100000.000000
-    mean          0.499756
-    std           0.288412
-    min           0.000015
-    25%           0.251550
-    50%           0.497587
-    75%           0.749215
-    max           0.999978
+    count    1.000000e+05
+    mean     5.007716e-01
+    std      2.885722e-01
+    min      5.485898e-07
+    25%      2.504689e-01
+    50%      5.000226e-01
+    75%      7.516029e-01
+    max      9.999966e-01
     Name: child_wasting_propensity, dtype: float64
     lower_respiratory_infections
     susceptible_to_lower_respiratory_infections    100000
@@ -336,8 +336,8 @@ the population as a whole.
     2021-12-31 12:00:00    100000
     Name: count, dtype: int64
     sex
-    Male      50185
-    Female    49815
+    Female    50011
+    Male      49989
     Name: count, dtype: int64
     tracked
     True    100000

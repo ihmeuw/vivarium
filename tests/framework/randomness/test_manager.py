@@ -2,6 +2,7 @@ import pandas as pd
 import pytest
 
 from tests.helpers import ColumnCreator, ColumnRequirer
+from vivarium import InteractiveContext
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.manager import RandomnessError, RandomnessManager
 from vivarium.framework.randomness.stream import get_hash
@@ -64,3 +65,31 @@ def test_get_random_seed():
     rm._clock_ = mock_clock
 
     assert rm.get_seed(decision_point) == get_hash(f"{decision_point}_{rm._clock()}_{seed}")
+
+
+@pytest.mark.parametrize("additional_seed", ["789", None])
+def test_additional_seed(base_config, additional_seed):
+
+    input_draw = "123"
+    seed = "456"
+    base_config.update(
+        {
+            "input_data": {
+                "input_draw_number": input_draw,
+            },
+            "randomness": {
+                "random_seed": seed,
+                "additional_seed": additional_seed,
+            },
+        },
+    )
+
+    component = ColumnCreator()
+    sim = InteractiveContext(components=[component], configuration=base_config)
+    rm = sim._randomness
+
+    if additional_seed is not None:
+        expected = f"{seed}_{additional_seed}"
+    else:
+        expected = f"{seed}_{input_draw}"
+    assert rm._seed == expected
