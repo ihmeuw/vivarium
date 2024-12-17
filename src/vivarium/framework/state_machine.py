@@ -223,7 +223,7 @@ class State(Component):
         self,
         state_id: str,
         allow_self_transition: bool = False,
-        initialization_weights: DataInput = 0.0,  # type: ignore [assignment]
+        initialization_weights: DataInput = 0.0,
     ) -> None:
         super().__init__()
         self.state_id = state_id
@@ -578,7 +578,7 @@ class Machine(Component):
                 )
 
             # mypy complains that a float is not a Number
-            initial_state.initialization_weights = 1.0  # type: ignore [assignment]
+            initial_state.initialization_weights = 1.0
 
         # TODO: [MIC-5403] remove this on_initialize_simulants check once
         #  VPH's DiseaseModel has a compatible initialization strategy

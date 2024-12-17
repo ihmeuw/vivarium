@@ -16,6 +16,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from numbers import Number
 from typing import TYPE_CHECKING
+from typing import SupportsFloat as Numeric
 
 import pandas as pd
 
@@ -92,7 +93,7 @@ class LookupTableManager(Manager):
             )
 
         # Note datetime catches pandas timestamps
-        if isinstance(data, (Number, datetime, timedelta, list, tuple)):
+        if isinstance(data, (float, int, Numeric, datetime, timedelta, list, tuple)):
             table: LookupTable = ScalarTable(
                 table_number=table_number,
                 data=data,

@@ -16,8 +16,8 @@ from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 from importlib import import_module
 from inspect import signature
-from numbers import Number
 from typing import TYPE_CHECKING, Any, cast
+from typing import SupportsFloat as Numeric
 
 import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
@@ -603,7 +603,7 @@ class Component(ABC):
         data = self.get_data(builder, data_source)
         # TODO update this to use vivarium.types.LookupTableData once we drop
         #  support for Python 3.9
-        if not isinstance(data, (Number, timedelta, datetime, pd.DataFrame, list, tuple)):
+        if not isinstance(data, (float, int, Numeric, timedelta, datetime, pd.DataFrame, list, tuple)):
             raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
 
         if isinstance(data, list):
