@@ -1,7 +1,8 @@
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 from typing import SupportsFloat as Numeric
+from typing import Union
 
 import numpy as np
 import numpy.typing as npt

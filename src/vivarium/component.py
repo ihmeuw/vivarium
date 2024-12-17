@@ -16,8 +16,9 @@ from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 from importlib import import_module
 from inspect import signature
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from typing import SupportsFloat as Numeric
+from typing import cast
 
 import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
