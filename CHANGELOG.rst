@@ -1,6 +1,10 @@
+**3.2.9 - 12/17/24**
+
+  - Type-hinting: Fix mypy errors in vivarium/framework/components/manager.py
+
 **3.2.8 - 12/16/24**
 
-  - Feature: Update how addtional seed is defined in RandomnessManager
+  - Feature: Update how additional seed is defined in RandomnessManager
 
 **3.2.7 - 12/12/24**
 
