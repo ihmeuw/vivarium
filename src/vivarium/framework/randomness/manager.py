@@ -62,9 +62,11 @@ class RandomnessManager(Manager):
         return self._key_mapping_
 
     def setup(self, builder: Builder) -> None:
-        self._seed = str(builder.configuration.randomness.random_seed)
         if builder.configuration.randomness.additional_seed is not None:
-            self._seed += str(builder.configuration.randomness.additional_seed)
+            additional_seed = builder.configuration.randomness.additional_seed
+        else:
+            additional_seed = builder.configuration.input_data.input_draw_number
+        self._seed = f"{builder.configuration.randomness.random_seed}_{additional_seed}"
         self._clock_ = builder.time.clock()
         self._key_columns = builder.configuration.randomness.key_columns
 

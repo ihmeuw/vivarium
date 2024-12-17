@@ -1,3 +1,7 @@
+**3.2.8 - 12/16/24**
+
+  - Feature: Update how addtional seed is defined in RandomnessManager
+
 **3.2.7 - 12/12/24**
 
   - Type-hinting: Fix mypy errors in vivarium/framework/state_machine.py
