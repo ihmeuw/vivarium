@@ -21,7 +21,7 @@ shared_path="/svc-simsci"
 pipeline {
   // This agent runs as svc-simsci on node simsci-slurm-sbuild-p01.
   // It has access to standard IHME filesystems and singularity
-  agent { label "svc-simsci" }
+  agent { label "jenkins-agent" }
 
   options {
     // Keep 100 old builds.
