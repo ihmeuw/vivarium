@@ -223,7 +223,7 @@ class State(Component):
         self,
         state_id: str,
         allow_self_transition: bool = False,
-        initialization_weights: DataInput = 0.0, # type: ignore [assignment]
+        initialization_weights: DataInput = 0.0,  # type: ignore [assignment]
     ) -> None:
         super().__init__()
         self.state_id = state_id
