@@ -258,6 +258,12 @@ class ColumnCreatorAndRequirer(Component):
         self.population_view.update(initialization_data)
 
 
+class ColumnCreatorAndAllRequirer(ColumnCreatorAndRequirer):
+    @property
+    def columns_required(self) -> list[str]:
+        return []
+
+
 class AllColumnsRequirer(Component):
     @property
     def columns_required(self) -> list[str]:
