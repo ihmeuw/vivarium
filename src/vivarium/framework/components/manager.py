@@ -266,13 +266,14 @@ class ComponentManager(Manager):
             new_name, new_file = component.name, self._get_file(component)
             if e.source:
                 old_name, old_file = e.source, self._get_file(self.get_component(e.source))
+                component_string = f"{old_name} in file {old_file}"
             else:
-                old_name, old_file = "another component", "another file"
+                component_string = "another component"
 
             raise ComponentConfigError(
                 f"Component {new_name} in file {new_file} is attempting to "
                 f"set the configuration value {e.value_name}, but it has already "
-                f"been set by {old_name} in file {old_file}."
+                f"been set by {component_string}."
             )
         except ConfigurationError as e:
             new_name, new_file = component.name, self._get_file(component)
