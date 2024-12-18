@@ -15,6 +15,7 @@ the individuals represented by that index. See the
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
+from typing import SupportsFloat as Numeric
 
 import pandas as pd
 
@@ -91,7 +92,7 @@ class LookupTableManager(Manager):
             )
 
         # Note datetime catches pandas timestamps
-        if isinstance(data, (float, int, datetime, timedelta, list, tuple)):
+        if isinstance(data, (Numeric, datetime, timedelta, list, tuple)):
             table: LookupTable = ScalarTable(
                 table_number=table_number,
                 data=data,
@@ -203,7 +204,7 @@ def validate_build_table_parameters(
     ):
         raise ValueError("Must supply some data")
 
-    acceptable_types = (float, int, datetime, timedelta, list, tuple, pd.DataFrame)
+    acceptable_types = (Numeric, datetime, timedelta, list, tuple, pd.DataFrame)
     if not isinstance(data, acceptable_types):
         raise TypeError(
             f"The only allowable types for data are {acceptable_types}. "
