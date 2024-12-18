@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 
 from tests.helpers import MockComponentA, MockComponentB, MockGenericComponent
+from vivarium.exceptions import VivariumError
 from vivarium.framework.components.manager import (
     ComponentConfigError,
     ComponentManager,
@@ -107,11 +108,12 @@ def test_component_set_dunder_add():
     assert l1 + l2 == combined
 
 
-def test_manager_init():
+def test_manager_init() -> None:
     m = ComponentManager()
     assert not m._managers
     assert not m._components
-    assert not m.configuration
+    with pytest.raises(VivariumError, match="ComponentManager has no configuration tree"):
+        _ = m.configuration
     assert m.name == "component_manager"
     assert repr(m) == str(m) == "ComponentManager()"
 
@@ -184,11 +186,11 @@ def test_setup_components(mocker):
     assert mock_b.builder_used_for_setup is builder
 
 
-def test_apply_configuration_defaults():
+def test_apply_configuration_defaults() -> None:
     config = build_simulation_configuration()
     c = config.to_dict()
     cm = ComponentManager()
-    cm.configuration = config
+    cm._configuration = config
     component = MockGenericComponent("test_component")
 
     cm.apply_configuration_defaults(component)
@@ -196,22 +198,22 @@ def test_apply_configuration_defaults():
     assert config.to_dict() == c
 
 
-def test_apply_configuration_defaults_no_op():
+def test_apply_configuration_defaults_no_op() -> None:
     config = build_simulation_configuration()
     c = config.to_dict()
     cm = ComponentManager()
-    cm.configuration = config
+    cm._configuration = config
     component = MockComponentA()
 
     cm.apply_configuration_defaults(component)
     assert config.to_dict() == c
 
 
-def test_apply_configuration_defaults_duplicate():
+def test_apply_configuration_defaults_duplicate() -> None:
     config = build_simulation_configuration()
 
     cm = ComponentManager()
-    cm.configuration = config
+    cm._configuration = config
     component = MockGenericComponent("test_component")
 
     cm.apply_configuration_defaults(component)
@@ -220,7 +222,7 @@ def test_apply_configuration_defaults_duplicate():
         cm.apply_configuration_defaults(component)
 
 
-def test_apply_configuration_defaults_bad_structure():
+def test_apply_configuration_defaults_bad_structure() -> None:
     class BadConfigComponent(MockComponentA):
         @property
         def configuration_defaults(self) -> dict[str, Any]:
@@ -229,7 +231,7 @@ def test_apply_configuration_defaults_bad_structure():
     config = build_simulation_configuration()
 
     cm = ComponentManager()
-    cm.configuration = config
+    cm._configuration = config
     component1 = MockGenericComponent("test_component")
     component2 = BadConfigComponent(name="test_component2")
 
@@ -239,10 +241,10 @@ def test_apply_configuration_defaults_bad_structure():
         cm.apply_configuration_defaults(component2)
 
 
-def test_add_components():
+def test_add_components() -> None:
     config = build_simulation_configuration()
     cm = ComponentManager()
-    cm.configuration = config
+    cm._configuration = config
 
     assert not cm._managers
     managers = [MockGenericComponent(f"manager_{i}") for i in range(5)]
@@ -261,16 +263,16 @@ def test_add_components():
     "components",
     ([MockComponentA("Eric"), MockComponentB("half", "a", "bee")], [MockComponentA("Eric")]),
 )
-def test_component_manager_add_components(components):
+def test_component_manager_add_components(components) -> None:
     config = build_simulation_configuration()
     cm = ComponentManager()
-    cm.configuration = config
+    cm._configuration = config
     cm.add_managers(components)
     assert cm._managers == OrderedComponentSet(*ComponentManager._flatten(components))
 
     config = build_simulation_configuration()
     cm = ComponentManager()
-    cm.configuration = config
+    cm._configuration = config
     cm.add_components(components)
     assert cm._components == OrderedComponentSet(*ComponentManager._flatten(components))
 
@@ -282,10 +284,10 @@ def test_component_manager_add_components(components):
         [MockComponentA(), MockComponentA(), MockComponentB("foo", "bar")],
     ),
 )
-def test_component_manager_add_components_duplicated(components):
+def test_component_manager_add_components_duplicated(components) -> None:
     config = build_simulation_configuration()
     cm = ComponentManager()
-    cm.configuration = config
+    cm._configuration = config
     with pytest.raises(
         ComponentConfigError,
         match=f"Attempting to add a component with duplicate name: {MockComponentA()}",
@@ -294,7 +296,7 @@ def test_component_manager_add_components_duplicated(components):
 
     config = build_simulation_configuration()
     cm = ComponentManager()
-    cm.configuration = config
+    cm._configuration = config
     with pytest.raises(
         ComponentConfigError,
         match=f"Attempting to add a component with duplicate name: {MockComponentA()}",
