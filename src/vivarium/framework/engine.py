@@ -143,7 +143,7 @@ class SimulationContext:
         self._lifecycle.add_phase("simulation_end", ["simulation_end", "report"])
 
         self._component_manager = self._plugin_manager.get_plugin("component_manager")
-        self._component_manager.setup(self.configuration, self._lifecycle)
+        self._component_manager.setup_manager(self.configuration, self._lifecycle)
 
         self._clock = self._plugin_manager.get_plugin("clock")
         self._values = self._plugin_manager.get_plugin("value")

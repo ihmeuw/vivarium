@@ -491,12 +491,12 @@ Now that we've done all this hard work, let's see what it gives us.
 
 ::
 
-       tracked     sex        age entrance_time  alive
-    0     True  Female  78.088109    2005-07-01  alive
-    1     True  Female  44.072665    2005-07-01  alive
-    2     True  Female  48.346571    2005-07-01  alive
-    3     True  Female  91.002147    2005-07-01  alive
-    4     True  Female  63.641191    2005-07-01  alive
+          tracked     sex        age entrance_time  alive
+    0     True  Female  13.806775818385496  2005-07-01  alive
+    1     True  Male    59.17289327893596   2005-07-01  alive
+    2     True  Female  11.030887339897     2005-07-01  alive
+    3     True  Female  27.72319127598699   2005-07-01  alive
+    4     True  Female  51.05218820533359   2005-07-01  alive
 
 .. testcode::
    :hide:
@@ -509,8 +509,8 @@ Now that we've done all this hard work, let's see what it gives us.
    config = {'randomness': {'key_columns': ['entrance_time', 'age']}}
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
    expected = pd.DataFrame({
-      'age': [78.08810902, 44.07266518, 48.34657108, 91.00214722, 63.64119145],
-      'sex': ['Female']*5,
+      'age': [13.806775818385496, 59.17289327893596, 11.030887339897, 27.72319127598699, 51.05218820533359],
+      'sex': ['Female', 'Male', 'Female', 'Female', 'Female'],
    })
    pd.testing.assert_frame_equal(sim.get_population().head()[['age', 'sex']], expected)
 
@@ -525,11 +525,11 @@ Let's see what happens when our simulation takes a time step.
 ::
 
           tracked     sex        age entrance_time  alive
-    0     True  Female  78.090849    2005-07-01  alive
-    1     True  Female  44.075405    2005-07-01  alive
-    2     True  Female  48.349311    2005-07-01  alive
-    3     True  Female  91.004887    2005-07-01  alive
-    4     True  Female  63.643931    2005-07-01  alive
+    0     True  Female  13.806775818385496  2005-07-01  alive
+    1     True  Male    59.17289327893596   2005-07-01  alive
+    2     True  Female  11.030887339897     2005-07-01  alive
+    3     True  Female  27.72319127598699   2005-07-01  alive
+    4     True  Female  51.05218820533359   2005-07-01  alive
 
 
 .. testcode::
@@ -716,11 +716,11 @@ can see the impact of our mortality component without taking too many steps.
 ::
 
           tracked     sex        age entrance_time  alive
-    0     True  Female  78.088109    2005-07-01  alive
-    1     True  Female  44.072665    2005-07-01  alive
-    2     True  Female  48.346571    2005-07-01  alive
-    3     True  Female  91.002147    2005-07-01  alive
-    4     True  Female  63.641191    2005-07-01  alive
+    0     True  Female  13.806775818385496  2005-07-01  alive
+    1     True  Male    59.17289327893596   2005-07-01  alive
+    2     True  Female  11.030887339897     2005-07-01  alive
+    3     True  Female  27.72319127598699   2005-07-01  alive
+    4     True  Female  51.05218820533359   2005-07-01  alive
 
 .. testcode::
    :hide:
@@ -738,8 +738,8 @@ can see the impact of our mortality component without taking too many steps.
    sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
 
    expected = pd.DataFrame({
-      'age': [78.08810902, 44.07266518, 48.34657108, 91.00214722, 63.64119145],
-      'sex': ['Female']*5,
+      'age': [13.806775818385496, 59.17289327893596, 11.030887339897, 27.72319127598699, 51.05218820533359],
+      'sex': ['Female', 'Male', 'Female', 'Female', 'Female'],
    })
    pd.testing.assert_frame_equal(sim.get_population().head()[['age', 'sex']], expected)
 
@@ -895,7 +895,7 @@ been a total of 27,987 years of life lost.
    assert dead["value"][0] == 6
    ylls = sim.get_results()["ylls"]
    assert len(ylls) == 1
-   assert ylls["value"][0] == 102.50076885303923
+   assert ylls["value"][0] == 333.9956932528944
 
 .. note::
 

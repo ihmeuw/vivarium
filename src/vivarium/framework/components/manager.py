@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ============================
 The Component Manager System
@@ -16,6 +15,7 @@ and managers and components are given to it by the context. It is called on to
 setup everything it holds when the context itself is setup.
 
 """
+from __future__ import annotations
 
 import inspect
 from collections.abc import Iterator, Sequence
@@ -55,7 +55,7 @@ class OrderedComponentSet:
         if args:
             self.update(args)
 
-    def add(self, component: Component) -> None:
+    def add(self, component: Component | Manager) -> None:
         if component in self:
             raise ComponentConfigError(
                 f"Attempting to add a component with duplicate name: {component}"
@@ -64,7 +64,7 @@ class OrderedComponentSet:
 
     def update(
         self,
-        components: list[Component | Manager] | tuple[Component | Manager],
+        components: Sequence[Component | Manager],
     ) -> None:
         for c in components:
             self.add(c)
@@ -90,7 +90,9 @@ class OrderedComponentSet:
     def __add__(self, other: "OrderedComponentSet") -> "OrderedComponentSet":
         return OrderedComponentSet(*(self.components + other.components))
 
-    def __eq__(self, other: "OrderedComponentSet") -> bool:
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, OrderedComponentSet):
+            return False
         try:
             return type(self) is type(other) and [c.name for c in self.components] == [
                 c.name for c in other.components
@@ -101,7 +103,7 @@ class OrderedComponentSet:
     def __getitem__(self, index: int) -> Any:
         return self.components[index]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"OrderedComponentSet({[c.name for c in self.components]})"
 
 
@@ -121,32 +123,37 @@ class ComponentManager(Manager):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._managers = OrderedComponentSet()
         self._components = OrderedComponentSet()
-        self.configuration = None
-        self.lifecycle = None
+        self._configuration: LayeredConfigTree | None = None
 
     @property
-    def name(self):
+    def configuration(self) -> LayeredConfigTree:
+        """The configuration tree for the simulation."""
+        if self._configuration is None:
+            raise VivariumError("ComponentManager has no configuration tree.")
+        return self._configuration
+
+    @property
+    def name(self) -> str:
         """The name of this component."""
         return "component_manager"
 
-    def setup(
+    def setup_manager(
         self, configuration: LayeredConfigTree, lifecycle_manager: LifeCycleManager
     ) -> None:
         """Called by the simulation context."""
-        self.configuration = configuration
-        self.lifecycle = lifecycle_manager
+        self._configuration = configuration
 
-        self.lifecycle.add_constraint(
+        lifecycle_manager.add_constraint(
             self.get_components_by_type,
             restrict_during=["initialization", "population_creation"],
         )
-        self.lifecycle.add_constraint(
+        lifecycle_manager.add_constraint(
             self.get_component, restrict_during=["population_creation"]
         )
-        self.lifecycle.add_constraint(
+        lifecycle_manager.add_constraint(
             self.list_components, restrict_during=["initialization"]
         )
 
@@ -179,8 +186,8 @@ class ComponentManager(Manager):
             self._components.add(c)
 
     def get_components_by_type(
-        self, component_type: type | Sequence[type]
-    ) -> list[Component]:
+        self, component_type: type[Component | Manager] | Sequence[type[Component | Manager]]
+    ) -> list[Component | Manager]:
         """Get all components that are an instance of ``component_type``.
 
         Parameters
@@ -193,9 +200,12 @@ class ComponentManager(Manager):
             A list of components of type ``component_type``.
         """
         # Convert component_type to a tuple for isinstance
-        return [c for c in self._components if isinstance(c, tuple(component_type))]
+        component_type = (
+            component_type if isinstance(component_type, type) else tuple(component_type)
+        )
+        return [c for c in self._components if isinstance(c, component_type)]
 
-    def get_component(self, name: str) -> Component:
+    def get_component(self, name: str) -> Component | Manager:
         """Get the component with name ``name``.
 
         Names are guaranteed to be unique.
@@ -219,7 +229,7 @@ class ComponentManager(Manager):
                 return c
         raise ValueError(f"No component found with name {name}")
 
-    def list_components(self) -> dict[str, Component]:
+    def list_components(self) -> dict[str, Component | Manager]:
         """Get a mapping of component names to components held by the manager.
 
         Returns
@@ -229,7 +239,7 @@ class ComponentManager(Manager):
         """
         return {c.name: c for c in self._components}
 
-    def setup_components(self, builder: "Builder") -> None:
+    def setup_components(self, builder: Builder) -> None:
         """Separately configure and set up the managers and components held by
         the component manager, in that order.
 
@@ -254,12 +264,16 @@ class ComponentManager(Manager):
             )
         except DuplicatedConfigurationError as e:
             new_name, new_file = component.name, self._get_file(component)
-            old_name, old_file = e.source, self._get_file(self.get_component(e.source))
+            if e.source:
+                old_name, old_file = e.source, self._get_file(self.get_component(e.source))
+                component_string = f"{old_name} in file {old_file}"
+            else:
+                component_string = "another component"
 
             raise ComponentConfigError(
                 f"Component {new_name} in file {new_file} is attempting to "
                 f"set the configuration value {e.value_name}, but it has already "
-                f"been set by {old_name} in file {old_file}."
+                f"been set by {component_string}."
             )
         except ConfigurationError as e:
             new_name, new_file = component.name, self._get_file(component)
@@ -282,7 +296,7 @@ class ComponentManager(Manager):
 
     @staticmethod
     def _flatten(components: list[Component | Manager]) -> list[Component | Manager]:
-        out = []
+        out: list[Component | Manager] = []
         components = components[::-1]
         while components:
             current = components.pop()
@@ -301,14 +315,14 @@ class ComponentManager(Manager):
         return out
 
     @staticmethod
-    def _setup_components(builder: "Builder", components: OrderedComponentSet):
+    def _setup_components(builder: Builder, components: OrderedComponentSet) -> None:
         for component in components:
             if isinstance(component, Component):
                 component.setup_component(builder)
             elif isinstance(component, Manager):
                 component.setup(builder)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "ComponentManager()"
 
 
@@ -323,7 +337,7 @@ class ComponentInterface(Interface):
     def __init__(self, manager: ComponentManager):
         self._manager = manager
 
-    def get_component(self, name: str) -> Component:
+    def get_component(self, name: str) -> Component | Manager:
         """Get the component that has ``name`` if presently held by the component
         manager. Names are guaranteed to be unique.
 
@@ -339,8 +353,8 @@ class ComponentInterface(Interface):
         return self._manager.get_component(name)
 
     def get_components_by_type(
-        self, component_type: type | Sequence[type]
-    ) -> list[Component]:
+        self, component_type: type[Component | Manager] | Sequence[type[Component | Manager]]
+    ) -> list[Component | Manager]:
         """Get all components that are an instance of ``component_type``.
 
         Parameters
@@ -355,7 +369,7 @@ class ComponentInterface(Interface):
         """
         return self._manager.get_components_by_type(component_type)
 
-    def list_components(self) -> dict[str, Component]:
+    def list_components(self) -> dict[str, Component | Manager]:
         """Get a mapping of component names to components held by the manager.
 
         Returns
