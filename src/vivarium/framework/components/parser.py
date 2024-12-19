@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ==================================
 The Component Configuration Parser
@@ -22,12 +21,16 @@ There are three steps to this process.
 
 """
 
+from typing import Union
+
 from layered_config_tree.main import LayeredConfigTree
 
 from vivarium.framework.utilities import import_by_path
 
 from ... import Component
 from .manager import ComponentConfigError
+
+_NestedDict = dict[str, Union[str, list[str], "_NestedDict"]]
 
 
 class ParsingError(ComponentConfigError):
@@ -117,7 +120,7 @@ class ComponentConfigurationParser:
         return self.process_level(component_config.to_dict(), [])
 
     def process_level(
-        self, level: str | list[str] | dict[str, dict | list], prefix: list[str]
+        self, level: str | list[str] | _NestedDict, prefix: list[str]
     ) -> list[Component]:
         """Helper function for parsing hierarchical component configuration into a
         flat list of Components.
@@ -173,8 +176,8 @@ class ComponentConfigurationParser:
                 component_list.extend(components)
         elif isinstance(level, list):
             for child in level:
-                component = self.process_level(child, prefix)
-                component_list.extend(component)
+                component_from_list = self.process_level(child, prefix)
+                component_list.extend(component_from_list)
         elif isinstance(level, str):
             component = self.create_component_from_string(".".join(prefix + [level]))
             component_list.append(component)
@@ -206,7 +209,7 @@ class ComponentConfigurationParser:
         component = self.import_and_instantiate_component(component_path, args)
         return component
 
-    def prep_component(self, component_string: str) -> tuple[str, tuple]:
+    def prep_component(self, component_string: str) -> tuple[str, list[str]]:
         """Transform component description string into a tuple of component paths
         and required arguments.
 
@@ -224,7 +227,7 @@ class ComponentConfigurationParser:
         return path, cleaned_args
 
     @staticmethod
-    def _clean_args(args: list, path: str) -> tuple:
+    def _clean_args(args: list[str], path: str) -> list[str]:
         """Transform component arguments into a tuple, validating that each argument
         is a string.
 
@@ -252,10 +255,10 @@ class ComponentConfigurationParser:
                 raise ParsingError(f"Invalid component argument {a} for component {path}")
 
             out.append(a[1:-1])
-        return tuple(out)
+        return out
 
     @staticmethod
-    def import_and_instantiate_component(component_path: str, args: tuple[str]) -> Component:
+    def import_and_instantiate_component(component_path: str, args: list[str]) -> Component:
         """Transform a tuple representing a Component into an actual instantiated
         component object.
 
@@ -271,4 +274,9 @@ class ComponentConfigurationParser:
         -------
             An instantiated component object.
         """
-        return import_by_path(component_path)(*args)
+        component = import_by_path(component_path)(*args)
+        if not isinstance(component, Component):
+            raise ImportError(
+                f"Attempted to import f{component_path}, which is not a component."
+            )
+        return component
