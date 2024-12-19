@@ -20,9 +20,9 @@ shared_path="/svc-simsci"
 
 
 pipeline {
-  // This agent runs as svc-simsci on node simsci-slurm-sbuild-p01.
+  // This agent runs as svc-simsci on node simsci-jenkinsagent-ci-p02.
   // It has access to standard IHME filesystems and singularity
-  agent { label "jenkins-agent" }
+  agent { label "coordinator" }
   triggers {
     cron(CRON_SETTINGS)
   }
@@ -78,7 +78,8 @@ pipeline {
         // customWorkspace setting must be ran within a node
         agent {
           node {
-              label "svc-simsci"
+            // Run child tasks on simsci-jenkinsagent-ci-p01 or simsci-jenkinsagent-ci-p02.
+              label "jenkins-agent"
           }
         }
         axes {
