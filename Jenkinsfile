@@ -79,7 +79,7 @@ pipeline {
         agent {
           node {
             // Run child tasks on simsci-jenkinsagent-ci-p01 or simsci-jenkinsagent-ci-p02.
-              label "svc-simsci"
+              label "matrix-tasks"
           }
         }
         axes {
