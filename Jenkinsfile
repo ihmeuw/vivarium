@@ -22,7 +22,7 @@ shared_path="/svc-simsci"
 pipeline {
   // This agent runs as svc-simsci on node simsci-jenkinsagent-ci-p02.
   // It has access to standard IHME filesystems and singularity
-  agent { label "matrix-tasks" }
+  agent { label "coordinator" }
   triggers {
     cron(CRON_SETTINGS)
   }
