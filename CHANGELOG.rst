@@ -1,3 +1,7 @@
+**TBD - TBD/TBD/TBD**
+
+  - Type-hinting: Fix mypy errors in vivarium/framework/engine.py
+
 **3.2.10 - 12/17/24**
 
   - Type-hinting: Fix mypy errors in vivarium/framework/components/manager.py

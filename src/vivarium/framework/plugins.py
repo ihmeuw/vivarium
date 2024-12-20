@@ -127,9 +127,9 @@ INTERFACE_TO_STRING_MAPPER: dict[type[Interface], str] = {
 
 
 @dataclass
-class PluginGroup(Generic[M, I]):
-    controller: M
-    builder_interface: I
+class PluginGroup:
+    controller: Manager | ComponentConfigurationParser
+    builder_interface: Interface
 
 
 class PluginConfigurationError(VivariumError):
@@ -153,38 +153,60 @@ class PluginManager(Manager):
             DEFAULT_PLUGINS["plugins"], layers=["base", "override"]
         )
         self._plugin_configuration.update(plugin_configuration, source="initialization_args")
-        self._plugins: dict[str, PluginGroup[M, I]] = {}  # type: ignore [valid-type]
+        self._plugins: dict[str, PluginGroup] = {}
 
     def get_plugin(self, manager_type: type[M]) -> M:
         name = self.get_manager_name(manager_type)
+        manager = self.get_plugin_from_name(name)
+        if not isinstance(manager, manager_type):
+            raise PluginConfigurationError(
+                f"Plugin {name} does not implement the correct interface."
+            )
+        return manager
+
+    def get_plugin_from_name(self, name: str) -> Manager:
         if name not in self._plugins:
             self._plugins[name] = self._get(name)
-        return self._plugins[name].controller
+        manager = self._plugins[name].controller
+        if not isinstance(manager, Manager):
+            raise PluginConfigurationError(
+                f"Plugin {name} does not implement the correct interface."
+            )
+        return manager
+
+    def get_interface_from_name(self, name: str) -> Interface:
+        if name not in self._plugins:
+            self._plugins[name] = self._get(name)
+        interface = self._plugins[name].builder_interface
+        return interface
 
     def get_plugin_interface(self, interface_type: type[I]) -> I:
         name = self.get_interface_name(interface_type)
-        if name not in self._plugins:
-            self._plugins[name] = self._get(name)
-        return self._plugins[name].builder_interface
+        interface = self.get_interface_from_name(name)
+        if not isinstance(interface, interface_type):
+            raise PluginConfigurationError(
+                f"Plugin {name} does not implement the correct interface."
+            )
+        return interface
 
     def get_optional_controllers(self) -> dict[str, Manager]:
         return {
-            name: self.get_plugin(self.get_manager_type_from_name(name))
+            name: self.get_plugin_from_name(name)
             for name in self._plugin_configuration["optional"].keys()
         }
 
     def get_optional_interfaces(self) -> dict[str, Interface]:
         return {
-            name: self.get_plugin_interface(self.get_interface_type_from_name(name))
+            name: self.get_interface_from_name(name)
             for name in self._plugin_configuration["optional"].keys()
         }
 
-    def _get(self, name: str) -> PluginGroup[M, I]:
+    def _get(self, name: str) -> PluginGroup:
         if name not in self._plugins:
             self._plugins[name] = self._build_plugin(name)
         return self._plugins[name]
 
-    def _build_plugin(self, name: str) -> PluginGroup[M, I]:
+    def _build_plugin(self, name: str) -> PluginGroup:
         plugin = self._lookup(name)
 
         try:
@@ -223,7 +245,12 @@ class PluginManager(Manager):
     def get_component_config_parser(self) -> ComponentConfigurationParser:
         name = "component_configuration_parser"
         self._plugins[name] = self._get(name)
-        return self._plugins[name].controller
+        component_config_parser = self._plugins[name].controller
+        if not isinstance(component_config_parser, ComponentConfigurationParser):
+            raise PluginConfigurationError(
+                f"Plugin {name} does not implement the correct interface."
+            )
+        return component_config_parser
 
     def get_manager_name(self, manager_type: type[Manager]) -> str:
         return MANAGER_TO_STRING_MAPPER[manager_type]

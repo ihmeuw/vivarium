@@ -1,6 +1,6 @@
 import pytest
 
-from tests.helpers import MockComponentA
+from tests.helpers import MockComponentA, MockManager
 from vivarium.framework.components import ComponentConfigurationParser
 from vivarium.framework.plugins import (
     DEFAULT_PLUGINS,
@@ -8,6 +8,7 @@ from vivarium.framework.plugins import (
     PluginManager,
 )
 from vivarium.framework.time import DateTimeClock, SimulationClock, TimeInterface
+from vivarium.manager import Manager
 
 plugin_config = {"george": {"controller": "big_brother", "builder_interface": "minipax"}}
 
@@ -96,16 +97,16 @@ def test_PluginManager_get_plugin_interface(test_plugin_manager):
 
 def test_PluginManager_get_optional_controllers(test_plugin_manager, mocker):
     import_by_path_mock = mocker.patch("vivarium.framework.plugins.import_by_path")
-    component = MockComponentA("george")
+    manager = MockManager("george")
 
     def import_by_path_side_effect(arg):
         if arg == "big_brother":
-            return lambda: component
+            return lambda: manager
         else:
-            return lambda _: component
+            return lambda _: manager
 
     import_by_path_mock.side_effect = import_by_path_side_effect
-    assert test_plugin_manager.get_optional_controllers() == {"george": component}
+    assert test_plugin_manager.get_optional_controllers() == {"george": manager}
     assert import_by_path_mock.mock_calls == [
         mocker.call(plugin_config["george"]["controller"]),
         mocker.call(plugin_config["george"]["builder_interface"]),
