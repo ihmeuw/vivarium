@@ -35,12 +35,6 @@ from vivarium.manager import Interface, Manager
 I = TypeVar("I", bound=Interface)
 M = TypeVar("M", bound=Manager)
 
-# class GeneriricPluginManager(Generic[M | I]):
-#     def __init__(self, types: dict[M | I, str]) -> None:
-#         self._types = types
-
-#     def __getitem__(self, key: M | I) -> str:
-#         return self._types[key]
 
 _MANAGERS = {
     "logging": {
