@@ -44,6 +44,8 @@ py:class ResultsFormatter
 py:class ResultsUpdater
 py:exc ResultsConfigurationError
 py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
+py:class vivarium.framework.plugins.M
+py:class vivarium.framework.plugins.I
 
 # layered_config_tree
 py:class layered_config_tree.main.LayeredConfigTree
