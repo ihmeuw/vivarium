@@ -165,12 +165,8 @@ class SimulationContext:
         self._randomness = self._plugin_manager.get_plugin(RandomnessManager)
         self._data = self._plugin_manager.get_plugin(ArtifactManager)
 
-        # for name, controller in self._plugin_manager.get_optional_controllers().items():
-        #     setattr(self, f"_{name}", controller)
-
         optional_managers = self._plugin_manager.get_optional_controllers()
         for name in optional_managers:
-            # controller: Manager = optional_managers[name]
             setattr(self, f"_{name}", optional_managers[name])
 
         # The order the managers are added is important.  It represents the
@@ -224,12 +220,12 @@ class SimulationContext:
     @property
     def current_time(self) -> ClockTime:
         """Returns the current simulation time."""
-        current_time: ClockTime = self._clock.time
+        current_time = self._clock.time
         return current_time
 
     def get_results(self) -> dict[str, pd.DataFrame]:
         """Return the formatted results."""
-        results: dict[str, pd.DataFrame] = self._results.get_results()
+        results = self._results.get_results()
         return results
 
     def run_simulation(self) -> None:
