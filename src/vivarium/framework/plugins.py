@@ -162,26 +162,26 @@ class PluginManager(Manager):
         self._plugins: dict[str, PluginGroup[M, I]] = {}  # type: ignore [valid-type]
 
     def get_plugin(self, manager_type: type[M]) -> M:
-        name = get_manager_name(manager_type)
+        name = self.get_manager_name(manager_type)
         if name not in self._plugins:
             self._plugins[name] = self._get(name)
         return self._plugins[name].controller
 
     def get_plugin_interface(self, interface_type: type[I]) -> I:
-        name = get_interface_name(interface_type)
+        name = self.get_interface_name(interface_type)
         if name not in self._plugins:
             self._plugins[name] = self._get(name)
         return self._plugins[name].builder_interface
 
     def get_optional_controllers(self) -> dict[str, Manager]:
         return {
-            name: self.get_plugin(get_manager_type_from_name(name))
+            name: self.get_plugin(self.get_manager_type_from_name(name))
             for name in self._plugin_configuration["optional"].keys()
         }
 
     def get_optional_interfaces(self) -> dict[str, Interface]:
         return {
-            name: self.get_plugin_interface(get_interface_type_from_name(name))
+            name: self.get_plugin_interface(self.get_interface_type_from_name(name))
             for name in self._plugin_configuration["optional"].keys()
         }
 
@@ -231,20 +231,16 @@ class PluginManager(Manager):
         self._plugins[name] = self._get(name)
         return self._plugins[name].controller
 
+    def get_manager_name(self, manager_type: type[Manager]) -> str:
+        return MANAGER_TO_STRING_MAPPER[manager_type]
 
-def get_manager_name(manager_type: type[Manager]) -> str:
-    return MANAGER_TO_STRING_MAPPER[manager_type]
+    def get_interface_name(self, interface_type: type[Interface]) -> str:
+        return INTERFACE_TO_STRING_MAPPER[interface_type]
 
+    def get_manager_type_from_name(self, name: str) -> type[Manager]:
+        reverse_mapper = {v: k for k, v in MANAGER_TO_STRING_MAPPER.items()}
+        return reverse_mapper[name]
 
-def get_interface_name(interface_type: type[Interface]) -> str:
-    return INTERFACE_TO_STRING_MAPPER[interface_type]
-
-
-def get_manager_type_from_name(name: str) -> type[Manager]:
-    reverse_mapper = {v: k for k, v in MANAGER_TO_STRING_MAPPER.items()}
-    return reverse_mapper[name]
-
-
-def get_interface_type_from_name(name: str) -> type[Interface]:
-    reverse_mapper = {v: k for k, v in INTERFACE_TO_STRING_MAPPER.items()}
-    return reverse_mapper[name]
+    def get_interface_type_from_name(self, name: str) -> type[Interface]:
+        reverse_mapper = {v: k for k, v in INTERFACE_TO_STRING_MAPPER.items()}
+        return reverse_mapper[name]
