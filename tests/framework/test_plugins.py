@@ -7,7 +7,7 @@ from vivarium.framework.plugins import (
     PluginConfigurationError,
     PluginManager,
 )
-from vivarium.framework.time import DateTimeClock, TimeInterface
+from vivarium.framework.time import DateTimeClock, SimulationClock, TimeInterface
 
 plugin_config = {"george": {"controller": "big_brother", "builder_interface": "minipax"}}
 
@@ -82,14 +82,14 @@ def test_PluginManager__get(test_plugin_manager):
 
 def test_PluginManager_get_plugin(test_plugin_manager):
     assert test_plugin_manager._plugins == {}
-    clock = test_plugin_manager.get_plugin("clock")
+    clock = test_plugin_manager.get_plugin(SimulationClock)
     assert isinstance(clock, DateTimeClock)
     assert test_plugin_manager._plugins["clock"].controller is clock
 
 
 def test_PluginManager_get_plugin_interface(test_plugin_manager):
     assert test_plugin_manager._plugins == {}
-    clock_interface = test_plugin_manager.get_plugin_interface("clock")
+    clock_interface = test_plugin_manager.get_plugin_interface(TimeInterface)
     assert isinstance(clock_interface, TimeInterface)
     assert test_plugin_manager._plugins["clock"].builder_interface is clock_interface
 
