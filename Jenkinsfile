@@ -78,7 +78,7 @@ pipeline {
         // customWorkspace setting must be ran within a node
         agent {
           node {
-            // Run child tasks on simsci-jenkinsagent-ci-p01 or simsci-jenkinsagent-ci-p02.
+            // Run child tasks on simsci-jenkinsagent-ci-p01.
               label "matrix-tasks"
           }
         }
