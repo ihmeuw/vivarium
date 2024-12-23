@@ -126,7 +126,7 @@ def test_parse_and_prep_components(parser):
     prepped_components = [
         parser.prep_component(component) for component in TEST_COMPONENTS_PARSED
     ]
-    #prepped_components = [(x, tuple(y)) for (x, y) in prepped_components]
+    # prepped_components = [(x, tuple(y)) for (x, y) in prepped_components]
     assert set(TEST_COMPONENTS_PREPPED) == set(prepped_components)
 
 

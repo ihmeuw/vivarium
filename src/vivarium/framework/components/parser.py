@@ -258,7 +258,9 @@ class ComponentConfigurationParser:
         return tuple(out)
 
     @staticmethod
-    def import_and_instantiate_component(component_path: str, args: tuple[str, ...]) -> Component:
+    def import_and_instantiate_component(
+        component_path: str, args: tuple[str, ...]
+    ) -> Component:
         """Transform a tuple representing a Component into an actual instantiated
         component object.
 
