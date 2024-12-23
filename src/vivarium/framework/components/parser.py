@@ -227,7 +227,7 @@ class ComponentConfigurationParser:
         return path, cleaned_args
 
     @staticmethod
-    def _clean_args(args: tuple[str], path: str) -> tuple[str, ...]:
+    def _clean_args(args: list[str], path: str) -> tuple[str, ...]:
         """Transform component arguments into a tuple, validating that each argument
         is a string.
 
