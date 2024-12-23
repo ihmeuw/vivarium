@@ -126,7 +126,7 @@ def test_parse_and_prep_components(parser):
     prepped_components = [
         parser.prep_component(component) for component in TEST_COMPONENTS_PARSED
     ]
-    prepped_components = [(x, tuple(y)) for (x, y) in prepped_components]
+    #prepped_components = [(x, tuple(y)) for (x, y) in prepped_components]
     assert set(TEST_COMPONENTS_PREPPED) == set(prepped_components)
 
 
@@ -157,7 +157,7 @@ def test_get_components(parser, components):
 
     parser.get_components(config.components)
 
-    calls = [call(path, list(args)) for path, args in TEST_COMPONENTS_PREPPED]
+    calls = [call(path, args) for path, args in TEST_COMPONENTS_PREPPED]
     parser.import_and_instantiate_component.assert_has_calls(calls)
 
 

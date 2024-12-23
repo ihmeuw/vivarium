@@ -209,7 +209,7 @@ class ComponentConfigurationParser:
         component = self.import_and_instantiate_component(component_path, args)
         return component
 
-    def prep_component(self, component_string: str) -> tuple[str, list[str]]:
+    def prep_component(self, component_string: str) -> tuple[str, tuple[str, ...]]:
         """Transform component description string into a tuple of component paths
         and required arguments.
 
@@ -227,14 +227,14 @@ class ComponentConfigurationParser:
         return path, cleaned_args
 
     @staticmethod
-    def _clean_args(args: list[str], path: str) -> list[str]:
+    def _clean_args(args: tuple[str], path: str) -> tuple[str, ...]:
         """Transform component arguments into a tuple, validating that each argument
         is a string.
 
         Parameters
         ----------
         args
-            List of arguments to the component specified at ``path``.
+            Tuple of arguments to the component specified at ``path``.
         path
             Path representing the component for which arguments are being cleaned.
 
@@ -255,10 +255,10 @@ class ComponentConfigurationParser:
                 raise ParsingError(f"Invalid component argument {a} for component {path}")
 
             out.append(a[1:-1])
-        return out
+        return tuple(out)
 
     @staticmethod
-    def import_and_instantiate_component(component_path: str, args: list[str]) -> Component:
+    def import_and_instantiate_component(component_path: str, args: tuple[str, ...]) -> Component:
         """Transform a tuple representing a Component into an actual instantiated
         component object.
 
