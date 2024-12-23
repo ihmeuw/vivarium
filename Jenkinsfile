@@ -123,7 +123,7 @@ pipeline {
                 ACTIVATE:       '${ACTIVATE}'
                 BUILD_NUMBER:   '${BUILD_NUMBER}'
                 BRANCH:         '${BRANCH}'
-                :        '${CONDARC}'
+                CONDARC:        '${CONDARC}'
                 CONDA_BIN_PATH: '${CONDA_BIN_PATH}'
                 CONDA_ENV_NAME: '${CONDA_ENV_NAME}'
                 CONDA_ENV_PATH: '${CONDA_ENV_PATH}'
