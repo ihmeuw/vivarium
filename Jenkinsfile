@@ -62,11 +62,7 @@ pipeline {
     )
   }
   triggers {
-    cron {
-      parameterizedCron("""
-        ${params.SCHEDULED_BRANCHES.split(',').collect{it.trim()}.contains(BRANCH_NAME) ? 'H H(20-23) * * *' : ''}
-      """)
-    }
+    cron("${params.SCHEDULED_BRANCHES.split(',').collect{it.trim()}.contains(BRANCH_NAME) ? 'H H(20-23) * * *' : ''}")
   }
   stages {
     stage("Initialization") {
