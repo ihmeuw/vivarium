@@ -10,7 +10,7 @@ The Plugin Management System
 """
 
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import TypeVar
 
 from layered_config_tree.main import LayeredConfigTree
 

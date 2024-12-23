@@ -32,30 +32,24 @@ from layered_config_tree.main import LayeredConfigTree
 
 from vivarium import Component
 from vivarium.exceptions import VivariumError
-from vivarium.framework.artifact import ArtifactInterface
-from vivarium.framework.artifact.manager import ArtifactManager
-from vivarium.framework.components import ComponentConfigError, ComponentInterface
-from vivarium.framework.components.manager import ComponentManager
-from vivarium.framework.components.parser import ComponentConfigurationParser
+from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
+from vivarium.framework.components import (
+    ComponentConfigError,
+    ComponentInterface,
+    ComponentManager,
+)
 from vivarium.framework.configuration import build_model_specification
 from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
-from vivarium.framework.logging import LoggingInterface
-from vivarium.framework.logging.manager import LoggingManager
-from vivarium.framework.lookup import LookupTableInterface
-from vivarium.framework.lookup.manager import LookupTableManager
+from vivarium.framework.logging import LoggingInterface, LoggingManager
+from vivarium.framework.lookup import LookupTableInterface, LookupTableManager
 from vivarium.framework.plugins import PluginManager
-from vivarium.framework.population import PopulationInterface
-from vivarium.framework.population.manager import PopulationManager
-from vivarium.framework.randomness import RandomnessInterface
-from vivarium.framework.randomness.manager import RandomnessManager
-from vivarium.framework.resource import ResourceInterface
-from vivarium.framework.resource.manager import ResourceManager
-from vivarium.framework.results import ResultsInterface
-from vivarium.framework.results.manager import ResultsManager
+from vivarium.framework.population import PopulationInterface, PopulationManager
+from vivarium.framework.randomness import RandomnessInterface, RandomnessManager
+from vivarium.framework.resource import ResourceInterface, ResourceManager
+from vivarium.framework.results import ResultsInterface, ResultsManager
 from vivarium.framework.time import SimulationClock, TimeInterface
-from vivarium.framework.values import ValuesInterface
-from vivarium.framework.values.manager import ValuesManager
+from vivarium.framework.values import ValuesInterface, ValuesManager
 from vivarium.types import ClockTime
 
 
@@ -220,13 +214,11 @@ class SimulationContext:
     @property
     def current_time(self) -> ClockTime:
         """Returns the current simulation time."""
-        current_time = self._clock.time
-        return current_time
+        return self._clock.time
 
     def get_results(self) -> dict[str, pd.DataFrame]:
         """Return the formatted results."""
-        results = self._results.get_results()
-        return results
+        return self._results.get_results()
 
     def run_simulation(self) -> None:
         """A wrapper method to run all steps of a simulation"""
@@ -354,13 +346,13 @@ class SimulationContext:
         self._component_manager.add_components(component_list)
 
     def get_population(self, untracked: bool = True) -> pd.DataFrame:
-        return pd.DataFrame(self._population.get_population(untracked))
+        return self._population.get_population(untracked)
 
     def __repr__(self) -> str:
         return f"SimulationContext({self.name})"
 
     def get_number_of_steps_remaining(self) -> int:
-        return int(self._clock.time_steps_remaining)
+        return self._clock.time_steps_remaining
 
 
 class Builder:
@@ -382,61 +374,49 @@ class Builder:
         self.configuration = configuration
         """Provides access to the :ref:`configuration<configuration_concept>`"""
 
-        self.logging: LoggingInterface = plugin_manager.get_plugin_interface(LoggingInterface)
+        self.logging = plugin_manager.get_plugin_interface(LoggingInterface)
         """Provides access to the :ref:`logging<logging_concept>` system."""
 
-        self.lookup: LookupTableInterface = plugin_manager.get_plugin_interface(
-            LookupTableInterface
-        )
+        self.lookup = plugin_manager.get_plugin_interface(LookupTableInterface)
         """Provides access to simulant-specific data via the
         :ref:`lookup table<lookup_concept>` abstraction."""
 
-        self.value: ValuesInterface = plugin_manager.get_plugin_interface(ValuesInterface)
+        self.value = plugin_manager.get_plugin_interface(ValuesInterface)
         """Provides access to computed simulant attribute values via the
         :ref:`value pipeline<values_concept>` system."""
 
-        self.event: EventInterface = plugin_manager.get_plugin_interface(EventInterface)
+        self.event = plugin_manager.get_plugin_interface(EventInterface)
         """Provides access to event listeners utilized in the
         :ref:`event<event_concept>` system."""
 
-        self.population: PopulationInterface = plugin_manager.get_plugin_interface(
-            PopulationInterface
-        )
+        self.population = plugin_manager.get_plugin_interface(PopulationInterface)
         """Provides access to simulant state table via the
         :ref:`population<population_concept>` system."""
 
-        self.resources: ResourceInterface = plugin_manager.get_plugin_interface(
-            ResourceInterface
-        )
+        self.resources = plugin_manager.get_plugin_interface(ResourceInterface)
         """Provides access to the :ref:`resource<resource_concept>` system,
          which manages dependencies between components.
          """
 
-        self.results: ResultsInterface = plugin_manager.get_plugin_interface(ResultsInterface)
+        self.results = plugin_manager.get_plugin_interface(ResultsInterface)
         """Provides access to the :ref:`results<results_concept>` system."""
 
-        self.randomness: RandomnessInterface = plugin_manager.get_plugin_interface(
-            RandomnessInterface
-        )
+        self.randomness = plugin_manager.get_plugin_interface(RandomnessInterface)
         """Provides access to the :ref:`randomness<crn_concept>` system."""
 
         self.time: TimeInterface = plugin_manager.get_plugin_interface(TimeInterface)
         """Provides access to the simulation's :ref:`clock<time_concept>`."""
 
-        self.components: ComponentInterface = plugin_manager.get_plugin_interface(
-            ComponentInterface
-        )
+        self.components = plugin_manager.get_plugin_interface(ComponentInterface)
         """Provides access to the :ref:`component management<components_concept>`
         system, which maintains a reference to all managers and components in
         the simulation."""
 
-        self.lifecycle: LifeCycleInterface = plugin_manager.get_plugin_interface(
-            LifeCycleInterface
-        )
+        self.lifecycle = plugin_manager.get_plugin_interface(LifeCycleInterface)
         """Provides access to the :ref:`life-cycle<lifecycle_concept>` system,
         which manages the simulation's execution life-cycle."""
 
-        self.data: ArtifactInterface = plugin_manager.get_plugin_interface(ArtifactInterface)
+        self.data = plugin_manager.get_plugin_interface(ArtifactInterface)
         """Provides access to the simulation's input data housed in the
         :ref:`data artifact<data_concept>`."""
 

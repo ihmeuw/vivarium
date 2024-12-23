@@ -12,6 +12,7 @@ by concrete observers. Each concrete observer is required to implement a
 `register_observations` method that registers all required observations.
 
 """
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
@@ -51,17 +52,17 @@ class Observer(Component, ABC):
         return self.name.split("_observer")[0]
 
     @abstractmethod
-    def register_observations(self, builder: "Builder") -> None:
+    def register_observations(self, builder: Builder) -> None:
         """(Required). Register observations with within each observer."""
         pass
 
-    def setup_component(self, builder: "Builder") -> None:
+    def setup_component(self, builder: Builder) -> None:
         """Set up the observer component."""
         super().setup_component(builder)
         self.register_observations(builder)
         self.set_results_dir(builder)
 
-    def set_results_dir(self, builder: "Builder") -> None:
+    def set_results_dir(self, builder: Builder) -> None:
         """Define the results directory from the configuration."""
         self.results_dir = (
             builder.configuration.to_dict()
