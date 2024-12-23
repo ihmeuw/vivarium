@@ -10,6 +10,10 @@ def githubUsernameToSlackName(github_author) {
   return mapping.get(github_author, "channel")
 }
 
+def CRON_SETTINGS = params.SCHEDULED_BRANCHES.split(',')
+  .collect { it.trim() }
+  .contains(BRANCH_NAME) ? '''H H(20-23) * * *''' : ''
+
 pipeline_name="vivarium"
 conda_env_name="${pipeline_name}-${BRANCH_NAME}-${BUILD_NUMBER}"
 conda_env_path="/tmp/${conda_env_name}"
@@ -60,12 +64,7 @@ pipeline {
         defaultValue: 'main',
         description: 'Comma-separated list of branches that should run on schedule (e.g., "main,develop,release")'
     )
-  }
-  
-  def CRON_SETTINGS = params.SCHEDULED_BRANCHES.split(',')
-    .collect { it.trim() }
-    .contains(BRANCH_NAME) ? '''H H(20-23) * * *''' : ''
-  
+  }  
   triggers {
     cron(CRON_SETTINGS)
   }
