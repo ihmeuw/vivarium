@@ -17,7 +17,7 @@ conda_env_path="/tmp/${conda_env_name}"
 shared_path="/svc-simsci"
 // comma separated string list of branches to run periodic builds on
 scheduled_branches = "main"
-cron_settings = scheduled_branches.split(',').collect{it.trim()}.contains(BRANCH_NAME) ? 'H H(20-23) * * *' : ''
+CRON_SETTINGS = scheduled_branches.split(',').collect{it.trim()}.contains(BRANCH_NAME) ? 'H H(20-23) * * *' : ''
 
 
 pipeline {
@@ -59,7 +59,7 @@ pipeline {
     )
   }
   triggers {
-    cron(cron_settings)
+    cron(CRON_SETTINGS)
   }
   stages {
     stage("Initialization") {
