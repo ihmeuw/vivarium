@@ -60,7 +60,10 @@ pipeline {
         defaultValue: "main",
         description: "Comma-separated list of branches that should run on schedule (e.g., 'main,develop,release')"
     )
-  }  
+  }
+  environment{
+    CRON_SETTINGS = "${params.SCHEDULED_BRANCHES.split(',').collect{it.trim()}.contains(BRANCH_NAME) ? 'H H(20-23) * * *' : ''}"
+  }
   triggers {
     cron(env.CRON_SETTINGS)
   }
@@ -111,7 +114,6 @@ pipeline {
             // Jenkins commands run in separate processes, so need to activate the environment every
             // time we run pip, poetry, etc.
             ACTIVATE = "source ${CONDA_BIN_PATH}/activate ${CONDA_ENV_PATH} &> /dev/null"
-            CRON_SETTINGS = "${params.SCHEDULED_BRANCHES.split(',').collect{it.trim()}.contains(BRANCH_NAME) ? 'H H(20-23) * * *' : ''}"
         }
 
         stages {
