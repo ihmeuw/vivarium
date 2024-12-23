@@ -15,12 +15,13 @@ conda_env_path="/tmp/${conda_env_name}"
 // defaults for conda and pip are a local directory /svc-simsci for improved speed.
 // In the past, we used /ihme/code/* on the NFS (which is slower)
 shared_path="/svc-simsci"
+// comma separated string list of branches to run periodic builds on
 scheduled_branches = "main"
 cron_settings = scheduled_branches.split(',').collect{it.trim()}.contains(BRANCH_NAME) ? 'H H(20-23) * * *' : ''
 
 
 pipeline {
-  // This agent runs as svc-simsci on node simsci-jenkinsagent-ci-p02.
+  // This agent runs as svc-simsci on node simsci-ci-coordinator-01.
   // It has access to standard IHME filesystems and singularity
   agent { label "coordinator" }
   options {
