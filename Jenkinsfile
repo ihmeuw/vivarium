@@ -10,10 +10,6 @@ def githubUsernameToSlackName(github_author) {
   return mapping.get(github_author, "channel")
 }
 
-def CRON_SETTINGS = params.SCHEDULED_BRANCHES.split(',')
-  .collect { it.trim() }
-  .contains(BRANCH_NAME) ? '''H H(20-23) * * *''' : ''
-
 pipeline_name="vivarium"
 conda_env_name="${pipeline_name}-${BRANCH_NAME}-${BUILD_NUMBER}"
 conda_env_path="/tmp/${conda_env_name}"
@@ -60,9 +56,9 @@ pipeline {
       description: "Used as needed for debugging purposes."
     )
     string(
-        name: 'SCHEDULED_BRANCHES',
-        defaultValue: 'main',
-        description: 'Comma-separated list of branches that should run on schedule (e.g., "main,develop,release")'
+        name: "SCHEDULED_BRANCHES",
+        defaultValue: "main",
+        description: "Comma-separated list of branches that should run on schedule (e.g., 'main,develop,release')"
     )
   }  
   triggers {
@@ -115,6 +111,7 @@ pipeline {
             // Jenkins commands run in separate processes, so need to activate the environment every
             // time we run pip, poetry, etc.
             ACTIVATE = "source ${CONDA_BIN_PATH}/activate ${CONDA_ENV_PATH} &> /dev/null"
+            CRON_SETTINGS = "${params.SCHEDULED_BRANCHES.split(',').collect{it.trim()}.contains(BRANCH_NAME) ? 'H H(20-23) * * *' : ''}"
         }
 
         stages {
