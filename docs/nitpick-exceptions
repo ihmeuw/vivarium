@@ -42,6 +42,7 @@ py:class PandasObject
 py:class DataFrameGroupBy
 py:class ResultsFormatter
 py:class ResultsUpdater
+py:class _NestedDict
 py:exc ResultsConfigurationError
 py:exc vivarium.framework.results.exceptions.ResultsConfigurationError
 py:class vivarium.framework.plugins.M

@@ -2,6 +2,10 @@
 
   - Type-hinting: Fix mypy errors in vivarium/framework/engine.py
 
+**3.2.11 - 12/23/24**
+
+  - Type-hinting: Fix mypy errors in vivarium/framework/components/parser.py
+
 **3.2.10 - 12/17/24**
 
   - Type-hinting: Fix mypy errors in vivarium/framework/components/manager.py
