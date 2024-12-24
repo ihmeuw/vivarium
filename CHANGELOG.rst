@@ -1,4 +1,4 @@
-**TBD - TBD/TBD/TBD**
+**3.2.11 - 12/24/24**
 
   - Type-hinting: Fix mypy errors in vivarium/framework/engine.py
 
