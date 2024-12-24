@@ -10,6 +10,7 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 from vivarium.framework.resource import Resource
+from vivarium.manager import Manager
 
 
 class MockComponentA(Observer):
@@ -338,3 +339,12 @@ class CustomPriorities(DefaultPriorities):
     @property
     def simulation_end_priority(self) -> int:
         return 1
+
+
+class MockManager(Manager):
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def __init__(self, name: str) -> None:
+        self._name = name
