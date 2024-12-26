@@ -9,12 +9,11 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable, Generator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
 
-from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import Observation
@@ -24,6 +23,9 @@ from vivarium.framework.results.stratification import (
     get_original_col_name,
 )
 from vivarium.types import ScalarMapper, VectorMapper
+
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
 
 
 class ResultsContext:

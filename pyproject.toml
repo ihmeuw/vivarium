@@ -44,7 +44,6 @@ exclude = [
     'src/vivarium/examples/disease_model/observer.py',
     'src/vivarium/examples/disease_model/population.py',
     'src/vivarium/examples/disease_model/risk.py',
-    'src/vivarium/framework/engine.py',
     'src/vivarium/framework/population/manager.py',
     'src/vivarium/framework/population/population_view.py',
     'src/vivarium/interface/cli.py',
@@ -98,5 +97,6 @@ module = [
     "scipy.*",
     "ipywidgets.*",
     "Ipython.*",
+    "dill",
 ]
 ignore_missing_imports = true
