@@ -1,4 +1,4 @@
-**3.2.12 - 12/24/24**
+**3.2.12 - 12/26/24**
 
   - Type-hinting: Fix mypy errors in vivarium/framework/engine.py
 
