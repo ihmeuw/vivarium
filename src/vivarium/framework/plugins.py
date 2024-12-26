@@ -10,12 +10,31 @@ The Plugin Management System
 """
 
 from dataclasses import dataclass
+from typing import TypeVar
 
 from layered_config_tree.main import LayeredConfigTree
 
 from vivarium.exceptions import VivariumError
+from vivarium.framework.artifact.manager import ArtifactInterface, ArtifactManager
+from vivarium.framework.components.manager import ComponentInterface, ComponentManager
+from vivarium.framework.components.parser import ComponentConfigurationParser
+from vivarium.framework.event import EventInterface, EventManager
+from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
+from vivarium.framework.logging.manager import LoggingInterface, LoggingManager
+from vivarium.framework.lookup.manager import LookupTableInterface, LookupTableManager
+from vivarium.framework.population.manager import PopulationInterface, PopulationManager
+from vivarium.framework.randomness.manager import RandomnessInterface, RandomnessManager
+from vivarium.framework.resource.manager import ResourceInterface, ResourceManager
+from vivarium.framework.results.interface import ResultsInterface
+from vivarium.framework.results.manager import ResultsManager
+from vivarium.framework.time import SimulationClock, TimeInterface
 from vivarium.framework.utilities import import_by_path
+from vivarium.framework.values.manager import ValuesInterface, ValuesManager
 from vivarium.manager import Interface, Manager
+
+I = TypeVar("I", bound=Interface)
+M = TypeVar("M", bound=Manager)
+
 
 _MANAGERS = {
     "logging": {
@@ -60,7 +79,6 @@ DEFAULT_PLUGINS = {
             },
             "component_configuration_parser": {
                 "controller": "vivarium.framework.components.ComponentConfigurationParser",
-                "builder_interface": None,
             },
             "lifecycle": {
                 "controller": "vivarium.framework.lifecycle.LifeCycleManager",
@@ -78,12 +96,40 @@ DEFAULT_PLUGINS = {
         "optional": {},
     }
 }
+MANAGER_TO_STRING_MAPPER: dict[type[Manager], str] = {
+    SimulationClock: "clock",
+    ComponentManager: "component_manager",
+    ArtifactManager: "data",
+    LifeCycleManager: "lifecycle",
+    ResultsManager: "results",
+    LoggingManager: "logging",
+    ValuesManager: "value",
+    EventManager: "event",
+    PopulationManager: "population",
+    ResourceManager: "resource",
+    LookupTableManager: "lookup",
+    RandomnessManager: "randomness",
+}
+INTERFACE_TO_STRING_MAPPER: dict[type[Interface], str] = {
+    LoggingInterface: "logging",
+    LookupTableInterface: "lookup",
+    ValuesInterface: "value",
+    EventInterface: "event",
+    TimeInterface: "clock",
+    PopulationInterface: "population",
+    ResourceInterface: "resource",
+    ResultsInterface: "results",
+    RandomnessInterface: "randomness",
+    ComponentInterface: "component_manager",
+    LifeCycleInterface: "lifecycle",
+    ArtifactInterface: "data",
+}
 
 
 @dataclass
 class PluginGroup:
-    controller: Manager
-    builder_interface: Interface | None
+    controller: Manager | ComponentConfigurationParser
+    builder_interface: Interface
 
 
 class PluginConfigurationError(VivariumError):
@@ -109,37 +155,49 @@ class PluginManager(Manager):
         self._plugin_configuration.update(plugin_configuration, source="initialization_args")
         self._plugins: dict[str, PluginGroup] = {}
 
-    def get_plugin(self, name: str) -> Manager:
+    def get_plugin(self, manager_type: type[M]) -> M:
+        name = self.get_manager_name(manager_type)
+        manager = self.get_plugin_from_name(name)
+        if not isinstance(manager, manager_type):
+            raise PluginConfigurationError(
+                f"Plugin {name} does not implement the correct interface."
+            )
+        return manager
+
+    def get_plugin_from_name(self, name: str) -> Manager:
         if name not in self._plugins:
             self._plugins[name] = self._get(name)
-        return self._plugins[name].controller
+        manager = self._plugins[name].controller
+        if not isinstance(manager, Manager):
+            raise PluginConfigurationError(
+                f"Plugin {name} does not implement the correct interface."
+            )
+        return manager
 
-    def get_plugin_interface(self, name: str) -> Interface | None:
+    def get_interface_from_name(self, name: str) -> Interface:
         if name not in self._plugins:
             self._plugins[name] = self._get(name)
-        return self._plugins[name].builder_interface
+        interface = self._plugins[name].builder_interface
+        return interface
 
-    def get_core_controllers(self) -> dict[str, Manager]:
-        core_components = [
-            name for name in self._plugin_configuration["required"].keys()
-        ] + list(_MANAGERS.keys())
-        return {name: self.get_plugin(name) for name in core_components}
-
-    def get_core_interfaces(self) -> dict[str, Interface | None]:
-        core_components = [
-            name for name in self._plugin_configuration["required"].keys()
-        ] + list(_MANAGERS.keys())
-        return {name: self.get_plugin_interface(name) for name in core_components}
+    def get_plugin_interface(self, interface_type: type[I]) -> I:
+        name = self.get_interface_name(interface_type)
+        interface = self.get_interface_from_name(name)
+        if not isinstance(interface, interface_type):
+            raise PluginConfigurationError(
+                f"Plugin {name} does not implement the correct interface."
+            )
+        return interface
 
     def get_optional_controllers(self) -> dict[str, Manager]:
         return {
-            name: self.get_plugin(name)
+            name: self.get_plugin_from_name(name)
             for name in self._plugin_configuration["optional"].keys()
         }
 
-    def get_optional_interfaces(self) -> dict[str, Interface | None]:
+    def get_optional_interfaces(self) -> dict[str, Interface]:
         return {
-            name: self.get_plugin_interface(name)
+            name: self.get_interface_from_name(name)
             for name in self._plugin_configuration["optional"].keys()
         }
 
@@ -158,15 +216,16 @@ class PluginManager(Manager):
                 f'Invalid plugin specification {plugin["controller"]}'
             )
 
-        if plugin["builder_interface"] is not None:
-            try:
-                interface = import_by_path(plugin["builder_interface"])(controller)
-            except ValueError:
-                raise PluginConfigurationError(
-                    f'Invalid plugin specification {plugin["builder_interface"]}'
-                )
-        else:
-            interface = None
+        try:
+            interface_name = plugin.get("builder_interface")
+            if interface_name:
+                interface = import_by_path(interface_name)(controller)
+            else:
+                interface = None
+        except ValueError:
+            raise PluginConfigurationError(
+                f'Invalid plugin specification {plugin["builder_interface"]}'
+            )
 
         return PluginGroup(controller=controller, builder_interface=interface)
 
@@ -182,3 +241,27 @@ class PluginManager(Manager):
 
     def __repr__(self) -> str:
         return "PluginManager()"
+
+    def get_component_config_parser(self) -> ComponentConfigurationParser:
+        name = "component_configuration_parser"
+        self._plugins[name] = self._get(name)
+        component_config_parser = self._plugins[name].controller
+        if not isinstance(component_config_parser, ComponentConfigurationParser):
+            raise PluginConfigurationError(
+                f"Plugin {name} does not implement the correct interface."
+            )
+        return component_config_parser
+
+    def get_manager_name(self, manager_type: type[Manager]) -> str:
+        return MANAGER_TO_STRING_MAPPER[manager_type]
+
+    def get_interface_name(self, interface_type: type[Interface]) -> str:
+        return INTERFACE_TO_STRING_MAPPER[interface_type]
+
+    def get_manager_type_from_name(self, name: str) -> type[Manager]:
+        reverse_mapper = {v: k for k, v in MANAGER_TO_STRING_MAPPER.items()}
+        return reverse_mapper[name]
+
+    def get_interface_type_from_name(self, name: str) -> type[Interface]:
+        reverse_mapper = {v: k for k, v in INTERFACE_TO_STRING_MAPPER.items()}
+        return reverse_mapper[name]
