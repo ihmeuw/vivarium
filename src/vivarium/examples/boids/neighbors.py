@@ -1,4 +1,4 @@
-# mypy: ignore-errors
+from __future__ import annotations
 import pandas as pd
 from scipy import spatial
 
@@ -43,7 +43,7 @@ class Neighbors(Component):
     # Pipeline sources and modifiers #
     ##################################
 
-    def get_neighbors(self, index: pd.Index) -> pd.Series:
+    def get_neighbors(self, index: pd.Index[int]) -> pd.Series[list[int]]:  # type: ignore[type-var]
         if not self.neighbors_calculated:
             self._calculate_neighbors()
         return self._neighbors[index]

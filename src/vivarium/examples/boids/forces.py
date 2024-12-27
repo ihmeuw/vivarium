@@ -1,4 +1,5 @@
-# mypy: ignore-errors
+
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -43,7 +44,7 @@ class Force(Component, ABC):
     # Pipeline sources and modifiers #
     ##################################
 
-    def apply_force(self, index: pd.Index, acceleration: pd.DataFrame) -> pd.DataFrame:
+    def apply_force(self, index: pd.Index[int], acceleration: pd.DataFrame) -> pd.DataFrame:
         neighbors = self.neighbors(index)
         pop = self.population_view.get(index)
         pairs = self._get_pairs(neighbors, pop)
@@ -56,7 +57,7 @@ class Force(Component, ABC):
             max_speed=self.max_speed,
         )
 
-        acceleration.loc[force.index] += force[["x", "y"]]
+        acceleration.loc[force.index, ["x", "y"]] += force[["x", "y"]]
         return acceleration
 
     ##################
@@ -64,10 +65,10 @@ class Force(Component, ABC):
     ##################
 
     @abstractmethod
-    def calculate_force(self, neighbors: pd.DataFrame):
+    def calculate_force(self, neighbors: pd.DataFrame) -> pd.DataFrame:
         pass
 
-    def _get_pairs(self, neighbors: pd.Series, pop: pd.DataFrame):
+    def _get_pairs(self, neighbors: pd.Series[int], pop: pd.DataFrame) -> pd.DataFrame:
         pairs = (
             pop.join(neighbors.rename("neighbors"))
             .reset_index()
@@ -91,7 +92,7 @@ class Force(Component, ABC):
         velocity: pd.DataFrame,
         max_force: float,
         max_speed: float,
-    ):
+    ) -> pd.DataFrame:
         normalization_factor = np.where(
             (force.x != 0) | (force.y != 0),
             max_speed / self._magnitude(force),
@@ -111,8 +112,8 @@ class Force(Component, ABC):
         force["y"] *= limit_scaling_factor
         return force[["x", "y"]]
 
-    def _magnitude(self, df: pd.DataFrame):
-        return np.sqrt(np.square(df.x) + np.square(df.y))
+    def _magnitude(self, df: pd.DataFrame) -> pd.Series[float]:
+        return pd.Series(np.sqrt(np.square(df.x) + np.square(df.y)), dtype=float)
 
 
 class Separation(Force):
@@ -125,7 +126,7 @@ class Separation(Force):
         },
     }
 
-    def calculate_force(self, neighbors: pd.DataFrame):
+    def calculate_force(self, neighbors: pd.DataFrame) -> pd.DataFrame:
         # Push boids apart when they get too close
         separation_neighbors = neighbors[neighbors.distance < self.config.distance].copy()
         force_scaling_factor = np.where(
@@ -140,17 +141,19 @@ class Separation(Force):
             separation_neighbors["distance_y"] * force_scaling_factor
         )
 
-        return (
+        force: pd.DataFrame = (
             separation_neighbors.groupby("index_self")[["force_x", "force_y"]]
             .sum()
             .rename(columns=lambda c: c.replace("force_", ""))
         )
 
+        return force
+
 
 class Cohesion(Force):
     """Push boids together."""
 
-    def calculate_force(self, pairs: pd.DataFrame):
+    def calculate_force(self, pairs: pd.DataFrame) -> pd.DataFrame:
         return (
             pairs.groupby("index_self")[["distance_x", "distance_y"]]
             .sum()
@@ -161,7 +164,7 @@ class Cohesion(Force):
 class Alignment(Force):
     """Push boids toward where others are going."""
 
-    def calculate_force(self, pairs: pd.DataFrame):
+    def calculate_force(self, pairs: pd.DataFrame) -> pd.DataFrame:
         return (
             pairs.groupby("index_self")[["vx_other", "vy_other"]]
             .sum()

@@ -1,7 +1,8 @@
-# mypy: ignore-errors
+from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from vivarium.framework.event import Event
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
@@ -38,7 +39,7 @@ class Movement(Component):
     # Pipeline sources and modifiers #
     ##################################
 
-    def base_acceleration(self, index: pd.Index) -> pd.DataFrame:
+    def base_acceleration(self, index: pd.Index[int]) -> pd.DataFrame:
         return pd.DataFrame(0.0, columns=["x", "y"], index=index)
 
     ########################
@@ -59,7 +60,7 @@ class Movement(Component):
         )
         self.population_view.update(new_population)
 
-    def on_time_step(self, event):
+    def on_time_step(self, event: Event) -> None:
         pop = self.population_view.get(event.index)
 
         acceleration = self.acceleration(event.index)
