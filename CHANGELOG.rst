@@ -1,6 +1,10 @@
-**3.2.12 - 12/27/24**
+**3.2.13 - 12/27/24**
 
   - Type-hinting: Fix mypy errors in vivarium/examples/boids/
+
+**3.2.12 - 12/26/24**
+
+  - Type-hinting: Fix mypy errors in vivarium/framework/engine.py
 
 **3.2.11 - 12/23/24**
 

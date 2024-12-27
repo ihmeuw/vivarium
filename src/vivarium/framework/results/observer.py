@@ -12,12 +12,15 @@ by concrete observers. Each concrete observer is required to implement a
 `register_observations` method that registers all required observations.
 
 """
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from vivarium import Component
-from vivarium.framework.engine import Builder
+
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
 
 
 class Observer(Component, ABC):
