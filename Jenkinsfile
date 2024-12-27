@@ -19,4 +19,4 @@ Updating the shared repo will take affect on the next pipeline invocation.
 */ 
 @Library("vivarium_build_utils") _
 // reusable_pipeline(pipeline_name: "test_poc_resuable_workflow")
-reusable_pipeline(scheduled_branches: "main", test_types: ['integration'])
+reusable_pipeline(scheduled_branches: ["main"], test_types: ["integration"])
