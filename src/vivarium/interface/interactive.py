@@ -66,7 +66,7 @@ class InteractiveContext(SimulationContext):
         super().step()
         self._clock._clock_step_size = old_step_size
 
-    def run(self, with_logging: bool = True) -> int:
+    def run(self, with_logging: bool = True) -> None:  # type: ignore [override]
         """Run the simulation for the duration specified in the configuration.
 
         Parameters
@@ -79,9 +79,9 @@ class InteractiveContext(SimulationContext):
         -------
             The number of steps the simulation took.
         """
-        return self.run_until(self._clock.stop_time, with_logging=with_logging)
+        self.run_until(self._clock.stop_time, with_logging=with_logging)
 
-    def run_for(self, duration: ClockStepSize, with_logging: bool = True) -> int:
+    def run_for(self, duration: ClockStepSize, with_logging: bool = True) -> None:
         """Run the simulation for the given time duration.
 
         Parameters
@@ -98,9 +98,9 @@ class InteractiveContext(SimulationContext):
         -------
             The number of steps the simulation took.
         """
-        return self.run_until(self._clock.time + duration, with_logging=with_logging)
+        self.run_until(self._clock.time + duration, with_logging=with_logging)  # type: ignore [operator]
 
-    def run_until(self, end_time: ClockTime, with_logging: bool = True) -> int:
+    def run_until(self, end_time: ClockTime, with_logging: bool = True) -> None:
         """Run the simulation until the provided end time.
 
         Parameters
@@ -126,10 +126,10 @@ class InteractiveContext(SimulationContext):
                 f"Provided time must be compatible with {type(self._clock.time)}"
             )
 
-        iterations = int(ceil((end_time - self._clock.time) / self._clock.step_size))
+        iterations = int(ceil((end_time - self._clock.time) / self._clock.step_size))  # type: ignore [operator, arg-type]
         self.take_steps(number_of_steps=iterations, with_logging=with_logging)
-        assert self._clock.time - self._clock.step_size < end_time <= self._clock.time
-        return iterations
+        assert self._clock.time - self._clock.step_size < end_time <= self._clock.time  # type: ignore [operator]
+        print("Simulation complete after", iterations, "iterations")
 
     def take_steps(
         self,
