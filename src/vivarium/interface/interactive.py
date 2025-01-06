@@ -12,6 +12,7 @@ See the associated tutorials for :ref:`running <interactive_tutorial>` and
 :ref:`exploring <exploration_tutorial>` for more information.
 
 """
+from __future__ import annotations
 
 from collections.abc import Callable
 from math import ceil
