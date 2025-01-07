@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ==========================
 Vivarium Interactive Tools
@@ -13,6 +12,7 @@ See the associated tutorials for :ref:`running <interactive_tutorial>` and
 :ref:`exploring <exploration_tutorial>` for more information.
 
 """
+from __future__ import annotations
 
 from collections.abc import Callable
 from math import ceil
@@ -21,6 +21,7 @@ from typing import Any
 import pandas as pd
 
 from vivarium.framework.engine import SimulationContext
+from vivarium.framework.event import Event
 from vivarium.framework.values import Pipeline
 from vivarium.interface.utilities import log_progress, run_from_ipython
 from vivarium.types import ClockStepSize, ClockTime
@@ -29,7 +30,7 @@ from vivarium.types import ClockStepSize, ClockTime
 class InteractiveContext(SimulationContext):
     """A simulation context with helper methods for running simulations interactively."""
 
-    def __init__(self, *args, setup=True, **kwargs):
+    def __init__(self, *args: Any, setup: bool = True, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
         if setup:
@@ -40,7 +41,7 @@ class InteractiveContext(SimulationContext):
         """Returns the current simulation time."""
         return self._clock.time
 
-    def setup(self):
+    def setup(self) -> None:
         super().setup()
         self.initialize_simulants()
 
@@ -66,7 +67,7 @@ class InteractiveContext(SimulationContext):
         super().step()
         self._clock._clock_step_size = old_step_size
 
-    def run(self, with_logging: bool = True) -> int:
+    def run(self, with_logging: bool = True) -> None:  # type: ignore [override]
         """Run the simulation for the duration specified in the configuration.
 
         Parameters
@@ -79,9 +80,9 @@ class InteractiveContext(SimulationContext):
         -------
             The number of steps the simulation took.
         """
-        return self.run_until(self._clock.stop_time, with_logging=with_logging)
+        self.run_until(self._clock.stop_time, with_logging=with_logging)
 
-    def run_for(self, duration: ClockStepSize, with_logging: bool = True) -> int:
+    def run_for(self, duration: ClockStepSize, with_logging: bool = True) -> None:
         """Run the simulation for the given time duration.
 
         Parameters
@@ -98,9 +99,9 @@ class InteractiveContext(SimulationContext):
         -------
             The number of steps the simulation took.
         """
-        return self.run_until(self._clock.time + duration, with_logging=with_logging)
+        self.run_until(self._clock.time + duration, with_logging=with_logging)  # type: ignore [operator]
 
-    def run_until(self, end_time: ClockTime, with_logging: bool = True) -> int:
+    def run_until(self, end_time: ClockTime, with_logging: bool = True) -> None:
         """Run the simulation until the provided end time.
 
         Parameters
@@ -126,17 +127,17 @@ class InteractiveContext(SimulationContext):
                 f"Provided time must be compatible with {type(self._clock.time)}"
             )
 
-        iterations = int(ceil((end_time - self._clock.time) / self._clock.step_size))
+        iterations = int(ceil((end_time - self._clock.time) / self._clock.step_size))  # type: ignore [operator, arg-type]
         self.take_steps(number_of_steps=iterations, with_logging=with_logging)
-        assert self._clock.time - self._clock.step_size < end_time <= self._clock.time
-        return iterations
+        assert self._clock.time - self._clock.step_size < end_time <= self._clock.time  # type: ignore [operator]
+        print("Simulation complete after", iterations, "iterations")
 
     def take_steps(
         self,
         number_of_steps: int = 1,
         step_size: ClockStepSize | None = None,
         with_logging: bool = True,
-    ):
+    ) -> None:
         """Run the simulation for the given number of steps.
 
         Parameters
@@ -187,7 +188,7 @@ class InteractiveContext(SimulationContext):
         """List all event types registered with the simulation."""
         return self._events.list_events()
 
-    def get_listeners(self, event_type: str) -> dict[int, list[Callable]]:
+    def get_listeners(self, event_type: str) -> dict[int, list[Callable[[Event], None]]]:
         """Get all listeners of a particular type of event.
 
         Available event types can be found by calling
@@ -207,7 +208,9 @@ class InteractiveContext(SimulationContext):
             raise ValueError(f"No event {event_type} in system.")
         return self._events.get_listeners(event_type)
 
-    def get_emitter(self, event_type: str) -> Callable:
+    def get_emitter(
+        self, event_type: str
+    ) -> Callable[[pd.Index[int], dict[str, Any] | None], Event]:
         """Get the callable that emits the given type of events.
 
         Available event types can be found by calling
@@ -250,10 +253,10 @@ class InteractiveContext(SimulationContext):
         """
         return self._component_manager.get_component(name)
 
-    def print_initializer_order(self):
+    def print_initializer_order(self) -> None:
         """Print the order in which population initializers are called."""
         initializers = []
-        for r in self._resource:
+        for r in self._resource.get_population_initializers():
             name = r.__name__
             if hasattr(r, "__self__"):
                 obj = r.__self__
@@ -262,9 +265,9 @@ class InteractiveContext(SimulationContext):
                 initializers.append(f"Unbound function {name}")
         print("\n".join(initializers))
 
-    def print_lifecycle_order(self):
+    def print_lifecycle_order(self) -> None:
         """Print the order of lifecycle events (including user event handlers)."""
         print(self._lifecycle)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "InteractiveContext()"
