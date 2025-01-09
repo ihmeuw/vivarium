@@ -47,7 +47,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import pandas as pd
-import tables  # type: ignore [import-untyped]
+import tables
 from tables.nodes import filenode  # type: ignore [import-untyped]
 
 ####################
