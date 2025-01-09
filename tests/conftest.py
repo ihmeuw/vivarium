@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+import pytest_mock
 import tables
 import yaml
 from _pytest.logging import LogCaptureFixture
+from layered_config_tree import LayeredConfigTree
 from loguru import logger
 from vivarium_testing_utils import FuzzyChecker
 
@@ -16,15 +19,15 @@ from vivarium.framework.configuration import (
 from vivarium.testing_utilities import metadata
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption("--runslow", action="store_true", default=False, help="run slow tests")
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "slow: mark test as slow to run")
 
 
-def pytest_collection_modifyitems(config, items):
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     if config.getoption("--runslow"):
         # --runslow given in cli: do not skip slow tests
         return
@@ -35,19 +38,19 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(scope="session")
-def fuzzy_checker():
+def fuzzy_checker() -> FuzzyChecker:
     return FuzzyChecker()
 
 
 @pytest.fixture
-def caplog(caplog: LogCaptureFixture):
+def caplog(caplog: LogCaptureFixture) -> Generator[LogCaptureFixture, None, None]:
     handler_id = logger.add(caplog.handler, format="{message}")
     yield caplog
     logger.remove(handler_id)
 
 
 @pytest.fixture
-def base_config():
+def base_config() -> LayeredConfigTree:
     config = build_simulation_configuration()
     config.update(
         {
@@ -66,31 +69,33 @@ def base_config():
 
 
 @pytest.fixture
-def test_data_dir():
+def test_data_dir() -> Path:
     data_dir = Path(__file__).resolve().parent / "test_data"
     assert data_dir.exists(), "Test directory structure is broken"
     return data_dir
 
 
 @pytest.fixture(params=[".yaml", ".yml"])
-def test_spec(request, test_data_dir):
+def test_spec(request: pytest.FixtureRequest, test_data_dir: Path) -> Path:
     return test_data_dir / f"mock_model_specification{request.param}"
 
 
 @pytest.fixture(params=[".yaml", ".yml"])
-def test_user_config(request, test_data_dir):
+def test_user_config(request: pytest.FixtureRequest, test_data_dir: Path) -> Path:
     return test_data_dir / f"mock_user_config{request.param}"
 
 
 @pytest.fixture
-def model_specification(mocker, test_spec, test_user_config):
+def model_specification(
+    mocker: pytest_mock.MockFixture, test_spec: Path, test_user_config: Path
+) -> LayeredConfigTree:
     expand_user_mock = mocker.patch("vivarium.framework.configuration.Path.expanduser")
     expand_user_mock.return_value = test_user_config
     return build_model_specification(test_spec)
 
 
 @pytest.fixture
-def disease_model_spec(tmp_path):
+def disease_model_spec(tmp_path: Path) -> Path:
     model_spec_path = (
         Path(__file__).resolve().parent.parent
         / "src/vivarium/examples/disease_model/disease_model.yaml"
@@ -115,7 +120,7 @@ def disease_model_spec(tmp_path):
 
 
 @pytest.fixture
-def hdf_file_path(tmpdir, test_data_dir):
+def hdf_file_path(tmp_path: Path, test_data_dir: Path) -> Path:
     """This file contains the following:
     Object Tree:
         / (RootGroup) ''
@@ -135,13 +140,13 @@ def hdf_file_path(tmpdir, test_data_dir):
         /cause/all_causes/restrictions (EArray(166,)) ''
     """
     # Make temporary copy of file for test.
-    p = tmpdir.join("artifact.hdf")
+    p = tmp_path / "artifact.hdf"
     with tables.open_file(str(test_data_dir / "artifact.hdf")) as file:
         file.copy_file(str(p), overwrite=True)
     return p
 
 
 @pytest.fixture
-def hdf_file(hdf_file_path):
+def hdf_file(hdf_file_path: Path) -> Generator[tables.file.File, None, None]:
     with tables.open_file(str(hdf_file_path)) as file:
         yield file
