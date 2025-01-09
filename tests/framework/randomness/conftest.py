@@ -1,23 +1,26 @@
+from __future__ import annotations
+
 import pandas as pd
 import pytest
 
+from typing import Any
 from vivarium.framework.randomness import RESIDUAL_CHOICE
 
 
 @pytest.fixture(params=[10**4, 10**5])
-def index(request):
+def index(request: pytest.FixtureRequest) -> pd.Index[int] | None:
     return pd.Index(range(request.param)) if request.param else None
 
 
 @pytest.fixture(params=[["a", "small", "bird"]])
-def choices(request):
-    return request.param
+def choices(request: pytest.FixtureRequest) -> list[str]:
+    return request.param  # type: ignore [no-any-return]
 
 
 # TODO: Add 2-d weights to the tests.
 @pytest.fixture(params=[None, [10, 10, 10], [0.5, 0.1, 0.4]])
-def weights(request):
-    return request.param
+def weights(request: pytest.FixtureRequest) -> None | list[int | float]:
+    return request.param  # type: ignore [no-any-return]
 
 
 @pytest.fixture(
@@ -27,5 +30,5 @@ def weights(request):
         (0.1, RESIDUAL_CHOICE, RESIDUAL_CHOICE),
     ]
 )
-def weights_with_residuals(request):
-    return request.param
+def weights_with_residuals(request: pytest.FixtureRequest) -> tuple[Any]:
+    return request.param  # type: ignore [no-any-return]
