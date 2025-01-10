@@ -5,7 +5,7 @@ Integration tests primarily meant to test the CRN guarantees for the Randomness 
 
 from collections.abc import Iterator
 from itertools import cycle
-from typing import Type, TypedDict, Callable
+from typing import Callable, Type, TypedDict
 
 import numpy as np
 import pandas as pd
