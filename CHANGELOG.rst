@@ -1,3 +1,7 @@
+**3.2.14 - TBD/TBD/25**
+
+  - Type-hinting: Fix mypy errors in tests/conftest.py
+
 **3.2.13 - 12/27/24**
 
   - Type-hinting: Fix mypy errors in vivarium/examples/boids/
