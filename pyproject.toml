@@ -41,7 +41,6 @@ exclude = [
     'src/vivarium/examples/disease_model/risk.py',
     'src/vivarium/interface/cli.py',
     'src/vivarium/testing_utilities.py',
-    'tests/conftest.py',
     'tests/examples/test_disease_model.py',
     'tests/framework/artifact/test_artifact.py',
     'tests/framework/artifact/test_hdf.py',
@@ -89,5 +88,6 @@ module = [
     "ipywidgets.*",
     "Ipython.*",
     "dill",
+    "tables",
 ]
 ignore_missing_imports = true

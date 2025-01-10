@@ -1,6 +1,7 @@
-**3.2.14 - TBD/TBD/25**
+**3.2.14 - 01/10/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/randomness/conftest.py
+  - Type-hinting: Fix mypy errors in tests/conftest.py
 
 **3.2.13 - 12/27/24**
 
