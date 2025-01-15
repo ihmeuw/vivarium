@@ -1,3 +1,7 @@
+**3.2.15 - 01/10/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/randomness/test_crn.py
+
 **3.2.14 - 01/10/25**
 
   - Type-hinting: Fix mypy errors in vivarium/interface/interactive.py
