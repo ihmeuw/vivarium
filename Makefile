@@ -13,4 +13,4 @@ include $(MAKE_INCLUDES)/base.mk
 
 $(MAKE_INCLUDES)/%.mk:
 	mkdir -p $(MAKE_INCLUDES)
-	curl -s -o $@ https://raw.githubusercontent.com/ihmeuw/vivarium_build_utils/feature/pnast/mic-5587-shared-makefiles/makefiles/$*.mk
+	curl -s -o $@ https://raw.githubusercontent.com/ihmeuw/vivarium_build_utils/feature/pnast/mic-5587-shared-makefiles/vars/makefiles/$*.mk
