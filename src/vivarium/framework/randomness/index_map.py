@@ -192,7 +192,7 @@ class IndexMap:
         return new_map % len(self)
 
     def _convert_to_ten_digit_int(
-        self, column: pd.Series[datetime | int | float]
+        self, column: pd.Series[datetime] | pd.Series[int] | pd.Series[float]
     ) -> pd.Series[int]:
         """Converts a column of datetimes, integers, or floats into a column
         of 10 digit integers.
