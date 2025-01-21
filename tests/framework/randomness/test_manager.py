@@ -49,9 +49,10 @@ def test_randomness_manager_register_simulants() -> None:
         rm.register_simulants(bad_df)
 
     good_df = pd.DataFrame({"age": range(10), "sex": [1] * 5 + [2] * 5})
+    rm.register_simulants(good_df)
 
     assert isinstance(rm._key_mapping._map, pd.Series)
-    map_index = map.droplevel(rm._key_mapping.SIM_INDEX_COLUMN).index
+    map_index = rm._key_mapping._map.droplevel(rm._key_mapping.SIM_INDEX_COLUMN).index
     good_index = good_df.set_index(good_df.columns.tolist()).index
     assert map_index.difference(good_index).empty
 
