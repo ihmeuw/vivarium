@@ -118,8 +118,8 @@ def test_convert_to_ten_digit_int() -> None:
     real_col = pd.date_range(
         pd.to_datetime(v, unit="s"), periods=10000, freq="ns"
     ).to_series()
-    datetime: pd.Timestamp = pd.to_datetime(v, unit="s")
-    date_range: pd.DatetimeIndex = pd.date_range(datetime, periods=10000, freq="ns")
+    datetime_val: pd.Timestamp = pd.to_datetime(v, unit="s")
+    date_range: pd.DatetimeIndex = pd.date_range(datetime_val, periods=10000, freq="ns")
     datetime_col: pd.Series[datetime] = date_range.to_series()
     breakpoint()
     int_col = pd.Series(v, index=range(10000))
