@@ -1,3 +1,7 @@
+**3.2.16 - 01/22/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/randomness/test_manager.py
+
 **3.2.15 - 01/10/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/randomness/test_crn.py
