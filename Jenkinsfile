@@ -18,4 +18,4 @@ Updating the shared repo will take affect on the next pipeline invocation.
 The "_" denotes that all modules will be imported from the shared library.
 */ 
 @Library("vivarium_build_utils") _
-reusable_pipeline(scheduled_branches: ["main"], test_types: ["integration"], python_versions: ["3.10", "3.11"])
+reusable_pipeline(scheduled_branches: ["main"], test_types: ["all-tests"], python_versions: ["3.10", "3.11"])
