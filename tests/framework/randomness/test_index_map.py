@@ -49,7 +49,7 @@ def generate_keys(
             keys["int"] = np.arange(start, start + number, dtype=int)
 
     if "float" in types:
-        keys["float"] = rs.random_sample(number)
+        keys["float"] = rs.random_sample(size=number)
 
     return pd.DataFrame(keys, index=pd.RangeIndex(number))
 
