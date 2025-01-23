@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+from layered_config_tree import LayeredConfigTree
 
 from tests.helpers import ColumnCreator, ColumnRequirer
 from vivarium import InteractiveContext
@@ -8,12 +9,12 @@ from vivarium.framework.randomness.manager import RandomnessError, RandomnessMan
 from vivarium.framework.randomness.stream import get_hash
 
 
-def mock_clock():
+def mock_clock() -> pd.Timestamp:
     return pd.Timestamp("1/1/2005")
 
 
-def test_randomness_manager_get_randomness_stream():
-    seed = 123456
+def test_randomness_manager_get_randomness_stream() -> None:
+    seed = "123456"
     component = ColumnCreator()
 
     rm = RandomnessManager()
@@ -34,8 +35,8 @@ def test_randomness_manager_get_randomness_stream():
         rm._get_randomness_stream("test", ColumnRequirer())
 
 
-def test_randomness_manager_register_simulants():
-    seed = 123456
+def test_randomness_manager_register_simulants() -> None:
+    seed = "123456"
     rm = RandomnessManager()
     rm._add_constraint = lambda f, **kwargs: f
     rm._seed = seed
@@ -48,14 +49,15 @@ def test_randomness_manager_register_simulants():
         rm.register_simulants(bad_df)
 
     good_df = pd.DataFrame({"age": range(10), "sex": [1] * 5 + [2] * 5})
-
     rm.register_simulants(good_df)
+
+    assert isinstance(rm._key_mapping._map, pd.Series)
     map_index = rm._key_mapping._map.droplevel(rm._key_mapping.SIM_INDEX_COLUMN).index
     good_index = good_df.set_index(good_df.columns.tolist()).index
     assert map_index.difference(good_index).empty
 
 
-def test_get_random_seed():
+def test_get_random_seed() -> None:
     seed = "123456"
     decision_point = "test"
 
@@ -68,7 +70,7 @@ def test_get_random_seed():
 
 
 @pytest.mark.parametrize("additional_seed", ["789", None])
-def test_additional_seed(base_config, additional_seed):
+def test_additional_seed(base_config: LayeredConfigTree, additional_seed: str | None) -> None:
 
     input_draw = "123"
     seed = "456"
