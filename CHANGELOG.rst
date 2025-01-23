@@ -1,6 +1,7 @@
 **3.3.16 - TBD/TBD/TBD**
 
   - Type-hinting: Fix mypy errors in tests/framework/randomness/test_index_map.py
+  - Type-hinting: Fix mypy errors in tests/framework/artifact/test_artifact.py
 
 **3.2.16 - 01/22/25**
 
