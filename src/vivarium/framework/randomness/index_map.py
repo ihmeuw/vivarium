@@ -192,7 +192,11 @@ class IndexMap:
         return new_map % len(self)
 
     def _convert_to_ten_digit_int(
-        self, column: pd.Series[datetime] | pd.Series[int] | pd.Series[float]
+        self,
+        column: pd.Series[pd.Timestamp]
+        | pd.Series[datetime]
+        | pd.Series[int]
+        | pd.Series[float],
     ) -> pd.Series[int]:
         """Converts a column of datetimes, integers, or floats into a column
         of 10 digit integers.
@@ -215,6 +219,7 @@ class IndexMap:
         if pdt.is_datetime64_any_dtype(column):
             integers = self._clip_to_seconds(column.astype(np.int64))
         elif pdt.is_integer_dtype(column):
+            column = column.astype(int)
             if not len(column >= 0) == len(column):
                 raise RandomnessError(
                     "Values in integer columns must be greater than or equal to zero."

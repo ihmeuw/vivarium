@@ -1,3 +1,7 @@
+**3.2.16 - TBD/TBD/TBD**
+
+  - Type-hinting: Fix mypy errors in tests/framework/randomness/test_index_map.py
+
 **3.2.15 - 01/10/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/randomness/test_crn.py

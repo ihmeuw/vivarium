@@ -115,18 +115,14 @@ def test_shift_series() -> None:
 def test_convert_to_ten_digit_int() -> None:
     m = IndexMap()
     v = 1234567890
-    real_col = pd.date_range(
+    date_col = pd.date_range(
         pd.to_datetime(v, unit="s"), periods=10000, freq="ns"
     ).to_series()
-    datetime_val: pd.Timestamp = pd.to_datetime(v, unit="s")
-    date_range: pd.DatetimeIndex = pd.date_range(datetime_val, periods=10000, freq="ns")
-    datetime_col: pd.Series[datetime] = date_range.to_series()
-    breakpoint()
     int_col = pd.Series(v, index=range(10000))
     float_col = pd.Series(1.1234567890, index=range(10000))
     bad_col = pd.Series("a", index=range(10000))
 
-    assert m._convert_to_ten_digit_int(datetime_col).unique()[0] == v
+    assert m._convert_to_ten_digit_int(date_col).unique()[0] == v
     assert m._convert_to_ten_digit_int(int_col).unique()[0] == 4072825790
     assert m._convert_to_ten_digit_int(float_col).unique()[0] == v
     with pytest.raises(RandomnessError):
