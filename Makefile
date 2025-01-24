@@ -11,8 +11,9 @@ PACKAGE_NAME = vivarium
 
 .PHONY: install
 install: ## Install setuptools, package, and build utilities
-	pip install --upgrade pip setuptools
-	pip install -e .[DEV]
+	pip install uv
+	uv pip install --upgrade pip setuptools 
+	uv pip install -e .[DEV]
 	@echo "----------------------------------------"
 	@if [ ! -d "../vivarium_build_utils" ]; then \
 		# Clone the build utils repo if it doesn't exist. \
