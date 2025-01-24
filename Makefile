@@ -16,7 +16,7 @@ install: ## Install setuptools, package, and build utilities
 	@echo "----------------------------------------"
 	@if [ ! -d "../vivarium_build_utils" ]; then \
 		# Clone the build utils repo if it doesn't exist. \
-		git clone -b feature/pnast/mic-5587-shared-makefiles https://github.com/ihmeuw/vivarium_build_utils.git ../vivarium_build_utils; \
+		git clone https://github.com/ihmeuw/vivarium_build_utils.git ../vivarium_build_utils; \
 	else \
 		echo "vivarium_build_utils already exists. Skipping clone."; \
 	fi
