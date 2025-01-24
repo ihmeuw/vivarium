@@ -22,5 +22,5 @@ install: ## Install setuptools, package, and build utilities
 	fi
 
 # Include the makefiles
-include $(MAKE_INCLUDES)/base.mk
-include $(MAKE_INCLUDES)/test.mk
+-include $(MAKE_INCLUDES)/base.mk
+-include $(MAKE_INCLUDES)/test.mk
