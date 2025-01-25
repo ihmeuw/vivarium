@@ -1,4 +1,4 @@
-**3.3.16 - 01/24/25**
+**3.3.17 - 01/24/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/randomness/test_index_map.py
 
