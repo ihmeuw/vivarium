@@ -53,7 +53,6 @@ exclude = [
     'tests/framework/lookup/test_lookup.py',
     'tests/framework/population/test_manager.py',
     'tests/framework/population/test_population_view.py',
-    'tests/framework/randomness/test_index_map.py',
     'tests/framework/randomness/test_reproducibility.py',
     'tests/framework/randomness/test_stream.py',
     'tests/framework/results/helpers.py',
