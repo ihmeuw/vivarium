@@ -1,7 +1,9 @@
 from pathlib import Path
-from unittest.mock import call
+from typing import Any
+from unittest.mock import MagicMock, call
 
 import pytest
+import pytest_mock
 
 from vivarium.framework.artifact.artifact import (
     Artifact,
@@ -13,7 +15,7 @@ from vivarium.framework.artifact.hdf import EntityKey
 
 
 @pytest.fixture()
-def keys_mock():
+def keys_mock() -> list[str]:
     keys = [
         "metadata.locations",
         "metadata.keyspace",
@@ -54,10 +56,10 @@ def keys_mock():
 
 
 @pytest.fixture()
-def hdf_mock(mocker, keys_mock):
+def hdf_mock(mocker: pytest_mock.MockFixture, keys_mock: list[str]) -> MagicMock:
     mock = mocker.patch("vivarium.framework.artifact.artifact.hdf")
 
-    def mock_load(_, key, __, ___):
+    def mock_load(_: Any, key: str, __: Any, ___: Any) -> list[str] | str | None:
         if key in keys_mock:
             if key == "metadata.keyspace":
                 return keys_mock
@@ -65,6 +67,8 @@ def hdf_mock(mocker, keys_mock):
                 return "data"
             else:
                 return None
+        else:
+            return None
 
     mock.load.side_effect = mock_load
     mock.get_keys.return_value = keys_mock
@@ -73,7 +77,7 @@ def hdf_mock(mocker, keys_mock):
 
 
 @pytest.fixture(scope="function")
-def artifact_path(tmp_path):
+def artifact_path(tmp_path: Path) -> Path:
     ap = tmp_path / "artifact.hdf"
     ap.touch()
     return ap
@@ -88,7 +92,9 @@ _KEYS = [
 ]
 
 
-def test_artifact_creation(hdf_mock, keys_mock, artifact_path):
+def test_artifact_creation(
+    hdf_mock: MagicMock, keys_mock: list[str], artifact_path: Path
+) -> None:
     filter_terms = ["location == Global", "draw == 10"]
 
     a = Artifact(artifact_path)
@@ -107,7 +113,7 @@ def test_artifact_creation(hdf_mock, keys_mock, artifact_path):
     hdf_mock.load.called_once_with("metadata.keyspace")
 
 
-def test_artifact_load_missing_key(hdf_mock, artifact_path):
+def test_artifact_load_missing_key(hdf_mock: MagicMock, artifact_path: Path) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = "not.a_real.key"
 
@@ -122,7 +128,7 @@ def test_artifact_load_missing_key(hdf_mock, artifact_path):
     assert a._cache == {}
 
 
-def test_artifact_load_key_has_no_data(hdf_mock, artifact_path):
+def test_artifact_load_key_has_no_data(hdf_mock: MagicMock, artifact_path: Path) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = "no_data.key"
 
@@ -138,7 +144,9 @@ def test_artifact_load_key_has_no_data(hdf_mock, artifact_path):
     assert a._cache == {}
 
 
-def test_artifact_load(hdf_mock, keys_mock, artifact_path):
+def test_artifact_load(
+    hdf_mock: MagicMock, keys_mock: list[str], artifact_path: Path
+) -> None:
     filter_terms = ["location == Global", "draw == 10"]
 
     a = Artifact(artifact_path, filter_terms)
@@ -163,7 +171,9 @@ def test_artifact_load(hdf_mock, keys_mock, artifact_path):
         hdf_mock.load.reset_mock()
 
 
-def test_artifact_contains(hdf_mock, keys_mock, artifact_path):
+def test_artifact_contains(
+    hdf_mock: MagicMock, keys_mock: list[str], artifact_path: Path
+) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     not_a_key = "not.a.key"
 
@@ -179,7 +189,9 @@ def test_artifact_contains(hdf_mock, keys_mock, artifact_path):
     assert not_a_key not in art.keys
 
 
-def test_artifact_write_duplicate_key(hdf_mock, keys_mock, artifact_path):
+def test_artifact_write_duplicate_key(
+    hdf_mock: MagicMock, keys_mock: list[str], artifact_path: Path
+) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = "population.structure"
 
@@ -198,7 +210,7 @@ def test_artifact_write_duplicate_key(hdf_mock, keys_mock, artifact_path):
     assert art.keys == initial_keys
 
 
-def test_artifact_write_no_data(hdf_mock, artifact_path):
+def test_artifact_write_no_data(hdf_mock: MagicMock, artifact_path: Path) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = "new.key"
 
@@ -217,7 +229,9 @@ def test_artifact_write_no_data(hdf_mock, artifact_path):
     assert a.keys == initial_keys
 
 
-def test_artifact_write(hdf_mock, keys_mock, artifact_path):
+def test_artifact_write(
+    hdf_mock: MagicMock, keys_mock: list[str], artifact_path: Path
+) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = "new.key"
 
@@ -238,7 +252,9 @@ def test_artifact_write(hdf_mock, keys_mock, artifact_path):
     assert set(a.keys) == set(initial_keys + [key])
 
 
-def test_artifact_write_and_load_with_different_key_types(hdf_mock, keys_mock, artifact_path):
+def test_artifact_write_and_load_with_different_key_types(
+    hdf_mock: MagicMock, keys_mock: list[str], artifact_path: Path
+) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     string_key = "new.key"
     entity_key = EntityKey(string_key)
@@ -264,8 +280,8 @@ def test_artifact_write_and_load_with_different_key_types(hdf_mock, keys_mock, a
 
 
 def test_artifact_write_and_reopen_then_load_with_entity_key(
-    hdf_mock, keys_mock, artifact_path
-):
+    hdf_mock: MagicMock, keys_mock: list[str], artifact_path: Path
+) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = EntityKey("new.key")
 
@@ -289,7 +305,7 @@ def test_artifact_write_and_reopen_then_load_with_entity_key(
     keys_mock.remove(key)
 
 
-def test_remove_bad_key(hdf_mock, artifact_path):
+def test_remove_bad_key(hdf_mock: MagicMock, artifact_path: Path) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = "non_existent.key"
     a = Artifact(artifact_path, filter_terms)
@@ -309,7 +325,9 @@ def test_remove_bad_key(hdf_mock, artifact_path):
     assert a.keys == initial_keys
 
 
-def test_remove_no_cache(hdf_mock, keys_mock, artifact_path):
+def test_remove_no_cache(
+    hdf_mock: MagicMock, keys_mock: list[str], artifact_path: Path
+) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = "population.structure"
 
@@ -336,7 +354,7 @@ def test_remove_no_cache(hdf_mock, keys_mock, artifact_path):
     assert hdf_mock.write.call_args_list == expected_calls_write
 
 
-def test_remove(hdf_mock, artifact_path):
+def test_remove(hdf_mock: MagicMock, artifact_path: Path) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = "population.structure"
 
@@ -355,7 +373,7 @@ def test_remove(hdf_mock, artifact_path):
     assert hdf_mock.remove.call_args_list == expected_calls
 
 
-def test_clear_cache(hdf_mock, artifact_path):
+def test_clear_cache(hdf_mock: MagicMock, keys_mock: list[str], artifact_path: Path) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = "population.structure"
 
@@ -370,7 +388,9 @@ def test_clear_cache(hdf_mock, artifact_path):
     assert a._cache == {}
 
 
-def test_loading_key_leaves_filters_unchanged(hdf_mock, artifact_path):
+def test_loading_key_leaves_filters_unchanged(
+    hdf_mock: MagicMock, keys_mock: list[str], artifact_path: Path
+) -> None:
     # loading each key will drop the fake_filter from filter_terms for that key
     # make sure that artifact's filter terms stay the same though
     filter_terms = ["location == Global", "draw == 10", "fake_filter"]
@@ -382,7 +402,7 @@ def test_loading_key_leaves_filters_unchanged(hdf_mock, artifact_path):
         assert a.filter_terms == filter_terms
 
 
-def test_replace(hdf_mock, keys_mock, artifact_path):
+def test_replace(hdf_mock: MagicMock, keys_mock: list[str], artifact_path: Path) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = "new.key"
 
@@ -420,7 +440,7 @@ def test_replace(hdf_mock, keys_mock, artifact_path):
     assert key in a
 
 
-def test_replace_nonexistent_key(hdf_mock, artifact_path):
+def test_replace_nonexistent_key(hdf_mock: MagicMock, artifact_path: Path) -> None:
     filter_terms = ["location == Global", "draw == 10"]
     key = "new.key"
 
@@ -436,7 +456,7 @@ def test_replace_nonexistent_key(hdf_mock, artifact_path):
     hdf_mock.remove.assert_not_called()
 
 
-def test_to_tree():
+def test_to_tree() -> None:
     keys = [
         "population.structure",
         "population.age_groups",
@@ -455,7 +475,7 @@ def test_to_tree():
     assert _to_tree(keys) == key_tree
 
 
-def test_create_hdf(tmpdir):
+def test_create_hdf(tmpdir: Path) -> None:
     path = Path(tmpdir) / "test.hdf"
     assert not path.is_file()
 
@@ -473,7 +493,7 @@ def test_create_hdf(tmpdir):
     assert "new.key" in new_artifact
 
 
-def test_keys_initialization(tmpdir):
+def test_keys_initialization(tmpdir: Path) -> None:
     path = Path(tmpdir) / "test.hdf"
 
     with pytest.warns(UserWarning, match="No artifact found"):
@@ -488,7 +508,7 @@ def test_keys_initialization(tmpdir):
     assert test_key.to_list() == test_artifact.keys
 
 
-def test_keys_append(tmpdir):
+def test_keys_append(tmpdir: Path) -> None:
     path = Path(tmpdir) / "test.hdf"
     with pytest.warns(UserWarning, match="No artifact found"):
         test_artifact = Artifact(path)
@@ -504,7 +524,7 @@ def test_keys_append(tmpdir):
     )
 
 
-def test_keys_remove(tmpdir):
+def test_keys_remove(tmpdir: Path) -> None:
     path = Path(tmpdir) / "test.hdf"
     with pytest.warns(UserWarning, match="No artifact found"):
         test_artifact = Artifact(path)
@@ -537,7 +557,9 @@ def test_keys_remove(tmpdir):
         (["draw<5"], NotImplementedError, "only supported"),
     ],
 )
-def test__parse_draw_filters_fail(filters, error, match):
+def test__parse_draw_filters_fail(
+    filters: list[str], error: type[ValueError] | type[NotImplementedError], match: str
+) -> None:
     with pytest.raises(error, match=match):
         _parse_draw_filters(filters)
 
@@ -553,7 +575,7 @@ def test__parse_draw_filters_fail(filters, error, match):
         ("    in            ", [140, 2, 14]),
     ],
 )
-def test__parse_draw_filters_pass(draw_operator, draw_values):
+def test__parse_draw_filters_pass(draw_operator: str, draw_values: list[int]) -> None:
     draw_filter = (
         f'draw{draw_operator}{draw_values if "in" in draw_operator else draw_values[0]}'
     )
