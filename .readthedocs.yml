@@ -1,6 +1,9 @@
 # This is the version for the readthedocs configuration. Version 2 ignores
 # web-based configuration and uses everything from this file.
 version: 2
+sphinx:
+  configuration: docs/source/conf.py
+  fail_on_warning: true
 
 # Configure the python version and environment construction run before
 # docs are built.
