@@ -1,4 +1,4 @@
-**3.2.18 - TBD/TBD/25**
+**3.2.18 - 01/28/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/artifact/test_manager.py
   
