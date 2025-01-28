@@ -1,3 +1,7 @@
+**3.2.18 - 01/28/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/artifact/test_manager.py
+  
 **3.2.17 - 01/24/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/randomness/test_index_map.py
