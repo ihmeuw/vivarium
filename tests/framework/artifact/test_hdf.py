@@ -7,9 +7,9 @@ import numpy as np
 import pandas as pd
 import pytest
 import tables
+from pytest_mock import MockerFixture
 from tables.file import File
 from tables.nodes import filenode
-from pytest_mock import MockerFixture
 
 from vivarium.framework.artifact import hdf
 from vivarium.framework.artifact.hdf import EntityKey
@@ -94,7 +94,9 @@ def test_write_df(hdf_file_path: Path, mock_key: EntityKey, mocker: MockerFixtur
     df_mock.assert_called_once_with(hdf_file_path, mock_key, data)
 
 
-def test_write_json(hdf_file_path: Path, mock_key: EntityKey, json_data: list[str], mocker: MockerFixture) -> None:
+def test_write_json(
+    hdf_file_path: Path, mock_key: EntityKey, json_data: list[str], mocker: MockerFixture
+) -> None:
     json_mock = mocker.patch("vivarium.framework.artifact.hdf._write_json_blob")
     hdf.write(hdf_file_path, mock_key, json_data)
     json_mock.assert_called_once_with(hdf_file_path, mock_key, json_data)
@@ -159,7 +161,9 @@ def test_get_keys(hdf_file_path: Path, hdf_keys: list[str]) -> None:
     assert sorted(hdf.get_keys(hdf_file_path)) == sorted(hdf_keys)
 
 
-def test_write_json_blob(hdf_file_path: Path, mock_key: EntityKey, json_data: list[str]) -> None:
+def test_write_json_blob(
+    hdf_file_path: Path, mock_key: EntityKey, json_data: list[str]
+) -> None:
     hdf._write_json_blob(hdf_file_path, mock_key, json_data)
 
     with tables.open_file(str(hdf_file_path)) as file:
