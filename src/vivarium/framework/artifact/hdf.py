@@ -48,7 +48,7 @@ from typing import Any, Literal
 
 import pandas as pd
 import tables
-from tables.nodes import filenode  # type: ignore [import-untyped]
+from tables.nodes import filenode
 
 ####################
 # Public interface #
