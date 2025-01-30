@@ -1,6 +1,14 @@
+import json
 import sys
 
-min_version, max_version = ((3, 8), "3.8"), ((3, 11), "3.11")
+from packaging.version import parse
+
+with open("python_versions.json", "r") as f:
+    supported_python_versions = json.load(f)
+
+python_versions = [parse(v) for v in supported_python_versions]
+min_version = min(python_versions)
+max_version = max(python_versions)
 
 if not (min_version[0] <= sys.version_info[:2] <= max_version[0]):
     # Python 3.5 does not support f-strings
