@@ -1,15 +1,25 @@
+import json
 import sys
 
-min_version, max_version = ((3, 8), "3.8"), ((3, 11), "3.11")
+from packaging.version import parse
 
-if not (min_version[0] <= sys.version_info[:2] <= max_version[0]):
+with open("python_versions.json", "r") as f:
+    supported_python_versions = json.load(f)
+
+python_versions = [parse(v) for v in supported_python_versions]
+min_version = min(python_versions)
+max_version = max(python_versions)
+
+if not (
+    min_version <= parse(".".join([str(v) for v in sys.version_info[:2]])) <= max_version
+):
     # Python 3.5 does not support f-strings
     py_version = ".".join([str(v) for v in sys.version_info[:3]])
     error = (
         "\n----------------------------------------\n"
         "Error: Vivarium runs under python {min_version}-{max_version}.\n"
         "You are running python {py_version}".format(
-            min_version=min_version[1], max_version=max_version[1], py_version=py_version
+            min_version=min_version, max_version=max_version, py_version=py_version
         )
     )
     print(error, file=sys.stderr)
