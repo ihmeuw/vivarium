@@ -1,3 +1,7 @@
+**3.2.20 - 02/03/25**
+
+  - Remove tests/framework/components/mocks.py
+
 **3.2.19 - 02/03/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/artifact/test_hdf.py
