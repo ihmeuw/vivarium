@@ -1,6 +1,10 @@
-**3.2.19 - 01/30/25**
+**3.2.20- 02/03/25**
 
   - Get python versions from python_versions.json
+  
+**3.2.19 - 02/03/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/artifact/test_hdf.py
 
 **3.2.18 - 01/28/25**
 
