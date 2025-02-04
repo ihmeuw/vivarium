@@ -86,6 +86,9 @@ class LookupTableManager(Manager):
         # generic names is useful for introspection.
         table_number = len(self.tables)
 
+        if isinstance(data, dict):
+            data = pd.DataFrame(data)
+
         if self._validate:
             validate_build_table_parameters(
                 data, key_columns, parameter_columns, value_columns
@@ -204,7 +207,7 @@ def validate_build_table_parameters(
     ):
         raise ValueError("Must supply some data")
 
-    acceptable_types = (Numeric, datetime, timedelta, list, tuple, pd.DataFrame)
+    acceptable_types = (Numeric, datetime, timedelta, list, tuple, pd.DataFrame, dict)
     if not isinstance(data, acceptable_types):
         raise TypeError(
             f"The only allowable types for data are {acceptable_types}. "

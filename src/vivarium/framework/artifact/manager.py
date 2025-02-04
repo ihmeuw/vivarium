@@ -23,6 +23,7 @@ from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+    from vivarium.types import ScalarValue
 
 
 class ArtifactManager(Manager):
@@ -110,7 +111,9 @@ class ArtifactManager(Manager):
 
         return data
 
-    def value_columns(self) -> Callable[[str | pd.DataFrame], list[str]]:
+    def value_columns(
+        self,
+    ) -> Callable[[str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]]:
         """Returns a function that returns the value columns for the given input.
 
         The function can be called with either a string or a pandas DataFrame.
@@ -167,7 +170,9 @@ class ArtifactInterface(Interface):
         """
         return self._manager.load(entity_key, **column_filters)
 
-    def value_columns(self) -> Callable[[str | pd.DataFrame], list[str]]:
+    def value_columns(
+        self,
+    ) -> Callable[[str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]]:
         """Returns a function that returns the value columns for the given input.
 
         The function can be called with either a string or a pandas DataFrame.

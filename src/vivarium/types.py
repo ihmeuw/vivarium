@@ -19,7 +19,13 @@ ClockTime = Time | int
 ClockStepSize = Timedelta | int
 
 ScalarValue = Numeric | Timedelta | Time
-LookupTableData = ScalarValue | pd.DataFrame | list[ScalarValue] | tuple[ScalarValue]
+LookupTableData = (
+    ScalarValue
+    | pd.DataFrame
+    | list[ScalarValue]
+    | tuple[ScalarValue]
+    | dict[str, list[ScalarValue] | list[str]]
+)
 
 DataInput = LookupTableData | str | Callable[["Builder"], LookupTableData]
 

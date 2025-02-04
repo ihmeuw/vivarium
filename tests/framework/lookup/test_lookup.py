@@ -268,9 +268,7 @@ def test_validate_parameters_error_scalar_data(key_cols, param_cols, val_cols, m
         validate_build_table_parameters([1, 2, 3], key_cols, param_cols, val_cols)
 
 
-@pytest.mark.parametrize(
-    "data", ["FAIL", pd.Interval(5, 10), "2019-05-17", {"a": 5, "b": 10}]
-)
+@pytest.mark.parametrize("data", ["FAIL", pd.Interval(5, 10), "2019-05-17"])
 def test_validate_parameters_fail_other_data(data):
     with pytest.raises(TypeError, match="only allowable types"):
         validate_build_table_parameters(data, [], [], [])
