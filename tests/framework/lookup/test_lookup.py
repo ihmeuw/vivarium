@@ -10,6 +10,7 @@ from vivarium.framework.lookup import (
     LookupTableManager,
     validate_build_table_parameters,
 )
+from vivarium.framework.lookup.table import InterpolatedTable
 from vivarium.testing_utilities import TestPopulation, build_table
 
 
@@ -331,3 +332,27 @@ def test_validate_flag(mocker, validate):
         mock_validator.assert_called_once()
     else:
         mock_validator.assert_not_called()
+
+
+def test__build_table_from_dict(base_config):
+    simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
+    manager = simulation._tables
+    data = {
+        "a_start": [0.0, 0.5, 1.0, 1.5],
+        "a_end": [0.5, 1.0, 1.5, 2.0],
+        "b": [10.0, 20.0, 30.0, 40.0],
+        "c": [100.0, 200.0, 300.0, 400.0],
+    }
+    # We convert the dict to a dataframe before we call validate_build_table_parameters so
+    # this test is really going to just ensure we don't error out when we pass in a dict and
+    # we get the expected return type from _build_table
+    table = manager._build_table(
+        data,
+        key_columns=["b"],
+        parameter_columns=["a"],
+        value_columns=["c"],
+    )
+    assert isinstance(table, InterpolatedTable)
+    assert table.key_columns == ["b"]
+    assert table.parameter_columns == ["a"]
+    assert table.value_columns == ["c"]

@@ -1,3 +1,7 @@
+**3.3..0 - TBD/TBD/25**
+
+  - Feature: Add support for dict as backing data type for lookup tables
+
 **3.2.19 - 02/03/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/artifact/test_hdf.py
