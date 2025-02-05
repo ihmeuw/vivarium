@@ -1,7 +1,12 @@
-**3.3..0 - TBD/TBD/25**
+**3.3.0 - TBD/TBD/25**
 
   - Feature: Add support for dict as backing data type for lookup tables
 
+**3.2.20 - 02/05/25**
+
+  - Remove tests/framework/components/mocks.py
+  - Get python versions from python_versions.json
+  
 **3.2.19 - 02/03/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/artifact/test_hdf.py
