@@ -86,6 +86,9 @@ class LookupTableManager(Manager):
         # generic names is useful for introspection.
         table_number = len(self.tables)
 
+        if isinstance(data, dict):
+            data = pd.DataFrame(data)
+
         if self._validate:
             validate_build_table_parameters(
                 data, key_columns, parameter_columns, value_columns

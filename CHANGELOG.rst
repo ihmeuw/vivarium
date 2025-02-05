@@ -1,3 +1,7 @@
+**3.3.0 - TBD/TBD/25**
+
+  - Feature: Add support for dict as backing data type for lookup tables
+
 **3.2.20 - 02/05/25**
 
   - Remove tests/framework/components/mocks.py

@@ -25,6 +25,7 @@ from layered_config_tree import ConfigurationError, LayeredConfigTree
 
 from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.population import PopulationError
+from vivarium.types import ScalarValue
 
 if TYPE_CHECKING:
     import loguru
@@ -105,7 +106,9 @@ class Component(ABC):
         self._name: str = ""
         self._sub_components: Sequence["Component"] = []
         self.logger: loguru.Logger | None = None
-        self.get_value_columns: Callable[[str | pd.DataFrame], list[str]] | None = None
+        self.get_value_columns: Callable[
+            [str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]
+        ] | None = None
         self.configuration: LayeredConfigTree | None = None
         self._population_view: PopulationView | None = None
         self.lookup_tables: dict[str, LookupTable] = {}
@@ -604,7 +607,9 @@ class Component(ABC):
         data = self.get_data(builder, data_source)
         # TODO update this to use vivarium.types.LookupTableData once we drop
         #  support for Python 3.9
-        if not isinstance(data, (Numeric, timedelta, datetime, pd.DataFrame, list, tuple)):
+        if not isinstance(
+            data, (Numeric, timedelta, datetime, pd.DataFrame, list, tuple, dict)
+        ):
             raise ConfigurationError(f"Data '{data}' must be a LookupTableData instance.")
 
         if isinstance(data, list):
@@ -631,13 +636,21 @@ class Component(ABC):
         return builder.lookup.build_table(data)
 
     def _get_columns(
-        self, value_columns: Sequence[str] | None, data: pd.DataFrame
+        self,
+        value_columns: Sequence[str] | None,
+        data: pd.DataFrame | dict[str, list[ScalarValue] | list[str]],
     ) -> tuple[Sequence[str], list[str], list[str]]:
-        all_columns = list(data.columns)
+        if isinstance(data, pd.DataFrame):
+            all_columns = list(data.columns)
+        else:
+            all_columns = list(data.keys())
         if value_columns is None:
             # NOTE: self.get_value_columns cannot be None at this point of the call stack
             value_column_getter = cast(
-                Callable[[str | pd.DataFrame], list[str]], self.get_value_columns
+                Callable[
+                    [str | pd.DataFrame | dict[str, list[ScalarValue] | list[str]]], list[str]
+                ],
+                self.get_value_columns,
             )
             value_columns = value_column_getter(data)
 
