@@ -1,4 +1,8 @@
-**3.3.0 - TBD/TBD/25**
+**3.3.1 - 02/06/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/lookup/test_interpolation.py
+
+**3.3.0 - 02/05/25**
 
   - Feature: Add support for dict as backing data type for lookup tables
 
