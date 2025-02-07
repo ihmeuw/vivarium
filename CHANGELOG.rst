@@ -1,4 +1,4 @@
-**3.3.1 - 02/06/25**
+**3.3.1 - 02/07/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/lookup/test_interpolation.py
 
