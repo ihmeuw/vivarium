@@ -45,7 +45,6 @@ exclude = [
     'tests/framework/components/test_component.py',
     'tests/framework/components/test_manager.py',
     'tests/framework/components/test_parser.py',
-    'tests/framework/lookup/test_interpolation.py',
     'tests/framework/lookup/test_lookup.py',
     'tests/framework/population/test_manager.py',
     'tests/framework/population/test_population_view.py',

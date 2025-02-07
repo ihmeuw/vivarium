@@ -1,4 +1,5 @@
 import itertools
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -41,20 +42,20 @@ def make_bin_edges(data: pd.DataFrame, col: str) -> pd.DataFrame:
 
 
 @pytest.mark.skip(reason="only order 0 interpolation currently supported")
-def test_1d_interpolation():
+def test_1d_interpolation() -> None:
     df = pd.DataFrame({"a": np.arange(100), "b": np.arange(100), "c": np.arange(100, 0, -1)})
     df = df.sample(frac=1)  # Shuffle table to assure interpolation works given unsorted input
 
     i = Interpolation(df, (), [("a", "a_start", "a_end")], ("c",), 1, True, True)
 
-    query = pd.DataFrame({"a": np.arange(100, step=0.01)})
+    query = pd.DataFrame({"a": np.arange(0, 100, step=0.01)})
 
     assert np.allclose(query.a, i(query).b)
     assert np.allclose(100 - query.a, i(query).c)
 
 
 @pytest.mark.skip(reason="only order 0 interpolation currently supported")
-def test_age_year_interpolation():
+def test_age_year_interpolation() -> None:
     years = list(range(1990, 2010))
     ages = list(range(0, 90))
     pops = np.array(ages) * 11.1
@@ -82,7 +83,7 @@ def test_age_year_interpolation():
     ],
 )
 @pytest.mark.skip(reason="only order 0 interpolation currently supported")
-def test_interpolation_called_missing_param_col(query):
+def test_interpolation_called_missing_param_col(query: pd.DataFrame) -> None:
     a = [range(1990, 1995), range(25, 30), ["Male", "Female"]]
     df = pd.DataFrame(list(itertools.product(*a)), columns=["year", "age", "sex"])
     df["pop"] = df.age * 11.1
@@ -94,7 +95,7 @@ def test_interpolation_called_missing_param_col(query):
 
 
 @pytest.mark.skip(reason="only order 0 interpolation currently supported")
-def test_2d_interpolation():
+def test_2d_interpolation() -> None:
     a = np.mgrid[0:5, 0:5][0].reshape(25)
     b = np.mgrid[0:5, 0:5][1].reshape(25)
     df = pd.DataFrame({"a": a, "b": b, "c": b, "d": a})
@@ -103,14 +104,14 @@ def test_2d_interpolation():
     param_cols = [("a", "a_start", "a_end"), ("b", "b_start", "b_end")]
     i = Interpolation(df, (), param_cols, ["c", "d"], 1, True, True)
 
-    query = pd.DataFrame({"a": np.arange(4, step=0.01), "b": np.arange(4, step=0.01)})
+    query = pd.DataFrame({"a": np.arange(0, 4, step=0.01), "b": np.arange(0, 4, step=0.01)})
 
     assert np.allclose(query.b, i(query).c)
     assert np.allclose(query.a, i(query).d)
 
 
 @pytest.mark.skip(reason="only order 0 interpolation currently supported")
-def test_interpolation_with_categorical_parameters():
+def test_interpolation_with_categorical_parameters() -> None:
     a = ["one"] * 100 + ["two"] * 100
     b = np.append(np.arange(100), np.arange(100))
     c = np.append(np.arange(100), np.arange(100, 0, -1))
@@ -119,15 +120,15 @@ def test_interpolation_with_categorical_parameters():
 
     i = Interpolation(df, ("a",), [("b", "b_start", "b_end")], ["c"], 1, True, True)
 
-    query_one = pd.DataFrame({"a": "one", "b": np.arange(100, step=0.01)})
-    query_two = pd.DataFrame({"a": "two", "b": np.arange(100, step=0.01)})
+    query_one = pd.DataFrame({"a": "one", "b": np.arange(0, 100, step=0.01)})
+    query_two = pd.DataFrame({"a": "two", "b": np.arange(0, 100, step=0.01)})
 
-    assert np.allclose(np.arange(100, step=0.01), i(query_one).c)
+    assert np.allclose(np.arange(0, 100, step=0.01), i(query_one).c)
 
-    assert np.allclose(np.arange(100, 0, step=-0.01), i(query_two).c)
+    assert np.allclose(np.arange(0, 100, step=-0.01), i(query_two).c)
 
 
-def test_order_zero_2d():
+def test_order_zero_2d() -> None:
     a = np.mgrid[0:5, 0:5][0].reshape(25)
     b = np.mgrid[0:5, 0:5][1].reshape(25)
     df = pd.DataFrame({"a": a + 0.5, "b": b + 0.5, "c": b * 3, "garbage": ["test"] * len(a)})
@@ -151,7 +152,7 @@ def test_order_zero_2d():
     assert np.allclose(query.b.astype(int) * 3, i(query).c)
 
 
-def test_order_zero_2d_fails_on_extrapolation():
+def test_order_zero_2d_fails_on_extrapolation() -> None:
     a = np.mgrid[0:5, 0:5][0].reshape(25)
     b = np.mgrid[0:5, 0:5][1].reshape(25)
     df = pd.DataFrame({"a": a + 0.5, "b": b + 0.5, "c": b * 3, "garbage": ["test"] * len(a)})
@@ -169,7 +170,7 @@ def test_order_zero_2d_fails_on_extrapolation():
         validate=True,
     )
 
-    column = np.arange(4, step=0.011)
+    column = np.arange(0.0, 4.0, step=0.011)
     query = pd.DataFrame({"a": column, "b": column, "garbage": ["test"] * (len(column))})
 
     with pytest.raises(ValueError) as error:
@@ -180,7 +181,7 @@ def test_order_zero_2d_fails_on_extrapolation():
     assert "Extrapolation" in message and "a" in message
 
 
-def test_order_zero_1d_no_extrapolation():
+def test_order_zero_1d_no_extrapolation() -> None:
     s = pd.Series({0: 0, 1: 1}, name="val").reset_index()
     s = make_bin_edges(s, "index")
     f = Interpolation(
@@ -203,7 +204,7 @@ def test_order_zero_1d_no_extrapolation():
     assert "Extrapolation" in message and "index" in message
 
 
-def test_order_zero_1d_constant_extrapolation():
+def test_order_zero_1d_constant_extrapolation() -> None:
     s = pd.Series({0: 0, 1: 1}, name="val").reset_index()
     s = make_bin_edges(s, "index")
     f = Interpolation(
@@ -223,7 +224,7 @@ def test_order_zero_1d_constant_extrapolation():
     assert f(pd.DataFrame({"index": [-1]}))["val"][0] == 0
 
 
-def test_validate_parameters__empty_data():
+def test_validate_parameters__empty_data() -> None:
     with pytest.raises(ValueError, match="must supply non-empty data"):
         validate_parameters(
             pd.DataFrame(
@@ -235,7 +236,7 @@ def test_validate_parameters__empty_data():
         )
 
 
-def test_check_data_complete_gaps():
+def test_check_data_complete_gaps() -> None:
     data = pd.DataFrame(
         {
             "year_start": [1990, 1990, 1995, 1995],
@@ -255,7 +256,7 @@ def test_check_data_complete_gaps():
     assert "age_start" in message and "age_end" in message
 
 
-def test_check_data_complete_overlap():
+def test_check_data_complete_overlap() -> None:
     data = pd.DataFrame(
         {
             "year_start": [1995, 1995, 2000, 2005, 2010],
@@ -271,7 +272,7 @@ def test_check_data_complete_overlap():
     assert "year_start" in message and "year_end" in message
 
 
-def test_check_data_missing_combos():
+def test_check_data_missing_combos() -> None:
     data = pd.DataFrame(
         {
             "year_start": [1990, 1990, 1995],
@@ -291,7 +292,7 @@ def test_check_data_missing_combos():
     assert "combination" in message
 
 
-def test_order0interp():
+def test_order0interp() -> None:
     data = pd.DataFrame(
         {
             "year_start": [1990, 1990, 1990, 1990, 1995, 1995, 1995, 1995],
@@ -328,7 +329,7 @@ def test_order0interp():
     assert result.equals(pd.DataFrame({"value": [3, 4, 1, 7, 3]}))
 
 
-def test_order_zero_1d_with_key_column():
+def test_order_zero_1d_with_key_column() -> None:
     data = pd.DataFrame(
         {
             "year_start": [1990, 1990, 1995, 1995],
@@ -357,7 +358,7 @@ def test_order_zero_1d_with_key_column():
     assert i(query).equals(expected_result)
 
 
-def test_order_zero_non_numeric_values():
+def test_order_zero_non_numeric_values() -> None:
     data = pd.DataFrame(
         {
             "year_start": [1990, 1990],
@@ -390,7 +391,7 @@ def test_order_zero_non_numeric_values():
     assert i(query).equals(expected_result)
 
 
-def test_order_zero_3d_with_key_col():
+def test_order_zero_3d_with_key_col() -> None:
     data = pd.DataFrame(
         {
             "year_start": [1990, 1990, 1990, 1990, 1995, 1995, 1995, 1995] * 2,
@@ -435,7 +436,7 @@ def test_order_zero_3d_with_key_col():
     )
 
 
-def test_order_zero_diff_bin_sizes():
+def test_order_zero_diff_bin_sizes() -> None:
     data = pd.DataFrame(
         {
             "year_start": [
@@ -460,7 +461,7 @@ def test_order_zero_diff_bin_sizes():
     assert i(query).equals(expected_result)
 
 
-def test_order_zero_given_call_column():
+def test_order_zero_given_call_column() -> None:
     data = pd.DataFrame(
         {
             "year_start": [
@@ -487,7 +488,7 @@ def test_order_zero_given_call_column():
 
 
 @pytest.mark.parametrize("validate", [True, False])
-def test_interpolation_init_validate_option_invalid_data(validate):
+def test_interpolation_init_validate_option_invalid_data(validate: bool) -> None:
     if validate:
         with pytest.raises(
             ValueError, match="You must supply non-empty data to create the interpolation."
@@ -498,7 +499,7 @@ def test_interpolation_init_validate_option_invalid_data(validate):
 
 
 @pytest.mark.parametrize("validate", [True, False])
-def test_interpolation_init_validate_option_valid_data(validate):
+def test_interpolation_init_validate_option_valid_data(validate: bool) -> None:
     s = pd.Series({0: 0, 1: 1}, name="val").reset_index()
     s = make_bin_edges(s, "index")
     param_cols = [["index", "index_left", "index_right"]]
@@ -506,7 +507,7 @@ def test_interpolation_init_validate_option_valid_data(validate):
 
 
 @pytest.mark.parametrize("validate", [True, False])
-def test_interpolation_call_validate_option_invalid_data(validate):
+def test_interpolation_call_validate_option_invalid_data(validate: bool) -> None:
     s = pd.Series({0: 0, 1: 1}, name="val").reset_index()
     s = make_bin_edges(s, "index")
     param_cols = [["index", "index_left", "index_right"]]
@@ -515,14 +516,14 @@ def test_interpolation_call_validate_option_invalid_data(validate):
         with pytest.raises(
             TypeError, match=r"Interpolations can only be called on pandas.DataFrames.*"
         ):
-            result = i(1)
+            result = i(cast(pd.DataFrame, 1))
     else:
         with pytest.raises(AttributeError):
-            result = i(1)
+            result = i(cast(pd.DataFrame, 1))
 
 
 @pytest.mark.parametrize("validate", [True, False])
-def test_interpolation_call_validate_option_valid_data(validate):
+def test_interpolation_call_validate_option_valid_data(validate: bool) -> None:
     data = pd.DataFrame(
         {
             "year_start": [
@@ -545,7 +546,7 @@ def test_interpolation_call_validate_option_valid_data(validate):
 
 
 @pytest.mark.parametrize("validate", [True, False])
-def test_order0interp_validate_option_invalid_data(validate):
+def test_order0interp_validate_option_invalid_data(validate: bool) -> None:
     data = pd.DataFrame(
         {
             "year_start": [1995, 1995, 2000, 2005, 2010],
@@ -565,7 +566,7 @@ def test_order0interp_validate_option_invalid_data(validate):
 
 
 @pytest.mark.parametrize("validate", [True, False])
-def test_order0interp_validate_option_valid_data(validate):
+def test_order0interp_validate_option_valid_data(validate: bool) -> None:
     data = pd.DataFrame(
         {"year_start": [1990, 1995], "year_end": [1995, 2000], "value": [5, 3]}
     )
