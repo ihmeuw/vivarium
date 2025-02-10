@@ -405,7 +405,10 @@ def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
     ],
 )
 def test_failing_component_lookup_table_configurations(
-    configuration: dict[str, str], match: str, error_type: Exception, hdf_file_path: Path
+    configuration: dict[str, str],
+    match: str,
+    error_type: type[Exception],
+    hdf_file_path: Path,
 ) -> None:
     component = SingleLookupCreator()
     sim = InteractiveContext(components=[component], setup=False)
