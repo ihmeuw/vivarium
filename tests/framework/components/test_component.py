@@ -351,11 +351,11 @@ def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
     assert expected_tables == set(component.lookup_tables.keys())
     # check that tables have correct type
     assert isinstance(component.lookup_tables["favorite_team"], CategoricalTable)
-    assert isinstance(component.lookup_tables["favorite_color"], CategoricalTable)
+    assert isinstance(component.lookup_tables["favorite_color"], InterpolatedTable)
     assert isinstance(component.lookup_tables["favorite_scalar"], ScalarTable)
     assert isinstance(component.lookup_tables["favorite_list"], ScalarTable)
     assert isinstance(component.lookup_tables["baking_time"], ScalarTable)
-    assert isinstance(component.lookup_tables["cooling_time"], InterpolatedTable)
+    assert isinstance(component.lookup_tables["cooling_time"], CategoricalTable)
 
     # Check for correct columns in lookup tables
     assert component.lookup_tables["favorite_team"].key_columns == ["test_column_1"]
