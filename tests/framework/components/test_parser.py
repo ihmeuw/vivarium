@@ -99,13 +99,6 @@ def components(request: pytest.FixtureRequest) -> str:
     return request.param
 
 
-@pytest.fixture
-def import_and_instantiate_mock(mocker: MockerFixture) -> Mock:
-    return mocker.patch(
-        "vivarium.framework.components.parser.import_and_instantiate_component"
-    )
-
-
 def test_prep_component(parser: ComponentConfigurationParser) -> None:
     desc = 'cave_system.monsters.Rabbit("timid", "squeak")'
     component, args = parser.prep_component(desc)
@@ -163,7 +156,7 @@ def test_get_components(parser: ComponentConfigurationParser, components: str) -
     parser.get_components(config.components)
 
     calls = [call(path, args) for path, args in TEST_COMPONENTS_PREPPED]
-    # mypy is interpreting assert_has_calls as ann attribute
+    # mypy is interpreting assert_has_calls as an attribute
     parser.import_and_instantiate_component.assert_has_calls(calls)  # type: ignore[attr-defined]
 
 
