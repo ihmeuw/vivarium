@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 from layered_config_tree.exceptions import ConfigurationError
@@ -27,24 +29,25 @@ from vivarium.framework.population import PopulationError
 
 
 def load_cooling_time(builder: Builder) -> pd.DataFrame:
-    return builder.data.load("cooling.time")
+    cooling_time: pd.DataFrame = builder.data.load("cooling.time")
+    return cooling_time
 
 
-def test_unique_component_has_correct_repr():
+def test_unique_component_has_correct_repr() -> None:
     component = NoPopulationView()
 
     # Assert component has the correct repr
     assert component.__repr__() == "NoPopulationView()"
 
 
-def test_parameterized_component_has_repr_that_incorporates_arguments():
+def test_parameterized_component_has_repr_that_incorporates_arguments() -> None:
     component = Parameterized("some_value", 5, "another_value")
 
     # Assert component has the correct repr
     assert component.__repr__() == "Parameterized(p_one=some_value, p_two=5)"
 
 
-def test_component_by_other_component_has_repr_that_incorporates_arguments():
+def test_component_by_other_component_has_repr_that_incorporates_arguments() -> None:
     arg = Parameterized("some_value", 5, "another_value")
     component = ParameterizedByComponent(arg)
 
@@ -53,21 +56,21 @@ def test_component_by_other_component_has_repr_that_incorporates_arguments():
     assert component.__repr__() == expected_repr
 
 
-def test_component_with_no_arguments_has_correct_name():
+def test_component_with_no_arguments_has_correct_name() -> None:
     component = NoPopulationView()
 
     # Assert component has the correct name
     assert component.name == "no_population_view"
 
 
-def test_parameterized_component_has_name_that_incorporates_arguments():
+def test_parameterized_component_has_name_that_incorporates_arguments() -> None:
     component = Parameterized("some_value", 5, "another_value")
 
     # Assert component has the correct name
     assert component.name == "parameterized.some_value.5"
 
 
-def test_component_by_other_component_has_name_that_incorporates_arguments():
+def test_component_by_other_component_has_name_that_incorporates_arguments() -> None:
     arg = Parameterized("some_value", 5, "another_value")
     component = ParameterizedByComponent(arg)
 
@@ -76,7 +79,7 @@ def test_component_by_other_component_has_name_that_incorporates_arguments():
     assert component.name == expected
 
 
-def test_component_that_creates_columns_population_view():
+def test_component_that_creates_columns_population_view() -> None:
     component = ColumnCreator()
     InteractiveContext(components=[component])
 
@@ -85,7 +88,7 @@ def test_component_that_creates_columns_population_view():
     assert set(component.population_view.columns) == set(component.columns_created)
 
 
-def test_component_that_requires_columns_population_view():
+def test_component_that_requires_columns_population_view() -> None:
     component = ColumnRequirer()
     InteractiveContext(components=[ColumnCreator(), component])
 
@@ -94,7 +97,7 @@ def test_component_that_requires_columns_population_view():
     assert set(component.population_view.columns) == set(component.columns_required)
 
 
-def test_component_that_creates_and_requires_columns_population_view():
+def test_component_that_creates_and_requires_columns_population_view() -> None:
     component = ColumnCreatorAndRequirer()
     InteractiveContext(components=[ColumnCreator(), component])
 
@@ -106,7 +109,7 @@ def test_component_that_creates_and_requires_columns_population_view():
 
 
 @pytest.mark.xfail(reason="This is due to a bug to be fixed by MIC-5373")
-def test_component_that_creates_column_and_requires_all_columns_population_view():
+def test_component_that_creates_column_and_requires_all_columns_population_view() -> None:
     component = ColumnCreatorAndAllRequirer()
     simulation = InteractiveContext(components=[ColumnCreator(), component])
     population = simulation.get_population()
@@ -118,7 +121,7 @@ def test_component_that_creates_column_and_requires_all_columns_population_view(
     assert set(component.population_view.columns) == set(expected_columns)
 
 
-def test_component_with_initialization_requirements():
+def test_component_with_initialization_requirements() -> None:
     simulation = InteractiveContext(
         components=[ColumnCreator(), ColumnCreatorAndRequirer()],
     )
@@ -143,7 +146,7 @@ def test_component_with_initialization_requirements():
     assert "stream.stream_1" in component_dependencies
 
 
-def test_component_that_requires_all_columns_population_view():
+def test_component_that_requires_all_columns_population_view() -> None:
     component = AllColumnsRequirer()
     simulation = InteractiveContext(
         components=[ColumnCreator(), ColumnCreatorAndRequirer(), component]
@@ -157,7 +160,7 @@ def test_component_that_requires_all_columns_population_view():
     assert set(component.population_view.columns) == set(expected_columns)
 
 
-def test_component_with_filtered_population_view():
+def test_component_with_filtered_population_view() -> None:
     component = FilteredPopulationView()
     InteractiveContext(components=[ColumnCreator(), component])
 
@@ -165,7 +168,7 @@ def test_component_with_filtered_population_view():
     assert component.population_view.query == "test_column_1 == 5 and tracked == True"
 
 
-def test_component_with_no_population_view():
+def test_component_with_no_population_view() -> None:
     component = NoPopulationView()
     InteractiveContext(components=[ColumnCreator(), component])
 
@@ -177,7 +180,7 @@ def test_component_with_no_population_view():
         _ = component.population_view
 
 
-def test_component_initializer_is_not_registered_if_not_defined():
+def test_component_initializer_is_not_registered_if_not_defined() -> None:
     component = NoPopulationView()
     simulation = InteractiveContext(components=[component])
 
@@ -188,7 +191,7 @@ def test_component_initializer_is_not_registered_if_not_defined():
     )
 
 
-def test_component_initializer_is_registered_and_called_if_defined():
+def test_component_initializer_is_registered_and_called_if_defined() -> None:
     pop_size = 1000
     component = ColumnCreator()
     expected_pop_view = component.get_initial_state(pd.RangeIndex(pop_size))
@@ -206,7 +209,7 @@ def test_component_initializer_is_registered_and_called_if_defined():
     pd.testing.assert_frame_equal(population[component.columns_created], expected_pop_view)
 
 
-def test_listeners_are_not_registered_if_not_defined():
+def test_listeners_are_not_registered_if_not_defined() -> None:
     component = NoPopulationView()
     simulation = InteractiveContext(components=[component])
 
@@ -226,7 +229,7 @@ def test_listeners_are_not_registered_if_not_defined():
         assert component.on_simulation_end not in set(simulation_end_methods.get(i, []))
 
 
-def test_listeners_are_registered_if_defined():
+def test_listeners_are_registered_if_defined() -> None:
     component = DefaultPriorities()
     simulation = InteractiveContext(components=[component])
 
@@ -245,7 +248,7 @@ def test_listeners_are_registered_if_defined():
     assert component.on_simulation_end in set(simulation_end_methods.get(5, []))
 
 
-def test_listeners_are_registered_at_custom_priorities():
+def test_listeners_are_registered_at_custom_priorities() -> None:
     component = CustomPriorities()
     simulation = InteractiveContext(components=[component])
 
@@ -271,7 +274,7 @@ def test_listeners_are_registered_at_custom_priorities():
     assert component.on_simulation_end in set(simulation_end_methods.get(1, []))
 
 
-def test_component_configuration_gets_set():
+def test_component_configuration_gets_set() -> None:
     without_config = ColumnCreator()
     with_config = ColumnRequirer()
 
@@ -292,7 +295,7 @@ def test_component_configuration_gets_set():
     assert with_config.configuration.to_dict() == column_requirer_config["column_requirer"]
 
 
-def test_component_lookup_table_configuration(hdf_file_path):
+def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:
     # Tests that lookup tables are created correctly based on their configuration
 
     favorite_team = pd.DataFrame(
@@ -346,16 +349,20 @@ def test_component_lookup_table_configuration(hdf_file_path):
         "cooling_time",
     }
     assert expected_tables == set(component.lookup_tables.keys())
+    # check that tables have correct type
+    assert isinstance(component.lookup_tables["favorite_team"], CategoricalTable)
+    assert isinstance(component.lookup_tables["favorite_color"], InterpolatedTable)
+    assert isinstance(component.lookup_tables["favorite_scalar"], ScalarTable)
+    assert isinstance(component.lookup_tables["favorite_list"], ScalarTable)
+    assert isinstance(component.lookup_tables["baking_time"], ScalarTable)
+    assert isinstance(component.lookup_tables["cooling_time"], CategoricalTable)
 
     # Check for correct columns in lookup tables
     assert component.lookup_tables["favorite_team"].key_columns == ["test_column_1"]
     assert not component.lookup_tables["favorite_team"].parameter_columns
     assert component.lookup_tables["favorite_color"].key_columns == ["test_column_2"]
     assert component.lookup_tables["favorite_color"].parameter_columns == ["test_column_3"]
-    assert isinstance(component.lookup_tables["favorite_scalar"], ScalarTable)
-    assert isinstance(component.lookup_tables["favorite_list"], ScalarTable)
     assert component.lookup_tables["favorite_list"].value_columns == ["column_1", "column_2"]
-    assert isinstance(component.lookup_tables["baking_time"], ScalarTable)
     assert component.lookup_tables["cooling_time"].key_columns == ["test_column_1"]
     assert not component.lookup_tables["cooling_time"].parameter_columns
 
@@ -399,8 +406,11 @@ def test_component_lookup_table_configuration(hdf_file_path):
     ],
 )
 def test_failing_component_lookup_table_configurations(
-    configuration, match, error_type, hdf_file_path
-):
+    configuration: dict[str, str],
+    match: str,
+    error_type: type[Exception],
+    hdf_file_path: Path,
+) -> None:
     component = SingleLookupCreator()
     sim = InteractiveContext(components=[component], setup=False)
     override_config = {
@@ -415,7 +425,7 @@ def test_failing_component_lookup_table_configurations(
 @pytest.mark.parametrize(
     "table", ["ordered_columns_categorical", "ordered_columns_interpolated"]
 )
-def test_value_column_order_is_maintained(table):
+def test_value_column_order_is_maintained(table: str) -> None:
     """Tests that the order of value columns is maintained when creating a LookupTable.
 
     Notes
