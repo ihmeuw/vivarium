@@ -295,9 +295,12 @@ class ComponentManager(Manager):
             return inspect.getfile(component.__class__)
 
     @staticmethod
-    def _flatten(components: list[Component | Manager]) -> list[Component | Manager]:
+    def _flatten(
+        components: Sequence[Component | Manager | Sequence[Any]],
+    ) -> list[Component | Manager]:
         out: list[Component | Manager] = []
-        components = components[::-1]
+        # Reverse the order of components so we can pop appropriately
+        components = list(components)[::-1]
         while components:
             current = components.pop()
             if isinstance(current, (list, tuple)):
