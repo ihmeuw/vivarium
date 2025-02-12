@@ -43,7 +43,6 @@ exclude = [
     'src/vivarium/testing_utilities.py',
     'tests/examples/test_disease_model.py',
     'tests/framework/components/test_manager.py',
-    'tests/framework/components/test_parser.py',
     'tests/framework/lookup/test_lookup.py',
     'tests/framework/population/test_manager.py',
     'tests/framework/population/test_population_view.py',
