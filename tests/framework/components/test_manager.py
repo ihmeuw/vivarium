@@ -122,13 +122,14 @@ def test_manager_init() -> None:
 
 def test_manager_get_file() -> None:
     mock_component = MockGenericComponent("foo")
-    assert (
-        ComponentManager._get_file(mock_component)
-        == __file__.split("/vivarium/")[0]
-        + "/vivarium/"
+    # Extract the full path to where MockGenericComponent is defined
+    mock_component_path = (
+        __file__.split("/tests/")[0]
+        + "/"
         + MockGenericComponent.__module__.replace(".", "/")
         + ".py"
     )
+    assert ComponentManager._get_file(mock_component) == mock_component_path
     mock_component.__module__ = "__main__"
     assert ComponentManager._get_file(mock_component) == "__main__"
 
