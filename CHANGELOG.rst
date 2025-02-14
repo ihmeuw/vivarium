@@ -1,3 +1,7 @@
+**3.3.3 - 02/14/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/components/test_manager.py
+
 **3.3.2 - 02/12/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/components/test_parser.py
