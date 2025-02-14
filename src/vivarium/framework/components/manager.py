@@ -34,6 +34,7 @@ from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+    _ComponentsType = Sequence[Component | Manager | "_ComponentsType"]
 
 
 class ComponentConfigError(VivariumError):
@@ -295,9 +296,7 @@ class ComponentManager(Manager):
             return inspect.getfile(component.__class__)
 
     @staticmethod
-    def _flatten(
-        components: Sequence[Component | Manager | Sequence[Any]],
-    ) -> list[Component | Manager]:
+    def _flatten(components: _ComponentsType) -> list[Component | Manager]:
         out: list[Component | Manager] = []
         # Reverse the order of components so we can pop appropriately
         components = list(components)[::-1]
