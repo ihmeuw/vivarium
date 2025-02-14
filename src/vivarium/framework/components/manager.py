@@ -34,6 +34,7 @@ from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+
     _ComponentsType = Sequence[Component | Manager | "_ComponentsType"]
 
 
