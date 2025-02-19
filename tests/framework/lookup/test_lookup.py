@@ -70,22 +70,22 @@ def test_interpolated_tables(base_config: LayeredConfigTree) -> None:
     result_ages = ages(pop.index)
     result_ages_1d = one_d_age(pop.index)
 
-    fractional_year = simulation._clock.time.year
-    fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25
+    fractional_year = simulation._clock.time.year  # type: ignore [union-attr]
+    fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25  # type: ignore [union-attr]
 
     assert np.allclose(result_years, fractional_year)
     assert np.allclose(result_ages, pop.age)
     assert np.allclose(result_ages_1d, pop.age)
 
-    simulation._clock._clock_time += pd.Timedelta(30.5 * 125, unit="D")
-    simulation._population._population.age += 125 / 12
+    simulation._clock._clock_time += pd.Timedelta(30.5 * 125, unit="D")  # type: ignore [operator]
+    simulation._population._population.age += 125 / 12  # type: ignore [union-attr]
 
     result_years = years(pop.index)
     result_ages = ages(pop.index)
     result_ages_1d = one_d_age(pop.index)
 
-    fractional_year = simulation._clock.time.year
-    fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25
+    fractional_year = simulation._clock.time.year  # type: ignore [union-attr]
+    fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25  # type: ignore [union-attr]
 
     assert np.allclose(result_years, fractional_year)
     assert np.allclose(result_ages, pop.age)
@@ -125,17 +125,17 @@ def test_interpolated_tables_without_uninterpolated_columns(
 
     result_years = years(simulation.get_population().index)
 
-    fractional_year = simulation._clock.time.year
-    fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25
+    fractional_year = simulation._clock.time.year  # type: ignore [union-attr]
+    fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25  # type: ignore [union-attr]
 
     assert np.allclose(result_years, fractional_year)
 
-    simulation._clock._clock_time += pd.Timedelta(30.5 * 125, unit="D")
+    simulation._clock._clock_time += pd.Timedelta(30.5 * 125, unit="D")  # type: ignore [operator]
 
     result_years = years(simulation.get_population().index)
 
-    fractional_year = simulation._clock.time.year
-    fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25
+    fractional_year = simulation._clock.time.year  # type: ignore [union-attr]
+    fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25  # type: ignore [union-attr]
 
     assert np.allclose(result_years, fractional_year)
 
@@ -165,7 +165,7 @@ def test_interpolated_tables__exact_values_at_input_points(
     for year in input_years:
         simulation._clock._clock_time = pd.Timestamp(year, 1, 1)
         assert np.allclose(
-            years(simulation.get_population().index), simulation._clock.time.year + 1 / 365
+            years(simulation.get_population().index), simulation._clock.time.year + 1 / 365  # type: ignore [union-attr]
         )
 
 
@@ -197,7 +197,7 @@ def test_interpolated_tables__only_categorical_parameters(
         sub_table_mask = (output_data["sex"] == sex) & output_data["location"] == location
         assert (output_data.loc[sub_table_mask, "some_value"] == i**2).all()
 
-
+# parameterize to test list and tuple
 def test_lookup_table_scalar_from_list(base_config: LayeredConfigTree) -> None:
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
@@ -363,7 +363,7 @@ def test__build_table_from_dict(base_config: LayeredConfigTree) -> None:
     # this test is really going to just ensure we don't error out when we pass in a dict and
     # we get the expected return type from _build_table
     table = manager._build_table(
-        data,
+        data,  # type: ignore [arg-type]
         key_columns=["b"],
         parameter_columns=["a"],
         value_columns=["c"],
