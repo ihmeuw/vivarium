@@ -12,7 +12,7 @@ the individuals represented by that index. See the
 
 """
 
-from collections.abc import Sequence, Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 from typing import SupportsFloat as Numeric

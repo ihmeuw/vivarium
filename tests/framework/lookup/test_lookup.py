@@ -1,10 +1,11 @@
 import itertools
+from typing import Sequence
 
 import numpy as np
 import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
-from typing import Sequence
+from pytest_mock import MockerFixture
 
 from vivarium import InteractiveContext
 from vivarium.framework.lookup import (
@@ -15,7 +16,6 @@ from vivarium.framework.lookup import (
 from vivarium.framework.lookup.table import InterpolatedTable
 from vivarium.testing_utilities import TestPopulation, build_table
 from vivarium.types import LookupTableData
-from pytest_mock import MockerFixture
 
 
 @pytest.mark.skip(reason="only order 0 interpolation currently supported")
@@ -197,12 +197,15 @@ def test_interpolated_tables__only_categorical_parameters(
         sub_table_mask = (output_data["sex"] == sex) & output_data["location"] == location
         assert (output_data.loc[sub_table_mask, "some_value"] == i**2).all()
 
-# parameterize to test list and tuple
-def test_lookup_table_scalar_from_list(base_config: LayeredConfigTree) -> None:
+
+@pytest.mark.parametrize("data", [(1, 2), [1, 2]])
+def test_lookup_table_scalar_from_list(
+    base_config: LayeredConfigTree, data: Sequence[int]
+) -> None:
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     table = manager._build_table(
-        (1, 2), key_columns=(), parameter_columns=(), value_columns=["a", "b"]
+        data, key_columns=(), parameter_columns=(), value_columns=["a", "b"]
     )(simulation.get_population().index)
 
     assert isinstance(table, pd.DataFrame)
