@@ -205,7 +205,7 @@ def test_lookup_table_scalar_from_list(
     simulation = InteractiveContext(components=[TestPopulation()], configuration=base_config)
     manager = simulation._tables
     table = manager._build_table(
-        data, key_columns=(), parameter_columns=(), value_columns=["a", "b"]
+        data, key_columns=(), parameter_columns=(), value_columns=["a", "b"]  # type: ignore [arg-type]
     )(simulation.get_population().index)
 
     assert isinstance(table, pd.DataFrame)
