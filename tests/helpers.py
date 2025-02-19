@@ -19,19 +19,19 @@ class MockComponentA(Observer):
         return self._name
 
     @property
-    def configuration_defaults(self):
+    def configuration_defaults(self) -> dict[str, Any]:
         return {}
 
-    def __init__(self, *args, name="mock_component_a"):
+    def __init__(self, *args, name: str = "mock_component_a") -> None:
         super().__init__()
         self._name = name
         self.args = args
         self.builder_used_for_setup = None
 
-    def create_lookup_tables(self, builder):
+    def create_lookup_tables(self, builder: Builder) -> dict[str, Any]:
         return {}
 
-    def register_observations(self, builder):
+    def register_observations(self, builder: Builder) -> None:
         pass
 
     def __eq__(self, other: Any) -> bool:
@@ -43,7 +43,7 @@ class MockComponentB(Observer):
     def name(self) -> str:
         return self._name
 
-    def __init__(self, *args, name="mock_component_b"):
+    def __init__(self, *args, name: str = "mock_component_b") -> None:
         super().__init__()
         self._name = name
         self.args = args
@@ -55,13 +55,13 @@ class MockComponentB(Observer):
     def setup(self, builder: Builder) -> None:
         self.builder_used_for_setup = builder
 
-    def register_observations(self, builder):
+    def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(self.name, aggregator=self.counter)
 
-    def create_lookup_tables(self, builder):
+    def create_lookup_tables(self, builder: Builder) -> dict[str, Any]:
         return {}
 
-    def counter(self, _):
+    def counter(self, _: Any) -> float:
         return 1.0
 
     def __eq__(self, other: Any) -> bool:

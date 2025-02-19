@@ -1,8 +1,12 @@
-from unittest.mock import call
+from abc import ABCMeta
+from typing import Any
+from unittest.mock import Mock, call
 
 import pytest
 import yaml
+from _pytest.monkeypatch import MonkeyPatch
 from layered_config_tree.main import LayeredConfigTree
+from pytest_mock import MockerFixture
 
 from tests.helpers import MockComponentA, MockComponentB
 from vivarium.framework.components.parser import ComponentConfigurationParser, ParsingError
@@ -75,7 +79,7 @@ TEST_COMPONENTS_PREPPED = [
 ]
 
 
-def mock_importer(path):
+def mock_importer(path: str) -> ABCMeta:
     return {
         "test_components.MockComponentA": MockComponentA,
         "test_components.MockComponentB": MockComponentB,
@@ -83,32 +87,26 @@ def mock_importer(path):
 
 
 @pytest.fixture()
-def parser(mocker) -> ComponentConfigurationParser:
+def parser(mocker: MockerFixture) -> ComponentConfigurationParser:
     parser = ComponentConfigurationParser()
-    parser.import_and_instantiate_component = mocker.Mock()
+    parser.import_and_instantiate_component = mocker.Mock()  # type: ignore [method-assign]
     return parser
 
 
 @pytest.fixture(params=[TEST_COMPONENTS_NESTED, TEST_COMPONENTS_FLAT])
-def components(request):
+def components(request: pytest.FixtureRequest) -> str:
+    assert isinstance(request.param, str)
     return request.param
 
 
-@pytest.fixture
-def import_and_instantiate_mock(mocker):
-    return mocker.patch(
-        "vivarium.framework.components.parser.import_and_instantiate_component"
-    )
-
-
-def test_prep_component(parser):
+def test_prep_component(parser: ComponentConfigurationParser) -> None:
     desc = 'cave_system.monsters.Rabbit("timid", "squeak")'
     component, args = parser.prep_component(desc)
     assert component == "cave_system.monsters.Rabbit"
     assert set(args) == {"timid", "squeak"}
 
 
-def test_prep_component_syntax_error(parser):
+def test_prep_component_syntax_error(parser: ComponentConfigurationParser) -> None:
     desc = 'cave_system.monsters.Rabbit("timid", 0.01)'
     with pytest.raises(ParsingError):
         parser.prep_component(desc)
@@ -122,7 +120,7 @@ def test_prep_component_syntax_error(parser):
         parser.prep_component(desc)
 
 
-def test_parse_and_prep_components(parser):
+def test_parse_and_prep_components(parser: ComponentConfigurationParser) -> None:
     prepped_components = [
         parser.prep_component(component) for component in TEST_COMPONENTS_PARSED
     ]
@@ -130,7 +128,7 @@ def test_parse_and_prep_components(parser):
     assert set(TEST_COMPONENTS_PREPPED) == set(prepped_components)
 
 
-def test_import_and_instantiate_components(monkeypatch):
+def test_import_and_instantiate_components(monkeypatch: MonkeyPatch) -> None:
     monkeypatch.setattr("vivarium.framework.components.parser.import_by_path", mock_importer)
 
     component_descriptions = [
@@ -151,14 +149,15 @@ def test_import_and_instantiate_components(monkeypatch):
     assert component_list[1].args == ("Ethel the Aardvark goes Quantity Surveying",)
 
 
-def test_get_components(parser, components):
+def test_get_components(parser: ComponentConfigurationParser, components: str) -> None:
     config = build_simulation_configuration()
     config.update(components)
 
     parser.get_components(config.components)
 
     calls = [call(path, args) for path, args in TEST_COMPONENTS_PREPPED]
-    parser.import_and_instantiate_component.assert_has_calls(calls)
+    # mypy is interpreting assert_has_calls as an attribute
+    parser.import_and_instantiate_component.assert_has_calls(calls)  # type: ignore[attr-defined]
 
 
 @pytest.mark.parametrize(
@@ -168,7 +167,9 @@ def test_get_components(parser, components):
         (TEST_COMPONENTS_NON_STRING, "should be a string, list, or dictionary"),
     ],
 )
-def test_components_invalid_config(parser, config, error_message):
+def test_components_invalid_config(
+    parser: ComponentConfigurationParser, config: str, error_message: str
+) -> None:
     bad_config = LayeredConfigTree(yaml.full_load(config))["components"]
     with pytest.raises(ParsingError, match=error_message):
         parser.parse_component_config(bad_config)

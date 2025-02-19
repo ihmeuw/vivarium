@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Iterator, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Union
 
 from layered_config_tree import (
     ConfigurationError,
@@ -34,6 +34,8 @@ from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
+
+    _ComponentsType = Sequence[Union[Component, Manager, "_ComponentsType"]]
 
 
 class ComponentConfigError(VivariumError):
@@ -295,9 +297,10 @@ class ComponentManager(Manager):
             return inspect.getfile(component.__class__)
 
     @staticmethod
-    def _flatten(components: list[Component | Manager]) -> list[Component | Manager]:
+    def _flatten(components: _ComponentsType) -> list[Component | Manager]:
         out: list[Component | Manager] = []
-        components = components[::-1]
+        # Reverse the order of components so we can pop appropriately
+        components = list(components)[::-1]
         while components:
             current = components.pop()
             if isinstance(current, (list, tuple)):
