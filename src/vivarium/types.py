@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 from typing import SupportsFloat as Numeric
@@ -23,8 +23,8 @@ LookupTableData = (
     ScalarValue
     | pd.DataFrame
     | list[ScalarValue]
-    | tuple[ScalarValue]
-    | dict[str, list[ScalarValue] | list[str]]
+    | tuple[ScalarValue, ...]
+    | Mapping[str, list[ScalarValue] | list[str]]
 )
 
 DataInput = LookupTableData | str | Callable[["Builder"], LookupTableData]
