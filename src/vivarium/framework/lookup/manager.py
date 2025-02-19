@@ -12,7 +12,7 @@ the individuals represented by that index. See the
 
 """
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 from typing import SupportsFloat as Numeric
@@ -86,7 +86,7 @@ class LookupTableManager(Manager):
         # generic names is useful for introspection.
         table_number = len(self.tables)
 
-        if isinstance(data, dict):
+        if isinstance(data, Mapping):
             data = pd.DataFrame(data)
 
         if self._validate:

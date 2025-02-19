@@ -42,7 +42,6 @@ exclude = [
     'src/vivarium/interface/cli.py',
     'src/vivarium/testing_utilities.py',
     'tests/examples/test_disease_model.py',
-    'tests/framework/lookup/test_lookup.py',
     'tests/framework/population/test_manager.py',
     'tests/framework/population/test_population_view.py',
     'tests/framework/randomness/test_reproducibility.py',

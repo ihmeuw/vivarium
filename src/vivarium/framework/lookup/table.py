@@ -281,7 +281,7 @@ class ScalarTable(LookupTable):
     def __init__(
         self,
         table_number: int,
-        data: ScalarValue | list[ScalarValue] | tuple[ScalarValue],
+        data: ScalarValue | list[ScalarValue] | tuple[ScalarValue, ...],
         key_columns: Sequence[str] = (),
         parameter_columns: Sequence[str] = (),
         value_columns: Sequence[str] = (),
