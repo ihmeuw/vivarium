@@ -1,3 +1,7 @@
+**3.3.4 - 02/19/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/lookup/test_lookup.py
+
 **3.3.3 - 02/14/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/components/test_manager.py
