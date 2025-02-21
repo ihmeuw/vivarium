@@ -1,9 +1,10 @@
 import subprocess
+from pathlib import Path
 
 import pandas as pd
 
 
-def test_reproducibility(tmp_path, disease_model_spec):
+def test_reproducibility(tmp_path: Path, disease_model_spec: Path) -> None:
 
     results_dir = tmp_path / "repro_check"
     results_dir.mkdir()
