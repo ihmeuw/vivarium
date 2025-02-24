@@ -325,7 +325,6 @@ class RandomnessStream(Resource):
         index: pd.Index[int],
         distribution: stats.rv_continuous | None = None,
         ppf: PPFCallable | None = None,
-        # ppf: Callable[[pd.Series[Any], dict[str, Any]], pd.Series[Any]] | None = None,
         additional_key: Any = None,
         **distribution_kwargs: Any,
     ) -> pd.Series[Any]:
