@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -48,6 +48,11 @@ RESIDUAL_CHOICE = object()
 
 # TODO: Parameterizing pandas objects fails below python 3.12
 PandasObject = TypeVar("PandasObject", pd.DataFrame, pd.Series, pd.Index)  # type: ignore [type-arg]
+
+
+class PPFCallable(Protocol):
+    def __call__(self, x: pd.Series[Any], **kwargs: Any) -> pd.Series[Any]:
+        ...
 
 
 def get_hash(key: str) -> int:
@@ -319,9 +324,10 @@ class RandomnessStream(Resource):
         self,
         index: pd.Index[int],
         distribution: stats.rv_continuous | None = None,
-        ppf: Callable[[pd.Series[Any], dict[str, Any]], pd.Series[Any]] | None = None,
+        ppf: PPFCallable | None = None,
+        # ppf: Callable[[pd.Series[Any], dict[str, Any]], pd.Series[Any]] | None = None,
         additional_key: Any = None,
-        **distribution_kwargs: dict[str, Any],
+        **distribution_kwargs: Any,
     ) -> pd.Series[Any]:
         """Given a distribution, returns an indexed set of samples from that
         distribution.
@@ -353,7 +359,7 @@ class RandomnessStream(Resource):
                 raise ValueError("Only one of distribution or ppf can be provided")
 
         draws = self.get_draw(index, additional_key)
-        samples = pd.Series(ppf(draws, **distribution_kwargs), index=index)  # type: ignore [call-arg]
+        samples = pd.Series(ppf(draws, **distribution_kwargs), index=index)
         return samples
 
     def __repr__(self) -> str:

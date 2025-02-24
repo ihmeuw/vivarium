@@ -19,8 +19,8 @@ def choices(request: pytest.FixtureRequest) -> list[str]:
 
 
 # TODO: Add 2-d weights to the tests.
-@pytest.fixture(params=[None, [10, 10, 10], [0.5, 0.1, 0.4]])
-def weights(request: pytest.FixtureRequest) -> None | list[int | float]:
+@pytest.fixture(params=[None, [10.0, 10.0, 10.0], [0.5, 0.1, 0.4]])
+def weights(request: pytest.FixtureRequest) -> None | list[float]:
     return request.param  # type: ignore [no-any-return]
 
 
