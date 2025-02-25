@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any, Callable
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -5,22 +9,30 @@ from scipy import stats
 
 from vivarium.framework.randomness import RESIDUAL_CHOICE, RandomnessError, RandomnessStream
 from vivarium.framework.randomness.index_map import IndexMap
-from vivarium.framework.randomness.stream import _normalize_shape, _set_residual_probability
+from vivarium.framework.randomness.stream import (
+    PPFCallable,
+    _normalize_shape,
+    _set_residual_probability,
+)
 
 
 @pytest.fixture
-def randomness_stream():
+def randomness_stream() -> RandomnessStream:
     dates = [pd.Timestamp(1991, 1, 1), pd.Timestamp(1990, 1, 1)]
     randomness = RandomnessStream("test", dates.pop, 1, IndexMap())
     return randomness
 
 
-def test_normalize_shape(weights_with_residuals, index):
+def test_normalize_shape(
+    weights_with_residuals: tuple[Any, ...], index: pd.Index[int]
+) -> None:
     p = _normalize_shape(weights_with_residuals, index)
     assert p.shape == (len(index), len(weights_with_residuals))
 
 
-def test__set_residual_probability(weights_with_residuals, index):
+def test__set_residual_probability(
+    weights_with_residuals: tuple[Any, ...], index: pd.Index[int]
+) -> None:
     # Coerce the weights to a 2-d numpy array.
     p = _normalize_shape(weights_with_residuals, index)
 
@@ -42,7 +54,9 @@ def test__set_residual_probability(weights_with_residuals, index):
         assert np.isclose(p_total, len(index), atol=0.0001)
 
 
-def test_filter_for_probability_single_probability(randomness_stream, index):
+def test_filter_for_probability_single_probability(
+    randomness_stream: RandomnessStream, index: pd.Index[int]
+) -> None:
     sub_index = randomness_stream.filter_for_probability(index, 0.5)
     assert np.isclose(len(sub_index) / len(index), 0.5, rtol=0.1)
 
@@ -50,7 +64,9 @@ def test_filter_for_probability_single_probability(randomness_stream, index):
     assert np.isclose(len(sub_sub_index) / len(sub_index), 0.5, rtol=0.1)
 
 
-def test_filter_for_probability_multiple_probabilities(randomness_stream, index):
+def test_filter_for_probability_multiple_probabilities(
+    randomness_stream: RandomnessStream, index: pd.Index[int]
+) -> None:
     probabilities = pd.Series([0.3, 0.3, 0.3, 0.6, 0.6] * (index.size // 5), index=index)
     threshold_0_3 = probabilities.index[probabilities == 0.3]
     threshold_0_6 = probabilities.index.difference(threshold_0_3)
@@ -64,7 +80,9 @@ def test_filter_for_probability_multiple_probabilities(randomness_stream, index)
     )
 
 
-def test_filter_for_rate_single_probability(randomness_stream, index):
+def test_filter_for_rate_single_probability(
+    randomness_stream: RandomnessStream, index: pd.Index[int]
+) -> None:
     sub_index = randomness_stream.filter_for_rate(index, 0.5)
     assert np.isclose(len(sub_index) / len(index), 1 - np.exp(-0.5), rtol=0.1)
 
@@ -72,7 +90,9 @@ def test_filter_for_rate_single_probability(randomness_stream, index):
     assert np.isclose(len(sub_sub_index) / len(sub_index), 1 - np.exp(-0.5), rtol=0.1)
 
 
-def test_filter_for_rate_multiple_probabilities(randomness_stream, index):
+def test_filter_for_rate_multiple_probabilities(
+    randomness_stream: RandomnessStream, index: pd.Index[int]
+) -> None:
     rates = pd.Series([0.3, 0.3, 0.3, 0.6, 0.6] * (index.size // 5), index=index)
     rate_0_3 = rates.index[rates == 0.3]
     rate_0_6 = rates.index.difference(rate_0_3)
@@ -86,8 +106,13 @@ def test_filter_for_rate_multiple_probabilities(randomness_stream, index):
     )
 
 
-def test_choice(randomness_stream, index, choices, weights):
-    chosen = randomness_stream.choice(index, choices, p=weights)
+def test_choice(
+    randomness_stream: RandomnessStream,
+    index: pd.Index[int],
+    choices: list[str],
+    weights: None | list[float],
+) -> None:
+    chosen = randomness_stream.choice(index, choices, p=weights)  # type: ignore [arg-type]
     count = chosen.value_counts()
     # If we have weights, normalize them, otherwise generate uniform weights.
     weights = (
@@ -96,10 +121,15 @@ def test_choice(randomness_stream, index, choices, weights):
         else [1 / len(choices) for _ in choices]
     )
     for k, c in count.items():
-        assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
+        assert np.isclose(c / len(index), weights[choices.index(str(k))], atol=0.01)
 
 
-def test_choice_with_residuals(randomness_stream, index, choices, weights_with_residuals):
+def test_choice_with_residuals(
+    randomness_stream: RandomnessStream,
+    index: pd.Index[int],
+    choices: list[str],
+    weights_with_residuals: tuple[Any],
+) -> None:
     print(RESIDUAL_CHOICE in weights_with_residuals)
 
     p = _normalize_shape(weights_with_residuals, index)
@@ -126,7 +156,7 @@ def test_choice_with_residuals(randomness_stream, index, choices, weights_with_r
         weights = [w if w != RESIDUAL_CHOICE else residual_p for w in weights_with_residuals]
 
         for k, c in count.items():
-            assert np.isclose(c / len(index), weights[choices.index(k)], atol=0.01)
+            assert np.isclose(c / len(index), weights[choices.index(str(k))], atol=0.01)
 
 
 @pytest.mark.parametrize(
@@ -137,8 +167,11 @@ def test_choice_with_residuals(randomness_stream, index, choices, weights_with_r
     ],
 )
 def test_sample_from_distribution_bad_args(
-    distribution, ppf, error_message, randomness_stream
-):
+    distribution: stats.rv_continuous | None,
+    ppf: PPFCallable | None,
+    error_message: str,
+    randomness_stream: RandomnessStream,
+) -> None:
     with pytest.raises(ValueError, match=error_message):
         randomness_stream.sample_from_distribution(
             index=pd.Index([]),
@@ -155,8 +188,8 @@ def test_sample_from_distribution_bad_args(
     ],
 )
 def test_sample_from_distribution_using_scipy(
-    index: pd.Index, distribution: stats.rv_continuous, params: dict
-):
+    index: pd.Index[int], distribution: stats.rv_continuous, params: dict[str, int]
+) -> None:
     randomness_stream = RandomnessStream(
         "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()
     )
@@ -164,7 +197,7 @@ def test_sample_from_distribution_using_scipy(
     expected = distribution.ppf(draws, **params)
 
     sample = randomness_stream.sample_from_distribution(
-        index=index, distribution=distribution, additional_key="some_key", **params
+        index=index, distribution=distribution, ppf=None, additional_key="some_key", **params
     )
 
     assert isinstance(sample, pd.Series)
@@ -172,9 +205,13 @@ def test_sample_from_distribution_using_scipy(
     assert np.allclose(sample, expected)
 
 
-def test_sample_from_distribution_using_ppf(index: pd.Index):
-    def silly_ppf(x, add, mult):
-        return mult * (x**2) + add
+def test_sample_from_distribution_using_ppf(index: pd.Index[int]) -> None:
+    def silly_ppf(x: pd.Series[Any], **kwargs: Any) -> pd.Series[Any]:
+        add = kwargs["add"]
+        mult = kwargs["mult"]
+        output = mult * (x**2) + add
+        assert isinstance(output, pd.Series)
+        return output
 
     randomness_stream = RandomnessStream(
         "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()

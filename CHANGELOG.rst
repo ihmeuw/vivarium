@@ -1,3 +1,7 @@
+**3.3.6 - 02/25/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/randomness/test_stream.py
+
 **3.3.5 - 02/21/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/randomness/test_reproducibility.py
