@@ -1,4 +1,4 @@
-**3.3.6 - TBD/TBD/TBD**
+**3.3.6 - 02/25/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/randomness/test_stream.py
 
