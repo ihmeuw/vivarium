@@ -261,14 +261,12 @@ def test_full_population_view__coerce_to_dataframe(
     population_update: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
-    cols = (
-        population_update.columns
-        if isinstance(population_update, pd.DataFrame)
-        else [population_update.name]
-    )
-
+    if isinstance(population_update, pd.Series):
+        cols = [population_update.name]
+    else:
+        cols = list(population_update.columns)
     coerced_df = PopulationView._coerce_to_dataframe(population_update, COL_NAMES)
-    assert BASE_POPULATION.loc[update_index, cols].equals(coerced_df)  # type: ignore[index]
+    assert BASE_POPULATION.loc[update_index, cols].equals(coerced_df)
 
 
 def test_full_population_view__coerce_to_dataframe_fail(
@@ -850,9 +848,7 @@ def test_population_view_update_time_step(
     population_manager.adding_simulants = False
     pv.update(population_update)
 
-    for col in population_update:
+    for col in population_update.columns:
         pop = population_manager._population
         assert pop is not None
-        assert pop.loc[update_index, col].equals(  # type: ignore[index]
-            population_update[col]
-        )
+        assert pop.loc[update_index, col].equals(population_update[col])
