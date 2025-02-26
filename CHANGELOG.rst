@@ -1,3 +1,7 @@
+**3.3.7 - 02/26/25**
+
+  - Change Event class to a frozen dataclass
+
 **3.3.6 - 02/25/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/randomness/test_stream.py
