@@ -1,3 +1,7 @@
+**3.3.7 - 02/26/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/population/test_population_view.py
+
 **3.3.6 - 02/25/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/randomness/test_stream.py
