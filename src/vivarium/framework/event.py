@@ -29,8 +29,9 @@ For more information, see the associated event
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -42,7 +43,8 @@ if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
 
-class Event(NamedTuple):
+@dataclass(frozen=True)
+class Event:
     """An Event object represents the context of an event.
 
     Events themselves are just a bundle of data.  They must be emitted
@@ -50,8 +52,7 @@ class Event(NamedTuple):
     to respond to them.
     """
 
-    # FIXME [MIC-5468]: fix index type hint for mypy
-    index: pd.Index[int]  # type: ignore[assignment]
+    index: pd.Index[int]
     """An index into the population table containing all simulants affected by this event."""
     user_data: dict[str, Any]
     """Any additional data provided by the user about the event."""

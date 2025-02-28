@@ -1,5 +1,6 @@
-**3.3.7 - 02/26/25**
+**3.3.7 - 02/27/25**
 
+  - Change Event class to a frozen dataclass
   - Type-hinting: Fix mypy errors in tests/framework/population/test_population_view.py
 
 **3.3.6 - 02/25/25**
