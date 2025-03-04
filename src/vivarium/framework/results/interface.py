@@ -11,7 +11,7 @@ to a simulation.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Union, Sequence
 
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
@@ -138,7 +138,7 @@ class ResultsInterface(Interface):
         self,
         target: str,
         binned_column: str,
-        bin_edges: list[int | float] = [],
+        bin_edges: Sequence[int | float] = [],
         labels: list[str] = [],
         excluded_categories: list[str] | None = None,
         target_type: str = "column",
