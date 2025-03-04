@@ -4,11 +4,12 @@ Results System Manager
 ======================
 
 """
+
 from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Sequence
 
 import pandas as pd
 
@@ -235,7 +236,7 @@ class ResultsManager(Manager):
         self,
         target: str,
         binned_column: str,
-        bin_edges: list[int | float],
+        bin_edges: Sequence[int | float],
         labels: list[str],
         excluded_categories: list[str] | None,
         target_type: str,
