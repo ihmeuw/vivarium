@@ -11,7 +11,7 @@ to a simulation.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Union, Sequence
+from typing import TYPE_CHECKING, Any, Sequence, Union
 
 import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
