@@ -66,6 +66,7 @@ def test_rate_to_probability_vectorizability() -> None:
     assert isinstance(sum_of_rates, float)
     assert round(np.sum(rate_array), 5) == round(sum_of_rates, 5)
 
+
 def test_collapse_nested_dict() -> None:
     source = {"a": {"b": {"c": 1, "d": 2}}, "e": 3}
     result = collapse_nested_dict(source)
