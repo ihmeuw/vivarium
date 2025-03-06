@@ -105,5 +105,7 @@ def test_handle_exceptions(test_input: type[BaseException]) -> None:
         raise ex()
 
     with pytest.raises(test_input):
+        # known issue with mypy
+        # see heated thread at https://github.com/python/mypy/issues/6549
         func = handle_exceptions(raise_me(test_input), None, False)  # type: ignore[func-returns-value]
         func()
