@@ -31,12 +31,6 @@ def builder(mocker: pytest_mock.MockFixture) -> Any:
     return builder
 
 
-# @pytest.fixture()
-# def SimulationContext() -> Generator[SimulationContext_, None, None]:
-#     yield SimulationContext_
-#     #SimulationContext_._clear_context_cache()
-
-
 @pytest.fixture
 def components() -> list[Component | Listener]:
     return [
