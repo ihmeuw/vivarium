@@ -102,7 +102,7 @@ class MockGenericComponent(Component):
 
 
 class Listener(MockComponentB):
-    def __init__(self, *args, name="test_listener"):
+    def __init__(self, *args, name: str = "test_listener"):
         super().__init__(*args, name=name)
         self.post_setup_called = False
         self.time_step_prepare_called = False

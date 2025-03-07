@@ -1,19 +1,28 @@
+from __future__ import annotations
+
 import math
+from typing import Any, Generator
+from unittest.mock import MagicMock
 
 import numpy as np
 import pandas as pd
 import pytest
+import pytest_mock
+from layered_config_tree import LayeredConfigTree
 
 from tests.helpers import Listener, MockComponentA, MockComponentB, MockGenericComponent
-from vivarium.framework.engine import SimulationContext as SimulationContext_
+from vivarium.component import Component
+from vivarium.framework.engine import Builder, SimulationContext
 from vivarium.framework.event import Event
+from vivarium.framework.results.observer import Observer
 from vivarium.framework.time import SimulationClock, get_time_stamp
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import ValuesManager, rescale_post_processor
+from vivarium.types import ClockStepSize, ClockTime, NumberLike
 
 
 @pytest.fixture
-def builder(mocker):
+def builder(mocker: pytest_mock.MockFixture) -> Any:
     builder = mocker.MagicMock()
     manager = ValuesManager()
     manager.setup(builder)
@@ -22,14 +31,14 @@ def builder(mocker):
     return builder
 
 
-@pytest.fixture()
-def SimulationContext():
-    yield SimulationContext_
-    SimulationContext_._clear_context_cache()
+# @pytest.fixture()
+# def SimulationContext() -> Generator[SimulationContext_, None, None]:
+#     yield SimulationContext_
+#     #SimulationContext_._clear_context_cache()
 
 
 @pytest.fixture
-def components():
+def components() -> list[Component | Listener]:
     return [
         MockComponentA("gretchen", "whimsy"),
         Listener("listener"),
@@ -37,14 +46,17 @@ def components():
     ]
 
 
-def validate_step_column_is_pipeline(sim):
+def validate_step_column_is_pipeline(sim: SimulationContext) -> None:
     """Ensure that the pipeline and column step sizes are aligned"""
     step_pipeline = sim._values.get_value("simulant_step_size")(sim.get_population().index)
+    assert sim._population._population is not None
     step_column = sim._population._population.step_size
     assert np.all(step_pipeline == step_column)
 
 
-def validate_index_aligned(sim, expected_active_simulants):
+def validate_index_aligned(
+    sim: SimulationContext, expected_active_simulants: pd.Index[int]
+) -> None:
     """Ensure that the active simulants are as expected BEFORE a step"""
     active_simulants = sim._clock.get_active_simulants(
         get_full_pop_index(sim), sim._clock.event_time
@@ -54,24 +66,25 @@ def validate_index_aligned(sim, expected_active_simulants):
     assert active_simulants.difference(expected_active_simulants).empty
 
 
-def validate_event_indexes(listener, expected_simulants):
+def validate_event_indexes(listener: Listener, expected_simulants: pd.Index[int]) -> None:
     """Make sure AFTER a step, that simulants were included in the right events"""
     for index in listener.event_indexes.values():
+        assert index is not None
         assert index.equals(expected_simulants)
 
 
-def take_step(sim):
+def take_step(sim: SimulationContext) -> ClockStepSize:
     old_time = sim._clock.time
     sim.step()
     new_time = sim._clock.time
-    return new_time - old_time
+    return new_time - old_time  # type: ignore [operator]
 
 
-def get_full_pop_index(sim):
+def get_full_pop_index(sim: SimulationContext) -> pd.Index[int]:
     return sim.get_population().index
 
 
-def get_index_by_parity(index, parity):
+def get_index_by_parity(index: pd.Index[int], parity: str) -> pd.Index[int]:
     if parity == "evens":
         return index[index % 2 == 0]
     elif parity == "odds":
@@ -80,26 +93,35 @@ def get_index_by_parity(index, parity):
         return index
 
 
-def get_pop_by_parity(sim, parity):
+def get_pop_by_parity(sim: SimulationContext, parity: str) -> pd.DataFrame:
     pop = sim.get_population()
     return pop.loc[get_index_by_parity(pop.index, parity)]
 
 
-def pipeline_by_parity(sim, step_modifiers, parity):
+def pipeline_by_parity(
+    sim: SimulationContext, step_modifiers: dict[str, int], parity: str
+) -> pd.Series[Any]:
     if parity == "all":
-        return pd.concat(
+        modified_series = pd.concat(
             [
                 pipeline_by_parity(sim, step_modifiers, "evens"),
                 pipeline_by_parity(sim, step_modifiers, "odds"),
             ]
         ).sort_index()
+        assert isinstance(modified_series, pd.Series)
+        return modified_series
     return pd.Series(
         from_yearly(1.75, pd.Timedelta(days=step_modifiers[parity])),
         index=get_index_by_parity(get_full_pop_index(sim), parity),
     )
 
 
-def take_step_and_validate(sim, listener, expected_simulants, expected_step_size_days):
+def take_step_and_validate(
+    sim: SimulationContext,
+    listener: Listener,
+    expected_simulants: pd.Index[int],
+    expected_step_size_days: int,
+) -> None:
     """Take a step, and ensure that we included the right simulants, with the right step size"""
     ## Check Before Timestep
     validate_index_aligned(sim, expected_simulants)
@@ -115,7 +137,11 @@ class StepModifier(MockGenericComponent):
     """
 
     def __init__(
-        self, name, step_modifier_even, step_modifier_odd=None, modified_simulants="all"
+        self,
+        name: str,
+        step_modifier_even: int | float,
+        step_modifier_odd: int | float | None = None,
+        modified_simulants: str = "all",
     ):
         super().__init__(name)
         self.step_modifier_even = step_modifier_even
@@ -124,11 +150,11 @@ class StepModifier(MockGenericComponent):
         )
         self.modified_simulants = modified_simulants
 
-    def setup(self, builder) -> None:
+    def setup(self, builder: Builder) -> None:
         super().setup(builder)
         builder.time.register_step_size_modifier(self.modify_step)
 
-    def modify_step(self, index):
+    def modify_step(self, index: pd.Index[int]) -> pd.Series[ClockStepSize]:
         step_sizes = pd.Series(pd.Timedelta(days=1), index=index)
         step_sizes.loc[get_index_by_parity(index, "evens")] = pd.Timedelta(
             days=self.step_modifier_even
@@ -136,8 +162,8 @@ class StepModifier(MockGenericComponent):
         step_sizes.loc[get_index_by_parity(index, "odds")] = pd.Timedelta(
             days=self.step_modifier_odd
         )
-        step_sizes = step_sizes.loc[get_index_by_parity(index, self.modified_simulants)]
-        return step_sizes
+        modified_steps = step_sizes.loc[get_index_by_parity(index, self.modified_simulants)]
+        return modified_steps  # type: ignore [return-value]
 
 
 class StepModifierWithRatePipeline(StepModifier):
@@ -149,12 +175,16 @@ class StepModifierWithRatePipeline(StepModifier):
     """
 
     def __init__(
-        self, name, step_modifier_even, step_modifier_odd=None, modified_simulants="all"
-    ):
+        self,
+        name: str,
+        step_modifier_even: float | int,
+        step_modifier_odd: float | int | None = None,
+        modified_simulants: str = "all",
+    ) -> None:
         super().__init__(name, step_modifier_even, step_modifier_odd, modified_simulants)
         self.ts_pipeline_value = None
 
-    def setup(self, builder) -> None:
+    def setup(self, builder: Builder) -> None:
         super().setup(builder)
         self.rate_pipeline = builder.value.register_value_producer(
             f"test_rate_{self.name}",
@@ -183,7 +213,7 @@ class StepModifierWithUntracking(StepModifierWithRatePipeline):
 
 
 class StepModifierWithMovement(StepModifierWithRatePipeline):
-    def setup(self, builder) -> None:
+    def setup(self, builder: Builder) -> None:
         super().setup(builder)
         self.move_simulants_to_end = builder.time.move_simulants_to_end()
 
@@ -193,7 +223,11 @@ class StepModifierWithMovement(StepModifierWithRatePipeline):
 
 
 @pytest.mark.parametrize("varied_step_size", [True, False])
-def test_basic_iteration(SimulationContext, base_config, components, varied_step_size):
+def test_basic_iteration(
+    base_config: LayeredConfigTree,
+    components: list[Component | Listener],
+    varied_step_size: bool,
+) -> None:
     """Ensure that the basic iteration of the simulation works as expected.
     The step size should always be 1 in this case, the whole population should
     be updated, and the pipeline step value should always match the column step value.
@@ -202,6 +236,7 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
         components.append(StepModifier("step_modifier", 1))
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if hasattr(c, "args") and "listener" in c.args][0]
+    assert isinstance(listener, Listener)
     sim.setup()
     sim.initialize_simulants()
     full_pop_index = get_full_pop_index(sim)
@@ -227,12 +262,15 @@ def test_basic_iteration(SimulationContext, base_config, components, varied_step
         )
 
 
-def test_empty_active_pop(SimulationContext, base_config, components):
+def test_empty_active_pop(
+    base_config: LayeredConfigTree, components: list[Component | Listener]
+) -> None:
     """Make sure that if we have no active simulants, we still take a step, given
     by the minimum step size."""
     components.append(StepModifier("step_modifier", 1))
     sim = SimulationContext(base_config, components)
     listener = [c for c in components if hasattr(c, "args") and "listener" in c.args][0]
+    assert isinstance(listener, Listener)
     sim.setup()
     sim.initialize_simulants()
     full_pop_index = get_full_pop_index(sim)
@@ -240,6 +278,7 @@ def test_empty_active_pop(SimulationContext, base_config, components):
     ## Force a next event time update without updating step sizes.
     ## This ensures (against the current implementation) that we will have a timestep
     ## that has no simulants aligned. Check that we do the minimum timestep update.
+    assert sim._population._population is not None
     sim._population._population.next_event_time += pd.Timedelta(days=1)
     ## First Step
     validate_step_column_is_pipeline(sim)
@@ -258,8 +297,10 @@ def test_empty_active_pop(SimulationContext, base_config, components):
     "step_modifier_even,step_modifier_odd", [(0.5, 0.5), (1, 1), (2, 2), (4.5, 4)]
 )
 def test_skip_iterations(
-    SimulationContext, base_config, step_modifier_even, step_modifier_odd
-):
+    base_config: LayeredConfigTree,
+    step_modifier_even: float | int,
+    step_modifier_odd: float | int,
+) -> None:
     """Test that if everyone has some (non-minimum) step size, the global step adjusts to match"""
     listener = Listener("listener")
     sim = SimulationContext(
@@ -283,7 +324,7 @@ def test_skip_iterations(
         )
 
 
-def test_uneven_steps(SimulationContext, base_config):
+def test_uneven_steps(base_config: LayeredConfigTree) -> None:
     """Test that if we have a mix of step sizes, we take steps in accordance
     to reach all simulants' next event times in the fewest steps.
     """
@@ -316,11 +357,12 @@ def test_uneven_steps(SimulationContext, base_config):
         )
 
         sample_pipeline = step_modifier_component.ts_pipeline_value
+        assert sample_pipeline is not None
         assert sample_pipeline.index.equals(get_pop_by_parity(sim, group).index)
         assert np.all(sample_pipeline == pipeline_by_parity(sim, step_modifiers, group))
 
 
-def test_partial_modification(SimulationContext, base_config):
+def test_partial_modification(base_config: LayeredConfigTree) -> None:
     """Test that if we have one modifier that doesn't apply to all simulants,
     we choose the standard value for unmodified simulants.
     """
@@ -353,11 +395,12 @@ def test_partial_modification(SimulationContext, base_config):
         )
 
         sample_pipeline = step_modifier_component.ts_pipeline_value
+        assert sample_pipeline is not None
         assert sample_pipeline.index.equals(get_pop_by_parity(sim, group).index)
         assert np.all(sample_pipeline == pipeline_by_parity(sim, step_modifiers, group))
 
 
-def test_standard_step_size(SimulationContext, base_config):
+def test_standard_step_size(base_config: LayeredConfigTree) -> None:
     """Test that if we have one modifier that doesn't apply to all simulants,
     we choose the standard value for unmodified simulants.
     """
@@ -391,11 +434,12 @@ def test_standard_step_size(SimulationContext, base_config):
         )
 
         sample_pipeline = step_modifier_component.ts_pipeline_value
+        assert sample_pipeline is not None
         assert sample_pipeline.index.equals(get_pop_by_parity(sim, group).index)
         assert np.all(sample_pipeline == pipeline_by_parity(sim, step_modifiers, group))
 
 
-def test_multiple_modifiers(SimulationContext, base_config):
+def test_multiple_modifiers(base_config: LayeredConfigTree) -> None:
     """Test that if we have a mix of step sizes, we take steps in accordance
     to reach all simulants' next event times in the fewest steps.
     """
@@ -434,7 +478,7 @@ def test_multiple_modifiers(SimulationContext, base_config):
         )
 
 
-def test_untracked_simulants(SimulationContext, base_config):
+def test_untracked_simulants(base_config: LayeredConfigTree) -> None:
     """Test that untracked simulants are always included in event indices, and are
     basically treated the same as any other simulant."""
     base_config.update({"configuration": {"time": {"standard_step_size": 7}}})
@@ -451,10 +495,11 @@ def test_untracked_simulants(SimulationContext, base_config):
 
     for _ in range(2):
         take_step_and_validate(sim, listener, full_pop_index, expected_step_size_days=3)
+        assert step_modifier_component.ts_pipeline_value is not None
         assert step_modifier_component.ts_pipeline_value.index.equals(full_pop_index)
 
 
-def test_move_simulants_to_end(SimulationContext, base_config):
+def test_move_simulants_to_end(base_config: LayeredConfigTree) -> None:
     """Ensure that we move simulants' next event time to the end of the simulation, if they are even."""
     base_config.update({"configuration": {"time": {"standard_step_size": 7}}})
     listener = Listener("listener")
@@ -470,6 +515,7 @@ def test_move_simulants_to_end(SimulationContext, base_config):
     odds = get_index_by_parity(full_pop_index, "odds")
     evens = get_index_by_parity(full_pop_index, "evens")
     take_step_and_validate(sim, listener, full_pop_index, expected_step_size_days=3)
+    assert step_modifier_component.ts_pipeline_value is not None
     assert step_modifier_component.ts_pipeline_value.index.equals(full_pop_index)
     assert np.all(
         sim._clock.simulant_next_event_times(evens)
@@ -478,10 +524,11 @@ def test_move_simulants_to_end(SimulationContext, base_config):
 
     for _ in range(2):
         take_step_and_validate(sim, listener, odds, expected_step_size_days=3)
+        assert step_modifier_component.ts_pipeline_value is not None
         assert step_modifier_component.ts_pipeline_value.index.equals(odds)
 
 
-def test_step_size_post_processor(builder):
+def test_step_size_post_processor(builder: MagicMock) -> None:
     """Test that step size post-processor chooses the minimum modified step, or minimum global step,
     whichever is larger."""
     index = pd.Index(range(10))
@@ -512,7 +559,7 @@ def test_step_size_post_processor(builder):
 
 
 @pytest.mark.parametrize("end_day", [31, 23])
-def test_time_steps_remaining(SimulationContext, base_config, end_day):
+def test_time_steps_remaining(base_config: LayeredConfigTree, end_day: int) -> None:
     UselessComponent = MockGenericComponent("Placeholder")
     base_config.update(
         {
@@ -537,7 +584,7 @@ def test_time_steps_remaining(SimulationContext, base_config, end_day):
 
 
 @pytest.mark.parametrize("end", [31, 23])
-def test_simple_clock_time_steps_remaining(SimulationContext, base_config, end):
+def test_simple_clock_time_steps_remaining(base_config: LayeredConfigTree, end: int) -> None:
     UselessComponent = MockGenericComponent("Placeholder")
     base_config.update(
         {
