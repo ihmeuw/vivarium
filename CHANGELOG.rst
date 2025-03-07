@@ -1,3 +1,7 @@
+**3.3.8 - TBD/TBD/TBD**
+
+  - Type-hinting: Fix mypy errors in tests/framework/test_time.py
+
 **3.3.7 - 02/27/25**
 
   - Change Event class to a frozen dataclass
