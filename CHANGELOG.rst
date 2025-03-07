@@ -1,3 +1,7 @@
+**3.3.8 - 03/07/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/population/test_manager.py
+
 **3.3.7 - 02/27/25**
 
   - Change Event class to a frozen dataclass
