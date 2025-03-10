@@ -1,6 +1,10 @@
-**3.3.8 - 03/04/25**
+**3.3.9 - 03/10/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/results/helpers.py
+
+**3.3.8 - 03/10/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/test_utilities.py
 
 **3.3.7 - 02/27/25**
 
