@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
+from pytest_mock import MockerFixture
 
 from tests.helpers import ColumnCreator
 from vivarium import InteractiveContext
@@ -14,7 +15,7 @@ from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
 from vivarium.framework.resource import Resource
 from vivarium.framework.state_machine import Machine, State, Transition
-from vivarium.types import ClockTime, LookupTableData
+from vivarium.types import ClockTime, DataInput, LookupTableData
 
 
 def test_initialize_allowing_self_transition() -> None:
@@ -37,25 +38,25 @@ def test_initialize_with_initial_state() -> None:
 
 @pytest.mark.parametrize("weights_type", ["artifact", "callable", "scalar"])
 def test_initialize_with_scalar_initialization_weights(
-    base_config: LayeredConfigTree, weights_type: str
+    base_config: LayeredConfigTree, weights_type: str, mocker: MockerFixture
 ) -> None:
     state_weights = {"state_a.weights": 0.2, "state_b.weights": 0.8}
 
     def mock_load(key: str) -> float:
-        return state_weights.get(key)
+        return state_weights[key]
 
     base_config.update(
         {"population": {"population_size": 10000}, "randomness": {"key_columns": []}}
     )
 
-    def initialization_weights(
-        key: str,
-    ) -> LookupTableData | str | Callable[[Builder], LookupTableData]:
-        return {
+    def initialization_weights(key: str) -> DataInput:
+        weights = {
             "artifact": key,
             "callable": lambda _: state_weights[key],
             "scalar": state_weights[key],
         }[weights_type]
+        assert isinstance(weights, (str, float)) or callable(weights)
+        return weights
 
     state_a = State("a", initialization_weights=initialization_weights("state_a.weights"))
     state_b = State("b", initialization_weights=initialization_weights("state_b.weights"))
@@ -63,7 +64,9 @@ def test_initialize_with_scalar_initialization_weights(
     simulation = InteractiveContext(
         components=[machine], configuration=base_config, setup=False
     )
-    simulation._builder.data.load = mock_load
+    mocker.patch(
+        "vivarium.framework.artifact.manager.ArtifactInterface.load", side_effect=mock_load
+    )
     simulation.setup()
 
     state = simulation.get_population()["state"]
@@ -73,7 +76,9 @@ def test_initialize_with_scalar_initialization_weights(
 
 
 @pytest.mark.parametrize("weights_type", ["artifact", "callable", "dataframe"])
-def test_initialize_with_array_initialization_weights(weights_type: str) -> None:
+def test_initialize_with_array_initialization_weights(
+    weights_type: str, mocker: MockerFixture
+) -> None:
     state_weights = {
         "state_a.weights": pd.DataFrame(
             {"test_column_1": [0, 1, 2], "value": [0.2, 0.7, 0.4]}
@@ -84,7 +89,7 @@ def test_initialize_with_array_initialization_weights(weights_type: str) -> None
     }
 
     def mock_load(key: str) -> pd.DataFrame:
-        return state_weights.get(key)
+        return state_weights[key]
 
     config = build_simulation_configuration()
     config.update(
@@ -101,12 +106,14 @@ def test_initialize_with_array_initialization_weights(weights_type: str) -> None
 
     def initialization_weights(
         key: str,
-    ) -> LookupTableData | str | Callable[[Builder], LookupTableData]:
-        return {
+    ) -> DataInput:
+        weights = {
             "artifact": key,
             "callable": lambda _: state_weights[key],
             "dataframe": state_weights[key],
         }[weights_type]
+        assert isinstance(weights, (str, pd.DataFrame)) or callable(weights)
+        return weights
 
     state_a = State("a", initialization_weights=initialization_weights("state_a.weights"))
     state_b = State("b", initialization_weights=initialization_weights("state_b.weights"))
@@ -114,7 +121,9 @@ def test_initialize_with_array_initialization_weights(weights_type: str) -> None
     simulation = InteractiveContext(
         components=[machine, ColumnCreator()], configuration=config, setup=False
     )
-    simulation._builder.data.load = mock_load
+    mocker.patch(
+        "vivarium.framework.artifact.manager.ArtifactInterface.load", side_effect=mock_load
+    )
     simulation.setup()
 
     pop = simulation.get_population()[["state", "test_column_1"]]
