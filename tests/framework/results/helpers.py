@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import itertools
 
 import numpy as np
@@ -9,6 +11,8 @@ from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.observer import Observer
+from vivarium.framework.results.stratification import Stratification
+from vivarium.types import ScalarMapper, VectorMapper
 
 NAME = "hogwarts_house"
 NAME_COLUMNS = ["first_name", "last_name"]
@@ -117,7 +121,7 @@ class HousePointsObserver(Observer):
         builder.results.register_adding_observation(
             name="house_points",
             aggregator_sources=["house_points"],
-            aggregator=sum,
+            aggregator=lambda df: df.sum(),
             requires_columns=[
                 "house_points",
             ],
@@ -133,7 +137,7 @@ class FullyFilteredHousePointsObserver(Observer):
             name="house_points",
             pop_filter="tracked==True & power_level=='one billion'",
             aggregator_sources=["house_points"],
-            aggregator=sum,
+            aggregator=lambda df: df.sum(),
             requires_columns=[
                 "house_points",
             ],
@@ -147,7 +151,7 @@ class QuidditchWinsObserver(Observer):
         builder.results.register_adding_observation(
             name="quidditch_wins",
             aggregator_sources=["quidditch_wins"],
-            aggregator=sum,
+            aggregator=lambda df: df.sum(),
             excluded_stratifications=["student_house", "power_level_group"],
             additional_stratifications=["familiar"],
             requires_columns=[
@@ -164,7 +168,7 @@ class NoStratificationsQuidditchWinsObserver(Observer):
         builder.results.register_adding_observation(
             name="no_stratifications_quidditch_wins",
             aggregator_sources=["quidditch_wins"],
-            aggregator=sum,
+            aggregator=lambda df: df.sum(),
             excluded_stratifications=["student_house", "power_level_group"],
             requires_columns=[
                 "quidditch_wins",
@@ -184,10 +188,10 @@ class MagicalAttributesObserver(Observer):
             name="magical_attributes",
             aggregator=self._get_magical_attributes,
             excluded_stratifications=["student_house"],
-            results_formatter=lambda *_: None,
+            results_formatter=lambda *_: pd.DataFrame(),
         )
 
-    def _get_magical_attributes(self, _: pd.DataFrame) -> pd.Series:
+    def _get_magical_attributes(self, _: pd.DataFrame) -> pd.Series[float]:
         """Increase each level by one per time step"""
         return pd.Series([1.0, 1.0], ["spell_power", "potion_power"])
 
@@ -216,7 +220,7 @@ class CatBombObserver(Observer):
             aggregator=len,
         )
 
-    def update_cats(self, existing_df, new_df):
+    def update_cats(self, existing_df: pd.DataFrame, new_df: pd.DataFrame) -> pd.DataFrame:
         no_cats_mask = existing_df["value"] == 0
         updated_df = existing_df
         updated_df.loc[no_cats_mask, "value"] = new_df["value"]
@@ -229,25 +233,27 @@ class ValedictorianObserver(Observer):
     have the same exam scores and so the valedictorian is chosen randomly.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.valedictorians = []
+        self.valedictorians: list[int] = []
 
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_unstratified_observation(
             name="valedictorian",
             requires_columns=["event_time", "student_id", "exam_score"],
-            results_gatherer=self.choose_valedictorian,
+            results_gatherer=self.choose_valedictorian,  # type: ignore [arg-type]
             results_updater=self.update_valedictorian,
         )
 
-    def choose_valedictorian(self, df):
+    def choose_valedictorian(self, df: pd.DataFrame) -> pd.DataFrame:
         eligible_students = df.loc[~df["student_id"].isin(self.valedictorians), "student_id"]
-        valedictorian = RNG.choice(eligible_students)
+        valedictorian: int = RNG.choice(eligible_students)
         self.valedictorians.append(valedictorian)
         return df[df["student_id"] == valedictorian]
 
-    def update_valedictorian(self, _existing_df, new_df):
+    def update_valedictorian(
+        self, _existing_df: pd.DataFrame, new_df: pd.DataFrame
+    ) -> pd.DataFrame:
         return new_df
 
 
@@ -287,12 +293,12 @@ def results_formatter(
     return results[other_cols + [VALUE_COLUMN]].sort_index().reset_index()
 
 
-def sorting_hat_vectorized(state_table: pd.DataFrame) -> pd.Series:
+def sorting_hat_vectorized(state_table: pd.DataFrame) -> pd.Series[str]:
     sorted_series = state_table.apply(sorting_hat_serial, axis=1)
     return sorted_series
 
 
-def sorting_hat_serial(simulant_row: pd.Series) -> str:
+def sorting_hat_serial(simulant_row: pd.Series[str]) -> str:
     first_name = simulant_row[0]
     last_name = simulant_row[1]
     if first_name == "harry":
@@ -304,14 +310,20 @@ def sorting_hat_serial(simulant_row: pd.Series) -> str:
     return "hufflepuff"
 
 
-def sorting_hat_bad_mapping(simulant_row: pd.Series) -> str:
+def sorting_hat_bad_mapping(simulant_row: pd.Series[str]) -> str:
     # Return something not in CATEGORIES
     return "pancakes"
 
 
 def verify_stratification_added(
-    stratification_list, name, sources, categories, excluded_categories, mapper, is_vectorized
-):
+    stratification_list: list[Stratification],
+    name: str,
+    sources: list[str],
+    categories: list[str],
+    excluded_categories: list[str],
+    mapper: VectorMapper | ScalarMapper,
+    is_vectorized: bool,
+) -> bool:
     """Verify that a Stratification object is in `stratification_list`"""
     matching_stratification_found = False
     for stratification in stratification_list:  # noqa
@@ -331,7 +343,7 @@ def verify_stratification_added(
 
 
 # Mock for get_value call for Pipelines, returns a str instead of a Pipeline
-def mock_get_value(self, name: str):
+def mock_get_value(self: Builder, name: str) -> str:
     if not isinstance(name, str):
         raise TypeError("Passed a non-string type to mock get_value(), check your pipelines.")
     return name
