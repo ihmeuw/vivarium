@@ -1,6 +1,8 @@
+
 **3.3.9 - 03/10/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/results/helpers.py
+   - Type-hinting: Fix mypy errors in tests/framework/population/test_manager.py
 
 **3.3.8 - 03/10/25**
 
