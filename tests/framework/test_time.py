@@ -96,13 +96,12 @@ def pipeline_by_parity(
     sim: SimulationContext, step_modifiers: dict[str, int], parity: str
 ) -> pd.Series[Any]:
     if parity == "all":
-        modified_series = pd.concat(
+        modified_series: pd.Series[float] = pd.concat(
             [
                 pipeline_by_parity(sim, step_modifiers, "evens"),
                 pipeline_by_parity(sim, step_modifiers, "odds"),
             ]
         ).sort_index()
-        assert isinstance(modified_series, pd.Series)
         return modified_series
     return pd.Series(
         from_yearly(1.75, pd.Timedelta(days=step_modifiers[parity])),
