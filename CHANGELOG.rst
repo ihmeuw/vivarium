@@ -1,5 +1,6 @@
-**3.3.10 - TBD/TBD/TBD**
+**3.3.10 - 03/11/25**
 
+  - Type-hinting: Fix mypy errors in tests/framework/test_state_machine.py
   - Type-hinting: Fix mypy errors in tests/framework/test_time.py
 
 **3.3.9 - 03/10/25**
