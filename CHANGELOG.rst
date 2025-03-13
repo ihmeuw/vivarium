@@ -1,3 +1,7 @@
+**3.3.11 - 03/13/25**
+
+  - Bugfix: Raise an error in InteractiveContext if a requested pipeline does not exist
+
 **3.3.10 - 03/11/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/test_state_machine.py

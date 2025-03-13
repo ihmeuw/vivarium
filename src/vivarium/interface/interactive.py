@@ -182,6 +182,8 @@ class InteractiveContext(SimulationContext):
 
     def get_value(self, value_pipeline_name: str) -> Pipeline:
         """Get the value pipeline associated with the given name."""
+        if value_pipeline_name not in self.list_values():
+            raise ValueError(f"No value pipeline '{value_pipeline_name}' registered.")
         return self._values.get_value(value_pipeline_name)
 
     def list_events(self) -> list[str]:
