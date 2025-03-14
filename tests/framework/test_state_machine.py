@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -11,11 +9,10 @@ from pytest_mock import MockerFixture
 from tests.helpers import ColumnCreator
 from vivarium import InteractiveContext
 from vivarium.framework.configuration import build_simulation_configuration
-from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
 from vivarium.framework.resource import Resource
 from vivarium.framework.state_machine import Machine, State, Transition
-from vivarium.types import ClockTime, DataInput, LookupTableData
+from vivarium.types import ClockTime, DataInput
 
 
 def test_initialize_allowing_self_transition() -> None:
