@@ -4,7 +4,7 @@ from vivarium import InteractiveContext
 from vivarium.framework.values import Pipeline
 
 
-def test_list_values():
+def test_list_values() -> None:
     sim = InteractiveContext()
     # a 'simulant_step_size' value is created by default upon setup
     assert sim.list_values() == ["simulant_step_size"]
