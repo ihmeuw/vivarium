@@ -1,4 +1,4 @@
-**3.3.12 - 03/14/25**
+**3.3.12 - 03/17/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/test_plugins.py
 
