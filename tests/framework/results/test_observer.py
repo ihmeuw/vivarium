@@ -1,6 +1,6 @@
 import pytest
-from pytest_mock import MockerFixture
 from layered_config_tree.main import LayeredConfigTree
+from pytest_mock import MockerFixture
 
 from vivarium.framework.engine import Builder
 from vivarium.framework.results.observer import Observer
@@ -37,7 +37,9 @@ def test_observer_instantiation() -> None:
         (True, None),
     ],
 )
-def test_set_results_dir(is_interactive: bool, results_dir: str, mocker: MockerFixture) -> None:
+def test_set_results_dir(
+    is_interactive: bool, results_dir: str, mocker: MockerFixture
+) -> None:
     builder = mocker.Mock()
     if is_interactive:
         builder.configuration = LayeredConfigTree()
