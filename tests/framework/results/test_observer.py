@@ -38,7 +38,7 @@ def test_observer_instantiation() -> None:
     ],
 )
 def test_set_results_dir(
-    is_interactive: bool, results_dir: str, mocker: MockerFixture
+    is_interactive: bool, results_dir: str | None, mocker: MockerFixture
 ) -> None:
     builder = mocker.Mock()
     if is_interactive:
