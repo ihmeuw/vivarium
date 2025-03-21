@@ -84,14 +84,13 @@ def test_stratified_observation__aggregate(
     )
     if aggregator == len:
         if stratifications:
-            stratification_idx: set[tuple[str, str] | str] = (
+            stratification_idx: set[tuple[str, ...] | str] = (
                 set(itertools.product(*(FAMILIARS, HOUSE_CATEGORIES)))
                 if "house" in stratifications
                 else set(FAMILIARS)
             )
             assert set(aggregates.index) == stratification_idx
-            check = aggregates.values == len(BASE_POPULATION) / groups.ngroups
-            assert isinstance(check, pd.Series)
+            check = pd.Series(aggregates.values == len(BASE_POPULATION) / groups.ngroups)
             assert check.all()
         else:
             assert len(aggregates.values) == 1

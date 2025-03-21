@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import re
+from collections.abc import Callable
 
 import numpy as np
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from tests.framework.results.helpers import (
     HOUSE_CATEGORIES,
@@ -36,7 +40,10 @@ from vivarium.framework.results.stratification import (
     ],
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
-def test_stratification(mapper, is_vectorized):
+def test_stratification(
+    mapper: Callable[[pd.DataFrame], pd.Series[str]] | Callable[[pd.Series[str]], str],
+    is_vectorized: bool,
+) -> None:
     my_stratification = Stratification(
         name=NAME,
         sources=NAME_COLUMNS,
@@ -46,6 +53,7 @@ def test_stratification(mapper, is_vectorized):
         is_vectorized=is_vectorized,
     )
     output = my_stratification.stratify(STUDENT_TABLE)
+    assert isinstance(output, pd.Series)
     assert output.eq(STUDENT_HOUSES).all()
 
 
@@ -90,7 +98,12 @@ def test_stratification(mapper, is_vectorized):
         "empty_categories",
     ],
 )
-def test_stratification_init_raises(sources, categories, mapper, msg_match):
+def test_stratification_init_raises(
+    sources: list[str],
+    categories: list[str],
+    mapper: Callable[[pd.DataFrame], pd.Series[str]] | Callable[[pd.Series[str]], str],
+    msg_match: str,
+) -> None:
     with pytest.raises(ValueError, match=re.escape(msg_match)):
         Stratification(NAME, sources, categories, [], mapper, True)
 
@@ -143,8 +156,12 @@ def test_stratification_init_raises(sources, categories, mapper, msg_match):
     ],
 )
 def test_stratification_call_raises(
-    sources, mapper, is_vectorized, expected_exception, error_match
-):
+    sources: list[str],
+    mapper: Callable[[pd.DataFrame], pd.Series[str]] | Callable[[pd.Series[str]], str],
+    is_vectorized: bool,
+    expected_exception: type[Exception],
+    error_match: str,
+) -> None:
     my_stratification = Stratification(
         NAME, sources, HOUSE_CATEGORIES, [], mapper, is_vectorized
     )
@@ -153,7 +170,9 @@ def test_stratification_call_raises(
 
 
 @pytest.mark.parametrize("default_stratifications", [["age", "sex"], ["age"], []])
-def test_setting_default_stratifications(default_stratifications, mocker):
+def test_setting_default_stratifications(
+    default_stratifications: list[str], mocker: MockerFixture
+) -> None:
     """Test that default stratifications are set as expected."""
     mgr = ResultsManager()
     builder = mocker.Mock()
@@ -164,7 +183,7 @@ def test_setting_default_stratifications(default_stratifications, mocker):
     assert mgr._results_context.default_stratifications == default_stratifications
 
 
-def test_get_mapped_column_name():
+def test_get_mapped_column_name() -> None:
     assert get_mapped_col_name("foo") == "foo_mapped_values"
 
 
@@ -179,5 +198,5 @@ def test_get_mapped_column_name():
         ("_mapped_values_foo_mapped_values", "_mapped_values_foo"),
     ],
 )
-def test_get_original_col_name(col_name, expected):
+def test_get_original_col_name(col_name: str, expected: str) -> None:
     assert get_original_col_name(col_name) == expected
