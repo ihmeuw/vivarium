@@ -2,6 +2,7 @@
 
   - Type-hinting: Fix mypy errors in tests/framework/results/test_observer.py
   - Type-hinting: Fix mypy errors in tests/framework/results/test_stratificaton.py
+  - Type-hinting: Fix mypy errors in tests/framework/results/test_pbservation.py
 
 **3.3.12 - 03/17/25**
 
