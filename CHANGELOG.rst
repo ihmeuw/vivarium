@@ -1,3 +1,7 @@
+**3.3.13 - 03/21/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/results/test_observer.py
+
 **3.3.12 - 03/17/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/test_plugins.py
