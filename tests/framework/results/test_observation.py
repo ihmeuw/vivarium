@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import itertools
+from typing import Callable
 
 import numpy as np
 import pandas as pd
@@ -15,7 +18,7 @@ from vivarium.framework.results.observation import (
 
 
 @pytest.fixture
-def stratified_observation():
+def stratified_observation() -> StratifiedObservation:
     return StratifiedObservation(
         name="stratified_observation_name",
         pop_filter="",
@@ -29,7 +32,7 @@ def stratified_observation():
 
 
 @pytest.fixture
-def concatenating_observation():
+def concatenating_observation() -> ConcatenatingObservation:
     return ConcatenatingObservation(
         name="concatenating_observation_name",
         pop_filter="",
@@ -56,8 +59,11 @@ def concatenating_observation():
     ],
 )
 def test_stratified_observation__aggregate(
-    stratifications, aggregator_sources, aggregator, stratified_observation
-):
+    stratifications: tuple[str, ...],
+    aggregator_sources: list[str],
+    aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
+    stratified_observation: StratifiedObservation,
+) -> None:
     """Test that we are aggregating correctly. There are some nuances here:
     - If aggregator_resources is provided, then simply .apply it to the groups passed in.
     - If no aggregator_resources are provided, then we want a full aggregation of the groups.
@@ -72,19 +78,21 @@ def test_stratified_observation__aggregate(
         stratifications=stratifications, filtered_pop=filtered_pop
     )
     aggregates = stratified_observation._aggregate(
-        pop_groups=groups,
+        pop_groups=groups,  # type: ignore [arg-type]
         aggregator_sources=aggregator_sources,
         aggregator=aggregator,
     )
     if aggregator == len:
         if stratifications:
-            stratification_idx = (
+            stratification_idx: set[tuple[str, str] | str] = (
                 set(itertools.product(*(FAMILIARS, HOUSE_CATEGORIES)))
                 if "house" in stratifications
                 else set(FAMILIARS)
             )
             assert set(aggregates.index) == stratification_idx
-            assert (aggregates.values == len(BASE_POPULATION) / groups.ngroups).all()
+            check = aggregates.values == len(BASE_POPULATION) / groups.ngroups
+            assert isinstance(check, pd.Series)
+            assert check.all()
         else:
             assert len(aggregates.values) == 1
             assert aggregates.values[0] == len(BASE_POPULATION)
@@ -98,7 +106,9 @@ def test_stratified_observation__aggregate(
                 else set(FAMILIARS)
             )
             assert set(aggregates.index) == stratification_idx
-            assert (aggregates.sum() / groups.ngroups).equals(expected)
+            final = aggregates.sum() / groups.ngroups
+            assert isinstance(final, pd.Series)
+            assert final.equals(expected)
         else:
             assert len(aggregates.values) == 1
             for col in ["power_level", "tracked"]:
@@ -114,7 +124,9 @@ def test_stratified_observation__aggregate(
         ),
     ],
 )
-def test_stratified_observation__format(aggregates, stratified_observation):
+def test_stratified_observation__format(
+    aggregates: pd.DataFrame | pd.Series[float], stratified_observation: StratifiedObservation
+) -> None:
     new_aggregates = stratified_observation._format(aggregates=aggregates)
     assert isinstance(new_aggregates, pd.DataFrame)
     if isinstance(aggregates, pd.Series):
@@ -142,7 +154,9 @@ def test_stratified_observation__format(aggregates, stratified_observation):
         ).query('type!="zeros"'),
     ],
 )
-def test_stratified_observation__expand_index(aggregates, stratified_observation):
+def test_stratified_observation__expand_index(
+    aggregates: pd.DataFrame, stratified_observation: StratifiedObservation
+) -> None:
     full_idx_aggregates = stratified_observation._expand_index(aggregates=aggregates)
     # NOTE: pd.MultiIndex is a subclass of pd.Index, i.e. check for this first!
     if isinstance(aggregates.index, pd.MultiIndex):
@@ -169,7 +183,9 @@ def test_stratified_observation__expand_index(aggregates, stratified_observation
         (),
     ],
 )
-def test_stratified_observation_results_gatherer(stratifications, stratified_observation):
+def test_stratified_observation_results_gatherer(
+    stratifications: tuple[str, ...], stratified_observation: StratifiedObservation
+) -> None:
     ctx = ResultsContext()
     # Append the post-stratified columns
     filtered_population = BASE_POPULATION.copy()
@@ -202,7 +218,7 @@ def test_stratified_observation_results_gatherer(stratifications, stratified_obs
         pd.DataFrame({"another_value": [3.0, 4.0], "yet_another_value": [5.0, 6.0]}),
     ],
 )
-def test_adding_observation_results_updater(new_observations):
+def test_adding_observation_results_updater(new_observations: pd.DataFrame) -> None:
     existing_results = pd.DataFrame({"value": [0.0, 0.0]})
     obs = AddingObservation(
         name="adding_observation_name",
@@ -245,8 +261,10 @@ def test_adding_observation_results_updater(new_observations):
     ],
 )
 def test_concatenating_observation_results_updater(
-    new_observations, expected_results, concatenating_observation
-):
+    new_observations: pd.DataFrame,
+    expected_results: pd.DataFrame,
+    concatenating_observation: ConcatenatingObservation,
+) -> None:
     existing_results = pd.DataFrame({"value": ["zero", "one"]})
     updated_results = concatenating_observation.results_updater(
         existing_results, new_observations
