@@ -4,6 +4,8 @@ from types import MethodType
 import numpy as np
 import pandas as pd
 import pytest
+import pytest_mock
+from _pytest.logging import LogCaptureFixture
 from layered_config_tree.main import LayeredConfigTree
 from loguru import logger
 from pandas.api.types import CategoricalDtype
@@ -40,6 +42,8 @@ from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.results.observation import AddingObservation
 from vivarium.interface.interactive import InteractiveContext
+from vivarium.types import VectorMapper, ScalarMapper
+from typing import Sequence
 
 
 @pytest.mark.parametrize(
@@ -66,13 +70,13 @@ from vivarium.interface.interactive import InteractiveContext
     ],
 )
 def test__get_stratifications(
-    stratifications,
-    default_stratifications,
-    additional_stratifications,
-    excluded_stratifications,
-    expected_stratifications,
-    mocker,
-):
+    stratifications: list[str],
+    default_stratifications: list[str],
+    additional_stratifications: list[str],
+    excluded_stratifications: list[str],
+    expected_stratifications: list[str],
+    mocker: pytest_mock.MockFixture,
+) -> None:
     ctx = ResultsContext()
     ctx.default_stratifications = default_stratifications
     mgr = ResultsManager()
@@ -120,8 +124,14 @@ def test__get_stratifications(
     ids=["vectorized_mapper", "non-vectorized_mapper", "excluded_categories"],
 )
 def test_register_stratification_no_pipelines(
-    name, sources, categories, excluded_categories, mapper, is_vectorized, mocker
-):
+    name: str,
+    sources: list[str],
+    categories: list[str],
+    excluded_categories: list[str],
+    mapper: VectorMapper | ScalarMapper,
+    is_vectorized: bool,
+    mocker: pytest_mock.MockFixture,
+) -> None:
     mgr = ResultsManager()
     builder = mocker.Mock()
     builder.configuration.stratification = LayeredConfigTree(
@@ -170,8 +180,13 @@ def test_register_stratification_no_pipelines(
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
 def test_register_stratification_with_pipelines(
-    name, sources, categories, mapper, is_vectorized, mocker
-):
+    name: str,
+    sources: list[str],
+    categories: list[str],
+    mapper: VectorMapper | ScalarMapper,
+    is_vectorized: bool,
+    mocker: pytest_mock.MockFixture,
+) -> None:
     mgr = ResultsManager()
     builder = mocker.Mock()
     builder.configuration.stratification = LayeredConfigTree(
@@ -224,8 +239,13 @@ def test_register_stratification_with_pipelines(
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
 def test_register_stratification_with_column_and_pipelines(
-    name, sources, categories, mapper, is_vectorized, mocker
-):
+    name: str,
+    sources: list[str],
+    categories: list[str],
+    mapper: VectorMapper | ScalarMapper,
+    is_vectorized: bool,
+    mocker: pytest_mock.MockFixture,
+) -> None:
     mgr = ResultsManager()
     builder = mocker.Mock()
     builder.configuration.stratification = LayeredConfigTree(
@@ -271,7 +291,9 @@ def test_register_stratification_with_column_and_pipelines(
     [(BIN_SILLY_BIN_EDGES, BIN_LABELS[1:]), (BIN_SILLY_BIN_EDGES[1:], BIN_LABELS)],
     ids=["too_many_bins", "too_many_labels"],
 )
-def test_register_binned_stratification_raises_bins_labels_mismatch(bins, labels):
+def test_register_binned_stratification_raises_bins_labels_mismatch(
+    bins: list[float], labels: list[str]
+) -> None:
     mgr = ResultsManager()
     with pytest.raises(
         ValueError,
@@ -287,7 +309,7 @@ def test_register_binned_stratification_raises_bins_labels_mismatch(bins, labels
         )
 
 
-def test_binned_stratification_mapper():
+def test_binned_stratification_mapper() -> None:
     mgr = ResultsManager()
     mgr.logger = logger
     mgr.register_binned_stratification(
@@ -320,8 +342,13 @@ def test_binned_stratification_mapper():
     ],
 )
 def test_add_observation_nop_stratifications(
-    default, additional, excluded, match, mocker, caplog
-):
+    default: list[str],
+    additional: list[str],
+    excluded: list[str],
+    match: list[str],
+    mocker: pytest_mock.MockFixture,
+    caplog: LogCaptureFixture,
+) -> None:
     mgr = ResultsManager()
     builder = mocker.Mock()
     mgr.setup(builder)
@@ -346,7 +373,7 @@ def test_add_observation_nop_stratifications(
         assert m in caplog.text
 
 
-def test_setting_default_stratifications_at_setup(mocker):
+def test_setting_default_stratifications_at_setup(mocker: pytest_mock.MockFixture) -> None:
     """Test that set default stratifications happens at setup"""
     mgr = ResultsManager()
     builder = mocker.Mock()
@@ -365,7 +392,7 @@ def test_setting_default_stratifications_at_setup(mocker):
 ################################
 
 
-def test__raw_results_initialized_as_empty_dict(mocker):
+def test__raw_results_initialized_as_empty_dict(mocker: pytest_mock.MockFixture) -> None:
     """Test that raw results are initialized as an empty dictionary"""
     mgr = ResultsManager()
     builder = mocker.Mock()
@@ -373,7 +400,7 @@ def test__raw_results_initialized_as_empty_dict(mocker):
     assert mgr._raw_results == {}
 
 
-def test_stratified__raw_results_initialization():
+def test_stratified__raw_results_initialization() -> None:
     """Test that raw results are being initialized correctly. We expect a dictionary
     of pd.DataFrames. Each key of the dictionary is an observed measure name and
     the corresponding value is a zeroed-out multiindex pd.DataFrame of that observer's
@@ -419,7 +446,7 @@ def test_stratified__raw_results_initialization():
     assert raw_results["quidditch_wins"].index.equals(expected_quidditch_idx)
 
 
-def test_no_stratifications__raw_results_initialization():
+def test_no_stratifications__raw_results_initialization() -> None:
     """Test that Observers requesting no stratifications result in a
     single-row DataFrame with 'value' of zero and index labeled 'all'
     """
@@ -432,7 +459,7 @@ def test_no_stratifications__raw_results_initialization():
     assert raw_results.index.equals(pd.Index(["all"]))
 
 
-def test_observers_with_missing_stratifications_fail():
+def test_observers_with_missing_stratifications_fail() -> None:
     """Test that an error is raised if an Observer requests a stratification
     that never actually gets registered.
     """
@@ -448,7 +475,7 @@ def test_observers_with_missing_stratifications_fail():
         InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
 
 
-def test_unused_stratifications_are_logged(caplog):
+def test_unused_stratifications_are_logged(caplog: LogCaptureFixture) -> None:
     """Test that we issue a logger.info warning if Stratifications are registered
     but never actually used by an Observer
 
@@ -476,7 +503,7 @@ def test_unused_stratifications_are_logged(caplog):
     assert "['student_house']" in log_split[1]
 
 
-def test_stratified_observation_results():
+def test_stratified_observation_results() -> None:
     components = [
         Hogwarts(),
         CatBombObserver(),
@@ -496,7 +523,7 @@ def test_stratified_observation_results():
     assert expected.sort_values().equals(sim.get_results()["cat_bomb"]["value"].sort_values())
 
 
-def test_unstratified_observation_results():
+def test_unstratified_observation_results() -> None:
     components = [
         Hogwarts(),
         ValedictorianObserver(),
@@ -513,7 +540,7 @@ def test_unstratified_observation_results():
     )
 
 
-def test_concatenating_observation_results():
+def test_concatenating_observation_results() -> None:
     components = [
         Hogwarts(),
         ExamScoreObserver(),
@@ -533,7 +560,7 @@ def test_concatenating_observation_results():
     )
 
 
-def test_adding_observation_results():
+def test_adding_observation_results() -> None:
     """Test that adding observation results are being updated correctly."""
 
     def _check_house_points(pop: pd.DataFrame, step_number: int) -> None:
@@ -591,7 +618,7 @@ def test_adding_observation_results():
     _check_quidditch_wins(pop, step_number=2)
 
 
-def test_concatenating_observation_updates():
+def test_concatenating_observation_updates() -> None:
     """Test that concatenating observation raw results are being updated correctly."""
     components = [
         Hogwarts(),
@@ -612,7 +639,7 @@ def test_concatenating_observation_updates():
     )
 
 
-def test_update__raw_results_fully_filtered_pop():
+def test_update__raw_results_fully_filtered_pop() -> None:
     components = [
         Hogwarts(),
         FullyFilteredHousePointsObserver(),
@@ -627,7 +654,7 @@ def test_update__raw_results_fully_filtered_pop():
     assert (sim._results._raw_results["house_points"][VALUE_COLUMN] == 0).all()
 
 
-def test_update__raw_results_no_stratifications():
+def test_update__raw_results_no_stratifications() -> None:
     components = [Hogwarts(), NoStratificationsQuidditchWinsObserver()]
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     sim.step()
@@ -640,7 +667,7 @@ def test_update__raw_results_no_stratifications():
     assert raw_results.loc["all"][VALUE_COLUMN] == pop["quidditch_wins"].sum() * 2
 
 
-def test_update__raw_results_extra_columns():
+def test_update__raw_results_extra_columns() -> None:
     """Test that raw results are updated correctly when the aggregator return
     contains multiple columns (i.e. not just a single 'value' column)
     """
