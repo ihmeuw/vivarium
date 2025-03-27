@@ -43,7 +43,6 @@ from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.results.observation import AddingObservation
 from vivarium.interface.interactive import InteractiveContext
 from vivarium.types import VectorMapper, ScalarMapper
-from typing import Sequence
 
 
 @pytest.mark.parametrize(
@@ -377,12 +376,12 @@ def test_setting_default_stratifications_at_setup(mocker: pytest_mock.MockFixtur
     """Test that set default stratifications happens at setup"""
     mgr = ResultsManager()
     builder = mocker.Mock()
-    mgr._results_context.set_default_stratifications = mocker.Mock()
-    mgr._results_context.set_default_stratifications.assert_not_called()
+    mgr._results_context.set_default_stratifications = mocker.Mock()  # type: ignore[method-assign]
+    mgr._results_context.set_default_stratifications.assert_not_called()  # type: ignore[attr-defined]
 
     mgr.setup(builder)
 
-    mgr._results_context.set_default_stratifications.assert_called_once_with(
+    mgr._results_context.set_default_stratifications.assert_called_once_with(  # type: ignore[attr-defined]
         builder.configuration.stratification.default
     )
 
@@ -426,14 +425,14 @@ def test_stratified__raw_results_initialization() -> None:
     # Check that indexes are as expected
 
     # Multi-stratification index is type MultiIndex where each layer dtype is Category
-    expected_house_points_idx = pd.MultiIndex.from_product(
+    expected_house_points_multi_idx = pd.MultiIndex.from_product(
         [STUDENT_HOUSES_LIST, POWER_LEVEL_GROUP_LABELS],
         names=["student_house", "power_level"],
     )
     # HACK: We need to set the levels to be CategoricalDtype but you can't set that
     # directly on the MultiIndex. Convert to df, set type, convert back
     expected_house_points_idx = (
-        pd.DataFrame(index=expected_house_points_idx)
+        pd.DataFrame(index=expected_house_points_multi_idx)
         .reset_index()
         .astype(CategoricalDtype)
         .set_index(["student_house", "power_level"])
