@@ -306,6 +306,8 @@ def test_register_binned_stratification_raises_bins_labels_mismatch(
             excluded_categories=None,
             target_type="column",
         )
+
+
 from vivarium.types import VectorMapper
 
 
