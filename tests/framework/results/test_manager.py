@@ -42,23 +42,23 @@ from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.results.observation import AddingObservation
 from vivarium.interface.interactive import InteractiveContext
-from vivarium.types import VectorMapper, ScalarMapper
+from vivarium.types import ScalarMapper, VectorMapper
 
 
 @pytest.mark.parametrize(
     "stratifications, default_stratifications, additional_stratifications, excluded_stratifications, expected_stratifications",
     [
-        ([], [], [], [], ()),
+        ([], [], [], [], []),
         (
             [],
             ["age", "sex"],
             ["handedness"],
             ["age"],
-            ("sex", "handedness"),
+            ["sex", "handedness"],
         ),
-        ([], ["age", "sex"], [], ["age", "sex"], ()),
-        ([], ["age"], [], ["bogus_exclude_column"], ("age",)),
-        (["custom"], ["age", "sex"], [], [], ("custom", "age", "sex")),
+        ([], ["age", "sex"], [], ["age", "sex"], []),
+        ([], ["age"], [], ["bogus_exclude_column"], ["age"]),
+        (["custom"], ["age", "sex"], [], [], ["custom", "age", "sex"]),
     ],
     ids=[
         "empty_add_empty_exclude",
@@ -81,10 +81,10 @@ def test__get_stratifications(
     mgr = ResultsManager()
     mocker.patch.object(mgr, "_results_context", ctx)
     # default_stratifications would normally be set via ResultsInterface.set_default_stratifications()
-    stratifications = mgr._get_stratifications(
+    final_stratifications = mgr._get_stratifications(
         stratifications, additional_stratifications, excluded_stratifications
     )
-    assert sorted(stratifications) == sorted(expected_stratifications)
+    assert sorted(final_stratifications) == sorted(expected_stratifications)
 
 
 #######################################
@@ -205,7 +205,7 @@ def test_register_stratification_with_pipelines(
         requires_values=sources,
     )
     for item in sources:
-        assert item in mgr._required_values
+        assert item in [pipeline.name for pipeline in mgr._required_values]
     assert verify_stratification_added(
         mgr._results_context.stratifications,
         name,
@@ -266,7 +266,7 @@ def test_register_stratification_with_column_and_pipelines(
     )
     assert mocked_column_name in mgr._required_columns
     for item in sources:
-        assert item in mgr._required_values
+        assert item in [pipeline.name for pipeline in mgr._required_values]
     all_sources = sources.copy()
     all_sources.append(mocked_column_name)
     assert verify_stratification_added(
@@ -306,6 +306,7 @@ def test_register_binned_stratification_raises_bins_labels_mismatch(
             excluded_categories=None,
             target_type="column",
         )
+from vivarium.types import VectorMapper
 
 
 def test_binned_stratification_mapper() -> None:
@@ -320,8 +321,8 @@ def test_binned_stratification_mapper() -> None:
         target_type="column",
     )
     strat = mgr._results_context.stratifications[0]
-    data = pd.Series([-np.inf] + BIN_SILLY_BIN_EDGES + [np.inf])
-    groups = strat.mapper(data)
+    data = pd.DataFrame([-np.inf] + BIN_SILLY_BIN_EDGES + [np.inf])
+    groups = strat.vectorized_mapper(data)
     expected_groups = pd.Series([np.nan] + BIN_LABELS + [np.nan] * 2)
     assert (groups.isna() == expected_groups.isna()).all()
     assert (groups[groups.notna()] == expected_groups[expected_groups.notna()]).all()
@@ -577,7 +578,7 @@ def test_adding_observation_results() -> None:
         raw_results = sim._results._raw_results["house_points"]
         # We cannot use `equals` here because raw results have a MultiIndex where
         # each layer is a Category dtype but pop has object dtype for the relevant columns
-        assert (
+        assert (  # type: ignore[union-attr]
             raw_results.loc[("gryffindor", ["low", "very high"]), "value"].values
             == (group_sizes.loc[("gryffindor", [20, 80]), "value"] * step_number).values
         ).all()
