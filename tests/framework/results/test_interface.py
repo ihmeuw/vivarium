@@ -208,7 +208,6 @@ def test_register_stratified_observation(mocker: MockerFixture) -> None:
     assert obs.results_updater is not None
     assert obs.results_formatter is not None
     assert obs.stratifications == stratifications
-    # Assert a StratifiedObservation so mypy knows .aggregator and .aggregator_sources exist
     assert isinstance(obs, StratifiedObservation)
     assert obs.aggregator is not None
     assert obs.aggregator_sources is None
@@ -495,9 +494,7 @@ def test_register_concatenating_observation(mocker: MockerFixture) -> None:
     assert obs.name == "some-name"
     assert obs.pop_filter == "some-filter"
     assert obs.when == "some-when"
-    assert isinstance(
-        obs, ConcatenatingObservation
-    )  # For mypy to know obs.included_columns exists
+    assert isinstance(obs, ConcatenatingObservation)
     assert obs.included_columns == [
         "event_time",
         "some-column",
