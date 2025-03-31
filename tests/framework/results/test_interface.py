@@ -52,7 +52,10 @@ def test_register_stratification(mocker):
 
     # Check that manager required columns/values have been updated
     assert mgr._required_columns == {"tracked", "some-column", "some-other-column"}
-    assert mgr._required_values == {"some-value", "some-other-value"}
+    assert {pipeline.name for pipeline in mgr._required_values} == {
+        "some-value",
+        "some-other-value",
+    }
 
     # Check stratification registration
     stratifications = mgr._results_context.stratifications
@@ -106,7 +109,9 @@ def test_register_binned_stratification_foo(target, target_type, mocker):
         if target_type == "column"
         else {"tracked"}
     )
-    assert mgr._required_values == ({target} if target_type == "value" else set())
+    assert {pipeline.name for pipeline in mgr._required_values} == (
+        {target} if target_type == "value" else set()
+    )
 
     # Check stratification registration
     stratifications = mgr._results_context.stratifications

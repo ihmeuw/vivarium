@@ -1,5 +1,6 @@
 **3.3.14 - 03/31/25**
 
+  - Type-hinting: Fix mypy errors in tests/framework/results/test_manager.py
   - Feature: Add classmethod to InteractiveContext to create instance from a backup
 
 **3.3.13 - 03/21/25**

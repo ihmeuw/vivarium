@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Sequence
 
 import pandas as pd
 
@@ -273,17 +273,15 @@ class ResultsManager(Manager):
                 f"Labels must be a list of strings when registering a binned stratification, but labels was {labels} when registering the {binned_column} stratification."
             )
 
-        def _bin_data(data: pd.Series[int | float] | pd.DataFrame) -> pd.Series[Any]:
+        def _bin_data(data: pd.DataFrame) -> pd.Series[Any]:
             """Use pandas.cut to bin continuous values"""
-            data = data.squeeze() if isinstance(data, pd.DataFrame) else data
+            data = data.squeeze(axis=1)
             if not isinstance(data, pd.Series):
                 raise ValueError(f"Expected a Series, but got type {type(data)}.")
             data = pd.cut(
                 data, bin_edges, labels=labels, right=False, include_lowest=True, **cut_kwargs
-            )  # type: ignore [call-overload]
-            # we know pd.cut will return a Series because data is a Series
-            # and labels is a list of strings but mypy doesn't know that
-            return data  # type: ignore [return-value]
+            )
+            return data
 
         if len(bin_edges) != len(labels) + 1:
             raise ValueError(
@@ -352,9 +350,9 @@ class ResultsManager(Manager):
                 additional_stratifications, excluded_stratifications
             )
             stratifications = self._get_stratifications(
-                kwargs.get("stratifications", []),
-                additional_stratifications,
-                excluded_stratifications,
+                list(kwargs.get("stratifications", [])),
+                list(additional_stratifications),
+                list(excluded_stratifications),
             )
             kwargs["stratifications"] = stratifications
             # Remove the unused kwargs before passing to the results context registration
