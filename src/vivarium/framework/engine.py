@@ -354,6 +354,13 @@ class SimulationContext:
     def get_number_of_steps_remaining(self) -> int:
         return self._clock.time_steps_remaining
 
+    @classmethod
+    def load_from_backup(cls, backup_path: Path) -> "SimulationContext":
+        """Load a simulation context from a backup file."""
+        with open(backup_path, "rb") as f:
+            backup: SimulationContext = dill.load(f)
+        return backup
+
 
 class Builder:
     """Toolbox for constructing and configuring simulation components.

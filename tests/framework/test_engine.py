@@ -6,6 +6,7 @@ from time import time
 import dill
 import pandas as pd
 import pytest
+import pytest_mock
 
 from tests.framework.results.helpers import (
     FAMILIARS,
@@ -441,6 +442,22 @@ def test_get_results_formatting(SimulationContext, base_config):
         assert (df.loc[~filter, VALUE_COLUMN] == 0).all()
         # Check that expected groups' values are a multiple of the number of steps
         assert (df.loc[filter, VALUE_COLUMN] % num_steps == 0).all()
+
+
+def test_SimulationContext_load_from_backup(
+    mocker: pytest_mock.MockFixture,
+    SimulationContext: SimulationContext_,
+    tmpdir: Path,
+):
+    # TODO MIC-5216: Remove mocks when we can use dill in pytest.
+    mocker.patch("vivarium.framework.engine.dill.dump")
+    mocker.patch("vivarium.framework.engine.dill.load", return_value=SimulationContext())
+    sim = SimulationContext()
+    backup_path = tmpdir / "backup.pkl"
+    sim.write_backup(backup_path)
+    # Load from backup
+    sim_backup = SimulationContext.load_from_backup(backup_path)
+    assert isinstance(sim_backup, SimulationContext)
 
 
 ####################
