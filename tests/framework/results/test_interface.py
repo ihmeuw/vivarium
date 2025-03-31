@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import re
+from collections.abc import Callable
 from datetime import timedelta
 from types import MethodType
 
@@ -6,11 +9,17 @@ import pandas as pd
 import pytest
 from layered_config_tree.main import LayeredConfigTree
 from loguru import logger
+from pytest_mock import MockerFixture
 
 from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS
 from tests.framework.results.helpers import HOUSE_CATEGORIES as HOUSES
 from tests.framework.results.helpers import mock_get_value
+from vivarium.framework.event import Event
 from vivarium.framework.results import ResultsInterface, ResultsManager
+from vivarium.framework.results.observation import (
+    ConcatenatingObservation,
+    StratifiedObservation,
+)
 
 
 def _silly_aggregator(_: pd.DataFrame) -> float:
@@ -22,10 +31,10 @@ def _silly_aggregator(_: pd.DataFrame) -> float:
 ####################################
 
 
-def test_register_stratification(mocker):
-    def _silly_mapper():
+def test_register_stratification(mocker: MockerFixture) -> None:
+    def _silly_mapper(some_series: pd.Series[str]) -> str:
         # NOTE: it does not actually matter what this mapper returns for this test
-        return {"some-category", "some-other-category", "some-unwanted-category"}
+        return "this was pointless"
 
     builder = mocker.Mock()
     # Set up mock builder with mocked get_value call for Pipelines
@@ -77,7 +86,9 @@ def test_register_stratification(mocker):
 @pytest.mark.parametrize(
     "target, target_type", [("some-column", "column"), ("some-value", "value")]
 )
-def test_register_binned_stratification_foo(target, target_type, mocker):
+def test_register_binned_stratification(
+    target: str, target_type: str, mocker: MockerFixture
+) -> None:
 
     mgr = ResultsManager()
     mgr.logger = logger
@@ -140,7 +151,9 @@ def test_register_binned_stratification_foo(target, target_type, mocker):
         ("UnstratifiedObservation", ["results_gatherer", "results_updater"]),
     ],
 )
-def test_register_observation_raises(obs_type, missing_args, mocker):
+def test_register_observation_raises(
+    obs_type: str, missing_args: list[str], mocker: MockerFixture
+) -> None:
     builder = mocker.Mock()
     builder.configuration.stratification.default = []
     mgr = ResultsManager()
@@ -156,7 +169,7 @@ def test_register_observation_raises(obs_type, missing_args, mocker):
             interface.register_unstratified_observation(name="some-name")
 
 
-def test_register_stratified_observation(mocker):
+def test_register_stratified_observation(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
@@ -180,9 +193,12 @@ def test_register_stratified_observation(mocker):
     assert len(observations) == 1
     ((filter, stratifications), observation) = list(observations["some-when"].items())[0]
     assert filter == "some-filter"
-    assert set(stratifications) == set(
-        ["default-stratification", "some-stratification", "some-other-stratification"]
-    )
+    assert isinstance(stratifications, tuple)  # for mypy in following set(stratifications)
+    assert set(stratifications) == {
+        "default-stratification",
+        "some-stratification",
+        "some-other-stratification",
+    }
     assert len(observation) == 1
     obs = observation[0]
     assert obs.name == "some-name"
@@ -192,11 +208,12 @@ def test_register_stratified_observation(mocker):
     assert obs.results_updater is not None
     assert obs.results_formatter is not None
     assert obs.stratifications == stratifications
+    assert isinstance(obs, StratifiedObservation)
     assert obs.aggregator is not None
     assert obs.aggregator_sources is None
 
 
-def test_register_unstratified_observation(mocker):
+def test_register_unstratified_observation(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
@@ -272,17 +289,17 @@ def test_register_unstratified_observation(mocker):
     ids=["valid_on_collect_metrics", "valid_on_time_step__prepare", "valid_pipelines"],
 )
 def test_register_adding_observation(
-    mocker,
-    name,
-    pop_filter,
-    aggregator_columns,
-    aggregator,
-    requires_columns,
-    requires_values,
-    additional_stratifications,
-    excluded_stratifications,
-    when,
-):
+    mocker: MockerFixture,
+    name: str,
+    pop_filter: str,
+    aggregator_columns: list[str],
+    aggregator: Callable[[pd.DataFrame], int | float | pd.Series[int | float]],
+    requires_columns: list[str],
+    requires_values: list[str],
+    additional_stratifications: list[str],
+    excluded_stratifications: list[str],
+    when: str,
+) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
@@ -306,7 +323,7 @@ def test_register_adding_observation(
     assert len(interface._manager._results_context.observations) == 1
 
 
-def test_register_multiple_adding_observations(mocker):
+def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
@@ -343,7 +360,7 @@ def test_register_multiple_adding_observations(mocker):
     ]
 
 
-def test_unhashable_pipeline(mocker):
+def test_unhashable_pipeline(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
@@ -357,7 +374,8 @@ def test_unhashable_pipeline(mocker):
             pop_filter='alive == "alive" and undead == False',
             when="collect_metrics",
             requires_columns=[],
-            requires_values=[["bad", "unhashable", "thing"]],  # unhashable first element
+            # Unhashable first element below
+            requires_values=[["bad", "unhashable", "thing"]],  # type: ignore[list-item]
             additional_stratifications=[],
             excluded_stratifications=[],
             aggregator_sources=[],
@@ -365,26 +383,26 @@ def test_unhashable_pipeline(mocker):
         )
 
 
-def mock__prepare_population(self, event):
-    """Return a mock population in the vein of ResultsManager._prepare_population"""
-    # Generate population DataFrame
-    population = BASE_POPULATION.copy()
-
-    # Mock out some extra columns that would be produced by the manager's _prepare_population() method
-    population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
-    population["event_step_size"] = timedelta(days=28)
-    population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
-        days=28
-    )
-    return population
-
-
 @pytest.mark.parametrize(
     "when",
     ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"],
 )
-def test_register_adding_observation_when_options(when, mocker):
+def test_register_adding_observation_when_options(when: str, mocker: MockerFixture) -> None:
     """Test the full interface lifecycle of adding an observation and simulation event."""
+
+    def mock__prepare_population(self: ResultsManager, event: Event) -> pd.DataFrame:
+        """Return a mock population in the vein of ResultsManager._prepare_population"""
+        # Generate population DataFrame
+        population = BASE_POPULATION.copy()
+
+        # Mock out some extra columns that would be produced by the manager's _prepare_population() method
+        population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
+        population["event_step_size"] = timedelta(days=28)
+        population["event_time"] = pd.Timestamp(
+            year=2045, month=1, day=1, hour=12
+        ) + timedelta(days=28)
+        return population
+
     # Create interface
     mgr = ResultsManager()
     results_interface = ResultsInterface(mgr)
@@ -428,7 +446,7 @@ def test_register_adding_observation_when_options(when, mocker):
 
     # Mock in mgr._prepare_population to return population table, event
     mocker.patch.object(mgr, "_prepare_population")
-    mgr._prepare_population = MethodType(mock__prepare_population, mgr)
+    setattr(mgr, "_prepare_population", MethodType(mock__prepare_population, mgr))
 
     time_step__prepare_mock_aggregator.assert_not_called()
     time_step_mock_aggregator.assert_not_called()
@@ -448,7 +466,7 @@ def test_register_adding_observation_when_options(when, mocker):
             aggregator.assert_not_called()
 
 
-def test_register_concatenating_observation(mocker):
+def test_register_concatenating_observation(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
@@ -476,6 +494,7 @@ def test_register_concatenating_observation(mocker):
     assert obs.name == "some-name"
     assert obs.pop_filter == "some-filter"
     assert obs.when == "some-when"
+    assert isinstance(obs, ConcatenatingObservation)
     assert obs.included_columns == [
         "event_time",
         "some-column",
