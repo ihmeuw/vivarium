@@ -379,7 +379,7 @@ def test_setting_default_stratifications_at_setup(mocker: pytest_mock.MockFixtur
     """Test that set default stratifications happens at setup"""
     mgr = ResultsManager()
     builder = mocker.Mock()
-    mgr._results_context.set_default_stratifications = mocker.Mock()  # type: ignore[method-assign]
+    mocker.patch.object(mgr._results_context, "set_default_stratifications")
     mgr._results_context.set_default_stratifications.assert_not_called()  # type: ignore[attr-defined]
 
     mgr.setup(builder)
