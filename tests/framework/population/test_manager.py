@@ -104,7 +104,7 @@ def test_setting_query_with_get_view(
     columns = ["age", "sex"]
     if contains_tracked:
         columns.append("tracked")
-    view = manager._get_view(columns=columns, query=query)
+    view = manager._get_view(columns_required=columns, query=query)
     assert view.query == expected_query
 
 
@@ -116,5 +116,5 @@ def test_setting_columns_with_get_view(
 ) -> None:
     view_columns = expected_columns or columns
     manager = PopulationManager()
-    view = manager._get_view(columns=columns, query="")
+    view = manager._get_view(columns_required=columns, query="")
     assert view._columns == view_columns

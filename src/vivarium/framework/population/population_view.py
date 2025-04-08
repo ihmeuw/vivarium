@@ -43,7 +43,8 @@ class PopulationView:
         self,
         manager: PopulationManager,
         view_id: int,
-        columns: Sequence[str] = (),
+        columns_required: Sequence[str] = (),
+        columns_created: Sequence[str] = (),
         query: str = "",
     ):
         """
@@ -54,16 +55,19 @@ class PopulationView:
             The population manager for the simulation.
         view_id
             The unique identifier for this view.
-        columns
+        columns_required
             The set of columns this view should have access too.  If empty, this
             view will have access to the entire state table.
+        co`lumns_created
+            The set of columns that will be created in the component's initializer.
         query
             A :mod:`pandas`-style filter that will be applied any time this
             view is read from.
         """
         self._manager = manager
         self._id = view_id
-        self._columns = list(columns)
+        self._columns_required = list(columns_required)
+        self._columns_created = list(columns_created)
         self.query = query
 
     @property
@@ -79,9 +83,11 @@ class PopulationView:
         should be only be used in situations where the full state table is
         actually needed, like for some metrics collection applications.
         """
-        if not self._columns:
-            return list(self._manager.get_population(True).columns)
-        return list(self._columns)
+        if not self._columns_required:
+            population_view_columns = list(self._manager.get_population(True).columns)
+        else:
+            population_view_columns = list(self._columns_required)
+        return list(population_view_columns) + list(self._columns_created)
 
     def subview(self, columns: str | Sequence[str]) -> PopulationView:
         """Retrieves a new view with a subset of this view's columns.

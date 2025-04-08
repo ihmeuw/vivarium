@@ -186,7 +186,7 @@ class PopulationManager(Manager):
         )
 
         self.register_simulant_initializer(self, creates_columns=self.columns_created)
-        self._view = self.get_view("tracked")
+        self._view = self.get_view("tracked", [])
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Adds a ``tracked`` column to the state table for new simulants."""
@@ -200,7 +200,12 @@ class PopulationManager(Manager):
     # Builder API and helpers #
     ###########################
 
-    def get_view(self, columns: str | Sequence[str], query: str = "") -> PopulationView:
+    def get_view(
+        self,
+        columns_required: str | Sequence[str],
+        columns_created: Sequence[str],
+        query: str = "",
+    ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -214,10 +219,13 @@ class PopulationManager(Manager):
 
         Parameters
         ----------
-        columns
+        columns_required
             A subset of the state table columns that will be available in the
             returned view. If empty, this view will have access to the entire
             state table.
+        columns_created
+            Columns that will be created during a component's on_initialize_simulants
+            method that need to be included in the population view.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
@@ -231,7 +239,7 @@ class PopulationManager(Manager):
             table.
 
         """
-        view = self._get_view(columns, query)
+        view = self._get_view(columns_required, columns_created, query)
         self._add_constraint(
             view.get, restrict_during=["initialization", "setup", "post_setup"]
         )
@@ -247,17 +255,22 @@ class PopulationManager(Manager):
         )
         return view
 
-    def _get_view(self, columns: str | Sequence[str], query: str) -> PopulationView:
-        if isinstance(columns, str):
-            columns = [columns]
+    def _get_view(
+        self,
+        columns_required: str | Sequence[str],
+        columns_created: Sequence[str],
+        query: str,
+    ) -> PopulationView:
+        if isinstance(columns_required, str):
+            columns_required = [columns_required]
 
-        if columns and "tracked" not in columns:
+        if columns_required and "tracked" not in columns_required:
             if not query:
                 query = "tracked == True"
             elif "tracked" not in query:
                 query += " and tracked == True"
         self._last_id += 1
-        return PopulationView(self, self._last_id, columns, query)
+        return PopulationView(self, self._last_id, columns_required, columns_created, query)
 
     def register_simulant_initializer(
         self,
@@ -415,7 +428,12 @@ class PopulationInterface(Interface):
     def __init__(self, manager: PopulationManager):
         self._manager = manager
 
-    def get_view(self, columns: str | Sequence[str], query: str = "") -> PopulationView:
+    def get_view(
+        self,
+        columns_required: str | Sequence[str],
+        columns_created: Sequence[str],
+        query: str = "",
+    ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -429,10 +447,13 @@ class PopulationInterface(Interface):
 
         Parameters
         ----------
-        columns
+        columns_required
             A subset of the state table columns that will be available in the
             returned view. If empty, this view will have access to the entire
             state table.
+        columns_created
+            Columns that will be created by this component that need to be included
+            in the population view.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
@@ -445,7 +466,7 @@ class PopulationInterface(Interface):
             A filtered view of the requested columns of the population state
             table.
         """
-        return self._manager.get_view(columns, query)
+        return self._manager.get_view(columns_required, columns_created, query)
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.

@@ -126,7 +126,7 @@ class SimulationClock(Manager):
         builder.population.initializes_simulants(self, creates_columns=self.columns_created)
         builder.event.register_listener("post_setup", self.on_post_setup)
         self._individual_clocks = builder.population.get_view(
-            columns=self.columns_created + self.columns_required
+            columns_required=self.columns_created + self.columns_required
         )
 
     def on_post_setup(self, event: "Event") -> None:

@@ -746,22 +746,24 @@ class Component(ABC):
         builder
             The builder object used to set up the component.
         """
-        if self.columns_required:
-            # Get all columns created and required
-            population_view_columns = self.columns_created + self.columns_required
-        elif self.columns_required == []:
-            # Empty list means population view needs all available columns
-            population_view_columns = []
-        elif self.columns_required is None and self.columns_created:
-            # No additional columns required, so just get columns created
-            population_view_columns = self.columns_created
-        else:
-            # no need for a population view if no columns created or required
-            population_view_columns = None
+        # if self.columns_required:
+        #     # Get all columns created and required
+        #     population_view_columns = self.columns_created + self.columns_required
+        # elif self.columns_required == []:
+        #     if self.columns_created:
+        #         population_view_columns = [] + self.columns_created
+        #     # Empty list means population view needs all available columns
+        #     population_view_columns = []
+        # elif self.columns_required is None and self.columns_created:
+        #     # No additional columns required, so just get columns created
+        #     population_view_columns = self.columns_created
+        # else:
+        #     # no need for a population view if no columns created or required
+        #     population_view_columns = None
 
-        if population_view_columns is not None:
+        if self.columns_created is not None or self.columns_required is not None:
             self._population_view = builder.population.get_view(
-                population_view_columns, self.population_view_query
+                self.columns_required, self.population_view_query, self.columns_created
             )
 
     def _register_post_setup_listener(self, builder: "Builder") -> None:
