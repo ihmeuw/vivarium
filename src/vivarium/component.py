@@ -751,7 +751,12 @@ class Component(ABC):
             population_view_columns = self.columns_created + self.columns_required
         elif self.columns_required == []:
             # Empty list means population view needs all available columns
-            population_view_columns = []
+            if self.columns_created:
+                population_view_columns = (
+                    self.get_all_population_columns(builder) + self.columns_created
+                )
+            else:
+                population_view_columns = []
         elif self.columns_required is None and self.columns_created:
             # No additional columns required, so just get columns created
             population_view_columns = self.columns_created
@@ -909,3 +914,31 @@ class Component(ABC):
                 self.on_simulation_end,
                 self.simulation_end_priority,
             )
+
+    def get_all_population_columns(self, builder: Builder) -> list[str]:
+        """Retrieves all columns in the population view.
+
+        This method retrieves all columns in the population view from the
+        builder's population manager. It returns a list of column names.
+
+        Parameters
+        ----------
+        builder
+            The builder object used to set up the component.
+
+        Returns
+        -------
+            A list of all column names in the population view.
+        """
+        # THis should likely live in the interface or manager itself
+        name = self.name
+        other_components = [
+            val for val in builder.components.list_components().values() if val.name != name
+        ]
+        all_population_columns = [
+            column
+            for component in other_components
+            for column in component.population_view.columns
+        ] + ["tracked"]
+
+        return list(set(all_population_columns))
