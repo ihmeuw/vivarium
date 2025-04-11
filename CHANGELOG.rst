@@ -1,3 +1,7 @@
+**3.3.15 - TBD/TBD/25**
+
+  - Type-hinting: Fix mypy erros in tests/framework/test_configuration.py
+
 **3.3.14 - 03/31/25**
 
   - Feature: Add classmethod to InteractiveContext to create instance from a backup
