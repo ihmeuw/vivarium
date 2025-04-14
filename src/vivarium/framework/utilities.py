@@ -17,14 +17,14 @@ import numpy as np
 
 from vivarium.types import NumberLike, NumericArray, Timedelta
 
-T = TypeVar("T", bound=NumberLike)
+TimeValue = TypeVar("T", bound=NumberLike)
 
 
-def from_yearly(value: T, time_step: Timedelta) -> T:
+def from_yearly(value: TimeValue, time_step: Timedelta) -> TimeValue:
     return value * (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
-def to_yearly(value: T, time_step: Timedelta) -> T:
+def to_yearly(value: TimeValue, time_step: Timedelta) -> TimeValue:
     return value / (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
