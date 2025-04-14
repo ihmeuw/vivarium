@@ -3,18 +3,19 @@ from pathlib import Path
 import pytest
 import yaml
 from click.testing import CliRunner
+from layered_config_tree import LayeredConfigTree
 
 from tests.framework.results.helpers import HARRY_POTTER_CONFIG
 from vivarium.interface.cli import simulate
 
 
 @pytest.fixture
-def runner():
+def runner() -> CliRunner:
     return CliRunner()
 
 
 @pytest.fixture
-def model_spec(base_config, tmp_path) -> str:
+def model_spec(base_config: LayeredConfigTree, tmp_path: Path) -> str:
     base_config.update(HARRY_POTTER_CONFIG)
     model_spec = {}
     model_spec["configuration"] = base_config.to_dict()
@@ -34,8 +35,7 @@ def model_spec(base_config, tmp_path) -> str:
     return str(filepath)
 
 
-def test_simulate_run(runner, model_spec, hdf_file_path):
-
+def test_simulate_run(runner: CliRunner, model_spec: str, hdf_file_path: Path) -> None:
     run_parameters = {param.name for param in simulate.commands["run"].params}
     expected_parameters = {
         "model_specification",
@@ -51,7 +51,7 @@ def test_simulate_run(runner, model_spec, hdf_file_path):
             f"Missing or unexpected parameters in simulate run: {different_params}"
         )
     output_dir = "/".join(model_spec.split("/")[:-2])
-    args = ["run", model_spec, "-o", output_dir, "-i", hdf_file_path]
+    args = ["run", model_spec, "-o", output_dir, "-i", str(hdf_file_path)]
     sim = runner.invoke(simulate, args)
     assert sim.exit_code == 0
     results_dir = list(Path(output_dir).rglob("*/simulation.log"))[0].parent
