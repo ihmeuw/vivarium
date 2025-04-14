@@ -11,18 +11,21 @@ import functools
 from bdb import BdbQuit
 from collections.abc import Callable, Sequence
 from importlib import import_module
-from typing import Any
+from typing import Any, TypeVar
 
 import numpy as np
 
 from vivarium.types import NumberLike, NumericArray, Timedelta
 
 
-def from_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
+T = TypeVar("T", bound=NumberLike)
+
+
+def from_yearly(value: T, time_step: Timedelta) -> T:
     return value * (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
-def to_yearly(value: NumberLike, time_step: Timedelta) -> NumberLike:
+def to_yearly(value: T, time_step: Timedelta) -> T:
     return value / (time_step.total_seconds() / (60 * 60 * 24 * 365.0))
 
 
