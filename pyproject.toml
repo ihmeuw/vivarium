@@ -32,23 +32,19 @@ exclude = [
     # You will need to remove the mypy: ignore-errors comment from the file heading as well
     'docs/source/conf.py',
     'setup.py',
-    'src/vivarium/examples/disease_model/__init__.py',
     'src/vivarium/examples/disease_model/disease.py',
     'src/vivarium/examples/disease_model/intervention.py',
     'src/vivarium/examples/disease_model/mortality.py',
     'src/vivarium/examples/disease_model/observer.py',
     'src/vivarium/examples/disease_model/population.py',
     'src/vivarium/examples/disease_model/risk.py',
-    'src/vivarium/interface/cli.py',
     'src/vivarium/testing_utilities.py',
     'tests/framework/results/test_context.py',
-    'tests/framework/test_configuration.py',
     'tests/framework/test_engine.py',
     'tests/framework/test_event.py',
     'tests/framework/test_lifecycle.py',
     'tests/framework/test_values.py',
     'tests/helpers.py',
-    'tests/interface/test_cli.py',
     'tests/interface/test_utilities.py',
 ]
 
