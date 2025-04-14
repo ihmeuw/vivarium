@@ -17,7 +17,6 @@ import numpy as np
 
 from vivarium.types import NumberLike, NumericArray, Timedelta
 
-
 T = TypeVar("T", bound=NumberLike)
 
 
