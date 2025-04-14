@@ -3,6 +3,7 @@
   - Type-hinting: Fix mypy errors in src/vivarium/interface/cli.py
   - Type-hinting: Fix mypy errors in tests/interface/test_cli.py
   - Type-hinting: Fix mypy erros in tests/framework/test_configuration.py
+  - Type-hinting: Fix mypy erros in tests/examples/test_disease_model.py
 
 **3.3.14 - 03/31/25**
 
