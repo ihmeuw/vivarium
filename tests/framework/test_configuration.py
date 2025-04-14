@@ -1,4 +1,8 @@
+from pathlib import Path
+from typing import Any
+
 import pytest
+import pytest_mock
 import yaml
 
 from vivarium.framework.configuration import (
@@ -11,7 +15,9 @@ from vivarium.framework.configuration import (
 )
 
 
-def test_get_default_specification_user_config(mocker, test_user_config):
+def test_get_default_specification_user_config(
+    mocker: pytest_mock.MockFixture, test_user_config: Path
+) -> None:
     expand_user_mock = mocker.patch("vivarium.framework.configuration.Path.expanduser")
     expand_user_mock.return_value = test_user_config
 
@@ -28,7 +34,9 @@ def test_get_default_specification_user_config(mocker, test_user_config):
     assert default_spec.to_dict() == data
 
 
-def test_get_default_specification_no_user_config(mocker, test_data_dir):
+def test_get_default_specification_no_user_config(
+    mocker: pytest_mock.MockFixture, test_data_dir: Path
+) -> None:
     user_config = test_data_dir / "oh_no_nothing_here.yaml"
 
     expand_user_mock = mocker.patch("vivarium.framework.configuration.Path.expanduser")
@@ -37,13 +45,15 @@ def test_get_default_specification_no_user_config(mocker, test_data_dir):
     default_spec = _get_default_specification()
 
     assert expand_user_mock.called_once_with("~/vivarium.yaml")
-    data = {"components": {}, "configuration": {}}
+    data: dict[str, dict[Any, Any]] = {"components": {}, "configuration": {}}
     data.update(DEFAULT_PLUGINS)
 
     assert default_spec.to_dict() == data
 
 
-def test_validate_model_specification_failures(mocker, test_data_dir, test_spec):
+def test_validate_model_specification_failures(
+    mocker: pytest_mock.MockFixture, test_data_dir: Path, test_spec: Path
+) -> None:
     with pytest.raises(ConfigurationError):
         validate_model_specification_file("made_up_file.yaml")
 
@@ -60,11 +70,13 @@ def test_validate_model_specification_failures(mocker, test_data_dir, test_spec)
         validate_model_specification_file(test_spec)
 
 
-def test_validate_model_specification(test_spec):
+def test_validate_model_specification(test_spec: Path) -> None:
     validate_model_specification_file(test_spec)
 
 
-def test_build_simulation_configuration(mocker, test_user_config):
+def test_build_simulation_configuration(
+    mocker: pytest_mock.MockFixture, test_user_config: Path
+) -> None:
     expand_user_mock = mocker.patch("vivarium.framework.configuration.Path.expanduser")
     expand_user_mock.return_value = test_user_config
 
@@ -78,7 +90,9 @@ def test_build_simulation_configuration(mocker, test_user_config):
     assert config.to_dict() == data
 
 
-def test_build_model_specification_failure(mocker, test_data_dir, test_spec):
+def test_build_model_specification_failure(
+    mocker: pytest_mock.MockFixture, test_data_dir: Path, test_spec: Path
+) -> None:
     with pytest.raises(ConfigurationError):
         build_model_specification("made_up_file.yaml")
 
@@ -95,7 +109,9 @@ def test_build_model_specification_failure(mocker, test_data_dir, test_spec):
         build_model_specification(str(test_spec))
 
 
-def test_build_model_specification(mocker, test_spec, test_user_config):
+def test_build_model_specification(
+    mocker: pytest_mock.MockFixture, test_spec: Path, test_user_config: Path
+) -> None:
     expand_user_mock = mocker.patch("vivarium.framework.configuration.Path.expanduser")
     expand_user_mock.return_value = test_user_config
     loaded_model_spec = build_model_specification(test_spec)
