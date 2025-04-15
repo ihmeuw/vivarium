@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-
+from pathlib import Path
 import numpy as np
 from layered_config_tree import LayeredConfigTree
 from vivarium_testing_utils import FuzzyChecker
@@ -8,7 +8,7 @@ from vivarium import InteractiveContext
 from vivarium.framework.utilities import from_yearly
 
 
-def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec) -> None:
+def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) -> None:
     config = LayeredConfigTree(disease_model_spec, layers=["base", "override"])
     config.update(
         {

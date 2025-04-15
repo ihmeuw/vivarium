@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ===========================
 Vivarium Command Line Tools
@@ -52,7 +51,7 @@ from vivarium.interface.utilities import get_output_root
 
 
 @click.group()
-def simulate():
+def simulate() -> None:
     """A command line utility for running a single simulation.
 
     You may initiate a new run with the ``run`` sub-command, initiate a test
@@ -105,7 +104,7 @@ def run(
     verbose: bool,
     quiet: bool,
     with_debugger: bool,
-):
+) -> None:
     """Run a simulation from the command line.
 
     The simulation itself is defined by the given MODEL_SPECIFICATION yaml file.
@@ -159,7 +158,7 @@ def run(
 
 
 @simulate.command()
-def test():
+def test() -> None:
     """Run a test simulation using the ``disease_model.yaml`` model specification
     provided in the examples directory.
     """
@@ -198,7 +197,7 @@ def test():
         "sorted by cumulative runtime, and dump to a file"
     ),
 )
-def profile(model_specification, results_directory, process):
+def profile(model_specification: Path, results_directory: Path, process: bool) -> None:
     """Run a simulation based on the provided MODEL_SPECIFICATION and profile the run."""
     model_specification = Path(model_specification)
     results_directory = Path(results_directory)
