@@ -110,7 +110,6 @@ def test_component_that_creates_and_requires_columns_population_view() -> None:
 
 def test_component_that_creates_column_and_requires_all_columns_population_view() -> None:
     component = ColumnCreatorAndAllRequirer()
-    # If I switch the order of the components the test fails. I thought the order would handle this?
     simulation = InteractiveContext(components=[ColumnCreator(), component])
     population = simulation.get_population()
 

@@ -200,7 +200,12 @@ class PopulationManager(Manager):
     # Builder API and helpers #
     ###########################
 
-    def get_view(self, columns: str | Sequence[str], query: str = "") -> PopulationView:
+    def get_view(
+        self,
+        columns: str | Sequence[str],
+        query: str = "",
+        creates_and_requires_all: bool = False,
+    ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -224,6 +229,10 @@ class PopulationManager(Manager):
             The query should be provided in a way that is understood by the
             :meth:`pandas.DataFrame.query` method and may reference state
             table columns not requested in the ``columns`` argument.
+        creates_and_requires_all
+            If True, all columns in the population state table are required for
+            the population view and the columns will be the columns created by the
+            component.
 
         Returns
         -------
@@ -231,7 +240,7 @@ class PopulationManager(Manager):
             table.
 
         """
-        view = self._get_view(columns, query)
+        view = self._get_view(columns, query, creates_and_requires_all)
         self._add_constraint(
             view.get, restrict_during=["initialization", "setup", "post_setup"]
         )
@@ -247,7 +256,9 @@ class PopulationManager(Manager):
         )
         return view
 
-    def _get_view(self, columns: str | Sequence[str], query: str) -> PopulationView:
+    def _get_view(
+        self, columns: str | Sequence[str], query: str, creates_and_requires_all: bool = False
+    ) -> PopulationView:
         if isinstance(columns, str):
             columns = [columns]
 
@@ -257,7 +268,7 @@ class PopulationManager(Manager):
             elif "tracked" not in query:
                 query += " and tracked == True"
         self._last_id += 1
-        return PopulationView(self, self._last_id, columns, query)
+        return PopulationView(self, self._last_id, columns, query, creates_and_requires_all)
 
     def register_simulant_initializer(
         self,
@@ -415,7 +426,12 @@ class PopulationInterface(Interface):
     def __init__(self, manager: PopulationManager):
         self._manager = manager
 
-    def get_view(self, columns: str | Sequence[str], query: str = "") -> PopulationView:
+    def get_view(
+        self,
+        columns: str | Sequence[str],
+        query: str = "",
+        creates_and_requires_all: bool = False,
+    ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -439,13 +455,17 @@ class PopulationInterface(Interface):
             The query should be provided in a way that is understood by the
             :meth:`pandas.DataFrame.query` method and may reference state
             table columns not requested in the ``columns`` argument.
+        creates_and_requires_all
+            If True, all columns in the population state table will be
+            required for the population view and the columns will be
+            the columns created by the component.
 
         Returns
         -------
             A filtered view of the requested columns of the population state
             table.
         """
-        return self._manager.get_view(columns, query)
+        return self._manager.get_view(columns, query, creates_and_requires_all)
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.

@@ -45,6 +45,7 @@ class PopulationView:
         view_id: int,
         columns: Sequence[str] = (),
         query: str = "",
+        creates_and_requires_all_columns: bool = False,
     ):
         """
 
@@ -60,11 +61,15 @@ class PopulationView:
         query
             A :mod:`pandas`-style filter that will be applied any time this
             view is read from.
+        creates_and_requires_all_columns
+            If True, all columns from the population state table are required and
+            the columns will be the columns created by the component.
         """
         self._manager = manager
         self._id = view_id
         self._columns = list(columns)
         self.query = query
+        self.creates_and_requires_all_columns = creates_and_requires_all_columns
 
     @property
     def name(self) -> str:
@@ -79,9 +84,9 @@ class PopulationView:
         should be only be used in situations where the full state table is
         actually needed, like for some metrics collection applications.
         """
-        if not self._columns:
-            return list(self._manager.get_population(True).columns)
-        return list(self._columns)
+        if not self._columns or self.creates_and_requires_all_columns:
+            return list(self._manager.get_population(True).columns) + self._columns
+        return self._columns
 
     def subview(self, columns: str | Sequence[str]) -> PopulationView:
         """Retrieves a new view with a subset of this view's columns.
