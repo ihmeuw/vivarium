@@ -1,3 +1,7 @@
+**3.3.16 - TBD/TBD/25**
+
+  - Bugfix: Allow a component to require all state table columns and create a column.
+
 **3.3.15 - 04/14/25**
 
   - Type-hinting: Fix mypy errors in src/vivarium/interface/cli.py
