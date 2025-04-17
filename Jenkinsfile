@@ -17,5 +17,5 @@ To configure the repo/branch go to:
 Updating the shared repo will take affect on the next pipeline invocation.
 The "_" denotes that all modules will be imported from the shared library.
 */ 
-@Library("vivarium_build_utils@pnast/feature/mic-5995-doc-only") _
+@Library("vivarium_build_utils@pnast/refactor/mic-5995-modular") _
 reusable_pipeline(scheduled_branches: ["main"], upstream_repos: ["layered_config_tree"])
