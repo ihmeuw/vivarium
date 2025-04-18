@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 from __future__ import annotations
 
 from typing import Any
@@ -11,7 +10,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 from vivarium.framework.resource import Resource
 from vivarium.manager import Manager
-
+from layered_config_tree import ConfigurationError
 
 class MockComponentA(Observer):
     @property
@@ -22,7 +21,7 @@ class MockComponentA(Observer):
     def configuration_defaults(self) -> dict[str, Any]:
         return {}
 
-    def __init__(self, *args, name: str = "mock_component_a") -> None:
+    def __init__(self, *args: Any, name: str = "mock_component_a") -> None:
         super().__init__()
         self._name = name
         self.args = args
@@ -43,14 +42,13 @@ class MockComponentB(Observer):
     def name(self) -> str:
         return self._name
 
-    def __init__(self, *args, name: str = "mock_component_b") -> None:
+    def __init__(self, *args: Any, name: str = "mock_component_b") -> None:
         super().__init__()
         self._name = name
         self.args = args
-        self.builder_used_for_setup = None
+        self.builder_used_for_setup: Builder | None = None
         if len(self.args) > 1:
-            for arg in self.args:
-                self._sub_components.append(MockComponentB(arg, name=arg))
+            self._sub_components = [MockComponentB(arg, name=arg) for arg in self.args]
 
     def setup(self, builder: Builder) -> None:
         self.builder_used_for_setup = builder
@@ -91,7 +89,7 @@ class MockGenericComponent(Component):
     def __init__(self, name: str):
         super().__init__()
         self._name = name
-        self.builder_used_for_setup = None
+        self.builder_used_for_setup: Builder | None = None
 
     def setup(self, builder: Builder) -> None:
         self.builder_used_for_setup = builder
@@ -102,7 +100,8 @@ class MockGenericComponent(Component):
 
 
 class Listener(MockComponentB):
-    def __init__(self, *args, name: str = "test_listener"):
+
+    def __init__(self, *args: Any, name: str = "test_listener"):
         super().__init__(*args, name=name)
         self.post_setup_called = False
         self.time_step_prepare_called = False
@@ -111,7 +110,7 @@ class Listener(MockComponentB):
         self.collect_metrics_called = False
         self.simulation_end_called = False
 
-        self.event_indexes = {
+        self.event_indexes: dict[str, pd.Index[int] | None] = {
             "time_step_prepare": None,
             "time_step": None,
             "time_step_cleanup": None,
@@ -177,6 +176,10 @@ class LookupCreator(ColumnCreator):
 
     def build_all_lookup_tables(self, builder: "Builder") -> None:
         super().build_all_lookup_tables(builder)
+        if not self.configuration:
+            raise ConfigurationError(
+                "Configuration not set. This may break tests using the lookup table creator helper."
+            )
         self.lookup_tables["favorite_list"] = self.build_lookup_table(
             builder,
             self.configuration["alternate_data_sources"]["favorite_list"],
@@ -273,7 +276,7 @@ class AllColumnsRequirer(Component):
 
 class FilteredPopulationView(ColumnRequirer):
     @property
-    def population_view_query(self) -> str | None:
+    def population_view_query(self) -> str:
         return "test_column_1 == 5"
 
 
