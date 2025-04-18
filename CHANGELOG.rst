@@ -1,3 +1,7 @@
+**3.3.16 - 04/18/25**
+
+  - Type-hinting: Fix mypy errors in tests/helpers.py
+
 **3.3.15 - 04/14/25**
 
   - Type-hinting: Fix mypy errors in src/vivarium/interface/cli.py
