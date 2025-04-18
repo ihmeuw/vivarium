@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import pandas as pd
+from layered_config_tree import ConfigurationError
 
 from vivarium import Component, Observer
 from vivarium.framework.engine import Builder
@@ -10,7 +11,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 from vivarium.framework.resource import Resource
 from vivarium.manager import Manager
-from layered_config_tree import ConfigurationError
+
 
 class MockComponentA(Observer):
     @property
@@ -100,7 +101,6 @@ class MockGenericComponent(Component):
 
 
 class Listener(MockComponentB):
-
     def __init__(self, *args: Any, name: str = "test_listener"):
         super().__init__(*args, name=name)
         self.post_setup_called = False
