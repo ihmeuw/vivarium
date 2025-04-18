@@ -746,14 +746,21 @@ class Component(ABC):
         builder
             The builder object used to set up the component.
         """
-        creates_and_requires_all = False
+        requires_all_columns = False
+        if self.columns_required == []:
+            warnings.warn(
+                "The empty list [] format for requiring all columns is deprecated. Please "
+                "use the new argument 'requires_all_columns' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         if self.columns_required:
             # Get all columns created and required
             population_view_columns = self.columns_created + self.columns_required
-        elif self.columns_required == []:
+        elif self.columns_required == "all" or self.columns_required == []:
             # Empty list means population view needs all available columns
+            requires_all_columns = True
             if self.columns_created:
-                creates_and_requires_all = True
                 population_view_columns = self.columns_created
             else:
                 population_view_columns = []
@@ -766,7 +773,7 @@ class Component(ABC):
 
         if population_view_columns is not None:
             self._population_view = builder.population.get_view(
-                population_view_columns, self.population_view_query, creates_and_requires_all
+                population_view_columns, self.population_view_query, requires_all_columns
             )
 
     def _register_post_setup_listener(self, builder: "Builder") -> None:
