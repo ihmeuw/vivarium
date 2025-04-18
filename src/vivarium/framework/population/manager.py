@@ -9,11 +9,11 @@ The manager and :ref:`builder <builder_concept>` interface for the
 """
 from __future__ import annotations
 
-import warnings
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
 from typing import TYPE_CHECKING, Any
+import warnings
 
 import pandas as pd
 
@@ -241,7 +241,7 @@ class PopulationManager(Manager):
             table.
 
         """
-        if not columns:
+        if not columns and not requires_all_columns:
             warnings.warn(
                 "The empty list [] format for requiring all columns is deprecated. Please "
                 "use the new argument 'requires_all_columns' instead.",
