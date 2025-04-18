@@ -9,11 +9,11 @@ The manager and :ref:`builder <builder_concept>` interface for the
 """
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
 from typing import TYPE_CHECKING, Any
-import warnings
 
 import pandas as pd
 
