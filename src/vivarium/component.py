@@ -251,8 +251,8 @@ class Component(ABC):
 
         Returns
         -------
-            Names of required columns not created by this component. An empty
-            list means all available columns are needed. `None` means no
+            Names of required columns not created by this component. A string of
+            "all" means all available columns are needed. `None` means no
             additional columns are necessary.
         """
         return None
@@ -759,6 +759,8 @@ class Component(ABC):
             population_view_columns = self.columns_created + self.columns_required
         elif self.columns_required == "all" or self.columns_required == []:
             # Empty list means population view needs all available columns
+            # We cannot overwrite self.columns_required = "all" above because it does
+            # not have a setter.
             requires_all_columns = True
             if self.columns_created:
                 population_view_columns = self.columns_created
