@@ -1,8 +1,9 @@
+import pandas as pd
 import pytest
 
+from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import (
     ConstraintError,
-    ConstraintMaker,
     LifeCycle,
     LifeCycleError,
     LifeCycleManager,
@@ -11,7 +12,7 @@ from vivarium.framework.lifecycle import (
 )
 
 
-def test_state_add_next():
+def test_state_add_next() -> None:
     a = LifeCycleState("a")
     b = LifeCycleState("b")
     c = LifeCycleState("c")
@@ -36,7 +37,7 @@ def test_state_add_next():
     assert not c.valid_next_state(b)
 
 
-def test_state_entrance_count():
+def test_state_entrance_count() -> None:
     a = LifeCycleState("a")
     assert a.entrance_count == 0
     a.enter()
@@ -45,31 +46,35 @@ def test_state_entrance_count():
 
 
 class BumbleBee:
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         self.name = name
 
-    def buzz(self):
-        return "Buzzzzz"
+    def buzz(self, _event: Event) -> None:
+        pass
 
-    def what_we_doin(self):
-        return "Gettin' honey."
+    def what_we_doin(self, _event: Event) -> None:
+        pass
 
-    def __call__(self):
+    def __call__(self) -> str:
         return "On the way!"
 
 
-def test_state_add_handlers():
+def sting(_event: Event) -> None:
+    pass
+
+
+def test_state_add_handlers() -> None:
     a = LifeCycleState("a")
     b = BumbleBee("Alice")
-    a.add_handlers([b.buzz, b.what_we_doin, test_state_add_handlers])
+    a.add_handlers([b.buzz, b.what_we_doin, sting])
     assert a._handlers == [
         "BumbleBee(Alice).buzz",
         "BumbleBee(Alice).what_we_doin",
-        "Unbound function test_state_add_handlers",
+        "Unbound function sting",
     ]
 
 
-def test_phase_init_no_loop():
+def test_phase_init_no_loop() -> None:
     phase_name = "test"
     state_names = ["a", "b", "c", "d", "e"]
 
@@ -83,7 +88,7 @@ def test_phase_init_no_loop():
     assert current.valid_next_state(None)
 
 
-def test_phase_init_loop():
+def test_phase_init_loop() -> None:
     phase_name = "test"
     state_names = ["a", "b", "c", "d", "e"]
 
@@ -97,7 +102,7 @@ def test_phase_init_loop():
     assert current.valid_next_state(p.states[0])
 
 
-def test_phase_add_next():
+def test_phase_add_next() -> None:
     phase1_name = "test1"
     phase2_name = "test2"
     states1 = ["a", "b", "c", "d", "e"]
@@ -111,7 +116,7 @@ def test_phase_add_next():
     assert p1.states[-1].valid_next_state(p2.states[0])
 
 
-def test_phase_get_state():
+def test_phase_get_state() -> None:
     name = "test"
     state_names = ["a", "b", "c", "d", "e"]
 
@@ -124,7 +129,7 @@ def test_phase_get_state():
         p.get_state("not_a_state")
 
 
-def test_phase_contains():
+def test_phase_contains() -> None:
     name = "test"
     state_names = ["a", "b", "c", "d", "e"]
 
@@ -137,13 +142,13 @@ def test_phase_contains():
         assert name not in p
 
 
-def test_lifecycle_init():
+def test_lifecycle_init() -> None:
     lc = LifeCycle()
     assert "initialization" in lc
     assert "not_a_state" not in lc
 
 
-def test_lifecycle_validate():
+def test_lifecycle_validate() -> None:
     lc = LifeCycle()
 
     with pytest.raises(LifeCycleError, match="phase names must be unique"):
@@ -159,7 +164,7 @@ def test_lifecycle_validate():
 
 
 @pytest.mark.parametrize("loop", [True, False])
-def test_lifecycle_add_phase_fail(loop):
+def test_lifecycle_add_phase_fail(loop: bool) -> None:
     lc = LifeCycle()
 
     with pytest.raises(LifeCycleError, match="phase names must be unique"):
@@ -173,12 +178,12 @@ def test_lifecycle_add_phase_fail(loop):
 
 
 @pytest.mark.parametrize("loop", [True, False])
-def test_lifecycle_add_phase(loop):
+def test_lifecycle_add_phase(loop: bool) -> None:
     lc = LifeCycle()
     lc.add_phase("phase1", ["a", "b", "c"], loop)
 
 
-def test_lifecycle_get_state():
+def test_lifecycle_get_state() -> None:
     lc = LifeCycle()
     assert lc.get_state("initialization").name == "initialization"
 
@@ -186,7 +191,7 @@ def test_lifecycle_get_state():
         lc.get_state("not_a_state")
 
 
-def test_lifecycle_get_states():
+def test_lifecycle_get_states() -> None:
     lc = LifeCycle()
     assert lc.get_state_names("initialization") == ["initialization"]
 
@@ -194,7 +199,7 @@ def test_lifecycle_get_states():
         lc.get_state_names("not_a_phase")
 
 
-def test_lifecycle_integration():
+def test_lifecycle_integration() -> None:
     lc = LifeCycle()
 
     with pytest.raises(LifeCycleError, match="non-existent state"):
@@ -248,14 +253,14 @@ def test_lifecycle_integration():
         lc.get_state_names("not a phase")
 
 
-def test_manager_init():
+def test_manager_init() -> None:
     lm = LifeCycleManager()
     assert lm.name == "life_cycle_manager"
     assert lm.current_state == "initialization"
 
 
 @pytest.mark.parametrize("loop", [True, False])
-def test_lifecycle_manager_add_phase_fail(loop):
+def test_lifecycle_manager_add_phase_fail(loop: bool) -> None:
     lm = LifeCycleManager()
 
     with pytest.raises(LifeCycleError, match="phase names must be unique"):
@@ -269,12 +274,12 @@ def test_lifecycle_manager_add_phase_fail(loop):
 
 
 @pytest.mark.parametrize("loop", [True, False])
-def test_lifecycle_manager_add_phase(loop):
+def test_lifecycle_manager_add_phase(loop: bool) -> None:
     lm = LifeCycleManager()
     lm.add_phase("phase1", ["a", "b", "c"], loop)
 
 
-def test_lifecycle_manager_get_states():
+def test_lifecycle_manager_get_states() -> None:
     lm = LifeCycleManager()
     assert lm.get_state_names("initialization") == ["initialization"]
 
@@ -282,7 +287,7 @@ def test_lifecycle_manager_get_states():
         lm.get_state_names("not_a_phase")
 
 
-def test_lifecycle_manager_set_state():
+def test_lifecycle_manager_set_state() -> None:
     lm = LifeCycleManager()
     lm.add_phase("phase1", ["a", "b"])
     lm.add_phase("phase2", ["c", "d"])
@@ -308,7 +313,7 @@ def test_lifecycle_manager_set_state():
     assert lm.current_state == "d"
 
 
-def test_lifecycle_manager_set_state_with_loop():
+def test_lifecycle_manager_set_state_with_loop() -> None:
     lm = LifeCycleManager()
     lm.add_phase("phase1", ["a", "b"], loop=True)
     lm.add_phase("phase2", ["c", "d"])
@@ -339,7 +344,7 @@ def test_lifecycle_manager_set_state_with_loop():
         lm.set_state("c")  # phase 2 does not permit loops
 
 
-def test_lifecycle_manager_add_handlers():
+def test_lifecycle_manager_add_handlers() -> None:
     lm = LifeCycleManager()
     lm.add_phase("phase1", ["a"])
 
@@ -348,20 +353,18 @@ def test_lifecycle_manager_add_handlers():
 
     b = BumbleBee("Alice")
 
-    lm.add_handlers(
-        "initialization", [b.buzz, b.what_we_doin, test_lifecycle_manager_add_handlers]
-    )
+    lm.add_handlers("initialization", [b.buzz, b.what_we_doin, sting])
     assert init._handlers == [
         "BumbleBee(Alice).buzz",
         "BumbleBee(Alice).what_we_doin",
-        "Unbound function test_lifecycle_manager_add_handlers",
+        "Unbound function sting",
     ]
 
     lm.add_handlers("a", [b.buzz])
     assert a._handlers == ["BumbleBee(Alice).buzz"]
 
 
-def test_lifecycle_manager_add_constraint_fail():
+def test_lifecycle_manager_add_constraint_fail() -> None:
     lm = LifeCycleManager()
     lm.add_phase("phase1", ["a", "b", "c"])
 
@@ -393,7 +396,7 @@ def test_lifecycle_manager_add_constraint_fail():
         lm.add_constraint(alice.__call__, allow_during=["a"])
 
 
-def test_lifecycle_manager_add_constraint():
+def test_lifecycle_manager_add_constraint() -> None:
     lm = LifeCycleManager()
     lm.add_phase("phase1", ["a", "b", "c"], loop=True)
 
@@ -403,25 +406,32 @@ def test_lifecycle_manager_add_constraint():
     lm.add_constraint(alice.buzz, allow_during=["initialization", "a"])
     lm.add_constraint(bob.buzz, restrict_during=["initialization", "c"])
 
-    alice.buzz()
+    useless_event = Event(
+        index=pd.Index([0]),
+        user_data={},
+        time=0,
+        step_size=1,
+    )
+
+    alice.buzz(useless_event)
     with pytest.raises(ConstraintError, match="it may only be called during"):
-        bob.buzz()
+        bob.buzz(useless_event)
 
     lm.set_state("a")
-    alice.buzz()
-    bob.buzz()
+    alice.buzz(useless_event)
+    bob.buzz(useless_event)
 
     lm.set_state("b")
     with pytest.raises(ConstraintError, match="it may only be called during"):
-        alice.buzz()
-    bob.buzz()
+        alice.buzz(useless_event)
+    bob.buzz(useless_event)
 
     lm.set_state("c")
     with pytest.raises(ConstraintError, match="it may only be called during"):
-        alice.buzz()
+        alice.buzz(useless_event)
     with pytest.raises(ConstraintError, match="it may only be called during"):
-        bob.buzz()
+        bob.buzz(useless_event)
 
     lm.set_state("a")
-    alice.buzz()
-    bob.buzz()
+    alice.buzz(useless_event)
+    bob.buzz(useless_event)

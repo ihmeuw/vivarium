@@ -42,7 +42,6 @@ exclude = [
     'tests/framework/results/test_context.py',
     'tests/framework/test_engine.py',
     'tests/framework/test_event.py',
-    'tests/framework/test_lifecycle.py',
     'tests/framework/test_values.py',
     'tests/interface/test_utilities.py',
 ]
