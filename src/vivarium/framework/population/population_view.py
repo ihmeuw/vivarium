@@ -86,7 +86,8 @@ class PopulationView:
         population view.
         """
         if self.requires_all_columns:
-            return list(self._manager.get_population(True).columns) + self._columns
+            all_columns = list(self._manager.get_population(True).columns) + self._columns
+            return list(set(all_columns))
         return self._columns
 
     def subview(self, columns: str | Sequence[str]) -> PopulationView:

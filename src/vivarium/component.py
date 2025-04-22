@@ -16,7 +16,7 @@ from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 from importlib import import_module
 from inspect import signature
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 from typing import SupportsFloat as Numeric
 from typing import cast
 
@@ -246,7 +246,7 @@ class Component(ABC):
         return []
 
     @property
-    def columns_required(self) -> list[str] | None:
+    def columns_required(self) -> list[str] | Literal["all"] | None:
         """Provides names of columns required by the component.
 
         Returns
@@ -754,7 +754,7 @@ class Component(ABC):
                 DeprecationWarning,
                 stacklevel=2,
             )
-        if self.columns_required:
+        if self.columns_required and self.columns_required != "all":
             # Get all columns created and required
             population_view_columns = self.columns_created + self.columns_required
         elif self.columns_required == "all" or self.columns_required == []:
