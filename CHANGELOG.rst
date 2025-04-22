@@ -1,6 +1,10 @@
-**3.3.16 - TBD/TBD/25**
+**3.3.17 - 04/22/25**
 
   - Bugfix: Allow a component to require all state table columns and create a column.
+
+**3.3.16 - 04/21/25**
+
+  - Type-hinting: Fix mypy errors in tests/helpers.py
 
 **3.3.15 - 04/14/25**
 
