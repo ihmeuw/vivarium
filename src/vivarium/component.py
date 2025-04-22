@@ -750,7 +750,7 @@ class Component(ABC):
         if self.columns_required == []:
             warnings.warn(
                 "The empty list [] format for requiring all columns is deprecated. Please "
-                "use the new argument 'requires_all_columns' instead.",
+                "use the string 'all' instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -759,8 +759,6 @@ class Component(ABC):
             population_view_columns = self.columns_created + self.columns_required
         elif self.columns_required == "all" or self.columns_required == []:
             # Empty list means population view needs all available columns
-            # We cannot overwrite self.columns_required = "all" above because it does
-            # not have a setter.
             requires_all_columns = True
             if self.columns_created:
                 population_view_columns = self.columns_created

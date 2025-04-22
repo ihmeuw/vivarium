@@ -56,14 +56,15 @@ class PopulationView:
         view_id
             The unique identifier for this view.
         columns
-            The set of columns this view should have access too.  If empty, this
-            view will have access to the entire state table.
+            The set of columns this view should have access too.  If
+            requies_all_columns is True, this is the columns created by
+            the component containing the population view.
         query
             A :mod:`pandas`-style filter that will be applied any time this
             view is read from.
         requires_all_columns
-            If True, all columns from the population state table are required and
-            the columns will be the columns created by the component.
+            If True, all columns from the population state table will be
+            included in the population view.
         """
         self._manager = manager
         self._id = view_id
@@ -79,10 +80,10 @@ class PopulationView:
     def columns(self) -> list[str]:
         """The columns that the view can read and update.
 
-        If the view was created with ``None`` as the columns argument, then
-        the view will have access to the full table by default. That case
-        should be only be used in situations where the full state table is
-        actually needed, like for some metrics collection applications.
+        Set of columns the view will have access to. This is a subset of the
+        population state table columns. If self.requires_all_columns is True,
+        then this will be the columns created by the component containing the
+        population view.
         """
         if self.requires_all_columns:
             return list(self._manager.get_population(True).columns) + self._columns

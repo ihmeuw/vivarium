@@ -222,8 +222,8 @@ class PopulationManager(Manager):
         ----------
         columns
             A subset of the state table columns that will be available in the
-            returned view. If empty, this view will have access to the entire
-            state table.
+            returned view. If requires_all_columns is True, this will be the
+            columns created by the component containing the population view.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
@@ -231,9 +231,8 @@ class PopulationManager(Manager):
             :meth:`pandas.DataFrame.query` method and may reference state
             table columns not requested in the ``columns`` argument.
         requires_all_columns
-            If True, all columns in the population state table are required for
-            the population view and the columns will be the columns created by the
-            component.
+            If True, all columns in the population state table will be
+            included in the population view.
 
         Returns
         -------
@@ -456,8 +455,8 @@ class PopulationInterface(Interface):
         ----------
         columns
             A subset of the state table columns that will be available in the
-            returned view. If empty, this view will have access to the entire
-            state table.
+            returned view. If requires_all_columns is True, this view will be
+            the columns created by the component containing the population view.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
@@ -466,8 +465,7 @@ class PopulationInterface(Interface):
             table columns not requested in the ``columns`` argument.
         requires_all_columns
             If True, all columns in the population state table will be
-            required for the population view and the columns will be
-            the columns created by the component.
+            included in the population view.
 
         Returns
         -------
