@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+
 import numpy as np
 import pandas as pd
 import pytest
+import pytest_mock
 
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import (
@@ -14,19 +19,19 @@ from vivarium.framework.values import (
 
 
 @pytest.fixture
-def static_step():
+def static_step() -> Callable[[pd.Index[int]], pd.Series[pd.Timedelta]]:
     return lambda idx: pd.Series(pd.Timedelta(days=6), index=idx)
 
 
 @pytest.fixture
-def variable_step():
+def variable_step() -> Callable[[pd.Index[int]], pd.Series[pd.Timedelta]]:
     return lambda idx: pd.Series(
         [pd.Timedelta(days=3) if i % 2 == 0 else pd.Timedelta(days=5) for i in idx], index=idx
     )
 
 
 @pytest.fixture
-def manager(mocker):
+def manager(mocker: pytest_mock.MockFixture) -> ValuesManager:
     manager = ValuesManager()
     builder = mocker.MagicMock()
     manager.setup(builder)
@@ -34,7 +39,9 @@ def manager(mocker):
 
 
 @pytest.fixture
-def manager_with_step_size(mocker, request):
+def manager_with_step_size(
+    mocker: pytest_mock.MockFixture, request: pytest.FixtureRequest
+) -> ValuesManager:
     manager = ValuesManager()
     builder = mocker.MagicMock()
     builder.time.step_size = lambda: lambda: pd.Timedelta(days=6)
@@ -43,7 +50,7 @@ def manager_with_step_size(mocker, request):
     return manager
 
 
-def test_replace_combiner(manager):
+def test_replace_combiner(manager: ValuesManager) -> None:
     value = manager.register_value_producer("test", source=lambda: 1)
 
     assert value() == 1
@@ -55,7 +62,7 @@ def test_replace_combiner(manager):
     assert value() == 84
 
 
-def test_joint_value(manager):
+def test_joint_value(manager: ValuesManager) -> None:
     # This is the normal configuration for PAF and disability weight type values
     index = pd.Index(range(10))
 
@@ -63,7 +70,7 @@ def test_joint_value(manager):
         "test",
         source=lambda idx: [pd.Series(0.0, index=idx)],
         preferred_combiner=list_combiner,
-        preferred_post_processor=union_post_processor,
+        preferred_post_processor=union_post_processor,  # type: ignore [arg-type]
     )
     assert np.all(value(index) == 0)
 
@@ -74,7 +81,7 @@ def test_joint_value(manager):
     assert np.all(value(index) == 0.75)
 
 
-def test_contains(manager):
+def test_contains(manager: ValuesManager) -> None:
     value = "test_value"
     rate = "test_rate"
 
@@ -86,7 +93,7 @@ def test_contains(manager):
     assert rate not in manager
 
 
-def test_returned_series_name(manager):
+def test_returned_series_name(manager: ValuesManager) -> None:
     value = manager.register_value_producer(
         "test",
         source=lambda idx: pd.Series(0.0, index=idx),
@@ -95,7 +102,7 @@ def test_returned_series_name(manager):
 
 
 @pytest.mark.parametrize("manager_with_step_size", ["static_step"], indirect=True)
-def test_rescale_post_processor_static(manager_with_step_size):
+def test_rescale_post_processor_static(manager_with_step_size: ValuesManager) -> None:
     index = pd.Index(range(10))
 
     pipeline = manager_with_step_size.register_value_producer(
@@ -107,7 +114,7 @@ def test_rescale_post_processor_static(manager_with_step_size):
 
 
 @pytest.mark.parametrize("manager_with_step_size", ["variable_step"], indirect=True)
-def test_rescale_post_processor_variable(manager_with_step_size):
+def test_rescale_post_processor_variable(manager_with_step_size: ValuesManager) -> None:
     index = pd.Index(range(10))
 
     pipeline = manager_with_step_size.register_value_producer(
@@ -122,7 +129,7 @@ def test_rescale_post_processor_variable(manager_with_step_size):
     assert np.all(odds == from_yearly(0.5, pd.Timedelta(days=5)))
 
 
-def test_unsourced_pipeline():
+def test_unsourced_pipeline() -> None:
     pipeline = Pipeline("some_name")
     assert pipeline.source.resource_id == "missing_value_source.some_name"
     with pytest.raises(
