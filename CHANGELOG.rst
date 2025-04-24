@@ -1,3 +1,7 @@
+**3.3.18 - 04/24/25**
+
+  - Bugfix: Allow a component to require all state table columns and create a column.
+
 **3.3.17 - 04/22/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/test_lifecycle.py

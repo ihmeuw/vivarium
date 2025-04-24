@@ -9,6 +9,7 @@ The manager and :ref:`builder <builder_concept>` interface for the
 """
 from __future__ import annotations
 
+import warnings
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
@@ -200,7 +201,12 @@ class PopulationManager(Manager):
     # Builder API and helpers #
     ###########################
 
-    def get_view(self, columns: str | Sequence[str], query: str = "") -> PopulationView:
+    def get_view(
+        self,
+        columns: str | Sequence[str],
+        query: str = "",
+        requires_all_columns: bool = False,
+    ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -216,14 +222,17 @@ class PopulationManager(Manager):
         ----------
         columns
             A subset of the state table columns that will be available in the
-            returned view. If empty, this view will have access to the entire
-            state table.
+            returned view. If requires_all_columns is True, this should be set to
+            the columns created by the component containing the population view.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
             The query should be provided in a way that is understood by the
             :meth:`pandas.DataFrame.query` method and may reference state
             table columns not requested in the ``columns`` argument.
+        requires_all_columns
+            If True, all columns in the population state table will be
+            included in the population view.
 
         Returns
         -------
@@ -231,7 +240,15 @@ class PopulationManager(Manager):
             table.
 
         """
-        view = self._get_view(columns, query)
+        if not columns and not requires_all_columns:
+            warnings.warn(
+                "The empty list [] format for requiring all columns is deprecated. Please "
+                "use the new argument 'requires_all_columns' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            requires_all_columns = True
+        view = self._get_view(columns, query, requires_all_columns)
         self._add_constraint(
             view.get, restrict_during=["initialization", "setup", "post_setup"]
         )
@@ -247,7 +264,9 @@ class PopulationManager(Manager):
         )
         return view
 
-    def _get_view(self, columns: str | Sequence[str], query: str) -> PopulationView:
+    def _get_view(
+        self, columns: str | Sequence[str], query: str, requires_all_columns: bool = False
+    ) -> PopulationView:
         if isinstance(columns, str):
             columns = [columns]
 
@@ -257,7 +276,7 @@ class PopulationManager(Manager):
             elif "tracked" not in query:
                 query += " and tracked == True"
         self._last_id += 1
-        return PopulationView(self, self._last_id, columns, query)
+        return PopulationView(self, self._last_id, columns, query, requires_all_columns)
 
     def register_simulant_initializer(
         self,
@@ -415,7 +434,12 @@ class PopulationInterface(Interface):
     def __init__(self, manager: PopulationManager):
         self._manager = manager
 
-    def get_view(self, columns: str | Sequence[str], query: str = "") -> PopulationView:
+    def get_view(
+        self,
+        columns: str | Sequence[str],
+        query: str = "",
+        requires_all_columns: bool = False,
+    ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
@@ -431,21 +455,24 @@ class PopulationInterface(Interface):
         ----------
         columns
             A subset of the state table columns that will be available in the
-            returned view. If empty, this view will have access to the entire
-            state table.
+            returned view. If requires_all_columns is True, this should be set to
+            the columns created by the component containing the population view.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
             The query should be provided in a way that is understood by the
             :meth:`pandas.DataFrame.query` method and may reference state
             table columns not requested in the ``columns`` argument.
+        requires_all_columns
+            If True, all columns in the population state table will be
+            included in the population view.
 
         Returns
         -------
             A filtered view of the requested columns of the population state
             table.
         """
-        return self._manager.get_view(columns, query)
+        return self._manager.get_view(columns, query, requires_all_columns)
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.

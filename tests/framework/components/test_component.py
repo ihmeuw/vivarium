@@ -108,7 +108,6 @@ def test_component_that_creates_and_requires_columns_population_view() -> None:
     assert set(component.population_view.columns) == set(expected_columns)
 
 
-@pytest.mark.xfail(reason="This is due to a bug to be fixed by MIC-5373")
 def test_component_that_creates_column_and_requires_all_columns_population_view() -> None:
     component = ColumnCreatorAndAllRequirer()
     simulation = InteractiveContext(components=[ColumnCreator(), component])
