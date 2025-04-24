@@ -222,8 +222,8 @@ class PopulationManager(Manager):
         ----------
         columns
             A subset of the state table columns that will be available in the
-            returned view. If requires_all_columns is True, this will be the
-            columns created by the component containing the population view.
+            returned view. If requires_all_columns is True, this should be set to
+            the columns created by the component containing the population view.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
@@ -455,7 +455,7 @@ class PopulationInterface(Interface):
         ----------
         columns
             A subset of the state table columns that will be available in the
-            returned view. If requires_all_columns is True, this view will be
+            returned view. If requires_all_columns is True, this should be set to
             the columns created by the component containing the population view.
         query
             A filter on the population state.  This filters out particular

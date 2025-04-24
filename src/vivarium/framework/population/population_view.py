@@ -57,8 +57,8 @@ class PopulationView:
             The unique identifier for this view.
         columns
             The set of columns this view should have access too.  If
-            requies_all_columns is True, this is the columns created by
-            the component containing the population view.
+            requies_all_columns is True, this should be set to
+            the columns created by the component containing the population view.
         query
             A :mod:`pandas`-style filter that will be applied any time this
             view is read from.
