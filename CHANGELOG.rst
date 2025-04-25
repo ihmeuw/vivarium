@@ -1,6 +1,7 @@
 **3.3.19 - 04/29/25**
 
-  - Type-hinting: Fix mypy errors in test/framework/test_values.py 
+  - Type-hinting: Fix mypy errors in tests/framework/test_values.py 
+  - Type-hinting: Fix mypy errors in tests/framework/test_engine.py
 
 **3.3.18 - 04/24/25**
 

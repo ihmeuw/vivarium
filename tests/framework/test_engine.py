@@ -1,12 +1,17 @@
 import math
+from collections.abc import Generator
 from itertools import product
 from pathlib import Path
 from time import time
+from types import MethodType
+from typing import cast
 
 import dill
 import pandas as pd
 import pytest
-import pytest_mock
+from _pytest.logging import LogCaptureFixture
+from layered_config_tree import LayeredConfigTree
+from pytest_mock import MockerFixture
 
 from tests.framework.results.helpers import (
     FAMILIARS,
@@ -42,18 +47,18 @@ from vivarium.framework.time import DateTimeClock, TimeInterface
 from vivarium.framework.values import ValuesInterface, ValuesManager
 
 
-def is_same_object_method(m1, m2):
+def is_same_object_method(m1: MethodType, m2: MethodType) -> bool:
     return m1.__func__ is m2.__func__ and m1.__self__ is m2.__self__
 
 
 @pytest.fixture()
-def SimulationContext():
+def SimulationContext() -> Generator[type[SimulationContext_], None, None]:
     yield SimulationContext_
     SimulationContext_._clear_context_cache()
 
 
 @pytest.fixture
-def components():
+def components() -> list[Component]:
     return [
         MockComponentA("gretchen", "whimsy"),
         Listener("listener"),
@@ -61,21 +66,20 @@ def components():
     ]
 
 
-@pytest.fixture
-def log(mocker):
-    return mocker.patch("vivarium.framework.logging.manager.loguru.logger")
-
-
-def test_simulation_with_non_components(SimulationContext, components: list[Component]):
+def test_simulation_with_non_components(
+    SimulationContext: type[SimulationContext_], components: list[Component]
+) -> None:
     class NonComponent:
-        def __init__(self):
+        def __init__(self) -> None:
             self.name = "non_component"
 
-    with pytest.raises(ComponentConfigError):
-        SimulationContext(components=components + [NonComponent()])
+    with pytest.raises(
+        ComponentConfigError, match="that do not inherit from `vivarium.Component`"
+    ):
+        SimulationContext(components=components + [NonComponent()])  # type: ignore[list-item]
 
 
-def test_SimulationContext_get_sim_name(SimulationContext):
+def test_SimulationContext_get_sim_name(SimulationContext: type[SimulationContext_]) -> None:
     assert SimulationContext._created_simulation_contexts == set()
 
     assert SimulationContext._get_context_name(None) == "simulation_1"
@@ -84,7 +88,9 @@ def test_SimulationContext_get_sim_name(SimulationContext):
     assert SimulationContext._created_simulation_contexts == {"simulation_1", "foo"}
 
 
-def test_SimulationContext_init_default(SimulationContext, components):
+def test_SimulationContext_init_default(
+    SimulationContext: type[SimulationContext_], components: list[Component]
+) -> None:
     sim = SimulationContext(components=components)
 
     assert isinstance(sim._logging, LoggingManager)
@@ -151,7 +157,9 @@ def test_SimulationContext_init_default(SimulationContext, components):
     assert list(sim._component_manager._components) == unpacked_components
 
 
-def test_SimulationContext_name_management(SimulationContext):
+def test_SimulationContext_name_management(
+    SimulationContext: type[SimulationContext_],
+) -> None:
     assert SimulationContext._created_simulation_contexts == set()
 
     sim1 = SimulationContext()
@@ -171,7 +179,9 @@ def test_SimulationContext_name_management(SimulationContext):
     }
 
 
-def test_SimulationContext_run_simulation(SimulationContext, mocker):
+def test_SimulationContext_run_simulation(
+    SimulationContext: type[SimulationContext_], mocker: MockerFixture
+) -> None:
     sim = SimulationContext()
 
     expected_calls = [
@@ -197,9 +207,13 @@ def test_SimulationContext_run_simulation(SimulationContext, mocker):
     assert actual_calls == expected_calls
 
 
-def test_SimulationContext_setup_default(SimulationContext, base_config, components):
+def test_SimulationContext_setup_default(
+    SimulationContext: type[SimulationContext_],
+    base_config: LayeredConfigTree,
+    components: list[Component],
+) -> None:
     sim = SimulationContext(base_config, components)
-    listener = [c for c in components if "listener" in c.args][0]
+    listener: Listener = cast(Listener, [c for c in components if "listener" in c.name][0])
     assert not listener.post_setup_called
     sim.setup()
 
@@ -212,9 +226,16 @@ def test_SimulationContext_setup_default(SimulationContext, base_config, compone
     for a, b in zip(sim._component_manager._components, unpacked_components):
         assert type(a) == type(b)
         if hasattr(a, "args"):
-            assert a.args == b.args
+            if isinstance(a, (MockComponentA, MockComponentB, Listener)) and isinstance(
+                b, (MockComponentA, MockComponentB, Listener)
+            ):
+                assert a.args == b.args
+            else:
+                raise RuntimeError("Unexpected component type")
 
-    assert is_same_object_method(sim.simulant_creator, sim._population._create_simulants)
+    simulant_creator_1: MethodType = cast(MethodType, sim.simulant_creator)
+    simulant_creator_2: MethodType = cast(MethodType, sim._population._create_simulants)
+    assert is_same_object_method(simulant_creator_1, simulant_creator_2)
     assert sim.time_step_events == [
         "time_step__prepare",
         "time_step",
@@ -222,18 +243,24 @@ def test_SimulationContext_setup_default(SimulationContext, base_config, compone
         "collect_metrics",
     ]
     for k in sim.time_step_emitters.keys():
-        assert is_same_object_method(
-            sim.time_step_emitters[k], sim._events._event_types[k].emit
-        )
+        time_step_emitter_1: MethodType = cast(MethodType, sim.time_step_emitters[k])
+        time_step_emitter_2: MethodType = cast(MethodType, sim._events._event_types[k].emit)
+        assert is_same_object_method(time_step_emitter_1, time_step_emitter_2)
 
-    assert is_same_object_method(
-        sim.end_emitter, sim._events._event_types["simulation_end"].emit
+    end_emitter_1: MethodType = cast(MethodType, sim.end_emitter)
+    end_emitter_2: MethodType = cast(
+        MethodType, sim._events._event_types["simulation_end"].emit
     )
+    assert is_same_object_method(end_emitter_1, end_emitter_2)
 
     assert listener.post_setup_called
 
 
-def test_SimulationContext_initialize_simulants(SimulationContext, base_config, components):
+def test_SimulationContext_initialize_simulants(
+    SimulationContext: type[SimulationContext_],
+    base_config: LayeredConfigTree,
+    components: list[Component],
+) -> None:
     sim = SimulationContext(base_config, components)
     sim.setup()
     pop_size = sim.configuration.population.population_size
@@ -245,7 +272,12 @@ def test_SimulationContext_initialize_simulants(SimulationContext, base_config, 
     assert sim._clock.time == current_time
 
 
-def test_SimulationContext_step(SimulationContext, log, base_config, components):
+def test_SimulationContext_step(
+    SimulationContext: type[SimulationContext_],
+    base_config: LayeredConfigTree,
+    components: list[Component],
+    caplog: LogCaptureFixture,
+) -> None:
     sim = SimulationContext(base_config, components)
     sim.setup()
     sim.initialize_simulants()
@@ -253,16 +285,17 @@ def test_SimulationContext_step(SimulationContext, log, base_config, components)
     current_time = sim._clock.time
     step_size = sim._clock.step_size
 
-    listener = [c for c in components if "listener" in c.args][0]
+    listener: Listener = cast(Listener, [c for c in components if "listener" in c.name][0])
 
     assert not listener.time_step_prepare_called
     assert not listener.time_step_called
     assert not listener.time_step_cleanup_called
     assert not listener.collect_metrics_called
 
+    assert f"{current_time}" not in caplog.text
     sim.step()
+    assert f"{current_time}" in caplog.text
 
-    assert log.debug.called_once_with(current_time)
     assert listener.time_step_prepare_called
     assert listener.time_step_called
     assert listener.time_step_cleanup_called
@@ -271,9 +304,13 @@ def test_SimulationContext_step(SimulationContext, log, base_config, components)
     assert sim._clock.time == current_time + step_size
 
 
-def test_SimulationContext_finalize(SimulationContext, base_config, components):
+def test_SimulationContext_finalize(
+    SimulationContext: type[SimulationContext_],
+    base_config: LayeredConfigTree,
+    components: list[Component],
+) -> None:
     sim = SimulationContext(base_config, components)
-    listener = [c for c in components if "listener" in c.args][0]
+    listener: Listener = cast(Listener, [c for c in components if "listener" in c.name][0])
     sim.setup()
     sim.initialize_simulants()
     sim.step()
@@ -282,7 +319,9 @@ def test_SimulationContext_finalize(SimulationContext, base_config, components):
     assert listener.simulation_end_called
 
 
-def test_get_results(SimulationContext, base_config):
+def test_get_results(
+    SimulationContext: type[SimulationContext_], base_config: LayeredConfigTree
+) -> None:
     """Test that get_results returns expected values. This does NOT test for
     correct formatting.
     """
@@ -300,7 +339,11 @@ def test_get_results(SimulationContext, base_config):
         assert results.set_index(raw_results.index.names)[[VALUE_COLUMN]].equals(raw_results)
 
 
-def test_SimulationContext_report_no_write_warning(SimulationContext, base_config, caplog):
+def test_SimulationContext_report_no_write_warning(
+    SimulationContext: type[SimulationContext_],
+    base_config: LayeredConfigTree,
+    caplog: LogCaptureFixture,
+) -> None:
     components = [
         Hogwarts(),
         HousePointsObserver(),
@@ -315,13 +358,20 @@ def test_SimulationContext_report_no_write_warning(SimulationContext, base_confi
     assert set(results) == set(
         ["house_points", "quidditch_wins", "no_stratifications_quidditch_wins"]
     )
-    assert all([isinstance(df, pd.DataFrame) for df in results.values()])
+    assert all(isinstance(df, pd.DataFrame) for df in results.values())
 
 
-def test_SimulationContext_report_write(SimulationContext, base_config, components, tmpdir):
+def test_SimulationContext_report_write(
+    SimulationContext: type[SimulationContext_],
+    base_config: LayeredConfigTree,
+    components: list[Component],
+    tmp_path: Path,
+) -> None:
     """Test that the written results match get_results"""
-    results_root = Path(tmpdir)
-    configuration = {"output_data": {"results_directory": str(results_root)}}
+    results_root = tmp_path
+    configuration: dict[str, object] = {
+        "output_data": {"results_directory": str(results_root)}
+    }
     configuration.update(HARRY_POTTER_CONFIG)
     components = [
         Hogwarts(),
@@ -349,12 +399,14 @@ def test_SimulationContext_report_write(SimulationContext, base_config, componen
         assert results.equals(written_results)
 
 
-def test_SimulationContext_write_backup(mocker, SimulationContext, tmpdir):
+def test_SimulationContext_write_backup(
+    mocker: MockerFixture, SimulationContext: type[SimulationContext_], tmp_path: Path
+) -> None:
     # TODO MIC-5216: Remove mocks when we can use dill in pytest.
     mocker.patch("vivarium.framework.engine.dill.dump")
     mocker.patch("vivarium.framework.engine.dill.load", return_value=SimulationContext())
     sim = SimulationContext()
-    backup_path = tmpdir / "backup.pkl"
+    backup_path = tmp_path / "backup.pkl"
     sim.write_backup(backup_path)
     assert backup_path.exists()
     with open(backup_path, "rb") as f:
@@ -362,11 +414,18 @@ def test_SimulationContext_write_backup(mocker, SimulationContext, tmpdir):
     assert isinstance(sim_backup, SimulationContext)
 
 
-def test_SimulationContext_run_with_backup(mocker, SimulationContext, base_config, tmpdir):
-    mocker.patch("vivarium.framework.engine.SimulationContext.write_backup")
+def test_SimulationContext_run_with_backup(
+    mocker: MockerFixture,
+    SimulationContext: type[SimulationContext_],
+    base_config: LayeredConfigTree,
+    tmp_path: Path,
+) -> None:
+    mocked_write_backup = mocker.patch(
+        "vivarium.framework.engine.SimulationContext.write_backup"
+    )
     original_time = time()
 
-    def time_generator():
+    def time_generator() -> Generator[float, None, None]:
         current_time = original_time
         while True:
             yield current_time
@@ -381,14 +440,16 @@ def test_SimulationContext_run_with_backup(mocker, SimulationContext, base_confi
         HogwartsResultsStratifier(),
     ]
     sim = SimulationContext(base_config, components, configuration=HARRY_POTTER_CONFIG)
-    backup_path = tmpdir / "backup.pkl"
+    backup_path = tmp_path / "backup.pkl"
     sim.setup()
     sim.initialize_simulants()
     sim.run(backup_path=backup_path, backup_freq=5)
-    assert sim.write_backup.call_count == _get_num_steps(sim)
+    assert mocked_write_backup.call_count == _get_num_steps(sim)
 
 
-def test_get_results_formatting(SimulationContext, base_config):
+def test_get_results_formatting(
+    SimulationContext: type[SimulationContext_], base_config: LayeredConfigTree
+) -> None:
     """Test formatted results are as expected"""
     components = [
         Hogwarts(),
@@ -445,15 +506,15 @@ def test_get_results_formatting(SimulationContext, base_config):
 
 
 def test_SimulationContext_load_from_backup(
-    mocker: pytest_mock.MockFixture,
-    SimulationContext: SimulationContext_,
-    tmpdir: Path,
-):
+    mocker: MockerFixture,
+    SimulationContext: type[SimulationContext_],
+    tmp_path: Path,
+) -> None:
     # TODO MIC-5216: Remove mocks when we can use dill in pytest.
     mocker.patch("vivarium.framework.engine.dill.dump")
     mocker.patch("vivarium.framework.engine.dill.load", return_value=SimulationContext())
     sim = SimulationContext()
-    backup_path = tmpdir / "backup.pkl"
+    backup_path = tmp_path / "backup.pkl"
     sim.write_backup(backup_path)
     # Load from backup
     sim_backup = SimulationContext.load_from_backup(backup_path)
@@ -469,9 +530,10 @@ def _convert_to_datetime(date_dict: dict[str, int]) -> pd.Timestamp:
     )
 
 
-def _get_num_steps(sim: SimulationContext) -> int:
+def _get_num_steps(sim: SimulationContext_) -> int:
     time_dict = sim.configuration.time.to_dict()
     end_date = _convert_to_datetime(time_dict["end"])
     start_date = _convert_to_datetime(time_dict["start"])
     num_steps = math.ceil((end_date - start_date).days / time_dict["step_size"])
+    assert isinstance(num_steps, int)
     return num_steps
