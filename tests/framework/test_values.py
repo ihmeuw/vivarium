@@ -5,7 +5,7 @@ from collections.abc import Callable
 import numpy as np
 import pandas as pd
 import pytest
-import pytest_mock
+from pytest_mock import MockFixture
 
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import (
@@ -31,7 +31,7 @@ def variable_step() -> Callable[[pd.Index[int]], pd.Series[pd.Timedelta]]:
 
 
 @pytest.fixture
-def manager(mocker: pytest_mock.MockFixture) -> ValuesManager:
+def manager(mocker: MockFixture) -> ValuesManager:
     manager = ValuesManager()
     builder = mocker.MagicMock()
     manager.setup(builder)
@@ -40,7 +40,7 @@ def manager(mocker: pytest_mock.MockFixture) -> ValuesManager:
 
 @pytest.fixture
 def manager_with_step_size(
-    mocker: pytest_mock.MockFixture, request: pytest.FixtureRequest
+    mocker: MockFixture, request: pytest.FixtureRequest
 ) -> ValuesManager:
     manager = ValuesManager()
     builder = mocker.MagicMock()
