@@ -1,10 +1,10 @@
 import math
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from itertools import product
 from pathlib import Path
 from time import time
 from types import MethodType
-from typing import cast
+from typing import Any, cast
 
 import dill
 import pandas as pd
@@ -47,8 +47,12 @@ from vivarium.framework.time import DateTimeClock, TimeInterface
 from vivarium.framework.values import ValuesInterface, ValuesManager
 
 
-def is_same_object_method(m1: MethodType, m2: MethodType) -> bool:
-    return m1.__func__ is m2.__func__ and m1.__self__ is m2.__self__
+def is_same_object_method(
+    m1: MethodType | Callable[..., Any], m2: Callable[..., Any]
+) -> bool:
+    method1: MethodType = cast(MethodType, m1)
+    method2: MethodType = cast(MethodType, m2)
+    return method1.__func__ is method2.__func__ and method1.__self__ is method2.__self__
 
 
 @pytest.fixture()
@@ -233,9 +237,7 @@ def test_SimulationContext_setup_default(
             else:
                 raise RuntimeError("Unexpected component type")
 
-    simulant_creator_1: MethodType = cast(MethodType, sim.simulant_creator)
-    simulant_creator_2: MethodType = cast(MethodType, sim._population._create_simulants)
-    assert is_same_object_method(simulant_creator_1, simulant_creator_2)
+    assert is_same_object_method(sim.simulant_creator, sim._population._create_simulants)
     assert sim.time_step_events == [
         "time_step__prepare",
         "time_step",
@@ -243,15 +245,13 @@ def test_SimulationContext_setup_default(
         "collect_metrics",
     ]
     for k in sim.time_step_emitters.keys():
-        time_step_emitter_1: MethodType = cast(MethodType, sim.time_step_emitters[k])
-        time_step_emitter_2: MethodType = cast(MethodType, sim._events._event_types[k].emit)
-        assert is_same_object_method(time_step_emitter_1, time_step_emitter_2)
+        assert is_same_object_method(
+            sim.time_step_emitters[k], sim._events._event_types[k].emit
+        )
 
-    end_emitter_1: MethodType = cast(MethodType, sim.end_emitter)
-    end_emitter_2: MethodType = cast(
-        MethodType, sim._events._event_types["simulation_end"].emit
+    assert is_same_object_method(
+        sim.end_emitter, sim._events._event_types["simulation_end"].emit
     )
-    assert is_same_object_method(end_emitter_1, end_emitter_2)
 
     assert listener.post_setup_called
 
