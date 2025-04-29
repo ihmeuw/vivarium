@@ -1,4 +1,4 @@
-**3.3..19 - 04/28/25**
+**3.3.19 - 04/29/25**
 
   - Type-hinting: Fix mypy errors in test/framework/test_values.py 
 
