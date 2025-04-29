@@ -1,3 +1,7 @@
+**3.3.19 - 04/29/25**
+
+  - Type-hinting: Fix mypy errors in test/framework/test_values.py 
+
 **3.3.18 - 04/24/25**
 
   - Bugfix: Allow a component to require all state table columns and create a column.
