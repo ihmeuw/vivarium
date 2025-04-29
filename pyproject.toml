@@ -40,7 +40,6 @@ exclude = [
     'src/vivarium/examples/disease_model/risk.py',
     'src/vivarium/testing_utilities.py',
     'tests/framework/results/test_context.py',
-    'tests/framework/test_engine.py',
     'tests/framework/test_event.py',
     'tests/interface/test_utilities.py',
 ]
