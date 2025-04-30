@@ -27,7 +27,7 @@ _MODEL_SPEC_CONTENTS_WITH = (
 )
 
 
-def _write_file(path: Path, contents: str):
+def _write_file(path: Path, contents: str) -> None:
     with open(path, "w") as file:
         file.write(contents)
 
@@ -59,12 +59,12 @@ def _write_file(path: Path, contents: str):
     ],
 )
 def test_get_output_model_name_string(
-    artifact_path,
-    model_spec_filename,
-    contents,
-    expected_output,
-    tmp_path,
-):
+    artifact_path: Path,
+    model_spec_filename: str,
+    contents: str,
+    expected_output: str,
+    tmp_path: Path,
+) -> None:
     model_spec_path = Path(f"{tmp_path}/{model_spec_filename}")
     _write_file(model_spec_path, contents)
 
