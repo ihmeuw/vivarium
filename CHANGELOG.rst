@@ -1,4 +1,4 @@
-**3.3.20 - 04/30/20**
+**3.3.20 - 04/30/25**
 
   - Type-hinting: Fix mypy errors in docs/source/conf.py
   - Type-hinting: Fix mypy errors in tests/interface/test_utilities.py
