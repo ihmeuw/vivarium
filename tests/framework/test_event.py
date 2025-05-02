@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any, TypedDict
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -5,8 +9,18 @@ import pytest
 from vivarium.framework.event import Event, EventManager
 
 
+class EventData(TypedDict):
+    index: pd.Index[int]
+    user_data: dict[str, str]
+    time: pd.Timestamp
+    step_size: int
+
+
+_EVENT_INIT_TYPE = dict[str, EventData]
+
+
 @pytest.fixture
-def event_init():
+def event_init() -> _EVENT_INIT_TYPE:
     return {
         "orig": {
             "index": pd.Index(range(10)),
@@ -23,7 +37,7 @@ def event_init():
     }
 
 
-def test_proper_access(event_init):
+def test_proper_access(event_init: _EVENT_INIT_TYPE) -> None:
     # Event attributes are meant to be read-only
     event_data = event_init["orig"]
     e1 = Event(
@@ -44,7 +58,7 @@ def test_proper_access(event_init):
             setattr(e1, key, value)
 
 
-def test_split_event(event_init):
+def test_split_event(event_init: _EVENT_INIT_TYPE) -> None:
     event_data = event_init["orig"]
     e1 = Event(
         event_data["index"],
@@ -60,10 +74,10 @@ def test_split_event(event_init):
     assert e2.index is new_idx
 
 
-def test_emission(event_init):
+def test_emission(event_init: _EVENT_INIT_TYPE) -> None:
     signal = [False]
 
-    def listener(*_, **__):
+    def listener(*_: Any, **__: Any) -> None:
         signal[0] = True
 
     manager = EventManager()
@@ -72,31 +86,31 @@ def test_emission(event_init):
     manager.add_constraint = lambda f, **kwargs: f
     emitter = manager.get_emitter("test_event")
     manager.register_listener("test_event", listener)
-    emitter(event_init["orig"]["index"])
+    emitter(event_init["orig"]["index"], None)
 
     assert signal[0]
 
     signal[0] = False
 
     emitter = manager.get_emitter("test_unheard_event")
-    emitter(event_init["new_val"]["index"])
+    emitter(event_init["new_val"]["index"], None)
     assert not signal[0]
 
 
-def test_listener_priority(event_init):
+def test_listener_priority(event_init: _EVENT_INIT_TYPE) -> None:
     signal = [False, False, False]
 
-    def listener1(*_, **__):
+    def listener1(*_: Any, **__: Any) -> None:
         signal[0] = True
         assert not signal[1]
         assert not signal[2]
 
-    def listener2(*_, **__):
+    def listener2(*_: Any, **__: Any) -> None:
         signal[1] = True
         assert signal[0]
         assert not signal[2]
 
-    def listener3(*_, **__):
+    def listener3(*_: Any, **__: Any) -> None:
         signal[2] = True
         assert signal[0]
         assert signal[1]
@@ -110,11 +124,11 @@ def test_listener_priority(event_init):
     manager.register_listener("test_event", listener2)
     manager.register_listener("test_event", listener3, priority=9)
 
-    emitter(event_init["orig"]["index"])
+    emitter(event_init["orig"]["index"], None)
     assert np.all(signal)
 
 
-def test_contains():
+def test_contains() -> None:
     event = "test_event"
 
     manager = EventManager()
@@ -124,11 +138,15 @@ def test_contains():
     assert event in manager
 
 
-def test_list_events():
+def test_list_events() -> None:
     manager = EventManager()
     manager.add_constraint = lambda f, **kwargs: f
     _ = manager.get_channel("event1")
     _ = manager.get_emitter("event2")
-    _ = manager.register_listener("event3", lambda: None)
+
+    def event3_listener(*_: Any, **__: Any) -> None:
+        pass
+
+    manager.register_listener("event3", event3_listener)
     _ = manager.get_listeners("event4")
     assert manager.list_events() == ["event1", "event2", "event3", "event4"]

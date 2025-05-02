@@ -1,3 +1,7 @@
+**3.3.21 - 05/05/25**
+
+  - Type-hinting: Fix mypy errors in tests/framework/test_event.py
+
 **3.3.20 - 04/30/25**
 
   - Type-hinting: Fix mypy errors in docs/source/conf.py
