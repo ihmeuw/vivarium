@@ -120,7 +120,6 @@ if __name__ == "__main__":
         ],
         package_dir={"": "src"},
         packages=find_packages(where="src"),
-        package_data={"vivarium": ["py.typed"]},
         include_package_data=True,
         install_requires=install_requirements,
         tests_require=test_requirements,
