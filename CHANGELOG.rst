@@ -1,3 +1,7 @@
+**3.3.22 - 05/05/25**
+
+  - Add py.typed marker
+
 **3.3.21 - 05/02/25**
 
   - Type-hinting: Fix mypy errors in tests/framework/test_event.py
