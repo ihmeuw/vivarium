@@ -43,7 +43,6 @@ def rate_to_probability(
     Returns
     -------
         An array of floats representing the probability of the converted rates
-
     """
     # NOTE: The default behavior for randomness streams is to use a rate that is already
     # scaled to the time step which is why the default time scaling factor is 1.0.
@@ -77,9 +76,11 @@ def probability_to_rate(
         The probability to convert to a rate.
     time_scaling_factor
         The time factor in to scale the rates. This is uusually the time step.
+
     Returns
     -------
-        An array of floats representing the rate of the converted probabilities"""
+        An array of floats representing the rate of the converted probabilities
+    """
     # NOTE: The default behavior for randomness streams is to use a rate that is already
     # scaled to the time step which is why the default time scaling factor is 1.0.
     rate = probability / time_scaling_factor
