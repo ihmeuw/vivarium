@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -29,10 +31,19 @@ def test_to_yearly() -> None:
     assert round(new_rate, 5) == round(0.01, 5)
 
 
-def test_rate_to_probability() -> None:
-    rate = np.array([0.001])
-    prob = rate_to_probability(rate)
-    assert np.isclose(prob, 0.00099950016662497809)
+@pytest.mark.parametrize(
+    "rate, time_scaling_factor",
+    [
+        (0.5, 1),
+        (0.25, 1.0),
+        (0.5, 0.5),
+        (0.25, 0.5),
+    ],
+)
+def test_rate_to_probability(rate: float, time_scaling_factor: float) -> None:
+    expected = rate * time_scaling_factor
+    prob = rate_to_probability(rate, time_scaling_factor)
+    expected == prob
 
 
 def test_very_high_rate_to_probability() -> None:
@@ -41,10 +52,20 @@ def test_very_high_rate_to_probability() -> None:
     assert np.isclose(prob, 1.0)
 
 
-def test_probability_to_rate() -> None:
-    prob = np.array([0.00099950016662497809])
-    rate = probability_to_rate(prob)
-    assert np.isclose(rate, 0.001)
+@pytest.mark.parametrize(
+    "prob, time_scaling_factor",
+    [
+        (0.5, 1.0),
+        (0.25, 1.0),
+        (0.5, 0.5),
+        (0.25, 0.5),
+    ],
+)
+def test_probability_to_rate(prob: float, time_scaling_factor: float) -> None:
+    expected = prob / time_scaling_factor
+    probability = np.array([prob])
+    rate = probability_to_rate(probability, time_scaling_factor)
+    (rate == expected).all()
 
 
 def test_rate_to_probability_symmetry() -> None:
@@ -110,3 +131,21 @@ def test_handle_exceptions(test_input: type[BaseException]) -> None:
         # see heated thread at https://github.com/python/mypy/issues/6549
         func = handle_exceptions(raise_me(test_input), None, False)  # type: ignore[func-returns-value]
         func()
+
+
+@pytest.mark.parametrize(
+    "rate",
+    [
+        150.0,
+        pd.Series([250.0, 300.0, 0.5, 0.25]),
+    ],
+)
+def test_rate_to_probability_clipped(
+    rate: float | pd.Series[float], caplog: pytest.LogCaptureFixture
+) -> None:
+    prob = rate_to_probability(150.0)
+    if isinstance(prob, float):
+        assert prob == 1.0
+    else:
+        assert prob == pd.Series([1.0, 1.0, 0.5, 0.25])
+    assert "The probability has been clipped to 1.0" in caplog.text

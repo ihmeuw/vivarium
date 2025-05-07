@@ -1,3 +1,7 @@
+**3.3.23 - 05/08/25**
+
+  - Feature: Update utility functions for rate and probability conversions
+
 **3.3.22 - 05/05/25**
 
   - Add py.typed marker
