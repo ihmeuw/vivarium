@@ -70,6 +70,7 @@ def probability_to_rate(
     probability: Sequence[float] | NumberLike, time_scaling_factor: float | int = 1.0
 ) -> NumericArray:
     """Function to convert a probability to a rate.
+
     Parameters
     ----------
     probability
