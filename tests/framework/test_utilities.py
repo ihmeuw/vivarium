@@ -50,10 +50,7 @@ def test_rate_to_probability(rate: float, time_scaling_factor: float) -> None:
 def test_rate_to_probability_default_time_scaling(rate: float) -> None:
     expected = rate
     prob = rate_to_probability(rate)
-    if isinstance(expected, float):
-        prob == expected
-    else:
-        assert (prob == expected).all()
+    assert (prob == expected).all()
 
 
 def test_very_high_rate_to_probability() -> None:
