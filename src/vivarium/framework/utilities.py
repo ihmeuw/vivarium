@@ -39,7 +39,7 @@ def rate_to_probability(
     rate
         The rate to convert to a probability.
     time_scaling_factor
-        The time factor in to scale the rates. This is uusually the time step.
+        The time factor in to scale the rates by. This is usually the time step.
 
     Returns
     -------
@@ -77,7 +77,7 @@ def probability_to_rate(
     probability
         The probability to convert to a rate.
     time_scaling_factor
-        The time factor in to scale the rates. This is uusually the time step.
+        The time factor in to scale the probability by. This is usually the time step.
 
     Returns
     -------

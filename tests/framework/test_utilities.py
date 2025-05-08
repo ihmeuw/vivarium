@@ -46,6 +46,16 @@ def test_rate_to_probability(rate: float, time_scaling_factor: float) -> None:
     expected == prob
 
 
+@pytest.mark.parametrize("rate", [0.75, pd.Series([0.75, 0.5, 0.25]), 0.1])
+def test_rate_to_probability_default_time_scaling(rate: float) -> None:
+    expected = rate
+    prob = rate_to_probability(rate)
+    if isinstance(expected, float):
+        prob == expected
+    else:
+        assert (prob == expected).all()
+
+
 def test_very_high_rate_to_probability() -> None:
     rate = np.array([10_000])
     prob = rate_to_probability(rate)
@@ -66,6 +76,16 @@ def test_probability_to_rate(prob: float, time_scaling_factor: float) -> None:
     probability = np.array([prob])
     rate = probability_to_rate(probability, time_scaling_factor)
     (rate == expected).all()
+
+
+@pytest.mark.parametrize("prob", [0.1, pd.Series([0.2, 0.4, 0.6, 0.8]), 0.9])
+def test_probability_to_rate_default_time_scaling(prob: float) -> None:
+    expected = prob
+    rate = probability_to_rate(prob)
+    if isinstance(expected, float):
+        rate == expected
+    else:
+        assert (rate == expected).all()
 
 
 def test_rate_to_probability_symmetry() -> None:
