@@ -47,23 +47,17 @@ def rate_to_probability(
     """
     # NOTE: The default behavior for randomness streams is to use a rate that is already
     # scaled to the time step which is why the default time scaling factor is 1.0.
-    probability = rate * time_scaling_factor
+    probability = np.array(rate * time_scaling_factor)
+
     # Clip to 1.0 if the probability is greater than 1.0.
-    clip = False
     exceeds_one = probability > 1.0
-    if isinstance(exceeds_one, bool):
-        if exceeds_one:
-            probability = 1.0
-            clip = True
-    else:
-        if exceeds_one.any():
-            probability[exceeds_one] = 1.0
-            clip = True
-    if clip:
+    if exceeds_one.any():
+        probability[exceeds_one] = 1.0
         logger.warning(
             "The rate to probability conversion resulted in a probability greater than 1.0. "
             "The probability has been clipped to 1.0 and indicates the rate is too high. "
         )
+
     return probability
 
 

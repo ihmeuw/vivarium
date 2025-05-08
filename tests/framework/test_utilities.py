@@ -163,9 +163,10 @@ def test_handle_exceptions(test_input: type[BaseException]) -> None:
 def test_rate_to_probability_clipped(
     rate: float | pd.Series[float], caplog: pytest.LogCaptureFixture
 ) -> None:
-    prob = rate_to_probability(150.0)
-    if isinstance(prob, float):
-        assert prob == 1.0
+    prob = rate_to_probability(rate)
+    assert prob.max() <= 1.0
+    if isinstance(rate, float):
+        assert (prob == pd.Series([1.0])).all()
     else:
-        assert prob == pd.Series([1.0, 1.0, 0.5, 0.25])
+        assert (prob == pd.Series([1.0, 1.0, 0.5, 0.25])).all()
     assert "The probability has been clipped to 1.0" in caplog.text
