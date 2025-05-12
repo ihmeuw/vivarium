@@ -204,12 +204,12 @@ just those subsets if we like.
        component_configs: 0
    additional_seed:
        component_configs: None
-    rate_conversion_type:
+   rate_conversion_type:
         component_configs: None
 
 This subset of configuration data contains more keys.  All of the keys in
-our example here (key_columns, map_size, random_seed, and additional_seed)
-point directly to values. We can access these values from the simulation
+our example here (key_columns, map_size, random_seed, additional_seed,
+and rate_conversion_type) point directly to values. We can access these values from the simulation
 as well.
 
 .. testcode::
@@ -218,6 +218,7 @@ as well.
    print(sim.configuration.randomness.map_size)
    print(sim.configuration.randomness.random_seed)
    print(sim.configuration.randomness.additional_seed)
+   print(sim.configuration.randomness.rate_conversion_type)
 
 
 .. testoutput::
@@ -255,6 +256,8 @@ should be one more layer of keys.
    random_seed:
        component_configs: 0
    additional_seed:
+       component_configs: None
+    rate_conversion_type:
        component_configs: None
 
 This last layer reflects a priority level in the way simulation configuration
