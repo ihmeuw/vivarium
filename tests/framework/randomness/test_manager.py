@@ -23,6 +23,7 @@ def test_randomness_manager_get_randomness_stream() -> None:
     rm._clock_ = mock_clock
     rm._key_columns = ["age", "sex"]
     rm._key_mapping_ = IndexMap(["age", "sex"])
+    rm._rate_conversion_type = "linear"
     stream = rm._get_randomness_stream("test", component)
 
     assert stream.key == "test"

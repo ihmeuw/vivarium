@@ -255,6 +255,7 @@ def test_sample_from_distribution_using_ppf(index: pd.Index[int]) -> None:
     [
         "linear",
         "exponential",
+        None,
     ],
 )
 def test_stream_rate_conversion_config(
@@ -262,8 +263,13 @@ def test_stream_rate_conversion_config(
     base_config: LayeredConfigTree,
 ) -> None:
     cc = ColumnCreator()
-    base_config.update(
-        {"configuration": {"randomness": {"rate_conversion_type": rate_conversion}}}
-    )
+    # Do not update key if key is not configured (None) to test default behavior
+    if rate_conversion is not None:
+        base_config.update(
+            {"configuration": {"randomness": {"rate_conversion_type": rate_conversion}}}
+        )
     sim = InteractiveContext(base_config, components=[cc])
+    # Convert for default
+    if rate_conversion is None:
+        rate_conversion = "linear"
     assert sim._randomness._rate_conversion_type == rate_conversion

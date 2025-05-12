@@ -164,6 +164,11 @@ class RandomnessManager(Manager):
                 f"Two separate places are attempting to create "
                 f"the same randomness stream for {decision_point}"
             )
+        if self._rate_conversion_type not in ["linear", "exponential"]:
+            raise RandomnessError(
+                "The rate conversion type must be a linear or exponential. "
+                f"Got {self._rate_conversion_type} instead."
+            )
         stream = RandomnessStream(
             key=decision_point,
             clock=self._clock,
