@@ -5,9 +5,12 @@ from typing import Any, Callable
 import numpy as np
 import pandas as pd
 import pytest
+from layered_config_tree import LayeredConfigTree
 from scipy import stats
 from vivarium_testing_utils import FuzzyChecker
 
+from tests.helpers import ColumnCreator
+from vivarium import InteractiveContext
 from vivarium.framework.randomness import RESIDUAL_CHOICE, RandomnessError, RandomnessStream
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import (
@@ -245,3 +248,22 @@ def test_sample_from_distribution_using_ppf(index: pd.Index[int]) -> None:
     assert isinstance(sample, pd.Series)
     assert sample.index.equals(index)
     assert np.allclose(sample, expected)
+
+
+@pytest.mark.parametrize(
+    "rate_conversion",
+    [
+        "linear",
+        "exponential",
+    ],
+)
+def test_stream_rate_conversion_config(
+    rate_conversion: str,
+    base_config: LayeredConfigTree,
+) -> None:
+    cc = ColumnCreator()
+    base_config.update(
+        {"configuration": {"randomness": {"rate_conversion_type": rate_conversion}}}
+    )
+    sim = InteractiveContext(base_config, components=[cc])
+    assert sim._randomness._rate_conversion_type == rate_conversion

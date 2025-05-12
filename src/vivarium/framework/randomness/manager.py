@@ -33,6 +33,7 @@ class RandomnessManager(Manager):
             "key_columns": [],
             "random_seed": 0,
             "additional_seed": None,
+            "rate_conversion_type": None,
         }
     }
 
@@ -42,6 +43,7 @@ class RandomnessManager(Manager):
         self._key_columns: list[str] = []
         self._key_mapping_: IndexMap | None = None
         self._decision_points: dict[str, RandomnessStream] = dict()
+        self._rate_conversion_type: str | None = None
 
     @property
     def name(self) -> str:
@@ -74,6 +76,10 @@ class RandomnessManager(Manager):
         pop_size = builder.configuration.population.population_size
         map_size = max(map_size, 10 * pop_size)
         self._key_mapping_ = IndexMap(self._key_columns, map_size)
+        if builder.configuration.randomness.rate_conversion_type is not None:
+            self._rate_conversion_type = builder.configuration.randomness.rate_conversion_type
+        else:
+            self._rate_conversion_type = "linear"
 
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
@@ -165,6 +171,7 @@ class RandomnessManager(Manager):
             index_map=self._key_mapping,
             component=component,
             initializes_crn_attributes=initializes_crn_attributes,
+            rate_conversion_type=self._rate_conversion_type,
         )
         self._decision_points[decision_point] = stream
         return stream

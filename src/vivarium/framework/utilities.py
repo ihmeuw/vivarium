@@ -30,7 +30,9 @@ def to_yearly(value: TimeValue, time_step: Timedelta) -> TimeValue:
 
 
 def rate_to_probability(
-    rate: Sequence[float] | NumberLike, time_scaling_factor: float | int = 1.0
+    rate: Sequence[float] | NumberLike,
+    time_scaling_factor: float | int = 1.0,
+    rate_conversion_type: str = "linear",
 ) -> NumericArray:
     """Converts a rate to a probability.
 
@@ -40,23 +42,35 @@ def rate_to_probability(
         The rate to convert to a probability.
     time_scaling_factor
         The time factor in to scale the rates by. This is usually the time step.
+    conversion_type
+        The type of conversion to use. Default is "linear" for a simple multiplcation
+        of rate and time_scaling_factor. Other option is "exponential" which should be
+        used for continuous time event driven models.
 
     Returns
     -------
         An array of floats representing the probability of the converted rates
     """
-    # NOTE: The default behavior for randomness streams is to use a rate that is already
-    # scaled to the time step which is why the default time scaling factor is 1.0.
-    probability = np.array(rate * time_scaling_factor)
+    if rate_conversion_type == "linear":
+        # NOTE: The default behavior for randomness streams is to use a rate that is already
+        # scaled to the time step which is why the default time scaling factor is 1.0.
+        probability = np.array(rate * time_scaling_factor)
 
-    # Clip to 1.0 if the probability is greater than 1.0.
-    exceeds_one = probability > 1.0
-    if exceeds_one.any():
-        probability[exceeds_one] = 1.0
-        logger.warning(
-            "The rate to probability conversion resulted in a probability greater than 1.0. "
-            "The probability has been clipped to 1.0 and indicates the rate is too high. "
-        )
+        # Clip to 1.0 if the probability is greater than 1.0.
+        exceeds_one = probability > 1.0
+        if exceeds_one.any():
+            probability[exceeds_one] = 1.0
+            logger.warning(
+                "The rate to probability conversion resulted in a probability greater than 1.0. "
+                "The probability has been clipped to 1.0 and indicates the rate is too high. "
+            )
+    else:
+        # encountered underflow from rate > 30k
+        # for rates greater than 250, exp(-rate) evaluates to 1e-109
+        # beware machine-specific floating point issues
+        rate = np.array(rate)
+        rate[rate > 250] = 250.0
+        probability: NumericArray = 1 - np.exp(-rate * time_scaling_factor)
 
     return probability
 
