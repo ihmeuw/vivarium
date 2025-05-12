@@ -112,6 +112,8 @@ configuration by simply printing it.
             component_configs: 0
         additional_seed:
             component_configs: None
+        rate_conversion_type:
+            component_configs: None
     time:
         start:
             year:
@@ -202,6 +204,8 @@ just those subsets if we like.
        component_configs: 0
    additional_seed:
        component_configs: None
+    rate_conversion_type:
+        component_configs: None
 
 This subset of configuration data contains more keys.  All of the keys in
 our example here (key_columns, map_size, random_seed, and additional_seed)
