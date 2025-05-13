@@ -101,6 +101,7 @@ class RandomnessManager(Manager):
         decision_point: str,
         component: Component | None,
         initializes_crn_attributes: bool = False,
+        rate_conversion_type: str | None = None,
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -118,6 +119,10 @@ class RandomnessManager(Manager):
             in the Common Random Number framework. These streams cannot be
             copied and should only be used to generate the state table columns
             specified in ``builder.configuration.randomness.key_columns``.
+        rate_conversion_type
+            The type of conversion to use. Default is "linear" for a simple
+            multiplication of rate and time_scaling_factor. Other option is
+            "exponential".
 
         Returns
         -------
@@ -131,8 +136,10 @@ class RandomnessManager(Manager):
             If another location in the simulation has already created a randomness stream
             with the same identifier.
         """
+        if rate_conversion_type is None:
+            rate_conversion_type = str(self._rate_conversion_type)
         stream = self._get_randomness_stream(
-            decision_point, component, initializes_crn_attributes
+            decision_point, component, initializes_crn_attributes, rate_conversion_type
         )
         if not initializes_crn_attributes:
             # We need the key columns to be created before this stream can be called.
@@ -158,6 +165,7 @@ class RandomnessManager(Manager):
         decision_point: str,
         component: Component | None,
         initializes_crn_attributes: bool = False,
+        rate_conversion_type: str = "linear",
     ) -> RandomnessStream:
         if decision_point in self._decision_points:
             raise RandomnessError(
@@ -176,7 +184,7 @@ class RandomnessManager(Manager):
             index_map=self._key_mapping,
             component=component,
             initializes_crn_attributes=initializes_crn_attributes,
-            rate_conversion_type=self._rate_conversion_type,
+            rate_conversion_type=rate_conversion_type,
         )
         self._decision_points[decision_point] = stream
         return stream
