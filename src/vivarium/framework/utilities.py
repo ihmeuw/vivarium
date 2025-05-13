@@ -51,6 +51,11 @@ def rate_to_probability(
     -------
         An array of floats representing the probability of the converted rates
     """
+    if rate_conversion_type not in ["linear", "exponential"]:
+        raise NotImplementedError(
+            f"Rate conversion type {rate_conversion_type} is not implemented. "
+            "Allowable types are 'linear' or 'exponential'."
+        )
     if rate_conversion_type == "linear":
         # NOTE: The default behavior for randomness streams is to use a rate that is already
         # scaled to the time step which is why the default time scaling factor is 1.0.

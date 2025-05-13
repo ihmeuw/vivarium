@@ -117,6 +117,11 @@ class RandomnessStream(Resource):
         """A boolean indicating whether the stream is used to initialize CRN attributes."""
         self.rate_conversion_type = rate_conversion_type
         """The type of rate conversion to use when converting rates to probabilities."""
+        if self.rate_conversion_type not in ["linear", "exponential"]:
+            raise NotImplementedError(
+                f"Rate conversion type {self.rate_conversion_type} is not implemented. "
+                "Allowable types are 'linear' or 'exponential'."
+            )
 
     def _key(self, additional_key: Any = None) -> str:
         """Construct a hashable key from this object's state.
