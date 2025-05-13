@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -102,7 +102,7 @@ class RandomnessStream(Resource):
         # TODO [MIC-5452]: all resources should have a component
         component: Component | None = None,
         initializes_crn_attributes: bool = False,
-        rate_conversion_type: str = "linear",
+        rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ):
         super().__init__("stream", key, component)
         self.key = key
@@ -116,9 +116,11 @@ class RandomnessStream(Resource):
         self.initializes_crn_attributes = initializes_crn_attributes
         """A boolean indicating whether the stream is used to initialize CRN attributes."""
         self.rate_conversion_type = rate_conversion_type
-        """The type of rate conversion to use when converting rates to probabilities."""
+        """The type of rate conversion to use when converting rates to probabilities.
+        Allowable types are 'linear' or 'exponential'.
+        """
         if self.rate_conversion_type not in ["linear", "exponential"]:
-            raise NotImplementedError(
+            raise ValueError(
                 f"Rate conversion type {self.rate_conversion_type} is not implemented. "
                 "Allowable types are 'linear' or 'exponential'."
             )

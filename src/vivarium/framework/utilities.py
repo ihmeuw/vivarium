@@ -11,7 +11,7 @@ import functools
 from bdb import BdbQuit
 from collections.abc import Callable, Sequence
 from importlib import import_module
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 import numpy as np
 from loguru import logger
@@ -32,7 +32,7 @@ def to_yearly(value: TimeValue, time_step: Timedelta) -> TimeValue:
 def rate_to_probability(
     rate: Sequence[float] | NumberLike,
     time_scaling_factor: float | int = 1.0,
-    rate_conversion_type: str = "linear",
+    rate_conversion_type: Literal["linear", "exponential"] = "linear",
 ) -> NumericArray:
     """Converts a rate to a probability.
 
@@ -44,7 +44,7 @@ def rate_to_probability(
         The time factor in to scale the rates by. This is usually the time step.
     conversion_type
         The type of conversion to use. Default is "linear" for a simple multiplcation
-        of rate and time_scaling_factor. Other option is "exponential" which should be
+        of rate and time_scaling_factor. The other option is "exponential" which should be
         used for continuous time event driven models.
 
     Returns
@@ -52,7 +52,7 @@ def rate_to_probability(
         An array of floats representing the probability of the converted rates
     """
     if rate_conversion_type not in ["linear", "exponential"]:
-        raise NotImplementedError(
+        raise ValueError(
             f"Rate conversion type {rate_conversion_type} is not implemented. "
             "Allowable types are 'linear' or 'exponential'."
         )
@@ -81,7 +81,9 @@ def rate_to_probability(
 
 
 def probability_to_rate(
-    probability: Sequence[float] | NumberLike, time_scaling_factor: float | int = 1.0
+    probability: Sequence[float] | NumberLike,
+    time_scaling_factor: float | int = 1.0,
+    rate_conversion_type: Literal["linear", "exponential"] = "linear",
 ) -> NumericArray:
     """Function to convert a probability to a rate.
 
@@ -91,6 +93,10 @@ def probability_to_rate(
         The probability to convert to a rate.
     time_scaling_factor
         The time factor in to scale the probability by. This is usually the time step.
+    conversion_type
+        The type of conversion to use. Default is "linear" for a simple multiplcation
+        of rate and time_scaling_factor. The other option is "exponential" which should be
+        used for continuous time event driven models.
 
     Returns
     -------
@@ -98,7 +104,16 @@ def probability_to_rate(
     """
     # NOTE: The default behavior for randomness streams is to use a rate that is already
     # scaled to the time step which is why the default time scaling factor is 1.0.
-    rate = probability / time_scaling_factor
+    if rate_conversion_type not in ["linear", "exponential"]:
+        raise ValueError(
+            f"Rate conversion type {rate_conversion_type} is not implemented. "
+            "Allowable types are 'linear' or 'exponential'."
+        )
+    if rate_conversion_type == "linear":
+        rate = np.array(probability / time_scaling_factor)
+    else:
+        probability = np.array(probability)
+        rate: NumericArray = -np.log(1 - probability)
     return rate
 
 

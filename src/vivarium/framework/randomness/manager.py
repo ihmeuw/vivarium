@@ -7,7 +7,7 @@ Randomness System Manager
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
 
@@ -33,7 +33,7 @@ class RandomnessManager(Manager):
             "key_columns": [],
             "random_seed": 0,
             "additional_seed": None,
-            "rate_conversion_type": None,
+            "rate_conversion_type": "linear",
         }
     }
 
@@ -43,7 +43,7 @@ class RandomnessManager(Manager):
         self._key_columns: list[str] = []
         self._key_mapping_: IndexMap | None = None
         self._decision_points: dict[str, RandomnessStream] = dict()
-        self._rate_conversion_type: str | None = None
+        self._rate_conversion_type: Literal["linear", "exponential"] = "linear"
 
     @property
     def name(self) -> str:
@@ -76,11 +76,7 @@ class RandomnessManager(Manager):
         pop_size = builder.configuration.population.population_size
         map_size = max(map_size, 10 * pop_size)
         self._key_mapping_ = IndexMap(self._key_columns, map_size)
-        if builder.configuration.randomness.rate_conversion_type is not None:
-            self._rate_conversion_type = builder.configuration.randomness.rate_conversion_type
-        else:
-            self._rate_conversion_type = "linear"
-
+        self._rate_conversion_type = builder.configuration.randomness.rate_conversion_type
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
         self._add_constraint(self.get_seed, restrict_during=["initialization"])
@@ -101,7 +97,7 @@ class RandomnessManager(Manager):
         decision_point: str,
         component: Component | None,
         initializes_crn_attributes: bool = False,
-        rate_conversion_type: str | None = None,
+        rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -121,7 +117,7 @@ class RandomnessManager(Manager):
             specified in ``builder.configuration.randomness.key_columns``.
         rate_conversion_type
             The type of conversion to use. Default is "linear" for a simple
-            multiplication of rate and time_scaling_factor. Other option is
+            multiplication of rate and time_scaling_factor. The other option is
             "exponential".
 
         Returns
@@ -136,8 +132,6 @@ class RandomnessManager(Manager):
             If another location in the simulation has already created a randomness stream
             with the same identifier.
         """
-        if rate_conversion_type is None:
-            rate_conversion_type = str(self._rate_conversion_type)
         stream = self._get_randomness_stream(
             decision_point, component, initializes_crn_attributes, rate_conversion_type
         )
@@ -165,7 +159,7 @@ class RandomnessManager(Manager):
         decision_point: str,
         component: Component | None,
         initializes_crn_attributes: bool = False,
-        rate_conversion_type: str = "linear",
+        rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ) -> RandomnessStream:
         if decision_point in self._decision_points:
             raise RandomnessError(
