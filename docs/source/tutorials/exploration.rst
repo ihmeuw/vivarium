@@ -113,7 +113,7 @@ configuration by simply printing it.
         additional_seed:
             component_configs: None
         rate_conversion_type:
-            component_configs: None
+            component_configs: 'linear'
     time:
         start:
             year:
