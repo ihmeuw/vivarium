@@ -227,7 +227,7 @@ as well.
    1000000
    0
    None
-   'linear'
+   linear
 
 However, we can no longer modify the configuration since the simulation
 has already been setup.
