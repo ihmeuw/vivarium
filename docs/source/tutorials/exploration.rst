@@ -113,7 +113,7 @@ configuration by simply printing it.
         additional_seed:
             component_configs: None
         rate_conversion_type:
-            component_configs: 'linear'
+            component_configs: linear
     time:
         start:
             year:
@@ -205,7 +205,7 @@ just those subsets if we like.
    additional_seed:
        component_configs: None
    rate_conversion_type:
-       component_configs: 'linear'
+       component_configs: linear
 
 This subset of configuration data contains more keys.  All of the keys in
 our example here (key_columns, map_size, random_seed, additional_seed,
@@ -259,7 +259,7 @@ should be one more layer of keys.
    additional_seed:
        component_configs: None
     rate_conversion_type:
-       component_configs: 'linear'
+       component_configs: linear
 
 This last layer reflects a priority level in the way simulation configuration
 is managed. The ``component_configs`` under ``map_size``, ``random_seed``, and
