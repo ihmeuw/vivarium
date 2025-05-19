@@ -1,4 +1,4 @@
-**3.4.0 - 05/14/25**
+**3.4.0 - 05/19/25**
 
   - Feature: Update utility functions for rate and probability conversions
 

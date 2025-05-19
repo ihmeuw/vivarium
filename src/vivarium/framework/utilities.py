@@ -42,7 +42,7 @@ def rate_to_probability(
         The rate to convert to a probability.
     time_scaling_factor
         The time factor in to scale the rates by. This is usually the time step.
-    conversion_type
+    rate_conversion_type
         The type of conversion to use. Default is "linear" for a simple multiplcation
         of rate and time_scaling_factor. The other option is "exponential" which should be
         used for continuous time event driven models.
@@ -93,7 +93,7 @@ def probability_to_rate(
         The probability to convert to a rate.
     time_scaling_factor
         The time factor in to scale the probability by. This is usually the time step.
-    conversion_type
+    rate_conversion_type
         The type of conversion to use. Default is "linear" for a simple multiplcation
         of rate and time_scaling_factor. The other option is "exponential" which should be
         used for continuous time event driven models.
