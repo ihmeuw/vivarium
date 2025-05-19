@@ -7,7 +7,7 @@ Randomness System Manager
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
 
@@ -33,6 +33,7 @@ class RandomnessManager(Manager):
             "key_columns": [],
             "random_seed": 0,
             "additional_seed": None,
+            "rate_conversion_type": "linear",
         }
     }
 
@@ -42,6 +43,7 @@ class RandomnessManager(Manager):
         self._key_columns: list[str] = []
         self._key_mapping_: IndexMap | None = None
         self._decision_points: dict[str, RandomnessStream] = dict()
+        self._rate_conversion_type: Literal["linear", "exponential"] = "linear"
 
     @property
     def name(self) -> str:
@@ -74,7 +76,7 @@ class RandomnessManager(Manager):
         pop_size = builder.configuration.population.population_size
         map_size = max(map_size, 10 * pop_size)
         self._key_mapping_ = IndexMap(self._key_columns, map_size)
-
+        self._rate_conversion_type = builder.configuration.randomness.rate_conversion_type
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
         self._add_constraint(self.get_seed, restrict_during=["initialization"])
@@ -95,6 +97,7 @@ class RandomnessManager(Manager):
         decision_point: str,
         component: Component | None,
         initializes_crn_attributes: bool = False,
+        rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ) -> RandomnessStream:
         """Provides a new source of random numbers for the given decision point.
 
@@ -112,6 +115,10 @@ class RandomnessManager(Manager):
             in the Common Random Number framework. These streams cannot be
             copied and should only be used to generate the state table columns
             specified in ``builder.configuration.randomness.key_columns``.
+        rate_conversion_type
+            The type of conversion to use. Default is "linear" for a simple
+            multiplication of rate and time_scaling_factor. The other option is
+            "exponential".
 
         Returns
         -------
@@ -126,7 +133,7 @@ class RandomnessManager(Manager):
             with the same identifier.
         """
         stream = self._get_randomness_stream(
-            decision_point, component, initializes_crn_attributes
+            decision_point, component, initializes_crn_attributes, rate_conversion_type
         )
         if not initializes_crn_attributes:
             # We need the key columns to be created before this stream can be called.
@@ -152,6 +159,7 @@ class RandomnessManager(Manager):
         decision_point: str,
         component: Component | None,
         initializes_crn_attributes: bool = False,
+        rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ) -> RandomnessStream:
         if decision_point in self._decision_points:
             raise RandomnessError(
@@ -165,6 +173,7 @@ class RandomnessManager(Manager):
             index_map=self._key_mapping,
             component=component,
             initializes_crn_attributes=initializes_crn_attributes,
+            rate_conversion_type=rate_conversion_type,
         )
         self._decision_points[decision_point] = stream
         return stream

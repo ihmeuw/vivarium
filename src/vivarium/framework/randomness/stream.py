@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeVar
 
 import numpy as np
 import numpy.typing as npt
@@ -102,6 +102,7 @@ class RandomnessStream(Resource):
         # TODO [MIC-5452]: all resources should have a component
         component: Component | None = None,
         initializes_crn_attributes: bool = False,
+        rate_conversion_type: Literal["linear", "exponential"] = "linear",
     ):
         super().__init__("stream", key, component)
         self.key = key
@@ -114,6 +115,15 @@ class RandomnessStream(Resource):
         """A key-index mapping with a vectorized hash and vectorized lookups."""
         self.initializes_crn_attributes = initializes_crn_attributes
         """A boolean indicating whether the stream is used to initialize CRN attributes."""
+        self.rate_conversion_type = rate_conversion_type
+        """The type of rate conversion to use when converting rates to probabilities.
+        Allowable types are 'linear' or 'exponential'.
+        """
+        if self.rate_conversion_type not in ["linear", "exponential"]:
+            raise ValueError(
+                f"Rate conversion type {self.rate_conversion_type} is not implemented. "
+                "Allowable types are 'linear' or 'exponential'."
+            )
 
     def _key(self, additional_key: Any = None) -> str:
         """Construct a hashable key from this object's state.
@@ -224,7 +234,9 @@ class RandomnessStream(Resource):
             The return type will be the same as type(population).
         """
         return self.filter_for_probability(
-            population, rate_to_probability(rate), additional_key
+            population,
+            rate_to_probability(rate, rate_conversion_type=self.rate_conversion_type),
+            additional_key,
         )
 
     def filter_for_probability(
