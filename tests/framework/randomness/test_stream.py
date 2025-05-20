@@ -5,8 +5,12 @@ from typing import Any, Callable
 import numpy as np
 import pandas as pd
 import pytest
+from layered_config_tree import LayeredConfigTree
 from scipy import stats
+from vivarium_testing_utils import FuzzyChecker
 
+from tests.helpers import ColumnCreator
+from vivarium import InteractiveContext
 from vivarium.framework.randomness import RESIDUAL_CHOICE, RandomnessError, RandomnessStream
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import (
@@ -80,29 +84,47 @@ def test_filter_for_probability_multiple_probabilities(
     )
 
 
+@pytest.mark.parametrize(
+    "rate, time_scaling_factor",
+    [
+        (0.5, 1),
+        (0.25, 1.0),
+        (0.5, 0.5),
+        (0.25, 0.5),
+    ],
+)
 def test_filter_for_rate_single_probability(
-    randomness_stream: RandomnessStream, index: pd.Index[int]
+    randomness_stream: RandomnessStream,
+    index: pd.Index[int],
+    rate: float,
+    time_scaling_factor: float,
+    fuzzy_checker: FuzzyChecker,
 ) -> None:
-    sub_index = randomness_stream.filter_for_rate(index, 0.5)
-    assert np.isclose(len(sub_index) / len(index), 1 - np.exp(-0.5), rtol=0.1)
+    scaled_rate = rate * (time_scaling_factor / 365.0)
+    sub_index = randomness_stream.filter_for_rate(index, scaled_rate)
+    fuzzy_checker.fuzzy_assert_proportion(
+        len(sub_index),
+        len(index),
+        scaled_rate,
+    )
 
-    sub_sub_index = randomness_stream.filter_for_rate(sub_index, 0.5)
-    assert np.isclose(len(sub_sub_index) / len(sub_index), 1 - np.exp(-0.5), rtol=0.1)
+    sub_sub_index = randomness_stream.filter_for_rate(sub_index, scaled_rate)
+    fuzzy_checker.fuzzy_assert_proportion(
+        len(sub_sub_index),
+        len(sub_index),
+        scaled_rate,
+    )
 
 
 def test_filter_for_rate_multiple_probabilities(
-    randomness_stream: RandomnessStream, index: pd.Index[int]
+    randomness_stream: RandomnessStream, index: pd.Index[int], fuzzy_checker: FuzzyChecker
 ) -> None:
     rates = pd.Series([0.3, 0.3, 0.3, 0.6, 0.6] * (index.size // 5), index=index)
-    rate_0_3 = rates.index[rates == 0.3]
-    rate_0_6 = rates.index.difference(rate_0_3)
-
     sub_index = randomness_stream.filter_for_rate(index, rates)
-    assert np.isclose(
-        len(sub_index.intersection(rate_0_3)) / len(rate_0_3), 1 - np.exp(-0.3), rtol=0.1
-    )
-    assert np.isclose(
-        len(sub_index.intersection(rate_0_6)) / len(rate_0_6), 1 - np.exp(-0.6), rtol=0.1
+    fuzzy_checker.fuzzy_assert_proportion(
+        len(sub_index),
+        len(index),
+        0.3 * (3 / 5) + 0.6 * (2 / 5),
     )
 
 
@@ -226,3 +248,28 @@ def test_sample_from_distribution_using_ppf(index: pd.Index[int]) -> None:
     assert isinstance(sample, pd.Series)
     assert sample.index.equals(index)
     assert np.allclose(sample, expected)
+
+
+@pytest.mark.parametrize(
+    "rate_conversion",
+    [
+        "linear",
+        "exponential",
+        None,
+    ],
+)
+def test_stream_rate_conversion_config(
+    rate_conversion: str,
+    base_config: LayeredConfigTree,
+) -> None:
+    cc = ColumnCreator()
+    # Do not update key if key is not configured (None) to test default behavior
+    if rate_conversion is not None:
+        base_config.update(
+            {"configuration": {"randomness": {"rate_conversion_type": rate_conversion}}}
+        )
+    sim = InteractiveContext(base_config, components=[cc])
+    # Convert for default
+    if rate_conversion is None:
+        rate_conversion = "linear"
+    assert sim._randomness._rate_conversion_type == rate_conversion
