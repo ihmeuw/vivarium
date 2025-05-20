@@ -1,3 +1,7 @@
+**3.4.1 - 05/21/25**
+
+  - Type-hinting: Fix mypy errors in frameworking/testing_utilties.py
+
 **3.4.0 - 05/19/25**
 
   - Feature: Update utility functions for rate and probability conversions
