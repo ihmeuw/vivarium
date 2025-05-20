@@ -480,10 +480,10 @@ def test_gather_results_partial_stratifications_in_results(
     for results, _measure, _formatter in ctx.gather_results(
         population, lifecycle_phase, mocked_event
     ):
-        if results is not None:
-            unladen_results = results.reset_index().query('familiar=="unladen_swallow"')
-            assert len(unladen_results) > 0
-            assert (unladen_results[VALUE_COLUMN] == 0).all()
+        assert results is not None
+        unladen_results = results.reset_index().query('familiar=="unladen_swallow"')
+        assert len(unladen_results) > 0
+        assert (unladen_results[VALUE_COLUMN] == 0).all()
 
 
 def test_gather_results_with_empty_pop_filter(mocked_event: Mock) -> None:
@@ -694,8 +694,7 @@ def test_to_observe(mocked_event: Mock, mocker: MockerFixture) -> None:
     for result, _measure, _updater in ctx.gather_results(
         population, lifecycle_phase, mocked_event
     ):
-        if result is not None:
-            assert not result.empty
+        assert result is not None and not result.empty
 
     # Extract the observation from the context and patch it to not observe
     observation = list(ctx.observations["collect_metrics"].values())[0][0]
