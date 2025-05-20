@@ -384,9 +384,8 @@ def test_concatenating_observation_gather_results(mocked_event: Mock) -> None:
     for result, _measure, _updater in ctx.gather_results(
         population, lifecycle_phase, mocked_event
     ):
-        if result is not None:
-            assert result.equals(filtered_pop[included_cols])
-            i += 1
+        assert result is not None and result.equals(filtered_pop[included_cols])
+        i += 1
     assert i == 1
 
 
