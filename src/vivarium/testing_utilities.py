@@ -12,7 +12,7 @@ from collections.abc import Callable, Sequence
 from datetime import datetime
 from itertools import product
 from pathlib import Path
-from typing import Any, TypeVar
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -23,7 +23,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import RandomnessStream
-from vivarium.types import ClockStepSize, ClockTime, Timedelta
+from vivarium.types import ClockStepSize, ClockTime
 
 
 class NonCRNTestPopulation(Component):
