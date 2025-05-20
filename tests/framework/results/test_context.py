@@ -345,12 +345,11 @@ def test_adding_observation_gather_results(
     for result, _measure, _updater in ctx.gather_results(
         population, lifecycle_phase, mocked_event
     ):
-        if result is not None:
-            assert all(
-                math.isclose(actual_result, expected_result, rel_tol=0.0001)
-                for actual_result in result.values
-            )
-            i += 1
+        assert result is not None and all(
+            math.isclose(actual_result, expected_result, rel_tol=0.0001)
+            for actual_result in result.values
+        )
+        i += 1
     assert i == 1
 
 
