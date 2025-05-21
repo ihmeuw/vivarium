@@ -345,7 +345,8 @@ def test_adding_observation_gather_results(
     for result, _measure, _updater in ctx.gather_results(
         population, lifecycle_phase, mocked_event
     ):
-        assert result is not None and all(
+        assert result is not None
+        assert all(
             math.isclose(actual_result, expected_result, rel_tol=0.0001)
             for actual_result in result.values
         )
@@ -384,7 +385,8 @@ def test_concatenating_observation_gather_results(mocked_event: Mock) -> None:
     for result, _measure, _updater in ctx.gather_results(
         population, lifecycle_phase, mocked_event
     ):
-        assert result is not None and result.equals(filtered_pop[included_cols])
+        assert result is not None
+        assert result.equals(filtered_pop[included_cols])
         i += 1
     assert i == 1
 
@@ -694,7 +696,8 @@ def test_to_observe(mocked_event: Mock, mocker: MockerFixture) -> None:
     for result, _measure, _updater in ctx.gather_results(
         population, lifecycle_phase, mocked_event
     ):
-        assert result is not None and not result.empty
+        assert result is not None
+        assert not result.empty
 
     # Extract the observation from the context and patch it to not observe
     observation = list(ctx.observations["collect_metrics"].values())[0][0]
