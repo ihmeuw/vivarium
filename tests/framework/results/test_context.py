@@ -1,7 +1,10 @@
 import itertools
 import math
 import re
+from collections.abc import Callable
 from datetime import timedelta
+from typing import Any
+from unittest.mock import Mock
 
 import numpy as np
 import pandas as pd
@@ -9,6 +12,7 @@ import pytest
 from layered_config_tree.main import LayeredConfigTree
 from loguru import logger
 from pandas.core.groupby.generic import DataFrameGroupBy
+from pytest_mock import MockerFixture
 
 from tests.framework.results.helpers import (
     BASE_POPULATION,
@@ -24,6 +28,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import AddingObservation, ConcatenatingObservation
+from vivarium.types import ScalarMapper, VectorMapper
 
 
 def _aggregate_state_person_time(x: pd.DataFrame) -> float:
@@ -32,7 +37,7 @@ def _aggregate_state_person_time(x: pd.DataFrame) -> float:
 
 
 @pytest.fixture
-def mocked_event(mocker) -> Event:
+def mocked_event(mocker: MockerFixture) -> Event:
     event: Event = mocker.Mock(spec=Event)
     return event
 
@@ -45,7 +50,9 @@ def mocked_event(mocker) -> Event:
     ],
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
-def test_add_stratification_mappers(mapper, is_vectorized, mocker):
+def test_add_stratification_mappers(
+    mapper: VectorMapper | ScalarMapper, is_vectorized: bool, mocker: MockerFixture
+) -> None:
     ctx = ResultsContext()
     mocker.patch.object(ctx, "excluded_categories", {})
     assert not verify_stratification_added(
@@ -79,7 +86,9 @@ def test_add_stratification_mappers(mapper, is_vectorized, mocker):
         "all_but_one_excluded_categories",
     ],
 )
-def test_add_stratification_excluded_categories(excluded_categories, mocker):
+def test_add_stratification_excluded_categories(
+    excluded_categories: list[str], mocker: MockerFixture
+) -> None:
     ctx = ResultsContext()
     builder = mocker.Mock()
     builder.configuration.stratification = LayeredConfigTree(
@@ -150,7 +159,13 @@ def test_add_stratification_excluded_categories(excluded_categories, mocker):
         "unknown_excluded_category",
     ],
 )
-def test_add_stratification_raises(name, categories, excluded_categories, msg_match, mocker):
+def test_add_stratification_raises(
+    name: str,
+    categories: list[str],
+    excluded_categories: list[str],
+    msg_match: str,
+    mocker: MockerFixture,
+) -> None:
     ctx = ResultsContext()
     mocker.patch.object(ctx, "excluded_categories", {name: excluded_categories})
     # Register a stratification to test against duplicate stratifications
@@ -189,7 +204,7 @@ def test_add_stratification_raises(name, categories, excluded_categories, msg_ma
     ],
     ids=["valid_on_collect_metrics", "valid_on_time_step__prepare"],
 )
-def test_register_observation(kwargs):
+def test_register_observation(kwargs: Any) -> None:
     ctx = ResultsContext()
     assert len(ctx.observations) == 0
     kwargs["results_formatter"] = lambda: None
@@ -203,7 +218,7 @@ def test_register_observation(kwargs):
     assert len(ctx.observations) == 1
 
 
-def test_register_observation_duplicate_name_raises():
+def test_register_observation_duplicate_name_raises() -> None:
     ctx = ResultsContext()
     ctx.register_observation(
         observation_type=AddingObservation,
@@ -262,8 +277,12 @@ def test_register_observation_duplicate_name_raises():
     ],
 )
 def test_adding_observation_gather_results(
-    pop_filter, aggregator_sources, aggregator, stratifications, mocked_event
-):
+    pop_filter: str,
+    aggregator_sources: list[str],
+    aggregator: Callable[..., int | float],
+    stratifications: list[str],
+    mocked_event: Mock,
+) -> None:
     """Test cases where every stratification is in gather_results. Checks for
     existence and correctness of results"""
     ctx = ResultsContext()
@@ -326,6 +345,7 @@ def test_adding_observation_gather_results(
     for result, _measure, _updater in ctx.gather_results(
         population, lifecycle_phase, mocked_event
     ):
+        assert result is not None
         assert all(
             math.isclose(actual_result, expected_result, rel_tol=0.0001)
             for actual_result in result.values
@@ -334,7 +354,7 @@ def test_adding_observation_gather_results(
     assert i == 1
 
 
-def test_concatenating_observation_gather_results(mocked_event):
+def test_concatenating_observation_gather_results(mocked_event: Mock) -> None:
 
     ctx = ResultsContext()
 
@@ -365,6 +385,7 @@ def test_concatenating_observation_gather_results(mocked_event):
     for result, _measure, _updater in ctx.gather_results(
         population, lifecycle_phase, mocked_event
     ):
+        assert result is not None
         assert result.equals(filtered_pop[included_cols])
         i += 1
     assert i == 1
@@ -402,8 +423,13 @@ def test_concatenating_observation_gather_results(mocked_event):
     ],
 )
 def test_gather_results_partial_stratifications_in_results(
-    name, pop_filter, aggregator_sources, aggregator, stratifications, mocked_event
-):
+    name: str,
+    pop_filter: str,
+    aggregator_sources: list[str] | None,
+    aggregator: Callable[..., int | float],
+    stratifications: list[str],
+    mocked_event: Mock,
+) -> None:
     """Test cases where not all stratifications are observed for gather_results. This looks for existence of
     unobserved stratifications and ensures their values are 0"""
     ctx = ResultsContext()
@@ -456,12 +482,13 @@ def test_gather_results_partial_stratifications_in_results(
     for results, _measure, _formatter in ctx.gather_results(
         population, lifecycle_phase, mocked_event
     ):
+        assert results is not None
         unladen_results = results.reset_index().query('familiar=="unladen_swallow"')
         assert len(unladen_results) > 0
         assert (unladen_results[VALUE_COLUMN] == 0).all()
 
 
-def test_gather_results_with_empty_pop_filter(mocked_event):
+def test_gather_results_with_empty_pop_filter(mocked_event: Mock) -> None:
     """Test case where pop_filter filters to an empty population. gather_results
     should return None.
     """
@@ -488,7 +515,7 @@ def test_gather_results_with_empty_pop_filter(mocked_event):
         assert not result
 
 
-def test_gather_results_with_no_stratifications(mocked_event):
+def test_gather_results_with_no_stratifications(mocked_event: Mock) -> None:
     """Test case where we have no stratifications. gather_results should return one value."""
     ctx = ResultsContext()
 
@@ -521,7 +548,7 @@ def test_gather_results_with_no_stratifications(mocked_event):
     )
 
 
-def test_bad_aggregator_stratification(mocked_event):
+def test_bad_aggregator_stratification(mocked_event: Mock) -> None:
     """Test if an exception gets raised when a stratification that doesn't
     exist is attempted to be used, as expected."""
     ctx = ResultsContext()
@@ -584,7 +611,7 @@ def test_bad_aggregator_stratification(mocked_event):
         "no_pop_filter_or_excluded_stratifications",
     ],
 )
-def test__filter_population(pop_filter, stratifications):
+def test__filter_population(pop_filter: str, stratifications: tuple[str, ...]) -> None:
     population = BASE_POPULATION.copy()
     if stratifications:
         # Make some of the stratifications missing to mimic mapping to excluded categories
@@ -618,8 +645,7 @@ def test__filter_population(pop_filter, stratifications):
         ((), "foo"),
     ],
 )
-def test__get_groups(stratifications, values):
-
+def test__get_groups(stratifications: tuple[str, ...], values: str | list[list[str]]) -> None:
     filtered_pop = BASE_POPULATION.copy()
     # Generate the post-stratified columns
     for stratification in stratifications:
@@ -648,7 +674,7 @@ def test__get_groups(stratifications, values):
         assert val.equals(BASE_POPULATION.index)
 
 
-def test_to_observe(mocked_event, mocker):
+def test_to_observe(mocked_event: Mock, mocker: MockerFixture) -> None:
     """Test that to_observe can be used to turn off observations"""
     ctx = ResultsContext()
 
@@ -670,6 +696,7 @@ def test_to_observe(mocked_event, mocker):
     for result, _measure, _updater in ctx.gather_results(
         population, lifecycle_phase, mocked_event
     ):
+        assert result is not None
         assert not result.empty
 
     # Extract the observation from the context and patch it to not observe

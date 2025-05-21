@@ -37,7 +37,6 @@ exclude = [
     'src/vivarium/examples/disease_model/observer.py',
     'src/vivarium/examples/disease_model/population.py',
     'src/vivarium/examples/disease_model/risk.py',
-    'tests/framework/results/test_context.py',
 ]
 
 disable_error_code = []
