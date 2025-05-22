@@ -18,10 +18,6 @@ class MockComponentA(Observer):
     def name(self) -> str:
         return self._name
 
-    @property
-    def configuration_defaults(self) -> dict[str, Any]:
-        return {}
-
     def __init__(self, *args: Any, name: str = "mock_component_a") -> None:
         super().__init__()
         self._name = name

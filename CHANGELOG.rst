@@ -1,3 +1,7 @@
+**3.4.3 - 05/23/25**
+
+  - Feature: Override get_configuration method in Observer
+
 **3.4.2 - 05/22/25**
 
   - Type-hinting: Fix mypy errors in frameworking/testing_utilties.py

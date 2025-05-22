@@ -1,7 +1,7 @@
 """
 =========
 Observers
-=========
+=========`
 
 An observer is a component that is responsible for registering
 :class:`observations <vivarium.framework.results.observation.Observation>`
@@ -16,6 +16,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
+
+from layered_config_tree.main import LayeredConfigTree
 
 from vivarium import Component
 
@@ -50,6 +52,10 @@ class Observer(Component, ABC):
     def get_configuration_name(self) -> str:
         """Return the name of a concrete observer for use in the configuration"""
         return self.name.split("_observer")[0]
+
+    def get_configuration(self, builder: Builder) -> LayeredConfigTree:
+        config = builder.configuration["stratification"][self.get_configuration_name()]
+        return LayeredConfigTree(config)
 
     @abstractmethod
     def register_observations(self, builder: Builder) -> None:
