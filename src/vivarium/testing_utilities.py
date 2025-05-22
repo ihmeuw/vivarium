@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """
 ==========================
 Vivarium Testing Utilities
@@ -7,7 +6,10 @@ Vivarium Testing Utilities
 Utility functions and classes to make testing ``vivarium`` components easier.
 
 """
+from __future__ import annotations
 
+from collections.abc import Callable, Sequence
+from datetime import datetime
 from itertools import product
 from pathlib import Path
 from typing import Any
@@ -16,11 +18,12 @@ import numpy as np
 import pandas as pd
 
 from vivarium import Component
-from vivarium.framework import randomness
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
 from vivarium.framework.randomness.index_map import IndexMap
+from vivarium.framework.randomness.stream import RandomnessStream
+from vivarium.types import ClockStepSize, ClockTime
 
 
 class NonCRNTestPopulation(Component):
@@ -64,7 +67,9 @@ class NonCRNTestPopulation(Component):
 
     def on_time_step(self, event: Event) -> None:
         population = self.population_view.get(event.index, query="alive == 'alive'")
-        population["age"] += event.step_size / pd.Timedelta(days=365)
+        # This component won't work if event.step_size is an int
+        if not isinstance(event.step_size, int):
+            population["age"] += event.step_size / pd.Timedelta(days=365)
         self.population_view.update(population)
 
 
@@ -85,7 +90,11 @@ class TestPopulation(NonCRNTestPopulation):
         )
         age_draw = self.age_randomness.get_draw(pop_data.index)
         if age_start == age_end:
-            age = age_draw * (pop_data.creation_window / pd.Timedelta(days=365)) + age_start
+            # This component won't work if creation window is an int
+            if not isinstance(pop_data.creation_window, int):
+                age = (
+                    age_draw * (pop_data.creation_window / pd.Timedelta(days=365)) + age_start
+                )
         else:
             age = age_draw * (age_end - age_start) + age_start
 
@@ -104,7 +113,9 @@ class TestPopulation(NonCRNTestPopulation):
         self.population_view.update(population)
 
 
-def _build_population(core_population, location, randomness_stream):
+def _build_population(
+    core_population: pd.DataFrame, location: str, randomness_stream: RandomnessStream
+) -> pd.DataFrame:
     index = core_population.index
 
     population = pd.DataFrame(
@@ -124,13 +135,20 @@ def _build_population(core_population, location, randomness_stream):
 
 
 def _non_crn_build_population(
-    index, age_start, age_end, location, creation_time, creation_window, randomness_stream
-):
+    index: pd.Index[int],
+    age_start: float,
+    age_end: float,
+    location: str,
+    creation_time: ClockTime,
+    creation_window: ClockStepSize,
+    randomness_stream: RandomnessStream,
+) -> pd.DataFrame:
     if age_start == age_end:
-        age = (
-            randomness_stream.get_draw(index) * (creation_window / pd.Timedelta(days=365))
-            + age_start
-        )
+        if not isinstance(creation_window, int):
+            age = (
+                randomness_stream.get_draw(index) * (creation_window / pd.Timedelta(days=365))
+                + age_start
+            )
     else:
         age = randomness_stream.get_draw(index) * (age_end - age_start) + age_start
 
@@ -152,12 +170,12 @@ def _non_crn_build_population(
 
 def build_table(
     value: Any,
-    parameter_columns: dict = {
+    parameter_columns: dict[str, Sequence[int]] = {
         "age": (0, 125),
         "year": (1990, 2020),
     },
-    key_columns: dict = {"sex": ("Female", "Male")},
-    value_columns: list = ["value"],
+    key_columns: dict[str, Sequence[Any]] = {"sex": ("Female", "Male")},
+    value_columns: list[str] = ["value"],
 ) -> pd.DataFrame:
     """
 
@@ -191,7 +209,7 @@ def build_table(
     }
     # Build out dict of items we will need cartesian product of to make dataframe
     product_dict = dict(range_parameter_product)
-    product_dict.update(key_columns)
+    product_dict.update(key_columns)  # type: ignore [arg-type]
     products = product(*product_dict.values())
 
     rows = []
@@ -212,10 +230,12 @@ def build_table(
         # Transform parameter column values
         parameter_columns_index_values = item[: len(parameter_columns)]
         # Create intervals for parameter columns. Example year, year+1 for year_start and year_end
-        parameter_columns_index_values = [
+        unpacked_parameter_columns_index_values: list[Any] = [
             v for val in parameter_columns_index_values for v in (val, val + 1)
         ]
-        rows.append(parameter_columns_index_values + key_columns_index_values + r_values)
+        rows.append(
+            unpacked_parameter_columns_index_values + key_columns_index_values + r_values
+        )
 
     # Make list of parameter column names
     parameter_column_names = [
@@ -228,45 +248,19 @@ def build_table(
     )
 
 
-def make_dummy_column(name, initial_value):
-    class DummyColumnMaker:
-        @property
-        def name(self):
-            return "dummy_column_maker"
-
-        def setup(self, builder):
-            self.population_view = builder.population.get_view(name)
-            builder.population.initializes_simulants(self.make_column, creates_columns=name)
-
-        def make_column(self, pop_data):
-            self.population_view.update(
-                pd.Series(initial_value, index=pop_data.index, name=name)
-            )
-
-        def __repr__(self):
-            return f"dummy_column(name={name}, initial_value={initial_value})"
-
-    return DummyColumnMaker()
-
-
 def get_randomness(
-    key="test",
-    clock=lambda: pd.Timestamp(1990, 7, 2),
-    seed=12345,
-    initializes_crn_attributes=False,
-):
-    return randomness.RandomnessStream(
+    key: str = "test",
+    clock: Callable[[], pd.Timestamp | datetime | int] = lambda: pd.Timestamp(1990, 7, 2),
+    seed: int = 12345,
+    initializes_crn_attributes: bool = False,
+) -> RandomnessStream:
+    return RandomnessStream(
         key,
         clock,
         seed=seed,
         index_map=IndexMap(),
         initializes_crn_attributes=initializes_crn_attributes,
     )
-
-
-def reset_mocks(mocks):
-    for mock in mocks:
-        mock.reset_mock()
 
 
 def metadata(file_path: str, layer: str = "override") -> dict[str, str]:
