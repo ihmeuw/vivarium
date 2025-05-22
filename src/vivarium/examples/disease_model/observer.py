@@ -66,7 +66,6 @@ class YllsObserver(Observer):
 
     def get_configuration(self, builder: "Builder") -> LayeredConfigTree | None:
         # Use component configuration
-
         if self.name in builder.configuration:
             return builder.configuration.get_tree(self.name)
         return None

@@ -1,7 +1,7 @@
 """
 =========
 Observers
-=========`
+=========
 
 An observer is a component that is responsible for registering
 :class:`observations <vivarium.framework.results.observation.Observation>`
