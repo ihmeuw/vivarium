@@ -1,4 +1,4 @@
-**3.4.2 - 05/21/25**
+**3.4.2 - 05/22/25**
 
   - Type-hinting: Fix mypy errors in frameworking/testing_utilties.py
 
