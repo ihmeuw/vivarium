@@ -183,6 +183,7 @@ def test_setup_components(mocker: MockerFixture) -> None:
     builder = mocker.Mock()
     builder.configuration = {}
     mocker.patch("vivarium.framework.results.observer.Observer.set_results_dir")
+    mocker.patch("vivarium.framework.results.observer.Observer.get_configuration")
     mock_a = MockComponentA("test_a")
     mock_b = MockComponentB("test_b")
     components = OrderedComponentSet(mock_a, mock_b)
@@ -206,13 +207,12 @@ def test_apply_configuration_defaults() -> None:
 
 def test_apply_configuration_defaults_no_op() -> None:
     config = build_simulation_configuration()
-    c = config.to_dict()
     cm = ComponentManager()
     cm._configuration = config
     component = MockComponentA()
 
     cm.apply_configuration_defaults(component)
-    assert config.to_dict() == c
+    assert config.to_dict() == component.configuration_defaults
 
 
 def test_apply_configuration_defaults_duplicate() -> None:
@@ -317,6 +317,6 @@ def test_component_manager_add_components_duplicated(components: list[Component]
     cm._configuration = config
     with pytest.raises(
         ComponentConfigError,
-        match=f"Attempting to add a component with duplicate name: {MockComponentA()}",
+        match="is attempting to set the configuration value mock_component_a, but it has already been set by mock_component_a",
     ):
         cm.add_components(components)

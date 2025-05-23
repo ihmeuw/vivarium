@@ -17,6 +17,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
+from layered_config_tree.main import LayeredConfigTree
+
 from vivarium import Component
 
 if TYPE_CHECKING:
@@ -50,6 +52,11 @@ class Observer(Component, ABC):
     def get_configuration_name(self) -> str:
         """Return the name of a concrete observer for use in the configuration"""
         return self.name.split("_observer")[0]
+
+    def get_configuration(self, builder: Builder) -> LayeredConfigTree:
+        return builder.configuration.get_tree(
+            ["stratification", self.get_configuration_name()]
+        )
 
     @abstractmethod
     def register_observations(self, builder: Builder) -> None:

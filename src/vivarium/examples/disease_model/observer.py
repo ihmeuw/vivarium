@@ -1,6 +1,7 @@
 # mypy: ignore-errors
 from typing import Any
 
+from layered_config_tree.main import LayeredConfigTree
 import pandas as pd
 
 from vivarium.framework.engine import Builder
@@ -62,6 +63,12 @@ class YllsObserver(Observer):
     #################
     # Setup methods #
     #################
+
+    def get_configuration(self, builder: "Builder") -> LayeredConfigTree | None:
+        # Use component configuration
+        if self.name in builder.configuration:
+            return builder.configuration.get_tree(self.name)
+        return None
 
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(
