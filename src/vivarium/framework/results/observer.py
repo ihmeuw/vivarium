@@ -54,8 +54,9 @@ class Observer(Component, ABC):
         return self.name.split("_observer")[0]
 
     def get_configuration(self, builder: Builder) -> LayeredConfigTree:
-        config = builder.configuration["stratification"][self.get_configuration_name()]
-        return LayeredConfigTree(config)
+        return builder.configuration.get_tree(
+            ["stratification", self.get_configuration_name()]
+        )
 
     @abstractmethod
     def register_observations(self, builder: Builder) -> None:
