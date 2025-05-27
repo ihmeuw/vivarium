@@ -53,7 +53,7 @@ if __name__ == "__main__":
         "pyarrow",
         "dill",
         # Type stubs
-        "pandas-stubs==2.2.3.250308",
+        "pandas-stubs<=2.2.3.250308",
         "networkx-stubs",
         "types-PyYAML",
     ]
