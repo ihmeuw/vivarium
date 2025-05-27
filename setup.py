@@ -53,7 +53,7 @@ if __name__ == "__main__":
         "pyarrow",
         "dill",
         # Type stubs
-        "pandas-stubs",
+        "pandas-stubs<=2.2.3.250308",
         "networkx-stubs",
         "types-PyYAML",
     ]
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     lint_requirements = [
         "black==22.3.0",
-        "isort==5.13.2",
+        "isort",
         "mypy",
     ]
 

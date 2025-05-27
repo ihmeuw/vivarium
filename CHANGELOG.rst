@@ -1,3 +1,7 @@
+**3.4.4 - 05/27/25**
+
+  - Feature: Update package pins for isort and pandas stubs
+
 **3.4.3 - 05/23/25**
 
   - Feature: Override get_configuration method in Observer
