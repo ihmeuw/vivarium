@@ -1,3 +1,7 @@
+**3.4.5 - 05/30/25**
+
+  - Type-hinting: Fix mypy errors in framework/population/population_view.py
+
 **3.4.4 - 05/27/25**
 
   - Feature: Update package pins for isort and pandas stubs

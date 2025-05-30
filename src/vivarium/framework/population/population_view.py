@@ -499,4 +499,7 @@ class PopulationView:
                 f"the {update.name} column from {existing.dtype} to {update.dtype}."
             )
         new_state_table_values = new_state_table_values.astype(update_values.dtype)
-        return pd.Series(new_state_table_values, index=existing.index, name=existing.name)
+        new_state_table: pd.Series[Any] = pd.Series(
+            new_state_table_values, index=existing.index, name=existing.name
+        )
+        return new_state_table
