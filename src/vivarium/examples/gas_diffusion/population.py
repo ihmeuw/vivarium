@@ -13,7 +13,6 @@ class Population(Component):
     configuration_defaults = {
         "gas_population": {
             "colors": ["red", "blue"],
-            "population_size": 500,
         }
     }
     columns_created = ["color", "gas_type", "entrance_time"]
