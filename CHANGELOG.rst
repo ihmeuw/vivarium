@@ -1,3 +1,7 @@
+**3.4.6 - 07/14/25**
+
+  - Pin vivarium_build_utils>=1.1.0,<2.0.0
+
 **3.4.5 - 05/30/25**
 
   - Type-hinting: Fix mypy errors in framework/population/population_view.py

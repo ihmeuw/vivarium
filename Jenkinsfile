@@ -2,20 +2,48 @@
 found at https://github.com/ihmeuw/vivarium_build_utils
 Due to Jenkins convention, importable modules must be stored
 in the 'vars' folder.
-Jenkins needs to be configured globally to use the correct branch.
-To configure the repo/branch go to:
-* Manage Jenkins
-  * Configure System
-    * Global Pipeline Libraries section
-      * Library subsection
-        * Name: The Name for the lib
-        * Version: The branch you want to use. Throws an error
-                   for nonexistent branches.
-        * Project Repository: Url to the shared lib
-        * Credentials: SSH key to access the repo
 
 Updating the shared repo will take affect on the next pipeline invocation.
-The "_" denotes that all modules will be imported from the shared library.
 */ 
-@Library("vivarium_build_utils") _
-reusable_pipeline(scheduled_branches: ["main"], upstream_repos: ["layered_config_tree"])
+
+// Determine the vivarium_build_utils version and load the library
+library "vivarium_build_utils@${getVBUVersion()}"
+
+// Run the reusable pipeline
+reusable_pipeline(
+    scheduled_branches: ["main"], 
+    upstream_repos: ["layered_config_tree"]
+)
+
+//////////////////////
+// Helper functions //
+//////////////////////
+
+def getVBUVersion(String nodeLabel = 'svc-simsci') {
+    // Gets the vivarium_build_utils version using the centralized script.
+
+    def vbuVersion = null
+    
+    node(nodeLabel) {
+        checkout scm
+        
+        // Download the centralized version resolution script
+        sh '''
+            curl -sSL https://raw.githubusercontent.com/ihmeuw/vivarium_build_utils/main/resources/scripts/get_vbu_version.py -o get_vbu_version.py
+            chmod +x get_vbu_version.py
+        '''
+        
+        // Run the script to get the vivarium_build_utils version
+        vbuVersion = sh(
+            script: 'python3 get_vbu_version.py',
+            returnStdout: true
+        ).trim()
+        
+        echo "Resolved vivarium_build_utils version: ${vbuVersion}"
+        
+        // Clean up the downloaded script
+        sh 'rm -f get_vbu_version.py'
+    }
+    
+    return vbuVersion
+}
