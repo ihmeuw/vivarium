@@ -19,7 +19,7 @@ Jenkins shared libraries can be configured in the Jenkins UI:
 
 // Load the get_vbu_version function from vivarium_build_utils/boostrap/
 // FIXME SBACHMEI USE MAIN BRANCH
-@Library("get_vbu_version@sbachmei/mic-6026-6194/pin-vbu") _
+@Library("get_vbu_version@sbachmei/bootstrap") _
 // Now load the full vivarium_build_utils library at the expected version
 library("vivarium_build_utils@${get_vbu_version()}")
 
