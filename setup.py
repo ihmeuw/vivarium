@@ -41,11 +41,7 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
-        # FIXME SBACHMEI FIX PIN
         # "vivarium_build_utils>=1.1.0,<2.0.0",
-        # pin to branch: sbachmei/mic-6026-6194/pin-vbu
-        "vivarium_build_utils @ git+https://github.com/ihmeuw/vivarium_build_utils.git@sbachmei/mic-6026-6194/pin-vbu",
-        # "vivarium_build_utils<1.0.0",
         "layered_config_tree>=2.1.0",
         "numpy<2.0.0",
         "pandas",
