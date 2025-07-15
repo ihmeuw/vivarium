@@ -1,6 +1,7 @@
 **3.4.6 - 07/15/25**
 
-  - Pin vivarium_build_utils>=1.1.0,<2.0.0
+  - Support pinning of vivarium_build_utils; pin vivarium_build_utils>=1.1.0,<2.0.0
+  - Pin mypy<1.17.0
 
 **3.4.5 - 05/30/25**
 
