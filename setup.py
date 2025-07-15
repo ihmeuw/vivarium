@@ -76,7 +76,7 @@ if __name__ == "__main__":
     lint_requirements = [
         "black==22.3.0",
         "isort",
-        "mypy",
+        "mypy<1.17.0",  # FIXME [MIC-6218]
     ]
 
     doc_requirements = [
