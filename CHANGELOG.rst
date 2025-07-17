@@ -1,4 +1,4 @@
-**3.4.7 - 07/17/25**
+**3.4.7 - 07/18/25**
 
   - Hush FutureWarnings: add include_groups=False to apply call in StratifiedObservation
 
