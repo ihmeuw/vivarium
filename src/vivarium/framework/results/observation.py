@@ -340,7 +340,7 @@ class StratifiedObservation(Observation):
         aggregates = (
             pop_groups[aggregator_sources].apply(aggregator).fillna(0.0)  # type: ignore [arg-type]
             if aggregator_sources
-            else pop_groups.apply(aggregator)  # type: ignore [arg-type]
+            else pop_groups.apply(aggregator, include_groups=False)  # type: ignore [arg-type]
         ).astype(float)
         return aggregates
 
