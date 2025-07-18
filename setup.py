@@ -41,17 +41,10 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
-        "vivarium_build_utils>=1.1.0,<2.0.0",
+        "vivarium_build_utils>=1.2.0,<2.0.0",
+        "vivarium_build_utils[numpy,pandas,pyyaml,scipy,click,tables,loguru,pyarrow]",
         "layered_config_tree>=2.1.0",
-        "numpy<2.0.0",
-        "pandas",
-        "pyyaml>=5.1",
-        "scipy",
-        "click",
-        "tables",
         "networkx",
-        "loguru",
-        "pyarrow",
         "dill",
         # Type stubs
         "pandas-stubs<=2.2.3.250308",
@@ -62,29 +55,25 @@ if __name__ == "__main__":
     setup_requires = ["setuptools_scm"]
 
     interactive_requirements = [
-        "IPython",
+        "vivarium_build_utils[ipython]",
         "ipywidgets",
         "jupyter",
     ]
 
     test_requirements = [
-        "vivarium_build_utils[test,vivarium_testing_utils] @ git+https://github.com/ihmeuw/vivarium_build_utils.git@sbachmei/mic-5918/common-dependencies",
+        "vivarium_build_utils[testing,vivarium_testing_utils]",
     ]
 
     lint_requirements = [
-        "vivarium_build_utils[black] @ git+https://github.com/ihmeuw/vivarium_build_utils.git@sbachmei/mic-5918/common-dependencies",
+        "vivarium_build_utils[black]",
         "isort",
         "mypy<1.17.0",  # FIXME [MIC-6218]
     ]
 
     doc_requirements = [
-        "sphinx>=4.0,<8.0.0",
+        "vivarium_build_utils[sphinx,sphinx-click,sphinx-autodoc-typehints,plotting]",
         "sphinx-rtd-theme>=0.6",
-        "sphinx-click",
-        "IPython",
-        "matplotlib",
         "sphinxcontrib-video",
-        "sphinx-autodoc-typehints",
     ]
 
     setup(
