@@ -68,14 +68,11 @@ if __name__ == "__main__":
     ]
 
     test_requirements = [
-        "pytest",
-        "pytest-cov",
-        "pytest-mock",
-        "vivarium_testing_utils",
+        "vivarium_build_utils[test,vivarium_testing_utils] @ git+https://github.com/ihmeuw/vivarium_build_utils.git@sbachmei/mic-5918/common-dependencies",
     ]
 
     lint_requirements = [
-        "black==22.3.0",
+        "vivarium_build_utils[black] @ git+https://github.com/ihmeuw/vivarium_build_utils.git@sbachmei/mic-5918/common-dependencies",
         "isort",
         "mypy<1.17.0",  # FIXME [MIC-6218]
     ]
