@@ -1,3 +1,5 @@
+PACKAGE_NAME = $(notdir $(CURDIR))
+
 # Check if we're running in Jenkins
 ifdef JENKINS_URL
 	# Files are already in workspace from shared library
@@ -6,8 +8,6 @@ else
 	# For local dev, use the installed vivarium_build_utils package
 	MAKE_INCLUDES := $(shell python -c "import vivarium_build_utils.resources" &>/dev/null  && python -c "from vivarium_build_utils.resources import get_makefiles_path; print(get_makefiles_path())")
 endif
-
-PACKAGE_NAME = vivarium
 
 # Include makefiles from vivarium_build_utils
 ifneq ($(MAKE_INCLUDES),) # if not an empty string
