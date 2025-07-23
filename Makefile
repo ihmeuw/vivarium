@@ -6,7 +6,7 @@ ifdef JENKINS_URL
 	MAKE_INCLUDES := .
 else
 	# For local dev, use the installed vivarium_build_utils package
-	MAKE_INCLUDES := $(shell python -c "import vivarium_build_utils.resources" &>/dev/null  && python -c "from vivarium_build_utils.resources import get_makefiles_path; print(get_makefiles_path())")
+	MAKE_INCLUDES := $(shell python -c "import vivarium_build_utils.resources" &>/dev/null && python -c "from vivarium_build_utils.resources import get_makefiles_path; print(get_makefiles_path())")
 endif
 
 # Include makefiles from vivarium_build_utils
@@ -44,7 +44,7 @@ endif
 
 build-env: # Create a new environment with installed packages
 ifndef name
-	@echo "Error: name is required"
+	@echo "Error: name is required and must be passed in as a keyword argument."
 	@echo "Usage: make build-env name=<ENV_NAME> py=<PYTHON_VERSION>"
 	@exit 1
 endif
@@ -56,5 +56,5 @@ endif
 	conda run -n $(name) make install
 	@echo
 	@echo "Environment built ($(name))"
-	@echo "*** Don't forget to activate it with: 'conda activate $(name)' ***"
+	@echo "Don't forget to activate it with: 'conda activate $(name)'"
 	@echo
