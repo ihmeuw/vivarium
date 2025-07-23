@@ -1,3 +1,7 @@
+**3.4.8 - TBD**
+
+  - Feature: Support new environment creation via 'make build-env'
+
 **3.4.7 - 07/18/25**
 
   - Hush FutureWarnings: add include_groups=False to apply call in StratifiedObservation
