@@ -4,8 +4,8 @@ ifdef JENKINS_URL
 	MAKE_INCLUDES := .
 else
 # 	For local dev, use the installed vivarium_build_utils package if it exists
-# 	First check if we can import vivarium_build_utils and assign 'yes' or 'no'.
-# 	This tries to import the package in python and redirects stderr to the null device
+# 	First, check if we can import vivarium_build_utils and assign 'yes' or 'no'.
+# 	We do this by importing the package in python and redirecting stderr to the null device.
 # 	If the import is successful (&&), it will print 'yes', otherwise (||) it will print 'no'.
 	VIVARIUM_BUILD_UTILS_AVAILABLE := $(shell python -c "import vivarium_build_utils" 2>/dev/null && echo "yes" || echo "no")
 # 	If vivarium_build_utils is available, get the makefiles path or else set it to empty
