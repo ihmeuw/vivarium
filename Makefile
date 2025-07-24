@@ -16,6 +16,7 @@ else
 	endif
 endif
 
+# Set the package name as the last part of this file's parent directory path
 PACKAGE_NAME = $(notdir $(CURDIR))
 
 ifneq ($(MAKE_INCLUDES),) # not empty
