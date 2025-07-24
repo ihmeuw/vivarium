@@ -22,10 +22,8 @@ PACKAGE_NAME = $(notdir $(CURDIR))
 ifneq ($(MAKE_INCLUDES),) # not empty
 include $(MAKE_INCLUDES)/base.mk
 include $(MAKE_INCLUDES)/test.mk
-endif
-
+else # empty
 # If MAKE_INCLUDES is empty, we want to use this help message (else it will use that from vivarium_build_utils)
-ifeq ($(MAKE_INCLUDES),) # empty
 help:
 	@echo
 	@echo "For Make's standard help, run 'make --help'."
