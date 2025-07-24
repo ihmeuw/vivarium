@@ -18,12 +18,12 @@ endif
 
 PACKAGE_NAME = $(notdir $(CURDIR))
 
-# Include makefiles from vivarium_build_utils
 ifneq ($(MAKE_INCLUDES),) # not empty
+# Include makefiles from vivarium_build_utils
 include $(MAKE_INCLUDES)/base.mk
 include $(MAKE_INCLUDES)/test.mk
 else # empty
-# If MAKE_INCLUDES is empty, we want to use this help message (else it will use that from vivarium_build_utils)
+# Use this help message (since the vivarium_build_utils version is not available)
 help:
 	@echo
 	@echo "For Make's standard help, run 'make --help'."
