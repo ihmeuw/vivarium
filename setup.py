@@ -41,17 +41,10 @@ if __name__ == "__main__":
         long_description = f.read()
 
     install_requirements = [
+        "vivarium_dependencies[numpy,pandas,pyyaml,scipy,click,tables,loguru,pyarrow]",
         "vivarium_build_utils>=2.0.1,<3.0.0",
         "layered_config_tree>=2.1.0",
-        "numpy<2.0.0",
-        "pandas>=2.2.0",
-        "pyyaml>=5.1",
-        "scipy",
-        "click",
-        "tables",
         "networkx",
-        "loguru",
-        "pyarrow",
         "dill",
         # Type stubs
         "pandas-stubs<=2.2.3.250308",
@@ -62,32 +55,25 @@ if __name__ == "__main__":
     setup_requires = ["setuptools_scm"]
 
     interactive_requirements = [
-        "IPython",
+        "vivarium_dependencies[ipython]",
         "ipywidgets",
         "jupyter",
     ]
 
     test_requirements = [
-        "pytest",
-        "pytest-cov",
-        "pytest-mock",
-        "vivarium_testing_utils",
+        "vivarium_dependencies[testing,vivarium_testing_utils]",
     ]
 
     lint_requirements = [
-        "black==22.3.0",
+        "vivarium_dependencies[black]",
         "isort",
         "mypy<1.17.0",  # FIXME [MIC-6218]
     ]
 
     doc_requirements = [
-        "sphinx>=4.0,<8.0.0",
+        "vivarium_dependencies[sphinx,sphinx-click,sphinx-autodoc-typehints,plotting]",
         "sphinx-rtd-theme>=0.6",
-        "sphinx-click",
-        "IPython",
-        "matplotlib",
         "sphinxcontrib-video",
-        "sphinx-autodoc-typehints",
     ]
 
     setup(
