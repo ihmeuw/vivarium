@@ -50,9 +50,7 @@ if __name__ == "__main__":
     setup_requires = ["setuptools_scm"]
 
     interactive_requirements = [
-        "vivarium_dependencies[ipython]",
-        "ipywidgets",
-        "jupyter",
+        "vivarium_dependencies[interactive]",
     ]
 
     test_requirements = [
@@ -67,7 +65,7 @@ if __name__ == "__main__":
     ]
 
     doc_requirements = [
-        "vivarium_dependencies[sphinx,sphinx-click,sphinx-autodoc-typehints,plotting]",
+        "vivarium_dependencies[sphinx,sphinx-click,sphinx-autodoc-typehints,interactive]",
         "sphinx-rtd-theme>=0.6",
         "sphinxcontrib-video",
     ]
