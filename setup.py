@@ -56,7 +56,8 @@ if __name__ == "__main__":
     ]
 
     test_requirements = [
-        "vivarium_dependencies[testing,vivarium_testing_utils]",
+        "vivarium_dependencies[testing]",
+        "vivarium_testing_utils",
     ]
 
     lint_requirements = [
