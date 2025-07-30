@@ -59,14 +59,12 @@ if __name__ == "__main__":
     ]
 
     lint_requirements = [
-        "vivarium_dependencies[black]",
-        "isort",
+        "vivarium_dependencies[lint]",
         "mypy<1.17.0",  # FIXME [MIC-6218]
     ]
 
     doc_requirements = [
-        "vivarium_dependencies[sphinx,sphinx-click,sphinx-autodoc-typehints,interactive]",
-        "sphinx-rtd-theme>=0.6",
+        "vivarium_dependencies[sphinx,sphinx-click,ipython,matplotlib]",
         "sphinxcontrib-video",
     ]
 
