@@ -1,6 +1,10 @@
-**3.4.9 - TBD**
+**3.4.10 - 07/31/25**
 
   - Use vivarium_dependencies for common setup constraints
+
+**3.4.9 - 07/31/25**
+
+  - Modify futurewarning fix from v3.4.7 to not require pandas>=2.2.0
 
 **3.4.8 - 07/25/25**
 
