@@ -44,7 +44,7 @@ if __name__ == "__main__":
         "vivarium_build_utils>=2.0.1,<3.0.0",
         "layered_config_tree>=2.1.0",
         "numpy<2.0.0",
-        "pandas>=2.2.0",
+        "pandas",
         "pyyaml>=5.1",
         "scipy",
         "click",
