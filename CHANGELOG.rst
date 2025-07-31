@@ -1,3 +1,7 @@
+**3.4.9 - 07/31/25**
+
+  - Modify futurewarning fix from v3.4.7 to not require pandas>=2.2.0
+
 **3.4.8 - 07/25/25**
 
   - Feature: Support new environment creation via 'make build-env'
