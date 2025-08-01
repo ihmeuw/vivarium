@@ -1,3 +1,7 @@
+**3.4.11 - 08/01/25**
+
+  - Use vivarium_dependencies numpy<2 pin 
+
 **3.4.10 - 07/31/25**
 
   - Use vivarium_dependencies for common setup constraints
