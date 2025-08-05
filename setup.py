@@ -40,9 +40,11 @@ if __name__ == "__main__":
     with (base_dir / "README.rst").open() as f:
         long_description = f.read()
 
+    # FIXME PUT BACK AFTER TESTING
     install_requirements = [
         "vivarium_dependencies[numpy_lt_2,pandas,pyyaml,scipy,click,tables,loguru,pyarrow,networkx]",
-        "vivarium_build_utils>=2.0.1,<3.0.0",
+        # "vivarium_build_utils>=2.0.1,<3.0.0",
+        "vivarium_build_utils @ git+https://github.com/ihmeuw/vivarium_build_utils.git@sbachmei/hotfix/revert-v202"
         "layered_config_tree",
         "dill",
     ]
