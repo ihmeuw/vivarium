@@ -517,7 +517,7 @@ def test_stratified_observation_results() -> None:
     num_familiars = sim.get_population().groupby(["familiar", "student_house"]).apply(len)
     expected = num_familiars.loc["cat"] ** 1.0
     expected.name = "value"
-    expected = expected.reset_index().sort_values("value").reset_index(drop=True)
+    expected = expected.sort_values().reset_index()
     expected["student_house"] = expected["student_house"].astype(
         CategoricalDtype(categories=STUDENT_HOUSES)
     )
@@ -528,7 +528,7 @@ def test_stratified_observation_results() -> None:
     num_familiars = sim.get_population().groupby(["familiar", "student_house"]).apply(len)
     expected = num_familiars.loc["cat"] ** 2.0
     expected.name = "value"
-    expected = expected.reset_index().sort_values("value").reset_index(drop=True)
+    expected = expected.sort_values().reset_index()
     expected["student_house"] = expected["student_house"].astype(
         CategoricalDtype(categories=STUDENT_HOUSES)
     )
