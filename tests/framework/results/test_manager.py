@@ -517,12 +517,25 @@ def test_stratified_observation_results() -> None:
     num_familiars = sim.get_population().groupby(["familiar", "student_house"]).apply(len)
     expected = num_familiars.loc["cat"] ** 1.0
     expected.name = "value"
-    assert expected.sort_values().equals(sim.get_results()["cat_bomb"]["value"].sort_values())
+    expected = expected.reset_index().sort_values("value").reset_index(drop=True)
+    expected["student_house"] = expected["student_house"].astype(
+        CategoricalDtype(categories=STUDENT_HOUSES)
+    )
+    assert expected.equals(
+        sim.get_results()["cat_bomb"].sort_values("value").reset_index(drop=True)
+    )
     sim.step()
     num_familiars = sim.get_population().groupby(["familiar", "student_house"]).apply(len)
     expected = num_familiars.loc["cat"] ** 2.0
     expected.name = "value"
-    assert expected.sort_values().equals(sim.get_results()["cat_bomb"]["value"].sort_values())
+    expected = expected.reset_index().sort_values("value").reset_index(drop=True)
+    expected["student_house"] = expected["student_house"].astype(
+        CategoricalDtype(categories=STUDENT_HOUSES)
+    )
+    assert expected.equals(
+        sim.get_results()["cat_bomb"].sort_values("value").reset_index(drop=True)
+    )
+    _assert_standard_index(sim.get_results()["cat_bomb"])
 
 
 def test_unstratified_observation_results() -> None:
@@ -540,6 +553,8 @@ def test_unstratified_observation_results() -> None:
     assert (
         first_valedictorian["student_id"].iat[0] != second_valedictorian["student_id"].iat[0]
     )
+    _assert_standard_index(first_valedictorian)
+    _assert_standard_index(second_valedictorian)
 
 
 def test_concatenating_observation_results() -> None:
@@ -560,6 +575,7 @@ def test_concatenating_observation_results() -> None:
     assert sim.get_results()["exam_score"].equals(
         pd.concat([results_one_step, expected_two_steps], axis=0).reset_index(drop=True)
     )
+    _assert_standard_index(sim.get_results()["exam_score"])
 
 
 def test_adding_observation_results() -> None:
@@ -618,6 +634,8 @@ def test_adding_observation_results() -> None:
     pop = sim.get_population()
     _check_house_points(pop, step_number=2)
     _check_quidditch_wins(pop, step_number=2)
+    _assert_standard_index(sim.get_results()["house_points"])
+    _assert_standard_index(sim.get_results()["quidditch_wins"])
 
 
 def test_concatenating_observation_updates() -> None:
@@ -681,3 +699,15 @@ def test_update__raw_results_extra_columns() -> None:
     sim.step()
     raw_results = sim._results._raw_results["magical_attributes"]
     assert (raw_results[["spell_power", "potion_power"]].values == [2, 2]).all()
+
+
+####################
+# Helper functions #
+####################
+
+
+def _assert_standard_index(df: pd.DataFrame) -> None:
+    """The results should have any stratifications as columns, not indexes."""
+    assert not isinstance(df.index, pd.MultiIndex)
+    assert df.index.names == [None]
+    assert df.index.dtype == "int64"
