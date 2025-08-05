@@ -1,6 +1,6 @@
 **3.4.12 - 08/05/25**
 
-  - Bugfix: reset the index in the default StratifiedObservation formatter
+  - Bugfix: reset the index in register_stratified_observation() default results formatter
 
 **3.4.11 - 08/01/25**
 
