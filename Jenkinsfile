@@ -30,5 +30,4 @@ library("vivarium_build_utils@${get_vbu_version()}")
 reusable_pipeline(
     scheduled_branches: ["main"], 
     upstream_repos: ["layered_config_tree"],
-    test_type: ["all"],
 )
