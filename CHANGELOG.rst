@@ -1,3 +1,8 @@
+**3.4.13 - 08/22/25**
+
+  - Support writing out simulation results during a 'simulate profile' run
+  - Minor UI improvements to 'simulate profile'
+
 **3.4.12 - 08/05/25**
 
   - Bugfix: reset the index in register_stratified_observation() default results formatter

@@ -33,6 +33,7 @@ simulations from the command line.
 import cProfile
 import os
 import pstats
+from datetime import datetime as dt
 from pathlib import Path
 from time import time
 
@@ -184,33 +185,58 @@ def test() -> None:
     "-o",
     type=click.Path(resolve_path=True),
     default=Path("~/vivarium_results/").expanduser(),
+    show_default=True,
     help=(
         "The directory to write results to. A folder will be created "
         "in this directory with the same name as the configuration file."
     ),
 )
 @click.option(
-    "--process/--no-process",
-    default=False,
+    "--skip_writing",
+    is_flag=True,
     help=(
-        "Automatically process the profile to human readable format  with pstats, "
-        "sorted by cumulative runtime, and dump to a file"
+        "Skip writing the simulation results to the output directory; the time spent "
+        "normally writing simulation results to disk will not be included in the profiling "
+        "statistics."
     ),
 )
-def profile(model_specification: Path, results_directory: Path, process: bool) -> None:
+@click.option(
+    "--skip_processing",
+    is_flag=True,
+    help=(
+        "Skip processing the resulting binary file to a human-readable .txt file "
+        "sorted by cumulative runtime; the resulting .stats file can still be read "
+        "and processed later using the pstats module."
+    ),
+)
+def profile(
+    model_specification: Path,
+    results_directory: Path,
+    skip_writing: bool,
+    skip_processing: bool,
+) -> None:
     """Run a simulation based on the provided MODEL_SPECIFICATION and profile the run."""
     model_specification = Path(model_specification)
     results_directory = Path(results_directory)
+    results_root = results_directory / f"{dt.now().strftime('%Y_%m_%d_%H_%M_%S')}"
+    configure_logging_to_file(output_directory=results_root)
 
-    out_stats_file = results_directory / f"{model_specification.name}".replace(
-        "yaml", "stats"
-    )
-    sim = SimulationContext(model_specification)
+    if skip_writing:
+        configuration_override = {}
+    else:
+        output_data_root = results_root / "results"
+        output_data_root.mkdir(parents=True, exist_ok=False)
+        configuration_override = {
+            "output_data": {"results_directory": str(output_data_root)},
+        }
+
+    out_stats_file = results_root / f"{model_specification.name}".replace("yaml", "stats")
+    sim = SimulationContext(model_specification, configuration=configuration_override)
     command = f"sim.run_simulation()"
     cProfile.runctx(command, globals=globals(), locals=locals(), filename=str(out_stats_file))
 
-    if process:
-        out_txt_file = results_directory / (out_stats_file.name + ".txt")
+    if not skip_processing:
+        out_txt_file = Path(str(out_stats_file) + ".txt")
         with out_txt_file.open("w") as f:
             p = pstats.Stats(str(out_stats_file), stream=f)
             p.sort_stats("cumulative")
