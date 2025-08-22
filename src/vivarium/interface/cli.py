@@ -236,7 +236,7 @@ def profile(
     cProfile.runctx(command, globals=globals(), locals=locals(), filename=str(out_stats_file))
 
     if not skip_processing:
-        out_txt_file = out_stats_file.with_suffix(".txt")
+        out_txt_file = Path(str(out_stats_file) + ".txt")
         with out_txt_file.open("w") as f:
             p = pstats.Stats(str(out_stats_file), stream=f)
             p.sort_stats("cumulative")
