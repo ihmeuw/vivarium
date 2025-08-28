@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 from vivarium.framework.lifecycle.exceptions import ConstraintError
 
 if TYPE_CHECKING:
-    from vivarium.framework.lifecycle.lifecycle import LifeCycleManager
+    from vivarium.framework.lifecycle.manager import LifeCycleManager
 
 
 class ConstraintMaker:

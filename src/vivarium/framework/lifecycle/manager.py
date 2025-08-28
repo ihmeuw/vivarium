@@ -39,11 +39,7 @@ from typing import TYPE_CHECKING, Any
 
 from vivarium.exceptions import VivariumError
 from vivarium.framework.lifecycle.constraint_maker import ConstraintMaker
-from vivarium.framework.lifecycle.entities import (
-    LifeCycle,
-    LifeCyclePhase,
-    LifeCycleState,
-)
+from vivarium.framework.lifecycle.entities import LifeCycle, LifeCyclePhase, LifeCycleState
 from vivarium.framework.lifecycle.exceptions import (
     ConstraintError,
     InvalidTransitionError,
