@@ -17,7 +17,7 @@ from vivarium.framework.lifecycle.exceptions import (
     InvalidTransitionError,
     LifeCycleError,
 )
-from vivarium.framework.lifecycle.lifecycle import (
+from vivarium.framework.lifecycle.manager import (
     LifeCycleInterface,
     LifeCycleManager,
 )
