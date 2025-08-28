@@ -35,7 +35,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-from vivarium.framework.lifecycle import ConstraintError, POST_SETUP, REPORT
+from vivarium.framework.lifecycle import ConstraintError, POST_SETUP, REPORT, SETUP, SIMULATION_END
 from vivarium.manager import Interface, Manager
 from vivarium.types import ClockStepSize, ClockTime
 
@@ -184,9 +184,9 @@ class EventManager(Manager):
         self.add_constraint = builder.lifecycle.add_constraint
 
         builder.lifecycle.add_constraint(
-            self.get_emitter, allow_during=["setup", "simulation_end", REPORT]
+            self.get_emitter, allow_during=[SETUP, SIMULATION_END, REPORT]
         )
-        builder.lifecycle.add_constraint(self.register_listener, allow_during=["setup"])
+        builder.lifecycle.add_constraint(self.register_listener, allow_during=[SETUP])
 
     def on_post_setup(self, event: Event) -> None:
         for name, channel in self._event_types.items():

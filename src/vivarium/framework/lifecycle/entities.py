@@ -180,7 +180,7 @@ class LifeCycle:
         self._state_names: set[str] = set()
         self._phase_names: set[str] = set()
         self._phases: list[LifeCyclePhase] = []
-        self.add_phase("initialization", ["initialization"], loop=False)
+        self.add_phase("initialization", [INITIALIZATION], loop=False)
 
     def add_phase(self, phase_name: str, states: list[str], loop: bool) -> None:
         """Add a new phase to the lifecycle.

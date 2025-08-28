@@ -25,6 +25,7 @@ from tests.framework.results.helpers import (
     verify_stratification_added,
 )
 from vivarium.framework.event import Event
+from vivarium.framework.lifecycle import COLLECT_METRICS, TIME_STEP_PREPARE
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import AddingObservation, ConcatenatingObservation
@@ -194,12 +195,12 @@ def test_add_stratification_raises(
         {
             "name": "living_person_time",
             "pop_filter": 'alive == "alive" and undead == False',
-            "when": "collect_metrics",
+            "when": COLLECT_METRICS,
         },
         {
             "name": "undead_person_time",
             "pop_filter": "undead == True",
-            "when": "time_step__prepare",
+            "when": TIME_STEP_PREPARE,
         },
     ],
     ids=["valid_on_collect_metrics", "valid_on_time_step__prepare"],
@@ -295,7 +296,7 @@ def test_adding_observation_gather_results(
     population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
         days=28
     )
-    lifecycle_phase = "collect_metrics"
+    lifecycle_state = COLLECT_METRICS
 
     # Set up stratifications
     if "house" in stratifications:
@@ -323,7 +324,7 @@ def test_adding_observation_gather_results(
         aggregator_sources=aggregator_sources,
         aggregator=aggregator,
         stratifications=tuple(stratifications),
-        when=lifecycle_phase,
+        when=lifecycle_state,
         results_formatter=lambda: None,
     )
 
@@ -343,7 +344,7 @@ def test_adding_observation_gather_results(
 
     i = 0
     for result, _measure, _updater in ctx.gather_results(
-        population, lifecycle_phase, mocked_event
+        population, lifecycle_state, mocked_event
     ):
         assert result is not None
         assert all(
@@ -367,14 +368,14 @@ def test_concatenating_observation_gather_results(mocked_event: Mock) -> None:
         days=28
     )
 
-    lifecycle_phase = "collect_metrics"
+    lifecycle_state = COLLECT_METRICS
     pop_filter = "house=='hufflepuff'"
     included_cols = ["event_time", "familiar", "house"]
     ctx.register_observation(
         observation_type=ConcatenatingObservation,
         name="foo",
         pop_filter=pop_filter,
-        when=lifecycle_phase,
+        when=lifecycle_state,
         included_columns=included_cols,
         results_formatter=lambda _, __: pd.DataFrame(),
     )
@@ -383,7 +384,7 @@ def test_concatenating_observation_gather_results(mocked_event: Mock) -> None:
 
     i = 0
     for result, _measure, _updater in ctx.gather_results(
-        population, lifecycle_phase, mocked_event
+        population, lifecycle_state, mocked_event
     ):
         assert result is not None
         assert result.equals(filtered_pop[included_cols])
@@ -446,7 +447,7 @@ def test_gather_results_partial_stratifications_in_results(
     # Remove an entire category from a stratification
     population = population[population["familiar"] != "unladen_swallow"].reset_index()
 
-    lifecycle_phase = "collect_metrics"
+    lifecycle_state = COLLECT_METRICS
 
     # Set up stratifications
     if "house" in stratifications:
@@ -475,12 +476,12 @@ def test_gather_results_partial_stratifications_in_results(
         aggregator_sources=aggregator_sources,
         aggregator=aggregator,
         stratifications=tuple(stratifications),
-        when=lifecycle_phase,
+        when=lifecycle_state,
         results_formatter=lambda: None,
     )
 
     for results, _measure, _formatter in ctx.gather_results(
-        population, lifecycle_phase, mocked_event
+        population, lifecycle_state, mocked_event
     ):
         assert results is not None
         unladen_results = results.reset_index().query('familiar=="unladen_swallow"')
@@ -497,7 +498,7 @@ def test_gather_results_with_empty_pop_filter(mocked_event: Mock) -> None:
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
 
-    lifecycle_phase = "collect_metrics"
+    lifecycle_state = COLLECT_METRICS
     ctx.register_observation(
         observation_type=AddingObservation,
         name="wizard_count",
@@ -505,12 +506,12 @@ def test_gather_results_with_empty_pop_filter(mocked_event: Mock) -> None:
         aggregator_sources=[],
         aggregator=len,
         stratifications=tuple(),
-        when=lifecycle_phase,
+        when=lifecycle_state,
         results_formatter=lambda: None,
     )
 
     for result, _measure, _updater in ctx.gather_results(
-        population, lifecycle_phase, mocked_event
+        population, lifecycle_state, mocked_event
     ):
         assert not result
 
@@ -522,7 +523,7 @@ def test_gather_results_with_no_stratifications(mocked_event: Mock) -> None:
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
 
-    lifecycle_phase = "collect_metrics"
+    lifecycle_state = COLLECT_METRICS
     ctx.register_observation(
         observation_type=AddingObservation,
         name="wizard_count",
@@ -530,7 +531,7 @@ def test_gather_results_with_no_stratifications(mocked_event: Mock) -> None:
         aggregator_sources=None,
         aggregator=len,
         stratifications=tuple(),
-        when=lifecycle_phase,
+        when=lifecycle_state,
         results_formatter=lambda: None,
     )
 
@@ -540,7 +541,7 @@ def test_gather_results_with_no_stratifications(mocked_event: Mock) -> None:
             list(
                 result
                 for result, _measure, _updater in ctx.gather_results(
-                    population, lifecycle_phase, mocked_event
+                    population, lifecycle_state, mocked_event
                 )
             )
         )
@@ -555,7 +556,7 @@ def test_bad_aggregator_stratification(mocked_event: Mock) -> None:
 
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
-    lifecycle_phase = "collect_metrics"
+    lifecycle_state = COLLECT_METRICS
 
     # Set up stratifications
     ctx.add_stratification(
@@ -581,13 +582,13 @@ def test_bad_aggregator_stratification(mocked_event: Mock) -> None:
         aggregator_sources=[],
         aggregator=sum,
         stratifications=("house", "height"),  # `height` is not a stratification
-        when=lifecycle_phase,
+        when=lifecycle_state,
         results_formatter=lambda: None,
     )
 
     with pytest.raises(KeyError, match="height"):
         for result, _measure, _updater in ctx.gather_results(
-            population, lifecycle_phase, mocked_event
+            population, lifecycle_state, mocked_event
         ):
             print(result)
 
@@ -681,7 +682,7 @@ def test_to_observe(mocked_event: Mock, mocker: MockerFixture) -> None:
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
 
-    lifecycle_phase = "collect_metrics"
+    lifecycle_state = COLLECT_METRICS
     ctx.register_observation(
         observation_type=AddingObservation,
         name="wizard_count",
@@ -689,20 +690,20 @@ def test_to_observe(mocked_event: Mock, mocker: MockerFixture) -> None:
         aggregator_sources=[],
         aggregator=len,
         stratifications=tuple(),
-        when=lifecycle_phase,
+        when=lifecycle_state,
         results_formatter=lambda: None,
     )
 
     for result, _measure, _updater in ctx.gather_results(
-        population, lifecycle_phase, mocked_event
+        population, lifecycle_state, mocked_event
     ):
         assert result is not None
         assert not result.empty
 
     # Extract the observation from the context and patch it to not observe
-    observation = list(ctx.observations["collect_metrics"].values())[0][0]
+    observation = list(ctx.observations[COLLECT_METRICS].values())[0][0]
     mocker.patch.object(observation, "to_observe", return_value=False)
     for result, _measure, _updater in ctx.gather_results(
-        population, lifecycle_phase, mocked_event
+        population, lifecycle_state, mocked_event
     ):
         assert not result

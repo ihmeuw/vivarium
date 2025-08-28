@@ -15,6 +15,7 @@ from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS
 from tests.framework.results.helpers import HOUSE_CATEGORIES as HOUSES
 from tests.framework.results.helpers import mock_get_value
 from vivarium.framework.event import Event
+from vivarium.framework.lifecycle import TIME_STEP, TIME_STEP_CLEANUP, TIME_STEP_PREPARE
 from vivarium.framework.results import ResultsInterface, ResultsManager
 from vivarium.framework.results.observation import (
     ConcatenatingObservation,
@@ -261,7 +262,7 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
             [],
             [],
             [],
-            "collect_metrics",
+            TIME_STEP_CLEANUP,
         ),
         (
             "undead_person_time",
@@ -272,7 +273,7 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
             [],
             [],
             [],
-            "time_step__prepare",
+            TIME_STEP_PREPARE,
         ),
         (
             "undead_person_time",
@@ -283,7 +284,7 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
             ["fake_pipeline", "another_fake_pipeline"],
             [],
             [],
-            "time_step__prepare",
+            TIME_STEP_PREPARE,
         ),
     ],
     ids=["valid_on_collect_metrics", "valid_on_time_step__prepare", "valid_pipelines"],
@@ -333,30 +334,30 @@ def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
     assert len(interface._manager._results_context.observations) == 0
     interface.register_adding_observation(
         name="living_person_time",
-        when="collect_metrics",
+        when=TIME_STEP_CLEANUP,
         aggregator=_silly_aggregator,
     )
     # Test observation gets added
     assert len(interface._manager._results_context.observations) == 1
     # Test for default pop_filter
     assert ("tracked==True", ()) in interface._manager._results_context.observations[
-        "collect_metrics"
+        TIME_STEP_CLEANUP
     ]
     interface.register_adding_observation(
         name="undead_person_time",
         pop_filter="undead == True",
-        when="time_step__prepare",
+        when=TIME_STEP_PREPARE,
         aggregator=_silly_aggregator,
     )
     # Test new observation gets added
     assert len(interface._manager._results_context.observations) == 2
     # Preserve other observation and its pop filter
     assert ("tracked==True", ()) in interface._manager._results_context.observations[
-        "collect_metrics"
+        TIME_STEP_CLEANUP
     ]
     # Test for overridden pop_filter
     assert ("undead == True", ()) in interface._manager._results_context.observations[
-        "time_step__prepare"
+        TIME_STEP_PREPARE
     ]
 
 
@@ -372,7 +373,7 @@ def test_unhashable_pipeline(mocker: MockerFixture) -> None:
         interface.register_adding_observation(
             name="living_person_time",
             pop_filter='alive == "alive" and undead == False',
-            when="collect_metrics",
+            when=TIME_STEP_CLEANUP,
             requires_columns=[],
             # Unhashable first element below
             requires_values=[["bad", "unhashable", "thing"]],  # type: ignore[list-item]
@@ -385,7 +386,7 @@ def test_unhashable_pipeline(mocker: MockerFixture) -> None:
 
 @pytest.mark.parametrize(
     "when",
-    ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"],
+    [TIME_STEP_PREPARE, TIME_STEP, TIME_STEP, TIME_STEP_CLEANUP],
 )
 def test_register_adding_observation_when_options(when: str, mocker: MockerFixture) -> None:
     """Test the full interface lifecycle of adding an observation and simulation event."""
@@ -428,10 +429,10 @@ def test_register_adding_observation_when_options(when: str, mocker: MockerFixtu
     time_step__cleanup_mock_aggregator = mocker.Mock(side_effect=lambda x: 1.0)
     collect_metrics_mock_aggregator = mocker.Mock(side_effect=lambda x: 1.0)
     aggregator_map = {
-        "time_step__prepare": time_step__prepare_mock_aggregator,
-        "time_step": time_step_mock_aggregator,
-        "time_step__cleanup": time_step__cleanup_mock_aggregator,
-        "collect_metrics": collect_metrics_mock_aggregator,
+        TIME_STEP_PREPARE: time_step__prepare_mock_aggregator,
+        TIME_STEP: time_step_mock_aggregator,
+        TIME_STEP_CLEANUP: time_step__cleanup_mock_aggregator,
+        TIME_STEP_CLEANUP: collect_metrics_mock_aggregator,
     }
 
     # Register observations to all four phases

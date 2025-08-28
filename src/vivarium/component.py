@@ -27,6 +27,7 @@ from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.lifecycle import (
     COLLECT_METRICS,
     POST_SETUP,
+    SIMULATION_END,
     TIME_STEP,
     TIME_STEP_CLEANUP,
     TIME_STEP_PREPARE,
@@ -835,11 +836,11 @@ class Component(ABC):
             )
 
     def _register_time_step_prepare_listener(self, builder: "Builder") -> None:
-        """Registers a time_step_prepare listener if this component has defined one.
+        """Registers a time_step__prepare listener if this component has defined one.
 
-        This method allows the component to respond to "time_step_prepare" events
+        This method allows the component to respond to "time_step__prepare" events
         if it has its own `on_time_step_prepare` method. The listener will be
-        registered with the component's time_step_prepare priority.
+        registered with the component's time_step__prepare priority.
 
         Parameters
         ----------
@@ -873,11 +874,11 @@ class Component(ABC):
             )
 
     def _register_time_step_cleanup_listener(self, builder: "Builder") -> None:
-        """Registers a time_step_cleanup listener if this component has defined one.
+        """Registers a time_step__cleanup listener if this component has defined one.
 
-        This method allows the component to respond to "time_step_cleanup" events
+        This method allows the component to respond to "time_step__cleanup" events
         if it has its own `on_time_step_cleanup` method. The listener will be
-        registered with the component's time_step_cleanup priority.
+        registered with the component's time_step__cleanup priority.
 
         Parameters
         ----------
@@ -924,7 +925,7 @@ class Component(ABC):
         """
         if type(self).on_simulation_end != Component.on_simulation_end:
             builder.event.register_listener(
-                "simulation_end",
+                SIMULATION_END,
                 self.on_simulation_end,
                 self.simulation_end_priority,
             )

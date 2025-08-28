@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
 
+from vivarium.framework.lifecycle import INITIALIZATION, SETUP, POST_SETUP, SIMULATION_END, REPORT
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import RandomnessStream, get_hash
@@ -79,16 +80,16 @@ class RandomnessManager(Manager):
         self._rate_conversion_type = builder.configuration.randomness.rate_conversion_type
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
-        self._add_constraint(self.get_seed, restrict_during=["initialization"])
-        self._add_constraint(self.get_randomness_stream, allow_during=["setup"])
+        self._add_constraint(self.get_seed, restrict_during=[INITIALIZATION])
+        self._add_constraint(self.get_randomness_stream, allow_during=[SETUP])
         self._add_constraint(
             self.register_simulants,
             restrict_during=[
-                "initialization",
-                "setup",
-                "post_setup",
-                "simulation_end",
-                "report",
+                INITIALIZATION,
+                SETUP,
+                POST_SETUP,
+                SIMULATION_END,
+                REPORT
             ],
         )
 
@@ -139,17 +140,17 @@ class RandomnessManager(Manager):
             # We need the key columns to be created before this stream can be called.
             self.resources.add_resources(component, [stream], self._key_columns)
         self._add_constraint(
-            stream.get_draw, restrict_during=["initialization", "setup", "post_setup"]
+            stream.get_draw, restrict_during=[INITIALIZATION, SETUP, POST_SETUP]
         )
         self._add_constraint(
             stream.filter_for_probability,
-            restrict_during=["initialization", "setup", "post_setup"],
+            restrict_during=[INITIALIZATION, SETUP, POST_SETUP],
         )
         self._add_constraint(
-            stream.filter_for_rate, restrict_during=["initialization", "setup", "post_setup"]
+            stream.filter_for_rate, restrict_during=[INITIALIZATION, SETUP, POST_SETUP]
         )
         self._add_constraint(
-            stream.choice, restrict_during=["initialization", "setup", "post_setup"]
+            stream.choice, restrict_during=[INITIALIZATION, SETUP, POST_SETUP]
         )
 
         return stream

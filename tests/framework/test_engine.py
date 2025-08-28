@@ -40,8 +40,7 @@ from vivarium.framework.lifecycle import (
     COLLECT_METRICS,
     LifeCycleInterface,
     LifeCycleManager,
-    POST_SETUP,
-    REPORT,
+    SIMULATION_END,
     TIME_STEP,
     TIME_STEP_CLEANUP,
     TIME_STEP_PREPARE,
@@ -259,7 +258,7 @@ def test_SimulationContext_setup_default(
         )
 
     assert is_same_object_method(
-        sim.end_emitter, sim._events._event_types["simulation_end"].emit
+        sim.end_emitter, sim._events._event_types[SIMULATION_END].emit
     )
 
     assert listener.post_setup_called
