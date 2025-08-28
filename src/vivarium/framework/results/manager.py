@@ -14,6 +14,13 @@ from typing import TYPE_CHECKING, Any, Iterable, Sequence
 import pandas as pd
 
 from vivarium.framework.event import Event
+from vivarium.framework.lifecycle import (
+    COLLECT_METRICS,
+    POST_SETUP,
+    TIME_STEP,
+    TIME_STEP_CLEANUP,
+    TIME_STEP_PREPARE,
+)
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import Observation
 from vivarium.framework.values import Pipeline
@@ -91,11 +98,11 @@ class ResultsManager(Manager):
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
 
-        builder.event.register_listener("post_setup", self.on_post_setup)
-        builder.event.register_listener("time_step__prepare", self.on_time_step_prepare)
-        builder.event.register_listener("time_step", self.on_time_step)
-        builder.event.register_listener("time_step__cleanup", self.on_time_step_cleanup)
-        builder.event.register_listener("collect_metrics", self.on_collect_metrics)
+        builder.event.register_listener(POST_SETUP, self.on_post_setup)
+        builder.event.register_listener(TIME_STEP_PREPARE, self.on_time_step_prepare)
+        builder.event.register_listener(TIME_STEP, self.on_time_step)
+        builder.event.register_listener(TIME_STEP_CLEANUP, self.on_time_step_cleanup)
+        builder.event.register_listener(COLLECT_METRICS, self.on_collect_metrics)
 
         self.get_value = builder.value.get_value
 
@@ -137,19 +144,19 @@ class ResultsManager(Manager):
 
     def on_time_step_prepare(self, event: Event) -> None:
         """Define the listener callable for the time_step__prepare phase."""
-        self.gather_results("time_step__prepare", event)
+        self.gather_results(TIME_STEP_PREPARE, event)
 
     def on_time_step(self, event: Event) -> None:
         """Define the listener callable for the time_step phase."""
-        self.gather_results("time_step", event)
+        self.gather_results(TIME_STEP, event)
 
     def on_time_step_cleanup(self, event: Event) -> None:
         """Define the listener callable for the time_step__cleanup phase."""
-        self.gather_results("time_step__cleanup", event)
+        self.gather_results(TIME_STEP_CLEANUP, event)
 
     def on_collect_metrics(self, event: Event) -> None:
         """Define the listener callable for the collect_metrics phase."""
-        self.gather_results("collect_metrics", event)
+        self.gather_results(COLLECT_METRICS, event)
 
     def gather_results(self, lifecycle_phase: str, event: Event) -> None:
         """Update existing results with any new results."""

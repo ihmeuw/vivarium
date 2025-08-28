@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from vivarium.framework.lifecycle import POPULATION_CREATION, POST_SETUP, REPORT
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
@@ -175,10 +176,10 @@ class PopulationManager(Manager):
             self.get_view,
             allow_during=[
                 "setup",
-                "post_setup",
-                "population_creation",
+                POST_SETUP,
+                POPULATION_CREATION,
                 "simulation_end",
-                "report",
+                REPORT,
             ],
         )
         builder.lifecycle.add_constraint(self.get_simulant_creator, allow_during=["setup"])

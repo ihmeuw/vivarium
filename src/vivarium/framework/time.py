@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
+from vivarium.framework.lifecycle import POST_SETUP
 from vivarium.types import ClockStepSize, ClockTime
 
 if TYPE_CHECKING:
@@ -124,7 +125,7 @@ class SimulationClock(Manager):
             component=self,
         )
         builder.population.initializes_simulants(self, creates_columns=self.columns_created)
-        builder.event.register_listener("post_setup", self.on_post_setup)
+        builder.event.register_listener(POST_SETUP, self.on_post_setup)
         self._individual_clocks = builder.population.get_view(
             columns=self.columns_created + self.columns_required
         )

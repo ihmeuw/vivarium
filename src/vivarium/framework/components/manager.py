@@ -29,7 +29,7 @@ from layered_config_tree import (
 
 from vivarium import Component
 from vivarium.exceptions import VivariumError
-from vivarium.framework.lifecycle import LifeCycleManager
+from vivarium.framework.lifecycle import LifeCycleManager, POPULATION_CREATION
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
@@ -150,10 +150,10 @@ class ComponentManager(Manager):
 
         lifecycle_manager.add_constraint(
             self.get_components_by_type,
-            restrict_during=["initialization", "population_creation"],
+            restrict_during=["initialization", POPULATION_CREATION],
         )
         lifecycle_manager.add_constraint(
-            self.get_component, restrict_during=["population_creation"]
+            self.get_component, restrict_during=[POPULATION_CREATION]
         )
         lifecycle_manager.add_constraint(
             self.list_components, restrict_during=["initialization"]

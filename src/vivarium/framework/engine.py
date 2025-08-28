@@ -40,7 +40,17 @@ from vivarium.framework.components import (
 )
 from vivarium.framework.configuration import build_model_specification
 from vivarium.framework.event import EventInterface, EventManager
-from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
+from vivarium.framework.lifecycle import (
+    COLLECT_METRICS,
+    LifeCycleInterface,
+    LifeCycleManager,
+    POPULATION_CREATION,
+    POST_SETUP,
+    REPORT,
+    TIME_STEP,
+    TIME_STEP_CLEANUP,
+    TIME_STEP_PREPARE,
+)
 from vivarium.framework.logging import LoggingInterface, LoggingManager
 from vivarium.framework.lookup import LookupTableInterface, LookupTableManager
 from vivarium.framework.plugins import PluginManager
@@ -138,13 +148,13 @@ class SimulationContext:
         # This formally starts the initialization phase (this call makes the
         # life-cycle manager).
         self._lifecycle = self._plugin_manager.get_plugin(LifeCycleManager)
-        self._lifecycle.add_phase("setup", ["setup", "post_setup", "population_creation"])
+        self._lifecycle.add_phase("setup", ["setup", POST_SETUP, POPULATION_CREATION])
         self._lifecycle.add_phase(
             "main_loop",
-            ["time_step__prepare", "time_step", "time_step__cleanup", "collect_metrics"],
+            [TIME_STEP_PREPARE, TIME_STEP, TIME_STEP_CLEANUP, COLLECT_METRICS],
             loop=True,
         )
-        self._lifecycle.add_phase("simulation_end", ["simulation_end", "report"])
+        self._lifecycle.add_phase("simulation_end", ["simulation_end", REPORT])
 
         self._component_manager = self._plugin_manager.get_plugin(ComponentManager)
         self._component_manager.setup_manager(self.configuration, self._lifecycle)
@@ -202,7 +212,7 @@ class SimulationContext:
 
         self._lifecycle.add_constraint(self.add_components, allow_during=["initialization"])
         self._lifecycle.add_constraint(
-            self.get_population, restrict_during=["initialization", "setup", "post_setup"]
+            self.get_population, restrict_during=["initialization", "setup", POST_SETUP]
         )
 
         self.add_components(components_list)
@@ -240,14 +250,14 @@ class SimulationContext:
             k: self._builder.event.get_emitter(k) for k in self.time_step_events
         }
         self.end_emitter = self._builder.event.get_emitter("simulation_end")
-        self.report_emitter = self._builder.event.get_emitter("report")
+        self.report_emitter = self._builder.event.get_emitter(REPORT)
 
-        post_setup = self._builder.event.get_emitter("post_setup")
-        self._lifecycle.set_state("post_setup")
+        post_setup = self._builder.event.get_emitter(POST_SETUP)
+        self._lifecycle.set_state(POST_SETUP)
         post_setup(pd.Index([]), None)
 
     def initialize_simulants(self) -> None:
-        self._lifecycle.set_state("population_creation")
+        self._lifecycle.set_state(POPULATION_CREATION)
         pop_params = self.configuration.population
         # Fencepost the creation of the initial population.
         self._clock.step_backward()
@@ -295,7 +305,7 @@ class SimulationContext:
             )
 
     def report(self, print_results: bool = True) -> None:
-        self._lifecycle.set_state("report")
+        self._lifecycle.set_state(REPORT)
         self.report_emitter(self.get_population().index, None)
         results = self.get_results()
         if print_results:

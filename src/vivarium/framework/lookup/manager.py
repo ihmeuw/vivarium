@@ -19,6 +19,7 @@ from typing import SupportsFloat as Numeric
 
 import pandas as pd
 
+from vivarium.framework.lifecycle import POST_SETUP
 from vivarium.framework.lookup.table import (
     CategoricalTable,
     InterpolatedTable,
@@ -71,7 +72,7 @@ class LookupTableManager(Manager):
         """Construct a lookup table from input data."""
         table = self._build_table(data, key_columns, parameter_columns, value_columns)
         self._add_constraint(
-            table.call, restrict_during=["initialization", "setup", "post_setup"]
+            table.call, restrict_during=["initialization", "setup", POST_SETUP]
         )
         return table
 

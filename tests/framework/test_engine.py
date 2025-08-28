@@ -36,7 +36,16 @@ from vivarium.framework.components import (
 from vivarium.framework.engine import Builder
 from vivarium.framework.engine import SimulationContext as SimulationContext_
 from vivarium.framework.event import EventInterface, EventManager
-from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
+from vivarium.framework.lifecycle import (
+    COLLECT_METRICS,
+    LifeCycleInterface,
+    LifeCycleManager,
+    POST_SETUP,
+    REPORT,
+    TIME_STEP,
+    TIME_STEP_CLEANUP,
+    TIME_STEP_PREPARE,
+)
 from vivarium.framework.logging import LoggingInterface, LoggingManager
 from vivarium.framework.lookup import LookupTableInterface, LookupTableManager
 from vivarium.framework.population import PopulationInterface, PopulationManager
@@ -239,10 +248,10 @@ def test_SimulationContext_setup_default(
 
     assert is_same_object_method(sim.simulant_creator, sim._population._create_simulants)
     assert sim.time_step_events == [
-        "time_step__prepare",
-        "time_step",
-        "time_step__cleanup",
-        "collect_metrics",
+        TIME_STEP_PREPARE,
+        TIME_STEP,
+        TIME_STEP_CLEANUP,
+        COLLECT_METRICS,
     ]
     for k in sim.time_step_emitters.keys():
         assert is_same_object_method(
