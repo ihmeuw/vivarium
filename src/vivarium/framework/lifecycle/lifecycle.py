@@ -40,28 +40,15 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from vivarium.exceptions import VivariumError
+from vivarium.framework.lifecycle.exceptions import (
+    ConstraintError,
+    InvalidTransitionError,
+    LifeCycleError,
+)
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.event import Event
-
-
-class LifeCycleError(VivariumError):
-    """Generic error class for the life cycle management system."""
-
-    pass
-
-
-class InvalidTransitionError(LifeCycleError):
-    """Error raised when life cycle ordering contracts are violated."""
-
-    pass
-
-
-class ConstraintError(LifeCycleError):
-    """Error raised when life cycle constraint contracts are violated."""
-
-    pass
 
 
 class LifeCycleState:
