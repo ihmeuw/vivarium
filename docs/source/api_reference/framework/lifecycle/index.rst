@@ -1,6 +1,6 @@
-=======================
+=====================
 Life Cycle Management
-=======================
+=====================
 
 .. automodule:: vivarium.framework.lifecycle
 

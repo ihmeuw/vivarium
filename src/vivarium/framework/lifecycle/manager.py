@@ -37,14 +37,9 @@ from collections import defaultdict
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from vivarium.exceptions import VivariumError
 from vivarium.framework.lifecycle.constraint_maker import ConstraintMaker
-from vivarium.framework.lifecycle.entities import LifeCycle, LifeCyclePhase, LifeCycleState
-from vivarium.framework.lifecycle.exceptions import (
-    ConstraintError,
-    InvalidTransitionError,
-    LifeCycleError,
-)
+from vivarium.framework.lifecycle.entities import LifeCycle
+from vivarium.framework.lifecycle.exceptions import InvalidTransitionError, LifeCycleError
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
