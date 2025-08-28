@@ -1,3 +1,7 @@
+**3.4.14 - 08/28/25**
+
+  - Refactor lifecycle system into a package
+
 **3.4.13 - 08/22/25**
 
   - Support writing out simulation results during a 'simulate profile' run
