@@ -10,6 +10,7 @@ This package provides tools for managing the simulation lifecycle.
 from vivarium.framework.lifecycle.entities import (
     COLLECT_METRICS,
     INITIALIZATION,
+    POPULATION_CREATION,
     POST_SETUP,
     REPORT,
     SETUP,
