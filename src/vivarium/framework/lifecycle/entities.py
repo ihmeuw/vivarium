@@ -17,6 +17,20 @@ from vivarium.framework.lifecycle.exceptions import LifeCycleError
 if TYPE_CHECKING:
     from vivarium.framework.event import Event
 
+INITIALIZATION = "initialization"
+
+SETUP = "setup"
+POST_SETUP = "post_setup"
+POPULATION_CREATION = "population_creation"
+
+TIME_STEP_PREPARE = "time_step__prepare"
+TIME_STEP = "time_step"
+TIME_STEP_CLEANUP = "time_step__cleanup"
+COLLECT_METRICS = "collect_metrics"
+
+SIMULATION_END = "simulation_end"
+REPORT = "report"
+
 
 class LifeCycleState:
     """A representation of a simulation run state."""
