@@ -35,7 +35,13 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-from vivarium.framework.lifecycle import ConstraintError, POST_SETUP, REPORT, SETUP, SIMULATION_END
+from vivarium.framework.lifecycle import (
+    POST_SETUP,
+    REPORT,
+    SETUP,
+    SIMULATION_END,
+    ConstraintError,
+)
 from vivarium.manager import Interface, Manager
 from vivarium.types import ClockStepSize, ClockTime
 

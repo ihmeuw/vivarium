@@ -72,9 +72,7 @@ class LookupTableManager(Manager):
     ) -> LookupTable:
         """Construct a lookup table from input data."""
         table = self._build_table(data, key_columns, parameter_columns, value_columns)
-        self._add_constraint(
-            table.call, restrict_during=[INITIALIZATION, SETUP, POST_SETUP]
-        )
+        self._add_constraint(table.call, restrict_during=[INITIALIZATION, SETUP, POST_SETUP])
         return table
 
     def _build_table(

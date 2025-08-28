@@ -11,7 +11,13 @@ from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
 
-from vivarium.framework.lifecycle import INITIALIZATION, SETUP, POST_SETUP, SIMULATION_END, REPORT
+from vivarium.framework.lifecycle import (
+    INITIALIZATION,
+    POST_SETUP,
+    REPORT,
+    SETUP,
+    SIMULATION_END,
+)
 from vivarium.framework.randomness.exceptions import RandomnessError
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import RandomnessStream, get_hash
@@ -84,13 +90,7 @@ class RandomnessManager(Manager):
         self._add_constraint(self.get_randomness_stream, allow_during=[SETUP])
         self._add_constraint(
             self.register_simulants,
-            restrict_during=[
-                INITIALIZATION,
-                SETUP,
-                POST_SETUP,
-                SIMULATION_END,
-                REPORT
-            ],
+            restrict_during=[INITIALIZATION, SETUP, POST_SETUP, SIMULATION_END, REPORT],
         )
 
     def get_randomness_stream(

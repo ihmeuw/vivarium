@@ -29,7 +29,7 @@ from layered_config_tree import (
 
 from vivarium import Component
 from vivarium.exceptions import VivariumError
-from vivarium.framework.lifecycle import LifeCycleManager, POPULATION_CREATION, INITIALIZATION
+from vivarium.framework.lifecycle import INITIALIZATION, POPULATION_CREATION, LifeCycleManager
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:

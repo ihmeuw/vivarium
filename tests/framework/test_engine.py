@@ -38,12 +38,12 @@ from vivarium.framework.engine import SimulationContext as SimulationContext_
 from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import (
     COLLECT_METRICS,
-    LifeCycleInterface,
-    LifeCycleManager,
     SIMULATION_END,
     TIME_STEP,
     TIME_STEP_CLEANUP,
     TIME_STEP_PREPARE,
+    LifeCycleInterface,
+    LifeCycleManager,
 )
 from vivarium.framework.logging import LoggingInterface, LoggingManager
 from vivarium.framework.lookup import LookupTableInterface, LookupTableManager

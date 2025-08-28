@@ -17,7 +17,14 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-from vivarium.framework.lifecycle import POPULATION_CREATION, POST_SETUP, REPORT, INITIALIZATION, SETUP, SIMULATION_END
+from vivarium.framework.lifecycle import (
+    INITIALIZATION,
+    POPULATION_CREATION,
+    POST_SETUP,
+    REPORT,
+    SETUP,
+    SIMULATION_END,
+)
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
@@ -250,18 +257,10 @@ class PopulationManager(Manager):
             )
             requires_all_columns = True
         view = self._get_view(columns, query, requires_all_columns)
-        self._add_constraint(
-            view.get, restrict_during=[INITIALIZATION, SETUP, POST_SETUP]
-        )
+        self._add_constraint(view.get, restrict_during=[INITIALIZATION, SETUP, POST_SETUP])
         self._add_constraint(
             view.update,
-            restrict_during=[
-                INITIALIZATION,
-                SETUP,
-                POST_SETUP,
-                SIMULATION_END,
-                REPORT
-            ],
+            restrict_during=[INITIALIZATION, SETUP, POST_SETUP, SIMULATION_END, REPORT],
         )
         return view
 

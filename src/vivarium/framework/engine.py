@@ -42,16 +42,17 @@ from vivarium.framework.configuration import build_model_specification
 from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import (
     COLLECT_METRICS,
-    LifeCycleInterface,
-    LifeCycleManager,
+    INITIALIZATION,
     POPULATION_CREATION,
     POST_SETUP,
     REPORT,
+    SETUP,
     SIMULATION_END,
     TIME_STEP,
     TIME_STEP_CLEANUP,
     TIME_STEP_PREPARE,
-    INITIALIZATION, SETUP,
+    LifeCycleInterface,
+    LifeCycleManager,
 )
 from vivarium.framework.logging import LoggingInterface, LoggingManager
 from vivarium.framework.lookup import LookupTableInterface, LookupTableManager

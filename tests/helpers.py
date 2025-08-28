@@ -8,7 +8,12 @@ from layered_config_tree import ConfigurationError
 from vivarium import Component, Observer
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
-from vivarium.framework.lifecycle import COLLECT_METRICS, TIME_STEP, TIME_STEP_CLEANUP, TIME_STEP_PREPARE
+from vivarium.framework.lifecycle import (
+    COLLECT_METRICS,
+    TIME_STEP,
+    TIME_STEP_CLEANUP,
+    TIME_STEP_PREPARE,
+)
 from vivarium.framework.population import SimulantData
 from vivarium.framework.resource import Resource
 from vivarium.manager import Manager
