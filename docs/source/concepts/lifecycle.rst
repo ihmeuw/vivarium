@@ -80,7 +80,7 @@ The Initialization Phase
 ------------------------
 
 The initialization phase of a :mod:`vivarium` simulation starts when the
-:class:`~vivarium.framework.lifecycle.LifeCycle` is fully constructed and
+:class:`~vivarium.framework.lifecycle.entities.LifeCycle` is fully constructed and
 ends when the ``__init__`` method of the
 :class:`vivarium.framework.engine.SimulationContext` completes.
 

@@ -6,5 +6,6 @@ Life Cycle Management
 
 .. toctree::
    :maxdepth: 1
+   :glob:
 
    *

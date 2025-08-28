@@ -1,7 +1,7 @@
 """
-=================
+==================
 Lifecycle Entities
-=================
+==================
 
 Core entity classes for the lifecycle management system.
 
@@ -85,7 +85,8 @@ class LifeCycleState:
         """Registers a set of functions that will be executed during the state.
 
         The primary use case here is for introspection and reporting.
-        For setting constraints, see :meth:`LifeCycleInterface.add_constraint`.
+        For setting constraints, see
+        :meth:`vivarium.framework.lifecycle.manager.LifeCycleInterface.add_constraint`.
 
         Parameters
         ----------
