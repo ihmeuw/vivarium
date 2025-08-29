@@ -1,33 +1,9 @@
 """
-=====================
-Life Cycle Management
-=====================
+==================
+Life Cycle Manager
+==================
 
-The life cycle is a representation of the flow of execution states in a
-:mod:`vivarium` simulation. The tools in this model allow a simulation to
-formally represent its execution state and use the formal representation to
-enforce run-time contracts.
-
-There are two flavors of contracts that this system enforces:
-
- - **Constraints**: These are contracts around when certain methods,
-   particularly those available off the :ref:`Builder <builder_concept>`,
-   can be used. For example, :term:`simulants <Simulant>` should only be
-   added to the simulation during initial population creation and during
-   the main simulation loop, otherwise services necessary for initializing
-   that population's attributes may not exist. By applying a constraint,
-   we can provide very clear errors about what went wrong, rather than
-   a deep and unintelligible stack trace.
- - **Ordering Contracts**: The
-   :class:`~vivarium.framework.engine.SimulationContext` will construct
-   the formal representation of the life cycle during its initialization.
-   Once generated, the context declares as it transitions between
-   different lifecycle states and the tools here ensure that only valid
-   transitions occur.  These kinds of contracts are particularly useful
-   during interactive usage, as they prevent users from, for example,
-   running a simulation whose population has not been created.
-
-The tools here also allow for introspection of the simulation life cycle.
+Manager of ordering- and constraint-based contracts in the simulation
 
 """
 from __future__ import annotations
@@ -209,72 +185,3 @@ class LifeCycleManager(Manager):
 
     def __str__(self) -> str:
         return str(self.lifecycle)
-
-
-class LifeCycleInterface(Interface):
-    """Interface to the life cycle management system.
-
-    The life cycle management system allows components to constrain
-    methods so that they're only available during certain simulation
-    life cycle states.
-
-    """
-
-    def __init__(self, manager: LifeCycleManager):
-        self._manager = manager
-
-    def add_handlers(self, state: str, handlers: list[Callable[[Event], None]]) -> None:
-        """Registers a set of functions to be called during a life cycle state.
-
-        This method does not apply any constraints, rather it is used
-        to build up an execution order for introspection.
-
-        Parameters
-        ----------
-        state
-            The name of the state to register the handlers for.
-        handlers
-            A list of functions that will execute during the state.
-        """
-        self._manager.add_handlers(state, handlers)
-
-    def add_constraint(
-        self,
-        method: Callable[..., Any],
-        allow_during: tuple[str, ...] | list[str] = (),
-        restrict_during: tuple[str, ...] | list[str] = (),
-    ) -> None:
-        """Constrains a function to be executable only during certain states.
-
-        Parameters
-        ----------
-        method
-            The method to add constraints to.
-        allow_during
-            An optional list of life cycle states in which the provided
-            method is allowed to be called.
-        restrict_during
-            An optional list of life cycle states in which the provided
-            method is restricted from being called.
-
-        Raises
-        ------
-        ValueError
-            If neither ``allow_during`` nor ``restrict_during`` are provided,
-            or if both are provided.
-        LifeCycleError
-            If states provided as arguments are not in the life cycle.
-        ConstraintError
-            If a life cycle constraint has already been applied to the
-            provided method.
-        """
-        self._manager.add_constraint(method, allow_during, restrict_during)
-
-    def current_state(self) -> Callable[[], str]:
-        """Returns a callable that gets the current simulation lifecycle state.
-
-        Returns
-        -------
-            A callable that returns the current simulation lifecycle state.
-        """
-        return lambda: self._manager.current_state
