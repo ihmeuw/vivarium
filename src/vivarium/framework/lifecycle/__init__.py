@@ -31,6 +31,6 @@ The tools here also allow for introspection of the simulation life cycle.
 
 """
 
-from vivarium.framework.lifecycle.exceptions import ConstraintError
+from vivarium.framework.lifecycle.exceptions import ConstraintError, LifeCycleError
 from vivarium.framework.lifecycle.interface import LifeCycleInterface
 from vivarium.framework.lifecycle.manager import LifeCycleManager
