@@ -116,7 +116,7 @@ class LifeCycleState:
 
         The primary use case here is for introspection and reporting.
         For setting constraints, see
-        :meth:`vivarium.framework.lifecycle.manager.LifeCycleInterface.add_constraint`.
+        :meth:`vivarium.framework.lifecycle.interface.LifeCycleInterface.add_constraint`.
 
         Parameters
         ----------
