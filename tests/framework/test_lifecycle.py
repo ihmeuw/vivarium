@@ -2,14 +2,9 @@ import pandas as pd
 import pytest
 
 from vivarium.framework.event import Event
-from vivarium.framework.lifecycle import (
-    ConstraintError,
-    LifeCycle,
-    LifeCycleError,
-    LifeCycleManager,
-    LifeCyclePhase,
-    LifeCycleState,
-)
+from vivarium.framework.lifecycle.entities import LifeCycle, LifeCyclePhase, LifeCycleState
+from vivarium.framework.lifecycle.exceptions import ConstraintError, LifeCycleError
+from vivarium.framework.lifecycle.manager import LifeCycleManager
 
 
 def test_state_add_next() -> None:
