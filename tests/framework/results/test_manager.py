@@ -37,7 +37,7 @@ from tests.framework.results.helpers import (
     sorting_hat_vectorized,
     verify_stratification_added,
 )
-from vivarium.framework.lifecycle import COLLECT_METRICS
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.manager import ResultsManager
@@ -369,7 +369,7 @@ def test_add_observation_nop_stratifications(
         requires_values=[],
         additional_stratifications=additional,
         excluded_stratifications=excluded,
-        when=COLLECT_METRICS,
+        when=lifecycle_states.COLLECT_METRICS,
         results_formatter=lambda: None,
     )
     for m in match:

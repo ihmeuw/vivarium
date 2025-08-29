@@ -15,7 +15,7 @@ from pandas.testing import assert_frame_equal
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
-from vivarium.framework.lifecycle import TIME_STEP
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population import SimulantData
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.stream import RandomnessStream
@@ -113,7 +113,7 @@ class BasePopulation(Component):
     def on_time_step(self, event: Event) -> None:
         sims_to_add = next(self.sims_to_add)
         if sims_to_add > 0:
-            self.simulant_creator(sims_to_add, {"sim_state": TIME_STEP})
+            self.simulant_creator(sims_to_add, {"sim_state": lifecycle_states.TIME_STEP})
 
 
 class EntranceTimePopulation(BasePopulation):

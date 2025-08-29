@@ -31,18 +31,6 @@ The tools here also allow for introspection of the simulation life cycle.
 
 """
 
-from vivarium.framework.lifecycle.entities import (
-    COLLECT_METRICS,
-    INITIALIZATION,
-    POPULATION_CREATION,
-    POST_SETUP,
-    REPORT,
-    SETUP,
-    SIMULATION_END,
-    TIME_STEP,
-    TIME_STEP_CLEANUP,
-    TIME_STEP_PREPARE,
-)
 from vivarium.framework.lifecycle.exceptions import ConstraintError
 from vivarium.framework.lifecycle.interface import LifeCycleInterface
 from vivarium.framework.lifecycle.manager import LifeCycleManager

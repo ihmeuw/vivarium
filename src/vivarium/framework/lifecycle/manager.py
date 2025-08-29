@@ -14,9 +14,10 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from vivarium.framework.lifecycle.constraint_maker import ConstraintMaker
-from vivarium.framework.lifecycle.entities import INITIALIZATION, LifeCycle
+from vivarium.framework.lifecycle.entities import LifeCycle
 from vivarium.framework.lifecycle.exceptions import InvalidTransitionError, LifeCycleError
-from vivarium.manager import Interface, Manager
+from vivarium.framework.lifecycle.lifecycle_states import INITIALIZATION
+from vivarium.manager import Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.event import Event

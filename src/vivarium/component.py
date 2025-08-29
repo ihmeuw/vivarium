@@ -24,14 +24,7 @@ import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
 
 from vivarium.framework.artifact import ArtifactException
-from vivarium.framework.lifecycle import (
-    COLLECT_METRICS,
-    POST_SETUP,
-    SIMULATION_END,
-    TIME_STEP,
-    TIME_STEP_CLEANUP,
-    TIME_STEP_PREPARE,
-)
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population import PopulationError
 from vivarium.types import ScalarValue
 
@@ -799,7 +792,7 @@ class Component(ABC):
         """
         if type(self).on_post_setup != Component.on_post_setup:
             builder.event.register_listener(
-                POST_SETUP,
+                lifecycle_states.POST_SETUP,
                 self.on_post_setup,
                 self.post_setup_priority,
             )
@@ -849,7 +842,7 @@ class Component(ABC):
         """
         if type(self).on_time_step_prepare != Component.on_time_step_prepare:
             builder.event.register_listener(
-                TIME_STEP_PREPARE,
+                lifecycle_states.TIME_STEP_PREPARE,
                 self.on_time_step_prepare,
                 self.time_step_prepare_priority,
             )
@@ -868,7 +861,7 @@ class Component(ABC):
         """
         if type(self).on_time_step != Component.on_time_step:
             builder.event.register_listener(
-                TIME_STEP,
+                lifecycle_states.TIME_STEP,
                 self.on_time_step,
                 self.time_step_priority,
             )
@@ -887,7 +880,7 @@ class Component(ABC):
         """
         if type(self).on_time_step_cleanup != Component.on_time_step_cleanup:
             builder.event.register_listener(
-                TIME_STEP_CLEANUP,
+                lifecycle_states.TIME_STEP_CLEANUP,
                 self.on_time_step_cleanup,
                 self.time_step_cleanup_priority,
             )
@@ -906,7 +899,7 @@ class Component(ABC):
         """
         if type(self).on_collect_metrics != Component.on_collect_metrics:
             builder.event.register_listener(
-                COLLECT_METRICS,
+                lifecycle_states.COLLECT_METRICS,
                 self.on_collect_metrics,
                 self.collect_metrics_priority,
             )
@@ -925,7 +918,7 @@ class Component(ABC):
         """
         if type(self).on_simulation_end != Component.on_simulation_end:
             builder.event.register_listener(
-                SIMULATION_END,
+                lifecycle_states.SIMULATION_END,
                 self.on_simulation_end,
                 self.simulation_end_priority,
             )

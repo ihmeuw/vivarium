@@ -25,7 +25,7 @@ from tests.framework.results.helpers import (
     verify_stratification_added,
 )
 from vivarium.framework.event import Event
-from vivarium.framework.lifecycle import COLLECT_METRICS, TIME_STEP_PREPARE
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import AddingObservation, ConcatenatingObservation
@@ -195,12 +195,12 @@ def test_add_stratification_raises(
         {
             "name": "living_person_time",
             "pop_filter": 'alive == "alive" and undead == False',
-            "when": COLLECT_METRICS,
+            "when": lifecycle_states.COLLECT_METRICS,
         },
         {
             "name": "undead_person_time",
             "pop_filter": "undead == True",
-            "when": TIME_STEP_PREPARE,
+            "when": lifecycle_states.TIME_STEP_PREPARE,
         },
     ],
     ids=["valid_on_collect_metrics", "valid_on_time_step__prepare"],
@@ -296,7 +296,7 @@ def test_adding_observation_gather_results(
     population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
         days=28
     )
-    lifecycle_state = COLLECT_METRICS
+    lifecycle_state = lifecycle_states.COLLECT_METRICS
 
     # Set up stratifications
     if "house" in stratifications:
@@ -368,7 +368,7 @@ def test_concatenating_observation_gather_results(mocked_event: Mock) -> None:
         days=28
     )
 
-    lifecycle_state = COLLECT_METRICS
+    lifecycle_state = lifecycle_states.COLLECT_METRICS
     pop_filter = "house=='hufflepuff'"
     included_cols = ["event_time", "familiar", "house"]
     ctx.register_observation(
@@ -447,7 +447,7 @@ def test_gather_results_partial_stratifications_in_results(
     # Remove an entire category from a stratification
     population = population[population["familiar"] != "unladen_swallow"].reset_index()
 
-    lifecycle_state = COLLECT_METRICS
+    lifecycle_state = lifecycle_states.COLLECT_METRICS
 
     # Set up stratifications
     if "house" in stratifications:
@@ -498,7 +498,7 @@ def test_gather_results_with_empty_pop_filter(mocked_event: Mock) -> None:
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
 
-    lifecycle_state = COLLECT_METRICS
+    lifecycle_state = lifecycle_states.COLLECT_METRICS
     ctx.register_observation(
         observation_type=AddingObservation,
         name="wizard_count",
@@ -523,7 +523,7 @@ def test_gather_results_with_no_stratifications(mocked_event: Mock) -> None:
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
 
-    lifecycle_state = COLLECT_METRICS
+    lifecycle_state = lifecycle_states.COLLECT_METRICS
     ctx.register_observation(
         observation_type=AddingObservation,
         name="wizard_count",
@@ -556,7 +556,7 @@ def test_bad_aggregator_stratification(mocked_event: Mock) -> None:
 
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
-    lifecycle_state = COLLECT_METRICS
+    lifecycle_state = lifecycle_states.COLLECT_METRICS
 
     # Set up stratifications
     ctx.add_stratification(
@@ -682,7 +682,7 @@ def test_to_observe(mocked_event: Mock, mocker: MockerFixture) -> None:
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
 
-    lifecycle_state = COLLECT_METRICS
+    lifecycle_state = lifecycle_states.COLLECT_METRICS
     ctx.register_observation(
         observation_type=AddingObservation,
         name="wizard_count",
@@ -701,7 +701,7 @@ def test_to_observe(mocked_event: Mock, mocker: MockerFixture) -> None:
         assert not result.empty
 
     # Extract the observation from the context and patch it to not observe
-    observation = list(ctx.observations[COLLECT_METRICS].values())[0][0]
+    observation = list(ctx.observations[lifecycle_states.COLLECT_METRICS].values())[0][0]
     mocker.patch.object(observation, "to_observe", return_value=False)
     for result, _measure, _updater in ctx.gather_results(
         population, lifecycle_state, mocked_event
