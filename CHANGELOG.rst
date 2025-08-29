@@ -1,4 +1,3 @@
-**3.4.14 - 08/29/25**
 
   - Refactor lifecycle system into a package
   - Introduce lifecycle_states module with string constants for lifecycle state names
