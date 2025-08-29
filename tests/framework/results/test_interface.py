@@ -389,8 +389,8 @@ def test_unhashable_pipeline(mocker: MockerFixture) -> None:
     [
         lifecycle_states.TIME_STEP_PREPARE,
         lifecycle_states.TIME_STEP,
-        lifecycle_states.TIME_STEP,
         lifecycle_states.TIME_STEP_CLEANUP,
+        lifecycle_states.COLLECT_METRICS,
     ],
 )
 def test_register_adding_observation_when_options(when: str, mocker: MockerFixture) -> None:
