@@ -190,46 +190,46 @@ class InteractiveContext(SimulationContext):
         """List all event types registered with the simulation."""
         return self._events.list_events()
 
-    def get_listeners(self, event_type: str) -> dict[int, list[Callable[[Event], None]]]:
+    def get_listeners(self, event_name: str) -> dict[int, list[Callable[[Event], None]]]:
         """Get all listeners of a particular type of event.
 
-        Available event types can be found by calling
+        Available events can be found by calling
         :func:`InteractiveContext.list_events`.
 
         Parameters
         ----------
-        event_type
-            The type of event to grab the listeners for.
+        event_name
+            The name of the event to grab the listeners for.
 
         Returns
         -------
             A dictionary that maps each priority level of the named event's
             listeners to a list of listeners at that level.
         """
-        if event_type not in self._events:
-            raise ValueError(f"No event {event_type} in system.")
-        return self._events.get_listeners(event_type)
+        if event_name not in self._events:
+            raise ValueError(f"No event {event_name} in system.")
+        return self._events.get_listeners(event_name)
 
     def get_emitter(
-        self, event_type: str
+        self, event_name: str
     ) -> Callable[[pd.Index[int], dict[str, Any] | None], Event]:
         """Get the callable that emits the given type of events.
 
-        Available event types can be found by calling
+        Available events can be found by calling
         :func:`InteractiveContext.list_events`.
 
         Parameters
         ----------
-        event_type
-            The type of event to grab the listeners for.
+        event_name
+            The name of the event to grab the listeners for.
 
         Returns
         -------
             The callable that emits the named event.
         """
-        if event_type not in self._events:
-            raise ValueError(f"No event {event_type} in system.")
-        return self._events.get_emitter(event_type)
+        if event_name not in self._events:
+            raise ValueError(f"No event {event_name} in system.")
+        return self._events.get_emitter(event_name)
 
     def list_components(self) -> dict[str, Any]:
         """Get a mapping of component names to components currently in the simulation.

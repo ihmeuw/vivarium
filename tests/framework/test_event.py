@@ -10,6 +10,7 @@ from vivarium.framework.event import Event, EventManager
 
 
 class EventData(TypedDict):
+    name: str
     index: pd.Index[int]
     user_data: dict[str, str]
     time: pd.Timestamp
@@ -23,12 +24,14 @@ _EVENT_INIT_TYPE = dict[str, EventData]
 def event_init() -> _EVENT_INIT_TYPE:
     return {
         "orig": {
+            "name": "test_event",
             "index": pd.Index(range(10)),
             "user_data": {"key": "value"},
             "time": pd.Timestamp("1/1/2000"),
             "step_size": 12,
         },
         "new_val": {
+            "name": "test_event",
             "index": pd.Index(range(3)),
             "user_data": {"new_key": "new_value"},
             "time": pd.Timestamp.now(),
@@ -40,13 +43,9 @@ def event_init() -> _EVENT_INIT_TYPE:
 def test_proper_access(event_init: _EVENT_INIT_TYPE) -> None:
     # Event attributes are meant to be read-only
     event_data = event_init["orig"]
-    e1 = Event(
-        event_data["index"],
-        event_data["user_data"],
-        event_data["time"],
-        event_data["step_size"],
-    )
+    e1 = Event(**event_data)
 
+    assert event_data["name"] == e1.name
     assert (event_data["index"] == e1.index).all()
     assert event_data["user_data"] == e1.user_data
     assert event_data["time"] == e1.time
@@ -60,12 +59,7 @@ def test_proper_access(event_init: _EVENT_INIT_TYPE) -> None:
 
 def test_split_event(event_init: _EVENT_INIT_TYPE) -> None:
     event_data = event_init["orig"]
-    e1 = Event(
-        event_data["index"],
-        event_data["user_data"],
-        event_data["time"],
-        event_data["step_size"],
-    )
+    e1 = Event(**event_data)
 
     new_idx = event_init["new_val"]["index"]
     e2 = e1.split(new_idx)

@@ -52,6 +52,8 @@ class Event:
     to respond to them.
     """
 
+    name: str
+    """The name of the event. Typically a lifecycle state."""
     index: pd.Index[int]
     """An index into the population table containing all simulants affected by this event."""
     user_data: dict[str, Any]
@@ -79,12 +81,10 @@ class Event:
         -------
             The new event.
         """
-        return Event(new_index, self.user_data, self.time, self.step_size)
+        return Event(self.name, new_index, self.user_data, self.time, self.step_size)
 
     def __repr__(self) -> str:
-        return (
-            f"Event(user_data={self.user_data}, time={self.time}, step_size={self.step_size})"
-        )
+        return f"Event(name={self.name}, user_data={self.user_data}, time={self.time}, step_size={self.step_size})"
 
     def __eq__(self, other: object) -> bool:
         return self.__dict__ == other.__dict__
@@ -93,8 +93,9 @@ class Event:
 class EventChannel:
     """A named subscription channel that passes events to event listeners."""
 
-    def __init__(self, manager: EventManager, name: str) -> None:
-        self.name = f"event_channel_{name}"
+    def __init__(self, manager: EventManager, event_name: str) -> None:
+        self.event_name = event_name
+        self.name = f"event_channel_{event_name}"
         self.manager = manager
         self.listeners: list[list[Callable[[Event], None]]] = [[] for _ in range(10)]
 
@@ -129,6 +130,7 @@ class EventChannel:
             )
 
         e = Event(
+            self.event_name,
             index,
             user_data,
             event_time,
@@ -163,10 +165,10 @@ class EventManager(Manager):
         """The name of this component."""
         return "event_manager"
 
-    def get_channel(self, name: str) -> EventChannel:
-        if name not in self._event_types:
-            self._event_types[name] = EventChannel(self, name)
-        return self._event_types[name]
+    def get_channel(self, event_name: str) -> EventChannel:
+        if event_name not in self._event_types:
+            self._event_types[event_name] = EventChannel(self, event_name)
+        return self._event_types[event_name]
 
     def setup(self, builder: Builder) -> None:
         """Performs this component's simulation setup.
@@ -200,7 +202,7 @@ class EventManager(Manager):
             self.add_handlers(name, [h for level in channel.listeners for h in level])
 
     def get_emitter(
-        self, name: str
+        self, event_name: str
     ) -> Callable[[pd.Index[int], dict[str, Any] | None], Event]:
         """Get an emitter function for the named event.
 
@@ -215,9 +217,9 @@ class EventManager(Manager):
             creates and timestamps an Event and distributes it to all interested
             listeners
         """
-        channel = self.get_channel(name)
+        channel = self.get_channel(event_name)
         try:
-            self.add_constraint(channel.emit, allow_during=[name])
+            self.add_constraint(channel.emit, allow_during=[event_name])
         except ConstraintError:
             # Multiple components have requested this emitter.
             # Shouldn't happen in production, but happens frequently in tests.
@@ -225,7 +227,7 @@ class EventManager(Manager):
         return channel.emit
 
     def register_listener(
-        self, name: str, listener: Callable[[Event], None], priority: int = 5
+        self, event_name: str, listener: Callable[[Event], None], priority: int = 5
     ) -> None:
         """Registers a new listener to the named event.
 
@@ -239,9 +241,9 @@ class EventManager(Manager):
             Number in range(10) used to assign the ordering in which listeners
             process the event.
         """
-        self.get_channel(name).listeners[priority].append(listener)
+        self.get_channel(event_name).listeners[priority].append(listener)
 
-    def get_listeners(self, name: str) -> dict[int, list[Callable[[Event], None]]]:
+    def get_listeners(self, event_name: str) -> dict[int, list[Callable[[Event], None]]]:
         """Get all listeners registered for the named event.
 
         Parameters
@@ -254,7 +256,7 @@ class EventManager(Manager):
             A dictionary that maps each priority level of the named event's
             listeners to a list of listeners at that level.
         """
-        channel = self.get_channel(name)
+        channel = self.get_channel(event_name)
         return {
             priority: listeners
             for priority, listeners in enumerate(channel.listeners)
@@ -289,13 +291,13 @@ class EventInterface(Interface):
         self._manager = manager
 
     def get_emitter(
-        self, name: str
+        self, event_name: str
     ) -> Callable[[pd.Index[int], dict[str, Any] | None], Event]:
         """Gets an emitter for a named event.
 
         Parameters
         ----------
-        name
+        event_name
             The name of the event the requested emitter will emit.
             Users may provide their own named events by requesting an emitter
             with this function, but should do so with caution as it makes time
@@ -307,10 +309,10 @@ class EventInterface(Interface):
             the requesting component at the appropriate point in the simulation
             lifecycle.
         """
-        return self._manager.get_emitter(name)
+        return self._manager.get_emitter(event_name)
 
     def register_listener(
-        self, name: str, listener: Callable[[Event], None], priority: int = 5
+        self, event_name: str, listener: Callable[[Event], None], priority: int = 5
     ) -> None:
         """Registers a callable as a listener to a events with the given name.
 
@@ -331,7 +333,7 @@ class EventInterface(Interface):
 
         Parameters
         ----------
-        name
+        event_name
             The name of the event to listen for.
         listener
             The callable to be invoked any time an :class:`Event` with the given
@@ -347,4 +349,4 @@ class EventInterface(Interface):
             next time step should only depend on the current state of the
             system).
         """
-        self._manager.register_listener(name, listener, priority)
+        self._manager.register_listener(event_name, listener, priority)

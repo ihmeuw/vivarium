@@ -403,6 +403,7 @@ def test_lifecycle_manager_add_constraint() -> None:
     lm.add_constraint(bob.buzz, restrict_during=[INITIALIZATION, "c"])
 
     useless_event = Event(
+        name="useless_event",
         index=pd.Index([0]),
         user_data={},
         time=0,
