@@ -4,6 +4,7 @@ import pytest
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle.entities import LifeCycle, LifeCyclePhase, LifeCycleState
 from vivarium.framework.lifecycle.exceptions import ConstraintError, LifeCycleError
+from vivarium.framework.lifecycle.lifecycle_states import INITIALIZATION
 from vivarium.framework.lifecycle.manager import LifeCycleManager
 
 
@@ -152,8 +153,8 @@ def test_lifecycle_validate() -> None:
     with pytest.raises(LifeCycleError, match="duplicate state names"):
         lc._validate("new_phase", ["a", "b", "c", "b"])
 
-    with pytest.raises(LifeCycleError, match="initialization"):
-        lc._validate("new_phase", ["a", "b", "initialization"])
+    with pytest.raises(LifeCycleError, match=INITIALIZATION):
+        lc._validate("new_phase", ["a", "b", INITIALIZATION])
 
     lc._validate("new_phase", ["a", "b", "c"])
 
@@ -168,8 +169,8 @@ def test_lifecycle_add_phase_fail(loop: bool) -> None:
     with pytest.raises(LifeCycleError, match="duplicate state names"):
         lc.add_phase("new_phase", ["a", "b", "c", "b"], loop)
 
-    with pytest.raises(LifeCycleError, match="initialization"):
-        lc.add_phase("new_phase", ["a", "b", "initialization"], loop)
+    with pytest.raises(LifeCycleError, match=INITIALIZATION):
+        lc.add_phase("new_phase", ["a", "b", INITIALIZATION], loop)
 
 
 @pytest.mark.parametrize("loop", [True, False])
@@ -180,7 +181,7 @@ def test_lifecycle_add_phase(loop: bool) -> None:
 
 def test_lifecycle_get_state() -> None:
     lc = LifeCycle()
-    assert lc.get_state("initialization").name == "initialization"
+    assert lc.get_state(INITIALIZATION).name == INITIALIZATION
 
     with pytest.raises(LifeCycleError, match="non-existent state"):
         lc.get_state("not_a_state")
@@ -188,7 +189,7 @@ def test_lifecycle_get_state() -> None:
 
 def test_lifecycle_get_states() -> None:
     lc = LifeCycle()
-    assert lc.get_state_names("initialization") == ["initialization"]
+    assert lc.get_state_names(INITIALIZATION) == [INITIALIZATION]
 
     with pytest.raises(LifeCycleError, match="non-existent phase"):
         lc.get_state_names("not_a_phase")
@@ -202,7 +203,7 @@ def test_lifecycle_integration() -> None:
     with pytest.raises(LifeCycleError, match="non-existent phase"):
         lc.get_state_names("phase1")
 
-    init = lc.get_state("initialization")
+    init = lc.get_state(INITIALIZATION)
     assert init.valid_next_state(None)
 
     lc.add_phase("phase1", ["a"], loop=False)
@@ -251,7 +252,7 @@ def test_lifecycle_integration() -> None:
 def test_manager_init() -> None:
     lm = LifeCycleManager()
     assert lm.name == "life_cycle_manager"
-    assert lm.current_state == "initialization"
+    assert lm.current_state == INITIALIZATION
 
 
 @pytest.mark.parametrize("loop", [True, False])
@@ -264,8 +265,8 @@ def test_lifecycle_manager_add_phase_fail(loop: bool) -> None:
     with pytest.raises(LifeCycleError, match="duplicate state names"):
         lm.add_phase("new_phase", ["a", "b", "c", "b"], loop)
 
-    with pytest.raises(LifeCycleError, match="initialization"):
-        lm.add_phase("new_phase", ["a", "b", "initialization"], loop)
+    with pytest.raises(LifeCycleError, match=INITIALIZATION):
+        lm.add_phase("new_phase", ["a", "b", INITIALIZATION], loop)
 
 
 @pytest.mark.parametrize("loop", [True, False])
@@ -276,7 +277,7 @@ def test_lifecycle_manager_add_phase(loop: bool) -> None:
 
 def test_lifecycle_manager_get_states() -> None:
     lm = LifeCycleManager()
-    assert lm.get_state_names("initialization") == ["initialization"]
+    assert lm.get_state_names("initialization") == [INITIALIZATION]
 
     with pytest.raises(LifeCycleError, match="non-existent phase"):
         lm.get_state_names("not_a_phase")
@@ -287,7 +288,7 @@ def test_lifecycle_manager_set_state() -> None:
     lm.add_phase("phase1", ["a", "b"])
     lm.add_phase("phase2", ["c", "d"])
 
-    assert lm.current_state == "initialization"
+    assert lm.current_state == INITIALIZATION
     lm.set_state("a")
     assert lm.current_state == "a"
     lm.set_state("b")
@@ -313,7 +314,7 @@ def test_lifecycle_manager_set_state_with_loop() -> None:
     lm.add_phase("phase1", ["a", "b"], loop=True)
     lm.add_phase("phase2", ["c", "d"])
 
-    assert lm.current_state == "initialization"
+    assert lm.current_state == INITIALIZATION
     lm.set_state("a")
     assert lm.current_state == "a"
     lm.set_state("b")
@@ -343,12 +344,12 @@ def test_lifecycle_manager_add_handlers() -> None:
     lm = LifeCycleManager()
     lm.add_phase("phase1", ["a"])
 
-    init = lm.lifecycle.get_state("initialization")
+    init = lm.lifecycle.get_state(INITIALIZATION)
     a = lm.lifecycle.get_state("a")
 
     b = BumbleBee("Alice")
 
-    lm.add_handlers("initialization", [b.buzz, b.what_we_doin, sting])
+    lm.add_handlers(INITIALIZATION, [b.buzz, b.what_we_doin, sting])
     assert init._handlers == [
         "BumbleBee(Alice).buzz",
         "BumbleBee(Alice).what_we_doin",
@@ -370,7 +371,7 @@ def test_lifecycle_manager_add_constraint_fail() -> None:
 
     with pytest.raises(ValueError, match="Must provide exactly one"):
         lm.add_constraint(
-            alice.buzz, allow_during=["initialization", "a"], restrict_during=["c"]
+            alice.buzz, allow_during=[INITIALIZATION, "a"], restrict_during=["c"]
         )
 
     with pytest.raises(LifeCycleError, match="states not in the life cycle"):
@@ -398,8 +399,8 @@ def test_lifecycle_manager_add_constraint() -> None:
     alice = BumbleBee("Alice")
     bob = BumbleBee("Bob")
 
-    lm.add_constraint(alice.buzz, allow_during=["initialization", "a"])
-    lm.add_constraint(bob.buzz, restrict_during=["initialization", "c"])
+    lm.add_constraint(alice.buzz, allow_during=[INITIALIZATION, "a"])
+    lm.add_constraint(bob.buzz, restrict_during=[INITIALIZATION, "c"])
 
     useless_event = Event(
         index=pd.Index([0]),

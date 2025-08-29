@@ -13,6 +13,7 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 from vivarium.framework.lifecycle.exceptions import LifeCycleError
+from vivarium.framework.lifecycle.lifecycle_states import INITIALIZATION
 
 if TYPE_CHECKING:
     from vivarium.framework.event import Event
@@ -166,7 +167,7 @@ class LifeCycle:
         self._state_names: set[str] = set()
         self._phase_names: set[str] = set()
         self._phases: list[LifeCyclePhase] = []
-        self.add_phase("initialization", ["initialization"], loop=False)
+        self.add_phase("initialization", [INITIALIZATION], loop=False)
 
     def add_phase(self, phase_name: str, states: list[str], loop: bool) -> None:
         """Add a new phase to the lifecycle.

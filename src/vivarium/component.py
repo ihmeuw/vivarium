@@ -24,6 +24,7 @@ import pandas as pd
 from layered_config_tree import ConfigurationError, LayeredConfigTree
 
 from vivarium.framework.artifact import ArtifactException
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population import PopulationError
 from vivarium.types import ScalarValue
 
@@ -791,7 +792,7 @@ class Component(ABC):
         """
         if type(self).on_post_setup != Component.on_post_setup:
             builder.event.register_listener(
-                "post_setup",
+                lifecycle_states.POST_SETUP,
                 self.on_post_setup,
                 self.post_setup_priority,
             )
@@ -828,11 +829,11 @@ class Component(ABC):
             )
 
     def _register_time_step_prepare_listener(self, builder: "Builder") -> None:
-        """Registers a time_step_prepare listener if this component has defined one.
+        """Registers a time_step__prepare listener if this component has defined one.
 
-        This method allows the component to respond to "time_step_prepare" events
+        This method allows the component to respond to "time_step__prepare" events
         if it has its own `on_time_step_prepare` method. The listener will be
-        registered with the component's time_step_prepare priority.
+        registered with the component's time_step__prepare priority.
 
         Parameters
         ----------
@@ -841,7 +842,7 @@ class Component(ABC):
         """
         if type(self).on_time_step_prepare != Component.on_time_step_prepare:
             builder.event.register_listener(
-                "time_step__prepare",
+                lifecycle_states.TIME_STEP_PREPARE,
                 self.on_time_step_prepare,
                 self.time_step_prepare_priority,
             )
@@ -860,17 +861,17 @@ class Component(ABC):
         """
         if type(self).on_time_step != Component.on_time_step:
             builder.event.register_listener(
-                "time_step",
+                lifecycle_states.TIME_STEP,
                 self.on_time_step,
                 self.time_step_priority,
             )
 
     def _register_time_step_cleanup_listener(self, builder: "Builder") -> None:
-        """Registers a time_step_cleanup listener if this component has defined one.
+        """Registers a time_step__cleanup listener if this component has defined one.
 
-        This method allows the component to respond to "time_step_cleanup" events
+        This method allows the component to respond to "time_step__cleanup" events
         if it has its own `on_time_step_cleanup` method. The listener will be
-        registered with the component's time_step_cleanup priority.
+        registered with the component's time_step__cleanup priority.
 
         Parameters
         ----------
@@ -879,7 +880,7 @@ class Component(ABC):
         """
         if type(self).on_time_step_cleanup != Component.on_time_step_cleanup:
             builder.event.register_listener(
-                "time_step__cleanup",
+                lifecycle_states.TIME_STEP_CLEANUP,
                 self.on_time_step_cleanup,
                 self.time_step_cleanup_priority,
             )
@@ -898,7 +899,7 @@ class Component(ABC):
         """
         if type(self).on_collect_metrics != Component.on_collect_metrics:
             builder.event.register_listener(
-                "collect_metrics",
+                lifecycle_states.COLLECT_METRICS,
                 self.on_collect_metrics,
                 self.collect_metrics_priority,
             )
@@ -917,7 +918,7 @@ class Component(ABC):
         """
         if type(self).on_simulation_end != Component.on_simulation_end:
             builder.event.register_listener(
-                "simulation_end",
+                lifecycle_states.SIMULATION_END,
                 self.on_simulation_end,
                 self.simulation_end_priority,
             )

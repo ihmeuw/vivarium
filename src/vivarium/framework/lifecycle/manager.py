@@ -16,7 +16,8 @@ from typing import TYPE_CHECKING, Any
 from vivarium.framework.lifecycle.constraint_maker import ConstraintMaker
 from vivarium.framework.lifecycle.entities import LifeCycle
 from vivarium.framework.lifecycle.exceptions import InvalidTransitionError, LifeCycleError
-from vivarium.manager import Interface, Manager
+from vivarium.framework.lifecycle.lifecycle_states import INITIALIZATION
+from vivarium.manager import Manager
 
 if TYPE_CHECKING:
     from vivarium.framework.event import Event
@@ -27,7 +28,7 @@ class LifeCycleManager(Manager):
 
     def __init__(self) -> None:
         self.lifecycle = LifeCycle()
-        self._current_state = self.lifecycle.get_state("initialization")
+        self._current_state = self.lifecycle.get_state(INITIALIZATION)
         self._current_state_start_time = time.time()
         self._timings: defaultdict[str, list[float]] = defaultdict(list)
         self._make_constraint = ConstraintMaker(self)

@@ -24,6 +24,7 @@ from tests.helpers import (
 )
 from vivarium import Artifact, InteractiveContext
 from vivarium.framework.engine import Builder
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.lookup.table import CategoricalTable, InterpolatedTable, ScalarTable
 from vivarium.framework.population import PopulationError
 
@@ -212,12 +213,12 @@ def test_listeners_are_not_registered_if_not_defined() -> None:
     component = NoPopulationView()
     simulation = InteractiveContext(components=[component])
 
-    post_setup_methods = simulation.get_listeners("post_setup")
-    time_step_prepare_methods = simulation.get_listeners("time_step__prepare")
-    time_step_methods = simulation.get_listeners("time_step")
-    time_step_cleanup_methods = simulation.get_listeners("time_step__cleanup")
-    collect_metrics_methods = simulation.get_listeners("collect_metrics")
-    simulation_end_methods = simulation.get_listeners("simulation_end")
+    post_setup_methods = simulation.get_listeners(lifecycle_states.POST_SETUP)
+    time_step_prepare_methods = simulation.get_listeners(lifecycle_states.TIME_STEP_PREPARE)
+    time_step_methods = simulation.get_listeners(lifecycle_states.TIME_STEP)
+    time_step_cleanup_methods = simulation.get_listeners(lifecycle_states.TIME_STEP_CLEANUP)
+    collect_metrics_methods = simulation.get_listeners(lifecycle_states.COLLECT_METRICS)
+    simulation_end_methods = simulation.get_listeners(lifecycle_states.SIMULATION_END)
 
     for i in range(10):
         assert component.on_post_setup not in set(post_setup_methods.get(i, []))
@@ -232,12 +233,12 @@ def test_listeners_are_registered_if_defined() -> None:
     component = DefaultPriorities()
     simulation = InteractiveContext(components=[component])
 
-    post_setup_methods = simulation.get_listeners("post_setup")
-    time_step_prepare_methods = simulation.get_listeners("time_step__prepare")
-    time_step_methods = simulation.get_listeners("time_step")
-    time_step_cleanup_methods = simulation.get_listeners("time_step__cleanup")
-    collect_metrics_methods = simulation.get_listeners("collect_metrics")
-    simulation_end_methods = simulation.get_listeners("simulation_end")
+    post_setup_methods = simulation.get_listeners(lifecycle_states.POST_SETUP)
+    time_step_prepare_methods = simulation.get_listeners(lifecycle_states.TIME_STEP_PREPARE)
+    time_step_methods = simulation.get_listeners(lifecycle_states.TIME_STEP)
+    time_step_cleanup_methods = simulation.get_listeners(lifecycle_states.TIME_STEP_CLEANUP)
+    collect_metrics_methods = simulation.get_listeners(lifecycle_states.COLLECT_METRICS)
+    simulation_end_methods = simulation.get_listeners(lifecycle_states.SIMULATION_END)
 
     assert component.on_post_setup in set(post_setup_methods.get(5, []))
     assert component.on_time_step_prepare in set(time_step_prepare_methods.get(5, []))
@@ -251,12 +252,12 @@ def test_listeners_are_registered_at_custom_priorities() -> None:
     component = CustomPriorities()
     simulation = InteractiveContext(components=[component])
 
-    post_setup_methods = simulation.get_listeners("post_setup")
-    time_step_prepare_methods = simulation.get_listeners("time_step__prepare")
-    time_step_methods = simulation.get_listeners("time_step")
-    time_step_cleanup_methods = simulation.get_listeners("time_step__cleanup")
-    collect_metrics_methods = simulation.get_listeners("collect_metrics")
-    simulation_end_methods = simulation.get_listeners("simulation_end")
+    post_setup_methods = simulation.get_listeners(lifecycle_states.POST_SETUP)
+    time_step_prepare_methods = simulation.get_listeners(lifecycle_states.TIME_STEP_PREPARE)
+    time_step_methods = simulation.get_listeners(lifecycle_states.TIME_STEP)
+    time_step_cleanup_methods = simulation.get_listeners(lifecycle_states.TIME_STEP_CLEANUP)
+    collect_metrics_methods = simulation.get_listeners(lifecycle_states.COLLECT_METRICS)
+    simulation_end_methods = simulation.get_listeners(lifecycle_states.SIMULATION_END)
 
     assert component.on_post_setup not in set(post_setup_methods.get(5, []))
     assert component.on_time_step_prepare not in set(time_step_prepare_methods.get(5, []))

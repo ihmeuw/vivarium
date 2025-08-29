@@ -19,6 +19,7 @@ from layered_config_tree.main import LayeredConfigTree
 
 from vivarium.framework.artifact import ArtifactException
 from vivarium.framework.artifact.artifact import Artifact
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.manager import Interface, Manager
 
 if TYPE_CHECKING:
@@ -52,7 +53,7 @@ class ArtifactManager(Manager):
             builder.configuration.input_data.artifact_filter_term
         )
         self.artifact = self._load_artifact(builder.configuration)
-        builder.lifecycle.add_constraint(self.load, allow_during=["setup"])
+        builder.lifecycle.add_constraint(self.load, allow_during=[lifecycle_states.SETUP])
 
     def _load_artifact(self, configuration: LayeredConfigTree) -> Artifact | None:
         """Loads artifact data.

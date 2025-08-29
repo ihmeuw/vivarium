@@ -5,6 +5,7 @@ from collections.abc import Callable, Iterable, Sequence
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from vivarium.framework.event import Event
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.resource import Resource
 from vivarium.framework.values.combiners import ValueCombiner, replace_combiner
 from vivarium.framework.values.pipeline import Pipeline
@@ -38,8 +39,12 @@ class ValuesManager(Manager):
         self.resources = builder.resources
         self.add_constraint = builder.lifecycle.add_constraint
 
-        builder.lifecycle.add_constraint(self.register_value_producer, allow_during=["setup"])
-        builder.lifecycle.add_constraint(self.register_value_modifier, allow_during=["setup"])
+        builder.lifecycle.add_constraint(
+            self.register_value_producer, allow_during=[lifecycle_states.SETUP]
+        )
+        builder.lifecycle.add_constraint(
+            self.register_value_modifier, allow_during=[lifecycle_states.SETUP]
+        )
 
     def on_post_setup(self, _event: Event) -> None:
         """Finalizes dependency structure for the pipelines."""
@@ -99,7 +104,12 @@ class ValuesManager(Manager):
         self.resources.add_resources(pipeline.component, [pipeline.source], dependencies)
 
         self.add_constraint(
-            pipeline._call, restrict_during=["initialization", "setup", "post_setup"]
+            pipeline._call,
+            restrict_during=[
+                lifecycle_states.INITIALIZATION,
+                lifecycle_states.SETUP,
+                lifecycle_states.POST_SETUP,
+            ],
         )
 
         return pipeline

@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
@@ -174,16 +175,18 @@ class PopulationManager(Manager):
         builder.lifecycle.add_constraint(
             self.get_view,
             allow_during=[
-                "setup",
-                "post_setup",
-                "population_creation",
-                "simulation_end",
-                "report",
+                lifecycle_states.SETUP,
+                lifecycle_states.POST_SETUP,
+                lifecycle_states.POPULATION_CREATION,
+                lifecycle_states.SIMULATION_END,
+                lifecycle_states.REPORT,
             ],
         )
-        builder.lifecycle.add_constraint(self.get_simulant_creator, allow_during=["setup"])
         builder.lifecycle.add_constraint(
-            self.register_simulant_initializer, allow_during=["setup"]
+            self.get_simulant_creator, allow_during=[lifecycle_states.SETUP]
+        )
+        builder.lifecycle.add_constraint(
+            self.register_simulant_initializer, allow_during=[lifecycle_states.SETUP]
         )
 
         self.register_simulant_initializer(self, creates_columns=self.columns_created)
@@ -250,16 +253,21 @@ class PopulationManager(Manager):
             requires_all_columns = True
         view = self._get_view(columns, query, requires_all_columns)
         self._add_constraint(
-            view.get, restrict_during=["initialization", "setup", "post_setup"]
+            view.get,
+            restrict_during=[
+                lifecycle_states.INITIALIZATION,
+                lifecycle_states.SETUP,
+                lifecycle_states.POST_SETUP,
+            ],
         )
         self._add_constraint(
             view.update,
             restrict_during=[
-                "initialization",
-                "setup",
-                "post_setup",
-                "simulation_end",
-                "report",
+                lifecycle_states.INITIALIZATION,
+                lifecycle_states.SETUP,
+                lifecycle_states.POST_SETUP,
+                lifecycle_states.SIMULATION_END,
+                lifecycle_states.REPORT,
             ],
         )
         return view

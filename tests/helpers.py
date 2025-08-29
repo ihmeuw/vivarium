@@ -8,6 +8,7 @@ from layered_config_tree import ConfigurationError
 from vivarium import Component, Observer
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population import SimulantData
 from vivarium.framework.resource import Resource
 from vivarium.manager import Manager
@@ -107,10 +108,10 @@ class Listener(MockComponentB):
         self.simulation_end_called = False
 
         self.event_indexes: dict[str, pd.Index[int] | None] = {
-            "time_step_prepare": None,
-            "time_step": None,
-            "time_step_cleanup": None,
-            "collect_metrics": None,
+            lifecycle_states.TIME_STEP_PREPARE: None,
+            lifecycle_states.TIME_STEP: None,
+            lifecycle_states.TIME_STEP_CLEANUP: None,
+            lifecycle_states.COLLECT_METRICS: None,
         }
 
     def on_post_setup(self, event: Event) -> None:
@@ -118,19 +119,19 @@ class Listener(MockComponentB):
 
     def on_time_step_prepare(self, event: Event) -> None:
         self.time_step_prepare_called = True
-        self.event_indexes["time_step_prepare"] = event.index
+        self.event_indexes[lifecycle_states.TIME_STEP_PREPARE] = event.index
 
     def on_time_step(self, event: Event) -> None:
         self.time_step_called = True
-        self.event_indexes["time_step"] = event.index
+        self.event_indexes[lifecycle_states.TIME_STEP] = event.index
 
     def on_time_step_cleanup(self, event: Event) -> None:
         self.time_step_cleanup_called = True
-        self.event_indexes["time_step_cleanup"] = event.index
+        self.event_indexes[lifecycle_states.TIME_STEP_CLEANUP] = event.index
 
     def on_collect_metrics(self, event: Event) -> None:
         self.collect_metrics_called = True
-        self.event_indexes["collect_metrics"] = event.index
+        self.event_indexes[lifecycle_states.COLLECT_METRICS] = event.index
 
     def on_simulation_end(self, event: Event) -> None:
         self.simulation_end_called = True

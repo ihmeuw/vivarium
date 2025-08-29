@@ -17,6 +17,7 @@ import pandas as pd
 from pandas.core.groupby.generic import DataFrameGroupBy
 
 from vivarium.framework.event import Event
+from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results.observation import (
     AddingObservation,
     ConcatenatingObservation,
@@ -199,7 +200,7 @@ class ResultsInterface(Interface):
         self,
         name: str,
         pop_filter: str = "tracked==True",
-        when: str = "collect_metrics",
+        when: str = lifecycle_states.COLLECT_METRICS,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
         results_updater: ResultsUpdater = _required_function_placeholder,
@@ -271,7 +272,7 @@ class ResultsInterface(Interface):
         self,
         name: str,
         pop_filter: str = "tracked==True",
-        when: str = "collect_metrics",
+        when: str = lifecycle_states.COLLECT_METRICS,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
         results_gatherer: ResultsGatherer = _required_function_placeholder,
@@ -333,7 +334,7 @@ class ResultsInterface(Interface):
         self,
         name: str,
         pop_filter: str = "tracked==True",
-        when: str = "collect_metrics",
+        when: str = lifecycle_states.COLLECT_METRICS,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
         results_formatter: ResultsFormatter = _default_stratified_observation_formatter,
@@ -402,7 +403,7 @@ class ResultsInterface(Interface):
         self,
         name: str,
         pop_filter: str = "tracked==True",
-        when: str = "collect_metrics",
+        when: str = lifecycle_states.COLLECT_METRICS,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
         results_formatter: ResultsFormatter = _default_unstratified_observation_formatter,
