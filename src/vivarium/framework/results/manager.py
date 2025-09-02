@@ -161,7 +161,7 @@ class ResultsManager(Manager):
     def gather_results(self, event: Event) -> None:
         """Update existing results with any new results."""
         event_observations = self._results_context.get_observations(event)
-        if not event_observations:
+        if not event_observations or event.index.empty:
             return
 
         required_columns = self._results_context.get_required_columns(
@@ -171,11 +171,9 @@ class ResultsManager(Manager):
             event_observations, self._required_values
         )
         population = self._prepare_population(event, required_columns, required_values)
-        if population.empty:
-            return
 
         for results_group, measure, updater in self._results_context.gather_results(
-            population, event, event_observations
+            population, event.name, event_observations
         ):
             if results_group is not None and measure is not None and updater is not None:
                 self._raw_results[measure] = updater(

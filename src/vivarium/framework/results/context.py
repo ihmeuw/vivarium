@@ -195,7 +195,6 @@ class ResultsContext:
         when: str,
         requires_columns: list[str],
         requires_values: list[Pipeline],
-        # todo add all requirements arguments here explicitly
         **kwargs: Any,
     ) -> Observation:
         """Add an observation to the results context.
@@ -257,7 +256,10 @@ class ResultsContext:
         return observation
 
     def gather_results(
-        self, population: pd.DataFrame, event: Event, event_observations: list[Observation]
+        self,
+        population: pd.DataFrame,
+        lifecycle_state: str,
+        event_observations: list[Observation],
     ) -> Generator[
         tuple[
             pd.DataFrame | None,
@@ -278,10 +280,8 @@ class ResultsContext:
         ----------
         population
             The current population DataFrame.
-        lifecycle_phase
-            The current lifecycle phase.
-        event
-            The current Event.
+        lifecycle_state
+            The current lifecycle state.
         event_observations
             List of observations to be gathered for this specific event. Note that this
             excludes all observations whose `to_observe` method returns False.
@@ -312,7 +312,7 @@ class ResultsContext:
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         for (pop_filter, stratification_names), observations in self.observations[
-            event.name
+            lifecycle_state
         ].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.

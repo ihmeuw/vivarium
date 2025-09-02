@@ -531,6 +531,29 @@ def test_gather_results_with_no_observations(mocker: pytest_mock.MockerFixture) 
     mgr._results_context.gather_results.assert_not_called()  # type: ignore[attr-defined]
 
 
+def test_gather_results_with_empty_index(mocker: pytest_mock.MockerFixture) -> None:
+    """Test that gather_results short-circuits when an event has an empty index."""
+
+    mgr = ResultsManager()
+    mgr.population_view = mocker.Mock()
+    mgr._results_context = mocker.Mock()
+    mgr._results_context.get_observations.return_value = [mocker.Mock(spec=AddingObservation)]  # type: ignore[attr-defined]
+
+    event = Event(
+        name=lifecycle_states.COLLECT_METRICS,
+        index=pd.Index([]),
+        user_data={},
+        time=0,
+        step_size=1,
+    )
+
+    mgr.gather_results(event)
+
+    mgr._results_context.get_observations.assert_called_once_with(event)  # type: ignore[attr-defined]
+    mgr.population_view.subview.assert_not_called()  # type: ignore[attr-defined]
+    mgr._results_context.gather_results.assert_not_called()  # type: ignore[attr-defined]
+
+
 @pytest.fixture(scope="module")
 def prepare_population_sim() -> InteractiveContext:
     return InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=[Hogwarts()])

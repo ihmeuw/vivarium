@@ -343,7 +343,9 @@ def test_adding_observation_gather_results(
         )
 
     i = 0
-    for result, _measure, _updater in ctx.gather_results(population, event, [observation]):
+    for result, _measure, _updater in ctx.gather_results(
+        population, event.name, [observation]
+    ):
         assert result is not None
         assert all(
             math.isclose(actual_result, expected_result, rel_tol=0.0001)
@@ -382,7 +384,9 @@ def test_concatenating_observation_gather_results(event: Event) -> None:
     filtered_pop = population.query(pop_filter)
 
     i = 0
-    for result, _measure, _updater in ctx.gather_results(population, event, [observation]):
+    for result, _measure, _updater in ctx.gather_results(
+        population, event.name, [observation]
+    ):
         assert result is not None
         assert result.equals(filtered_pop[["event_time"] + included_cols])
         i += 1
@@ -476,7 +480,9 @@ def test_gather_results_partial_stratifications_in_results(
         results_formatter=lambda: None,
     )
 
-    for results, _measure, _formatter in ctx.gather_results(population, event, [observation]):
+    for results, _measure, _formatter in ctx.gather_results(
+        population, event.name, [observation]
+    ):
         assert results is not None
         unladen_results = results.reset_index().query('familiar=="unladen_swallow"')
         assert len(unladen_results) > 0
@@ -506,7 +512,9 @@ def test_gather_results_with_empty_pop_filter(event: Event) -> None:
         results_formatter=lambda: None,
     )
 
-    for result, _measure, _updater in ctx.gather_results(population, event, [observation]):
+    for result, _measure, _updater in ctx.gather_results(
+        population, event.name, [observation]
+    ):
         assert not result
 
 
@@ -537,7 +545,7 @@ def test_gather_results_with_no_stratifications(event: Event) -> None:
             list(
                 result
                 for result, _measure, _updater in ctx.gather_results(
-                    population, event, [observation]
+                    population, event.name, [observation]
                 )
             )
         )
@@ -586,7 +594,7 @@ def test_bad_aggregator_stratification(event: Event) -> None:
 
     with pytest.raises(KeyError, match="height"):
         for result, _measure, _updater in ctx.gather_results(
-            population, event, [observation]
+            population, event.name, [observation]
         ):
             print(result)
 
@@ -664,24 +672,19 @@ def test_get_required_columns() -> None:
         **register_observation_kwargs,  # type: ignore[arg-type]
     )
 
-    default_columns = {"a", "e"}
+    default_cols = {"a", "e"}
 
     # Test with default columns
-    assert set(ctx.get_required_columns([obs1, obs2], default_columns)) == {
-        "a",
-        "b",
-        "c",
-        "e",
-    }
-    assert set(ctx.get_required_columns([obs3], default_columns)) == {"a", "d", "e"}
-    assert set(ctx.get_required_columns([obs1, obs2, obs3], default_columns)) == {
+    assert set(ctx.get_required_columns([obs1, obs2], default_cols)) == {"a", "b", "c", "e"}
+    assert set(ctx.get_required_columns([obs3], default_cols)) == {"a", "d", "e"}
+    assert set(ctx.get_required_columns([obs1, obs2, obs3], default_cols)) == {
         "a",
         "b",
         "c",
         "d",
         "e",
     }
-    assert set(ctx.get_required_columns([], default_columns)) == {"a", "e"}
+    assert set(ctx.get_required_columns([], default_cols)) == {"a", "e"}
 
     # Test with no default columns
     assert set(ctx.get_required_columns([obs1, obs2], set())) == {"a", "b", "c"}
@@ -690,7 +693,7 @@ def test_get_required_columns() -> None:
     assert ctx.get_required_columns([], set()) == []
 
     # Default columns parameter is unaltered
-    assert default_columns == {"a", "e"}
+    assert default_cols == {"a", "e"}
 
 
 def test_get_required_values() -> None:
@@ -722,24 +725,28 @@ def test_get_required_values() -> None:
         **register_observation_kwargs,  # type: ignore[arg-type]
     )
 
-    default_values = {Pipeline("x"), Pipeline("v")}
+    default_vals = {Pipeline("x"), Pipeline("v")}
 
     # Test with default values
-    assert set(p.name for p in ctx.get_required_values([obs1, obs2], default_values)) == {
+    assert set(p.name for p in ctx.get_required_values([obs1, obs2], default_vals)) == {
         "x",
         "y",
         "z",
         "v",
     }
-    assert set(p.name for p in ctx.get_required_values([obs3], default_values)) == {
+    assert set(p.name for p in ctx.get_required_values([obs3], default_vals)) == {
         "x",
         "w",
         "v",
     }
-    assert set(
-        p.name for p in ctx.get_required_values([obs1, obs2, obs3], default_values)
-    ) == {"x", "y", "z", "w", "v"}
-    assert set(p.name for p in ctx.get_required_values([], default_values)) == {"x", "v"}
+    assert set(p.name for p in ctx.get_required_values([obs1, obs2, obs3], default_vals)) == {
+        "x",
+        "y",
+        "z",
+        "w",
+        "v",
+    }
+    assert set(p.name for p in ctx.get_required_values([], default_vals)) == {"x", "v"}
 
     # Test with no default values
     assert set(p.name for p in ctx.get_required_values([obs1, obs2], set())) == {
@@ -757,7 +764,7 @@ def test_get_required_values() -> None:
     assert ctx.get_required_values([], set()) == []
 
     # Default values parameter is unaltered
-    assert set(p.name for p in default_values) == {"x", "v"}
+    assert set(p.name for p in default_vals) == {"x", "v"}
 
 
 @pytest.mark.parametrize(
