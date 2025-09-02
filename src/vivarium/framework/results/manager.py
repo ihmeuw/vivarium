@@ -320,7 +320,6 @@ class ResultsManager(Manager):
     def register_observation(
         self,
         observation_type: type[Observation],
-        is_stratified: bool,
         name: str,
         pop_filter: str,
         when: str,
@@ -337,8 +336,6 @@ class ResultsManager(Manager):
         ----------
         observation_type
             Specific class type of observation to register.
-        is_stratified
-            True if the observation is a stratified type and False if not.
         name
             Name of the observation. It will also be the name of the output results file
             for this particular observation.
@@ -366,7 +363,7 @@ class ResultsManager(Manager):
                 f"All required values must be strings, but got {requires_values} when registering observation {name}."
             )
 
-        if is_stratified:
+        if observation_type.is_stratified():
             # Resolve required stratifications and add to kwargs dictionary
             additional_stratifications = kwargs.get("additional_stratifications", [])
             excluded_stratifications = kwargs.get("excluded_stratifications", [])
