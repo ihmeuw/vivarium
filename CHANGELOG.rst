@@ -1,3 +1,7 @@
+**3.4.16 - 09/02/25**
+
+  - Add name attribute to Event class
+
 **3.4.15 - 08/29/25**
 
   - Hotfix: expose LifeCycleError in lifecycle package
