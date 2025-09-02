@@ -22,6 +22,7 @@ from vivarium.framework.results.stratification import (
     get_mapped_col_name,
     get_original_col_name,
 )
+from vivarium.framework.values import Pipeline
 from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
@@ -192,8 +193,11 @@ class ResultsContext:
         name: str,
         pop_filter: str,
         when: str,
+        requires_columns: list[str],
+        requires_values: list[Pipeline],
+        # todo add all requirements arguments here explicitly
         **kwargs: Any,
-    ) -> None:
+    ) -> Observation:
         """Add an observation to the results context.
 
         Parameters
@@ -211,6 +215,10 @@ class ResultsContext:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         **kwargs
             Additional keyword arguments to be passed to the observation's constructor.
+
+        Returns
+        -------
+            The instantiated Observation object.
 
         Raises
         ------
@@ -235,13 +243,21 @@ class ResultsContext:
 
         # Instantiate the observation and add it and its (pop_filter, stratifications)
         # tuple as a key-value pair to the self.observations[when] dictionary.
-        observation = observation_type(name=name, pop_filter=pop_filter, when=when, **kwargs)
+        observation = observation_type(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            requires_columns=requires_columns,
+            requires_values=requires_values,
+            **kwargs,
+        )
         self.observations[observation.when][
             (observation.pop_filter, observation.stratifications)
         ].append(observation)
+        return observation
 
     def gather_results(
-        self, population: pd.DataFrame, lifecycle_phase: str, event: Event
+        self, population: pd.DataFrame, event: Event, event_observations: list[Observation]
     ) -> Generator[
         tuple[
             pd.DataFrame | None,
@@ -266,6 +282,9 @@ class ResultsContext:
             The current lifecycle phase.
         event
             The current Event.
+        event_observations
+            List of observations to be gathered for this specific event. Note that this
+            excludes all observations whose `to_observe` method returns False.
 
         Yields
         ------
@@ -293,7 +312,7 @@ class ResultsContext:
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
         for (pop_filter, stratification_names), observations in self.observations[
-            lifecycle_phase
+            event.name
         ].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
@@ -309,11 +328,81 @@ class ResultsContext:
                 else:
                     pop = self._get_groups(stratification_names, filtered_pop)
                 for observation in observations:
-                    results = observation.observe(event, pop, stratification_names)
+                    if observation not in event_observations:
+                        continue
+
+                    results = observation.observe(pop, stratification_names)
+
                     if results is not None:
                         self._rename_stratification_columns(results)
 
                     yield (results, observation.name, observation.results_updater)
+
+    def get_observations(self, event: Event) -> list[Observation]:
+        """Get all observations for a given event.
+
+        Parameters
+        ----------
+        event
+            The current Event.
+
+        Returns
+        -------
+            A list of Observations for the given event. Only includes observations
+            whose `to_observe` method returns True.
+        """
+        return [
+            observation
+            for observations in self.observations[event.name].values()
+            for observation in observations
+            if observation.to_observe(event)
+        ]
+
+    def get_required_columns(
+        self, event_observations: list[Observation], default_columns: set[str]
+    ) -> list[str]:
+        """Get all columns required for producing results for a given Event.
+
+        Parameters
+        ----------
+        event_observations
+            List of observations to be gathered for this specific event. Note that this
+            excludes all observations whose `to_observe` method returns False.
+        default_columns
+            Set of columns to include by default. These likely came from stratification
+            requirements.
+
+        Returns
+        -------
+            A list of all columns required for producing results for the given Event.
+        """
+        required_columns = default_columns.copy()
+        for observation in event_observations:
+            required_columns.update(observation.requires_columns)
+        return list(required_columns)
+
+    def get_required_values(
+        self, event_observations: list[Observation], default_values: set[Pipeline]
+    ) -> list[Pipeline]:
+        """Get all values required for producing results for a given Event.
+
+        Parameters
+        ----------
+        event_observations
+            List of observations to be gathered for this specific event. Note that this
+            excludes all observations whose `to_observe` method returns False.
+        default_values
+            Set of values to include by default. These likely came from stratification
+            requirements.
+
+        Returns
+        -------
+            A list of all values required for producing results for the given Event.
+        """
+        required_values = default_values.copy()
+        for observation in event_observations:
+            required_values.update(observation.requires_values)
+        return list(required_values)
 
     def _filter_population(
         self,

@@ -72,6 +72,19 @@ class Hogwarts(Component):
             "potion_power",
         ]
 
+    def setup(self, builder: Builder) -> None:
+        self.grade = builder.value.register_value_producer(
+            "grade",
+            source=lambda index: self.population_view.get(index)["exam_score"].map(
+                lambda x: x // 10
+            ),
+            requires_columns=["exam_score"],
+        )
+
+    def grade_source(self, index: pd.Index[int]) -> pd.Series[str]:
+        pass_mask = self.population_view.get(index)["exam_score"] > 65
+        return pass_mask.map({True: "pass", False: "fail"})
+
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         size = len(pop_data.index)
         initialization_data = pd.DataFrame(

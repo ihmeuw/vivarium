@@ -294,9 +294,11 @@ class ResultsInterface(Interface):
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
+            List of the state table columns that are required by either the `pop_filter` or the
+            `results_gatherer`.
         requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
+            List of the value pipelines that are required by either the `pop_filter` or the
+            `results_gatherer`.
         results_gatherer
             Function that gathers the latest observation results.
         results_updater
@@ -438,7 +440,6 @@ class ResultsInterface(Interface):
         to_observe
             Function that determines whether to perform an observation on this Event.
         """
-        included_columns = ["event_time"] + requires_columns + requires_values
         self._manager.register_observation(
             observation_type=ConcatenatingObservation,
             is_stratified=False,
@@ -448,7 +449,6 @@ class ResultsInterface(Interface):
             requires_columns=requires_columns,
             requires_values=requires_values,
             results_formatter=results_formatter,
-            included_columns=included_columns,
             to_observe=to_observe,
         )
 
