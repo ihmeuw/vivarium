@@ -1,3 +1,8 @@
+**3.4.15 - 08/29/25**
+
+  - Hotfix: expose LifeCycleError in lifecycle package
+
+**3.4.14 - 08/29/25**
 
   - Refactor lifecycle system into a package
   - Introduce lifecycle_states module with string constants for lifecycle state names
