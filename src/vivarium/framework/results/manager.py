@@ -419,7 +419,7 @@ class ResultsManager(Manager):
         """Add required resources to the manager's list of required columns and values."""
         if len(target) == 0:
             return  # do nothing on empty lists
-        target_set = set(target) - {"event_time", "current_time", "event_step_size"}
+        target_set = set(target)
         if target_type == SourceType.COLUMN:
             self._required_columns.update(target_set)
         elif target_type == SourceType.VALUE:
