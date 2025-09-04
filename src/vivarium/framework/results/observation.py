@@ -21,7 +21,7 @@ provided as attributes to the parent class.
 from __future__ import annotations
 
 import itertools
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -105,6 +105,11 @@ class Observation(ABC):
         """
         return self.results_gatherer(df, stratifications)
 
+    @classmethod
+    @abstractmethod
+    def is_stratified(cls) -> bool:
+        ...
+
 
 class UnstratifiedObservation(Observation):
     """Concrete class for observing results that are not stratified.
@@ -174,6 +179,10 @@ class UnstratifiedObservation(Observation):
             stratifications=None,
             to_observe=to_observe,
         )
+
+    @classmethod
+    def is_stratified(cls) -> bool:
+        return False
 
     @staticmethod
     def create_empty_df(
@@ -263,6 +272,10 @@ class StratifiedObservation(Observation):
         )
         self.aggregator_sources = aggregator_sources
         self.aggregator = aggregator
+
+    @classmethod
+    def is_stratified(cls) -> bool:
+        return True
 
     @staticmethod
     def create_expanded_df(
