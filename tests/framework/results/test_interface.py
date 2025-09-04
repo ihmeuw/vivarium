@@ -10,6 +10,7 @@ import pytest
 from layered_config_tree.main import LayeredConfigTree
 from loguru import logger
 from pytest_mock import MockerFixture
+from traitlets import Any
 
 from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS
 from tests.framework.results.helpers import HOUSE_CATEGORIES as HOUSES
@@ -19,6 +20,7 @@ from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import ResultsInterface, ResultsManager
 from vivarium.framework.results.observation import (
     ConcatenatingObservation,
+    Observation,
     StratifiedObservation,
 )
 
@@ -361,7 +363,8 @@ def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
     ]
 
 
-def test_unhashable_pipeline(mocker: MockerFixture) -> None:
+@pytest.mark.parametrize("resource_type", ["value", "column"])
+def test_unhashable_pipeline(mocker: MockerFixture, resource_type: str) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
@@ -369,14 +372,13 @@ def test_unhashable_pipeline(mocker: MockerFixture) -> None:
     mgr.setup(builder)
 
     assert len(interface._manager._results_context.observations) == 0
-    with pytest.raises(TypeError, match="unhashable"):
+    with pytest.raises(TypeError, match=f"All required {resource_type}s must be strings"):
         interface.register_adding_observation(
             name="living_person_time",
             pop_filter='alive == "alive" and undead == False',
             when=lifecycle_states.TIME_STEP_CLEANUP,
-            requires_columns=[],
-            # Unhashable first element below
-            requires_values=[["bad", "unhashable", "thing"]],  # type: ignore[list-item]
+            requires_columns=[["bad", "unhashable", "thing"]] if resource_type == "column" else [],  # type: ignore[list-item]
+            requires_values=[["bad", "unhashable", "thing"]] if resource_type == "value" else [],  # type: ignore[list-item]
             additional_stratifications=[],
             excluded_stratifications=[],
             aggregator_sources=[],
@@ -396,7 +398,7 @@ def test_unhashable_pipeline(mocker: MockerFixture) -> None:
 def test_register_adding_observation_when_options(when: str, mocker: MockerFixture) -> None:
     """Test the full interface lifecycle of adding an observation and simulation event."""
 
-    def mock__prepare_population(self: ResultsManager, event: Event) -> pd.DataFrame:
+    def mock__prepare_population(*_: Any) -> pd.DataFrame:
         """Return a mock population in the vein of ResultsManager._prepare_population"""
         # Generate population DataFrame
         population = BASE_POPULATION.copy()
@@ -460,10 +462,16 @@ def test_register_adding_observation_when_options(when: str, mocker: MockerFixtu
     collect_metrics_mock_aggregator.assert_not_called()
 
     # Fake a timestep
-    mock_event = mocker.Mock()
+    event = Event(
+        name=when,
+        index=pd.Index([0]),
+        user_data={},
+        time=0,
+        step_size=1,
+    )
     # Run on_post_setup to initialize the raw_results attribute with 0s
-    mgr.on_post_setup(mock_event)
-    mgr.gather_results(when, mock_event)
+    mgr.on_post_setup(event)
+    mgr.gather_results(event)
 
     for phase, aggregator in aggregator_map.items():
         if phase == when:
