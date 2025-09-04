@@ -144,27 +144,36 @@ class ResultsManager(Manager):
 
     def on_time_step_prepare(self, event: Event) -> None:
         """Define the listener callable for the time_step__prepare phase."""
-        self.gather_results(lifecycle_states.TIME_STEP_PREPARE, event)
+        self.gather_results(event)
 
     def on_time_step(self, event: Event) -> None:
         """Define the listener callable for the time_step phase."""
-        self.gather_results(lifecycle_states.TIME_STEP, event)
+        self.gather_results(event)
 
     def on_time_step_cleanup(self, event: Event) -> None:
         """Define the listener callable for the time_step__cleanup phase."""
-        self.gather_results(lifecycle_states.TIME_STEP_CLEANUP, event)
+        self.gather_results(event)
 
     def on_collect_metrics(self, event: Event) -> None:
         """Define the listener callable for the collect_metrics phase."""
-        self.gather_results(lifecycle_states.COLLECT_METRICS, event)
+        self.gather_results(event)
 
-    def gather_results(self, lifecycle_phase: str, event: Event) -> None:
+    def gather_results(self, event: Event) -> None:
         """Update existing results with any new results."""
-        population = self._prepare_population(event)
-        if population.empty:
+        event_observations = self._results_context.get_observations(event)
+        if not event_observations or event.index.empty:
             return
+
+        required_columns = self._results_context.get_required_columns(
+            event_observations, self._required_columns
+        )
+        required_values = self._results_context.get_required_values(
+            event_observations, self._required_values
+        )
+        population = self._prepare_population(event, required_columns, required_values)
+
         for results_group, measure, updater in self._results_context.gather_results(
-            population, lifecycle_phase, event
+            population, event.name, event_observations
         ):
             if results_group is not None and measure is not None and updater is not None:
                 self._raw_results[measure] = updater(
@@ -322,8 +331,7 @@ class ResultsManager(Manager):
         """Manager-level observation registration.
 
         Adds an observation to the
-        :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`
-        as well as the observation's required resources to this manager.
+        :class:`ResultsContext <vivarium.framework.results.context.ResultsContext>`.
 
         Parameters
         ----------
@@ -341,13 +349,22 @@ class ResultsManager(Manager):
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
+            List of the state table columns that are required to compute the observation.
         requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
+            List of the value pipelines that are required to compute the observation.
         **kwargs
             Additional keyword arguments to be passed to the observation's constructor.
         """
         self.logger.debug(f"Registering observation {name}")
+
+        if any(not isinstance(column, str) for column in requires_columns):
+            raise TypeError(
+                f"All required columns must be strings, but got {requires_columns} when registering observation {name}."
+            )
+        if any(not isinstance(value, str) for value in requires_values):
+            raise TypeError(
+                f"All required values must be strings, but got {requires_values} when registering observation {name}."
+            )
 
         if is_stratified:
             # Resolve required stratifications and add to kwargs dictionary
@@ -366,14 +383,13 @@ class ResultsManager(Manager):
             del kwargs["additional_stratifications"]
             del kwargs["excluded_stratifications"]
 
-        self._add_resources(requires_columns, SourceType.COLUMN)
-        self._add_resources(requires_values, SourceType.VALUE)
-
         self._results_context.register_observation(
             observation_type=observation_type,
             name=name,
             pop_filter=pop_filter,
             when=when,
+            requires_columns=requires_columns,
+            requires_values=[self.get_value(value) for value in requires_values],
             **kwargs,
         )
 
@@ -403,24 +419,42 @@ class ResultsManager(Manager):
         """Add required resources to the manager's list of required columns and values."""
         if len(target) == 0:
             return  # do nothing on empty lists
-        target_set = set(target) - {"event_time", "current_time", "event_step_size"}
+        target_set = set(target)
         if target_type == SourceType.COLUMN:
             self._required_columns.update(target_set)
         elif target_type == SourceType.VALUE:
             self._required_values.update([self.get_value(target) for target in target_set])
 
-    def _prepare_population(self, event: Event) -> pd.DataFrame:
+    def _prepare_population(
+        self, event: Event, required_columns: list[str], required_values: list[Pipeline]
+    ) -> pd.DataFrame:
         """Prepare the population for results gathering."""
-        population = self.population_view.subview(list(self._required_columns)).get(
-            event.index
-        )
-        population["current_time"] = self.clock()
-        population["event_step_size"] = event.step_size
-        population["event_time"] = self.clock() + event.step_size  # type: ignore [operator]
+        required_columns = required_columns.copy()
+        population = pd.DataFrame(index=event.index)
+
+        if "current_time" in required_columns:
+            population["current_time"] = self.clock()
+            required_columns.remove("current_time")
+        if "event_step_size" in required_columns:
+            population["event_step_size"] = event.step_size
+            required_columns.remove("event_step_size")
+        if "event_time" in required_columns:
+            population["event_time"] = self.clock() + event.step_size  # type: ignore [operator]
+            required_columns.remove("event_time")
+
         for k, v in event.user_data.items():
-            population[k] = v
-        for pipeline in self._required_values:
+            if k in required_columns:
+                population[k] = v
+                required_columns.remove(k)
+
+        for pipeline in required_values:
             population[pipeline.name] = pipeline(event.index)
+
+        if required_columns:
+            population = pd.concat(
+                [self.population_view.subview(required_columns).get(event.index), population],
+                axis=1,
+            )
         return population
 
     def _warn_check_stratifications(

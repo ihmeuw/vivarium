@@ -37,7 +37,9 @@ from tests.framework.results.helpers import (
     sorting_hat_vectorized,
     verify_stratification_added,
 )
+from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
+from vivarium.framework.population import PopulationView
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.manager import ResultsManager
@@ -504,6 +506,105 @@ def test_unused_stratifications_are_logged(caplog: LogCaptureFixture) -> None:
     assert len(log_split) == 2
     # Check that the log message contains the expected Stratifications
     assert "['student_house']" in log_split[1]
+
+
+def test_gather_results_with_no_observations(mocker: pytest_mock.MockerFixture) -> None:
+    """Test that gather_results short-circuits when there are no observations for an event."""
+
+    mgr = ResultsManager()
+    mgr.population_view = mocker.Mock()
+    mgr._results_context = mocker.Mock()
+    mgr._results_context.get_observations.return_value = []  # type: ignore[attr-defined]
+
+    event = Event(
+        name=lifecycle_states.COLLECT_METRICS,
+        index=pd.Index([0]),
+        user_data={},
+        time=0,
+        step_size=1,
+    )
+
+    mgr.gather_results(event)
+
+    mgr._results_context.get_observations.assert_called_once_with(event)  # type: ignore[attr-defined]
+    mgr.population_view.subview.assert_not_called()  # type: ignore[attr-defined]
+    mgr._results_context.gather_results.assert_not_called()  # type: ignore[attr-defined]
+
+
+def test_gather_results_with_empty_index(mocker: pytest_mock.MockerFixture) -> None:
+    """Test that gather_results short-circuits when an event has an empty index."""
+
+    mgr = ResultsManager()
+    mgr.population_view = mocker.Mock()
+    mgr._results_context = mocker.Mock()
+    mgr._results_context.get_observations.return_value = [mocker.Mock(spec=AddingObservation)]  # type: ignore[attr-defined]
+
+    event = Event(
+        name=lifecycle_states.COLLECT_METRICS,
+        index=pd.Index([]),
+        user_data={},
+        time=0,
+        step_size=1,
+    )
+
+    mgr.gather_results(event)
+
+    mgr._results_context.get_observations.assert_called_once_with(event)  # type: ignore[attr-defined]
+    mgr.population_view.subview.assert_not_called()  # type: ignore[attr-defined]
+    mgr._results_context.gather_results.assert_not_called()  # type: ignore[attr-defined]
+
+
+@pytest.fixture(scope="module")
+def prepare_population_sim() -> InteractiveContext:
+    return InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=[Hogwarts()])
+
+
+@pytest.mark.parametrize(
+    "required_columns, required_value_names",
+    [
+        ([], []),
+        (["familiar", "house_points"], []),
+        ([], ["grade"]),
+        (["familiar"], ["grade"]),
+        (["current_time", "event_time", "event_step_size", "familiar"], []),
+        (["train"], []),
+    ],
+    ids=[
+        "no_columns_no_values",
+        "columns_required_no_values",
+        "no_columns_values_required",
+        "columns_and_values_required",
+        "time_data_and_columns",
+        "user_data",
+    ],
+)
+def test_prepare_population(
+    prepare_population_sim: InteractiveContext,
+    required_columns: list[str],
+    required_value_names: list[str],
+) -> None:
+    mgr = prepare_population_sim._results
+    required_values = [
+        prepare_population_sim.get_value(value) for value in required_value_names
+    ]
+    event = Event(
+        name=lifecycle_states.COLLECT_METRICS,
+        index=prepare_population_sim.get_population().index,
+        user_data={"train": "Hogwarts Express", "Headmaster": "Albus Dumbledore"},
+        time=prepare_population_sim._clock.time + prepare_population_sim._clock.step_size,  # type: ignore [operator]
+        step_size=prepare_population_sim._clock.step_size,
+    )
+
+    population = mgr._prepare_population(event, required_columns, required_values)
+
+    expected_columns = required_columns + required_value_names
+    assert set(population.columns) == set(expected_columns)
+    if "current_time" in required_columns:
+        assert (population["current_time"] == prepare_population_sim._clock.time).all()
+    if "event_time" in required_columns:
+        assert (population["event_time"] == event.time).all()
+    if "event_step_size" in required_columns:
+        assert (population["event_step_size"] == event.step_size).all()
 
 
 def test_stratified_observation_results() -> None:
