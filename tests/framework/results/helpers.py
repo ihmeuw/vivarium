@@ -82,7 +82,7 @@ class Hogwarts(Component):
         )
 
     def grade_source(self, index: pd.Index[int]) -> pd.Series[str]:
-        pass_mask = self.population_view.get(index)["exam_score"] > 65
+        pass_mask = self.population_view.get(index)["exam_score"] > 6
         return pass_mask.map({True: "pass", False: "fail"})
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
