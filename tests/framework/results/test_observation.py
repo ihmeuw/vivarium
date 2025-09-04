@@ -13,7 +13,9 @@ from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import (
     AddingObservation,
     ConcatenatingObservation,
+    Observation,
     StratifiedObservation,
+    UnstratifiedObservation,
 )
 
 
@@ -43,6 +45,19 @@ def concatenating_observation() -> ConcatenatingObservation:
         requires_values=[],
         results_formatter=lambda _, __: pd.DataFrame(),
     )
+
+
+@pytest.mark.parametrize(
+    "observation_type, is_stratified",
+    [
+        (StratifiedObservation, True),
+        (UnstratifiedObservation, False),
+        (AddingObservation, True),
+        (ConcatenatingObservation, False),
+    ],
+)
+def test_is_stratified(observation_type: type[Observation], is_stratified: bool) -> None:
+    assert observation_type.is_stratified() == is_stratified
 
 
 @pytest.mark.parametrize(

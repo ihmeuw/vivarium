@@ -253,7 +253,6 @@ class ResultsInterface(Interface):
         self._check_for_required_callables(name, {"results_updater": results_updater})
         self._manager.register_observation(
             observation_type=StratifiedObservation,
-            is_stratified=True,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -320,7 +319,6 @@ class ResultsInterface(Interface):
         self._check_for_required_callables(name, required_callables)
         self._manager.register_observation(
             observation_type=UnstratifiedObservation,
-            is_stratified=False,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -387,7 +385,6 @@ class ResultsInterface(Interface):
         """
         self._manager.register_observation(
             observation_type=AddingObservation,
-            is_stratified=True,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -442,7 +439,6 @@ class ResultsInterface(Interface):
         """
         self._manager.register_observation(
             observation_type=ConcatenatingObservation,
-            is_stratified=False,
             name=name,
             pop_filter=pop_filter,
             when=when,

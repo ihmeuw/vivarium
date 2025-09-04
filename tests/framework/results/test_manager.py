@@ -362,7 +362,6 @@ def test_add_observation_nop_stratifications(
     mgr._results_context.default_stratifications = default
     mgr.register_observation(
         observation_type=AddingObservation,
-        is_stratified=True,
         name="name",
         pop_filter='alive == "alive"',
         aggregator_sources=[],
