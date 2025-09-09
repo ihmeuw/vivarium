@@ -17,6 +17,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import Observation
+from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
 from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
 from vivarium.types import ScalarMapper, VectorMapper
@@ -49,8 +50,6 @@ class ResultsManager(Manager):
     def __init__(self) -> None:
         self._raw_results: defaultdict[str, pd.DataFrame] = defaultdict()
         self._results_context = ResultsContext()
-        self._required_columns = {"tracked"}
-        self._required_values: set[Pipeline] = set()
         self._name = "results_manager"
 
     @property
@@ -74,12 +73,9 @@ class ResultsManager(Manager):
             measure names and the values are the respective results.
         """
         formatted = {}
-        for observation_details in self._results_context.observations.values():
-            for observations in observation_details.values():
-                for observation in observations:
-                    measure = observation.name
-                    results = self._raw_results[measure].copy()
-                    formatted[measure] = observation.results_formatter(measure, results)
+        for name, observation in self._results_context.observations.items():
+            results = self._raw_results[name].copy()
+            formatted[name] = observation.results_formatter(name, results)
         return formatted
 
     # noinspection PyAttributeOutsideInit
@@ -109,38 +105,10 @@ class ResultsManager(Manager):
         self.set_default_stratifications(builder)
 
     def on_post_setup(self, _: Event) -> None:
-        """Initialize results for each measure."""
-        registered_stratifications = self._results_context.stratifications
-
-        used_stratifications = set()
-        for lifecycle_phase in self._results_context.observations:
-            for (
-                _pop_filter,
-                event_requested_stratification_names,
-            ), observations in self._results_context.observations[lifecycle_phase].items():
-                if event_requested_stratification_names is not None:
-                    used_stratifications |= set(event_requested_stratification_names)
-                for observation in observations:
-                    measure = observation.name
-                    self._raw_results[measure] = observation.results_initializer(
-                        event_requested_stratification_names, registered_stratifications
-                    )
-
-        registered_stratification_names = set(
-            stratification.name for stratification in registered_stratifications
-        )
-        unused_stratifications = registered_stratification_names - used_stratifications
-        if unused_stratifications:
-            self.logger.info(
-                "The following stratifications are registered but not used by any "
-                f"observers: \n{sorted(list(unused_stratifications))}"
-            )
-        missing_stratifications = used_stratifications - registered_stratification_names
-        if missing_stratifications:
-            raise ValueError(
-                "The following observers are requested to be stratified by "
-                f"stratifications that are not registered: \n{sorted(list(missing_stratifications))}"
-            )
+        """Sets stratifications on observations and initializes results for each measure."""
+        self._results_context.set_stratifications()
+        for name, observation in self._results_context.observations.items():
+            self._raw_results[name] = observation.results_initializer()
 
     def on_time_step_prepare(self, event: Event) -> None:
         """Define the listener callable for the time_step__prepare phase."""
@@ -160,20 +128,15 @@ class ResultsManager(Manager):
 
     def gather_results(self, event: Event) -> None:
         """Update existing results with any new results."""
-        event_observations = self._results_context.get_observations(event)
-        if not event_observations or event.index.empty:
+        observations = self._results_context.get_observations(event)
+        stratifications = self._results_context.get_stratifications(event)
+        if not observations or event.index.empty:
             return
 
-        required_columns = self._results_context.get_required_columns(
-            event_observations, self._required_columns
-        )
-        required_values = self._results_context.get_required_values(
-            event_observations, self._required_values
-        )
-        population = self._prepare_population(event, required_columns, required_values)
+        population = self._prepare_population(event, observations, stratifications)
 
         for results_group, measure, updater in self._results_context.gather_results(
-            population, event.name, event_observations
+            population, event.name, observations
         ):
             if results_group is not None and measure is not None and updater is not None:
                 self._raw_results[measure] = updater(
@@ -241,12 +204,15 @@ class ResultsManager(Manager):
             produce the stratification.
         """
         self.logger.debug(f"Registering stratification {name}")
-        target_columns = list(requires_columns) + list(requires_values)
         self._results_context.add_stratification(
-            name, target_columns, categories, excluded_categories, mapper, is_vectorized
+            name=name,
+            requires_columns=requires_columns,
+            requires_values=[self.get_value(value) for value in requires_values],
+            categories=categories,
+            excluded_categories=excluded_categories,
+            mapper=mapper,
+            is_vectorized=is_vectorized,
         )
-        self._add_resources(requires_columns, SourceType.COLUMN)
-        self._add_resources(requires_values, SourceType.VALUE)
 
     def register_binned_stratification(
         self,
@@ -364,21 +330,16 @@ class ResultsManager(Manager):
             )
 
         if observation_type.is_stratified():
-            # Resolve required stratifications and add to kwargs dictionary
-            additional_stratifications = kwargs.get("additional_stratifications", [])
-            excluded_stratifications = kwargs.get("excluded_stratifications", [])
-            self._warn_check_stratifications(
-                additional_stratifications, excluded_stratifications
-            )
             stratifications = self._get_stratifications(
                 list(kwargs.get("stratifications", [])),
-                list(additional_stratifications),
-                list(excluded_stratifications),
+                list(kwargs.get("additional_stratifications", [])),
+                list(kwargs.get("excluded_stratifications", [])),
             )
-            kwargs["stratifications"] = stratifications
             # Remove the unused kwargs before passing to the results context registration
             del kwargs["additional_stratifications"]
             del kwargs["excluded_stratifications"]
+        else:
+            stratifications = None
 
         self._results_context.register_observation(
             observation_type=observation_type,
@@ -387,6 +348,7 @@ class ResultsManager(Manager):
             when=when,
             requires_columns=requires_columns,
             requires_values=[self.get_value(value) for value in requires_values],
+            stratifications=stratifications,
             **kwargs,
         )
 
@@ -401,6 +363,8 @@ class ResultsManager(Manager):
         excluded_stratifications: list[str] = [],
     ) -> tuple[str, ...]:
         """Resolve the stratifications required for the observation."""
+        self._warn_check_stratifications(additional_stratifications, excluded_stratifications)
+
         stratifications = list(
             set(
                 self._results_context.default_stratifications
@@ -412,20 +376,19 @@ class ResultsManager(Manager):
         # Makes sure measure identifiers have fields in the same relative order.
         return tuple(sorted(stratifications))
 
-    def _add_resources(self, target: list[str], target_type: SourceType) -> None:
-        """Add required resources to the manager's list of required columns and values."""
-        if len(target) == 0:
-            return  # do nothing on empty lists
-        target_set = set(target)
-        if target_type == SourceType.COLUMN:
-            self._required_columns.update(target_set)
-        elif target_type == SourceType.VALUE:
-            self._required_values.update([self.get_value(target) for target in target_set])
-
     def _prepare_population(
-        self, event: Event, required_columns: list[str], required_values: list[Pipeline]
+        self,
+        event: Event,
+        observations: list[Observation],
+        stratifications: list[Stratification],
     ) -> pd.DataFrame:
         """Prepare the population for results gathering."""
+        required_columns = self._results_context.get_required_columns(
+            observations, stratifications
+        )
+        required_values = self._results_context.get_required_values(
+            observations, stratifications
+        )
         required_columns = required_columns.copy()
         population = pd.DataFrame(index=event.index)
 
@@ -452,6 +415,15 @@ class ResultsManager(Manager):
                 [self.population_view.subview(required_columns).get(event.index), population],
                 axis=1,
             )
+        for stratification in stratifications:
+            new_column = get_mapped_col_name(stratification.name)
+            if new_column in population.columns:
+                raise ValueError(
+                    f"Stratification column '{new_column}' already exists in the state table or "
+                    "as a pipeline which is a required name for stratifying results - choose a "
+                    "different name."
+                )
+            population[new_column] = stratification.stratify(population)
         return population
 
     def _warn_check_stratifications(

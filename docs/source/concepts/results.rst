@@ -334,7 +334,7 @@ abstract base class, which contains the common attributes between observation ty
   * - | :attr:`results_formatter <vivarium.framework.results.observation.Observation.results_formatter>`
     - | Method or function that formats the raw observation results.
   * - | :attr:`stratifications <vivarium.framework.results.observation.Observation.stratifications>`
-    - | Optional tuple of column names for the observation to stratify by.
+    - | Optional tuple of Stratification objects this observation should use.
   * - | :attr:`to_observe <vivarium.framework.results.observation.Observation.to_observe>`
     - | Method or function that determines whether to perform an observation on this Event.
 
@@ -372,8 +372,10 @@ results of an observation:
     - Description
   * - | :attr:`name <vivarium.framework.results.stratification.Stratification.name>`
     - | Name of the stratification.
-  * - | :attr:`sources <vivarium.framework.results.stratification.Stratification.sources>`
-    - | A list of the columns and values needed as input for the `mapper`.
+  * - | :attr:`sources <vivarium.framework.results.stratification.Stratification.requires_columns>`
+    - | A list of the columns needed as input for the `mapper`.
+  * - | :attr:`requires_values <vivarium.framework.results.stratification.Stratification.requires_values>`
+    - | A list of value pipelines needed as input for the `mapper`.
   * - | :attr:`categories <vivarium.framework.results.stratification.Stratification.categories>`
     - | Exhaustive list of all possible stratification values.
   * - | :attr:`excluded_categories <vivarium.framework.results.stratification.Stratification.excluded_categories>`
