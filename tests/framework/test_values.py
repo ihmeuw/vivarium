@@ -9,6 +9,7 @@ from pytest_mock import MockFixture
 
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import (
+    AttributePipeline,
     DynamicValueError,
     Pipeline,
     ValuesManager,
@@ -16,6 +17,7 @@ from vivarium.framework.values import (
     rescale_post_processor,
     union_post_processor,
 )
+from vivarium.framework.values.pipeline import AttributeSource
 
 
 @pytest.fixture
@@ -137,3 +139,17 @@ def test_unsourced_pipeline() -> None:
         match=f"The dynamic value pipeline for {pipeline.name} has no source.",
     ):
         pipeline()
+
+
+######################
+# AttributePipelines #
+######################
+
+
+def test_attribute_pipeline_creation() -> None:
+    """Test that AttributePipeline can be created and has correct attributes."""
+    pipeline = AttributePipeline("test_attribute")
+    assert pipeline.name == "test_attribute"
+    assert pipeline.resource_type == "attribute"
+    assert isinstance(pipeline.source, AttributeSource)
+    assert pipeline.source.resource_id == "missing_attribute_source.test_attribute"

@@ -13,7 +13,10 @@ from vivarium.manager import Manager
 if TYPE_CHECKING:
     from vivarium.framework.values.combiners import ValueCombiner
     from vivarium.framework.values.manager import ValuesManager
-    from vivarium.framework.values.post_processors import PostProcessor
+    from vivarium.framework.values.post_processors import (
+        AttributePostProcessor,
+        PostProcessor,
+    )
 
 T = TypeVar("T")
 
@@ -44,6 +47,37 @@ class ValueSource(Resource):
                 " hasn't been created."
             )
         return self._source(*args, **kwargs)
+
+
+class AttributeSource(ValueSource):
+    """A resource representing the source of an attribute pipeline.
+
+    The source of an attribute pipeline must be a callable that takes a pd.Index
+    of integers and returns a pd.DataFrame.
+    """
+
+    def __init__(
+        self,
+        pipeline: AttributePipeline,
+        source: Callable[[pd.Index[int]], Any] | None,
+        component: Component | None,
+    ) -> None:
+        super(ValueSource, self).__init__(
+            "attribute_source" if source else "missing_attribute_source",
+            pipeline.name,
+            component,
+        )
+        self._pipeline = pipeline
+        self._source = source
+
+    def __call__(self, index: pd.Index[int]) -> Any:
+        if not self._source:
+            raise DynamicValueError(
+                f"The dynamic attribute pipeline for {self.name} has no source."
+                " This likely means you are attempting to modify a value that"
+                " hasn't been created."
+            )
+        return self._source(index)
 
 
 class ValueModifier(Resource):
@@ -232,8 +266,110 @@ class Pipeline(Resource):
         manager
             The simulation values manager.
         """
-        self.component = component
+        self._set_common_attributes(component, combiner, post_processor, manager)
         self.source = ValueSource(self, source, component)
+
+    def _set_common_attributes(
+        self,
+        component: Component | None,
+        combiner: ValueCombiner,
+        post_processor: PostProcessor | AttributePostProcessor | None,
+        manager: ValuesManager,
+    ) -> None:
+        """Set the common attributes for all pipeline types."""
+        self.component = component
         self._combiner = combiner
         self.post_processor = post_processor
         self._manager = manager
+
+
+class AttributePipeline(Pipeline):
+    """A type of value pipeline for calculating simulant attributes.
+
+    An attribute pipeline is a specific type of :class:`~vivarium.framework.values.pipeline.Pipeline`
+    where the source and callable must take a pd.Index of integers and return a pd.DataFrame
+    that has that same index.
+
+    """
+
+    def __init__(self, name: str, component: Component | None = None) -> None:
+        super(Pipeline, self).__init__("attribute", name, component=component)
+
+        self.source: AttributeSource = AttributeSource(self, source=None, component=None)
+        """The callable source of the attribute represented by the pipeline."""
+        self.mutators: list[ValueModifier] = []
+        """A list of callables that directly modify the pipeline source or
+        contribute portions of the attribute."""
+        self._combiner: ValueCombiner | None = None
+        self.post_processor: AttributePostProcessor | None = None
+        """An optional final transformation to perform on the combined output of
+        the source and mutators."""
+        self._manager: ValuesManager | None = None
+
+    def __call__(  # type: ignore[override]
+        self, index: pd.Index[int], skip_post_processor: bool = False
+    ) -> pd.DataFrame:
+        """Generates the attributes dataframe represented by this pipeline.
+
+        Arguments
+        ---------
+        index
+            A pd.Index of integers representing the simulants for which we
+            want to calculate the attribute.
+        skip_post_processor
+            Whether we should invoke the post-processor on the combined
+            source and mutator output or return without post-processing.
+
+        Returns
+        -------
+            A pd.DataFrame of attributes for the simulants in `index`.
+
+        Raises
+        ------
+        DynamicValueError
+            If the pipeline is invoked without a source set.
+        """
+        attribute = self._call(index=index, skip_post_processor=skip_post_processor)
+        if not isinstance(attribute, pd.DataFrame):
+            raise DynamicValueError(
+                f"The dynamic attribute pipeline for {self.name} returned a {type(attribute)} "
+                "but pd.DataFrames are expected for attribute pipelines."
+            )
+        if not attribute.index.equals(index):
+            raise DynamicValueError(
+                f"The dynamic attribute pipeline for {self.name} returned a DataFrame "
+                "a different index than was passed in. "
+                f"\nReturned index: {attribute.index}"
+                f"\nExpected index: {index}"
+            )
+        return attribute
+
+    def set_attributes(
+        self,
+        component: Component | None,
+        source: Callable[[pd.Index[int]], Any],
+        combiner: ValueCombiner,
+        post_processor: AttributePostProcessor | None,
+        manager: ValuesManager,
+    ) -> None:
+        """
+        Add a source, combiner, post-processor, and manager to an attribute pipeline.
+
+        Parameters
+        ----------
+        component
+            The component that creates the pipeline.
+        source
+            The callable source of the attribute represented by the pipeline.
+            Must take a pd.Index[int] and return a pd.DataFrame.
+        combiner
+            A strategy for combining the source and mutator attributes into the
+            final attribute represented by the pipeline.
+        post_processor
+            An optional final transformation to perform on the combined output
+            of the source and mutators.
+        manager
+            The simulation values manager.
+        """
+        self._set_common_attributes(component, combiner, post_processor, manager)
+        self.source = AttributeSource(self, source, component)
