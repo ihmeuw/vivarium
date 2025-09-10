@@ -114,22 +114,24 @@ class ResultsContext:
                 if stratification_names is None:
                     continue
 
+                used_stratifications |= set(stratification_names)
                 for observation in observations:
-                    stratifications = []
-                    for name in stratification_names:
-                        if name not in self.stratifications:
-                            raise ValueError(
-                                f"Observation '{observation.name}' is requesting to be "
-                                f"stratified by '{name}', which has not been registered."
-                            )
-                        stratifications.append(self.stratifications[name])
-                    observation.stratifications = tuple(stratifications)
-                    used_stratifications |= set(stratification_names)
+                    observation.stratifications = tuple(
+                        self.stratifications[name]
+                        for name in stratification_names
+                        if name in self.stratifications
+                    )
 
         if unused_stratifications := set(self.stratifications.keys()) - used_stratifications:
             self.logger.info(
                 "The following stratifications are registered but not used by any "
                 f"observers: \n{sorted(list(unused_stratifications))}"
+            )
+
+        if missing_stratifications := used_stratifications - set(self.stratifications.keys()):
+            raise ValueError(
+                "The following stratifications are used by observers but not registered: "
+                f"\n{sorted(list(missing_stratifications))}"
             )
 
     def add_stratification(

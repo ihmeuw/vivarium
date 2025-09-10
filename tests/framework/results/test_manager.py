@@ -410,7 +410,10 @@ def test_observers_with_missing_stratifications_fail() -> None:
     """
     components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
 
-    expected_log_msg = "Observation '.+' is requesting to be stratified by '.+', which has not been registered."
+    expected_log_msg = re.escape(
+        "The following stratifications are used by observers but not registered: \n"
+        "['familiar', 'power_level_group', 'student_house']"
+    )
 
     with pytest.raises(ValueError, match=expected_log_msg):
         InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
