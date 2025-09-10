@@ -24,6 +24,7 @@ from vivarium.framework.results.stratification import (
     get_mapped_col_name,
     get_original_col_name,
 )
+from vivarium.framework.values import Pipeline
 
 
 @pytest.mark.parametrize(
@@ -46,7 +47,8 @@ def test_stratification(
 ) -> None:
     my_stratification = Stratification(
         name=NAME,
-        sources=NAME_COLUMNS,
+        requires_columns=NAME_COLUMNS,
+        requires_values=[],
         categories=HOUSE_CATEGORIES,
         excluded_categories=[],
         mapper=mapper,
@@ -58,9 +60,10 @@ def test_stratification(
 
 
 @pytest.mark.parametrize(
-    "sources, categories, mapper, msg_match",
+    "requires_columns, requires_values, categories, mapper, msg_match",
     [
         (
+            [],
             [],
             HOUSE_CATEGORIES,
             None,
@@ -71,14 +74,27 @@ def test_stratification(
         ),
         (
             NAME_COLUMNS,
+            [],
             HOUSE_CATEGORIES,
             None,
             (
-                f"No mapper but {len(NAME_COLUMNS)} stratification sources are provided for stratification {NAME}. "
+                f"No mapper but {len(NAME_COLUMNS)} stratification sources are provided for "
+                f"stratification {NAME}. The list of sources must be of length 1 if no mapper is "
+                "provided."
+            ),
+        ),
+        (
+            ["house"],
+            ["grade"],
+            HOUSE_CATEGORIES,
+            None,
+            (
+                f"No mapper but 2 stratification sources are provided for stratification {NAME}. "
                 "The list of sources must be of length 1 if no mapper is provided."
             ),
         ),
         (
+            [],
             [],
             HOUSE_CATEGORIES,
             sorting_hat_vectorized,
@@ -87,29 +103,33 @@ def test_stratification(
         (
             NAME_COLUMNS,
             [],
-            FileNotFoundError,
+            [],
+            sorting_hat_vectorized,
             "The categories argument must be non-empty.",
         ),
     ],
     ids=[
         "no_mapper_empty_sources",
-        "no_mapper_multiple_sources",
+        "no_mapper_multiple_columns",
+        "no_mapper_one_column_one_value",
         "with_mapper_empty_sources",
         "empty_categories",
     ],
 )
 def test_stratification_init_raises(
-    sources: list[str],
+    requires_columns: list[str],
+    requires_values: list[str],
     categories: list[str],
     mapper: Callable[[pd.DataFrame], pd.Series[str]] | Callable[[pd.Series[str]], str],
     msg_match: str,
 ) -> None:
+    pipelines = [Pipeline(name) for name in requires_values]
     with pytest.raises(ValueError, match=re.escape(msg_match)):
-        Stratification(NAME, sources, categories, [], mapper, True)
+        Stratification(NAME, requires_columns, pipelines, categories, [], mapper, True)
 
 
 @pytest.mark.parametrize(
-    "sources, mapper, is_vectorized, expected_exception, error_match",
+    "requires_columns, mapper, is_vectorized, expected_exception, error_match",
     [
         (
             NAME_COLUMNS,
@@ -156,14 +176,20 @@ def test_stratification_init_raises(
     ],
 )
 def test_stratification_call_raises(
-    sources: list[str],
+    requires_columns: list[str],
     mapper: Callable[[pd.DataFrame], pd.Series[str]] | Callable[[pd.Series[str]], str],
     is_vectorized: bool,
     expected_exception: type[Exception],
     error_match: str,
 ) -> None:
     my_stratification = Stratification(
-        NAME, sources, HOUSE_CATEGORIES, [], mapper, is_vectorized
+        name=NAME,
+        requires_columns=requires_columns,
+        requires_values=[],
+        categories=HOUSE_CATEGORIES,
+        excluded_categories=[],
+        mapper=mapper,
+        is_vectorized=is_vectorized,
     )
     with pytest.raises(expected_exception, match=re.escape(error_match)):
         my_stratification.stratify(STUDENT_TABLE)

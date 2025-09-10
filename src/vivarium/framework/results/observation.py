@@ -29,6 +29,7 @@ import pandas as pd
 from pandas.api.types import CategoricalDtype
 from pandas.core.groupby.generic import DataFrameGroupBy
 
+from vivarium.exceptions import VivariumError
 from vivarium.framework.event import Event
 from vivarium.framework.results.stratification import Stratification
 from vivarium.framework.values import Pipeline
@@ -58,9 +59,7 @@ class Observation(ABC):
     """List of columns required for this observation."""
     requires_values: list[Pipeline]
     """List of values required for this observation."""
-    results_initializer: Callable[
-        [tuple[str, ...] | None, list[Stratification]], pd.DataFrame
-    ]
+    results_initializer: Callable[[], pd.DataFrame]
     """Method or function that initializes the raw observation results
     prior to starting the simulation. This could return, for example, an empty
     DataFrame or one with a complete set of stratifications as the index and
@@ -78,10 +77,10 @@ class Observation(ABC):
     gathered results."""
     results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame]
     """Method or function that formats the raw observation results."""
-    stratifications: tuple[str, ...] | None
-    """Optional tuple of column names for the observation to stratify by."""
     to_observe: Callable[[Event], bool]
     """Method or function that determines whether to perform an observation on this Event."""
+    stratifications: tuple[Stratification, ...] | None = None
+    """Optional tuple of the Stratifications this observation should use."""
 
     def observe(
         self,
@@ -176,7 +175,6 @@ class UnstratifiedObservation(Observation):
             results_gatherer=_wrap_results_gatherer,
             results_updater=results_updater,
             results_formatter=results_formatter,
-            stratifications=None,
             to_observe=to_observe,
         )
 
@@ -185,18 +183,8 @@ class UnstratifiedObservation(Observation):
         return False
 
     @staticmethod
-    def create_empty_df(
-        requested_stratification_names: tuple[str, ...] | None,
-        registered_stratifications: list[Stratification],
-    ) -> pd.DataFrame:
+    def create_empty_df() -> pd.DataFrame:
         """Initialize an empty dataframe.
-
-        Parameters
-        ----------
-        requested_stratification_names
-            The names of the stratifications requested for this observation.
-        registered_stratifications
-            The list of all registered stratifications.
 
         Returns
         -------
@@ -231,9 +219,6 @@ class StratifiedObservation(Observation):
         Method or function that updates existing raw observation results with newly gathered results.
     results_formatter
         Method or function that formats the raw observation results.
-    stratifications
-        Tuple of column names for the observation to stratify by. If empty,
-        the observation is aggregated over the entire population.
     aggregator_sources
         List of population view columns to be used in the `aggregator`.
     aggregator
@@ -252,7 +237,6 @@ class StratifiedObservation(Observation):
         requires_values: list[Pipeline],
         results_updater: Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-        stratifications: tuple[str, ...],
         aggregator_sources: list[str] | None,
         aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
         to_observe: Callable[[Event], bool] = lambda event: True,
@@ -267,7 +251,6 @@ class StratifiedObservation(Observation):
             results_gatherer=self.get_complete_stratified_results,  # type: ignore [arg-type]
             results_updater=results_updater,
             results_formatter=results_formatter,
-            stratifications=stratifications,
             to_observe=to_observe,
         )
         self.aggregator_sources = aggregator_sources
@@ -277,19 +260,13 @@ class StratifiedObservation(Observation):
     def is_stratified(cls) -> bool:
         return True
 
-    @staticmethod
-    def create_expanded_df(
-        requested_stratification_names: tuple[str, ...] | None,
-        registered_stratifications: list[Stratification],
-    ) -> pd.DataFrame:
+    def create_expanded_df(self) -> pd.DataFrame:
         """Initialize a dataframe of 0s with complete set of stratifications as the index.
 
         Parameters
         ----------
-        requested_stratification_names
-            The names of the stratifications requested for this observation.
-        registered_stratifications
-            The list of all registered stratifications.
+        stratifications
+            The stratifications requested for this observation.
 
         Returns
         -------
@@ -302,17 +279,14 @@ class StratifiedObservation(Observation):
         """
 
         # Set up the complete index of all used stratifications
-        if requested_stratification_names is not None:
-            requested_and_registered_stratifications = [
-                stratification
-                for stratification in registered_stratifications
-                if stratification.name in requested_stratification_names
-            ]
-        else:
-            requested_and_registered_stratifications = []
+        if self.stratifications is None:
+            raise VivariumError(
+                f"StratifiedObserver {self.name} has None set as its stratifications."
+            )
+
         stratification_values = {
             stratification.name: stratification.categories
-            for stratification in requested_and_registered_stratifications
+            for stratification in self.stratifications
         }
         if stratification_values:
             stratification_names = list(stratification_values.keys())
@@ -420,7 +394,8 @@ class AddingObservation(StratifiedObservation):
     results_formatter
         Method or function that formats the raw observation results.
     stratifications
-        Optional tuple of column names for the observation to stratify by.
+        Tuple of Stratifications to be used by the observation. If empty, the observation is
+        aggregated over the entire population.
     aggregator_sources
         List of population view columns to be used in the `aggregator`.
     aggregator
@@ -438,7 +413,6 @@ class AddingObservation(StratifiedObservation):
         requires_columns: list[str],
         requires_values: list[Pipeline],
         results_formatter: Callable[[str, pd.DataFrame], pd.DataFrame],
-        stratifications: tuple[str, ...],
         aggregator_sources: list[str] | None,
         aggregator: Callable[[pd.DataFrame], float | pd.Series[float]],
         to_observe: Callable[[Event], bool] = lambda event: True,
@@ -451,7 +425,6 @@ class AddingObservation(StratifiedObservation):
             requires_values=requires_values,
             results_updater=self.add_results,
             results_formatter=results_formatter,
-            stratifications=stratifications,
             aggregator_sources=aggregator_sources,
             aggregator=aggregator,
             to_observe=to_observe,

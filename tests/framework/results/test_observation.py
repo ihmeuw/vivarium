@@ -29,7 +29,6 @@ def stratified_observation() -> StratifiedObservation:
         requires_values=[],
         results_updater=lambda _, __: pd.DataFrame(),
         results_formatter=lambda _, __: pd.DataFrame(),
-        stratifications=(),
         aggregator_sources=None,
         aggregator=lambda _: 0.0,
     )
@@ -244,7 +243,6 @@ def test_adding_observation_results_updater(new_observations: pd.DataFrame) -> N
         requires_columns=[],
         requires_values=[],
         results_formatter=lambda _, __: pd.DataFrame(),
-        stratifications=(),
         aggregator_sources=None,
         aggregator=lambda _: 0.0,
     )
