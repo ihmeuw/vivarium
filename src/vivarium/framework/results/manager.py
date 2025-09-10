@@ -129,7 +129,7 @@ class ResultsManager(Manager):
     def gather_results(self, event: Event) -> None:
         """Update existing results with any new results."""
         observations = self._results_context.get_observations(event)
-        stratifications = self._results_context.get_stratifications(event)
+        stratifications = self._results_context.get_stratifications(observations)
         if not observations or event.index.empty:
             return
 

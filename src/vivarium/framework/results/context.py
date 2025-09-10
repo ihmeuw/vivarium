@@ -364,25 +364,27 @@ class ResultsContext:
             if observation.to_observe(event)
         ]
 
-    def get_stratifications(self, event: Event) -> list[Stratification]:
-        """Get all stratifications for a given event.
+    def get_stratifications(self, observations: list[Observation]) -> list[Stratification]:
+        """Get all stratifications for a given set of observations.
 
         Parameters
         ----------
-        event
-            The current Event.
+        observations
+            The observations to gather stratifications from.
 
         Returns
         -------
-            A list of Stratifications for the given event. Only includes stratifications
-            whose `to_observe` method returns True.
+            A list of Stratifications used by at least one of the observations.
         """
-        return [
-            self.stratifications[stratification_name]
-            for _, stratification_names in self.grouped_observations[event.name]
-            if stratification_names is not None
-            for stratification_name in stratification_names
-        ]
+
+        return list(
+            {
+                stratification.name: stratification
+                for observation in observations
+                if observation.stratifications is not None
+                for stratification in observation.stratifications
+            }.values()
+        )
 
     def get_required_columns(
         self, observations: list[Observation], stratifications: list[Stratification]
