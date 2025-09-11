@@ -51,7 +51,7 @@ class Mortality(Component):
         self.config = builder.configuration.mortality
         self.randomness = builder.randomness.get_stream("mortality")
 
-        self.mortality_rate = builder.value.register_rate_producer(
+        self.mortality_rate = builder.value.register_attribute_rate_producer(
             "mortality_rate", source=self.base_mortality_rate
         )
 

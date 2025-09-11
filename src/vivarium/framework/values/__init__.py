@@ -22,7 +22,6 @@ from vivarium.framework.values.pipeline import (
     ValueSource,
 )
 from vivarium.framework.values.post_processors import (
-    AttributePostProcessor,
     PostProcessor,
     rescale_post_processor,
     union_post_processor,

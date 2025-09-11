@@ -13,10 +13,7 @@ from vivarium.manager import Manager
 if TYPE_CHECKING:
     from vivarium.framework.values.combiners import ValueCombiner
     from vivarium.framework.values.manager import ValuesManager
-    from vivarium.framework.values.post_processors import (
-        AttributePostProcessor,
-        PostProcessor,
-    )
+    from vivarium.framework.values.post_processors import PostProcessor
 
 T = TypeVar("T")
 
@@ -284,7 +281,7 @@ class Pipeline(Resource):
         self,
         component: Component | None,
         combiner: ValueCombiner,
-        post_processor: PostProcessor | AttributePostProcessor | None,
+        post_processor: PostProcessor | None,
         manager: ValuesManager,
     ) -> None:
         """Set the common attributes for all pipeline types."""
@@ -298,8 +295,8 @@ class AttributePipeline(Pipeline):
     """A type of value pipeline for calculating simulant attributes.
 
     An attribute pipeline is a specific type of :class:`~vivarium.framework.values.pipeline.Pipeline`
-    where the source and callable must take a pd.Index of integers and return a pd.DataFrame
-    that has that same index.
+    where the source and callable must take a pd.Index of integers and return a pd.Series or
+    pd.DataFrame that has that same index.
 
     """
 

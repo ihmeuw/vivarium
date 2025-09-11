@@ -47,15 +47,15 @@ class Risk(Component):
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
         proportion_exposed = builder.configuration[self.risk].proportion_exposed
-        self.base_exposure_threshold = builder.value.register_value_producer(
+        self.base_exposure_threshold = builder.value.register_attribute_producer(
             f"{self.risk}.base_proportion_exposed",
             source=lambda index: pd.Series(proportion_exposed, index=index),
         )
-        self.exposure_threshold = builder.value.register_value_producer(
+        self.exposure_threshold = builder.value.register_attribute_producer(
             f"{self.risk}.proportion_exposed", source=self.base_exposure_threshold
         )
 
-        self.exposure = builder.value.register_value_producer(
+        self.exposure = builder.value.register_attribute_producer(
             f"{self.risk}.exposure",
             source=self._exposure,
             required_resources=[self.propensity_column, self.exposure_threshold],
@@ -106,23 +106,23 @@ class RiskEffect(Component):
 
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
-        self.base_risk_exposure = builder.value.get_value(
+        self.base_risk_exposure = builder.value.get_attribute(
             f"{self.risk_name}.base_proportion_exposed"
         )
-        self.actual_risk_exposure = builder.value.get_value(f"{self.risk_name}.exposure")
+        self.actual_risk_exposure = builder.value.get_attribute(f"{self.risk_name}.exposure")
 
         relative_risk = builder.configuration[self.risk].relative_risk
-        self.relative_risk = builder.value.register_value_producer(
+        self.relative_risk = builder.value.register_attribute_producer(
             f"{self.risk}.relative_risk",
             source=lambda index: pd.Series(relative_risk, index=index),
         )
 
-        builder.value.register_value_modifier(
+        builder.value.register_attribute_modifier(
             f"{self.disease_rate}.population_attributable_fraction",
             self.population_attributable_fraction,
             required_resources=[self.base_risk_exposure, self.relative_risk],
         )
-        builder.value.register_value_modifier(
+        builder.value.register_attribute_modifier(
             f"{self.disease_rate}",
             self.rate_adjustment,
             required_resources=[self.actual_risk_exposure, self.relative_risk],

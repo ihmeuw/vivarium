@@ -117,7 +117,7 @@ class ValuesManager(Manager):
         component: Component,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
-        preferred_post_processor: AttributePostProcessor | None = None,
+        preferred_post_processor: PostProcessor | None = None,
     ) -> AttributePipeline:
         """Marks a ``Callable`` as the producer of a named attribute.
 
@@ -467,7 +467,7 @@ class ValuesInterface(Interface):
         component: Component,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
-        preferred_post_processor: AttributePostProcessor | None = None,
+        preferred_post_processor: PostProcessor | None = None,
     ) -> AttributePipeline:
         """Marks a ``Callable`` as the producer of a named attribute.
 
@@ -557,6 +557,64 @@ class ValuesInterface(Interface):
             A callable reference to the named dynamic rate pipeline.
         """
         return self.register_value_producer(
+            rate_name,
+            source,
+            component,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            required_resources,
+            preferred_post_processor=rescale_post_processor,
+        )
+
+    def register_attribute_rate_producer(
+        self,
+        rate_name: str,
+        source: Callable[[pd.Index[int]], pd.Series[Any] | pd.DataFrame],
+        # TODO [MIC-5452]: all calls should have a component
+        component: Component | None = None,
+        requires_columns: Iterable[str] = (),
+        requires_values: Iterable[str] = (),
+        requires_streams: Iterable[str] = (),
+        required_resources: Sequence[str | Resource] = (),
+    ) -> Pipeline:
+        """Marks a ``Callable`` as the producer of a named attribute rate.
+
+        This is a convenience wrapper around ``register_attribute_producer`` that
+        makes sure rate data is appropriately scaled to the size of the
+        simulation time step. It is equivalent to
+        ``register_attribute_producer(value_name, source,
+        preferred_combiner=replace_combiner,
+        preferred_post_processor=rescale_post_processor)``
+
+        Parameters
+        ----------
+        rate_name
+            The name of the new dynamic attribute rate pipeline.
+        source
+            A callable source for the dynamic attribute rate pipeline.
+        component
+            The component that is registering the attribute rate producer.
+        requires_columns
+            A list of the state table columns that already need to be present
+            and populated in the state table before the pipeline source
+            is called.
+        requires_values
+            A list of the value pipelines that need to be properly sourced
+            before the pipeline source is called.
+        requires_streams
+            A list of the randomness streams that need to be properly sourced
+            before the pipeline source is called.
+        required_resources
+            A list of resources that need to be properly sourced before the
+            pipeline source is called This is a list of strings, pipeline
+            names, or randomness streams.
+
+        Returns
+        -------
+            A callable reference to the named dynamic attribute rate pipeline.
+        """
+        return self.register_attribute_producer(
             rate_name,
             source,
             component,
