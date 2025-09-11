@@ -188,7 +188,7 @@ class Pipeline(Resource):
             This is useful when the post-processor acts as some sort of final
             unit conversion (e.g. the rescale post processor).
         args, kwargs
-            Pipeline arguments.  These should be the arguments to the
+            Pipeline arguments. These should be the arguments to the
             callable source of the pipeline.
 
         Returns
@@ -329,7 +329,8 @@ class AttributePipeline(Pipeline):
         DynamicValueError
             If the pipeline is invoked without a source set.
         """
-        attribute = self._call(index=index, skip_post_processor=skip_post_processor)
+        # NOTE: must pass index in as arg (NOT kwarg!) to match signature of parent Pipeline._call()
+        attribute = self._call(index, skip_post_processor=skip_post_processor)
         if not isinstance(attribute, pd.DataFrame):
             raise DynamicValueError(
                 f"The dynamic attribute pipeline for {self.name} returned a {type(attribute)} "
@@ -338,7 +339,7 @@ class AttributePipeline(Pipeline):
         if not attribute.index.equals(index):
             raise DynamicValueError(
                 f"The dynamic attribute pipeline for {self.name} returned a DataFrame "
-                "a different index than was passed in. "
+                "with a different index than was passed in. "
                 f"\nReturned index: {attribute.index}"
                 f"\nExpected index: {index}"
             )
