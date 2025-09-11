@@ -188,13 +188,15 @@ class ValuesManager(Manager):
                 f"Cannot register value modifier to {value_name} because it is an "
                 "AttributePipeline. Did you mean to use `register_attribute_modifier()`?"
             ) from e
-        value_modifier = pipeline.get_value_modifier(modifier, component)
-        self.logger.debug(f"Registering {value_modifier.name} as modifier to {value_name}")
-
-        dependencies = self._convert_dependencies(
-            modifier, requires_columns, requires_values, requires_streams, required_resources
+        self._configure_modifier(
+            pipeline,
+            modifier,
+            component,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            required_resources,
         )
-        self.resources.add_resources(component, [value_modifier], dependencies)
 
     def register_attribute_modifier(
         self,
@@ -245,13 +247,15 @@ class ValuesManager(Manager):
                 f"Cannot register attribute modifier to {value_name} because it is not an "
                 "AttributePipeline. Did you mean to use `register_value_modifier()`?"
             ) from e
-        value_modifier = pipeline.get_value_modifier(modifier, component)
-        self.logger.debug(f"Registering {value_modifier.name} as modifier to {value_name}")
-
-        dependencies = self._convert_dependencies(
-            modifier, requires_columns, requires_values, requires_streams, required_resources
+        self._configure_modifier(
+            pipeline,
+            modifier,
+            component,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            required_resources,
         )
-        self.resources.add_resources(component, [value_modifier], dependencies)
 
     def get_value(self, name: str) -> Pipeline:
         """Retrieve the pipeline representing the named value.
@@ -340,6 +344,23 @@ class ValuesManager(Manager):
                 lifecycle_states.POST_SETUP,
             ],
         )
+
+    def _configure_modifier(
+        self,
+        pipeline: Pipeline | AttributePipeline,
+        modifier: Callable[..., Any],
+        component: Component | Manager | None,
+        requires_columns: Iterable[str],
+        requires_values: Iterable[str],
+        requires_streams: Iterable[str],
+        required_resources: Sequence[str | Resource],
+    ) -> None:
+        value_modifier = pipeline.get_value_modifier(modifier, component)
+        self.logger.debug(f"Registering {value_modifier.name} as modifier to {pipeline.name}")
+        dependencies = self._convert_dependencies(
+            modifier, requires_columns, requires_values, requires_streams, required_resources
+        )
+        self.resources.add_resources(component, [value_modifier], dependencies)
 
     @staticmethod
     def _convert_dependencies(
