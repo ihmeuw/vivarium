@@ -92,32 +92,17 @@ class ValuesManager(Manager):
         """
         self.logger.debug(f"Registering value pipeline {value_name}")
         pipeline = self.get_value(value_name)
-        pipeline.set_attributes(
-            component,
+        self._configure_pipeline(
+            pipeline,
             source,
+            component,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            required_resources,
             preferred_combiner,
             preferred_post_processor,
-            self,
         )
-
-        # The resource we add here is just the pipeline source.
-        # The value will depend on the source and its modifiers, and we'll
-        # declare that resource at post-setup once all sources and modifiers
-        # are registered.
-        dependencies = self._convert_dependencies(
-            source, requires_columns, requires_values, requires_streams, required_resources
-        )
-        self.resources.add_resources(pipeline.component, [pipeline.source], dependencies)
-
-        self.add_constraint(
-            pipeline._call,
-            restrict_during=[
-                lifecycle_states.INITIALIZATION,
-                lifecycle_states.SETUP,
-                lifecycle_states.POST_SETUP,
-            ],
-        )
-
         return pipeline
 
     def register_attribute_producer(
@@ -141,32 +126,17 @@ class ValuesManager(Manager):
         """
         self.logger.debug(f"Registering attribute pipeline {value_name}")
         pipeline = self.get_attribute(value_name)
-        pipeline.set_attributes(
-            component,
+        self._configure_pipeline(
+            pipeline,
             source,
+            component,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            required_resources,
             preferred_combiner,
             preferred_post_processor,
-            self,
         )
-
-        # The resource we add here is just the pipeline source.
-        # The value will depend on the source and its modifiers, and we'll
-        # declare that resource at post-setup once all sources and modifiers
-        # are registered.
-        dependencies = self._convert_dependencies(
-            source, requires_columns, requires_values, requires_streams, required_resources
-        )
-        self.resources.add_resources(pipeline.component, [pipeline.source], dependencies)
-
-        self.add_constraint(
-            pipeline._call,
-            restrict_during=[
-                lifecycle_states.INITIALIZATION,
-                lifecycle_states.SETUP,
-                lifecycle_states.POST_SETUP,
-            ],
-        )
-
         return pipeline
 
     def register_value_modifier(
@@ -328,6 +298,48 @@ class ValuesManager(Manager):
             )
         self._pipelines[name] = pipeline
         return pipeline
+
+    ##################
+    # Helper methods #
+    ##################
+
+    def _configure_pipeline(
+        self,
+        pipeline: Pipeline | AttributePipeline,
+        source: Callable[..., Any],
+        component: Component | None,
+        requires_columns: Iterable[str],
+        requires_values: Iterable[str],
+        requires_streams: Iterable[str],
+        required_resources: Sequence[str | Resource],
+        preferred_combiner: ValueCombiner,
+        preferred_post_processor: PostProcessor | AttributePostProcessor | None,
+    ) -> None:
+        pipeline.set_attributes(
+            component,
+            source,
+            preferred_combiner,
+            preferred_post_processor,
+            self,
+        )
+
+        # The resource we add here is just the pipeline source.
+        # The value will depend on the source and its modifiers, and we'll
+        # declare that resource at post-setup once all sources and modifiers
+        # are registered.
+        dependencies = self._convert_dependencies(
+            source, requires_columns, requires_values, requires_streams, required_resources
+        )
+        self.resources.add_resources(pipeline.component, [pipeline.source], dependencies)
+
+        self.add_constraint(
+            pipeline._call,
+            restrict_during=[
+                lifecycle_states.INITIALIZATION,
+                lifecycle_states.SETUP,
+                lifecycle_states.POST_SETUP,
+            ],
+        )
 
     @staticmethod
     def _convert_dependencies(
