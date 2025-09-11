@@ -31,7 +31,7 @@ class Movement(Component):
     def setup(self, builder: Builder) -> None:
         self.config = builder.configuration
 
-        self.acceleration = builder.value.register_value_producer(
+        self.acceleration = builder.value.register_attribute_producer(
             "acceleration", source=self.base_acceleration
         )
 
@@ -66,6 +66,8 @@ class Movement(Component):
         acceleration = self.acceleration(event.index)
 
         # Accelerate and limit velocity
+        if not isinstance(acceleration, pd.DataFrame):
+            raise ValueError("Acceleration must be a pd.DataFrame")
         pop[["vx", "vy"]] += acceleration.rename(columns=lambda c: f"v{c}")
         speed = np.sqrt(np.square(pop.vx) + np.square(pop.vy))
         velocity_scaling_factor = np.where(
