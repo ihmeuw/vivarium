@@ -256,25 +256,36 @@ def test_attribute_pipeline_raises_returns_different_index(manager: ValuesManage
         pipeline(index)
 
 
-def test_attribute_pipeline_raises_no_dataframe_returned(manager: ValuesManager) -> None:
-    """Test than an error is raised when something other than a pd.DataFrame is returned."""
+def test_attribute_pipeline_return_types(manager: ValuesManager) -> None:
     index = pd.Index([4, 8, 15, 16, 23, 42])
+
+    def series_attribute_source(index: pd.Index[int]) -> pd.Series[float]:
+        return pd.Series([1.0] * len(index), index=index)
+
+    def dataframe_attribute_source(index: pd.Index[int]) -> pd.DataFrame:
+        return pd.DataFrame({"col1": [1.0] * len(index)}, index=index)
 
     def bad_attribute_source(index: pd.Index[int]) -> str:
         return "foo"
 
-    pipeline = manager.register_attribute_producer(
-        "test_attribute", source=bad_attribute_source
+    series_pipeline = manager.register_attribute_producer(
+        "test_series_attribute", source=series_attribute_source
+    )
+    dataframe_pipeline = manager.register_attribute_producer(
+        "test_dataframe_attribute", source=dataframe_attribute_source
+    )
+    bad_pipeline = manager.register_attribute_producer(
+        "test_bad_attribute", source=bad_attribute_source  # type: ignore [arg-type]
     )
 
     with pytest.raises(
         DynamicValueError,
         match=(
-            f"The dynamic attribute pipeline for {pipeline.name} returned a "
-            f"{type('foo')} but pd.DataFrames are expected for attribute pipelines."
+            f"The dynamic attribute pipeline for {bad_pipeline.name} returned a {type('foo')} "
+            "but pd.Series' or pd.DataFrames are expected for attribute pipelines."
         ),
     ):
-        pipeline(index)
+        bad_pipeline(index)
 
 
 @pytest.mark.parametrize("skip_post_processor", [True, False])
@@ -329,7 +340,7 @@ def test_value_vs_attribute_calls_raise(manager: ValuesManager) -> None:
 
     # Test that value calls raise errors for attribute pipeline
     with pytest.raises(
-        ValueError,
+        DynamicValueError,
         match=re.escape(
             "Pipeline test_attribute is an AttributePipeline, not a Pipeline - try `get_attribute()`"
         ),
@@ -337,7 +348,7 @@ def test_value_vs_attribute_calls_raise(manager: ValuesManager) -> None:
         manager.get_value("test_attribute")
 
     with pytest.raises(
-        ValueError,
+        DynamicValueError,
         match=re.escape(
             "Cannot register value modifier to test_attribute because it is an AttributePipeline. "
             "Did you mean to use `register_attribute_modifier()`?",
@@ -347,7 +358,7 @@ def test_value_vs_attribute_calls_raise(manager: ValuesManager) -> None:
 
     # Test that attribute calls raise errors for regular pipeline
     with pytest.raises(
-        ValueError,
+        DynamicValueError,
         match=re.escape(
             "Pipeline test_value is not an AttributePipeline - try `get_value()`"
         ),
@@ -355,7 +366,7 @@ def test_value_vs_attribute_calls_raise(manager: ValuesManager) -> None:
         manager.get_attribute("test_value")
 
     with pytest.raises(
-        ValueError,
+        DynamicValueError,
         match=re.escape(
             "Cannot register attribute modifier to test_value because it is not an AttributePipeline. "
             "Did you mean to use `register_value_modifier()`?",

@@ -18,13 +18,6 @@ class PostProcessor(Protocol):
         ...
 
 
-class AttributePostProcessor(Protocol):
-    """An attribute pipeline post-processor must return a pd.DataFrame."""
-
-    def __call__(self, value: Any, manager: ValuesManager) -> pd.DataFrame:
-        ...
-
-
 def rescale_post_processor(value: NumberLike, manager: ValuesManager) -> NumberLike:
     """Rescales annual rates to time-step appropriate rates.
 

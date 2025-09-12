@@ -34,11 +34,11 @@ class TreatmentIntervention(Component):
     # noinspection PyAttributeOutsideInit
     def setup(self, builder: Builder) -> None:
         effect_size = builder.configuration[self.intervention].effect_size
-        self.effect_size = builder.value.register_value_producer(
+        self.effect_size = builder.value.register_attribute_producer(
             f"{self.intervention}.effect_size",
             source=lambda index: pd.Series(effect_size, index=index),
         )
-        builder.value.register_value_modifier(
+        builder.value.register_attribute_modifier(
             self.affected_value,
             modifier=self.intervention_effect,
             required_resources=[self.effect_size],

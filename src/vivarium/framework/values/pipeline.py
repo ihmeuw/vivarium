@@ -13,10 +13,7 @@ from vivarium.manager import Manager
 if TYPE_CHECKING:
     from vivarium.framework.values.combiners import ValueCombiner
     from vivarium.framework.values.manager import ValuesManager
-    from vivarium.framework.values.post_processors import (
-        AttributePostProcessor,
-        PostProcessor,
-    )
+    from vivarium.framework.values.post_processors import PostProcessor
 
 T = TypeVar("T")
 
@@ -273,7 +270,7 @@ class Pipeline(Resource):
         self,
         component: Component | None,
         combiner: ValueCombiner,
-        post_processor: PostProcessor | AttributePostProcessor | None,
+        post_processor: PostProcessor | None,
         manager: ValuesManager,
     ) -> None:
         """Set the common attributes for all pipeline types."""
@@ -287,8 +284,8 @@ class AttributePipeline(Pipeline):
     """A type of value pipeline for calculating simulant attributes.
 
     An attribute pipeline is a specific type of :class:`~vivarium.framework.values.pipeline.Pipeline`
-    where the source and callable must take a pd.Index of integers and return a pd.DataFrame
-    that has that same index.
+    where the source and callable must take a pd.Index of integers and return a pd.Series or
+    pd.DataFrame that has that same index.
 
     """
 
@@ -301,14 +298,14 @@ class AttributePipeline(Pipeline):
         """A list of callables that directly modify the pipeline source or
         contribute portions of the attribute."""
         self._combiner: ValueCombiner | None = None
-        self.post_processor: AttributePostProcessor | None = None
+        self.post_processor: PostProcessor | None = None
         """An optional final transformation to perform on the combined output of
         the source and mutators."""
         self._manager: ValuesManager | None = None
 
     def __call__(  # type: ignore[override]
         self, index: pd.Index[int], skip_post_processor: bool = False
-    ) -> pd.DataFrame:
+    ) -> pd.Series[Any] | pd.DataFrame:
         """Generates the attributes dataframe represented by this pipeline.
 
         Arguments
@@ -322,7 +319,7 @@ class AttributePipeline(Pipeline):
 
         Returns
         -------
-            A pd.DataFrame of attributes for the simulants in `index`.
+            A pd.Series or pd.DataFrame of attributes for the simulants in `index`.
 
         Raises
         ------
@@ -331,10 +328,10 @@ class AttributePipeline(Pipeline):
         """
         # NOTE: must pass index in as arg (NOT kwarg!) to match signature of parent Pipeline._call()
         attribute = self._call(index, skip_post_processor=skip_post_processor)
-        if not isinstance(attribute, pd.DataFrame):
+        if not isinstance(attribute, (pd.Series, pd.DataFrame)):
             raise DynamicValueError(
                 f"The dynamic attribute pipeline for {self.name} returned a {type(attribute)} "
-                "but pd.DataFrames are expected for attribute pipelines."
+                "but pd.Series' or pd.DataFrames are expected for attribute pipelines."
             )
         if not attribute.index.equals(index):
             raise DynamicValueError(
@@ -348,9 +345,9 @@ class AttributePipeline(Pipeline):
     def set_attributes(
         self,
         component: Component | None,
-        source: Callable[[pd.Index[int]], Any],
+        source: Callable[[pd.Index[int]], pd.Series[Any] | pd.DataFrame],
         combiner: ValueCombiner,
-        post_processor: AttributePostProcessor | None,
+        post_processor: PostProcessor | None,
         manager: ValuesManager,
     ) -> None:
         """
@@ -362,7 +359,7 @@ class AttributePipeline(Pipeline):
             The component that creates the pipeline.
         source
             The callable source of the attribute represented by the pipeline.
-            Must take a pd.Index[int] and return a pd.DataFrame.
+            Must take a pd.Index[int] and return a pd.Series or pd.DataFrame.
         combiner
             A strategy for combining the source and mutator attributes into the
             final attribute represented by the pipeline.
