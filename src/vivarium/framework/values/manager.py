@@ -30,11 +30,16 @@ class ValuesManager(Manager):
 
     def __init__(self) -> None:
         # Pipelines are lazily initialized by _register_value_producer
-        self._pipelines: dict[str, Pipeline] = {}
+        self._value_pipelines: dict[str, Pipeline] = {}
+        self._attribute_pipelines: dict[str, AttributePipeline] = {}
 
     @property
     def name(self) -> str:
         return "values_manager"
+
+    @property
+    def _all_pipelines(self) -> dict[str, Pipeline | AttributePipeline]:
+        return {**self._value_pipelines, **self._attribute_pipelines}
 
     def setup(self, builder: Builder) -> None:
         self.logger = builder.logging.get_logger(self.name)
@@ -56,7 +61,10 @@ class ValuesManager(Manager):
         """Finalizes dependency structure for the pipelines."""
         # Unsourced pipelines might occur when generic components register
         # modifiers to values that aren't required in a simulation.
-        unsourced_pipelines = [p for p, v in self._pipelines.items() if not v.source]
+        unsourced_pipelines = [p for p, v in self._value_pipelines.items() if not v.source]
+        unsourced_pipelines += [
+            p for p, v in self._attribute_pipelines.items() if not v.source
+        ]
         if unsourced_pipelines:
             self.logger.warning(f"Unsourced pipelines: {unsourced_pipelines}")
 
@@ -66,9 +74,9 @@ class ValuesManager(Manager):
         # dependency structure for the pipeline itself until now, where
         # we say the pipeline value depends on its source and all its
         # modifiers.
-        for name, pipe in self._pipelines.items():
+        for pipeline in self.values():
             self.resources.add_resources(
-                pipe.component, [pipe], [pipe.source] + list(pipe.mutators)
+                pipeline.component, [pipeline], [pipeline.source] + list(pipeline.mutators)
             )
 
     def register_value_producer(
@@ -181,13 +189,7 @@ class ValuesManager(Manager):
             pipeline modifier is called. This is a list of strings, pipeline
             names, or randomness streams.
         """
-        try:
-            pipeline = self.get_value(value_name)
-        except ValueError as e:
-            raise ValueError(
-                f"Cannot register value modifier to {value_name} because it is an "
-                "AttributePipeline. Did you mean to use `register_attribute_modifier()`?"
-            ) from e
+        pipeline = self.get_value(value_name)
         self._configure_modifier(
             pipeline,
             modifier,
@@ -240,13 +242,7 @@ class ValuesManager(Manager):
             pipeline modifier is called. This is a list of strings, pipeline
             names, or randomness streams.
         """
-        try:
-            pipeline = self.get_attribute(value_name)
-        except ValueError as e:
-            raise ValueError(
-                f"Cannot register attribute modifier to {value_name} because it is not an "
-                "AttributePipeline. Did you mean to use `register_value_modifier()`?"
-            ) from e
+        pipeline = self.get_attribute(value_name)
         self._configure_modifier(
             pipeline,
             modifier,
@@ -272,13 +268,8 @@ class ValuesManager(Manager):
             (frequently just a :class:`pandas.Index` representing the
             simulants).
         """
-        pipeline = self._pipelines.get(name) or Pipeline(name)
-        if isinstance(pipeline, AttributePipeline):
-            raise ValueError(
-                f"Pipeline {name} is an AttributePipeline, not a Pipeline - try "
-                "`get_attribute()`"
-            )
-        self._pipelines[name] = pipeline
+        pipeline = self._value_pipelines.get(name) or Pipeline(name)
+        self._value_pipelines[name] = pipeline
         return pipeline
 
     def get_attribute(self, name: str) -> AttributePipeline:
@@ -295,12 +286,8 @@ class ValuesManager(Manager):
             attribute pipeline argument must a :class:`pandas.Index` representing
             the simulants and must return a :class:`pandas.DataFrame` with that same index.
         """
-        pipeline = self._pipelines.get(name) or AttributePipeline(name)
-        if not isinstance(pipeline, AttributePipeline):
-            raise ValueError(
-                f"Pipeline {name} is not an AttributePipeline - try `get_value()`"
-            )
-        self._pipelines[name] = pipeline
+        pipeline = self._attribute_pipelines.get(name) or AttributePipeline(name)
+        self._attribute_pipelines[name] = pipeline
         return pipeline
 
     ##################
@@ -398,21 +385,21 @@ class ValuesManager(Manager):
 
     def keys(self) -> Iterable[str]:
         """Get an iterable of pipeline names."""
-        return self._pipelines.keys()
+        return self._all_pipelines.keys()
 
     def items(self) -> Iterable[tuple[str, Pipeline]]:
         """Get an iterable of name, pipeline tuples."""
-        return self._pipelines.items()
+        return self._all_pipelines.items()
 
     def values(self) -> Iterable[Pipeline]:
         """Get an iterable of all pipelines."""
-        return self._pipelines.values()
+        return self._all_pipelines.values()
 
     def __contains__(self, item: str) -> bool:
-        return item in self._pipelines
+        return item in self._all_pipelines
 
     def __iter__(self) -> Iterable[str]:
-        return iter(self._pipelines)
+        return iter(self._all_pipelines)
 
     def __repr__(self) -> str:
         return "ValuesManager()"

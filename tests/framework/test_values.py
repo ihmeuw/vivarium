@@ -321,44 +321,10 @@ def test_get_attribute(manager: ValuesManager) -> None:
     assert pipeline is pipeline2
 
 
-def test_value_vs_attribute_calls_raise(manager: ValuesManager) -> None:
-    """Test that ValuesManager enforces separation between values and attributes."""
-
-    value_pipeline = manager.get_value("test_value")
-    attr_pipeline = manager.get_attribute("test_attribute")
-
-    # Test that value calls raise errors for attribute pipeline
-    with pytest.raises(
-        ValueError,
-        match=re.escape(
-            "Pipeline test_attribute is an AttributePipeline, not a Pipeline - try `get_attribute()`"
-        ),
-    ):
-        manager.get_value("test_attribute")
-
-    with pytest.raises(
-        ValueError,
-        match=re.escape(
-            "Cannot register value modifier to test_attribute because it is an AttributePipeline. "
-            "Did you mean to use `register_attribute_modifier()`?",
-        ),
-    ):
-        manager.register_value_modifier("test_attribute", lambda x: x)
-
-    # Test that attribute calls raise errors for regular pipeline
-    with pytest.raises(
-        ValueError,
-        match=re.escape(
-            "Pipeline test_value is not an AttributePipeline - try `get_value()`"
-        ),
-    ):
-        manager.get_attribute("test_value")
-
-    with pytest.raises(
-        ValueError,
-        match=re.escape(
-            "Cannot register attribute modifier to test_value because it is not an AttributePipeline. "
-            "Did you mean to use `register_value_modifier()`?",
-        ),
-    ):
-        manager.register_attribute_modifier("test_value", lambda x: x)
+def test_same_names(manager: ValuesManager) -> None:
+    """Tests that we can have both a Pipeline and AttributePipeline with the same name."""
+    shared_name = "test_pipeline"
+    manager.register_value_producer(shared_name, source=lambda: 1)
+    manager.register_attribute_producer(shared_name, source=lambda idx: pd.DataFrame())
+    assert isinstance(manager.get_value(shared_name), Pipeline)
+    assert isinstance(manager.get_attribute(shared_name), AttributePipeline)
