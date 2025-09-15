@@ -652,8 +652,9 @@ def test_get_observations(
     assert [obs.name for obs in ctx.get_observations(event)] == expected_observations
 
 
+@pytest.mark.parametrize("resource_type", ["columns", "values"])
 @pytest.mark.parametrize(
-    "observation_names, stratification_names, expected_columns",
+    "observation_names, stratification_names, expected_resources",
     [
         (["obs1", "obs2"], ["strat1", "strat2"], {"x", "y", "z", "v"}),
         (["obs3"], ["strat1", "strat2"], {"x", "y", "w", "v"}),
@@ -669,8 +670,8 @@ def test_get_observations(
         "neither",
     ],
 )
-def test_get_required_columns(
-    observation_names: list[str], stratification_names: list[str], expected_columns: set[str]
+def test_get_required_resources(
+    resource_type: str, observation_names: list[str], stratification_names: list[str], expected_resources: set[str]
 ) -> None:
     ctx = ResultsContext()
 
@@ -679,31 +680,38 @@ def test_get_required_columns(
         "observation_type": AddingObservation,
         "pop_filter": "",
         "when": lifecycle_states.COLLECT_METRICS,
-        "requires_values": [],
         "results_formatter": lambda: None,
         "stratifications": (),
         "aggregator_sources": None,
         "aggregator": len,
     }
+
+    def get_required_resources_kwargs(resource_type: str, resources: list[str]) -> dict[str, list[str] | list[Pipeline]]:
+        if resource_type == "columns":
+            return {"requires_columns": resources, "requires_values": []}
+        elif resource_type == "values":
+            return {"requires_values": [Pipeline(r) for r in resources], "requires_columns": []}
+        else:
+            raise ValueError(f"Unknown resource_type: {resource_type}")
+    
     all_observations["obs1"] = ctx.register_observation(
         name="obs1",
-        requires_columns=["x", "y"],
+        **get_required_resources_kwargs(resource_type, ["x", "y"]),
         **register_observation_kwargs,  # type: ignore[arg-type]
     )
     all_observations["obs2"] = ctx.register_observation(
         name="obs2",
-        requires_columns=["y", "z"],
+        **get_required_resources_kwargs(resource_type, ["y", "z"]),
         **register_observation_kwargs,  # type: ignore[arg-type]
     )
     all_observations["obs3"] = ctx.register_observation(
         name="obs3",
-        requires_columns=["w"],
+        **get_required_resources_kwargs(resource_type, ["w"]),
         **register_observation_kwargs,  # type: ignore[arg-type]
     )
 
     all_stratifications = {}
     stratification_kwargs = {
-        "requires_values": [],
         "categories": ["cat1", "cat2"],
         "excluded_categories": ["cat3"],
         "mapper": lambda df: df["a"] + df["b"],
@@ -711,97 +719,26 @@ def test_get_required_columns(
     }
     all_stratifications["strat1"] = Stratification(
         name="strat1",
-        requires_columns=["x", "y"],
+        **get_required_resources_kwargs(resource_type, ["x", "y"]),
         **stratification_kwargs,  # type: ignore[arg-type]
     )
     all_stratifications["strat2"] = Stratification(
         name="strat2",
-        requires_columns=["x", "v"],
+        **get_required_resources_kwargs(resource_type, ["x", "v"]),
         **stratification_kwargs,  # type: ignore[arg-type]
     )
 
     observations = [all_observations[name] for name in observation_names]
     stratifications = [all_stratifications[name] for name in stratification_names]
 
-    actual_columns = ctx.get_required_columns(observations, stratifications)
-
-    assert set(actual_columns) == {"tracked"} | expected_columns
-
-
-@pytest.mark.parametrize(
-    "observation_names, stratification_names, expected_values",
-    [
-        (["obs1", "obs2"], ["strat1", "strat2"], {"x", "y", "z", "v"}),
-        (["obs3"], ["strat1", "strat2"], {"x", "y", "w", "v"}),
-        ([], ["strat1"], {"x", "y"}),
-        (["obs2"], [], {"y", "z"}),
-        ([], [], set()),
-    ],
-    ids=[
-        "obs_and_strat_with_overlap",
-        "obs_and_strat_without_overlap",
-        "no_observations",
-        "no_stratifications",
-        "neither",
-    ],
-)
-def test_get_required_values(
-    observation_names: list[str], stratification_names: list[str], expected_values: set[str]
-) -> None:
-    ctx = ResultsContext()
-
-    all_observations = {}
-    register_observation_kwargs = {
-        "observation_type": AddingObservation,
-        "pop_filter": "",
-        "when": lifecycle_states.COLLECT_METRICS,
-        "requires_columns": [],
-        "results_formatter": lambda: None,
-        "stratifications": (),
-        "aggregator_sources": None,
-        "aggregator": len,
-    }
-    all_observations["obs1"] = ctx.register_observation(
-        name="obs1",
-        requires_values=[Pipeline("x"), Pipeline("y")],
-        **register_observation_kwargs,  # type: ignore[arg-type]
-    )
-    all_observations["obs2"] = ctx.register_observation(
-        name="obs2",
-        requires_values=[Pipeline("y"), Pipeline("z")],
-        **register_observation_kwargs,  # type: ignore[arg-type]
-    )
-    all_observations["obs3"] = ctx.register_observation(
-        name="obs3",
-        requires_values=[Pipeline("w")],
-        **register_observation_kwargs,  # type: ignore[arg-type]
-    )
-
-    all_stratifications = {}
-    stratification_kwargs = {
-        "requires_columns": [],
-        "categories": ["cat1", "cat2"],
-        "excluded_categories": ["cat3"],
-        "mapper": lambda df: df["a"] + df["b"],
-        "is_vectorized": True,
-    }
-    all_stratifications["strat1"] = Stratification(
-        name="strat1",
-        requires_values=[Pipeline("x"), Pipeline("y")],
-        **stratification_kwargs,  # type: ignore[arg-type]
-    )
-    all_stratifications["strat2"] = Stratification(
-        name="strat2",
-        requires_values=[Pipeline("x"), Pipeline("v")],
-        **stratification_kwargs,  # type: ignore[arg-type]
-    )
-
-    observations = [all_observations[name] for name in observation_names]
-    stratifications = [all_stratifications[name] for name in stratification_names]
-
-    actual_values = ctx.get_required_values(observations, stratifications)
-
-    assert {p.name for p in actual_values} == expected_values
+    if resource_type == "columns":
+        actual_columns = ctx.get_required_columns(observations, stratifications)
+        assert set(actual_columns) == {"tracked"} | expected_resources
+    elif resource_type == "values":
+        actual_columns = {p.name for p in ctx.get_required_values(observations, stratifications)}
+        assert actual_columns == expected_resources
+    else:
+        raise ValueError(f"Unknown resource_type: {resource_type}")
 
 
 @pytest.mark.parametrize(

@@ -48,6 +48,9 @@ class ResultsContext:
         Dictionary of possible per-metric stratification values to be excluded
         from results processing.
     observations
+        Dictionary of :class:`Observation <vivarium.framework.results.observation.Observation>`
+        objects to be produced keyed by the observation name.
+    grouped_observations
         Dictionary of observation details. It is of the format
         {lifecycle_state: {(pop_filter, stratifications): list[Observation]}}.
         Allowable lifecycle_states are "time_step__prepare", "time_step",

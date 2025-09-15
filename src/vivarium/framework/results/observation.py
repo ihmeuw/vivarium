@@ -263,11 +263,6 @@ class StratifiedObservation(Observation):
     def create_expanded_df(self) -> pd.DataFrame:
         """Initialize a dataframe of 0s with complete set of stratifications as the index.
 
-        Parameters
-        ----------
-        stratifications
-            The stratifications requested for this observation.
-
         Returns
         -------
             An empty DataFrame with the complete set of stratifications as the index.
