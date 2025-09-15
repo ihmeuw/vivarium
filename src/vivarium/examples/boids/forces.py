@@ -1,7 +1,6 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -15,7 +14,7 @@ class Force(Component, ABC):
     # Properties #
     ##############
     @property
-    def configuration_defaults(self) -> dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, dict[str, float]]:
         return {
             self.__class__.__name__.lower(): {
                 "max_force": 0.03,
