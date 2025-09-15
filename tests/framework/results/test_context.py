@@ -671,7 +671,10 @@ def test_get_observations(
     ],
 )
 def test_get_required_resources(
-    resource_type: str, observation_names: list[str], stratification_names: list[str], expected_resources: set[str]
+    resource_type: str,
+    observation_names: list[str],
+    stratification_names: list[str],
+    expected_resources: set[str],
 ) -> None:
     ctx = ResultsContext()
 
@@ -686,14 +689,19 @@ def test_get_required_resources(
         "aggregator": len,
     }
 
-    def get_required_resources_kwargs(resource_type: str, resources: list[str]) -> dict[str, list[str] | list[Pipeline]]:
+    def get_required_resources_kwargs(
+        resource_type: str, resources: list[str]
+    ) -> dict[str, list[str] | list[Pipeline]]:
         if resource_type == "columns":
             return {"requires_columns": resources, "requires_values": []}
         elif resource_type == "values":
-            return {"requires_values": [Pipeline(r) for r in resources], "requires_columns": []}
+            return {
+                "requires_values": [Pipeline(r) for r in resources],
+                "requires_columns": [],
+            }
         else:
             raise ValueError(f"Unknown resource_type: {resource_type}")
-    
+
     all_observations["obs1"] = ctx.register_observation(
         name="obs1",
         **get_required_resources_kwargs(resource_type, ["x", "y"]),
@@ -735,7 +743,9 @@ def test_get_required_resources(
         actual_columns = ctx.get_required_columns(observations, stratifications)
         assert set(actual_columns) == {"tracked"} | expected_resources
     elif resource_type == "values":
-        actual_columns = {p.name for p in ctx.get_required_values(observations, stratifications)}
+        actual_columns = {
+            p.name for p in ctx.get_required_values(observations, stratifications)
+        }
         assert actual_columns == expected_resources
     else:
         raise ValueError(f"Unknown resource_type: {resource_type}")
