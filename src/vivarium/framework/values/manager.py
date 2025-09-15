@@ -729,20 +729,3 @@ class ValuesInterface(Interface):
 
         """
         return self._manager.get_value(name)
-
-    def get_attribute(self, name: str) -> AttributePipeline:
-        """Retrieve the pipeline representing the named attribute.
-
-        Parameters
-        ----------
-        name
-            Name of the pipeline to return.
-
-        Returns
-        -------
-            A callable reference to the named attribute pipeline. The single
-            attribute pipeline argument must a :class:`pandas.Index` representing
-            the simulants and must return a :class:`pandas.DataFrame` with that same index.
-
-        """
-        return self._manager.get_attribute(name)
