@@ -486,7 +486,7 @@ class ValuesInterface(Interface):
     def register_attribute_producer(
         self,
         value_name: str,
-        source: Callable[[pd.Index[int]], pd.DataFrame],
+        source: Callable[[pd.Index[int]], Any],
         # TODO [MIC-5452]: all calls should have a component
         component: Component | None = None,
         requires_columns: Iterable[str] = (),
