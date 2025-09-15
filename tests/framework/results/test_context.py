@@ -29,6 +29,7 @@ from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import AddingObservation, ConcatenatingObservation
+from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
 from vivarium.framework.values import Pipeline
 from vivarium.types import ScalarMapper, VectorMapper
 
@@ -62,19 +63,28 @@ def test_add_stratification_mappers(
 ) -> None:
     ctx = ResultsContext()
     mocker.patch.object(ctx, "excluded_categories", {})
-    assert not verify_stratification_added(
-        ctx.stratifications, NAME, NAME_COLUMNS, HOUSE_CATEGORIES, [], mapper, is_vectorized
-    )
+    pipeline = Pipeline("grade")
+
+    assert NAME not in ctx.stratifications
+
     ctx.add_stratification(
         name=NAME,
-        sources=NAME_COLUMNS,
+        requires_columns=NAME_COLUMNS,
+        requires_values=[pipeline],
         categories=HOUSE_CATEGORIES,
         excluded_categories=None,
         mapper=mapper,
         is_vectorized=is_vectorized,
     )
     assert verify_stratification_added(
-        ctx.stratifications, NAME, NAME_COLUMNS, HOUSE_CATEGORIES, [], mapper, is_vectorized
+        stratifications=ctx.stratifications,
+        name=NAME,
+        requires_columns=NAME_COLUMNS,
+        requires_values=[pipeline],
+        categories=HOUSE_CATEGORIES,
+        excluded_categories=[],
+        mapper=mapper,
+        is_vectorized=is_vectorized,
     )
 
 
@@ -103,31 +113,28 @@ def test_add_stratification_excluded_categories(
     )
     builder.logging.get_logger.return_value = logger
     ctx.setup(builder)
-    assert not verify_stratification_added(
-        ctx.stratifications,
-        NAME,
-        NAME_COLUMNS,
-        HOUSE_CATEGORIES,
-        [],
-        sorting_hat_vectorized,
-        True,
-    )
+
+    assert NAME not in ctx.stratifications
+
     ctx.add_stratification(
         name=NAME,
-        sources=NAME_COLUMNS,
+        requires_columns=NAME_COLUMNS,
+        requires_values=[],
         categories=HOUSE_CATEGORIES,
         excluded_categories=excluded_categories,
         mapper=sorting_hat_vectorized,
         is_vectorized=True,
     )
+
     assert verify_stratification_added(
-        ctx.stratifications,
-        NAME,
-        NAME_COLUMNS,
-        HOUSE_CATEGORIES,
-        excluded_categories,
-        sorting_hat_vectorized,
-        True,
+        stratifications=ctx.stratifications,
+        name=NAME,
+        requires_columns=NAME_COLUMNS,
+        requires_values=[],
+        categories=HOUSE_CATEGORIES,
+        excluded_categories=excluded_categories,
+        mapper=sorting_hat_vectorized,
+        is_vectorized=True,
     )
 
 
@@ -138,7 +145,7 @@ def test_add_stratification_excluded_categories(
             "duplicate_name",
             HOUSE_CATEGORIES,
             [],
-            "Stratification name 'duplicate_name' is already used: ",
+            "Stratification name 'duplicate_name' is already used",
         ),
         (
             NAME,
@@ -178,7 +185,8 @@ def test_add_stratification_raises(
     # Register a stratification to test against duplicate stratifications
     ctx.add_stratification(
         name="duplicate_name",
-        sources=["foo"],
+        requires_columns=["foo"],
+        requires_values=[],
         categories=["bar"],
         excluded_categories=None,
         mapper=sorting_hat_serial,
@@ -187,7 +195,8 @@ def test_add_stratification_raises(
     with pytest.raises(ValueError, match=re.escape(msg_match)):
         ctx.add_stratification(
             name=name,
-            sources=NAME_COLUMNS,
+            requires_columns=NAME_COLUMNS,
+            requires_values=[],
             categories=categories,
             excluded_categories=excluded_categories,
             mapper=sorting_hat_vectorized,
@@ -215,7 +224,7 @@ def test_add_stratification_raises(
 )
 def test_register_observation(kwargs: Any) -> None:
     ctx = ResultsContext()
-    assert len(ctx.observations) == 0
+    assert len(ctx.grouped_observations) == 0
     kwargs["results_formatter"] = lambda: None
     kwargs["stratifications"] = tuple()
     kwargs["aggregator_sources"] = []
@@ -225,7 +234,7 @@ def test_register_observation(kwargs: Any) -> None:
         observation_type=AddingObservation,
         **kwargs,
     )
-    assert len(ctx.observations) == 1
+    assert len(ctx.grouped_observations) == 1
 
 
 def test_register_observation_duplicate_name_raises() -> None:
@@ -253,6 +262,7 @@ def test_register_observation_duplicate_name_raises() -> None:
             when="some-other-when",
             requires_columns=[],
             requires_values=[],
+            stratifications=None,
         )
 
 
@@ -287,19 +297,15 @@ def test_adding_observation_gather_results(
 
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
-    # Mock out some extra columns that would be produced by the manager's _prepare_population() method
-    population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
-    population["event_step_size"] = timedelta(days=28)
-    population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
-        days=28
-    )
-    lifecycle_state = lifecycle_states.COLLECT_METRICS
+    for stratification in stratifications:
+        population[get_mapped_col_name(stratification)] = population[stratification]
 
     # Set up stratifications
     if "house" in stratifications:
         ctx.add_stratification(
             name="house",
-            sources=["house"],
+            requires_columns=["house"],
+            requires_values=[],
             categories=HOUSE_CATEGORIES,
             excluded_categories=None,
             mapper=None,
@@ -308,7 +314,8 @@ def test_adding_observation_gather_results(
     if "familiar" in stratifications:
         ctx.add_stratification(
             name="familiar",
-            sources=["familiar"],
+            requires_columns=["familiar"],
+            requires_values=[],
             categories=FAMILIARS,
             excluded_categories=None,
             mapper=None,
@@ -324,7 +331,7 @@ def test_adding_observation_gather_results(
         aggregator_sources=aggregator_sources,
         aggregator=aggregator,
         stratifications=tuple(stratifications),
-        when=lifecycle_state,
+        when=lifecycle_states.COLLECT_METRICS,
         results_formatter=lambda: None,
     )
 
@@ -379,6 +386,7 @@ def test_concatenating_observation_gather_results(event: Event) -> None:
         requires_columns=included_cols,
         requires_values=[],
         results_formatter=lambda _, __: pd.DataFrame(),
+        stratifications=None,
     )
 
     filtered_pop = population.query(pop_filter)
@@ -435,36 +443,35 @@ def test_gather_results_partial_stratifications_in_results(
 
     # Generate population DataFrame
     population = BASE_POPULATION.copy()
-
-    # Mock out some extra columns that would be produced by the manager's _prepare_population() method
-    population["current_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12)
-    population["event_step_size"] = timedelta(days=28)
-    population["event_time"] = pd.Timestamp(year=2045, month=1, day=1, hour=12) + timedelta(
-        days=28
-    )
     # Remove an entire category from a stratification
     population = population[population["familiar"] != "unladen_swallow"].reset_index()
-
-    lifecycle_state = lifecycle_states.COLLECT_METRICS
 
     # Set up stratifications
     if "house" in stratifications:
         ctx.add_stratification(
             name="house",
-            sources=["house"],
+            requires_columns=["house"],
+            requires_values=[],
             categories=HOUSE_CATEGORIES,
             excluded_categories=None,
             mapper=None,
             is_vectorized=True,
         )
+        population[get_mapped_col_name("house")] = population["house"].astype(
+            pd.CategoricalDtype(categories=HOUSE_CATEGORIES, ordered=True)
+        )
     if "familiar" in stratifications:
         ctx.add_stratification(
             name="familiar",
-            sources=["familiar"],
+            requires_columns=["familiar"],
+            requires_values=[],
             categories=FAMILIARS,
             excluded_categories=None,
             mapper=None,
             is_vectorized=True,
+        )
+        population[get_mapped_col_name("familiar")] = population["familiar"].astype(
+            pd.CategoricalDtype(categories=FAMILIARS, ordered=True)
         )
 
     observation = ctx.register_observation(
@@ -476,7 +483,7 @@ def test_gather_results_partial_stratifications_in_results(
         aggregator_sources=aggregator_sources,
         aggregator=aggregator,
         stratifications=tuple(stratifications),
-        when=lifecycle_state,
+        when=lifecycle_states.COLLECT_METRICS,
         results_formatter=lambda: None,
     )
 
@@ -565,7 +572,8 @@ def test_bad_aggregator_stratification(event: Event) -> None:
     # Set up stratifications
     ctx.add_stratification(
         name="house",
-        sources=["house"],
+        requires_columns=["house"],
+        requires_values=[],
         categories=HOUSE_CATEGORIES,
         excluded_categories=None,
         mapper=None,
@@ -573,7 +581,8 @@ def test_bad_aggregator_stratification(event: Event) -> None:
     )
     ctx.add_stratification(
         name="familiar",
-        sources=["familiar"],
+        requires_columns=["familiar"],
+        requires_values=[],
         categories=FAMILIARS,
         excluded_categories=None,
         mapper=None,
@@ -643,128 +652,103 @@ def test_get_observations(
     assert [obs.name for obs in ctx.get_observations(event)] == expected_observations
 
 
-def test_get_required_columns() -> None:
+@pytest.mark.parametrize("resource_type", ["columns", "values"])
+@pytest.mark.parametrize(
+    "observation_names, stratification_names, expected_resources",
+    [
+        (["obs1", "obs2"], ["strat1", "strat2"], {"x", "y", "z", "v"}),
+        (["obs3"], ["strat1", "strat2"], {"x", "y", "w", "v"}),
+        ([], ["strat1"], {"x", "y"}),
+        (["obs2"], [], {"y", "z"}),
+        ([], [], set()),
+    ],
+    ids=[
+        "obs_and_strat_with_overlap",
+        "obs_and_strat_without_overlap",
+        "no_observations",
+        "no_stratifications",
+        "neither",
+    ],
+)
+def test_get_required_resources(
+    resource_type: str,
+    observation_names: list[str],
+    stratification_names: list[str],
+    expected_resources: set[str],
+) -> None:
     ctx = ResultsContext()
+
+    all_observations = {}
     register_observation_kwargs = {
         "observation_type": AddingObservation,
         "pop_filter": "",
         "when": lifecycle_states.COLLECT_METRICS,
-        "requires_values": [],
         "results_formatter": lambda: None,
         "stratifications": (),
         "aggregator_sources": None,
         "aggregator": len,
     }
 
-    obs1 = ctx.register_observation(
+    def get_required_resources_kwargs(
+        resource_type: str, resources: list[str]
+    ) -> dict[str, list[str] | list[Pipeline]]:
+        if resource_type == "columns":
+            return {"requires_columns": resources, "requires_values": []}
+        elif resource_type == "values":
+            return {
+                "requires_values": [Pipeline(r) for r in resources],
+                "requires_columns": [],
+            }
+        else:
+            raise ValueError(f"Unknown resource_type: {resource_type}")
+
+    all_observations["obs1"] = ctx.register_observation(
         name="obs1",
-        requires_columns=["a", "b"],
+        **get_required_resources_kwargs(resource_type, ["x", "y"]),  # type: ignore[arg-type]
         **register_observation_kwargs,  # type: ignore[arg-type]
     )
-    obs2 = ctx.register_observation(
+    all_observations["obs2"] = ctx.register_observation(
         name="obs2",
-        requires_columns=["b", "c"],
+        **get_required_resources_kwargs(resource_type, ["y", "z"]),  # type: ignore[arg-type]
         **register_observation_kwargs,  # type: ignore[arg-type]
     )
-    obs3 = ctx.register_observation(
+    all_observations["obs3"] = ctx.register_observation(
         name="obs3",
-        requires_columns=["d"],
+        **get_required_resources_kwargs(resource_type, ["w"]),  # type: ignore[arg-type]
         **register_observation_kwargs,  # type: ignore[arg-type]
     )
 
-    default_cols = {"a", "e"}
-
-    # Test with default columns
-    assert set(ctx.get_required_columns([obs1, obs2], default_cols)) == {"a", "b", "c", "e"}
-    assert set(ctx.get_required_columns([obs3], default_cols)) == {"a", "d", "e"}
-    assert set(ctx.get_required_columns([obs1, obs2, obs3], default_cols)) == {
-        "a",
-        "b",
-        "c",
-        "d",
-        "e",
+    all_stratifications = {}
+    stratification_kwargs = {
+        "categories": ["cat1", "cat2"],
+        "excluded_categories": ["cat3"],
+        "mapper": lambda df: df["a"] + df["b"],
+        "is_vectorized": True,
     }
-    assert set(ctx.get_required_columns([], default_cols)) == {"a", "e"}
-
-    # Test with no default columns
-    assert set(ctx.get_required_columns([obs1, obs2], set())) == {"a", "b", "c"}
-    assert set(ctx.get_required_columns([obs3], set())) == {"d"}
-    assert set(ctx.get_required_columns([obs1, obs2, obs3], set())) == {"a", "b", "c", "d"}
-    assert ctx.get_required_columns([], set()) == []
-
-    # Default columns parameter is unaltered
-    assert default_cols == {"a", "e"}
-
-
-def test_get_required_values() -> None:
-    ctx = ResultsContext()
-    register_observation_kwargs = {
-        "observation_type": AddingObservation,
-        "pop_filter": "",
-        "when": lifecycle_states.COLLECT_METRICS,
-        "requires_columns": [],
-        "results_formatter": lambda: None,
-        "stratifications": (),
-        "aggregator_sources": None,
-        "aggregator": len,
-    }
-
-    obs1 = ctx.register_observation(
-        name="obs1",
-        requires_values=[Pipeline("x"), Pipeline("y")],
-        **register_observation_kwargs,  # type: ignore[arg-type]
+    all_stratifications["strat1"] = Stratification(
+        name="strat1",
+        **get_required_resources_kwargs(resource_type, ["x", "y"]),  # type: ignore[arg-type]
+        **stratification_kwargs,  # type: ignore[arg-type]
     )
-    obs2 = ctx.register_observation(
-        name="obs2",
-        requires_values=[Pipeline("y"), Pipeline("z")],
-        **register_observation_kwargs,  # type: ignore[arg-type]
-    )
-    obs3 = ctx.register_observation(
-        name="obs3",
-        requires_values=[Pipeline("w")],
-        **register_observation_kwargs,  # type: ignore[arg-type]
+    all_stratifications["strat2"] = Stratification(
+        name="strat2",
+        **get_required_resources_kwargs(resource_type, ["x", "v"]),  # type: ignore[arg-type]
+        **stratification_kwargs,  # type: ignore[arg-type]
     )
 
-    default_vals = {Pipeline("x"), Pipeline("v")}
+    observations = [all_observations[name] for name in observation_names]
+    stratifications = [all_stratifications[name] for name in stratification_names]
 
-    # Test with default values
-    assert set(p.name for p in ctx.get_required_values([obs1, obs2], default_vals)) == {
-        "x",
-        "y",
-        "z",
-        "v",
-    }
-    assert set(p.name for p in ctx.get_required_values([obs3], default_vals)) == {
-        "x",
-        "w",
-        "v",
-    }
-    assert set(p.name for p in ctx.get_required_values([obs1, obs2, obs3], default_vals)) == {
-        "x",
-        "y",
-        "z",
-        "w",
-        "v",
-    }
-    assert set(p.name for p in ctx.get_required_values([], default_vals)) == {"x", "v"}
-
-    # Test with no default values
-    assert set(p.name for p in ctx.get_required_values([obs1, obs2], set())) == {
-        "x",
-        "y",
-        "z",
-    }
-    assert set(p.name for p in ctx.get_required_values([obs3], set())) == {"w"}
-    assert set(p.name for p in ctx.get_required_values([obs1, obs2, obs3], set())) == {
-        "x",
-        "y",
-        "z",
-        "w",
-    }
-    assert ctx.get_required_values([], set()) == []
-
-    # Default values parameter is unaltered
-    assert set(p.name for p in default_vals) == {"x", "v"}
+    if resource_type == "columns":
+        actual_columns = ctx.get_required_columns(observations, stratifications)
+        assert set(actual_columns) == {"tracked"} | expected_resources
+    elif resource_type == "values":
+        actual_columns = [
+            p.name for p in ctx.get_required_values(observations, stratifications)
+        ]
+        assert set(actual_columns) == expected_resources
+    else:
+        raise ValueError(f"Unknown resource_type: {resource_type}")
 
 
 @pytest.mark.parametrize(

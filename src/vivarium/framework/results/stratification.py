@@ -12,6 +12,7 @@ from typing import Any
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
+from vivarium.framework.values import Pipeline
 from vivarium.types import ScalarMapper, VectorMapper
 
 STRATIFICATION_COLUMN_SUFFIX: str = "mapped_values"
@@ -30,8 +31,10 @@ class Stratification:
 
     name: str
     """Name of the stratification."""
-    sources: list[str]
-    """A list of the columns and values needed as input for the `mapper`."""
+    requires_columns: list[str]
+    """A list of the columns needed as input for the `mapper`."""
+    requires_values: list[Pipeline]
+    """A list of the values needed as input for the `mapper`."""
     categories: list[str]
     """Exhaustive list of all possible stratification values."""
     excluded_categories: list[str]
@@ -49,7 +52,7 @@ class Stratification:
 
     def __str__(self) -> str:
         return (
-            f"Stratification '{self.name}' with sources {self.sources}, "
+            f"Stratification '{self.name}' with sources {self._sources}, "
             f"categories {self.categories}, and mapper {getattr(self.mapper, '__name__', repr(self.mapper))}"
         )
 
@@ -65,10 +68,13 @@ class Stratification:
         ValueError
             If the sources argument is empty.
         """
+        self._sources = self.requires_columns + [
+            pipeline.name for pipeline in self.requires_values
+        ]
         self.vectorized_mapper = self._get_vectorized_mapper(self.mapper, self.is_vectorized)
         if not self.categories:
             raise ValueError("The categories argument must be non-empty.")
-        if not self.sources:
+        if not self._sources:
             raise ValueError("The sources argument must be non-empty.")
 
     def stratify(self, population: pd.DataFrame) -> pd.Series[CategoricalDtype]:
@@ -93,7 +99,7 @@ class Stratification:
         ValueError
             If the mapper returns any values not in `categories` or `excluded_categories`.
         """
-        mapped_column = self.vectorized_mapper(population[self.sources])
+        mapped_column = self.vectorized_mapper(population[self._sources])
         unknown_categories = set(mapped_column) - set(
             self.categories + self.excluded_categories
         )
@@ -119,9 +125,9 @@ class Stratification:
         Choose a VectorMapper based on the inputted callable mapper.
         """
         if user_provided_mapper is None:
-            if len(self.sources) != 1:
+            if len(self._sources) != 1:
                 raise ValueError(
-                    f"No mapper but {len(self.sources)} stratification sources are "
+                    f"No mapper but {len(self._sources)} stratification sources are "
                     f"provided for stratification {self.name}. The list of sources "
                     "must be of length 1 if no mapper is provided."
                 )

@@ -1,3 +1,9 @@
+**3.5.0 - 09/15/25**
+
+  - Only compute pipelines for observation on an Event if they are actually needed
+  - Only compute stratifications on an Event if they are actually needed
+  - Simplify marking Observations as stratified
+
 **3.4.16 - 09/02/25**
 
   - Add name attribute to Event class

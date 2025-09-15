@@ -39,11 +39,12 @@ from tests.framework.results.helpers import (
 )
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.population import PopulationView
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.manager import ResultsManager
-from vivarium.framework.results.observation import AddingObservation
+from vivarium.framework.results.observation import AddingObservation, Observation
+from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
+from vivarium.framework.values import Pipeline
 from vivarium.interface.interactive import InteractiveContext
 from vivarium.types import ScalarMapper, VectorMapper
 
@@ -82,6 +83,7 @@ def test__get_stratifications(
     ctx = ResultsContext()
     ctx.default_stratifications = default_stratifications
     mgr = ResultsManager()
+    mgr.logger = mocker.Mock()
     mocker.patch.object(mgr, "_results_context", ctx)
     # default_stratifications would normally be set via ResultsInterface.set_default_stratifications()
     final_stratifications = mgr._get_stratifications(
@@ -96,43 +98,19 @@ def test__get_stratifications(
 
 
 @pytest.mark.parametrize(
-    "name, sources, categories, excluded_categories, mapper, is_vectorized",
+    "excluded_categories, mapper, is_vectorized",
     [
-        (
-            NAME,
-            NAME_COLUMNS,
-            HOUSE_CATEGORIES,
-            [],
-            sorting_hat_vectorized,
-            True,
-        ),
-        (
-            NAME,
-            NAME_COLUMNS,
-            HOUSE_CATEGORIES,
-            [],
-            sorting_hat_serial,
-            False,
-        ),
-        (
-            NAME,
-            NAME_COLUMNS,
-            HOUSE_CATEGORIES,
-            ["gryffindor"],
-            sorting_hat_vectorized,
-            True,
-        ),
+        ([], sorting_hat_vectorized, True),
+        ([], sorting_hat_serial, False),
+        (["gryffindor"], sorting_hat_vectorized, True),
     ],
     ids=["vectorized_mapper", "non-vectorized_mapper", "excluded_categories"],
 )
 def test_register_stratification_no_pipelines(
-    name: str,
-    sources: list[str],
-    categories: list[str],
+    mocker: pytest_mock.MockFixture,
     excluded_categories: list[str],
     mapper: VectorMapper | ScalarMapper,
     is_vectorized: bool,
-    mocker: pytest_mock.MockFixture,
 ) -> None:
     mgr = ResultsManager()
     builder = mocker.Mock()
@@ -141,53 +119,36 @@ def test_register_stratification_no_pipelines(
     )
     mgr.setup(builder)
     mgr.register_stratification(
-        name=name,
-        categories=categories,
+        name=NAME,
+        categories=HOUSE_CATEGORIES,
         excluded_categories=excluded_categories,
         mapper=mapper,
         is_vectorized=is_vectorized,
-        requires_columns=sources,
+        requires_columns=NAME_COLUMNS,
+        requires_values=[],
     )
-    for item in sources:
-        assert item in mgr._required_columns
     assert verify_stratification_added(
-        mgr._results_context.stratifications,
-        name,
-        sources,
-        categories,
-        excluded_categories,
-        mapper,
-        is_vectorized,
+        stratifications=mgr._results_context.stratifications,
+        name=NAME,
+        requires_columns=NAME_COLUMNS,
+        requires_values=[],
+        categories=HOUSE_CATEGORIES,
+        excluded_categories=excluded_categories,
+        mapper=mapper,
+        is_vectorized=is_vectorized,
     )
 
 
 @pytest.mark.parametrize(
-    "name, sources, categories, mapper, is_vectorized",
+    "mapper, is_vectorized",
     [
-        (
-            NAME,
-            NAME_COLUMNS,
-            HOUSE_CATEGORIES,
-            sorting_hat_vectorized,
-            True,
-        ),
-        (
-            NAME,
-            NAME_COLUMNS,
-            HOUSE_CATEGORIES,
-            sorting_hat_serial,
-            False,
-        ),
+        (sorting_hat_vectorized, True),
+        (sorting_hat_serial, False),
     ],
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
 def test_register_stratification_with_pipelines(
-    name: str,
-    sources: list[str],
-    categories: list[str],
-    mapper: VectorMapper | ScalarMapper,
-    is_vectorized: bool,
-    mocker: pytest_mock.MockFixture,
+    mocker: pytest_mock.MockFixture, mapper: VectorMapper | ScalarMapper, is_vectorized: bool
 ) -> None:
     mgr = ResultsManager()
     builder = mocker.Mock()
@@ -199,54 +160,37 @@ def test_register_stratification_with_pipelines(
     builder.value.get_value = MethodType(mock_get_value, builder)
     mgr.setup(builder)
     mgr.register_stratification(
-        name=name,
-        categories=categories,
+        name=NAME,
+        categories=HOUSE_CATEGORIES,
         excluded_categories=None,
         mapper=mapper,
         is_vectorized=is_vectorized,
         requires_columns=[],
-        requires_values=sources,
+        requires_values=NAME_COLUMNS,
     )
-    for item in sources:
-        assert item in [pipeline.name for pipeline in mgr._required_values]
+
     assert verify_stratification_added(
-        mgr._results_context.stratifications,
-        name,
-        sources,
-        categories,
-        [],
-        mapper,
-        is_vectorized,
+        stratifications=mgr._results_context.stratifications,
+        name=NAME,
+        requires_columns=[],
+        requires_values=[Pipeline(name) for name in NAME_COLUMNS],
+        categories=HOUSE_CATEGORIES,
+        excluded_categories=[],
+        mapper=mapper,
+        is_vectorized=is_vectorized,
     )
 
 
 @pytest.mark.parametrize(
-    "name, sources, categories, mapper, is_vectorized",
+    "mapper, is_vectorized",
     [
-        (  # expected Stratification for vectorized
-            NAME,
-            NAME_COLUMNS,
-            HOUSE_CATEGORIES,
-            sorting_hat_vectorized,
-            True,
-        ),
-        (  # expected Stratification for non-vectorized
-            NAME,
-            NAME_COLUMNS,
-            HOUSE_CATEGORIES,
-            sorting_hat_serial,
-            False,
-        ),
+        (sorting_hat_vectorized, True),
+        (sorting_hat_serial, False),
     ],
     ids=["vectorized_mapper", "non-vectorized_mapper"],
 )
 def test_register_stratification_with_column_and_pipelines(
-    name: str,
-    sources: list[str],
-    categories: list[str],
-    mapper: VectorMapper | ScalarMapper,
-    is_vectorized: bool,
-    mocker: pytest_mock.MockFixture,
+    mocker: pytest_mock.MockFixture, mapper: VectorMapper | ScalarMapper, is_vectorized: bool
 ) -> None:
     mgr = ResultsManager()
     builder = mocker.Mock()
@@ -259,27 +203,24 @@ def test_register_stratification_with_column_and_pipelines(
     mgr.setup(builder)
     mocked_column_name = "silly_column"
     mgr.register_stratification(
-        name=name,
-        categories=categories,
+        name=NAME,
+        categories=HOUSE_CATEGORIES,
         excluded_categories=None,
         mapper=mapper,
         is_vectorized=is_vectorized,
         requires_columns=[mocked_column_name],
-        requires_values=sources,
+        requires_values=NAME_COLUMNS,
     )
-    assert mocked_column_name in mgr._required_columns
-    for item in sources:
-        assert item in [pipeline.name for pipeline in mgr._required_values]
-    all_sources = sources.copy()
-    all_sources.append(mocked_column_name)
+
     assert verify_stratification_added(
-        mgr._results_context.stratifications,
-        name,
-        all_sources,
-        categories,
-        [],
-        mapper,
-        is_vectorized,
+        stratifications=mgr._results_context.stratifications,
+        name=NAME,
+        requires_columns=[mocked_column_name],
+        requires_values=[Pipeline(name) for name in NAME_COLUMNS],
+        categories=HOUSE_CATEGORIES,
+        excluded_categories=[],
+        mapper=mapper,
+        is_vectorized=is_vectorized,
     )
 
 
@@ -325,7 +266,7 @@ def test_binned_stratification_mapper() -> None:
         excluded_categories=None,
         target_type="column",
     )
-    strat = mgr._results_context.stratifications[0]
+    strat = mgr._results_context.stratifications[BIN_BINNED_COLUMN]
     data = pd.DataFrame([-np.inf] + BIN_SILLY_BIN_EDGES + [np.inf])
     groups = strat.vectorized_mapper(data)
     expected_groups = pd.Series([np.nan] + BIN_LABELS + [np.nan] * 2)
@@ -431,8 +372,8 @@ def test_stratified__raw_results_initialization() -> None:
 
     # Multi-stratification index is type MultiIndex where each layer dtype is Category
     expected_house_points_multi_idx = pd.MultiIndex.from_product(
-        [STUDENT_HOUSES_LIST, POWER_LEVEL_GROUP_LABELS],
-        names=["student_house", "power_level"],
+        [POWER_LEVEL_GROUP_LABELS, STUDENT_HOUSES_LIST],
+        names=["power_level", "student_house"],
     )
     # HACK: We need to set the levels to be CategoricalDtype but you can't set that
     # directly on the MultiIndex. Convert to df, set type, convert back
@@ -440,7 +381,7 @@ def test_stratified__raw_results_initialization() -> None:
         pd.DataFrame(index=expected_house_points_multi_idx)
         .reset_index()
         .astype(CategoricalDtype)
-        .set_index(["student_house", "power_level"])
+        .set_index(["power_level", "student_house"])
         .index
     )
     assert raw_results["house_points"].index.equals(expected_house_points_idx)
@@ -469,10 +410,9 @@ def test_observers_with_missing_stratifications_fail() -> None:
     """
     components = [QuidditchWinsObserver(), HousePointsObserver(), Hogwarts()]
 
-    expected_missing = ["familiar", "power_level_group", "student_house"]
     expected_log_msg = re.escape(
-        "The following observers are requested to be stratified by stratifications "
-        f"that are not registered: \n{expected_missing}"
+        "The following stratifications are used by observers but not registered: \n"
+        "['familiar', 'power_level_group', 'student_house']"
     )
 
     with pytest.raises(ValueError, match=expected_log_msg):
@@ -559,51 +499,127 @@ def prepare_population_sim() -> InteractiveContext:
 
 
 @pytest.mark.parametrize(
-    "required_columns, required_value_names",
+    "observation_requirements, stratification_requirements, expected_columns",
     [
-        ([], []),
-        (["familiar", "house_points"], []),
-        ([], ["grade"]),
-        (["familiar"], ["grade"]),
-        (["current_time", "event_time", "event_step_size", "familiar"], []),
-        (["train"], []),
+        ([([], [])], [], []),
+        ([([], [])], [(["power_level"], [])], ["power_level", "strat_0_mapped_values"]),
+        ([(["familiar"], [])], [], ["familiar"]),
+        (
+            [(["familiar", "house_points"], [])],
+            [(["power_level"], [])],
+            ["familiar", "house_points", "power_level", "strat_0_mapped_values"],
+        ),
+        (
+            [(["familiar"], []), (["house_points"], [])],
+            [(["power_level"], [])],
+            ["familiar", "house_points", "power_level", "strat_0_mapped_values"],
+        ),
+        (
+            [(["familiar"], ["grade"])],
+            [(["power_level"], ["double_power"])],
+            ["familiar", "grade", "power_level", "double_power", "strat_0_mapped_values"],
+        ),
+        (
+            [(["familiar"], [])],
+            [(["power_level"], []), (["house_points"], [])],
+            [
+                "familiar",
+                "power_level",
+                "house_points",
+                "strat_0_mapped_values",
+                "strat_1_mapped_values",
+            ],
+        ),
+        (
+            [(["current_time", "event_step_size", "familiar"], [])],
+            [(["event_time"], [])],
+            [
+                "current_time",
+                "event_time",
+                "event_step_size",
+                "familiar",
+                "strat_0_mapped_values",
+            ],
+        ),
+        (
+            [(["train"], [])],
+            [(["headmaster"], [])],
+            ["train", "headmaster", "strat_0_mapped_values"],
+        ),
     ],
     ids=[
-        "no_columns_no_values",
-        "columns_required_no_values",
-        "no_columns_values_required",
-        "columns_and_values_required",
+        "no_observation_requirements_no_stratifications",
+        "no_observation_requirements",
+        "no_stratifications",
+        "multiple_columns_single_observation",
+        "multiple_observations_with_columns",
+        "columns_and_values",
+        "multiple_stratifications",
         "time_data_and_columns",
         "user_data",
     ],
 )
 def test_prepare_population(
     prepare_population_sim: InteractiveContext,
-    required_columns: list[str],
-    required_value_names: list[str],
+    observation_requirements: list[tuple[list[str], list[str]]],
+    stratification_requirements: list[tuple[list[str], list[str]]],
+    expected_columns: list[str],
 ) -> None:
     mgr = prepare_population_sim._results
-    required_values = [
-        prepare_population_sim.get_value(value) for value in required_value_names
+    observations: list[Observation] = [
+        AddingObservation(
+            name=f"test_observation_{i}",
+            pop_filter="",
+            when=lifecycle_states.COLLECT_METRICS,
+            requires_columns=columns,
+            requires_values=[prepare_population_sim.get_value(value) for value in values],
+            results_formatter=lambda *_: pd.DataFrame(),
+            aggregator_sources=[],
+            aggregator=lambda *_: pd.Series(),
+        )
+        for i, (columns, values) in enumerate(observation_requirements)
     ]
+    stratifications = [
+        Stratification(
+            name=f"strat_{i}",
+            categories=["a", "b", "c"],
+            excluded_categories=[],
+            requires_columns=columns,
+            requires_values=[prepare_population_sim.get_value(value) for value in values],
+            mapper=lambda x: pd.Series("a", index=x.index),
+            is_vectorized=True,
+        )
+        for i, (columns, values) in enumerate(stratification_requirements)
+    ]
+
     event = Event(
         name=lifecycle_states.COLLECT_METRICS,
         index=prepare_population_sim.get_population().index,
-        user_data={"train": "Hogwarts Express", "Headmaster": "Albus Dumbledore"},
+        user_data={
+            "train": "Hogwarts Express",
+            "headmaster": "Albus Dumbledore",
+            "country": "Scotland",
+        },
         time=prepare_population_sim._clock.time + prepare_population_sim._clock.step_size,  # type: ignore [operator]
         step_size=prepare_population_sim._clock.step_size,
     )
 
-    population = mgr._prepare_population(event, required_columns, required_values)
+    population = mgr._prepare_population(event, observations, stratifications)
 
-    expected_columns = required_columns + required_value_names
-    assert set(population.columns) == set(expected_columns)
-    if "current_time" in required_columns:
+    assert set(population.columns) == set(["tracked"] + expected_columns)
+    if "current_time" in expected_columns:
         assert (population["current_time"] == prepare_population_sim._clock.time).all()
-    if "event_time" in required_columns:
+    if "event_time" in expected_columns:
         assert (population["event_time"] == event.time).all()
-    if "event_step_size" in required_columns:
+    if "event_step_size" in expected_columns:
         assert (population["event_step_size"] == event.step_size).all()
+    if "train" in expected_columns:
+        assert (population["train"] == "Hogwarts Express").all()
+    for strat in stratifications:
+        assert (
+            population[get_mapped_col_name(strat.name)]
+            == strat.stratify(population[strat._sources])
+        ).all()
 
 
 def test_stratified_observation_results() -> None:
@@ -691,15 +707,15 @@ def test_adding_observation_results() -> None:
         assert (pop.loc[pop["house_points"] != 0, "student_house"] == "gryffindor").all()
         assert set(pop.loc[pop["house_points"] != 0, "power_level"]) == set([20, 80])
         group_sizes = pd.DataFrame(
-            pop.groupby(["student_house", "power_level"]).size().astype("float"),
+            pop.groupby(["power_level", "student_house"]).size().astype("float"),
             columns=[VALUE_COLUMN],
         )
         raw_results = sim._results._raw_results["house_points"]
         # We cannot use `equals` here because raw results have a MultiIndex where
         # each layer is a Category dtype but pop has object dtype for the relevant columns
         assert (  # type: ignore[union-attr]
-            raw_results.loc[("gryffindor", ["low", "very high"]), "value"].values
-            == (group_sizes.loc[("gryffindor", [20, 80]), "value"] * step_number).values
+            raw_results.loc[(["low", "very high"], "gryffindor"), "value"].values
+            == (group_sizes.loc[([20, 80], "gryffindor"), "value"] * step_number).values
         ).all()
 
     def _check_quidditch_wins(pop: pd.DataFrame, step_number: int) -> None:

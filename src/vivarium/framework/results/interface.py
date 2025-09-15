@@ -100,8 +100,6 @@ class ResultsInterface(Interface):
     # Stratification-related methods #
     ##################################
 
-    # TODO: It is not reflected in the sample code here, but the “when” parameter should be added
-    #  to the stratification registration calls, probably as a List. Consider this after observer implementation
     def register_stratification(
         self,
         name: str,
