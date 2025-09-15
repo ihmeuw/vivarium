@@ -40,7 +40,7 @@ class DiseaseTransition(Transition):
             preferred_combiner=list_combiner,
             preferred_post_processor=union_post_processor,
         )
-        self.transition_rate = builder.value.register_attribute_rate_producer(
+        self.transition_rate = builder.value.register_rate_producer(
             self.rate_name,
             source=self._risk_deleted_rate,
             required_resources=[self.joint_population_attributable_fraction],
@@ -111,7 +111,7 @@ class DiseaseState(State):
             preferred_post_processor=union_post_processor,
         )
 
-        self.excess_mortality_rate = builder.value.register_attribute_rate_producer(
+        self.excess_mortality_rate = builder.value.register_rate_producer(
             f"{self.state_id}.excess_mortality_rate",
             source=self.risk_deleted_excess_mortality_rate,
             required_resources=[self.excess_mortality_rate_paf],
@@ -166,7 +166,7 @@ class DiseaseModel(Machine):
         )
         cause_specific_mortality_rate = config.incidence_rate * case_fatality_rate
 
-        self.cause_specific_mortality_rate = builder.value.register_attribute_rate_producer(
+        self.cause_specific_mortality_rate = builder.value.register_rate_producer(
             f"{self.state_column}.cause_specific_mortality_rate",
             source=lambda index: pd.Series(cause_specific_mortality_rate, index=index),
         )
