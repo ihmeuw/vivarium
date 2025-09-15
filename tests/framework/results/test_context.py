@@ -704,18 +704,18 @@ def test_get_required_resources(
 
     all_observations["obs1"] = ctx.register_observation(
         name="obs1",
-        **get_required_resources_kwargs(resource_type, ["x", "y"]), # type: ignore[arg-type]
-        **register_observation_kwargs,                              # type: ignore[arg-type]
+        **get_required_resources_kwargs(resource_type, ["x", "y"]),  # type: ignore[arg-type]
+        **register_observation_kwargs,  # type: ignore[arg-type]
     )
     all_observations["obs2"] = ctx.register_observation(
         name="obs2",
-        **get_required_resources_kwargs(resource_type, ["y", "z"]), # type: ignore[arg-type]
-        **register_observation_kwargs,                              # type: ignore[arg-type]
+        **get_required_resources_kwargs(resource_type, ["y", "z"]),  # type: ignore[arg-type]
+        **register_observation_kwargs,  # type: ignore[arg-type]
     )
     all_observations["obs3"] = ctx.register_observation(
         name="obs3",
         **get_required_resources_kwargs(resource_type, ["w"]),  # type: ignore[arg-type]
-        **register_observation_kwargs,                          # type: ignore[arg-type]
+        **register_observation_kwargs,  # type: ignore[arg-type]
     )
 
     all_stratifications = {}
@@ -727,13 +727,13 @@ def test_get_required_resources(
     }
     all_stratifications["strat1"] = Stratification(
         name="strat1",
-        **get_required_resources_kwargs(resource_type, ["x", "y"]), # type: ignore[arg-type]
-        **stratification_kwargs,                                    # type: ignore[arg-type]
+        **get_required_resources_kwargs(resource_type, ["x", "y"]),  # type: ignore[arg-type]
+        **stratification_kwargs,  # type: ignore[arg-type]
     )
     all_stratifications["strat2"] = Stratification(
         name="strat2",
-        **get_required_resources_kwargs(resource_type, ["x", "v"]), # type: ignore[arg-type]
-        **stratification_kwargs,                                    # type: ignore[arg-type]
+        **get_required_resources_kwargs(resource_type, ["x", "v"]),  # type: ignore[arg-type]
+        **stratification_kwargs,  # type: ignore[arg-type]
     )
 
     observations = [all_observations[name] for name in observation_names]
