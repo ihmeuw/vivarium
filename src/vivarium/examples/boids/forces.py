@@ -70,7 +70,8 @@ class Force(Component, ABC):
     def calculate_force(self, neighbors: pd.DataFrame) -> pd.DataFrame:
         pass
 
-    def _get_pairs(self, neighbors: pd.Series[Any], pop: pd.DataFrame) -> pd.DataFrame:
+    def _get_pairs(self, neighbors: pd.Series[int | float], pop: pd.DataFrame) -> pd.DataFrame:
+        breakpoint()
         pairs = (
             pop.join(neighbors.rename("neighbors"))
             .reset_index()
