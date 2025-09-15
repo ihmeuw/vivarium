@@ -113,14 +113,14 @@ class SimulationClock(Manager):
         self._simulants_to_snooze = pd.Index([])
 
     def setup(self, builder: "Builder") -> None:
-        self._step_size_pipeline = builder.value.register_value_producer(
+        self._step_size_pipeline = builder.value.register_attribute_producer(
             self._pipeline_name,
             source=lambda idx: [pd.Series(np.nan, index=idx).astype("timedelta64[ns]")],
             preferred_combiner=list_combiner,
             preferred_post_processor=self.step_size_post_processor,
         )
         self.register_step_modifier = partial(
-            builder.value.register_value_modifier,
+            builder.value.register_attribute_modifier,
             self._pipeline_name,
             component=self,
         )
