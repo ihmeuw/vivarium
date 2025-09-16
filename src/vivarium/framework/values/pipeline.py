@@ -53,37 +53,6 @@ class ValueSource(Resource):
         return self._source(*args, **kwargs)
 
 
-class AttributeSource(ValueSource):
-    """A resource representing the source of an attribute pipeline.
-
-    The source of an attribute pipeline must be a callable that takes a pd.Index
-    of integers and returns a pd.DataFrame.
-    """
-
-    def __init__(
-        self,
-        pipeline: AttributePipeline,
-        source: Callable[[pd.Index[int]], Any] | None,
-        component: Component | None,
-    ) -> None:
-        super(ValueSource, self).__init__(
-            "attribute_source" if source else "missing_attribute_source",
-            pipeline.name,
-            component,
-        )
-        self._pipeline = pipeline
-        self._source = source
-
-    def __call__(self, index: pd.Index[int]) -> Any:
-        if not self._source:
-            raise DynamicValueError(
-                f"The dynamic attribute pipeline for {self.name} has no source."
-                " This likely means you are attempting to modify a value that"
-                " hasn't been created."
-            )
-        return self._source(index)
-
-
 class ValueModifier(Resource):
     """A resource representing a modifier of a value pipeline."""
 
@@ -274,21 +243,11 @@ class Pipeline(Resource):
         manager
             The simulation values manager.
         """
-        self._set_common_attributes(component, combiner, post_processor, manager)
-        self.source = ValueSource(self, source, component)
-
-    def _set_common_attributes(
-        self,
-        component: Component | None,
-        combiner: ValueCombiner,
-        post_processor: PostProcessor | None,
-        manager: ValuesManager,
-    ) -> None:
-        """Set the common attributes for all pipeline types."""
         self.component = component
         self._combiner = combiner
         self.post_processor = post_processor
         self._manager = manager
+        self.source = ValueSource(self, source, component)
 
 
 class AttributePipeline(Pipeline):
