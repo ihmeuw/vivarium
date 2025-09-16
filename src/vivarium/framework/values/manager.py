@@ -117,7 +117,7 @@ class ValuesManager(Manager):
         component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
-        preferred_post_processor: PostProcessor | None = None,
+        preferred_post_processor: AttributePostProcessor | None = None,
     ) -> AttributePipeline:
         """Marks a ``Callable`` as the producer of a named attribute.
 
@@ -467,7 +467,7 @@ class ValuesInterface(Interface):
         component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
-        preferred_post_processor: PostProcessor | None = None,
+        preferred_post_processor: AttributePostProcessor | None = None,
     ) -> AttributePipeline:
         """Marks a ``Callable`` as the producer of a named attribute.
 
