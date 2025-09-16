@@ -278,7 +278,7 @@ def test_attribute_pipeline_return_types(manager: ValuesManager, mocker: MockFix
     def dataframe_attribute_source(index: pd.Index[int]) -> pd.DataFrame:
         return pd.DataFrame({"col1": [1.0] * len(index)}, index=index)
 
-    def bad_attribute_source(index: pd.Index[int]) -> str:
+    def str_attribute_source(index: pd.Index[int]) -> str:
         return "foo"
 
     series_pipeline = manager.register_attribute_producer(
@@ -294,8 +294,9 @@ def test_attribute_pipeline_return_types(manager: ValuesManager, mocker: MockFix
     assert isinstance(dataframe_pipeline(index), pd.DataFrame)
     assert dataframe_pipeline(index).index.equals(index)
 
+    # Register the string source w/ no post-processors, i.e. calling will return str
     bad_pipeline = manager.register_attribute_producer(
-        "test_bad_attribute", source=bad_attribute_source, component=mocker.Mock()
+        "test_bad_attribute", source=str_attribute_source, component=mocker.Mock()
     )
 
     with pytest.raises(
