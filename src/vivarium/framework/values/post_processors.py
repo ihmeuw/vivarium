@@ -19,7 +19,7 @@ class PostProcessor(Protocol):
 
 
 class AttributePostProcessor(Protocol):
-    """An attribute pipeline post-processor must return a pd.DataFrame."""
+    """An attribute pipeline post-processor must return a pd.Series or pd.DataFrame."""
 
     def __call__(self, value: Any, manager: ValuesManager) -> pd.Series[Any] | pd.DataFrame:
         ...
