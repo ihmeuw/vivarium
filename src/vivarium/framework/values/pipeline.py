@@ -13,7 +13,10 @@ from vivarium.manager import Manager
 if TYPE_CHECKING:
     from vivarium.framework.values.combiners import ValueCombiner
     from vivarium.framework.values.manager import ValuesManager
-    from vivarium.framework.values.post_processors import PostProcessor
+    from vivarium.framework.values.post_processors import (
+        AttributePostProcessor,
+        PostProcessor,
+    )
 
 T = TypeVar("T")
 
@@ -25,7 +28,7 @@ class ValueSource(Resource):
         self,
         pipeline: Pipeline,
         source: Callable[..., Any] | None,
-        component: Component | None,
+        component: Component | Manager | None,
     ) -> None:
         self._pipeline_type = (
             "attribute" if isinstance(pipeline, AttributePipeline) else "value"
@@ -219,7 +222,7 @@ class Pipeline(Resource):
 
     def set_attributes(
         self,
-        component: Component | None,
+        component: Component | Manager | None,
         source: Callable[..., Any],
         combiner: ValueCombiner,
         post_processor: PostProcessor | None,

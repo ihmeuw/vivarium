@@ -32,7 +32,7 @@ class Movement(Component):
         self.config = builder.configuration
 
         self.acceleration = builder.value.register_attribute_producer(
-            "acceleration", source=self.base_acceleration
+            "acceleration", source=self.base_acceleration, component=self
         )
 
     ##################################

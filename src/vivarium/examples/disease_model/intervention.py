@@ -37,10 +37,12 @@ class TreatmentIntervention(Component):
         self.effect_size = builder.value.register_attribute_producer(
             f"{self.intervention}.effect_size",
             source=lambda index: pd.Series(effect_size, index=index),
+            component=self,
         )
         builder.value.register_attribute_modifier(
             self.affected_value,
             modifier=self.intervention_effect,
+            component=self,
             required_resources=[self.effect_size],
         )
 

@@ -14,7 +14,7 @@ For more information about time in the simulation, see the associated
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from functools import partial
 from typing import TYPE_CHECKING, Any
 
@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 
 from vivarium.framework.lifecycle import lifecycle_states
+from vivarium.framework.resource import Resource
 from vivarium.types import ClockStepSize, ClockTime
 
 if TYPE_CHECKING:
@@ -116,6 +117,7 @@ class SimulationClock(Manager):
         self._step_size_pipeline = builder.value.register_attribute_producer(
             self._pipeline_name,
             source=lambda idx: [pd.Series(np.nan, index=idx).astype("timedelta64[ns]")],
+            component=self,
             preferred_combiner=list_combiner,
             preferred_post_processor=self.step_size_post_processor,
         )
@@ -332,9 +334,7 @@ class TimeInterface(Interface):
     def register_step_size_modifier(
         self,
         modifier: Callable[[pd.Index[int]], pd.Series[ClockStepSize]],
-        requires_columns: list[str] = [],
-        requires_values: list[str] = [],
-        requires_streams: list[str] = [],
+        required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Registers a step size modifier.
 
@@ -343,19 +343,12 @@ class TimeInterface(Interface):
         modifier
             Modifier of the step size pipeline. Modifiers can take an index
             and should return a series of step sizes.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the modifier
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the  modifier is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the modifier is called."""
+        required_resources
+            A list of resources that need to be properly sourced before the
+            pipeline source is called. This is a list of strings, pipelines,
+            or randomness streams.
+
+        """
         return self._manager.register_step_modifier(
-            modifier=modifier,
-            requires_columns=requires_columns,
-            requires_values=requires_values,
-            requires_streams=requires_streams,
+            modifier=modifier, required_resources=required_resources
         )

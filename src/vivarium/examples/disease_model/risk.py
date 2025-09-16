@@ -50,15 +50,19 @@ class Risk(Component):
         self.base_exposure_threshold = builder.value.register_attribute_producer(
             f"{self.risk}.base_proportion_exposed",
             source=lambda index: pd.Series(proportion_exposed, index=index),
+            component=self,
         )
         self.exposure_threshold = builder.value.register_attribute_producer(
-            f"{self.risk}.proportion_exposed", source=self.base_exposure_threshold
+            f"{self.risk}.proportion_exposed",
+            source=self.base_exposure_threshold,
+            component=self,
         )
 
         self.exposure = builder.value.register_attribute_producer(
             f"{self.risk}.exposure",
             source=self._exposure,
             required_resources=[self.propensity_column, self.exposure_threshold],
+            component=self,
         )
         self.randomness = builder.randomness.get_stream(self.risk)
 
@@ -115,16 +119,19 @@ class RiskEffect(Component):
         self.relative_risk = builder.value.register_attribute_producer(
             f"{self.risk}.relative_risk",
             source=lambda index: pd.Series(relative_risk, index=index),
+            component=self,
         )
 
         builder.value.register_attribute_modifier(
             f"{self.disease_rate}.population_attributable_fraction",
-            self.population_attributable_fraction,
+            modifier=self.population_attributable_fraction,
+            component=self,
             required_resources=[self.base_risk_exposure, self.relative_risk],
         )
         builder.value.register_attribute_modifier(
             f"{self.disease_rate}",
-            self.rate_adjustment,
+            modifier=self.rate_adjustment,
+            component=self,
             required_resources=[self.actual_risk_exposure, self.relative_risk],
         )
 

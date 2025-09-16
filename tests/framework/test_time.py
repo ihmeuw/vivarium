@@ -183,10 +183,21 @@ class StepModifierWithRatePipeline(StepModifier):
             f"test_rate_{self.name}",
             source=lambda idx: pd.Series(1.75, index=idx),
             preferred_post_processor=rescale_post_processor,
+            component=self,
         )
 
     def on_time_step(self, event: Event) -> None:
         self.ts_pipeline_value = self.rate_pipeline(event.index)
+
+    def __hash__(self) -> int:
+        return hash(
+            (
+                self.name,
+                self.step_modifier_even,
+                self.step_modifier_odd,
+                self.modified_simulants,
+            )
+        )
 
 
 class StepModifierWithUntracking(StepModifierWithRatePipeline):

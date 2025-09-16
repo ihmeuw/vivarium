@@ -120,7 +120,7 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         source: Callable[[pd.Index[int]], Any],
-        component: Component,
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
@@ -188,8 +188,8 @@ class ValuesManager(Manager):
             before the pipeline modifier is called.
         required_resources
             A list of resources that need to be properly sourced before the
-            pipeline modifier is called. This is a list of strings, pipeline
-            names, or randomness streams.
+            pipeline modifier is called. This is a list of strings, pipelines,
+            or randomness streams.
         """
         self._configure_modifier(
             self.get_value(value_name),
@@ -226,8 +226,8 @@ class ValuesManager(Manager):
             The component that is registering the attribute modifier.
         required_resources
             A list of resources that need to be properly sourced before the
-            pipeline modifier is called. This is a list of strings, pipeline
-            names, or randomness streams.
+            pipeline modifier is called. This is a list of strings, pipelines,
+            or randomness streams.
         """
         self._configure_modifier(
             self.get_attribute(value_name),
@@ -287,7 +287,7 @@ class ValuesManager(Manager):
         self,
         pipeline: Pipeline | AttributePipeline,
         source: Callable[..., Any],
-        component: Component | None,
+        component: Component | Manager | None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
         requires_streams: Iterable[str] = (),
@@ -441,8 +441,8 @@ class ValuesInterface(Interface):
             before the pipeline source is called.
         required_resources
             A list of resources that need to be properly sourced before the
-            pipeline source is called. This is a list of strings, pipeline
-            names, or randomness streams.
+            pipeline source is called. This is a list of strings, pipelines,
+            or randomness streams.
         preferred_combiner
             A strategy for combining the source and the results of any calls
             to mutators in the pipeline. ``vivarium`` provides the strategies
@@ -476,7 +476,7 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         source: Callable[[pd.Index[int]], Any],
-        component: Component,
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: PostProcessor | None = None,
@@ -493,8 +493,8 @@ class ValuesInterface(Interface):
             The component that is registering the attribute producer.
         required_resources
             A list of resources that need to be properly sourced before the
-            pipeline source is called. This is a list of strings, pipeline
-            names, or randomness streams.
+            pipeline source is called. This is a list of strings, pipelines,
+            or randomness streams.
         preferred_combiner
             A strategy for combining the source and the results of any calls
             to mutators in the pipeline. ``vivarium`` provides the strategies
@@ -525,11 +525,7 @@ class ValuesInterface(Interface):
         self,
         rate_name: str,
         source: Callable[..., Any],
-        # TODO [MIC-5452]: all calls should have a component
-        component: Component | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
+        component: Component,
         required_resources: Sequence[str | Resource] = (),
     ) -> AttributePipeline:
         """Marks a ``Callable`` as the producer of a named rate.
@@ -549,20 +545,10 @@ class ValuesInterface(Interface):
             A callable source for the dynamic rate pipeline.
         component
             The component that is registering the rate producer.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline source
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline source is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline source is called.
         required_resources
             A list of resources that need to be properly sourced before the
-            pipeline source is called. This is a list of strings, pipeline
-            names, or randomness streams.
+            pipeline source is called. This is a list of strings, pipelines,
+            or randomness streams.
 
         Returns
         -------
@@ -572,9 +558,6 @@ class ValuesInterface(Interface):
             rate_name,
             source,
             component,
-            requires_columns,
-            requires_values,
-            requires_streams,
             required_resources,
             preferred_post_processor=rescale_post_processor,
         )
@@ -618,8 +601,8 @@ class ValuesInterface(Interface):
             before the pipeline modifier is called.
         required_resources
             A list of resources that need to be properly sourced before the
-            pipeline modifier is called. This is a list of strings, pipeline
-            names, or randomness streams.
+            pipeline modifier is called. This is a list of strings, pipelines,
+            or randomness streams.
         """
         self._manager.register_value_modifier(
             value_name,
@@ -656,8 +639,8 @@ class ValuesInterface(Interface):
             The component that is registering the attribute modifier.
         required_resources
             A list of resources that need to be properly sourced before the
-            pipeline modifier is called. This is a list of strings, pipeline
-            names, or randomness streams.
+            pipeline modifier is called. This is a list of strings, pipelines,
+            or randomness streams.
         """
         self._manager.register_attribute_modifier(
             value_name,

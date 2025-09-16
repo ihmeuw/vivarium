@@ -287,8 +287,15 @@ def test_attribute_pipeline_return_types(manager: ValuesManager, mocker: MockFix
     dataframe_pipeline = manager.register_attribute_producer(
         "test_dataframe_attribute", source=dataframe_attribute_source
     )
+
+    assert isinstance(series_pipeline(index), pd.Series)
+    assert series_pipeline(index).index.equals(index)
+
+    assert isinstance(dataframe_pipeline(index), pd.DataFrame)
+    assert dataframe_pipeline(index).index.equals(index)
+
     bad_pipeline = manager.register_attribute_producer(
-        "test_bad_attribute", source=bad_attribute_source  # type: ignore [arg-type]
+        "test_bad_attribute", source=bad_attribute_source, component=mocker.Mock()
     )
 
     with pytest.raises(

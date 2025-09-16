@@ -37,6 +37,7 @@ class Force(Component, ABC):
             "acceleration",
             modifier=self.apply_force,
             required_resources=self.columns_required + [self.neighbors],
+            component=self,
         )
 
     ##################################

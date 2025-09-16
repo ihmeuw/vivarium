@@ -37,12 +37,14 @@ class DiseaseTransition(Transition):
         self.joint_population_attributable_fraction = builder.value.register_attribute_producer(
             f"{self.rate_name}.population_attributable_fraction",
             source=lambda index: [pd.Series(0.0, index=index)],
+            component=self,
             preferred_combiner=list_combiner,
             preferred_post_processor=union_post_processor,
         )
         self.transition_rate = builder.value.register_rate_producer(
             self.rate_name,
             source=self._risk_deleted_rate,
+            component=self,
             required_resources=[self.joint_population_attributable_fraction],
         )
 
@@ -107,6 +109,7 @@ class DiseaseState(State):
         self.excess_mortality_rate_paf = builder.value.register_attribute_producer(
             f"{self.state_id}.excess_mortality_rate.population_attributable_fraction",
             source=lambda index: [pd.Series(0.0, index=index)],
+            component=self,
             preferred_combiner=list_combiner,
             preferred_post_processor=union_post_processor,
         )
@@ -114,12 +117,14 @@ class DiseaseState(State):
         self.excess_mortality_rate = builder.value.register_rate_producer(
             f"{self.state_id}.excess_mortality_rate",
             source=self.risk_deleted_excess_mortality_rate,
+            component=self,
             required_resources=[self.excess_mortality_rate_paf],
         )
 
         builder.value.register_attribute_modifier(
             "mortality_rate",
-            self.add_in_excess_mortality,
+            modifier=self.add_in_excess_mortality,
+            component=self,
             required_resources=[self.excess_mortality_rate]
         )
 
@@ -169,11 +174,13 @@ class DiseaseModel(Machine):
         self.cause_specific_mortality_rate = builder.value.register_rate_producer(
             f"{self.state_column}.cause_specific_mortality_rate",
             source=lambda index: pd.Series(cause_specific_mortality_rate, index=index),
+            component=self,
         )
         builder.value.register_attribute_modifier(
             "mortality_rate",
             modifier=self.delete_cause_specific_mortality,
             required_resources=[self.cause_specific_mortality_rate],
+            component=self,
         )
 
     ##################################
