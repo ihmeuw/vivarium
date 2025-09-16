@@ -22,6 +22,7 @@ from vivarium.framework.results.stratification import (
     get_mapped_col_name,
     get_original_col_name,
 )
+from vivarium.framework.values import Pipeline
 from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
@@ -47,9 +48,12 @@ class ResultsContext:
         Dictionary of possible per-metric stratification values to be excluded
         from results processing.
     observations
+        Dictionary of :class:`Observation <vivarium.framework.results.observation.Observation>`
+        objects to be produced keyed by the observation name.
+    grouped_observations
         Dictionary of observation details. It is of the format
-        {lifecycle_phase: {(pop_filter, stratifications): list[Observation]}}.
-        Allowable lifecycle_phases are "time_step__prepare", "time_step",
+        {lifecycle_state: {(pop_filter, stratifications): list[Observation]}}.
+        Allowable lifecycle_states are "time_step__prepare", "time_step",
         "time_step__cleanup", and "collect_metrics".
     logger
         Logger for the results context.
@@ -57,9 +61,10 @@ class ResultsContext:
 
     def __init__(self) -> None:
         self.default_stratifications: list[str] = []
-        self.stratifications: list[Stratification] = []
+        self.stratifications: dict[str, Stratification] = {}
         self.excluded_categories: dict[str, list[str]] = {}
-        self.observations: defaultdict[
+        self.observations: dict[str, Observation] = {}
+        self.grouped_observations: defaultdict[
             str, defaultdict[tuple[str, tuple[str, ...] | None], list[Observation]]
         ] = defaultdict(lambda: defaultdict(list))
 
@@ -99,10 +104,44 @@ class ResultsContext:
             )
         self.default_stratifications = default_grouping_columns
 
+    def set_stratifications(self) -> None:
+        """Set stratifications on all Observers.
+
+        Emits a warning if any registered stratifications are not being used by any
+        observation.
+        """
+        used_stratifications: set[str] = set()
+        for state_observations in self.grouped_observations.values():
+            for observation_details in state_observations.items():
+                (_, stratification_names), observations = observation_details
+                if stratification_names is None:
+                    continue
+
+                used_stratifications |= set(stratification_names)
+                for observation in observations:
+                    observation.stratifications = tuple(
+                        self.stratifications[name]
+                        for name in stratification_names
+                        if name in self.stratifications
+                    )
+
+        if unused_stratifications := set(self.stratifications.keys()) - used_stratifications:
+            self.logger.info(
+                "The following stratifications are registered but not used by any "
+                f"observers: \n{sorted(list(unused_stratifications))}"
+            )
+
+        if missing_stratifications := used_stratifications - set(self.stratifications.keys()):
+            raise ValueError(
+                "The following stratifications are used by observers but not registered: "
+                f"\n{sorted(list(missing_stratifications))}"
+            )
+
     def add_stratification(
         self,
         name: str,
-        sources: list[str],
+        requires_columns: list[str],
+        requires_values: list[Pipeline],
         categories: list[str],
         excluded_categories: list[str] | None,
         mapper: VectorMapper | ScalarMapper | None,
@@ -139,15 +178,8 @@ class ResultsContext:
         ValueError
             If any `excluded_categories` are not in `categories`.
         """
-        already_used = [
-            stratification
-            for stratification in self.stratifications
-            if stratification.name == name
-        ]
-        if already_used:
-            raise ValueError(
-                f"Stratification name '{name}' is already used: {str(already_used[0])}."
-            )
+        if name in self.stratifications:
+            raise ValueError(f"Stratification name '{name}' is already used.")
         unique_categories = set(categories)
         if len(categories) != len(unique_categories):
             for category in unique_categories:
@@ -176,15 +208,15 @@ class ResultsContext:
             )
             categories = [category for category in categories if category not in to_exclude]
 
-        stratification = Stratification(
-            name,
-            sources,
-            categories,
-            to_exclude,
-            mapper,
-            is_vectorized,
+        self.stratifications[name] = Stratification(
+            name=name,
+            requires_columns=requires_columns,
+            requires_values=requires_values,
+            categories=categories,
+            excluded_categories=to_exclude,
+            mapper=mapper,
+            is_vectorized=is_vectorized,
         )
-        self.stratifications.append(stratification)
 
     def register_observation(
         self,
@@ -192,8 +224,11 @@ class ResultsContext:
         name: str,
         pop_filter: str,
         when: str,
+        requires_columns: list[str],
+        requires_values: list[Pipeline],
+        stratifications: tuple[str, ...] | None,
         **kwargs: Any,
-    ) -> None:
+    ) -> Observation:
         """Add an observation to the results context.
 
         Parameters
@@ -207,41 +242,46 @@ class ResultsContext:
             A Pandas query filter string to filter the population down to the simulants who should
             be considered for the observation.
         when
-            Name of the lifecycle phase the observation should happen. Valid values are:
+            Name of the lifecycle state the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         **kwargs
             Additional keyword arguments to be passed to the observation's constructor.
+
+        Returns
+        -------
+            The instantiated Observation object.
 
         Raises
         ------
         ValueError
             If the observation `name` is already used.
         """
-        already_used = None
-        if self.observations:
-            # NOTE: self.observations is a list where each item is a dictionary
-            # of the form {lifecycle_phase: {(pop_filter, stratifications): List[Observation]}}.
-            # We use a triple-nested for loop to iterate over only the list of Observations
-            # (i.e. we do not need the lifecycle_phase, pop_filter, or stratifications).
-            for observation_details in self.observations.values():
-                for observations in observation_details.values():
-                    for observation in observations:
-                        if observation.name == name:
-                            already_used = observation
-        if already_used:
+        if name in self.observations:
             raise ValueError(
-                f"Observation name '{name}' is already used: {str(already_used)}."
+                f"Observation name '{name}' is already used: {self.observations[name]}."
             )
 
         # Instantiate the observation and add it and its (pop_filter, stratifications)
         # tuple as a key-value pair to the self.observations[when] dictionary.
-        observation = observation_type(name=name, pop_filter=pop_filter, when=when, **kwargs)
-        self.observations[observation.when][
-            (observation.pop_filter, observation.stratifications)
+        observation = observation_type(
+            name=name,
+            pop_filter=pop_filter,
+            when=when,
+            requires_columns=requires_columns,
+            requires_values=requires_values,
+            **kwargs,
+        )
+        self.observations[name] = observation
+        self.grouped_observations[observation.when][
+            (observation.pop_filter, stratifications)
         ].append(observation)
+        return observation
 
     def gather_results(
-        self, population: pd.DataFrame, lifecycle_phase: str, event: Event
+        self,
+        population: pd.DataFrame,
+        lifecycle_state: str,
+        event_observations: list[Observation],
     ) -> Generator[
         tuple[
             pd.DataFrame | None,
@@ -252,7 +292,7 @@ class ResultsContext:
         None,
     ]:
         """Generate and yield current results for all observations at this lifecycle
-        phase and event.
+        state and event.
 
         Each set of results are stratified and grouped by
         all registered stratifications as well as filtered by their respective
@@ -262,10 +302,11 @@ class ResultsContext:
         ----------
         population
             The current population DataFrame.
-        lifecycle_phase
-            The current lifecycle phase.
-        event
-            The current Event.
+        lifecycle_state
+            The current lifecycle state.
+        event_observations
+            List of observations to be gathered for this specific event. Note that this
+            excludes all observations whose `to_observe` method returns False.
 
         Yields
         ------
@@ -279,21 +320,10 @@ class ResultsContext:
             If a stratification's temporary column name already exists in the population DataFrame.
         """
 
-        for stratification in self.stratifications:
-            # Add new columns of mapped values to the population to prevent name collisions
-            new_column = get_mapped_col_name(stratification.name)
-            if new_column in population.columns:
-                raise ValueError(
-                    f"Stratification column '{new_column}' "
-                    "already exists in the state table or as a pipeline which is a required "
-                    "name for stratifying results - choose a different name."
-                )
-            population[new_column] = stratification.stratify(population)
-
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
-        for (pop_filter, stratification_names), observations in self.observations[
-            lifecycle_phase
+        for (pop_filter, stratification_names), observations in self.grouped_observations[
+            lifecycle_state
         ].items():
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
@@ -309,11 +339,109 @@ class ResultsContext:
                 else:
                     pop = self._get_groups(stratification_names, filtered_pop)
                 for observation in observations:
-                    results = observation.observe(event, pop, stratification_names)
+                    if observation not in event_observations:
+                        continue
+
+                    results = observation.observe(pop, stratification_names)
+
                     if results is not None:
                         self._rename_stratification_columns(results)
 
                     yield (results, observation.name, observation.results_updater)
+
+    def get_observations(self, event: Event) -> list[Observation]:
+        """Get all observations for a given event.
+
+        Parameters
+        ----------
+        event
+            The current Event.
+
+        Returns
+        -------
+            A list of Observations for the given event. Only includes observations
+            whose `to_observe` method returns True.
+        """
+        return [
+            observation
+            for observations in self.grouped_observations[event.name].values()
+            for observation in observations
+            if observation.to_observe(event)
+        ]
+
+    def get_stratifications(self, observations: list[Observation]) -> list[Stratification]:
+        """Get all stratifications for a given set of observations.
+
+        Parameters
+        ----------
+        observations
+            The observations to gather stratifications from.
+
+        Returns
+        -------
+            A list of Stratifications used by at least one of the observations.
+        """
+
+        return list(
+            {
+                stratification.name: stratification
+                for observation in observations
+                if observation.stratifications is not None
+                for stratification in observation.stratifications
+            }.values()
+        )
+
+    def get_required_columns(
+        self, observations: list[Observation], stratifications: list[Stratification]
+    ) -> list[str]:
+        """Get all columns required for producing results for a given Event.
+
+        Parameters
+        ----------
+        observations
+            List of observations to be gathered for this specific event. Note that this
+            excludes all observations whose `to_observe` method returns False.
+        stratifications
+            List of stratifications to be gathered for this specific event. This only
+            includes stratifications which are needed by the observations which will be
+            made during this `Event`.
+
+        Returns
+        -------
+            A list of all columns required for producing results for the given Event.
+        """
+        required_columns = {"tracked"}
+        for observation in observations:
+            required_columns.update(observation.requires_columns)
+        for stratification in stratifications:
+            required_columns.update(stratification.requires_columns)
+        return list(required_columns)
+
+    def get_required_values(
+        self, observations: list[Observation], stratifications: list[Stratification]
+    ) -> list[Pipeline]:
+        """Get all values required for producing results for a given Event.
+
+        Parameters
+        ----------
+        observations
+            List of observations to be gathered for this specific event. Note that this
+            excludes all observations whose `to_observe` method returns False.
+        stratifications
+            List of stratifications to be gathered for this specific event. This only
+            includes stratifications which are needed by the observations which will be
+            made during this `Event`.
+
+        Returns
+        -------
+            A list of all values required for producing results for the given Event.
+        """
+        required_values = set()
+        for observation in observations:
+            required_values.update(observation.requires_values)
+        for stratification in stratifications:
+            required_values.update(stratification.requires_values)
+        return list(required_values)
 
     def _filter_population(
         self,

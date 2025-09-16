@@ -100,8 +100,6 @@ class ResultsInterface(Interface):
     # Stratification-related methods #
     ##################################
 
-    # TODO: It is not reflected in the sample code here, but the “when” parameter should be added
-    #  to the stratification registration calls, probably as a List. Consider this after observer implementation
     def register_stratification(
         self,
         name: str,
@@ -253,7 +251,6 @@ class ResultsInterface(Interface):
         self._check_for_required_callables(name, {"results_updater": results_updater})
         self._manager.register_observation(
             observation_type=StratifiedObservation,
-            is_stratified=True,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -294,9 +291,11 @@ class ResultsInterface(Interface):
             Name of the lifecycle phase the observation should happen. Valid values are:
             "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics".
         requires_columns
-            List of the state table columns that are required by either the `pop_filter` or the `aggregator`.
+            List of the state table columns that are required by either the `pop_filter` or the
+            `results_gatherer`.
         requires_values
-            List of the value pipelines that are required by either the `pop_filter` or the `aggregator`.
+            List of the value pipelines that are required by either the `pop_filter` or the
+            `results_gatherer`.
         results_gatherer
             Function that gathers the latest observation results.
         results_updater
@@ -318,7 +317,6 @@ class ResultsInterface(Interface):
         self._check_for_required_callables(name, required_callables)
         self._manager.register_observation(
             observation_type=UnstratifiedObservation,
-            is_stratified=False,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -385,7 +383,6 @@ class ResultsInterface(Interface):
         """
         self._manager.register_observation(
             observation_type=AddingObservation,
-            is_stratified=True,
             name=name,
             pop_filter=pop_filter,
             when=when,
@@ -438,17 +435,14 @@ class ResultsInterface(Interface):
         to_observe
             Function that determines whether to perform an observation on this Event.
         """
-        included_columns = ["event_time"] + requires_columns + requires_values
         self._manager.register_observation(
             observation_type=ConcatenatingObservation,
-            is_stratified=False,
             name=name,
             pop_filter=pop_filter,
             when=when,
             requires_columns=requires_columns,
             requires_values=requires_values,
             results_formatter=results_formatter,
-            included_columns=included_columns,
             to_observe=to_observe,
         )
 

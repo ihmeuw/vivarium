@@ -72,6 +72,24 @@ class Hogwarts(Component):
             "potion_power",
         ]
 
+    def setup(self, builder: Builder) -> None:
+        self.grade = builder.value.register_value_producer(
+            "grade",
+            source=lambda index: self.population_view.get(index)["exam_score"].map(
+                lambda x: x // 10
+            ),
+            requires_columns=["exam_score"],
+        )
+        self.double_power = builder.value.register_value_producer(
+            "double_power",
+            source=lambda index: self.population_view.get(index)["power_level"] * 2,
+            requires_columns=["power_level"],
+        )
+
+    def grade_source(self, index: pd.Index[int]) -> pd.Series[str]:
+        pass_mask = self.population_view.get(index)["exam_score"] > 6
+        return pass_mask.map({True: "pass", False: "fail"})
+
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         size = len(pop_data.index)
         initialization_data = pd.DataFrame(
@@ -317,30 +335,31 @@ def sorting_hat_bad_mapping(simulant_row: pd.Series[str]) -> str:
 
 
 def verify_stratification_added(
-    stratification_list: list[Stratification],
+    stratifications: dict[str, Stratification],
     name: str,
-    sources: list[str],
+    requires_columns: list[str],
+    requires_values: list[Pipeline],
     categories: list[str],
     excluded_categories: list[str],
     mapper: VectorMapper | ScalarMapper,
     is_vectorized: bool,
 ) -> bool:
-    """Verify that a Stratification object is in `stratification_list`"""
-    matching_stratification_found = False
-    for stratification in stratification_list:  # noqa
-        # big equality check
-        if (
-            stratification.name == name
-            and sorted(stratification.categories)
-            == sorted([cat for cat in categories if cat not in excluded_categories])
-            and sorted(stratification.excluded_categories) == sorted(excluded_categories)
-            and stratification.mapper == mapper
-            and stratification.is_vectorized == is_vectorized
-            and sorted(stratification.sources) == sorted(sources)
-        ):
-            matching_stratification_found = True
-            break
-    return matching_stratification_found
+    """Verify that a Stratification object is in `stratifications`"""
+    stratification = stratifications.get(name)
+    if not stratification:
+        return False
+    expected_value_names = sorted(pipeline.name for pipeline in requires_values)
+    actual_value_names = sorted(pipeline.name for pipeline in stratification.requires_values)
+    return (
+        stratification.name == name
+        and sorted(stratification.categories)
+        == sorted([cat for cat in categories if cat not in excluded_categories])
+        and sorted(stratification.excluded_categories) == sorted(excluded_categories)
+        and stratification.mapper == mapper
+        and stratification.is_vectorized == is_vectorized
+        and sorted(stratification.requires_columns) == sorted(requires_columns)
+        and actual_value_names == expected_value_names
+    )
 
 
 # Mock for get_value call for Pipelines, returns a str instead of a Pipeline

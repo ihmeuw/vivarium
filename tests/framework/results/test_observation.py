@@ -13,7 +13,9 @@ from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import (
     AddingObservation,
     ConcatenatingObservation,
+    Observation,
     StratifiedObservation,
+    UnstratifiedObservation,
 )
 
 
@@ -23,9 +25,10 @@ def stratified_observation() -> StratifiedObservation:
         name="stratified_observation_name",
         pop_filter="",
         when="whenevs",
+        requires_columns=[],
+        requires_values=[],
         results_updater=lambda _, __: pd.DataFrame(),
         results_formatter=lambda _, __: pd.DataFrame(),
-        stratifications=(),
         aggregator_sources=None,
         aggregator=lambda _: 0.0,
     )
@@ -37,9 +40,23 @@ def concatenating_observation() -> ConcatenatingObservation:
         name="concatenating_observation_name",
         pop_filter="",
         when="whenevs",
-        included_columns=["some-col", "some-other-col"],
+        requires_columns=["some-col", "some-other-col"],
+        requires_values=[],
         results_formatter=lambda _, __: pd.DataFrame(),
     )
+
+
+@pytest.mark.parametrize(
+    "observation_type, is_stratified",
+    [
+        (StratifiedObservation, True),
+        (UnstratifiedObservation, False),
+        (AddingObservation, True),
+        (ConcatenatingObservation, False),
+    ],
+)
+def test_is_stratified(observation_type: type[Observation], is_stratified: bool) -> None:
+    assert observation_type.is_stratified() == is_stratified
 
 
 @pytest.mark.parametrize(
@@ -223,8 +240,9 @@ def test_adding_observation_results_updater(new_observations: pd.DataFrame) -> N
         name="adding_observation_name",
         pop_filter="",
         when="whenevs",
+        requires_columns=[],
+        requires_values=[],
         results_formatter=lambda _, __: pd.DataFrame(),
-        stratifications=(),
         aggregator_sources=None,
         aggregator=lambda _: 0.0,
     )
