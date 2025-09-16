@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from datetime import timedelta
 from types import MethodType
 
 import pandas as pd
@@ -10,7 +9,6 @@ import pytest
 from layered_config_tree.main import LayeredConfigTree
 from loguru import logger
 from pytest_mock import MockerFixture
-from traitlets import Any
 
 from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS
 from tests.framework.results.helpers import HOUSE_CATEGORIES as HOUSES
@@ -20,10 +18,8 @@ from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import ResultsInterface, ResultsManager
 from vivarium.framework.results.observation import (
     ConcatenatingObservation,
-    Observation,
     StratifiedObservation,
 )
-from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
 
 
 def _silly_aggregator(_: pd.DataFrame) -> float:
