@@ -8,13 +8,7 @@ from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.resource import Resource
 from vivarium.framework.resource.resource import Column, NullResource
-from vivarium.framework.values import (
-    AttributePipeline,
-    AttributeSource,
-    Pipeline,
-    ValueModifier,
-    ValueSource,
-)
+from vivarium.framework.values import AttributePipeline, Pipeline, ValueModifier, ValueSource
 
 
 def test_resource_id() -> None:
@@ -30,7 +24,7 @@ def test_resource_id() -> None:
         (ValueModifier(Pipeline("baz"), lambda: 1, ColumnCreator()), False),
         (AttributePipeline("foo"), False),
         (
-            AttributeSource(
+            ValueSource(
                 AttributePipeline("bar"), lambda idx: pd.DataFrame(), ColumnCreator()
             ),
             False,

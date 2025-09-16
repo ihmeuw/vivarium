@@ -8,7 +8,7 @@ from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.resource import Resource
 from vivarium.framework.values.combiners import ValueCombiner, replace_combiner
-from vivarium.framework.values.pipeline import AttributePipeline, Pipeline
+from vivarium.framework.values.pipeline import AttributePipeline, DynamicValueError, Pipeline
 from vivarium.framework.values.post_processors import (
     AttributePostProcessor,
     PostProcessor,
@@ -38,7 +38,7 @@ class ValuesManager(Manager):
         return "values_manager"
 
     @property
-    def _all_pipelines(self) -> dict[str, Pipeline | AttributePipeline]:
+    def _all_pipelines(self) -> dict[str, Pipeline]:
         return {**self._value_pipelines, **self._attribute_pipelines}
 
     def setup(self, builder: Builder) -> None:
@@ -117,11 +117,7 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         source: Callable[[pd.Index[int]], Any],
-        # TODO [MIC-5452]: all calls should have a component
-        component: Component | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
+        component: Component,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: AttributePostProcessor | None = None,
@@ -138,12 +134,9 @@ class ValuesManager(Manager):
             pipeline,
             source,
             component,
-            requires_columns,
-            requires_values,
-            requires_streams,
-            required_resources,
-            preferred_combiner,
-            preferred_post_processor,
+            required_resources=required_resources,
+            preferred_combiner=preferred_combiner,
+            preferred_post_processor=preferred_post_processor,
         )
         return pipeline
 
@@ -167,7 +160,7 @@ class ValuesManager(Manager):
         modifier :
             A function that modifies the source of the dynamic value pipeline
             when called. If the pipeline has a ``replace_combiner``, the
-            modifier should accept the same arguments as the pipeline source
+            modifier must have the same arguments as the pipeline source
             with an additional last positional argument for the results of the
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
@@ -189,9 +182,8 @@ class ValuesManager(Manager):
             pipeline modifier is called. This is a list of strings, pipeline
             names, or randomness streams.
         """
-        pipeline = self.get_value(value_name)
         self._configure_modifier(
-            pipeline,
+            self.get_value(value_name),
             modifier,
             component,
             requires_columns,
@@ -204,11 +196,7 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         modifier: Callable[..., Any],
-        # TODO [MIC-5452]: all calls should have a component
-        component: Component | Manager | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
+        component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
     ) -> None:
         """Marks a ``Callable`` as the modifier of a named attribute.
@@ -220,37 +208,23 @@ class ValuesManager(Manager):
         modifier :
             A function that modifies the source of the dynamic attribute pipeline
             when called. If the pipeline has a ``replace_combiner``, the
-            modifier should accept the same arguments as the pipeline source
+            modifier must have the same arguments as the pipeline source
             with an additional last positional argument for the results of the
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
             source.
         component
             The component that is registering the attribute modifier.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline modifier
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline modifier is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline modifier is called.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline modifier is called. This is a list of strings, pipeline
             names, or randomness streams.
         """
-        pipeline = self.get_attribute(value_name)
         self._configure_modifier(
-            pipeline,
+            self.get_attribute(value_name),
             modifier,
             component,
-            requires_columns,
-            requires_values,
-            requires_streams,
-            required_resources,
+            required_resources=required_resources,
         )
 
     def get_value(self, name: str) -> Pipeline:
@@ -268,6 +242,10 @@ class ValuesManager(Manager):
             (frequently just a :class:`pandas.Index` representing the
             simulants).
         """
+        if name in self._attribute_pipelines:
+            raise DynamicValueError(
+                f"'{name}' is already registered as an attribute pipeline."
+            )
         pipeline = self._value_pipelines.get(name) or Pipeline(name)
         self._value_pipelines[name] = pipeline
         return pipeline
@@ -286,6 +264,8 @@ class ValuesManager(Manager):
             attribute pipeline argument must a :class:`pandas.Index` representing
             the simulants and must return a :class:`pandas.DataFrame` with that same index.
         """
+        if name in self._value_pipelines:
+            raise DynamicValueError(f"'{name}' is already registered as a value pipeline.")
         pipeline = self._attribute_pipelines.get(name) or AttributePipeline(name)
         self._attribute_pipelines[name] = pipeline
         return pipeline
@@ -299,12 +279,12 @@ class ValuesManager(Manager):
         pipeline: Pipeline | AttributePipeline,
         source: Callable[..., Any],
         component: Component | None,
-        requires_columns: Iterable[str],
-        requires_values: Iterable[str],
-        requires_streams: Iterable[str],
-        required_resources: Sequence[str | Resource],
-        preferred_combiner: ValueCombiner,
-        preferred_post_processor: PostProcessor | AttributePostProcessor | None,
+        requires_columns: Iterable[str] = (),
+        requires_values: Iterable[str] = (),
+        requires_streams: Iterable[str] = (),
+        required_resources: Sequence[str | Resource] = (),
+        preferred_combiner: ValueCombiner = replace_combiner,
+        preferred_post_processor: PostProcessor | AttributePostProcessor | None = None,
     ) -> None:
         pipeline.set_attributes(
             component,
@@ -336,11 +316,11 @@ class ValuesManager(Manager):
         self,
         pipeline: Pipeline | AttributePipeline,
         modifier: Callable[..., Any],
-        component: Component | Manager | None,
-        requires_columns: Iterable[str],
-        requires_values: Iterable[str],
-        requires_streams: Iterable[str],
-        required_resources: Sequence[str | Resource],
+        component: Component | Manager | None = None,
+        requires_columns: Iterable[str] = (),
+        requires_values: Iterable[str] = (),
+        requires_streams: Iterable[str] = (),
+        required_resources: Sequence[str | Resource] = (),
     ) -> None:
         value_modifier = pipeline.get_value_modifier(modifier, component)
         self.logger.debug(f"Registering {value_modifier.name} as modifier to {pipeline.name}")
@@ -487,11 +467,7 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         source: Callable[[pd.Index[int]], Any],
-        # TODO [MIC-5452]: all calls should have a component
-        component: Component | None = None,
-        requires_columns: Iterable[str] = (),
-        requires_values: Iterable[str] = (),
-        requires_streams: Iterable[str] = (),
+        component: Component,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
         preferred_post_processor: AttributePostProcessor | None = None,
@@ -506,16 +482,6 @@ class ValuesInterface(Interface):
             A callable source for the dynamic attribute pipeline.
         component
             The component that is registering the attribute producer.
-        requires_columns
-            A list of the state table columns that already need to be present
-            and populated in the state table before the pipeline source
-            is called.
-        requires_values
-            A list of the value pipelines that need to be properly sourced
-            before the pipeline source is called.
-        requires_streams
-            A list of the randomness streams that need to be properly sourced
-            before the pipeline source is called.
         required_resources
             A list of resources that need to be properly sourced before the
             pipeline source is called. This is a list of strings, pipeline
@@ -541,9 +507,6 @@ class ValuesInterface(Interface):
             value_name,
             source,
             component,
-            requires_columns,
-            requires_values,
-            requires_streams,
             required_resources,
             preferred_combiner,
             preferred_post_processor,
@@ -589,7 +552,7 @@ class ValuesInterface(Interface):
             before the pipeline source is called.
         required_resources
             A list of resources that need to be properly sourced before the
-            pipeline source is called This is a list of strings, pipeline
+            pipeline source is called. This is a list of strings, pipeline
             names, or randomness streams.
 
         Returns
@@ -627,7 +590,7 @@ class ValuesInterface(Interface):
         modifier :
             A function that modifies the source of the dynamic value pipeline
             when called. If the pipeline has a ``replace_combiner``, the
-            modifier should accept the same arguments as the pipeline source
+            modifier must have the same arguments as the pipeline source
             with an additional last positional argument for the results of the
             previous stage in the pipeline. For the ``list_combiner`` strategy,
             the pipeline modifiers should have the same signature as the pipeline
@@ -657,6 +620,41 @@ class ValuesInterface(Interface):
             requires_values,
             requires_streams,
             required_resources,
+        )
+
+    def register_attribute_modifier(
+        self,
+        value_name: str,
+        modifier: Callable[..., Any],
+        component: Component | Manager,
+        required_resources: Sequence[str | Resource] = (),
+    ) -> None:
+        """Marks a ``Callable`` as the modifier of a named attribute.
+
+        Parameters
+        ----------
+        value_name :
+            The name of the dynamic attribute pipeline to be modified.
+        modifier :
+            A function that modifies the source of the dynamic attribute pipeline
+            when called. If the pipeline has a ``replace_combiner``, the
+            modifier should accept the same arguments as the pipeline source
+            with an additional last positional argument for the results of the
+            previous stage in the pipeline. For the ``list_combiner`` strategy,
+            the pipeline modifiers should have the same signature as the pipeline
+            source.
+        component
+            The component that is registering the attribute modifier.
+        required_resources
+            A list of resources that need to be properly sourced before the
+            pipeline modifier is called. This is a list of strings, pipeline
+            names, or randomness streams.
+        """
+        self._manager.register_attribute_modifier(
+            value_name,
+            modifier,
+            component,
+            required_resources=required_resources,
         )
 
     def get_value(self, name: str) -> Pipeline:

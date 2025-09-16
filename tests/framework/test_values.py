@@ -18,7 +18,7 @@ from vivarium.framework.values import (
     rescale_post_processor,
     union_post_processor,
 )
-from vivarium.framework.values.pipeline import AttributeSource
+from vivarium.framework.values.pipeline import ValueSource
 
 
 @pytest.fixture
@@ -154,11 +154,13 @@ def test_attribute_pipeline_creation() -> None:
     pipeline = AttributePipeline("test_attribute")
     assert pipeline.name == "test_attribute"
     assert pipeline.resource_type == "attribute"
-    assert isinstance(pipeline.source, AttributeSource)
+    assert isinstance(pipeline.source, ValueSource)
     assert pipeline.source.resource_id == "missing_attribute_source.test_attribute"
 
 
-def test_attribute_pipeline_register_producer(manager: ValuesManager) -> None:
+def test_attribute_pipeline_register_producer(
+    manager: ValuesManager, mocker: MockFixture
+) -> None:
     """Test registering an attribute producer through ValuesManager."""
     # Create a simple attribute source
     def age_source(index: pd.Index[int]) -> pd.DataFrame:
@@ -171,7 +173,9 @@ def test_attribute_pipeline_register_producer(manager: ValuesManager) -> None:
         )
 
     # Register the attribute producer
-    pipeline = manager.register_attribute_producer("age", source=age_source)
+    pipeline = manager.register_attribute_producer(
+        "age", source=age_source, component=mocker.Mock()
+    )
 
     # Verify it returns an AttributePipeline
     assert isinstance(pipeline, AttributePipeline)
@@ -189,7 +193,9 @@ def test_attribute_pipeline_register_producer(manager: ValuesManager) -> None:
 
 
 @pytest.mark.parametrize("use_postprocessor", [True, False])
-def test_attribute_pipeline_usage(use_postprocessor: bool, manager: ValuesManager) -> None:
+def test_attribute_pipeline_usage(
+    use_postprocessor: bool, manager: ValuesManager, mocker: MockFixture
+) -> None:
 
     index = pd.Index([4, 8, 15, 16, 23, 42])
 
@@ -220,10 +226,15 @@ def test_attribute_pipeline_usage(use_postprocessor: bool, manager: ValuesManage
     pipeline = manager.register_attribute_producer(
         "test_attribute",
         source=attribute_source,
+        component=mocker.Mock(),
         preferred_post_processor=attribute_post_processor if use_postprocessor else None,
     )
-    manager.register_attribute_modifier("test_attribute", modifier=attribute_modifier1)
-    manager.register_attribute_modifier("test_attribute", modifier=attribute_modifier2)
+    manager.register_attribute_modifier(
+        "test_attribute", modifier=attribute_modifier1, component=mocker.Mock()
+    )
+    manager.register_attribute_modifier(
+        "test_attribute", modifier=attribute_modifier2, component=mocker.Mock()
+    )
 
     result = pipeline(index)
 
@@ -234,7 +245,9 @@ def test_attribute_pipeline_usage(use_postprocessor: bool, manager: ValuesManage
     assert all(result["col2"] == (40 if use_postprocessor else 4.0))
 
 
-def test_attribute_pipeline_raises_returns_different_index(manager: ValuesManager) -> None:
+def test_attribute_pipeline_raises_returns_different_index(
+    manager: ValuesManager, mocker: MockFixture
+) -> None:
     """Test than an error is raised when the index returned is different than was passed in."""
     index = pd.Index([4, 8, 15, 16, 23, 42])
 
@@ -245,18 +258,20 @@ def test_attribute_pipeline_raises_returns_different_index(manager: ValuesManage
         )
 
     pipeline = manager.register_attribute_producer(
-        "test_attribute", source=bad_attribute_source
+        "test_attribute", source=bad_attribute_source, component=mocker.Mock()
     )
 
     with pytest.raises(
         DynamicValueError,
-        match=f"The dynamic attribute pipeline for {pipeline.name} returned a DataFrame "
-        "with a different index than was passed in.",
+        match=f"The dynamic attribute pipeline for {pipeline.name} returned a series "
+        "or dataframe with a different index than was passed in.",
     ):
         pipeline(index)
 
 
-def test_attribute_pipeline_raises_no_dataframe_returned(manager: ValuesManager) -> None:
+def test_attribute_pipeline_raises_no_dataframe_returned(
+    manager: ValuesManager, mocker: MockFixture
+) -> None:
     """Test than an error is raised when something other than a pd.DataFrame is returned."""
     index = pd.Index([4, 8, 15, 16, 23, 42])
 
@@ -264,14 +279,14 @@ def test_attribute_pipeline_raises_no_dataframe_returned(manager: ValuesManager)
         return "foo"
 
     pipeline = manager.register_attribute_producer(
-        "test_attribute", source=bad_attribute_source
+        "test_attribute", source=bad_attribute_source, component=mocker.Mock()
     )
 
     with pytest.raises(
         DynamicValueError,
         match=(
-            f"The dynamic attribute pipeline for {pipeline.name} returned a "
-            f"{type('foo')} but pd.DataFrames are expected for attribute pipelines."
+            f"The dynamic attribute pipeline for {pipeline.name} returned a {type('foo')} "
+            "but pd.Series' or pd.DataFrames are expected for attribute pipelines."
         ),
     ):
         pipeline(index)
@@ -279,7 +294,7 @@ def test_attribute_pipeline_raises_no_dataframe_returned(manager: ValuesManager)
 
 @pytest.mark.parametrize("skip_post_processor", [True, False])
 def test_attribute_pipeline_with_post_processor(
-    skip_post_processor: bool, manager: ValuesManager
+    skip_post_processor: bool, manager: ValuesManager, mocker: MockFixture
 ) -> None:
     """Test that AttributePipeline works with AttributePostProcessor."""
 
@@ -297,6 +312,7 @@ def test_attribute_pipeline_with_post_processor(
         "test_attribute",
         source=attribute_source,
         preferred_post_processor=double_post_processor,
+        component=mocker.Mock(),
     )
 
     index = pd.Index([4, 8, 15, 16, 23, 42])
@@ -321,10 +337,25 @@ def test_get_attribute(manager: ValuesManager) -> None:
     assert pipeline is pipeline2
 
 
-def test_same_names(manager: ValuesManager) -> None:
-    """Tests that we can have both a Pipeline and AttributePipeline with the same name."""
-    shared_name = "test_pipeline"
-    manager.register_value_producer(shared_name, source=lambda: 1)
-    manager.register_attribute_producer(shared_name, source=lambda idx: pd.DataFrame())
-    assert isinstance(manager.get_value(shared_name), Pipeline)
-    assert isinstance(manager.get_attribute(shared_name), AttributePipeline)
+def test_duplicate_names_raise(manager: ValuesManager, mocker: MockFixture) -> None:
+    """Tests that we raise if we try to register a value and attribute producer with the same name."""
+    name = "test1"
+    manager.register_value_producer(name, source=lambda: 1)
+    with pytest.raises(
+        DynamicValueError,
+        match=re.escape(f"'{name}' is already registered as a value pipeline."),
+    ):
+        manager.register_attribute_producer(
+            name, source=lambda idx: pd.DataFrame(), component=mocker.Mock()
+        )
+
+    # switch order
+    name = "test2"
+    manager.register_attribute_producer(
+        name, source=lambda idx: pd.DataFrame(), component=mocker.Mock()
+    )
+    with pytest.raises(
+        DynamicValueError,
+        match=re.escape(f"'{name}' is already registered as an attribute pipeline."),
+    ):
+        manager.register_value_producer(name, source=lambda: 1)

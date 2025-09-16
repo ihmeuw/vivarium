@@ -17,7 +17,6 @@ from vivarium.framework.values.exceptions import DynamicValueError
 from vivarium.framework.values.manager import ValuesInterface, ValuesManager
 from vivarium.framework.values.pipeline import (
     AttributePipeline,
-    AttributeSource,
     Pipeline,
     ValueModifier,
     ValueSource,
