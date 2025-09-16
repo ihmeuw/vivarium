@@ -13,7 +13,10 @@ from vivarium.manager import Manager
 if TYPE_CHECKING:
     from vivarium.framework.values.combiners import ValueCombiner
     from vivarium.framework.values.manager import ValuesManager
-    from vivarium.framework.values.post_processors import PostProcessor
+    from vivarium.framework.values.post_processors import (
+        AttributePostProcessor,
+        PostProcessor,
+    )
 
 T = TypeVar("T")
 
@@ -27,8 +30,15 @@ class ValueSource(Resource):
         source: Callable[..., Any] | None,
         component: Component | None,
     ) -> None:
+        self._pipeline_type = (
+            "attribute" if isinstance(pipeline, AttributePipeline) else "value"
+        )
         super().__init__(
-            "value_source" if source else "missing_value_source", pipeline.name, component
+            f"{self._pipeline_type}_source"
+            if source
+            else f"missing_{self._pipeline_type}_source",
+            pipeline.name,
+            component,
         )
         self._pipeline = pipeline
         self._source = source
@@ -39,7 +49,7 @@ class ValueSource(Resource):
     def __call__(self, *args: Any, **kwargs: Any) -> Any:
         if not self._source:
             raise DynamicValueError(
-                f"The dynamic value pipeline for {self.name} has no source."
+                f"The dynamic {self._pipeline_type} pipeline for {self.name} has no source."
                 " This likely means you are attempting to modify a value that"
                 " hasn't been created."
             )
@@ -101,7 +111,11 @@ class Pipeline(Resource):
     """
 
     def __init__(self, name: str, component: Component | None = None) -> None:
-        super().__init__("value", name, component=component)
+        super().__init__(
+            "attribute" if isinstance(self, AttributePipeline) else "value",
+            name,
+            component=component,
+        )
 
         self.source: ValueSource = ValueSource(self, source=None, component=None)
         """The callable source of the value represented by the pipeline."""
@@ -154,7 +168,7 @@ class Pipeline(Resource):
             This is useful when the post-processor acts as some sort of final
             unit conversion (e.g. the rescale post processor).
         args, kwargs
-            Pipeline arguments.  These should be the arguments to the
+            Pipeline arguments. These should be the arguments to the
             callable source of the pipeline.
 
         Returns
@@ -237,3 +251,59 @@ class Pipeline(Resource):
         self._combiner = combiner
         self.post_processor = post_processor
         self._manager = manager
+
+
+class AttributePipeline(Pipeline):
+    """A type of value pipeline for calculating simulant attributes.
+
+    An attribute pipeline is a specific type of :class:`~vivarium.framework.values.pipeline.Pipeline`
+    where the source and callable must take a pd.Index of integers and return a pd.DataFrame
+    that has that same index.
+
+    """
+
+    def __init__(self, name: str, component: Component | None = None) -> None:
+        super().__init__(name, component=component)
+        # Re-define the post-processor type to be more specific
+        self.post_processor: AttributePostProcessor | None = None
+        """An optional final transformation to perform on the combined output of
+        the source and mutators."""
+
+    def __call__(  # type: ignore[override]
+        self, index: pd.Index[int], skip_post_processor: bool = False
+    ) -> pd.Series[Any] | pd.DataFrame:
+        """Generates the attributes dataframe represented by this pipeline.
+
+        Arguments
+        ---------
+        index
+            A pd.Index of integers representing the simulants for which we
+            want to calculate the attribute.
+        skip_post_processor
+            Whether we should invoke the post-processor on the combined
+            source and mutator output or return without post-processing.
+
+        Returns
+        -------
+            A pd.Series or pd.DataFrame of attributes for the simulants in `index`.
+
+        Raises
+        ------
+        DynamicValueError
+            If the pipeline is invoked without a source set.
+        """
+        # NOTE: must pass index in as arg (NOT kwarg!) to match signature of parent Pipeline._call()
+        attribute = self._call(index, skip_post_processor=skip_post_processor)
+        if not isinstance(attribute, (pd.Series, pd.DataFrame)):
+            raise DynamicValueError(
+                f"The dynamic attribute pipeline for {self.name} returned a {type(attribute)} "
+                "but pd.Series' or pd.DataFrames are expected for attribute pipelines."
+            )
+        if not attribute.index.equals(index):
+            raise DynamicValueError(
+                f"The dynamic attribute pipeline for {self.name} returned a series "
+                "or dataframe with a different index than was passed in. "
+                f"\nReturned index: {attribute.index}"
+                f"\nExpected index: {index}"
+            )
+        return attribute
