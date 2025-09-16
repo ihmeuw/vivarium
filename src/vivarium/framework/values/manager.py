@@ -96,12 +96,6 @@ class ValuesManager(Manager):
             :meth:`ValuesInterface.register_value_producer`
         """
         self.logger.debug(f"Registering value pipeline {value_name}")
-        if value_name in self._attribute_pipelines:
-            self.logger.warning(
-                f"'{value_name}' already registered as an attribute pipeline."
-                "This is allowed, but be sure you register modifiers using the "
-                "correct method depending on which pipeline you intend to modify."
-            )
         pipeline = self.get_value(value_name)
         self._configure_pipeline(
             pipeline,
@@ -132,12 +126,6 @@ class ValuesManager(Manager):
             :meth:`ValuesInterface.register_attribute_producer`
         """
         self.logger.debug(f"Registering attribute pipeline {value_name}")
-        if value_name in self._value_pipelines:
-            self.logger.warning(
-                f"'{value_name}' already registered as a generic pipeline. "
-                "This is allowed, but be sure you register modifiers using the "
-                "correct method depending on which pipeline you intend to modify."
-            )
         pipeline = self.get_attribute(value_name)
         self._configure_pipeline(
             pipeline,
