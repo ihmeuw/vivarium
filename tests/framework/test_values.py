@@ -282,10 +282,10 @@ def test_attribute_pipeline_return_types(manager: ValuesManager, mocker: MockFix
         return "foo"
 
     series_pipeline = manager.register_attribute_producer(
-        "test_series_attribute", source=series_attribute_source
+        "test_series_attribute", source=series_attribute_source, component=mocker.Mock()
     )
     dataframe_pipeline = manager.register_attribute_producer(
-        "test_dataframe_attribute", source=dataframe_attribute_source
+        "test_dataframe_attribute", source=dataframe_attribute_source, component=mocker.Mock()
     )
 
     assert isinstance(series_pipeline(index), pd.Series)
