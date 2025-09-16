@@ -61,10 +61,7 @@ class ValuesManager(Manager):
         """Finalizes dependency structure for the pipelines."""
         # Unsourced pipelines might occur when generic components register
         # modifiers to values that aren't required in a simulation.
-        unsourced_pipelines = [p for p, v in self._value_pipelines.items() if not v.source]
-        unsourced_pipelines += [
-            p for p, v in self._attribute_pipelines.items() if not v.source
-        ]
+        unsourced_pipelines = [p for p, v in self.items() if not v.source]
         if unsourced_pipelines:
             self.logger.warning(f"Unsourced pipelines: {unsourced_pipelines}")
 
