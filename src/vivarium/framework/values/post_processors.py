@@ -25,7 +25,9 @@ class AttributePostProcessor(Protocol):
         ...
 
 
-def rescale_post_processor(value: NumberLike, manager: ValuesManager) -> NumberLike:
+def rescale_post_processor(
+    value: pd.Series[Any] | pd.DataFrame, manager: ValuesManager
+) -> pd.Series[Any] | pd.DataFrame:
     """Rescales annual rates to time-step appropriate rates.
 
     This should only be used with a simulation using a
@@ -35,9 +37,7 @@ def rescale_post_processor(value: NumberLike, manager: ValuesManager) -> NumberL
     Parameters
     ----------
     value
-        Annual rates, either as a number or something we can broadcast
-        multiplication over like a :mod:`numpy` array or :mod:`pandas`
-        data frame.
+        Annual rates.
     manager
         The ValuesManager for this simulation.
 
@@ -45,22 +45,11 @@ def rescale_post_processor(value: NumberLike, manager: ValuesManager) -> NumberL
     -------
         The annual rates rescaled to the size of the current time step size.
     """
-    if isinstance(value, (pd.Series, pd.DataFrame)):
-        return value.mul(
-            manager.simulant_step_sizes(value.index)
-            .astype("timedelta64[ns]")
-            .dt.total_seconds()
-            / (60 * 60 * 24 * 365.0),
-            axis=0,
-        )
-    else:
-        time_step = manager.step_size()
-        if not isinstance(time_step, (pd.Timedelta, timedelta)):
-            raise DynamicValueError(
-                "The rescale post processor requires a time step size that is a "
-                "datetime timedelta or pandas Timedelta object."
-            )
-        return from_yearly(value, time_step)
+    return value.mul(
+        manager.simulant_step_sizes(value.index).astype("timedelta64[ns]").dt.total_seconds()
+        / (60 * 60 * 24 * 365.0),
+        axis=0,
+    )
 
 
 def union_post_processor(values: list[NumberLike], _: Any) -> NumberLike:
