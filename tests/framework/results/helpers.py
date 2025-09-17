@@ -12,7 +12,7 @@ from vivarium.framework.population import SimulantData
 from vivarium.framework.results import VALUE_COLUMN
 from vivarium.framework.results.observer import Observer
 from vivarium.framework.results.stratification import Stratification
-from vivarium.framework.values import Pipeline
+from vivarium.framework.values import AttributePipeline, Pipeline
 from vivarium.types import ScalarMapper, VectorMapper
 
 NAME = "hogwarts_house"
@@ -362,8 +362,8 @@ def verify_stratification_added(
     )
 
 
-# Mock for get_value call for Pipelines, returns a str instead of a Pipeline
-def mock_get_value(self: Builder, name: str) -> Pipeline:
+# Mock for get_attribute call for Pipelines, returns a str instead of a Pipeline
+def mock_get_attribute(self: Builder, name: str) -> AttributePipeline:
     if not isinstance(name, str):
         raise TypeError("Passed a non-string type to mock get_value(), check your pipelines.")
-    return Pipeline(name)
+    return AttributePipeline(name)
