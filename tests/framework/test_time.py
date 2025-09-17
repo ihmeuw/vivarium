@@ -189,16 +189,6 @@ class StepModifierWithRatePipeline(StepModifier):
     def on_time_step(self, event: Event) -> None:
         self.ts_pipeline_value = self.rate_pipeline(event.index)
 
-    def __hash__(self) -> int:
-        return hash(
-            (
-                self.name,
-                self.step_modifier_even,
-                self.step_modifier_odd,
-                self.modified_simulants,
-            )
-        )
-
 
 class StepModifierWithUntracking(StepModifierWithRatePipeline):
     """Add an event step that untracks/tracks even simulants every timestep"""

@@ -5,7 +5,7 @@ from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.state_machine import Machine, State, Transition
 from vivarium.framework.utilities import rate_to_probability
-from vivarium.framework.values import list_combiner, union_post_processor
+from vivarium.framework.values import union_post_processor, list_combiner, union_post_processor
 
 
 class DiseaseTransition(Transition):

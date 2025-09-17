@@ -22,14 +22,14 @@ import numpy as np
 import pandas as pd
 
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.resource import Resource
 from vivarium.types import ClockStepSize, ClockTime
 
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
-    from vivarium.framework.population.population_view import PopulationView
     from vivarium.framework.event import Event
     from vivarium.framework.population import SimulantData
+    from vivarium.framework.population.population_view import PopulationView
+    from vivarium.framework.resource import Resource
     from vivarium.framework.values import ValuesManager
 
 from vivarium.framework.values import list_combiner
@@ -204,7 +204,9 @@ class SimulationClock(Manager):
         if self._individual_clocks and not index.empty:
             self._simulants_to_snooze = self._simulants_to_snooze.union(index)
 
-    def step_size_post_processor(self, value: Any, manager: ValuesManager) -> Any:
+    def step_size_post_processor(
+        self, index: pd.Index[int], value: Any, manager: ValuesManager
+    ) -> Any:
         """Computes the largest feasible step size for each simulant.
 
         This is the smallest component-modified step size (rounded down to increments
@@ -213,12 +215,20 @@ class SimulationClock(Manager):
 
         Parameters
         ----------
-        values
+        index
+            The index of the population for which the attribute is being produced
+            (not used by this post processor but is required to be used by
+            AttributePipelines).
+        value
             A list of step sizes
+        manager
+            The ValuesManager for this simulation (not used by this post processor
+            but is required to be used by AttributePipelines).
 
         Returns
         -------
-            The largest feasible step size for each simulant
+            The largest feasible step size for each simulant (not used by this
+            post processor but is required to be used by AttributePipelines).
         """
 
         min_modified = pd.DataFrame(value).min(axis=0).fillna(self.standard_step_size)

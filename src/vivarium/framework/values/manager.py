@@ -287,7 +287,7 @@ class ValuesManager(Manager):
             component,
             source,
             preferred_combiner,
-            preferred_post_processor,
+            preferred_post_processor,  # type: ignore[arg-type]
             self,
         )
 
