@@ -22,7 +22,6 @@ import numpy as np
 import pandas as pd
 
 from vivarium.framework.lifecycle import lifecycle_states
-from vivarium.framework.resource import Resource
 from vivarium.types import ClockStepSize, ClockTime
 
 if TYPE_CHECKING:
