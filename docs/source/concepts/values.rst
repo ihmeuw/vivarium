@@ -104,7 +104,7 @@ The values system provides four interface methods, available off the
        | pipeline and a source. Optionally provide a combiner (defaults to
        | the replace combiner) and a postprocessor. Provide dependencies (see note).
    * - | :meth:`register_rate_producer <vivarium.framework.values.manager.ValuesInterface.register_rate_producer>`
-     - | A special case of :meth:`register_value_producer <vivarium.framework.values.manager.ValuesInterface.register_value_producer>`
+     - | A special case of :meth:`register_attribute_producer <vivarium.framework.values.manager.ValuesInterface.register_attribute_producer>`
        | for rates specifically.
        | Provide a name for the pipeline and a source and the values system will
        | automatically use the rescale postprocessor. Provide dependencies (see note).
