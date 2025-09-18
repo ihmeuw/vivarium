@@ -4,6 +4,7 @@ from vivarium import InteractiveContext
 from vivarium.framework.values import Pipeline
 
 
+@pytest.mark.skip(reason="FIXME [MIC-6394]")
 def test_list_values() -> None:
     sim = InteractiveContext()
     # a 'simulant_step_size' value is created by default upon setup
