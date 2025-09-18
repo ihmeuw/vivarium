@@ -1,0 +1,152 @@
+"""
+====================
+Population Interface
+====================
+
+This module provides a :class:`PopulationInterface <PopulationInterface>` class with
+methods to register different types of value and attribute producers and modifiers.
+
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Any
+
+import pandas as pd
+
+from vivarium.framework.population.population_view import PopulationView
+from vivarium.framework.resource import Resource
+from vivarium.manager import Interface, Manager
+
+if TYPE_CHECKING:
+    from vivarium import Component
+    from vivarium.framework.population.manager import PopulationManager
+
+
+class PopulationInterface(Interface):
+    """Provides access to the system for reading and updating the population.
+
+    The most important aspect of the simulation state is the ``population
+    table`` or ``state table``.  It is a table with a row for every
+    individual or cohort (referred to as a simulant) being simulated and a
+    column for each of the attributes of the simulant being modeled.  All
+    access to the state table is mediated by
+    :class:`population views <vivarium.framework.population.population_view.PopulationView>`,
+    which may be requested from this system during setup time.
+
+    The population system itself manages a single attribute of simulants
+    called ``tracked``. This attribute allows global control of which
+    simulants are available to read and update in the state table by
+    default.
+
+    For example, in a simulation of childhood illness, we might not
+    need information about individuals or cohorts once they reach five years
+    of age, and so we can have them "age out" of the simulation at five years
+    old by setting the ``tracked`` attribute to ``False``.
+
+    """
+
+    def __init__(self, manager: PopulationManager):
+        self._manager = manager
+
+    def get_view(
+        self,
+        columns: str | Sequence[str],
+        query: str = "",
+        requires_all_columns: bool = False,
+    ) -> PopulationView:
+        """Get a time-varying view of the population state table.
+
+        The requested population view can be used to view the current state or
+        to update the state with new values.
+
+        If the column 'tracked' is not specified in the ``columns`` argument,
+        the query string 'tracked == True' will be added to the provided
+        query argument. This allows components to ignore untracked simulants
+        by default. If the columns argument is empty, the population view will
+        have access to the entire state table.
+
+        Parameters
+        ----------
+        columns
+            A subset of the state table columns that will be available in the
+            returned view. If requires_all_columns is True, this should be set to
+            the columns created by the component containing the population view.
+        query
+            A filter on the population state.  This filters out particular
+            simulants (rows in the state table) based on their current state.
+            The query should be provided in a way that is understood by the
+            :meth:`pandas.DataFrame.query` method and may reference state
+            table columns not requested in the ``columns`` argument.
+        requires_all_columns
+            If True, all columns in the population state table will be
+            included in the population view.
+
+        Returns
+        -------
+            A filtered view of the requested columns of the population state
+            table.
+        """
+        return self._manager.get_view(columns, query, requires_all_columns)
+
+    def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
+        """Gets a function that can generate new simulants.
+
+        The creator function takes the number of simulants to be created as it's
+        first argument and a dict population configuration that will be available
+        to simulant initializers as it's second argument. It generates the new rows
+        in the population state table and then calls each initializer
+        registered with the population system with a data
+        object containing the state table index of the new simulants, the
+        configuration info passed to the creator, the current simulation
+        time, and the size of the next time step.
+
+        Returns
+        -------
+           The simulant creator function.
+        """
+        return self._manager.get_simulant_creator()
+
+    def initializes_simulants(
+        self,
+        component: Component | Manager,
+        creates_columns: str | Sequence[str] = (),
+        requires_columns: str | Sequence[str] = (),
+        requires_values: str | Sequence[str] = (),
+        requires_streams: str | Sequence[str] = (),
+        required_resources: Sequence[str | Resource] = (),
+    ) -> None:
+        """Marks a source of initial state information for new simulants.
+
+        Parameters
+        ----------
+        component
+            The component or manager that will add or update initial state
+            information about new simulants.
+        creates_columns
+            The state table columns that the given initializer
+            provides the initial state information for.
+        requires_columns
+            The state table columns that already need to be present
+            and populated in the state table before the provided initializer
+            is called.
+        requires_values
+            The value pipelines that need to be properly sourced
+            before the provided initializer is called.
+        requires_streams
+            The randomness streams necessary to initialize the
+            simulant attributes.
+        required_resources
+            The resources that the initializer requires to run. Strings are
+            interpreted as column names, and Pipelines and RandomnessStreams
+            are interpreted as value pipelines and randomness streams,
+        """
+        self._manager.register_simulant_initializer(
+            component,
+            creates_columns,
+            requires_columns,
+            requires_values,
+            requires_streams,
+            required_resources,
+        )

@@ -22,7 +22,8 @@ from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
 from vivarium.framework.logging.manager import LoggingInterface, LoggingManager
 from vivarium.framework.lookup.manager import LookupTableInterface, LookupTableManager
-from vivarium.framework.population.manager import PopulationInterface, PopulationManager
+from vivarium.framework.population.interface import PopulationInterface
+from vivarium.framework.population.manager import PopulationManager
 from vivarium.framework.randomness.manager import RandomnessInterface, RandomnessManager
 from vivarium.framework.resource.manager import ResourceInterface, ResourceManager
 from vivarium.framework.results.interface import ResultsInterface
