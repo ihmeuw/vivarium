@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Generator
+from typing import Any
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -14,11 +14,10 @@ from tests.helpers import Listener, MockComponentA, MockComponentB, MockGenericC
 from vivarium.component import Component
 from vivarium.framework.engine import Builder, SimulationContext
 from vivarium.framework.event import Event
-from vivarium.framework.results.observer import Observer
 from vivarium.framework.time import SimulationClock, get_time_stamp
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import ValuesManager, rescale_post_processor
-from vivarium.types import ClockStepSize, ClockTime, NumberLike
+from vivarium.types import ClockStepSize
 
 
 @pytest.fixture
@@ -26,8 +25,8 @@ def builder(mocker: pytest_mock.MockFixture) -> Any:
     builder = mocker.MagicMock()
     manager = ValuesManager()
     manager.setup(builder)
-    builder.value.register_value_producer = manager.register_value_producer
-    builder.value.register_value_modifier = manager.register_value_modifier
+    builder.value.register_attribute_producer = manager.register_attribute_producer
+    builder.value.register_attribute_modifier = manager.register_attribute_modifier
     return builder
 
 
@@ -42,7 +41,9 @@ def components() -> list[Component | Listener]:
 
 def validate_step_column_is_pipeline(sim: SimulationContext) -> None:
     """Ensure that the pipeline and column step sizes are aligned"""
-    step_pipeline = sim._values.get_value("simulant_step_size")(sim.get_population().index)
+    step_pipeline = sim._values.get_attribute("simulant_step_size")(
+        sim.get_population().index
+    )
     assert sim._population._population is not None
     step_column = sim._population._population.step_size
     assert np.all(step_pipeline == step_column)
@@ -175,14 +176,14 @@ class StepModifierWithRatePipeline(StepModifier):
         modified_simulants: str = "all",
     ) -> None:
         super().__init__(name, step_modifier_even, step_modifier_odd, modified_simulants)
-        self.ts_pipeline_value = None
 
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
-        self.rate_pipeline = builder.value.register_value_producer(
+        self.rate_pipeline = builder.value.register_attribute_producer(
             f"test_rate_{self.name}",
             source=lambda idx: pd.Series(1.75, index=idx),
             preferred_post_processor=rescale_post_processor,
+            component=self,
         )
 
     def on_time_step(self, event: Event) -> None:
@@ -512,7 +513,7 @@ def test_move_simulants_to_end(base_config: LayeredConfigTree) -> None:
     assert step_modifier_component.ts_pipeline_value.index.equals(full_pop_index)
     assert np.all(
         sim._clock.simulant_next_event_times(evens)
-        == sim._clock.stop_time + sim._clock.minimum_step_size
+        == sim._clock.stop_time + sim._clock.minimum_step_size  # type: ignore [operator]
     )
 
     for _ in range(2):
@@ -539,8 +540,8 @@ def test_step_size_post_processor(builder: MagicMock) -> None:
     ## Add modifier that sets the step size to 9 for all simulants
     clock.register_step_modifier(lambda idx: pd.Series(pd.Timedelta(days=9), index=idx))
     value = clock._step_size_pipeline(index)
-    evens = value.iloc[lambda x: x.index % 2 == 0]
-    odds = value.iloc[lambda x: x.index % 2 == 1]
+    evens = value[value.index % 2 == 0]
+    odds = value[value.index % 2 == 1]
 
     ## The second modifier shouldn't have an effect
     assert np.all(evens == pd.Timedelta(days=6))
