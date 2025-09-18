@@ -33,7 +33,7 @@ from tests.framework.results.helpers import (
     NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
     ValedictorianObserver,
-    mock_get_value,
+    mock_get_attribute,
     sorting_hat_serial,
     sorting_hat_vectorized,
     verify_stratification_added,
@@ -156,9 +156,9 @@ def test_register_stratification_with_pipelines(
     builder.configuration.stratification = LayeredConfigTree(
         {"default": [], "excluded_categories": {}}
     )
-    # Set up mock builder with mocked get_value call for Pipelines
-    mocker.patch.object(builder, "value.get_value")
-    builder.value.get_value = MethodType(mock_get_value, builder)
+    # Set up mock builder with mocked get_attribute call for Pipelines
+    mocker.patch.object(builder, "value.get_attribute")
+    builder.value.get_attribute = MethodType(mock_get_attribute, builder)
     mgr.setup(builder)
     mgr.register_stratification(
         name=NAME,
@@ -198,9 +198,9 @@ def test_register_stratification_with_column_and_pipelines(
     builder.configuration.stratification = LayeredConfigTree(
         {"default": [], "excluded_categories": {}}
     )
-    # Set up mock builder with mocked get_value call for Pipelines
-    mocker.patch.object(builder, "value.get_value")
-    builder.value.get_value = MethodType(mock_get_value, builder)
+    # Set up mock builder with mocked get_attribute call for Pipelines
+    mocker.patch.object(builder, "value.get_attribute")
+    builder.value.get_attribute = MethodType(mock_get_attribute, builder)
     mgr.setup(builder)
     mocked_column_name = "silly_column"
     mgr.register_stratification(
