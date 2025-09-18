@@ -258,8 +258,8 @@ You can find an overview of the values system :ref:`here <values_concept>`.
 
 The Builder class exposes an additional property for working with value pipelines:
 :meth:`vivarium.framework.engine.Builder.value`.
-We call the :meth:`vivarium.framework.values.manager.ValuesInterface.register_value_producer`
-method to register a new pipeline.
+We call the :meth:`vivarium.framework.values.manager.ValuesInterface.register_attribute_producer`
+method to register a new attribute pipeline.
 
 .. literalinclude:: ../../../src/vivarium/examples/boids/movement.py
    :lines: 32-34
@@ -484,11 +484,11 @@ magnitude.
    :linenos:
 
 To access the value pipeline we created in the Neighbors component, we use
-``builder.value.get_value`` in the setup method. Then, as we saw with the ``acceleration``
+``builder.value.get_attribute`` in the setup method. Then, as we saw with the ``acceleration``
 pipeline, we simply call that pipeline as a function inside ``on_time_step`` to retrieve
 its values for a specified index.
 The major new Vivarium feature seen here is that of the **value modifier**,
-which we register with :meth:`vivarium.framework.values.manager.ValuesInterface.register_value_modifier`.
+which we register with :meth:`vivarium.framework.values.manager.ValuesInterface.register_attribute_modifier`.
 As the name suggests, this allows us to modify the values in a pipeline,
 in this case adding the effect of a force to the values in the ``acceleration`` pipeline.
 We register that the ``apply_force`` method will modify the acceleration values like so:
