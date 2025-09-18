@@ -605,7 +605,7 @@ value over multiple components. This can be a bit difficult to grasp,
 but is vital to the way we think about components in Vivarium. The best
 way to understand this system is by :doc:`example. </concepts/values>`
 
-In our current context we register a named value "pipeline" into the
+In our current context we register a named attribute "pipeline" into the
 simulation called ``'mortality_rate'`` via the ``builder.value.register_rate_producer`` 
 method. The source for a value is always a callable function or method 
 (``self.base_mortality_rate`` in this case) which typically takes in a 

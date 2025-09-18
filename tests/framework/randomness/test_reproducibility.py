@@ -23,7 +23,7 @@ def test_reproducibility(tmp_path: Path, disease_model_spec: Path) -> None:
         check=True,
     )
 
-    files = [file for file in results_dir.rglob("**/*.parquet")]
+    files = list(results_dir.rglob("**/*.parquet"))
     assert len(files) == 4
     for filename in ["dead", "ylls"]:
         df_paths = [file for file in files if file.stem == filename]

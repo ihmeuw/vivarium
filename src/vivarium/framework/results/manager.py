@@ -26,11 +26,6 @@ if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
 
 
-class SourceType(Enum):
-    COLUMN = 0
-    VALUE = 1
-
-
 class ResultsManager(Manager):
     """Backend manager object for the results management system.
 
