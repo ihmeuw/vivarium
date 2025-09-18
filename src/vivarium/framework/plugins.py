@@ -29,7 +29,8 @@ from vivarium.framework.results.interface import ResultsInterface
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.time import SimulationClock, TimeInterface
 from vivarium.framework.utilities import import_by_path
-from vivarium.framework.values.manager import ValuesInterface, ValuesManager
+from vivarium.framework.values.interface import ValuesInterface
+from vivarium.framework.values.manager import ValuesManager
 from vivarium.manager import Interface, Manager
 
 I = TypeVar("I", bound=Interface)

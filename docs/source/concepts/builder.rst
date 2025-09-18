@@ -24,7 +24,7 @@ they register for services and provide information about their structure. For ex
 a component needing to leverage the simulation clock and step size
 to determine a numerical effect to apply on each time step, will get the
 simulation clock and step size though the Builder and will register
-method(s) to apply the effect (e.g., via :meth:`vivarium.framework.values.manager.ValuesInterface.register_value_modifier`).
+method(s) to apply the effect (e.g., via :meth:`vivarium.framework.values.interface.ValuesInterface.register_value_modifier`).
 Another component, needing to initialize state for simulants at before the
 simulation begin, might call :meth:`vivarium.framework.population.manager.PopulationInterface.initializes_simulants` in its setup
 method to register method(s) that setup the additional state.

@@ -599,7 +599,7 @@ configuration and the mortality randomness stream (which is used to answer the
 question "which simulants died at this time step?").
 
 The main feature of note is the introduction of the
-:class:`values system <vivarium.framework.values.manager.ValuesInterface>`.
+:class:`values system <vivarium.framework.values.interface.ValuesInterface>`.
 The values system provides a way of distributing the computation of a
 value over multiple components. This can be a bit difficult to grasp,
 but is vital to the way we think about components in Vivarium. The best
