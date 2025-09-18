@@ -95,7 +95,7 @@ class ResultsManager(Manager):
             lifecycle_states.COLLECT_METRICS, self.on_collect_metrics
         )
 
-        self.get_value = builder.value.get_value
+        self.get_attribute = builder.value.get_attribute
 
         self.set_default_stratifications(builder)
 
@@ -202,7 +202,7 @@ class ResultsManager(Manager):
         self._results_context.add_stratification(
             name=name,
             requires_columns=requires_columns,
-            requires_values=[self.get_value(value) for value in requires_values],
+            requires_values=[self.get_attribute(value) for value in requires_values],
             categories=categories,
             excluded_categories=excluded_categories,
             mapper=mapper,
@@ -342,7 +342,7 @@ class ResultsManager(Manager):
             pop_filter=pop_filter,
             when=when,
             requires_columns=requires_columns,
-            requires_values=[self.get_value(value) for value in requires_values],
+            requires_values=[self.get_attribute(value) for value in requires_values],
             stratifications=stratifications,
             **kwargs,
         )

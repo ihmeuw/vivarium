@@ -12,7 +12,7 @@ from pytest_mock import MockerFixture
 
 from tests.framework.results.helpers import BASE_POPULATION, FAMILIARS
 from tests.framework.results.helpers import HOUSE_CATEGORIES as HOUSES
-from tests.framework.results.helpers import mock_get_value
+from tests.framework.results.helpers import mock_get_attribute
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results import ResultsInterface, ResultsManager
@@ -37,9 +37,9 @@ def test_register_stratification(mocker: MockerFixture) -> None:
         return "this was pointless"
 
     builder = mocker.Mock()
-    # Set up mock builder with mocked get_value call for Pipelines
-    mocker.patch.object(builder, "value.get_value")
-    builder.value.get_value = MethodType(mock_get_value, builder)
+    # Set up mock builder with mocked get_attribute call for Pipelines
+    mocker.patch.object(builder, "value.get_attribute")
+    builder.value.get_attribute = MethodType(mock_get_attribute, builder)
     mgr = ResultsManager()
     mgr.setup(builder)
     interface = ResultsInterface(mgr)
@@ -83,10 +83,9 @@ def test_register_binned_stratification(
     mgr = ResultsManager()
     mgr.logger = logger
     builder = mocker.Mock()
-    mocker.patch.object(builder, "value.get_value")
-    builder.value.get_value = MethodType(mock_get_value, builder)
+    mocker.patch.object(builder, "value.get_attribute")
+    builder.value.get_attribute = MethodType(mock_get_attribute, builder)
     mgr.setup(builder)
-    # mgr._results_context.setup(builder)
 
     # Check pre-registration stratifications and manager required columns/values
     assert len(mgr._results_context.stratifications) == 0
@@ -156,9 +155,6 @@ def test_register_stratified_observation(mocker: MockerFixture) -> None:
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
     builder.configuration.stratification.default = ["default-stratification", "exclude-this"]
-    # Set up mock builder with mocked get_value call for Pipelines
-    mocker.patch.object(builder, "value.get_value")
-    builder.value.get_value = MethodType(mock_get_value, builder)
     mgr.setup(builder)
     for strat in [
         "default-stratification",
@@ -225,9 +221,6 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
     mgr = ResultsManager()
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
-    # Set up mock builder with mocked get_value call for Pipelines
-    mocker.patch.object(builder, "value.get_value")
-    builder.value.get_value = MethodType(mock_get_value, builder)
     mgr.setup(builder)
     assert len(interface._manager._results_context.grouped_observations) == 0
     interface.register_unstratified_observation(
@@ -312,9 +305,6 @@ def test_register_adding_observation(
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
     builder.configuration.stratification.default = []
-    # Set up mock builder with mocked get_value call for Pipelines
-    mocker.patch.object(builder, "value.get_value")
-    builder.value.get_value = MethodType(mock_get_value, builder)
     mgr.setup(builder)
     assert len(interface._manager._results_context.grouped_observations) == 0
     interface.register_adding_observation(
@@ -471,9 +461,9 @@ def test_register_concatenating_observation(mocker: MockerFixture) -> None:
     interface = ResultsInterface(mgr)
     builder = mocker.Mock()
     builder.configuration.stratification.default = []
-    # Set up mock builder with mocked get_value call for Pipelines
-    mocker.patch.object(builder, "value.get_value")
-    builder.value.get_value = MethodType(mock_get_value, builder)
+    # Set up mock builder with mocked get_attribute call for Pipelines
+    mocker.patch.object(builder, "value.get_attribute")
+    builder.value.get_attribute = MethodType(mock_get_attribute, builder)
     mgr.setup(builder)
     assert len(interface._manager._results_context.grouped_observations) == 0
     interface.register_concatenating_observation(
