@@ -265,7 +265,7 @@ class AttributePipeline(Pipeline):
     def __init__(self, name: str, component: Component | None = None) -> None:
         super().__init__(name, component=component)
         # Re-define the post-processor type to be more specific
-        self.post_processor: AttributePostProcessor | None = None
+        self.post_processor: AttributePostProcessor | None = None  # type: ignore[assignment]
         """An optional final transformation to perform on the combined output of
         the source and mutators."""
 
@@ -293,7 +293,9 @@ class AttributePipeline(Pipeline):
             If the pipeline is invoked without a source set.
         """
         # NOTE: must pass index in as arg (NOT kwarg!) to match signature of parent Pipeline._call()
-        attribute = self._call(index, skip_post_processor=skip_post_processor)
+        attribute = self._call(index, skip_post_processor=True)
+        if self.post_processor and not skip_post_processor:
+            attribute = self.post_processor(index, attribute, self.manager)
         if not isinstance(attribute, (pd.Series, pd.DataFrame)):
             raise DynamicValueError(
                 f"The dynamic attribute pipeline for {self.name} returned a {type(attribute)} "

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Protocol
 
+import numpy as np
 import pandas as pd
 
 from vivarium.framework.utilities import from_yearly
@@ -21,13 +22,15 @@ class PostProcessor(Protocol):
 class AttributePostProcessor(Protocol):
     """An attribute pipeline post-processor must return a pd.Series or pd.DataFrame."""
 
-    def __call__(self, value: Any, manager: ValuesManager) -> pd.Series[Any] | pd.DataFrame:
+    def __call__(
+        self, index: pd.Index[int], value: Any, manager: ValuesManager
+    ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
 
 def rescale_post_processor(
-    value: pd.Series[Any] | pd.DataFrame, manager: ValuesManager
-) -> pd.Series[Any] | pd.DataFrame:
+    index: pd.Index[int], value: NumberLike, manager: ValuesManager
+) -> pd.Series[float] | pd.DataFrame:
     """Rescales annual rates to time-step appropriate rates.
 
     This should only be used with a simulation using a
@@ -36,6 +39,8 @@ def rescale_post_processor(
 
     Parameters
     ----------
+    index
+        The index of the population for which the attribute is being produced.
     value
         Annual rates.
     manager
@@ -45,14 +50,39 @@ def rescale_post_processor(
     -------
         The annual rates rescaled to the size of the current time step size.
     """
-    return value.mul(
-        manager.simulant_step_sizes(value.index).astype("timedelta64[ns]").dt.total_seconds()
-        / (60 * 60 * 24 * 365.0),
-        axis=0,
-    )
+    if isinstance(value, (pd.Series, pd.DataFrame)):
+        return value.mul(
+            manager.simulant_step_sizes(value.index)
+            .astype("timedelta64[ns]")
+            .dt.total_seconds()
+            / (60 * 60 * 24 * 365.0),
+            axis=0,
+        )
+    time_step = manager.step_size()
+    if not isinstance(time_step, (pd.Timedelta, timedelta)):
+        raise DynamicValueError(
+            "The rescale post processor requires a time step size that is a "
+            "datetime timedelta or pandas Timedelta object."
+        )
+    if isinstance(value, (int, float)):
+        return pd.Series(from_yearly(value, time_step), index=index)
+    elif isinstance(value, np.ndarray):
+        if value.ndim == 1:
+            return pd.Series(from_yearly(value, time_step), index=index)
+        elif value.ndim == 2:
+            return pd.DataFrame(from_yearly(value, time_step), index=index)
+        else:
+            raise DynamicValueError(
+                f"Numpy arrays with {value.ndim} dimensions are not supported. "
+                "Only 1D and 2D arrays are allowed."
+            )
+    else:
+        raise NotImplementedError
 
 
-def union_post_processor(values: list[NumberLike], _: Any) -> NumberLike:
+def union_post_processor(
+    index: pd.Index[int], values: list[NumberLike], manager: ValuesManager
+) -> NumberLike:
     """Computes a probability on the union of the sample spaces in the values.
 
     Given a list of values where each value is a probability of an independent

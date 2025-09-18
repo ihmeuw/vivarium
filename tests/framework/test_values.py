@@ -65,22 +65,27 @@ def test_replace_combiner(manager: ValuesManager) -> None:
     assert value() == 84
 
 
-def test_joint_value(manager: ValuesManager) -> None:
+def test_joint_value(manager: ValuesManager, mocker: MockFixture) -> None:
     # This is the normal configuration for PAF and disability weight type values
     index = pd.Index(range(10))
 
-    value = manager.register_value_producer(
+    value = manager.register_attribute_producer(
         "test",
         source=lambda idx: [pd.Series(0.0, index=idx)],
         preferred_combiner=list_combiner,
         preferred_post_processor=union_post_processor,  # type: ignore [arg-type]
+        component=mocker.Mock(),
     )
     assert np.all(value(index) == 0)
 
-    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(0.5, index=idx))
+    manager.register_attribute_modifier(
+        "test", modifier=lambda idx: pd.Series(0.5, index=idx), component=mocker.Mock()
+    )
     assert np.all(value(index) == 0.5)
 
-    manager.register_value_modifier("test", modifier=lambda idx: pd.Series(0.5, index=idx))
+    manager.register_attribute_modifier(
+        "test", modifier=lambda idx: pd.Series(0.5, index=idx), component=mocker.Mock()
+    )
     assert np.all(value(index) == 0.75)
 
 
@@ -105,31 +110,112 @@ def test_returned_series_name(manager: ValuesManager) -> None:
 
 
 @pytest.mark.parametrize("manager_with_step_size", ["static_step"], indirect=True)
-def test_rescale_post_processor_static(manager_with_step_size: ValuesManager) -> None:
+def test_rescale_post_processor_static(
+    manager_with_step_size: ValuesManager, mocker: MockFixture
+) -> None:
     index = pd.Index(range(10))
 
-    pipeline = manager_with_step_size.register_value_producer(
+    pipeline = manager_with_step_size.register_attribute_producer(
         "test",
         source=lambda idx: pd.Series(0.75, index=idx),
+        component=mocker.Mock(),
         preferred_post_processor=rescale_post_processor,
     )
     assert np.all(pipeline(index) == from_yearly(0.75, pd.Timedelta(days=6)))
 
 
 @pytest.mark.parametrize("manager_with_step_size", ["variable_step"], indirect=True)
-def test_rescale_post_processor_variable(manager_with_step_size: ValuesManager) -> None:
+def test_rescale_post_processor_variable(
+    manager_with_step_size: ValuesManager, mocker: MockFixture
+) -> None:
     index = pd.Index(range(10))
 
-    pipeline = manager_with_step_size.register_value_producer(
+    pipeline = manager_with_step_size.register_attribute_producer(
         "test",
         source=lambda idx: pd.Series(0.5, index=idx),
+        component=mocker.Mock(),
         preferred_post_processor=rescale_post_processor,
     )
     value = pipeline(index)
-    evens = value.iloc[lambda x: x.index % 2 == 0]
-    odds = value.iloc[lambda x: x.index % 2 == 1]
+    evens = value[index % 2 == 0]
+    odds = value[index % 2 == 1]
     assert np.all(evens == from_yearly(0.5, pd.Timedelta(days=3)))
     assert np.all(odds == from_yearly(0.5, pd.Timedelta(days=5)))
+
+
+@pytest.mark.parametrize("manager_with_step_size", ["static_step"], indirect=True)
+@pytest.mark.parametrize(
+    "source, expected",
+    [
+        (
+            lambda idx: pd.Series(0.75, index=idx),
+            pd.Series(
+                from_yearly(0.75, pd.Timedelta(days=6)), index=pd.Index([1, 2, 3, 5, 8, 13])
+            ),
+        ),
+        (
+            lambda idx: 0.75,
+            pd.Series(
+                from_yearly(0.75, pd.Timedelta(days=6)), index=pd.Index([1, 2, 3, 5, 8, 13])
+            ),
+        ),
+        (
+            lambda idx: pd.Series(10, index=idx),
+            pd.Series(
+                from_yearly(10, pd.Timedelta(days=6)), index=pd.Index([1, 2, 3, 5, 8, 13])
+            ),
+        ),
+        (
+            lambda idx: np.array([0.75] * len(idx)),
+            pd.Series(
+                from_yearly(0.75, pd.Timedelta(days=6)), index=pd.Index([1, 2, 3, 5, 8, 13])
+            ),
+        ),
+        (
+            lambda idx: np.array([[0.75, 0.1, 0.04]] * len(idx)),
+            pd.DataFrame(
+                {
+                    0: from_yearly(0.75, pd.Timedelta(days=6)),
+                    1: from_yearly(0.1, pd.Timedelta(days=6)),
+                    2: from_yearly(0.04, pd.Timedelta(days=6)),
+                },
+                index=pd.Index([1, 2, 3, 5, 8, 13]),
+            ),
+        ),
+        (lambda idx: np.array([[[0.75], [0.1], [0.04]]] * len(idx)), None),  # should raise
+    ],
+)
+def test_rescale_post_processor_types(
+    source: Callable[[pd.Index[int]], pd.Series[float] | pd.Series[int] | pd.DataFrame],
+    expected: pd.Series[int] | pd.Series[float] | pd.DataFrame | None,
+    manager_with_step_size: ValuesManager,
+    mocker: MockFixture,
+) -> None:
+
+    idx = pd.Index([1, 2, 3, 5, 8, 13])
+
+    pipeline = manager_with_step_size.register_attribute_producer(
+        "test",
+        source=source,
+        component=mocker.Mock(),
+        preferred_post_processor=rescale_post_processor,
+    )
+    if expected is not None:
+        attributes = pipeline(idx)
+        if isinstance(expected, pd.DataFrame):
+            assert isinstance(attributes, pd.DataFrame)
+            pd.testing.assert_frame_equal(attributes, expected)
+        else:
+            assert isinstance(expected, pd.Series)
+            assert attributes.equals(expected)
+    else:
+        with pytest.raises(
+            DynamicValueError,
+            match=re.escape(
+                "Numpy arrays with 3 dimensions are not supported. Only 1D and 2D arrays are allowed."
+            ),
+        ):
+            pipeline(idx)
 
 
 @pytest.mark.parametrize("pipeline_type", [Pipeline, AttributePipeline])
@@ -142,11 +228,6 @@ def test_unsourced_pipeline(pipeline_type: Pipeline) -> None:
         match=f"The dynamic value pipeline for {pipeline.name} has no source.",
     ):
         pipeline(index=pd.Index([0, 1, 2]))
-
-
-####################################
-# AttributePipeline-specific tests #
-####################################
 
 
 def test_attribute_pipeline_creation() -> None:
@@ -208,7 +289,9 @@ def test_attribute_pipeline_usage(
         df["col2"] = 2.0
         return df
 
-    def attribute_post_processor(value: pd.DataFrame, manager: ValuesManager) -> pd.DataFrame:
+    def attribute_post_processor(
+        index: pd.Index[int], value: pd.DataFrame, manager: ValuesManager
+    ) -> pd.DataFrame:
         return value * 10
 
     def attribute_modifier1(index: pd.Index[int], value: pd.DataFrame) -> pd.DataFrame:
@@ -288,11 +371,21 @@ def test_attribute_pipeline_return_types(manager: ValuesManager, mocker: MockFix
         "test_dataframe_attribute", source=dataframe_attribute_source, component=mocker.Mock()
     )
 
+    series_pipeline_with_str_source = manager.register_attribute_producer(
+        "test_series_attribute_with_str_source",
+        source=str_attribute_source,
+        component=mocker.Mock(),
+        preferred_post_processor=lambda idx, val, mgr: pd.Series(val, index=idx),
+    )
+
     assert isinstance(series_pipeline(index), pd.Series)
     assert series_pipeline(index).index.equals(index)
 
     assert isinstance(dataframe_pipeline(index), pd.DataFrame)
     assert dataframe_pipeline(index).index.equals(index)
+
+    assert isinstance(series_pipeline_with_str_source(index), pd.Series)
+    assert series_pipeline_with_str_source(index).index.equals(index)
 
     # Register the string source w/ no post-processors, i.e. calling will return str
     bad_pipeline = manager.register_attribute_producer(
@@ -320,7 +413,9 @@ def test_attribute_pipeline_with_post_processor(
         return pd.DataFrame({"value": [10.0] * len(index)}, index=index)
 
     # Create a post-processor that doubles values
-    def double_post_processor(value: pd.DataFrame, manager: ValuesManager) -> pd.DataFrame:
+    def double_post_processor(
+        index: pd.Index[int], value: pd.DataFrame, manager: ValuesManager
+    ) -> pd.DataFrame:
         result = value.copy()
         result["value"] = result["value"] * 2
         return result
