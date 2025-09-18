@@ -4,7 +4,7 @@ Population Interface
 ====================
 
 This module provides a :class:`PopulationInterface <PopulationInterface>` class with
-methods to register different types of value and attribute producers and modifiers.
+methods to initialize simulants and get a population view.
 
 """
 
