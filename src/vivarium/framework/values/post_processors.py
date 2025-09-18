@@ -58,21 +58,15 @@ def rescale_post_processor(
             / (60 * 60 * 24 * 365.0),
             axis=0,
         )
-    elif isinstance(value, (int, float)):
-        time_step = manager.step_size()
-        if not isinstance(time_step, (pd.Timedelta, timedelta)):
-            raise DynamicValueError(
-                "The rescale post processor requires a time step size that is a "
-                "datetime timedelta or pandas Timedelta object."
-            )
+    time_step = manager.step_size()
+    if not isinstance(time_step, (pd.Timedelta, timedelta)):
+        raise DynamicValueError(
+            "The rescale post processor requires a time step size that is a "
+            "datetime timedelta or pandas Timedelta object."
+        )
+    if isinstance(value, (int, float)):
         return pd.Series(from_yearly(value, time_step), index=index)
     elif isinstance(value, np.ndarray):
-        time_step = manager.step_size()
-        if not isinstance(time_step, (pd.Timedelta, timedelta)):
-            raise DynamicValueError(
-                "The rescale post processor requires a time step size that is a "
-                "datetime timedelta or pandas Timedelta object."
-            )
         if value.ndim == 1:
             return pd.Series(from_yearly(value, time_step), index=index)
         elif value.ndim == 2:
