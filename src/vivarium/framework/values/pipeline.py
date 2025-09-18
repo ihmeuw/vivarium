@@ -247,10 +247,10 @@ class Pipeline(Resource):
             The simulation values manager.
         """
         self.component = component
+        self.source = ValueSource(self, source, component)
         self._combiner = combiner
         self.post_processor = post_processor
         self._manager = manager
-        self.source = ValueSource(self, source, component)
 
 
 class AttributePipeline(Pipeline):
