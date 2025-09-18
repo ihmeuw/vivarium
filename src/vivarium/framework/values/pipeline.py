@@ -28,7 +28,7 @@ class ValueSource(Resource):
         self,
         pipeline: Pipeline,
         source: Callable[..., Any] | None,
-        component: Component | None,
+        component: Component | Manager | None,
     ) -> None:
         self._pipeline_type = (
             "attribute" if isinstance(pipeline, AttributePipeline) else "value"
@@ -222,7 +222,7 @@ class Pipeline(Resource):
 
     def set_attributes(
         self,
-        component: Component | None,
+        component: Component | Manager | None,
         source: Callable[..., Any],
         combiner: ValueCombiner,
         post_processor: PostProcessor | None,
@@ -257,15 +257,15 @@ class AttributePipeline(Pipeline):
     """A type of value pipeline for calculating simulant attributes.
 
     An attribute pipeline is a specific type of :class:`~vivarium.framework.values.pipeline.Pipeline`
-    where the source and callable must take a pd.Index of integers and return a pd.DataFrame
-    that has that same index.
+    where the source and callable must take a pd.Index of integers and return a pd.Series or
+    pd.DataFrame that has that same index.
 
     """
 
     def __init__(self, name: str, component: Component | None = None) -> None:
         super().__init__(name, component=component)
         # Re-define the post-processor type to be more specific
-        self.post_processor: AttributePostProcessor | None = None
+        self.post_processor: AttributePostProcessor | None = None  # type: ignore[assignment]
         """An optional final transformation to perform on the combined output of
         the source and mutators."""
 
@@ -293,7 +293,9 @@ class AttributePipeline(Pipeline):
             If the pipeline is invoked without a source set.
         """
         # NOTE: must pass index in as arg (NOT kwarg!) to match signature of parent Pipeline._call()
-        attribute = self._call(index, skip_post_processor=skip_post_processor)
+        attribute = self._call(index, skip_post_processor=True)
+        if self.post_processor and not skip_post_processor:
+            attribute = self.post_processor(index, attribute, self.manager)
         if not isinstance(attribute, (pd.Series, pd.DataFrame)):
             raise DynamicValueError(
                 f"The dynamic attribute pipeline for {self.name} returned a {type(attribute)} "

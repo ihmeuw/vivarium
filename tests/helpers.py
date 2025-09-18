@@ -96,6 +96,9 @@ class MockGenericComponent(Component):
     def __eq__(self, other: Any) -> bool:
         return type(self) == type(other) and self.name == other.name
 
+    def __hash__(self) -> int:
+        return super().__hash__()
+
 
 class Listener(MockComponentB):
     def __init__(self, *args: Any, name: str = "test_listener"):
