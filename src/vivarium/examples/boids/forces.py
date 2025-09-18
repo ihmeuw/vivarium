@@ -1,7 +1,6 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -15,7 +14,7 @@ class Force(Component, ABC):
     # Properties #
     ##############
     @property
-    def configuration_defaults(self) -> dict[str, Any]:
+    def configuration_defaults(self) -> dict[str, dict[str, float]]:
         return {
             self.__class__.__name__.lower(): {
                 "max_force": 0.03,
@@ -32,12 +31,13 @@ class Force(Component, ABC):
         self.config = builder.configuration[self.__class__.__name__.lower()]
         self.max_speed = builder.configuration.movement.max_speed
 
-        self.neighbors = builder.value.get_value("neighbors")
+        self.neighbors = builder.value.get_attribute("neighbors")
 
-        builder.value.register_value_modifier(
+        builder.value.register_attribute_modifier(
             "acceleration",
             modifier=self.apply_force,
             required_resources=self.columns_required + [self.neighbors],
+            component=self,
         )
 
     ##################################
@@ -47,6 +47,8 @@ class Force(Component, ABC):
     def apply_force(self, index: pd.Index[int], acceleration: pd.DataFrame) -> pd.DataFrame:
         neighbors = self.neighbors(index)
         pop = self.population_view.get(index)
+        if not isinstance(neighbors, pd.Series):
+            raise ValueError("Neighbors must be a pd.Series of ints")
         pairs = self._get_pairs(neighbors, pop)
 
         raw_force = self.calculate_force(pairs)
@@ -68,7 +70,7 @@ class Force(Component, ABC):
     def calculate_force(self, neighbors: pd.DataFrame) -> pd.DataFrame:
         pass
 
-    def _get_pairs(self, neighbors: pd.Series[int], pop: pd.DataFrame) -> pd.DataFrame:
+    def _get_pairs(self, neighbors: pd.Series[int | float], pop: pd.DataFrame) -> pd.DataFrame:
         pairs = (
             pop.join(neighbors.rename("neighbors"))
             .reset_index()
