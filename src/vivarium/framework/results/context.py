@@ -325,13 +325,17 @@ class ResultsContext:
         for (pop_filter, stratification_names), observations in self.grouped_observations[
             lifecycle_state
         ].items():
+            observations = [obs for obs in observations if obs in event_observations]
+            if not observations:
+                continue
+
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
             filtered_pop = self._filter_population(
                 population, pop_filter, stratification_names
             )
             if filtered_pop.empty:
-                yield None, None, None
+                continue
             else:
                 pop: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool]
                 if stratification_names is None:
@@ -339,9 +343,6 @@ class ResultsContext:
                 else:
                     pop = self._get_groups(stratification_names, filtered_pop)
                 for observation in observations:
-                    if observation not in event_observations:
-                        continue
-
                     results = observation.observe(pop, stratification_names)
 
                     if results is not None:

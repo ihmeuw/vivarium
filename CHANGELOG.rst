@@ -1,3 +1,8 @@
+**3.5.1 - 09/19/25**
+
+  - Hotfix: fix a bug that caused errors when an observation was inactive which having 
+    different stratifications from other active observations.
+
 **3.5.0 - 09/16/25**
 
   - Only compute pipelines for observation on an Event if they are actually needed
