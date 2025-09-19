@@ -276,6 +276,13 @@ class ValedictorianObserver(Observer):
         return new_df
 
 
+class NeverObserver(Observer):
+    """Observer that is never triggered because its filter excludes all simulants"""
+
+    def register_observations(self, builder: Builder) -> None:
+        builder.results.register_adding_observation(name="never", to_observe=lambda _: False)
+
+
 class HogwartsResultsStratifier(Component):
     def setup(self, builder: Builder) -> None:
         builder.results.register_stratification(
