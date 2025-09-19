@@ -494,7 +494,7 @@ def test_gather_results_with_empty_index(mocker: pytest_mock.MockerFixture) -> N
     mgr._results_context.gather_results.assert_not_called()  # type: ignore[attr-defined]
 
 
-def test_gather_results_with_different_stratifications_and_to_observes():
+def test_gather_results_with_different_stratifications_and_to_observes() -> None:
     components = [
         Hogwarts(),
         HogwartsResultsStratifier(),
