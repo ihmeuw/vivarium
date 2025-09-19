@@ -99,19 +99,19 @@ The values system provides four interface methods, available off the
 
    * - Method
      - Description
-   * - | :meth:`register_value_producer <vivarium.framework.values.manager.ValuesInterface.register_value_producer>`
+   * - | :meth:`register_value_producer <vivarium.framework.values.interface.ValuesInterface.register_value_producer>`
      - | Register a new pipeline with the values system. Provide a name for the
        | pipeline and a source. Optionally provide a combiner (defaults to
        | the replace combiner) and a postprocessor. Provide dependencies (see note).
-   * - | :meth:`register_rate_producer <vivarium.framework.values.manager.ValuesInterface.register_rate_producer>`
-     - | A special case of :meth:`register_attribute_producer <vivarium.framework.values.manager.ValuesInterface.register_attribute_producer>`
+   * - | :meth:`register_rate_producer <vivarium.framework.values.interface.ValuesInterface.register_rate_producer>`
+     - | A special case of :meth:`register_attribute_producer <vivarium.framework.values.interface.ValuesInterface.register_attribute_producer>`
        | for rates specifically.
        | Provide a name for the pipeline and a source and the values system will
        | automatically use the rescale postprocessor. Provide dependencies (see note).
-   * - | :meth:`register_value_modifier <vivarium.framework.values.manager.ValuesInterface.register_value_modifier>`
+   * - | :meth:`register_value_modifier <vivarium.framework.values.interface.ValuesInterface.register_value_modifier>`
      - | Register a modifier to a pipeline. Provide a name for the pipeline to
        | modify and a modifier callable. Provide dependencies (see note).
-   * - | :meth:`get_value <vivarium.framework.values.manager.ValuesInterface.get_value>`
+   * - | :meth:`get_value <vivarium.framework.values.interface.ValuesInterface.get_value>`
      - | Retrieve a reference to the pipeline with the given name.
 
 .. note::
