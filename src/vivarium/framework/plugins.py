@@ -15,17 +15,19 @@ from typing import TypeVar
 from layered_config_tree.main import LayeredConfigTree
 
 from vivarium.exceptions import VivariumError
-from vivarium.framework.artifact.manager import ArtifactInterface, ArtifactManager
-from vivarium.framework.components.manager import ComponentInterface, ComponentManager
-from vivarium.framework.components.parser import ComponentConfigurationParser
+from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
+from vivarium.framework.components import (
+    ComponentConfigurationParser,
+    ComponentInterface,
+    ComponentManager,
+)
 from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
-from vivarium.framework.logging.manager import LoggingInterface, LoggingManager
-from vivarium.framework.lookup.manager import LookupTableInterface, LookupTableManager
-from vivarium.framework.population.interface import PopulationInterface
-from vivarium.framework.population.manager import PopulationManager
-from vivarium.framework.randomness.manager import RandomnessInterface, RandomnessManager
-from vivarium.framework.resource.manager import ResourceInterface, ResourceManager
+from vivarium.framework.logging import LoggingInterface, LoggingManager
+from vivarium.framework.lookup import LookupTableInterface, LookupTableManager
+from vivarium.framework.population import PopulationInterface, PopulationManager
+from vivarium.framework.randomness import RandomnessInterface, RandomnessManager
+from vivarium.framework.resource import ResourceInterface, ResourceManager
 from vivarium.framework.results import ResultsInterface, ResultsManager
 from vivarium.framework.time import SimulationClock, TimeInterface
 from vivarium.framework.utilities import import_by_path
