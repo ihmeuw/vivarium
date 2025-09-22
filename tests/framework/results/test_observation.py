@@ -211,8 +211,7 @@ def test_stratified_observation_results_gatherer(
     pop_groups = ctx._get_groups(
         stratifications=stratifications, filtered_pop=filtered_population
     )
-    df = stratified_observation.results_gatherer(pop_groups, stratifications)
-    ctx._rename_stratification_columns(df)
+    df = stratified_observation.observe(pop_groups, stratifications)
     assert set(df.columns) == set(["value"])
     expected_idx_names = (
         list(stratifications) if len(stratifications) > 0 else ["stratification"]

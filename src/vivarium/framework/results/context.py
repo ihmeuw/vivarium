@@ -283,11 +283,7 @@ class ResultsContext:
         lifecycle_state: str,
         event_observations: list[Observation],
     ) -> Generator[
-        tuple[
-            pd.DataFrame | None,
-            str | None,
-            Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame] | None,
-        ],
+        tuple[pd.DataFrame, str, Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]],
         None,
         None,
     ]:
@@ -344,10 +340,6 @@ class ResultsContext:
                     pop = self._get_groups(stratification_names, filtered_pop)
                 for observation in observations:
                     results = observation.observe(pop, stratification_names)
-
-                    if results is not None:
-                        self._rename_stratification_columns(results)
-
                     yield (results, observation.name, observation.results_updater)
 
     def get_observations(self, event: Event) -> list[Observation]:
@@ -488,13 +480,3 @@ class ResultsContext:
         else:
             pop_groups = filtered_pop.groupby(lambda _: "all")
         return pop_groups  # type: ignore[return-value]
-
-    def _rename_stratification_columns(self, results: pd.DataFrame) -> None:
-        """Convert the temporary stratified mapped index names back to their original names."""
-        if isinstance(results.index, pd.MultiIndex):
-            idx_names = [get_original_col_name(name) for name in results.index.names]
-            results.rename_axis(index=idx_names, inplace=True)
-        else:
-            idx_name = results.index.name
-            if idx_name is not None:
-                results.index.rename(get_original_col_name(idx_name), inplace=True)
