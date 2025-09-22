@@ -1,4 +1,4 @@
-**3.5.1 - 09/19/25**
+**3.5.1 - 09/22/25**
 
   - Hotfix: fix a bug that caused errors when an observation was inactive which having 
     different stratifications from other active observations.
