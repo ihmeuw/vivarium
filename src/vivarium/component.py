@@ -780,7 +780,6 @@ class Component(ABC):
 
     def _register_attribute_producers(self, builder: Builder) -> None:
         for column in self.columns_created:
-            # Probably combine both into a single method.
             builder.value.register_attribute_producer(
                 column,
                 source=[column],
