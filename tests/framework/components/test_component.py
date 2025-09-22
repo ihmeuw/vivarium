@@ -444,3 +444,19 @@ def test_value_column_order_is_maintained(table: str) -> None:
     )
     data = lookup_table(sim.get_population().index)
     assert list(data.columns) == ["one", "two", "three", "four", "five", "six", "seven"]
+
+
+def test_attribute_pipelines_from_columns_created() -> None:
+    idx = pd.Index([4, 8, 15, 16, 23, 42])
+    component = ColumnCreator()
+    sim = InteractiveContext(components=[component])
+    for column in component.columns_created:
+        pipeline = sim._builder.value.get_attribute(column)
+        assert pipeline.name == column
+        assert pipeline.source._source == [column]
+        assert pipeline.mutators == []
+        attributes = pipeline(idx)
+        assert isinstance(attributes, pd.DataFrame)  # for mypy
+        pd.testing.assert_frame_equal(
+            attributes, pd.DataFrame({column: [i % 3 for i in idx]}, index=idx)
+        )
