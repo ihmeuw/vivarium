@@ -16,7 +16,7 @@ class Resource:
     """The type of the resource."""
     name: str
     """The name of the resource."""
-    # TODO [MIC-5452]: all resources should have a component
+    # TODO [MIC-6433]: all resources should have a component
     component: Component | Manager | None
     """The component that creates the resource."""
 
@@ -34,7 +34,7 @@ class Resource:
 class NullResource(Resource):
     """A node in the dependency graph that does not produce any resources."""
 
-    # TODO [MIC-5452]: all resources should have a component
+    # TODO [MIC-6433]: all resources should have a component
     def __init__(self, index: int, component: Component | Manager | None):
         super().__init__("null", f"{index}", component)
 
@@ -47,7 +47,7 @@ class NullResource(Resource):
 class Column(Resource):
     """A resource representing a column in the state table."""
 
-    # TODO [MIC-5452]: all resources should have a component
+    # TODO [MIC-6433]: all resources should have a component
     def __init__(self, name: str, component: Component | Manager | None):
         super().__init__("column", name, component)
 
