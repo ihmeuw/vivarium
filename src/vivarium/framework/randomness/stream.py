@@ -99,7 +99,7 @@ class RandomnessStream(Resource):
         clock: Callable[[], ClockTime],
         seed: Any,
         index_map: IndexMap,
-        # TODO [MIC-5452]: all resources should have a component
+        # TODO [MIC-6433]: all resources should have a component
         component: Component | None = None,
         initializes_crn_attributes: bool = False,
         rate_conversion_type: Literal["linear", "exponential"] = "linear",
