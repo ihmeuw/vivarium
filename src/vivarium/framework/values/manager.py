@@ -45,6 +45,7 @@ class ValuesManager(Manager):
         return {**self._value_pipelines, **self._attribute_pipelines}
 
     def setup(self, builder: Builder) -> None:
+        self._population_mgr = builder.population._manager
         self.logger = builder.logging.get_logger(self.name)
         self.step_size = builder.time.step_size()
         self.simulant_step_sizes = builder.time.simulant_step_sizes()
@@ -83,7 +84,7 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         source: Callable[..., Any],
-        # TODO [MIC-5452]: all calls should have a component
+        # TODO [MIC-6433]: all calls should have a component
         component: Component | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
@@ -116,7 +117,7 @@ class ValuesManager(Manager):
     def register_attribute_producer(
         self,
         value_name: str,
-        source: Callable[[pd.Index[int]], Any],
+        source: Callable[[pd.Index[int]], Any] | list[str],
         component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
@@ -144,7 +145,7 @@ class ValuesManager(Manager):
         self,
         value_name: str,
         modifier: Callable[..., Any],
-        # TODO [MIC-5452]: all calls should have a component
+        # TODO [MIC-6433]: all calls should have a component
         component: Component | Manager | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
@@ -277,7 +278,7 @@ class ValuesManager(Manager):
     def _configure_pipeline(
         self,
         pipeline: Pipeline | AttributePipeline,
-        source: Callable[..., Any],
+        source: Callable[..., Any] | list[str],
         component: Component | Manager | None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
@@ -331,16 +332,22 @@ class ValuesManager(Manager):
 
     @staticmethod
     def _convert_dependencies(
-        func: Callable[..., Any],
+        source: Callable[..., Any] | list[str],
         requires_columns: Iterable[str],
         requires_values: Iterable[str],
         requires_streams: Iterable[str],
         required_resources: Iterable[str | Resource],
     ) -> Iterable[str | Resource]:
-        if isinstance(func, Pipeline):
+        if isinstance(source, Pipeline):
             # The dependencies of the pipeline itself will have been declared
             # when the pipeline was registered.
-            return [func]
+            return [source]
+
+        if isinstance(source, list):
+            # The only dependencies are the columns in this list and these
+            # columns are guaranteed to be created by the component that is registering
+            # this pipeline.
+            return []
 
         if requires_columns or requires_values or requires_streams:
             warnings.warn(

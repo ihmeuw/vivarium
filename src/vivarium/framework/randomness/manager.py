@@ -252,7 +252,7 @@ class RandomnessInterface(Interface):
     def get_stream(
         self,
         decision_point: str,
-        # TODO [MIC-5452]: all calls should have a component
+        # TODO [MIC-6433]: all calls should have a component
         component: Component | None = None,
         initializes_crn_attributes: bool = False,
     ) -> RandomnessStream:
