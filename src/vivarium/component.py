@@ -347,7 +347,7 @@ class Component(ABC):
     # Lifecycle methods #
     #####################
 
-    def setup_component(self, builder: "Builder") -> None:
+    def setup_component(self, builder: Builder) -> None:
         """Sets up the component for a Vivarium simulation.
 
         This method is run by Vivarium during the setup phase. It performs a series
@@ -369,6 +369,7 @@ class Component(ABC):
         self.build_all_lookup_tables(builder)
         self.setup(builder)
         self._set_population_view(builder)
+        self._register_attribute_producers(builder)
         self._register_post_setup_listener(builder)
         self._register_simulant_initializer(builder)
         self._register_time_step_prepare_listener(builder)
@@ -381,7 +382,7 @@ class Component(ABC):
     # Methods to override #
     #######################
 
-    def setup(self, builder: "Builder") -> None:
+    def setup(self, builder: Builder) -> None:
         """Defines custom actions this component needs to run during the setup
         lifecycle phase.
 
@@ -525,7 +526,7 @@ class Component(ABC):
             if hasattr(self, parameter_name)
         }
 
-    def get_configuration(self, builder: "Builder") -> LayeredConfigTree | None:
+    def get_configuration(self, builder: Builder) -> LayeredConfigTree | None:
         """Retrieves the configuration for this component from the builder.
 
         This method retrieves the configuration for this component from the
@@ -547,7 +548,7 @@ class Component(ABC):
             return builder.configuration.get_tree(self.name)
         return None
 
-    def build_all_lookup_tables(self, builder: "Builder") -> None:
+    def build_all_lookup_tables(self, builder: Builder) -> None:
         """Builds all lookup tables for this component.
 
         This method builds lookup tables for this component based on the data
@@ -734,7 +735,7 @@ class Component(ABC):
 
         return data
 
-    def _set_population_view(self, builder: "Builder") -> None:
+    def _set_population_view(self, builder: Builder) -> None:
         """Creates the PopulationView for this component if it needs access to
         the state table.
 
@@ -777,7 +778,16 @@ class Component(ABC):
                 population_view_columns, self.population_view_query, requires_all_columns
             )
 
-    def _register_post_setup_listener(self, builder: "Builder") -> None:
+    def _register_attribute_producers(self, builder: Builder) -> None:
+        for column in self.columns_created:
+            # Probably combine both into a single method.
+            builder.value.register_attribute_producer(
+                column,
+                source=[column],
+                component=self,
+            )
+
+    def _register_post_setup_listener(self, builder: Builder) -> None:
         """Registers a post_setup listener if this component has defined one.
 
         This method allows the component to respond to "post_setup" events if it
@@ -828,7 +838,7 @@ class Component(ABC):
                 self, creates_columns=self.columns_created, **initialization_requirements  # type: ignore[arg-type]
             )
 
-    def _register_time_step_prepare_listener(self, builder: "Builder") -> None:
+    def _register_time_step_prepare_listener(self, builder: Builder) -> None:
         """Registers a time_step__prepare listener if this component has defined one.
 
         This method allows the component to respond to "time_step__prepare" events
@@ -847,7 +857,7 @@ class Component(ABC):
                 self.time_step_prepare_priority,
             )
 
-    def _register_time_step_listener(self, builder: "Builder") -> None:
+    def _register_time_step_listener(self, builder: Builder) -> None:
         """Registers a time_step listener if this component has defined one.
 
         This method allows the component to respond to "time_step" events
@@ -866,7 +876,7 @@ class Component(ABC):
                 self.time_step_priority,
             )
 
-    def _register_time_step_cleanup_listener(self, builder: "Builder") -> None:
+    def _register_time_step_cleanup_listener(self, builder: Builder) -> None:
         """Registers a time_step__cleanup listener if this component has defined one.
 
         This method allows the component to respond to "time_step__cleanup" events
@@ -885,7 +895,7 @@ class Component(ABC):
                 self.time_step_cleanup_priority,
             )
 
-    def _register_collect_metrics_listener(self, builder: "Builder") -> None:
+    def _register_collect_metrics_listener(self, builder: Builder) -> None:
         """Registers a collect_metrics listener if this component has defined one.
 
         This method allows the component to respond to "collect_metrics" events
@@ -904,7 +914,7 @@ class Component(ABC):
                 self.collect_metrics_priority,
             )
 
-    def _register_simulation_end_listener(self, builder: "Builder") -> None:
+    def _register_simulation_end_listener(self, builder: Builder) -> None:
         """Registers a simulation_end listener if this component has defined one.
 
         This method allows the component to respond to "simulation_end" events
