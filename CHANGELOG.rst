@@ -1,3 +1,10 @@
+**3.5.2 - 09/23/25**
+
+  - Fix type hint in get_output_model_name_string() utility method
+
+  - Hotfix: fix a bug that caused errors when an observation was inactive while having 
+    different stratifications from other active observations.
+
 **3.5.1 - 09/22/25**
 
   - Hotfix: fix a bug that caused errors when an observation was inactive while having 

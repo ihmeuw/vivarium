@@ -112,7 +112,7 @@ def raise_if_not_setup(system_type: str) -> Callable[..., Any]:
 
 
 def get_output_model_name_string(
-    artifact_path: str | Path,
+    artifact_path: str | Path | None,
     model_spec_path: str | Path,
 ) -> str:
     """Find a good string to use as model name in output path creation.
