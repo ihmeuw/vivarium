@@ -507,7 +507,7 @@ def test_source_callable(
             assert attribute.equals(expected_return)
     else:
         with pytest.raises(
-            ValueError,
+            TypeError,
             match=(
                 "The source of an attribute pipeline must be a callable or a list "
                 f"of column names, but got {type(source)}."

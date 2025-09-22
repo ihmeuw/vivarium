@@ -61,7 +61,7 @@ class ValueSource(Resource):
             columns = self._source  # Type narrowing for mypy
             source_callable = lambda index: population_mgr.population.loc[index, columns]
         else:
-            raise ValueError(
+            raise TypeError(
                 "The source of an attribute pipeline must be a callable or a list "
                 f"of column names, but got {type(self._source)}."
             )
