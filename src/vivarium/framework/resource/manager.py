@@ -76,7 +76,7 @@ class ResourceManager(Manager):
 
     def add_resources(
         self,
-        # TODO [MIC-5452]: all resource groups should have a component
+        # TODO [MIC-6433]: all resource groups should have a component
         component: Component | Manager | None,
         resources: Iterable[str | Resource],
         dependencies: Iterable[str | Resource],
@@ -104,7 +104,7 @@ class ResourceManager(Manager):
         for resource_id, resource in resource_group.resources.items():
             if resource_id in self._resource_group_map:
                 other_resource = self._resource_group_map[resource_id]
-                # TODO [MIC-5452]: all resource groups should have a component
+                # TODO [MIC-6433]: all resource groups should have a component
                 resource_component = resource.component.name if resource.component else None
                 other_resource_component = (
                     other_resource.component.name if other_resource.component else None
@@ -138,7 +138,7 @@ class ResourceManager(Manager):
             resources_ = [NullResource(self._null_producer_count, component)]
             self._null_producer_count += 1
 
-        # TODO [MIC-5452]: all resource groups should have a component
+        # TODO [MIC-6433]: all resource groups should have a component
         if component and (
             have_other_component := [r for r in resources_ if r.component != component]
         ):
