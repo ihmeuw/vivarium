@@ -46,7 +46,7 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         source: Callable[..., Any],
-        # TODO [MIC-5452]: all calls should have a component
+        # TODO [MIC-6433]: all calls should have a component
         component: Component | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
@@ -111,7 +111,7 @@ class ValuesInterface(Interface):
     def register_attribute_producer(
         self,
         value_name: str,
-        source: Callable[[pd.Index[int]], Any],
+        source: Callable[[pd.Index[int]], Any] | list[str],
         component: Component | Manager,
         required_resources: Sequence[str | Resource] = (),
         preferred_combiner: ValueCombiner = replace_combiner,
@@ -124,7 +124,10 @@ class ValuesInterface(Interface):
         value_name
             The name of the new dynamic attribute pipeline.
         source
-            A callable source for the dynamic attribute pipeline.
+            The source for the dynamic attribute pipeline. This can be a callable
+            or a list of column names. If a list of column names is provided,
+            the component that is registering this attribute producer must be the
+            one that creates those columns.
         component
             The component that is registering the attribute producer.
         required_resources
@@ -160,7 +163,7 @@ class ValuesInterface(Interface):
     def register_rate_producer(
         self,
         rate_name: str,
-        source: Callable[..., Any],
+        source: Callable[[pd.Index[int]], Any] | list[str],
         component: Component,
         required_resources: Sequence[str | Resource] = (),
     ) -> AttributePipeline:
@@ -178,7 +181,10 @@ class ValuesInterface(Interface):
         rate_name
             The name of the new dynamic rate pipeline.
         source
-            A callable source for the dynamic rate pipeline.
+            The source for the dynamic rate pipeline. This can be a callable
+            or a list of column names. If a list of column names is provided,
+            the component that is registering this attribute producer must be the
+            one that creates those columns.
         component
             The component that is registering the rate producer.
         required_resources
@@ -202,7 +208,7 @@ class ValuesInterface(Interface):
         self,
         value_name: str,
         modifier: Callable[..., Any],
-        # TODO [MIC-5452]: all calls should have a component
+        # TODO [MIC-6433]: all calls should have a component
         component: Component | Manager | None = None,
         requires_columns: Iterable[str] = (),
         requires_values: Iterable[str] = (),
@@ -303,7 +309,7 @@ class ValuesInterface(Interface):
         """
         return self._manager.get_value(name)
 
-    # TODO: [MIC-5452] Remove this method (attributes should be obtained via population views)
+    # TODO: [MIC-6388] Remove this method (attributes should be obtained via population views)
     def get_attribute(self, name: str) -> AttributePipeline:
         """A temporary interface method to use while during population re-design."""
         return self._manager.get_attribute(name)
