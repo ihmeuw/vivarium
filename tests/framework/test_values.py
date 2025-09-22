@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 import pytest
 from pytest_mock import MockFixture
 
+from vivarium import Component as _Component
+from vivarium.framework.engine import SimulationContext
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import (
     AttributePipeline,
@@ -19,6 +22,13 @@ from vivarium.framework.values import (
     union_post_processor,
 )
 from vivarium.framework.values.pipeline import ValueSource
+
+if TYPE_CHECKING:
+    from vivarium.framework.engine import Builder
+    from vivarium.framework.population import SimulantData
+
+
+INDEX = pd.Index([4, 8, 15, 16, 23, 42])
 
 
 @pytest.fixture
@@ -67,7 +77,6 @@ def test_replace_combiner(manager: ValuesManager) -> None:
 
 def test_joint_value(manager: ValuesManager, mocker: MockFixture) -> None:
     # This is the normal configuration for PAF and disability weight type values
-    index = pd.Index(range(10))
 
     value = manager.register_attribute_producer(
         "test",
@@ -76,17 +85,17 @@ def test_joint_value(manager: ValuesManager, mocker: MockFixture) -> None:
         preferred_post_processor=union_post_processor,  # type: ignore [arg-type]
         component=mocker.Mock(),
     )
-    assert np.all(value(index) == 0)
+    assert np.all(value(INDEX) == 0)
 
     manager.register_attribute_modifier(
         "test", modifier=lambda idx: pd.Series(0.5, index=idx), component=mocker.Mock()
     )
-    assert np.all(value(index) == 0.5)
+    assert np.all(value(INDEX) == 0.5)
 
     manager.register_attribute_modifier(
         "test", modifier=lambda idx: pd.Series(0.5, index=idx), component=mocker.Mock()
     )
-    assert np.all(value(index) == 0.75)
+    assert np.all(value(INDEX) == 0.75)
 
 
 def test_contains(manager: ValuesManager) -> None:
@@ -106,14 +115,13 @@ def test_returned_series_name(manager: ValuesManager) -> None:
         "test",
         source=lambda idx: pd.Series(0.0, index=idx),
     )
-    assert value(pd.Index(range(10))).name == "test"
+    assert value(INDEX).name == "test"
 
 
 @pytest.mark.parametrize("manager_with_step_size", ["static_step"], indirect=True)
 def test_rescale_post_processor_static(
     manager_with_step_size: ValuesManager, mocker: MockFixture
 ) -> None:
-    index = pd.Index(range(10))
 
     pipeline = manager_with_step_size.register_attribute_producer(
         "test",
@@ -121,14 +129,13 @@ def test_rescale_post_processor_static(
         component=mocker.Mock(),
         preferred_post_processor=rescale_post_processor,
     )
-    assert np.all(pipeline(index) == from_yearly(0.75, pd.Timedelta(days=6)))
+    assert np.all(pipeline(INDEX) == from_yearly(0.75, pd.Timedelta(days=6)))
 
 
 @pytest.mark.parametrize("manager_with_step_size", ["variable_step"], indirect=True)
 def test_rescale_post_processor_variable(
     manager_with_step_size: ValuesManager, mocker: MockFixture
 ) -> None:
-    index = pd.Index(range(10))
 
     pipeline = manager_with_step_size.register_attribute_producer(
         "test",
@@ -136,9 +143,9 @@ def test_rescale_post_processor_variable(
         component=mocker.Mock(),
         preferred_post_processor=rescale_post_processor,
     )
-    value = pipeline(index)
-    evens = value[index % 2 == 0]
-    odds = value[index % 2 == 1]
+    value = pipeline(INDEX)
+    evens = value[INDEX % 2 == 0]
+    odds = value[INDEX % 2 == 1]
     assert np.all(evens == from_yearly(0.5, pd.Timedelta(days=3)))
     assert np.all(odds == from_yearly(0.5, pd.Timedelta(days=5)))
 
@@ -149,27 +156,19 @@ def test_rescale_post_processor_variable(
     [
         (
             lambda idx: pd.Series(0.75, index=idx),
-            pd.Series(
-                from_yearly(0.75, pd.Timedelta(days=6)), index=pd.Index([1, 2, 3, 5, 8, 13])
-            ),
+            pd.Series(from_yearly(0.75, pd.Timedelta(days=6)), index=INDEX),
         ),
         (
             lambda idx: 0.75,
-            pd.Series(
-                from_yearly(0.75, pd.Timedelta(days=6)), index=pd.Index([1, 2, 3, 5, 8, 13])
-            ),
+            pd.Series(from_yearly(0.75, pd.Timedelta(days=6)), index=INDEX),
         ),
         (
             lambda idx: pd.Series(10, index=idx),
-            pd.Series(
-                from_yearly(10, pd.Timedelta(days=6)), index=pd.Index([1, 2, 3, 5, 8, 13])
-            ),
+            pd.Series(from_yearly(10, pd.Timedelta(days=6)), index=INDEX),
         ),
         (
             lambda idx: np.array([0.75] * len(idx)),
-            pd.Series(
-                from_yearly(0.75, pd.Timedelta(days=6)), index=pd.Index([1, 2, 3, 5, 8, 13])
-            ),
+            pd.Series(from_yearly(0.75, pd.Timedelta(days=6)), index=INDEX),
         ),
         (
             lambda idx: np.array([[0.75, 0.1, 0.04]] * len(idx)),
@@ -179,7 +178,7 @@ def test_rescale_post_processor_variable(
                     1: from_yearly(0.1, pd.Timedelta(days=6)),
                     2: from_yearly(0.04, pd.Timedelta(days=6)),
                 },
-                index=pd.Index([1, 2, 3, 5, 8, 13]),
+                index=INDEX,
             ),
         ),
         (lambda idx: np.array([[[0.75], [0.1], [0.04]]] * len(idx)), None),  # should raise
@@ -192,8 +191,6 @@ def test_rescale_post_processor_types(
     mocker: MockFixture,
 ) -> None:
 
-    idx = pd.Index([1, 2, 3, 5, 8, 13])
-
     pipeline = manager_with_step_size.register_attribute_producer(
         "test",
         source=source,
@@ -201,7 +198,7 @@ def test_rescale_post_processor_types(
         preferred_post_processor=rescale_post_processor,
     )
     if expected is not None:
-        attributes = pipeline(idx)
+        attributes = pipeline(INDEX)
         if isinstance(expected, pd.DataFrame):
             assert isinstance(attributes, pd.DataFrame)
             pd.testing.assert_frame_equal(attributes, expected)
@@ -215,7 +212,7 @@ def test_rescale_post_processor_types(
                 "Numpy arrays with 3 dimensions are not supported. Only 1D and 2D arrays are allowed."
             ),
         ):
-            pipeline(idx)
+            pipeline(INDEX)
 
 
 @pytest.mark.parametrize("pipeline_type", [Pipeline, AttributePipeline])
@@ -227,7 +224,7 @@ def test_unsourced_pipeline(pipeline_type: Pipeline) -> None:
         DynamicValueError,
         match=f"The dynamic value pipeline for {pipeline.name} has no source.",
     ):
-        pipeline(index=pd.Index([0, 1, 2]))
+        pipeline(index=INDEX)
 
 
 def test_attribute_pipeline_creation() -> None:
@@ -278,10 +275,8 @@ def test_attribute_pipeline_usage(
     use_postprocessor: bool, manager: ValuesManager, mocker: MockFixture
 ) -> None:
 
-    index = pd.Index([4, 8, 15, 16, 23, 42])
-
     # Create initialized dataframe
-    data = pd.DataFrame({"col1": [0.0] * (max(index) + 5), "col2": [0.0] * (max(index) + 5)})
+    data = pd.DataFrame({"col1": [0.0] * (max(INDEX) + 5), "col2": [0.0] * (max(INDEX) + 5)})
 
     def attribute_source(index: pd.Index[int]) -> pd.DataFrame:
         df = data.loc[index].copy()
@@ -319,10 +314,10 @@ def test_attribute_pipeline_usage(
         "test_attribute", modifier=attribute_modifier2, component=mocker.Mock()
     )
 
-    result = pipeline(index)
+    result = pipeline(INDEX)
 
     assert isinstance(result, pd.DataFrame)
-    assert result.index.equals(index)
+    assert result.index.equals(INDEX)
     assert set(result.columns) == {"col1", "col2"}
     assert all(result["col1"] == (20 if use_postprocessor else 2.0))
     assert all(result["col2"] == (40 if use_postprocessor else 4.0))
@@ -332,7 +327,6 @@ def test_attribute_pipeline_raises_returns_different_index(
     manager: ValuesManager, mocker: MockFixture
 ) -> None:
     """Test than an error is raised when the index returned is different than was passed in."""
-    index = pd.Index([4, 8, 15, 16, 23, 42])
 
     def bad_attribute_source(index: pd.Index[int]) -> pd.DataFrame:
         index += 1
@@ -349,12 +343,10 @@ def test_attribute_pipeline_raises_returns_different_index(
         match=f"The dynamic attribute pipeline for {pipeline.name} returned a series "
         "or dataframe with a different index than was passed in.",
     ):
-        pipeline(index)
+        pipeline(INDEX)
 
 
 def test_attribute_pipeline_return_types(manager: ValuesManager, mocker: MockFixture) -> None:
-    index = pd.Index([4, 8, 15, 16, 23, 42])
-
     def series_attribute_source(index: pd.Index[int]) -> pd.Series[float]:
         return pd.Series([1.0] * len(index), index=index)
 
@@ -378,14 +370,14 @@ def test_attribute_pipeline_return_types(manager: ValuesManager, mocker: MockFix
         preferred_post_processor=lambda idx, val, mgr: pd.Series(val, index=idx),
     )
 
-    assert isinstance(series_pipeline(index), pd.Series)
-    assert series_pipeline(index).index.equals(index)
+    assert isinstance(series_pipeline(INDEX), pd.Series)
+    assert series_pipeline(INDEX).index.equals(INDEX)
 
-    assert isinstance(dataframe_pipeline(index), pd.DataFrame)
-    assert dataframe_pipeline(index).index.equals(index)
+    assert isinstance(dataframe_pipeline(INDEX), pd.DataFrame)
+    assert dataframe_pipeline(INDEX).index.equals(INDEX)
 
-    assert isinstance(series_pipeline_with_str_source(index), pd.Series)
-    assert series_pipeline_with_str_source(index).index.equals(index)
+    assert isinstance(series_pipeline_with_str_source(INDEX), pd.Series)
+    assert series_pipeline_with_str_source(INDEX).index.equals(INDEX)
 
     # Register the string source w/ no post-processors, i.e. calling will return str
     bad_pipeline = manager.register_attribute_producer(
@@ -399,7 +391,7 @@ def test_attribute_pipeline_return_types(manager: ValuesManager, mocker: MockFix
             "but pd.Series' or pd.DataFrames are expected for attribute pipelines."
         ),
     ):
-        bad_pipeline(index)
+        bad_pipeline(INDEX)
 
 
 @pytest.mark.parametrize("skip_post_processor", [True, False])
@@ -427,12 +419,11 @@ def test_attribute_pipeline_with_post_processor(
         component=mocker.Mock(),
     )
 
-    index = pd.Index([4, 8, 15, 16, 23, 42])
-    result = pipeline(index, skip_post_processor=skip_post_processor)
+    result = pipeline(INDEX, skip_post_processor=skip_post_processor)
 
     # Verify post-processor was applied
     assert isinstance(result, pd.DataFrame)
-    assert result.index.equals(index)
+    assert result.index.equals(INDEX)
     assert all(result["value"] == (20.0 if not skip_post_processor else 10.0))
 
 
@@ -471,3 +462,55 @@ def test_duplicate_names_raise(manager: ValuesManager, mocker: MockFixture) -> N
         match=re.escape(f"'{name}' is already registered as an attribute pipeline."),
     ):
         manager.register_value_producer(name, source=lambda: 1)
+
+
+@pytest.mark.parametrize(
+    "source, expected_return",
+    [
+        (lambda idx: pd.Series(1.0, index=INDEX), pd.Series(1.0, index=INDEX)),
+        (["attr1", "attr2"], pd.DataFrame({"attr1": [10.0], "attr2": [20.0]}, index=INDEX)),
+        (42, None),  # should raise
+    ],
+)
+def test_source_callable(
+    source: pd.Series[float] | list[str] | int,
+    expected_return: pd.Series[float] | pd.DataFrame | None,
+) -> None:
+    """Test that the source is correctly converted to a callable if needed."""
+
+    class Component(_Component):
+        @property
+        def columns_created(self) -> list[str]:
+            return ["attr1", "attr2"]
+
+        def setup(self, builder: Builder) -> None:
+            self.attribute_pipeline = builder.value.register_attribute_producer(
+                "some-attribute",
+                source=source,  # type: ignore [arg-type] # we are testing invalid types too
+                component=self,
+            )
+
+        def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+            update = pd.DataFrame({"attr1": [10.0], "attr2": [20.0]}, index=pop_data.index)
+            self.population_view.update(update)
+
+    sim = SimulationContext(components=[Component()])
+    sim.setup()
+    sim.initialize_simulants()
+    pl = sim._values.get_attribute("some-attribute")
+    if expected_return is not None:
+        attribute = pl(INDEX)
+        assert type(attribute) == type(expected_return)
+        if isinstance(expected_return, pd.DataFrame) and isinstance(attribute, pd.DataFrame):
+            pd.testing.assert_frame_equal(attribute, expected_return)
+        elif isinstance(expected_return, pd.Series) and isinstance(attribute, pd.Series):
+            assert attribute.equals(expected_return)
+    else:
+        with pytest.raises(
+            TypeError,
+            match=(
+                "The source of an attribute pipeline must be a callable or a list "
+                f"of column names, but got {type(source)}."
+            ),
+        ):
+            pl(INDEX)
