@@ -283,11 +283,7 @@ class ResultsContext:
         lifecycle_state: str,
         event_observations: list[Observation],
     ) -> Generator[
-        tuple[
-            pd.DataFrame | None,
-            str | None,
-            Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame] | None,
-        ],
+        tuple[pd.DataFrame, str, Callable[[pd.DataFrame, pd.DataFrame], pd.DataFrame]],
         None,
         None,
     ]:
@@ -325,13 +321,17 @@ class ResultsContext:
         for (pop_filter, stratification_names), observations in self.grouped_observations[
             lifecycle_state
         ].items():
+            observations = [obs for obs in observations if obs in event_observations]
+            if not observations:
+                continue
+
             # Results production can be simplified to
             # filter -> groupby -> aggregate in all situations we've seen.
             filtered_pop = self._filter_population(
                 population, pop_filter, stratification_names
             )
             if filtered_pop.empty:
-                yield None, None, None
+                continue
             else:
                 pop: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool]
                 if stratification_names is None:
@@ -339,14 +339,7 @@ class ResultsContext:
                 else:
                     pop = self._get_groups(stratification_names, filtered_pop)
                 for observation in observations:
-                    if observation not in event_observations:
-                        continue
-
                     results = observation.observe(pop, stratification_names)
-
-                    if results is not None:
-                        self._rename_stratification_columns(results)
-
                     yield (results, observation.name, observation.results_updater)
 
     def get_observations(self, event: Event) -> list[Observation]:
@@ -487,13 +480,3 @@ class ResultsContext:
         else:
             pop_groups = filtered_pop.groupby(lambda _: "all")
         return pop_groups  # type: ignore[return-value]
-
-    def _rename_stratification_columns(self, results: pd.DataFrame) -> None:
-        """Convert the temporary stratified mapped index names back to their original names."""
-        if isinstance(results.index, pd.MultiIndex):
-            idx_names = [get_original_col_name(name) for name in results.index.names]
-            results.rename_axis(index=idx_names, inplace=True)
-        else:
-            idx_name = results.index.name
-            if idx_name is not None:
-                results.index.rename(get_original_col_name(idx_name), inplace=True)

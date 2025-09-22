@@ -29,6 +29,7 @@ from tests.framework.results.helpers import (
     HogwartsResultsStratifier,
     HousePointsObserver,
     MagicalAttributesObserver,
+    NeverObserver,
     NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
     ValedictorianObserver,
@@ -491,6 +492,26 @@ def test_gather_results_with_empty_index(mocker: pytest_mock.MockerFixture) -> N
     mgr._results_context.get_observations.assert_called_once_with(event)  # type: ignore[attr-defined]
     mgr.population_view.subview.assert_not_called()  # type: ignore[attr-defined]
     mgr._results_context.gather_results.assert_not_called()  # type: ignore[attr-defined]
+
+
+def test_gather_results_with_different_stratifications_and_to_observes() -> None:
+    components = [
+        Hogwarts(),
+        HogwartsResultsStratifier(),
+        NoStratificationsQuidditchWinsObserver(),
+        NeverObserver(),
+    ]
+    sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
+
+    initial_raw_results = sim._results._raw_results.copy()
+
+    sim.step()
+    pd.testing.assert_frame_equal(
+        sim._results._raw_results["never"], initial_raw_results["never"]
+    )
+    assert (
+        sim._results._raw_results["no_stratifications_quidditch_wins"][VALUE_COLUMN] > 0
+    ).all()
 
 
 @pytest.fixture(scope="module")

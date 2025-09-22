@@ -31,7 +31,7 @@ from pandas.core.groupby.generic import DataFrameGroupBy
 
 from vivarium.exceptions import VivariumError
 from vivarium.framework.event import Event
-from vivarium.framework.results.stratification import Stratification
+from vivarium.framework.results.stratification import Stratification, get_original_col_name
 from vivarium.framework.values import Pipeline
 
 VALUE_COLUMN = "value"
@@ -86,13 +86,11 @@ class Observation(ABC):
         self,
         df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
         stratifications: tuple[str, ...] | None,
-    ) -> pd.DataFrame | None:
+    ) -> pd.DataFrame:
         """Gather the results of the observation.
 
         Parameters
         ----------
-        event
-            The event to observe.
         df
             The population or population grouped by the stratifications.
         stratifications
@@ -259,6 +257,38 @@ class StratifiedObservation(Observation):
     @classmethod
     def is_stratified(cls) -> bool:
         return True
+
+    def observe(
+        self,
+        df: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool],
+        stratifications: tuple[str, ...] | None,
+    ) -> pd.DataFrame:
+        """Gather the results of the observation.
+
+        Parameters
+        ----------
+        df
+            The population or population grouped by the stratifications.
+        stratifications
+            The stratifications to use for the observation.
+
+        Returns
+        -------
+            The results of the observation.
+        """
+        results = super().observe(df, stratifications)
+        self._rename_stratification_columns(results)
+        return results
+
+    def _rename_stratification_columns(self, results: pd.DataFrame) -> None:
+        """Convert the temporary stratified mapped index names back to their original names."""
+        if isinstance(results.index, pd.MultiIndex):
+            idx_names = [get_original_col_name(name) for name in results.index.names]
+            results.rename_axis(index=idx_names, inplace=True)
+        else:
+            idx_name = results.index.name
+            if idx_name is not None:
+                results.index.rename(get_original_col_name(idx_name), inplace=True)
 
     def create_expanded_df(self) -> pd.DataFrame:
         """Initialize a dataframe of 0s with complete set of stratifications as the index.

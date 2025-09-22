@@ -138,10 +138,7 @@ class ResultsManager(Manager):
         for results_group, measure, updater in self._results_context.gather_results(
             population, event.name, observations
         ):
-            if results_group is not None and measure is not None and updater is not None:
-                self._raw_results[measure] = updater(
-                    self._raw_results[measure], results_group
-                )
+            self._raw_results[measure] = updater(self._raw_results[measure], results_group)
 
     ##########################
     # Stratification methods #
