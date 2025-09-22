@@ -11,11 +11,12 @@ from vivarium.framework.values.exceptions import DynamicValueError
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
-    from vivarium.framework.values.combiners import ValueCombiner
-    from vivarium.framework.values.manager import ValuesManager
-    from vivarium.framework.values.post_processors import (
+    from vivarium.framework.population import PopulationManager
+    from vivarium.framework.values import (
         AttributePostProcessor,
         PostProcessor,
+        ValueCombiner,
+        ValuesManager,
     )
 
 T = TypeVar("T")
@@ -27,7 +28,7 @@ class ValueSource(Resource):
     def __init__(
         self,
         pipeline: Pipeline,
-        source: Callable[..., Any] | None,
+        source: Callable[..., Any] | list[str] | None,
         component: Component | Manager | None,
     ) -> None:
         self._pipeline_type = (
@@ -46,14 +47,26 @@ class ValueSource(Resource):
     def __bool__(self) -> bool:
         return self._source is not None
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+    def __call__(self, population_mgr: PopulationManager, *args: Any, **kwargs: Any) -> Any:
         if not self._source:
             raise DynamicValueError(
                 f"The dynamic {self._pipeline_type} pipeline for {self.name} has no source."
                 " This likely means you are attempting to modify a value that"
                 " hasn't been created."
             )
-        return self._source(*args, **kwargs)
+
+        if callable(self._source):
+            source_callable = self._source
+        elif isinstance(self._source, list):
+            columns = self._source  # Type narrowing for mypy
+            source_callable = lambda index: population_mgr.population.loc[index, columns]
+        else:
+            raise TypeError(
+                "The source of an attribute pipeline must be a callable or a list "
+                f"of column names, but got {type(self._source)}."
+            )
+
+        return source_callable(*args, **kwargs)
 
 
 class ValueModifier(Resource):
@@ -188,7 +201,7 @@ class Pipeline(Resource):
                 f"The dynamic value pipeline for {self.name} has no source. This likely means "
                 f"you are attempting to modify a value that hasn't been created."
             )
-        value = self.source(*args, **kwargs)
+        value = self.source(self.manager._population_mgr, *args, **kwargs)
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:
@@ -223,7 +236,7 @@ class Pipeline(Resource):
     def set_attributes(
         self,
         component: Component | Manager | None,
-        source: Callable[..., Any],
+        source: Callable[..., Any] | list[str],
         combiner: ValueCombiner,
         post_processor: PostProcessor | None,
         manager: ValuesManager,
@@ -236,7 +249,10 @@ class Pipeline(Resource):
         component
             The component that creates the pipeline.
         source
-            The callable source of the value represented by the pipeline.
+            The source for the dynamic attribute pipeline. This can be a callable
+            or a list of column names. If a list of column names is provided,
+            the component that is registering this attribute producer must be the
+            one that creates those columns.
         combiner
             A strategy for combining the source and mutator values into the
             final value represented by the pipeline.
