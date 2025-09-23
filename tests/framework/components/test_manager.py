@@ -1,10 +1,11 @@
-from typing import Any
+from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
+import pandas as pd
 import pytest
-from pytest_mock import MockerFixture
 
 from tests.helpers import MockComponentA, MockComponentB, MockGenericComponent, MockManager
-from vivarium import Component
 from vivarium.exceptions import VivariumError
 from vivarium.framework.components.manager import (
     ComponentConfigError,
@@ -12,7 +13,14 @@ from vivarium.framework.components.manager import (
     OrderedComponentSet,
 )
 from vivarium.framework.configuration import build_simulation_configuration
+from vivarium.framework.engine import SimulationContext
 from vivarium.manager import Manager
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
+    from vivarium import Component
+    from vivarium.framework.population import SimulantData
 
 
 def test_component_set_add() -> None:
@@ -320,3 +328,24 @@ def test_component_manager_add_components_duplicated(components: list[Component]
         match="is attempting to set the configuration value mock_component_a, but it has already been set by mock_component_a",
     ):
         cm.add_components(components)
+
+
+def test_attribute_pipelines_from_columns_created() -> None:
+    """Test that default manager setup registers attribute pipelines for columns_created."""
+
+    class TestManager(Manager):
+        @property
+        def name(self) -> str:
+            return "test_manager"
+
+        @property
+        def columns_created(self) -> list[str]:
+            return ["col1", "col2"]
+
+    mgr = TestManager()
+    sim = SimulationContext()
+    sim.setup()
+    builder = sim._builder
+    mgr.setup(builder)
+    for col in mgr.columns_created:
+        assert col in builder.value._manager.keys()
