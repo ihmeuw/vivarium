@@ -52,7 +52,7 @@ class ResultsContext:
         objects to be produced keyed by the observation name.
     grouped_observations
         Dictionary of observation details. It is of the format
-        {lifecycle_state: {(pop_filter, stratifications): list[Observation]}}.
+        {lifecycle_state: {pop_filter: {stratifications: list[Observation]}}}.
         Allowable lifecycle_states are "time_step__prepare", "time_step",
         "time_step__cleanup", and "collect_metrics".
     logger
@@ -65,8 +65,8 @@ class ResultsContext:
         self.excluded_categories: dict[str, list[str]] = {}
         self.observations: dict[str, Observation] = {}
         self.grouped_observations: defaultdict[
-            str, defaultdict[tuple[str, tuple[str, ...] | None], list[Observation]]
-        ] = defaultdict(lambda: defaultdict(list))
+            str, defaultdict[str, defaultdict[tuple[str, ...] | None, list[Observation]]]
+        ] = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
     @property
     def name(self) -> str:
@@ -112,18 +112,18 @@ class ResultsContext:
         """
         used_stratifications: set[str] = set()
         for state_observations in self.grouped_observations.values():
-            for observation_details in state_observations.items():
-                (_, stratification_names), observations = observation_details
-                if stratification_names is None:
-                    continue
+            for pop_filter_observations in state_observations.values():
+                for stratification_names, observations in pop_filter_observations.items():
+                    if stratification_names is None:
+                        continue
 
-                used_stratifications |= set(stratification_names)
-                for observation in observations:
-                    observation.stratifications = tuple(
-                        self.stratifications[name]
-                        for name in stratification_names
-                        if name in self.stratifications
-                    )
+                    used_stratifications |= set(stratification_names)
+                    for observation in observations:
+                        observation.stratifications = tuple(
+                            self.stratifications[name]
+                            for name in stratification_names
+                            if name in self.stratifications
+                        )
 
         if unused_stratifications := set(self.stratifications.keys()) - used_stratifications:
             self.logger.info(
@@ -272,8 +272,8 @@ class ResultsContext:
             **kwargs,
         )
         self.observations[name] = observation
-        self.grouped_observations[observation.when][
-            (observation.pop_filter, stratifications)
+        self.grouped_observations[observation.when][observation.pop_filter][
+            stratifications
         ].append(observation)
         return observation
 
@@ -318,26 +318,36 @@ class ResultsContext:
 
         # Optimization: We store all the producers by pop_filter and stratifications
         # so that we only have to apply them once each time we compute results.
-        for (pop_filter, stratification_names), observations in self.grouped_observations[
+        for pop_filter, stratification_observations in self.grouped_observations[
             lifecycle_state
         ].items():
-            observations = [obs for obs in observations if obs in event_observations]
-            if not observations:
+            event_pop_filter_observations = [
+                observation
+                for observations in stratification_observations.values()
+                for observation in observations
+                if observation in event_observations
+            ]
+            if not event_pop_filter_observations:
                 continue
 
-            # Results production can be simplified to
-            # filter -> groupby -> aggregate in all situations we've seen.
-            filtered_pop = self._filter_population(
-                population, pop_filter, stratification_names
-            )
-            if filtered_pop.empty:
+            filtered_population = self._filter_population(population, pop_filter)
+            if filtered_population.empty:
                 continue
-            else:
+
+            for stratification_names, observations in stratification_observations.items():
+                observations = [
+                    obs for obs in observations if obs in event_pop_filter_observations
+                ]
+                if not observations:
+                    continue
+
                 pop: pd.DataFrame | DataFrameGroupBy[tuple[str, ...] | str, bool]
-                if stratification_names is None:
-                    pop = filtered_pop
-                else:
-                    pop = self._get_groups(stratification_names, filtered_pop)
+                pop = self._drop_na_stratifications(filtered_population, stratification_names)
+                if pop.empty:
+                    continue
+                if stratification_names is not None:
+                    pop = self._get_groups(stratification_names, pop)
+
                 for observation in observations:
                     results = observation.observe(pop, stratification_names)
                     yield (results, observation.name, observation.results_updater)
@@ -357,7 +367,8 @@ class ResultsContext:
         """
         return [
             observation
-            for observations in self.grouped_observations[event.name].values()
+            for stratification_observations in self.grouped_observations[event.name].values()
+            for observations in stratification_observations.values()
             for observation in observations
             if observation.to_observe(event)
         ]
@@ -436,24 +447,24 @@ class ResultsContext:
             required_values.update(stratification.requires_values)
         return list(required_values)
 
-    def _filter_population(
-        self,
-        population: pd.DataFrame,
-        pop_filter: str,
-        stratification_names: tuple[str, ...] | None,
+    def _filter_population(self, population: pd.DataFrame, pop_filter: str) -> pd.DataFrame:
+        """Filter out simulants not to observe."""
+        return population.query(pop_filter) if pop_filter else population.copy()
+
+    def _drop_na_stratifications(
+        self, population: pd.DataFrame, stratification_names: tuple[str, ...] | None
     ) -> pd.DataFrame:
         """Filter out simulants not to observe."""
-        pop = population.query(pop_filter) if pop_filter else population.copy()
         if stratification_names:
             # Drop all rows in the mapped_stratification columns that have NaN values
             # (which only exist if the mapper returned an excluded category).
-            pop = pop.dropna(
+            population = population.dropna(
                 subset=[
                     get_mapped_col_name(stratification)
                     for stratification in stratification_names
                 ]
             )
-        return pop
+        return population
 
     @staticmethod
     def _get_groups(

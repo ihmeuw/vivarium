@@ -195,9 +195,9 @@ def test_register_stratified_observation(mocker: MockerFixture) -> None:
 
     grouped_observations = interface._manager._results_context.grouped_observations
     assert len(grouped_observations) == 1
-    ((filter, stratifications), observations) = list(
-        grouped_observations["some-when"].items()
-    )[0]
+    filter = list(grouped_observations["some-when"].keys())[0]
+    stratifications = list(grouped_observations["some-when"][filter])[0]
+    observations = grouped_observations["some-when"][filter][stratifications]
     assert filter == "some-filter"
     assert isinstance(stratifications, tuple)  # for mypy in following set(stratifications)
     assert set(stratifications) == {
@@ -239,13 +239,15 @@ def test_register_unstratified_observation(mocker: MockerFixture) -> None:
         results_gatherer=lambda _: pd.DataFrame(),
         results_updater=lambda _, __: pd.DataFrame(),
     )
-    observations = interface._manager._results_context.grouped_observations
-    assert len(observations) == 1
-    ((filter, stratification), observation) = list(observations["some-when"].items())[0]
+    grouped_observations = interface._manager._results_context.grouped_observations
+    assert len(grouped_observations) == 1
+    filter = list(grouped_observations["some-when"].keys())[0]
+    stratifications = list(grouped_observations["some-when"][filter])[0]
+    observations = grouped_observations["some-when"][filter][stratifications]
     assert filter == "some-filter"
-    assert stratification is None
-    assert len(observation) == 1
-    obs = observation[0]
+    assert stratifications is None
+    assert len(observations) == 1
+    obs = observations[0]
     assert obs.name == "some-name"
     assert obs.pop_filter == "some-filter"
     assert obs.when == "some-when"
@@ -346,26 +348,33 @@ def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
     )
     # Test observation gets added
     assert len(interface._manager._results_context.grouped_observations) == 1
-    # Test for default pop_filter
-    assert ("tracked==True", ()) in interface._manager._results_context.grouped_observations[
-        lifecycle_states.TIME_STEP_CLEANUP
-    ]
+    assert (
+        interface._manager._results_context.grouped_observations[
+            lifecycle_states.TIME_STEP_CLEANUP
+        ]["tracked==True"][()][0].name
+        == "living_person_time"
+    )
+
     interface.register_adding_observation(
         name="undead_person_time",
-        pop_filter="undead == True",
+        pop_filter="undead==True",
         when=lifecycle_states.TIME_STEP_PREPARE,
         aggregator=_silly_aggregator,
     )
     # Test new observation gets added
     assert len(interface._manager._results_context.grouped_observations) == 2
-    # Preserve other observation and its pop filter
-    assert ("tracked==True", ()) in interface._manager._results_context.grouped_observations[
-        lifecycle_states.TIME_STEP_CLEANUP
-    ]
-    # Test for overridden pop_filter
-    assert ("undead == True", ()) in interface._manager._results_context.grouped_observations[
-        lifecycle_states.TIME_STEP_PREPARE
-    ]
+    assert (
+        interface._manager._results_context.grouped_observations[
+            lifecycle_states.TIME_STEP_CLEANUP
+        ]["tracked==True"][()][0].name
+        == "living_person_time"
+    )
+    assert (
+        interface._manager._results_context.grouped_observations[
+            lifecycle_states.TIME_STEP_PREPARE
+        ]["undead==True"][()][0].name
+        == "undead_person_time"
+    )
 
 
 @pytest.mark.parametrize("resource_type", ["value", "column"])
@@ -484,13 +493,15 @@ def test_register_concatenating_observation(mocker: MockerFixture) -> None:
         requires_values=["some-value", "some-other-value"],
         results_formatter=lambda _, __: pd.DataFrame(),
     )
-    observations = interface._manager._results_context.grouped_observations
-    assert len(observations) == 1
-    ((filter, stratification), observation) = list(observations["some-when"].items())[0]
+    grouped_observations = interface._manager._results_context.grouped_observations
+    assert len(grouped_observations) == 1
+    filter = list(grouped_observations["some-when"].keys())[0]
+    stratifications = list(grouped_observations["some-when"][filter])[0]
+    observations = grouped_observations["some-when"][filter][stratifications]
     assert filter == "some-filter"
-    assert stratification is None
-    assert len(observation) == 1
-    obs = observation[0]
+    assert stratifications is None
+    assert len(observations) == 1
+    obs = observations[0]
     assert obs.name == "some-name"
     assert obs.pop_filter == "some-filter"
     assert obs.when == "some-when"
