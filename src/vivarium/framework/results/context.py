@@ -347,7 +347,7 @@ class ResultsContext:
                     continue
                 if stratification_names is not None:
                     pop = self._get_groups(stratification_names, pop)
-                
+
                 for observation in observations:
                     results = observation.observe(pop, stratification_names)
                     yield (results, observation.name, observation.results_updater)
