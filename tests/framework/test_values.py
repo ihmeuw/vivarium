@@ -26,6 +26,7 @@ from vivarium.framework.values.pipeline import ValueSource
 if TYPE_CHECKING:
     from vivarium.framework.engine import Builder
     from vivarium.framework.population import SimulantData
+    from vivarium.framework.values import AttributePostProcessor
 
 
 INDEX = pd.Index([4, 8, 15, 16, 23, 42])
@@ -514,3 +515,42 @@ def test_source_callable(
             ),
         ):
             pl(INDEX)
+
+
+@pytest.mark.parametrize(
+    "source, modifier, post_processor, expected_is_simple",
+    [
+        (["col1"], None, None, True),
+        (
+            lambda idx: pd.DataFrame({"col1": [1.0] * len(idx)}),
+            None,
+            None,
+            False,
+        ),
+        (["col1"], lambda idx, val: val + 1, None, False),
+        (["col1"], None, lambda idx, val, mgr: val * 2, False),
+    ],
+)
+def test_attribute_pipeline_is_simple(
+    source: list[str] | Callable[[pd.Index[int]], pd.DataFrame],
+    modifier: Callable[[pd.Index[int], pd.DataFrame], pd.DataFrame] | None,
+    post_processor: AttributePostProcessor | None,
+    expected_is_simple: bool,
+    manager: ValuesManager,
+    mocker: MockFixture,
+) -> None:
+    """Test the is_simple property of AttributePipeline."""
+    component = mocker.Mock()
+    pipeline = manager.register_attribute_producer(
+        "test_attribute",
+        source=source,
+        component=component,
+        preferred_post_processor=post_processor,
+    )
+    if modifier:
+        if post_processor is None and isinstance(source, list):
+            assert pipeline.is_simple
+        manager.register_attribute_modifier(
+            "test_attribute", modifier=modifier, component=component
+        )
+    assert pipeline.is_simple == expected_is_simple
