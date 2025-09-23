@@ -58,14 +58,20 @@ class Manager(ABC):
 
         This method is intended to be overridden by subclasses to perform any
         necessary setup operations specific to the manager. By default, it
-        does nothing.
+        simply registers any columns_created as attribute pipelines.
 
         Parameters
         ----------
         builder
             The builder object used to set up the manager.
         """
-        pass
+        for column in self.columns_created:
+            # Probably combine both into a single method.
+            builder.value.register_attribute_producer(
+                column,
+                source=[column],
+                component=self,
+            )
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """

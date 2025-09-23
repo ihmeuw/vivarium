@@ -238,7 +238,7 @@ def test_basic_iteration(
     assert sim._clock.step_size == pd.Timedelta(days=1)
     # Ensure that we don't have a pop view (and by extension, don't vary clocks)
     # if no components modify the step size.
-    assert bool(sim._clock._individual_clocks) == varied_step_size
+    assert bool(sim._clock._population_view) == varied_step_size
 
     for _ in range(2):
         # After initialization, all simulants should be aligned to event times
