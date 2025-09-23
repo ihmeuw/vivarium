@@ -108,7 +108,7 @@ class SimulationClock(Manager):
         self._minimum_step_size: ClockStepSize | None = None
         self._standard_step_size: ClockStepSize | None = None
         self._clock_step_size: ClockStepSize | None = None
-        self._pop_view: PopulationView | None = None
+        self._population_view: PopulationView | None = None
         self._pipeline_name = "simulant_step_size"
         # TODO: Delegate this functionality to "tracked" or similar when appropriate
         self._simulants_to_snooze = pd.Index([])
@@ -129,7 +129,7 @@ class SimulationClock(Manager):
         )
         builder.population.initializes_simulants(self, creates_columns=self.columns_created)
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
-        self._pop_view = builder.population.get_view(
+        self._population_view = builder.population.get_view(
             columns=self.columns_created + self.columns_required
         )
 
@@ -137,11 +137,11 @@ class SimulationClock(Manager):
         if not self._step_size_pipeline.mutators:
             # No components modify the step size, so we use the default
             # and remove the population view
-            self._pop_view = None
+            self._population_view = None
 
     def on_initialize_simulants(self, pop_data: "SimulantData") -> None:
         """Sets the next_event_time and step_size columns for each simulant"""
-        if self._pop_view:
+        if self._population_view:
             clocks_to_initialize = pd.DataFrame(
                 {
                     "next_event_time": [self.event_time] * len(pop_data.index),
@@ -149,21 +149,21 @@ class SimulationClock(Manager):
                 },
                 index=pop_data.index,
             )
-            self._pop_view.update(clocks_to_initialize)
+            self._population_view.update(clocks_to_initialize)
 
     def simulant_next_event_times(self, index: pd.Index[int]) -> pd.Series[ClockTime]:
         """The next time each simulant will be updated."""
-        if not self._pop_view:
+        if not self._population_view:
             return pd.Series(self.event_time, index=index)
-        return self._pop_view.subview(["next_event_time", "tracked"]).get(index)[
+        return self._population_view.subview(["next_event_time", "tracked"]).get(index)[
             "next_event_time"
         ]
 
     def simulant_step_sizes(self, index: pd.Index[int]) -> pd.Series[ClockStepSize]:
         """The step size for each simulant."""
-        if not self._pop_view:
+        if not self._population_view:
             return pd.Series(self.step_size, index=index)
-        return self._pop_view.subview(["step_size", "tracked"]).get(index)["step_size"]
+        return self._population_view.subview(["step_size", "tracked"]).get(index)["step_size"]
 
     def step_backward(self) -> None:
         """Rewinds the clock by the current step size."""
@@ -174,9 +174,9 @@ class SimulationClock(Manager):
     def step_forward(self, index: pd.Index[int]) -> None:
         """Advances the clock by the current step size, and updates aligned simulant clocks."""
         self._clock_time += self.step_size  # type: ignore [assignment, operator]
-        if self._pop_view and not index.empty:
+        if self._population_view and not index.empty:
             update_index = self.get_active_simulants(index, self.time)
-            clocks_to_update = self._pop_view.get(update_index)
+            clocks_to_update = self._population_view.get(update_index)
             if not clocks_to_update.empty:
                 clocks_to_update["step_size"] = self._step_size_pipeline(update_index)
                 # Simulants that were flagged to get moved to the end should have a next event time
@@ -189,18 +189,18 @@ class SimulationClock(Manager):
                 clocks_to_update["next_event_time"] = (
                     self.time + clocks_to_update["step_size"]
                 )
-                self._pop_view.update(clocks_to_update)
+                self._population_view.update(clocks_to_update)
             self._clock_step_size = self.simulant_next_event_times(index).min() - self.time  # type: ignore [operator]
 
     def get_active_simulants(self, index: pd.Index[int], time: ClockTime) -> pd.Index[int]:
         """Gets population that is aligned with global clock"""
-        if index.empty or not self._pop_view:
+        if index.empty or not self._population_view:
             return index
         next_event_times = self.simulant_next_event_times(index)
         return next_event_times[next_event_times <= time].index
 
     def move_simulants_to_end(self, index: pd.Index[int]) -> None:
-        if self._pop_view and not index.empty:
+        if self._population_view and not index.empty:
             self._simulants_to_snooze = self._simulants_to_snooze.union(index)
 
     def step_size_post_processor(
