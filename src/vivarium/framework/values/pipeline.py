@@ -278,6 +278,16 @@ class AttributePipeline(Pipeline):
 
     """
 
+    @property
+    def is_simple(self) -> bool:
+        """Whether or not this ``AttributePipeline`` is simple, i.e. it has a list
+        of columns as its source and no modifiers or postprocessors."""
+        return (
+            isinstance(self.source._source, list)
+            and not self.mutators
+            and not self.post_processor
+        )
+
     def __init__(self, name: str, component: Component | None = None) -> None:
         super().__init__(name, component=component)
         # Re-define the post-processor type to be more specific
