@@ -752,45 +752,47 @@ def test_get_required_resources(
 
 
 @pytest.mark.parametrize(
-    "pop_filter, stratifications",
-    [
-        ('familiar=="cat"', tuple()),
-        ('familiar=="spaghetti_yeti"', tuple()),
-        ("", ("new_col1",)),
-        ("", ("new_col1", "new_col2")),
-        ('familiar=="cat"', ("new_col1",)),
-        ("", tuple()),
-    ],
-    ids=[
-        "pop_filter",
-        "pop_filter_empties_dataframe",
-        "single_excluded_stratification",
-        "two_excluded_stratifications",
-        "pop_filter_and_excluded_stratification",
-        "no_pop_filter_or_excluded_stratifications",
-    ],
+    "pop_filter",
+    ['familiar=="cat"', 'familiar=="spaghetti_yeti"', ""],
+    ids=["pop_filter", "pop_filter_empties_dataframe", "no_pop_filter"],
 )
-def test__filter_population(pop_filter: str, stratifications: tuple[str, ...]) -> None:
+def test__filter_population(pop_filter: str) -> None:
     population = BASE_POPULATION.copy()
-    if stratifications:
-        # Make some of the stratifications missing to mimic mapping to excluded categories
-        population["new_col1"] = "new_value1"
-        population.loc[population["tracked"] == True, "new_col1"] = np.nan
-        if len(stratifications) == 2:
-            population["new_col2"] = "new_value2"
-            population.loc[population["new_col1"].notna(), "new_col2"] = np.nan
-        # Add on the post-stratified columns
-        for stratification in stratifications:
-            mapped_col = f"{stratification}_mapped_values"
-            population[mapped_col] = population[stratification]
 
     filtered_pop = ResultsContext()._filter_population(
-        population=population, pop_filter=pop_filter, stratification_names=stratifications
+        population=population, pop_filter=pop_filter
     )
     expected = population.copy()
     if pop_filter:
         familiar = pop_filter.split("==")[1].strip('"')
         expected = expected[expected["familiar"] == familiar]
+    assert filtered_pop.equals(expected)
+
+
+@pytest.mark.parametrize(
+    "stratifications",
+    [tuple(), ("new_col1",), ("new_col1", "new_col2")],
+    ids=[
+        "no_stratifications",
+        "single_excluded_stratification",
+        "two_excluded_stratifications",
+    ],
+)
+def test__drop_na_stratifications(stratifications: tuple[str, ...]) -> None:
+    population = BASE_POPULATION.copy()
+    population["new_col1"] = "new_value1"
+    population.loc[population["tracked"] == True, "new_col1"] = np.nan
+    population["new_col2"] = "new_value2"
+    population.loc[population["new_col1"].notna(), "new_col2"] = np.nan
+    # Add on the post-stratified columns
+    for stratification in stratifications:
+        mapped_col = f"{stratification}_mapped_values"
+        population[mapped_col] = population[stratification]
+
+    filtered_pop = ResultsContext()._drop_na_stratifications(
+        population=population, stratification_names=stratifications
+    )
+    expected = population.copy()
     for stratification in stratifications:
         expected = expected[expected[stratification].notna()]
     assert filtered_pop.equals(expected)

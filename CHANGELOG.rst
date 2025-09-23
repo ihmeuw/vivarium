@@ -1,3 +1,7 @@
+**3.5.3 - 09/23/25**
+
+  - Reuse filtered population during results processing when possible
+
 **3.5.2 - 09/23/25**
 
   - Fix type hint in get_output_model_name_string() utility method
