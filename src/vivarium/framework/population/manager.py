@@ -21,7 +21,7 @@ from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
-from vivarium.manager import Interface, Manager
+from vivarium.manager import Manager
 
 if TYPE_CHECKING:
     from vivarium import Component
@@ -167,6 +167,7 @@ class PopulationManager(Manager):
 
     def setup(self, builder: Builder) -> None:
         """Registers the population manager with other vivarium systems."""
+        super().setup(builder)
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         self.resources = builder.resources
