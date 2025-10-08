@@ -1,3 +1,7 @@
+**3.5.4 - 10/8/25**
+
+  - Sphinx nitpick typing.Union
+
 **3.5.3 - 09/23/25**
 
   - Reuse filtered population during results processing when possible
