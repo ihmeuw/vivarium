@@ -58,3 +58,6 @@ py:exc layered_config_tree.exceptions.ConfigurationError
 py:class Logger
 py:class Path
 py:class LookupTableData
+
+# typing module references that Sphinx can't resolve
+py:data typing.Union
