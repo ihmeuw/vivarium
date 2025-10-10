@@ -56,7 +56,7 @@ class PopulationView:
         view_id
             The unique identifier for this view.
         columns
-            The set of columns this view should have access too.  If
+            The set of columns this view should have access to. If
             requies_all_columns is True, this should be set to
             the columns created by the component containing the population view.
         query
@@ -113,7 +113,7 @@ class PopulationView:
         -----
         Subviews are useful during population initialization. The original
         view may contain both columns that a component needs to create and
-        update as well as columns that the component needs to read.  By
+        update as well as columns that the component needs to read. By
         requesting a subview, a component can read the sections it needs
         without running the risk of trying to access uncreated columns
         because the component itself has not created them.
@@ -123,8 +123,8 @@ class PopulationView:
 
         if not columns or set(columns) - set(self.columns):
             raise PopulationError(
-                f"Invalid subview requested.  Requested columns must be a non-empty "
-                f"subset of this view's columns.  Requested columns: {columns}, "
+                f"Invalid subview requested. Requested columns must be a non-empty "
+                f"subset of this view's columns. Requested columns: {columns}, "
                 f"Available columns: {self.columns}"
             )
         # Skip constraints for requesting subviews.
@@ -144,7 +144,7 @@ class PopulationView:
             Index of the population to get.
         query
             Additional conditions used to filter the index. These conditions
-            will be unioned with the default query of this view.  The query
+            will be unioned with the default query of this view. The query
             provided may use columns that this view does not have access to.
 
         Returns
@@ -155,7 +155,7 @@ class PopulationView:
         ------
         PopulationError
             If this view has access to columns that have not yet been created
-            and this method is called.  If you see this error, you should
+            and this method is called. If you see this error, you should
             request a subview with the columns you need read access to.
 
         See Also
