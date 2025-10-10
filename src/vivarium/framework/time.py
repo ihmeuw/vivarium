@@ -156,14 +156,12 @@ class SimulationClock(Manager):
         """The next time each simulant will be updated."""
         if self._individual_clocks is None:
             return pd.Series(self.event_time, index=index)
-        # FIXME: Confirm that the original subview w/ 'tracked' wasn't actually doing anything
         return self._individual_clocks.loc[index, "next_event_time"]
 
     def simulant_step_sizes(self, index: pd.Index[int]) -> pd.Series[ClockStepSize]:
         """The step size for each simulant."""
         if self._individual_clocks is None:
             return pd.Series(self.step_size, index=index)
-        # FIXME: Confirm that the original subview w/ 'tracked' wasn't actually doing anything
         return self._individual_clocks.loc[index, "step_size"]
 
     def step_backward(self) -> None:
