@@ -43,10 +43,6 @@ class SimulationClock(Manager):
         return "simulation_clock"
 
     @property
-    def columns_created(self) -> list[str]:
-        return ["next_event_time", "step_size"]
-
-    @property
     def columns_required(self) -> list[str]:
         return ["tracked"]
 
