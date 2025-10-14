@@ -334,14 +334,18 @@ Let's run the simulation with our new component and look again at the population
       logging_verbosity=0,
    )
 
-::
+   # Peek at the population table
+   print(sim.get_population().head()[["color", "x", "y", "vx", "vy"]])
 
-      tracked color entrance_time        vy        vx           x           y
-   0     True   red    2005-07-01 -1.492285 -1.546289  786.157545  686.064077
-   1     True  blue    2005-07-01  0.360843  1.662424  530.867936  545.621217
-   2     True   red    2005-07-01 -0.369045 -1.747372  779.830506  286.461394
-   3     True   red    2005-07-01 -1.479211  0.659691  373.141406  740.640070
-   4     True   red    2005-07-01  1.143885  0.258908   20.787001  878.792517
+.. testoutput::
+
+     color           x           y        vx        vy
+   0   red  274.256447  907.889319 -0.396940  0.270696
+   1   red  388.784077   82.116094  0.392572 -1.693871
+   2   red  661.272905  303.481468 -0.102927  1.194465
+   3   red  758.825839  806.284468  0.709814  0.932636
+   4  blue  574.989313  159.504556 -1.487996  1.428098
+
 
 Our population now has initial position and velocity!
 Now, we can take a step forward with ``sim.step()`` and "see" our boids' positions change,
@@ -367,15 +371,18 @@ but their velocity stay the same.
    )
    sim.step()
 
-::
+   # Peek at the population table
+   print(sim.get_population().head()[["color", "x", "y", "vx", "vy"]])
 
-      tracked color entrance_time        vy        vx           x           y
-   0     True   red    2005-07-01 -1.388859 -1.439121  784.718424  684.675217
-   1     True  blue    2005-07-01  0.360843  1.662424  532.530360  545.982060
-   2     True   red    2005-07-01 -0.369045 -1.747372  778.083134  286.092349
-   3     True   red    2005-07-01 -1.479211  0.659691  373.801097  739.160859
-   4     True   red    2005-07-01  1.143885  0.258908   21.045909  879.936402
+.. testoutput::
 
+     color           x           y        vx        vy
+   0   red  273.859507  908.160016 -0.396940  0.270696
+   1   red  389.176649   80.422223  0.392572 -1.693871
+   2   red  661.169977  304.675933 -0.102927  1.194465
+   3   red  759.535654  807.217104  0.709814  0.932636
+   4  blue  573.546355  160.889428 -1.442958  1.384873
+   
 
 Visualizing our population
 --------------------------
