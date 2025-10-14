@@ -364,9 +364,6 @@ but their velocity stay the same.
       logging_verbosity=0,
    )
    sim.step()
-   
-   # Peek at the population table
-   print(sim.get_population().head())
 
 ::
 
