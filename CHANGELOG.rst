@@ -1,3 +1,7 @@
+**3.5.5 - 10/14/25**
+
+  - Update simulation step log message to info level
+
 **3.5.4 - 10/8/25**
 
   - Sphinx nitpick typing.Union
