@@ -316,6 +316,7 @@ Let's run the simulation with our new component and look again at the population
    sim = InteractiveContext(
       components=[Population(), Movement()],
       configuration={'population': {'population_size': 500}},
+      logging_verbosity=0,
    )
 
    # Peek at the population table
@@ -330,6 +331,7 @@ Let's run the simulation with our new component and look again at the population
    sim = InteractiveContext(
       components=[Population(), Movement()],
       configuration={'population': {'population_size': 500}},
+      logging_verbosity=0,
    )
 
 ::
