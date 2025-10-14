@@ -195,6 +195,7 @@ we can set up our simulation with the following code:
    sim = InteractiveContext(
       components=[Population()],
       configuration={'population': {'population_size': 500}},
+      logging_verbosity=0,
    )
 
    # Peek at the population table
@@ -210,6 +211,7 @@ we can set up our simulation with the following code:
    sim = InteractiveContext(
       components=[Population()],
       configuration={'population': {'population_size': 500}},
+      logging_verbosity=0,
    )
 
 ::
@@ -416,6 +418,7 @@ We can then visualize our flock with
    sim = InteractiveContext(
       components=[Population(), Movement()],
       configuration={'population': {'population_size': 500}},
+      logging_verbosity=0,
    )
 
    plot_boids(sim, plot_velocity=True)
@@ -428,6 +431,7 @@ We can then visualize our flock with
    sim = InteractiveContext(
       components=[Population(), Movement()],
       configuration={'population': {'population_size': 500}},
+      logging_verbosity=0,
    )
    plot_boids(sim, plot_velocity=True)
 
@@ -527,6 +531,7 @@ For a quick test of our swarming behavior, let's add in these forces and check i
    sim = InteractiveContext(
       components=[Population(), Movement(), Neighbors(), Separation(), Cohesion(), Alignment()],
       configuration={'population': {'population_size': 500}},
+      logging_verbosity=0,
    )
 
    sim.take_steps(100)
@@ -541,6 +546,7 @@ For a quick test of our swarming behavior, let's add in these forces and check i
    sim = InteractiveContext(
       components=[Population(), Movement(), Neighbors(), Separation(), Cohesion(), Alignment()],
       configuration={'population': {'population_size': 500}},
+      logging_verbosity=0,
    )
    sim.take_steps(100)
    plot_boids(sim, plot_velocity=True)
@@ -572,6 +578,7 @@ Then, try it out like so:
   sim = InteractiveContext(
       components=[Population(), Movement(), Neighbors(), Separation(), Cohesion(), Alignment()],
       configuration={'population': {'population_size': 500}},
+      logging_verbosity=0,
    )
 
   anim = plot_boids_animated(sim)
