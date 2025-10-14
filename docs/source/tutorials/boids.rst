@@ -361,6 +361,7 @@ but their velocity stay the same.
    sim = InteractiveContext(
       components=[Population(), Movement()],
       configuration={'population': {'population_size': 500}},
+      logging_verbosity=0,
    )
    sim.step()
 
