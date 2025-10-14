@@ -281,7 +281,7 @@ class SimulationContext:
         self._clock.step_forward(self.get_population().index)
 
     def step(self) -> None:
-        self._logger.debug(self.current_time)
+        self._logger.info(self.current_time)
         for event in self.time_step_events:
             self._logger.debug(f"Event: {event}")
             self._lifecycle.set_state(event)

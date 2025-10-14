@@ -6,13 +6,14 @@ from vivarium.framework.event import Event
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.population import SimulantData
+from vivarium.framework.resource.resource import Resource
 
 
 class Movement(Component):
     ##############
     # Properties #
     ##############
-    configuration_defaults = {
+    CONFIGURATION_DEFAULTS = {
         "field": {
             "width": 1000,
             "height": 1000,
@@ -22,7 +23,14 @@ class Movement(Component):
         },
     }
 
-    columns_created = ["x", "vx", "y", "vy"]
+    @property
+    def columns_created(self) -> list[str]:
+        return ["x", "y", "vx", "vy"]
+
+    @property
+    def initialization_requirements(self) -> list[str | Resource]:
+        return [self.randomness]
+
 
     #####################
     # Lifecycle methods #
@@ -34,6 +42,7 @@ class Movement(Component):
         self.acceleration = builder.value.register_value_producer(
             "acceleration", source=self.base_acceleration
         )
+        self.randomness = builder.randomness.get_stream(self.name)
 
     ##################################
     # Pipeline sources and modifiers #
@@ -47,14 +56,13 @@ class Movement(Component):
     ########################
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        count = len(pop_data.index)
         # Start randomly distributed, with random velocities
         new_population = pd.DataFrame(
             {
-                "x": self.config.field.width * np.random.random(count),
-                "y": self.config.field.height * np.random.random(count),
-                "vx": ((2 * np.random.random(count)) - 1) * self.config.movement.max_speed,
-                "vy": ((2 * np.random.random(count)) - 1) * self.config.movement.max_speed,
+                "x": self.config.field.width * self.randomness.get_draw(pop_data.index, "x"),
+                "y": self.config.field.height * self.randomness.get_draw(pop_data.index, "y"),
+                "vx": ((2 * self.randomness.get_draw(pop_data.index, "vx")) - 1) * self.config.movement.max_speed,
+                "vy": ((2 * self.randomness.get_draw(pop_data.index, "vy")) - 1) * self.config.movement.max_speed,
             },
             index=pop_data.index,
         )
