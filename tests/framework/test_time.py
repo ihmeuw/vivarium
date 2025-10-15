@@ -44,9 +44,8 @@ def validate_step_column_is_pipeline(sim: SimulationContext) -> None:
     step_pipeline = sim._values.get_attribute("simulant_step_size")(
         sim.get_population().index
     )
-    assert sim._population._population is not None
-    step_column = sim._population._population.step_size
-    assert np.all(step_pipeline == step_column)
+    assert sim._clock._individual_clocks is not None
+    assert np.all(step_pipeline == sim._clock._individual_clocks["step_size"])
 
 
 def validate_index_aligned(
@@ -238,7 +237,7 @@ def test_basic_iteration(
     assert sim._clock.step_size == pd.Timedelta(days=1)
     # Ensure that we don't have a pop view (and by extension, don't vary clocks)
     # if no components modify the step size.
-    assert bool(sim._clock._population_view) == varied_step_size
+    assert (sim._clock._individual_clocks is not None) == varied_step_size
 
     for _ in range(2):
         # After initialization, all simulants should be aligned to event times
@@ -272,8 +271,8 @@ def test_empty_active_pop(
     ## Force a next event time update without updating step sizes.
     ## This ensures (against the current implementation) that we will have a timestep
     ## that has no simulants aligned. Check that we do the minimum timestep update.
-    assert sim._population._population is not None
-    sim._population._population.next_event_time += pd.Timedelta(days=1)
+    assert sim._clock._individual_clocks is not None
+    sim._clock._individual_clocks["next_event_time"] += pd.Timedelta(days=1)
     ## First Step
     validate_step_column_is_pipeline(sim)
     take_step_and_validate(
