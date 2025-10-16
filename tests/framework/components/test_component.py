@@ -165,7 +165,7 @@ def test_component_with_filtered_population_view() -> None:
     InteractiveContext(components=[ColumnCreator(), component])
 
     # Assert population view is being filtered using the desired query
-    assert component.population_view.query == "test_column_1 == 5 and tracked == True"
+    assert component.population_view.query == "test_column_1 == 5"
 
 
 def test_component_with_no_population_view() -> None:

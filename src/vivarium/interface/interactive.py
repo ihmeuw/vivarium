@@ -174,17 +174,33 @@ class InteractiveContext(SimulationContext):
         -------
             The population state table.
         """
-        return self._population.get_population(untracked)
+        return self._population.get_population("all", untracked)
 
     def list_values(self) -> list[str]:
-        """List the names of all pipelines in the simulation."""
-        return list(self._values.keys())
+        """List the names of all value pipelines in the simulation."""
+        return list(self._values.value_pipelines.keys())
+
+    def list_attributes(self) -> list[str]:
+        """List the names of all attribute pipelines in the simulation."""
+        return list(self._values.attribute_pipelines.keys())
 
     def get_value(self, value_pipeline_name: str) -> Pipeline:
         """Get the value pipeline associated with the given name."""
         if value_pipeline_name not in self.list_values():
-            raise ValueError(f"No value pipeline '{value_pipeline_name}' registered.")
+            raise ValueError(
+                f"No value pipeline '{value_pipeline_name}' registered. "
+                "Are you looking for an attribute pipeline?"
+            )
         return self._values.get_value(value_pipeline_name)
+
+    def get_attribute(self, attribute_pipeline_name: str) -> Pipeline:
+        """Get the attribute pipeline associated with the given name."""
+        if attribute_pipeline_name not in self.list_attributes():
+            raise ValueError(
+                f"No value pipeline '{attribute_pipeline_name}' registered. "
+                "Are you looking for a value pipeline?"
+            )
+        return self._values.get_attribute(attribute_pipeline_name)
 
     def list_events(self) -> list[str]:
         """List all event types registered with the simulation."""

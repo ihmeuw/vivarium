@@ -34,8 +34,8 @@ class PopulationView:
 
     Notes
     -----
-    By default, this view will filter out ``untracked`` simulants unless
-    the ``tracked`` column is specified in the initialization arguments.
+    By default, this view will filter out untracked simulants unless "tracked" is
+    included in the ``columns`` initialization parameter.
 
     """
 
@@ -56,9 +56,10 @@ class PopulationView:
         view_id
             The unique identifier for this view.
         columns
-            The set of columns this view should have access to. If
-            requies_all_columns is True, this should be set to
-            the columns created by the component containing the population view.
+            The columns this view should have access to. If ``requires_all_columns``
+            is True, this should be set to the columns created by the component
+            containing the population view. If "tracked" is not included, untracked
+            simulants will be filtered out.
         query
             A :mod:`pandas`-style filter that will be applied any time this
             view is read from.
@@ -86,7 +87,7 @@ class PopulationView:
         population view.
         """
         if self.requires_all_columns:
-            all_columns = list(self._manager.get_population(True).columns) + self._columns
+            all_columns = self._manager.get_population_columns() + self._columns
             return list(set(all_columns))
         return self._columns
 
@@ -162,7 +163,8 @@ class PopulationView:
         --------
         :meth:`subview <PopulationView.subview>`
         """
-        pop = self._manager.get_population(True).loc[index]
+        pop = self._manager.get_population(self.columns, "tracked" in self.columns)
+        pop = pop.loc[pop.index.intersection(index)]
 
         if not index.empty:
             if self.query:
@@ -170,18 +172,6 @@ class PopulationView:
             if query:
                 pop = pop.query(query)
 
-        non_existent_columns = set(self.columns) - set(pop.columns)
-        if non_existent_columns:
-            raise PopulationError(
-                f"Requested column(s) {non_existent_columns} not in population table. "
-                "This is likely due to a failure to require some columns, randomness "
-                "streams, or pipelines when registering a simulant initializer, a value "
-                "producer, or a value modifier. NOTE: It is possible for a run to "
-                "succeed even if resource requirements were not properly specified in "
-                "the simulant initializers or pipeline creation/modification calls. This "
-                "success depends on component initialization order which may change in "
-                "different run settings."
-            )
         return pop.loc[:, self.columns]
 
     def update(self, population_update: pd.Series[Any] | pd.DataFrame) -> None:
@@ -205,7 +195,7 @@ class PopulationView:
             this view manages or if the view is being updated with a data
             type inconsistent with the original population data.
         """
-        state_table = self._manager.get_population(True)
+        state_table = self._manager.population.copy()
         population_update = self._format_update_and_check_preconditions(
             population_update,
             state_table,

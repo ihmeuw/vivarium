@@ -11,7 +11,7 @@ methods to register different types of value and attribute producers and modifie
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from vivarium.framework.resource import Resource
 from vivarium.framework.values.combiners import ValueCombiner, replace_combiner
@@ -313,3 +313,6 @@ class ValuesInterface(Interface):
     def get_attribute(self, name: str) -> AttributePipeline:
         """A temporary interface method to use while during population re-design."""
         return self._manager.get_attribute(name)
+
+    def get_attribute_pipelines(self) -> dict[str, AttributePipeline]:
+        return self._manager.get_attribute_pipelines()

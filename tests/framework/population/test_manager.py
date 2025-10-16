@@ -1,5 +1,12 @@
-import pytest
+from __future__ import annotations
 
+from typing import Literal
+
+import pandas as pd
+import pytest
+from pytest_mock import MockerFixture
+
+from tests.framework.population.conftest import COL_NAMES, RECORDS
 from vivarium import Component
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
@@ -7,6 +14,7 @@ from vivarium.framework.population.manager import (
     PopulationManager,
     SimulantData,
 )
+from vivarium.framework.values import AttributePipeline, ValueSource
 
 
 def test_initializer_set_fail_type() -> None:
@@ -93,8 +101,8 @@ def test_initializer_set() -> None:
     [
         (True, "", ""),
         (True, "foo == True", "foo == True"),
-        (False, "", "tracked == True"),
-        (False, "foo == True", "foo == True and tracked == True"),
+        (False, "", ""),
+        (False, "foo == True", "foo == True"),
     ],
 )
 def test_setting_query_with_get_view(
@@ -118,3 +126,72 @@ def test_setting_columns_with_get_view(
     manager = PopulationManager()
     view = manager._get_view(columns=columns, query="")
     assert view._columns == view_columns
+
+
+@pytest.mark.parametrize("index", [None, pd.RangeIndex(0, len(RECORDS) // 2)])
+@pytest.mark.parametrize(
+    "attributes", ("all", COL_NAMES, [col for col in COL_NAMES if col != "tracked"])
+)
+@pytest.mark.parametrize("untracked", [True, False])
+def test_get_population(
+    index: pd.Index[int] | None,
+    attributes: Literal["all"] | list[str],
+    untracked: bool,
+    population_manager: PopulationManager,
+) -> None:
+    assert attributes == "all" or isinstance(attributes, list)
+    pop = population_manager.get_population(attributes, untracked, index)
+    assert set(pop.columns) == set(COL_NAMES) if attributes == "all" else set(attributes)
+    if untracked:
+        expected_index = pd.RangeIndex(0, len(RECORDS)) if index is None else index
+    else:
+        # all tracked simulants are even indexed
+        expected_index = (
+            pd.RangeIndex(0, len(RECORDS), 2)
+            if index is None
+            else pd.RangeIndex(0, len(index), 2)
+        )
+    assert pop.index.equals(expected_index)
+
+
+@pytest.mark.parametrize(
+    "attributes",
+    (
+        ["age", "sex"],
+        COL_NAMES + ["age", "sex"],
+        ["age", "sex", "tracked"],
+        ["age", "sex"],
+        ["color", "count", "age"],
+    ),
+)
+def test_get_population_raises_missing_attributes(
+    attributes: list[str], population_manager: PopulationManager
+) -> None:
+    with pytest.raises(PopulationError, match="not in population table"):
+        population_manager.get_population(attributes, True)
+
+
+def test_get_population_raises_duplicate_attributes_requested(
+    population_manager: PopulationManager,
+) -> None:
+    with pytest.raises(PopulationError, match="Duplicate attributes requested"):
+        population_manager.get_population(["color", "count", "color"], True)
+
+
+def test_get_population_raises_duplicate_columns_in_population(
+    population_manager: PopulationManager, mocker: MockerFixture
+) -> None:
+    pipeline = AttributePipeline("whoops", mocker.Mock())
+    pipeline._manager = mocker.Mock()
+    # "color" is already one of the attributes in the population and so adding a
+    # pipeline that returns a dataframe that also has that column should raise
+    pipeline.source = ValueSource(
+        pipeline=pipeline,
+        source=lambda idx: pd.DataFrame(
+            {"shape": ["circle"] * len(idx), "color": ["red"] * len(idx)}, index=idx
+        ),
+        component=mocker.Mock(),
+    )
+    population_manager._attribute_pipelines["whoops"] = pipeline
+    with pytest.raises(PopulationError, match="Population table has duplicate column names"):
+        population_manager.get_population("all", True)
