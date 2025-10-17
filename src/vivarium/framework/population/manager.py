@@ -432,12 +432,7 @@ class PopulationManager(Manager):
 
         idx = index if index is not None else self._population.index
         if not untracked:
-            tracked_pipeline = self._attribute_pipelines["tracked"]
-            tracked = (
-                self._population.loc[idx, "tracked"]
-                if tracked_pipeline.is_simple
-                else tracked_pipeline(idx)
-            )
+            tracked = self._attribute_pipelines["tracked"](idx)
             if not isinstance(tracked, pd.Series):
                 raise ValueError(
                     "The 'tracked' attribute pipeline should return a pd.Series but instead "
