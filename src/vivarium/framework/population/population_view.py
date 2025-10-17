@@ -146,7 +146,7 @@ class PopulationView:
         query
             Additional conditions used to filter the index. These conditions
             will be unioned with the default query of this view. The query
-            provided may use columns that this view does not have access to.
+            provided may not use columns that this view does not have access to.
 
         Returns
         -------
@@ -163,13 +163,11 @@ class PopulationView:
         --------
         :meth:`subview <PopulationView.subview>`
         """
-        pop = self._manager.get_population(self.columns, "tracked" in self.columns, index)
 
-        if not index.empty:
-            if self.query:
-                pop = pop.query(self.query)
-            if query:
-                pop = pop.query(query)
+        combined_query = " and ".join(filter(None, [self.query, query]))
+        pop = self._manager.get_population(
+            self.columns, "tracked" in self.columns, index, combined_query
+        )
 
         return pop.loc[:, self.columns]
 

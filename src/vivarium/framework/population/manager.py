@@ -408,6 +408,7 @@ class PopulationManager(Manager):
         attributes: list[str] | Literal["all"],
         untracked: bool,
         index: pd.Index[int] | None = None,
+        query: str = "",
     ) -> pd.DataFrame:
         """Provides a copy of the population state table.
 
@@ -421,6 +422,9 @@ class PopulationManager(Manager):
             The index of simulants to include in the returned population. If None,
             all simulants are included (unless they are untracked and the untracked
             argument is False).
+        query
+            Additional conditions used to filter the index. The query
+            provided may not use columns that this view does not have access to.
 
         Returns
         -------
@@ -508,4 +512,8 @@ class PopulationManager(Manager):
                 "same column name(s) that some Component has in its `columns_created` property."
             )
 
-        return df
+        # TODO: We need to handle column ordering as well as potential column name
+        # collisions. Consider multi-indexes as a way to handle it both, but only
+        # if the ux doesn't change. Else, we can prepend the pipeline name to the
+        # column names that it produces, e.g. "acceleration.x", "acceleration.y", etc.
+        return df.query(query) if query else df
