@@ -314,5 +314,5 @@ class ValuesInterface(Interface):
         """A temporary interface method to use while during population re-design."""
         return self._manager.get_attribute(name)
 
-    def get_attribute_pipelines(self) -> dict[str, AttributePipeline]:
-        return self._manager.get_attribute_pipelines()
+    def get_attribute_pipelines(self) -> Callable[[], dict[str, AttributePipeline]]:
+        return lambda: self._manager.get_attribute_pipelines()

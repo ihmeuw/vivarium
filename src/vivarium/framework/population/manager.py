@@ -173,7 +173,7 @@ class PopulationManager(Manager):
         self.step_size = builder.time.step_size()
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
-        self._get_attribute_pipelines = builder.value.get_attribute_pipelines
+        self._get_attribute_pipelines = builder.value.get_attribute_pipelines()
 
         builder.lifecycle.add_constraint(
             self.get_view,
@@ -442,7 +442,7 @@ class PopulationManager(Manager):
                     "The 'tracked' attribute pipeline should return a pd.Series but instead "
                     f"returned a {type(tracked)}."
                 )
-            idx = tracked[tracked].index
+            idx = tracked[tracked == True].index
 
         if isinstance(attributes, list):
             # check for duplicate request:
@@ -467,23 +467,40 @@ class PopulationManager(Manager):
                 "different run settings."
             )
 
-        attributes_list = []
-        for name in attributes_to_include:
+        attributes_list: list[pd.Series[Any] | pd.DataFrame] = []
+
+        # batch simple attributes and pop right off the backing data
+        simple_attributes = [
+            name
+            for name, pipeline in self._attribute_pipelines.items()
+            if name in attributes_to_include and pipeline.is_simple
+        ]
+        if simple_attributes:
+            attributes_list.append(self._population.loc[idx, simple_attributes])
+
+        # handle remaining non-simple attributes one by one
+        remaining_attributes = [
+            attribute
+            for attribute in attributes_to_include
+            if attribute not in simple_attributes
+        ]
+        for name in remaining_attributes:
             pipeline = self._attribute_pipelines[name]
             values = self._population.loc[idx, name] if pipeline.is_simple else pipeline(idx)
-            if isinstance(values, pd.Series) and not values.name:
+            if isinstance(values, pd.Series):
                 values.name = name
             attributes_list.append(values)
+
         df = (
             pd.concat(attributes_list, axis=1) if attributes_list else pd.DataFrame(index=idx)
         )
+
         duplicate_columns = df.columns[df.columns.duplicated()].tolist()
         if duplicate_columns:
             raise PopulationError(
                 f"Population table has duplicate column names: {duplicate_columns}. "
-                "This is likely due to an AttributePipeline or ValuePipeline producing "
-                "a multi-column pd.DataFrame with column names that are also automatically "
-                "registered as an AttributePipeline by including them in the columns_created "
-                "property of some Component."
+                "This is likely due to an AttributePipeline producing a pd.Dataframe with the "
+                "same column name(s) that some Component has in its `columns_created` property."
             )
+
         return df

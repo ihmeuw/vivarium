@@ -163,8 +163,7 @@ class PopulationView:
         --------
         :meth:`subview <PopulationView.subview>`
         """
-        pop = self._manager.get_population(self.columns, "tracked" in self.columns)
-        pop = pop.loc[pop.index.intersection(index)]
+        pop = self._manager.get_population(self.columns, "tracked" in self.columns, index)
 
         if not index.empty:
             if self.query:

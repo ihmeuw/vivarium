@@ -182,7 +182,7 @@ class InteractiveContext(SimulationContext):
 
     def list_attributes(self) -> list[str]:
         """List the names of all attribute pipelines in the simulation."""
-        return list(self._values.attribute_pipelines.keys())
+        return list(self._values.get_attribute_pipelines().keys())
 
     def get_value(self, value_pipeline_name: str) -> Pipeline:
         """Get the value pipeline associated with the given name."""

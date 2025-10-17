@@ -45,10 +45,6 @@ class ValuesManager(Manager):
         return self._value_pipelines
 
     @property
-    def attribute_pipelines(self) -> dict[str, AttributePipeline]:
-        return self._attribute_pipelines
-
-    @property
     def _all_pipelines(self) -> dict[str, Pipeline]:
         return {**self._value_pipelines, **self._attribute_pipelines}
 
@@ -69,7 +65,7 @@ class ValuesManager(Manager):
             self.register_value_modifier, allow_during=[lifecycle_states.SETUP]
         )
         builder.lifecycle.add_constraint(
-            self.get_attribute_pipelines, allow_during=[lifecycle_states.POST_SETUP]
+            self.get_attribute_pipelines, restrict_during=[lifecycle_states.SETUP]
         )
 
     def on_post_setup(self, _event: Event) -> None:
