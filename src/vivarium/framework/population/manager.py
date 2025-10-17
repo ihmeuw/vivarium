@@ -487,6 +487,12 @@ class PopulationManager(Manager):
             pipeline = self._attribute_pipelines[name]
             values = self._population.loc[idx, name] if pipeline.is_simple else pipeline(idx)
             if isinstance(values, pd.Series):
+                if values.name != name:
+                    self.logger.warning(
+                        f"The '{name} attribute pipeline returned a pd.Series with a "
+                        f"different name '{values.name}'. For the column being added to the "
+                        "population state table, we will use '{name}'."
+                    )
                 values.name = name
             attributes_list.append(values)
 
