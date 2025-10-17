@@ -424,7 +424,8 @@ class PopulationManager(Manager):
             argument is False).
         query
             Additional conditions used to filter the index. The query
-            provided may not use columns that this view does not have access to.
+            provided may not use columns that are not explicitly passed in via
+            the `attributes` argument.
 
         Returns
         -------
