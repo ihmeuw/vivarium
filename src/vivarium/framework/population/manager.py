@@ -169,6 +169,7 @@ class PopulationManager(Manager):
     def setup(self, builder: Builder) -> None:
         """Registers the population manager with other vivarium systems."""
         super().setup(builder)
+        self.logger = builder.logging.get_logger(self.name)
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         self.resources = builder.resources
@@ -445,10 +446,13 @@ class PopulationManager(Manager):
             idx = tracked[tracked == True].index
 
         if isinstance(attributes, list):
-            # check for duplicate request:
+            # check for duplicate request
             duplicates = list(set([x for x in attributes if attributes.count(x) > 1]))
             if duplicates:
-                raise PopulationError(f"Duplicate attributes requested: {duplicates}")
+                self.logger.warning(
+                    f"Duplicate attributes requested and will be dropped: {duplicates}"
+                )
+                attributes = list(set(attributes))
 
         attributes_to_include = (
             self._attribute_pipelines.keys() if attributes == "all" else attributes

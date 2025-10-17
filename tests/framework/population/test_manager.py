@@ -171,11 +171,11 @@ def test_get_population_raises_missing_attributes(
         population_manager.get_population(attributes, True)
 
 
-def test_get_population_raises_duplicate_attributes_requested(
+def test_get_population_deduplicates_requested_attributes(
     population_manager: PopulationManager,
 ) -> None:
-    with pytest.raises(PopulationError, match="Duplicate attributes requested"):
-        population_manager.get_population(["color", "count", "color"], True)
+    pop = population_manager.get_population(["color", "count", "color"], True)
+    assert set(pop.columns) == {"color", "count"}
 
 
 def test_get_population_raises_duplicate_columns_in_population(
