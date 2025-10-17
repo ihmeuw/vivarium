@@ -315,4 +315,4 @@ class ValuesInterface(Interface):
         return self._manager.get_attribute(name)
 
     def get_attribute_pipelines(self) -> Callable[[], dict[str, AttributePipeline]]:
-        return lambda: self._manager.get_attribute_pipelines()
+        return self._manager.get_attribute_pipelines
