@@ -14,7 +14,9 @@ class Neighbors(Component):
     ##############
     configuration_defaults = {"neighbors": {"radius": 60}}
 
-    columns_required = ["x", "y"]
+    @property
+    def columns_required(self) -> list[str]:
+        return ["x", "y"]
 
     #####################
     # Lifecycle methods #

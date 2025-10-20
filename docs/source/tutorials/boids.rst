@@ -199,7 +199,7 @@ we can set up our simulation with the following code:
    )
 
    # Peek at the population table
-   print(sim.get_population().head())
+   print(sim.get_population()[["tracked", "entrance_time", "color"]].head())
 
 
 .. testcode::
@@ -214,14 +214,16 @@ we can set up our simulation with the following code:
       logging_verbosity=0,
    )
 
-::
+   print(sim.get_population()[["tracked", "entrance_time", "color"]].head())
+
+.. testoutput::
 
       tracked entrance_time color
-   0     True    2005-07-01  blue
+   0     True    2005-07-01   red
    1     True    2005-07-01   red
    2     True    2005-07-01   red
    3     True    2005-07-01   red
-   4     True    2005-07-01   red
+   4     True    2005-07-01  blue
 
 
 Movement
@@ -322,7 +324,7 @@ Let's run the simulation with our new component and look again at the population
    )
 
    # Peek at the population table
-   print(sim.get_population().head())
+   print(sim.get_population()[["color", "x", "y", "vx", "vy"]].head())
 
 .. testcode::
    :hide:
@@ -337,7 +339,7 @@ Let's run the simulation with our new component and look again at the population
    )
 
    # Peek at the population table
-   print(sim.get_population().head()[["color", "x", "y", "vx", "vy"]])
+   print(sim.get_population()[["color", "x", "y", "vx", "vy"]].head())
 
 .. testoutput::
 
@@ -358,7 +360,7 @@ but their velocity stay the same.
    sim.step()
 
    # Peek at the population table
-   print(sim.get_population().head())
+   print(sim.get_population()[["color", "x", "y", "vx", "vy"]].head())
 
 .. testcode::
    :hide:
@@ -374,7 +376,7 @@ but their velocity stay the same.
    sim.step()
 
    # Peek at the population table
-   print(sim.get_population().head()[["color", "x", "y", "vx", "vy"]])
+   print(sim.get_population()[["color", "x", "y", "vx", "vy"]].head())
 
 .. testoutput::
 

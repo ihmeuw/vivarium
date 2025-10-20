@@ -21,7 +21,9 @@ class Force(Component, ABC):
             },
         }
 
-    columns_required = []
+    @property
+    def columns_required(self) -> list[str]:
+        return ["x", "y", "vx", "vy"]
 
     #####################
     # Lifecycle methods #
@@ -59,7 +61,8 @@ class Force(Component, ABC):
             max_speed=self.max_speed,
         )
 
-        acceleration.loc[force.index, ["x", "y"]] += force[["x", "y"]]
+        acceleration.loc[force.index, "acc_x"] += force["x"]
+        acceleration.loc[force.index, "acc_y"] += force["y"]
         return acceleration
 
     ##################

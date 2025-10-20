@@ -59,7 +59,9 @@ class ValueSource(Resource):
             source_callable = self._source
         elif isinstance(self._source, list):
             columns = self._source  # Type narrowing for mypy
-            source_callable = lambda index: population_mgr.population.loc[index, columns]
+            source_callable = lambda index: population_mgr.population.loc[
+                index, columns
+            ].squeeze(axis=1)
         else:
             raise TypeError(
                 "The source of an attribute pipeline must be a callable or a list "
