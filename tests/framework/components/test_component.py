@@ -165,7 +165,7 @@ def test_component_with_filtered_population_view() -> None:
     InteractiveContext(components=[ColumnCreator(), component])
 
     # Assert population view is being filtered using the desired query
-    assert component.population_view.query == "test_column_1 == 5 and tracked == True"
+    assert component.population_view.query == "test_column_1 == 5"
 
 
 def test_component_with_no_population_view() -> None:
@@ -456,7 +456,4 @@ def test_attribute_pipelines_from_columns_created() -> None:
         assert pipeline.source._source == [column]
         assert pipeline.mutators == []
         attributes = pipeline(idx)
-        assert isinstance(attributes, pd.DataFrame)  # for mypy
-        pd.testing.assert_frame_equal(
-            attributes, pd.DataFrame({column: [i % 3 for i in idx]}, index=idx)
-        )
+        assert attributes.equals(pd.Series([i % 3 for i in idx], index=idx))
