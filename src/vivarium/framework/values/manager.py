@@ -41,10 +41,6 @@ class ValuesManager(Manager):
         return "values_manager"
 
     @property
-    def value_pipelines(self) -> dict[str, Pipeline]:
-        return self._value_pipelines
-
-    @property
     def _all_pipelines(self) -> dict[str, Pipeline]:
         return {**self._value_pipelines, **self._attribute_pipelines}
 
@@ -257,6 +253,9 @@ class ValuesManager(Manager):
         pipeline = self._value_pipelines.get(name, Pipeline(name))
         self._value_pipelines[name] = pipeline
         return pipeline
+
+    def get_value_pipelines(self) -> dict[str, Pipeline]:
+        return self._value_pipelines
 
     def get_attribute(self, name: str) -> AttributePipeline:
         """Retrieve the pipeline representing the named attribute.

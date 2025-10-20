@@ -443,7 +443,9 @@ class PopulationManager(Manager):
                     "The 'tracked' attribute pipeline should return a pd.Series but instead "
                     f"returned a {type(tracked)}."
                 )
-            idx = tracked[tracked == True].index
+            idx = self._population.loc[
+                self._population.index.isin(idx) & self._population["tracked"] == True
+            ].index
 
         if isinstance(attributes, list):
             # check for duplicate request
@@ -496,7 +498,7 @@ class PopulationManager(Manager):
                     self.logger.warning(
                         f"The '{name} attribute pipeline returned a pd.Series with a "
                         f"different name '{values.name}'. For the column being added to the "
-                        "population state table, we will use '{name}'."
+                        f"population state table, we will use '{name}'."
                     )
                 values.name = name
             attributes_list.append(values)
