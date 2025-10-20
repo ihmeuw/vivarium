@@ -443,9 +443,7 @@ class PopulationManager(Manager):
                     "The 'tracked' attribute pipeline should return a pd.Series but instead "
                     f"returned a {type(tracked)}."
                 )
-            idx = self._population.loc[
-                self._population.index.isin(idx) & self._population["tracked"] == True
-            ].index
+            idx = tracked[tracked].index
 
         if isinstance(attributes, list):
             # check for duplicate request
