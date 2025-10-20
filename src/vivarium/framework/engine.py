@@ -19,6 +19,8 @@ tools to easily setup and run a simulation.
 
 """
 
+from __future__ import annotations
+
 from pathlib import Path
 from pprint import pformat
 from time import time
@@ -278,7 +280,7 @@ class SimulationContext:
         self._clock.step_backward()
         population_size = pop_params.population_size
         self.simulant_creator(population_size, {"sim_state": lifecycle_states.SETUP})
-        self._clock.step_forward(self.get_population().index)
+        self._clock.step_forward(self.get_population_index())
 
     def step(self) -> None:
         self._logger.info(self.current_time)
@@ -286,12 +288,12 @@ class SimulationContext:
             self._logger.debug(f"Event: {event}")
             self._lifecycle.set_state(event)
             pop_to_update = self._clock.get_active_simulants(
-                self.get_population().index,
+                self.get_population_index(),
                 self._clock.event_time,
             )
             self._logger.debug(f"Updating: {len(pop_to_update)}")
             self.time_step_emitters[event](pop_to_update, None)
-        self._clock.step_forward(self.get_population().index)
+        self._clock.step_forward(self.get_population_index())
 
     def run(
         self,
@@ -312,7 +314,7 @@ class SimulationContext:
 
     def finalize(self) -> None:
         self._lifecycle.set_state(lifecycle_states.SIMULATION_END)
-        self.end_emitter(self.get_population().index, None)
+        self.end_emitter(self.get_population_index(), None)
         unused_config_keys = self.configuration.unused_keys()
         if unused_config_keys:
             self._logger.warning(
@@ -321,7 +323,7 @@ class SimulationContext:
 
     def report(self, print_results: bool = True) -> None:
         self._lifecycle.set_state(lifecycle_states.REPORT)
-        self.report_emitter(self.get_population().index, None)
+        self.report_emitter(self.get_population_index(), None)
         results = self.get_results()
         if print_results:
             for measure, df in results.items():
@@ -371,7 +373,10 @@ class SimulationContext:
         self._component_manager.add_components(component_list)
 
     def get_population(self, untracked: bool = True) -> pd.DataFrame:
-        return self._population.get_population(untracked)
+        return self._population.get_population("all", untracked)
+
+    def get_population_index(self) -> pd.Index[int]:
+        return self._population.population.index
 
     def __repr__(self) -> str:
         return f"SimulationContext({self.name})"
