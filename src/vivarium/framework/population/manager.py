@@ -490,33 +490,38 @@ class PopulationManager(Manager):
             for attribute in attributes_to_include
             if attribute not in simple_attributes
         ]
+        contains_column_multi_index = False
         for name in remaining_attributes:
-            pipeline = self._attribute_pipelines[name]
-            values = self._population.loc[idx, name] if pipeline.is_simple else pipeline(idx)
+            values = self._attribute_pipelines[name](idx)
+
+            # Handle column names
             if isinstance(values, pd.Series):
                 if values.name is not None and values.name != name:
                     self.logger.warning(
-                        f"The '{name} attribute pipeline returned a pd.Series with a "
+                        f"The '{name}' attribute pipeline returned a pd.Series with a "
                         f"different name '{values.name}'. For the column being added to the "
                         f"population state table, we will use '{name}'."
                     )
                 values.name = name
+            else:
+                # Must be a dataframe - need to add another index level to each column
+                values.columns = pd.MultiIndex.from_product([[name], values.columns])
+                contains_column_multi_index = True
             attributes_list.append(values)
 
+        # Make sure all items of the list have consistent column levels
+        if contains_column_multi_index:
+            for i, item in enumerate(attributes_list):
+                if isinstance(item, pd.Series):
+                    item_df = item.to_frame()
+                    item_df.columns = pd.MultiIndex.from_tuples([(item.name, "")])
+                    attributes_list[i] = item_df
+                if isinstance(item, pd.DataFrame) and item.columns.nlevels == 1:
+                    item.columns = pd.MultiIndex.from_product([item.columns, [""]])
         df = (
             pd.concat(attributes_list, axis=1) if attributes_list else pd.DataFrame(index=idx)
         )
+        # Maintain column ordering
+        df = df[attributes_to_include]
 
-        duplicate_columns = df.columns[df.columns.duplicated()].tolist()
-        if duplicate_columns:
-            raise PopulationError(
-                f"Population table has duplicate column names: {duplicate_columns}. "
-                "This is likely due to an AttributePipeline producing a pd.Dataframe with the "
-                "same column name(s) that some Component has in its `columns_created` property."
-            )
-
-        # TODO: We need to handle column ordering as well as potential column name
-        # collisions. Consider multi-indexes as a way to handle it both, but only
-        # if the ux doesn't change. Else, we can prepend the pipeline name to the
-        # column names that it produces, e.g. "acceleration.x", "acceleration.y", etc.
         return df.query(query) if query else df

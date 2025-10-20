@@ -145,15 +145,59 @@ class ColumnCreator(Component):
     def columns_created(self) -> list[str]:
         return ["test_column_1", "test_column_2", "test_column_3"]
 
-    def setup(self, builder: Builder) -> None:
-        builder.value.register_value_producer("pipeline_1", lambda x: x)
-
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         self.population_view.update(self.get_initial_state(pop_data.index))
 
     def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
         return pd.DataFrame(
             {column: [i % 3 for i in index] for column in self.columns_created}, index=index
+        )
+
+
+class AttributePipelineCreator(ColumnCreator):
+    def setup(self, builder: Builder) -> None:
+
+        # Simple attributes
+        # Note that we already get simple Series attributes from the columns_created property
+        builder.value.register_attribute_producer(
+            "attribute_generating_columns_4_5",
+            lambda idx: pd.DataFrame(
+                {
+                    "test_column_4": [i % 3 for i in idx],
+                    "test_column_5": [i % 3 for i in idx],
+                },
+                index=idx,
+            ),
+            component=self,
+        )
+
+        # Non-simple attributes
+        # For this test, we make them non-simple by registering a modifer that doesn't actually modify anything
+        builder.value.register_attribute_producer(
+            "test_attribute",
+            lambda idx: pd.Series([i % 3 for i in idx]),
+            component=self,
+        )
+        builder.value.register_attribute_producer(
+            "attribute_generating_columns_6_7",
+            lambda idx: pd.DataFrame(
+                {
+                    "test_column_6": [i % 3 for i in idx],
+                    "test_column_7": [i % 3 for i in idx],
+                },
+                index=idx,
+            ),
+            component=self,
+        )
+        builder.value.register_attribute_modifier(
+            "test_attribute",
+            lambda index, series: series,
+            component=self,
+        )
+        builder.value.register_attribute_modifier(
+            "attribute_generating_columns_6_7",
+            lambda index, df: df,
+            component=self,
         )
 
 
