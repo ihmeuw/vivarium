@@ -1,33 +1,19 @@
 from __future__ import annotations
 
-import itertools
-import math
 import random
 from typing import Any
 
 import pandas as pd
 import pytest
 
+from tests.framework.population.conftest import COL_NAMES, RECORDS
 from vivarium.framework.population import PopulationError, PopulationManager, PopulationView
 
 ##########################
 # Mock data and fixtures #
 ##########################
 
-COL_NAMES = ["color", "count", "pie", "pi", "tracked"]
-COLORS = ["red", "green", "yellow"]
-COUNTS = [10, 20, 30]
-PIES = ["apple", "chocolate", "pecan"]
-PIS = [math.pi**i for i in range(1, 4)]
-TRACKED_STATUSES = [True, False]
-RECORDS = [
-    (color, count, pie, pi, ts)
-    for color, count, pie, pi, ts in itertools.product(
-        COLORS, COUNTS, PIES, PIS, TRACKED_STATUSES
-    )
-]
 BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
-
 NEW_COL_NAMES = ["cube", "cube_string"]
 CUBE = [i**3 for i in range(len(RECORDS))]
 CUBE_STRING = [str(i**3) for i in range(len(RECORDS))]
@@ -36,22 +22,6 @@ NEW_ATTRIBUTES = pd.DataFrame(
     columns=NEW_COL_NAMES,
     index=BASE_POPULATION.index,
 )
-
-
-@pytest.fixture(scope="function")
-def population_manager() -> PopulationManager:
-    class _PopulationManager(PopulationManager):
-        def __init__(self) -> None:
-            super().__init__()
-            self._population = pd.DataFrame(
-                data=RECORDS,
-                columns=COL_NAMES,
-            )
-
-        def _add_constraint(self, *args: Any, **kwargs: Any) -> None:
-            pass
-
-    return _PopulationManager()
 
 
 @pytest.fixture(
@@ -106,34 +76,40 @@ def population_update_new_cols(
 
 
 def test_initialization(population_manager: PopulationManager) -> None:
-    pv = population_manager.get_view(COL_NAMES)
+    # The first pop view is generated in setup for the tracked column
+    pv = population_manager._view
     assert pv._id == 0
     assert pv.name == "population_view_0"
+    assert set(pv.columns) == {"tracked"}
+    assert pv.query == ""
+
+    # Now get a COL_NAMES view
+    pv = population_manager.get_view(COL_NAMES)
+    assert pv._id == 1
+    assert pv.name == "population_view_1"
     assert set(pv.columns) == set(COL_NAMES)
     assert pv.query == ""
 
     # Failure here is lazy.  The manager should give you back views for
     # columns that don't exist since views are built during setup when
     # we don't necessarily know all the columns yet.
-    cols = ["age", "sex", "tracked"]
+    cols = ["foo", "bar"]
     pv = population_manager.get_view(cols)
-    assert pv._id == 1
-    assert pv.name == "population_view_1"
+    assert pv._id == 2
+    assert pv.name == "population_view_2"
     assert set(pv.columns) == set(cols)
     assert pv.query == ""
 
     col_subset = ["color", "count"]
     pv = population_manager.get_view(col_subset)
-    assert pv._id == 2
-    assert pv.name == "population_view_2"
+    assert pv._id == 3
+    assert pv.name == "population_view_3"
     assert set(pv.columns) == set(col_subset)
-    # View will filter to tracked by default if it's not requested as a column
-    assert pv.query == "tracked == True"
 
     q_string = "color == 'red'"
     pv = population_manager.get_view(COL_NAMES, query=q_string)
-    assert pv._id == 3
-    assert pv.name == "population_view_3"
+    assert pv._id == 4
+    assert pv.name == "population_view_4"
     assert set(pv.columns) == set(COL_NAMES)
     assert pv.query == q_string
 
@@ -169,7 +145,7 @@ def test_subview_queries(population_manager: PopulationManager, columns: list[st
     # get subview
     sub_pv = pv.subview(columns)
 
-    expected_query = pv.query if "tracked" in columns else f"{pv.query} and tracked == True"
+    expected_query = pv.query
     assert sub_pv.query == expected_query
 
 
@@ -199,30 +175,32 @@ def test_get(population_manager: PopulationManager) -> None:
     full_idx = pd.RangeIndex(0, len(RECORDS))
 
     # Get full data set
-    pop = pv.get(full_idx)
-    assert set(pop.columns) == set(COL_NAMES)
-    assert len(pop) == len(RECORDS)
+    pop_full = pv.get(full_idx)
+    assert set(pop_full.columns) == set(COL_NAMES)
+    assert pop_full.index.equals(full_idx)
 
     # Get data subset
     pop = pv.get(full_idx, query=f"color == 'red'")
     assert set(pop.columns) == set(COL_NAMES)
-    assert len(pop) == len(RECORDS) // len(COLORS)
+    assert pop.index.equals(pop_full[pop_full["color"] == "red"].index)
 
     ###############################
     # View without tracked column #
     ###############################
-    cols_without_tracked = COL_NAMES[:-1]
+    cols_without_tracked = [col for col in COL_NAMES if col != "tracked"]
     pv = population_manager.get_view(cols_without_tracked)
 
     # Get all tracked
     pop = pv.get(full_idx)
     assert set(pop.columns) == set(cols_without_tracked)
-    assert len(pop) == len(RECORDS) // 2
+    assert pop.index.equals(pop_full[pop_full["tracked"]].index)
 
-    # get subset without tracked
+    # get subset of tracked
     pop = pv.get(full_idx, query=f"color == 'red'")
     assert set(pop.columns) == set(cols_without_tracked)
-    assert len(pop) == len(RECORDS) // (2 * len(COLORS))
+    assert pop.index.equals(
+        pop_full[(pop_full["tracked"]) & (pop_full["color"] == "red")].index
+    )
 
 
 def test_get_empty_idx(population_manager: PopulationManager) -> None:
@@ -232,22 +210,6 @@ def test_get_empty_idx(population_manager: PopulationManager) -> None:
     assert isinstance(pop, pd.DataFrame)
     assert set(pop.columns) == set(COL_NAMES)
     assert pop.empty
-
-
-def test_get_fail(population_manager: PopulationManager) -> None:
-    bad_pvs = [
-        population_manager.get_view(["age", "sex"]),
-        population_manager.get_view(COL_NAMES + ["age", "sex"]),
-        population_manager.get_view(["age", "sex", "tracked"]),
-        population_manager.get_view(["age", "sex"]),
-        population_manager.get_view(["color", "count", "age"]),
-    ]
-
-    full_idx = pd.RangeIndex(0, len(RECORDS))
-
-    for pv in bad_pvs:
-        with pytest.raises(PopulationError, match="not in population table"):
-            pv.get(full_idx)
 
 
 #################################

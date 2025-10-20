@@ -13,10 +13,11 @@ import warnings
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import pandas as pd
 
+from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
@@ -168,10 +169,12 @@ class PopulationManager(Manager):
     def setup(self, builder: Builder) -> None:
         """Registers the population manager with other vivarium systems."""
         super().setup(builder)
+        self.logger = builder.logging.get_logger(self.name)
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
         self.resources = builder.resources
         self._add_constraint = builder.lifecycle.add_constraint
+        self._get_attribute_pipelines = builder.value.get_attribute_pipelines()
 
         builder.lifecycle.add_constraint(
             self.get_view,
@@ -192,6 +195,11 @@ class PopulationManager(Manager):
 
         self.register_simulant_initializer(self, creates_columns=self.columns_created)
         self._view = self.get_view("tracked")
+        builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
+
+    def on_post_setup(self, event: Event) -> None:
+        # All pipelines are registered during setup and so exist at this point.
+        self._attribute_pipelines = self._get_attribute_pipelines()
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Adds a ``tracked`` column to the state table for new simulants."""
@@ -216,12 +224,6 @@ class PopulationManager(Manager):
         The requested population view can be used to view the current state or
         to update the state with new values.
 
-        If the column 'tracked' is not specified in the ``columns`` argument,
-        the query string 'tracked == True' will be added to the provided
-        query argument. This allows components to ignore untracked simulants
-        by default. If the columns argument is empty, the population view will
-        have access to the entire state table.
-
         Parameters
         ----------
         columns
@@ -240,8 +242,7 @@ class PopulationManager(Manager):
 
         Returns
         -------
-            A filtered view of the requested columns of the population state
-            table.
+            A filtered view of the requested columns of the population state table.
 
         """
         if not columns and not requires_all_columns:
@@ -278,12 +279,6 @@ class PopulationManager(Manager):
     ) -> PopulationView:
         if isinstance(columns, str):
             columns = [columns]
-
-        if columns and "tracked" not in columns:
-            if not query:
-                query = "tracked == True"
-            elif "tracked" not in query:
-                query += " and tracked == True"
         self._last_id += 1
         return PopulationView(self, self._last_id, columns, query, requires_all_columns)
 
@@ -399,19 +394,129 @@ class PopulationManager(Manager):
     # Context API #
     ###############
 
-    def get_population(self, untracked: bool) -> pd.DataFrame:
-        """Provides a copy of the full population state table.
+    def get_population_columns(self) -> list[str]:
+        """Get the list of columns in the population state table.
+
+        Returns
+        -------
+            The list of columns in the population state table.
+        """
+        return list(self._attribute_pipelines.keys())
+
+    def get_population(
+        self,
+        attributes: list[str] | Literal["all"],
+        untracked: bool,
+        index: pd.Index[int] | None = None,
+        query: str = "",
+    ) -> pd.DataFrame:
+        """Provides a copy of the population state table.
 
         Parameters
         ----------
+        attributes
+            The attributes to include as the state table. If "all", all attributes are included.
         untracked
             Whether to include untracked simulants in the returned population.
+        index
+            The index of simulants to include in the returned population. If None,
+            all simulants are included (unless they are untracked and the untracked
+            argument is False).
+        query
+            Additional conditions used to filter the index. The query
+            provided may not use columns that are not explicitly passed in via
+            the `attributes` argument.
 
         Returns
         -------
             A copy of the population table.
         """
-        pop = self._population.copy() if self._population is not None else pd.DataFrame()
-        if not untracked and "tracked" in pop.columns:
-            pop = pop[pop.tracked]
-        return pop
+
+        if self._population is None:
+            return pd.DataFrame()
+
+        idx = index if index is not None else self._population.index
+        if not untracked:
+            tracked = self._attribute_pipelines["tracked"](idx)
+            if not isinstance(tracked, pd.Series):
+                raise ValueError(
+                    "The 'tracked' attribute pipeline should return a pd.Series but instead "
+                    f"returned a {type(tracked)}."
+                )
+            idx = self._population.loc[
+                self._population.index.isin(idx) & self._population["tracked"] == True
+            ].index
+
+        if isinstance(attributes, list):
+            # check for duplicate request
+            duplicates = list(set([x for x in attributes if attributes.count(x) > 1]))
+            if duplicates:
+                self.logger.warning(
+                    f"Duplicate attributes requested and will be dropped: {duplicates}"
+                )
+                attributes = list(set(attributes))
+
+        attributes_to_include = (
+            self._attribute_pipelines.keys() if attributes == "all" else attributes
+        )
+
+        non_existent_attributes = set(attributes_to_include) - set(self._attribute_pipelines)
+        if non_existent_attributes:
+            raise PopulationError(
+                f"Requested attribute(s) {non_existent_attributes} not in population table. "
+                "This is likely due to a failure to require some columns, randomness "
+                "streams, or pipelines when registering a simulant initializer, a value "
+                "producer, or a value modifier. NOTE: It is possible for a run to "
+                "succeed even if resource requirements were not properly specified in "
+                "the simulant initializers or pipeline creation/modification calls. This "
+                "success depends on component initialization order which may change in "
+                "different run settings."
+            )
+
+        attributes_list: list[pd.Series[Any] | pd.DataFrame] = []
+
+        # batch simple attributes and pop right off the backing data
+        simple_attributes = [
+            name
+            for name, pipeline in self._attribute_pipelines.items()
+            if name in attributes_to_include and pipeline.is_simple
+        ]
+        if simple_attributes:
+            attributes_list.append(self._population.loc[idx, simple_attributes])
+
+        # handle remaining non-simple attributes one by one
+        remaining_attributes = [
+            attribute
+            for attribute in attributes_to_include
+            if attribute not in simple_attributes
+        ]
+        for name in remaining_attributes:
+            pipeline = self._attribute_pipelines[name]
+            values = self._population.loc[idx, name] if pipeline.is_simple else pipeline(idx)
+            if isinstance(values, pd.Series):
+                if values.name is not None and values.name != name:
+                    self.logger.warning(
+                        f"The '{name} attribute pipeline returned a pd.Series with a "
+                        f"different name '{values.name}'. For the column being added to the "
+                        f"population state table, we will use '{name}'."
+                    )
+                values.name = name
+            attributes_list.append(values)
+
+        df = (
+            pd.concat(attributes_list, axis=1) if attributes_list else pd.DataFrame(index=idx)
+        )
+
+        duplicate_columns = df.columns[df.columns.duplicated()].tolist()
+        if duplicate_columns:
+            raise PopulationError(
+                f"Population table has duplicate column names: {duplicate_columns}. "
+                "This is likely due to an AttributePipeline producing a pd.Dataframe with the "
+                "same column name(s) that some Component has in its `columns_created` property."
+            )
+
+        # TODO: We need to handle column ordering as well as potential column name
+        # collisions. Consider multi-indexes as a way to handle it both, but only
+        # if the ux doesn't change. Else, we can prepend the pipeline name to the
+        # column names that it produces, e.g. "acceleration.x", "acceleration.y", etc.
+        return df.query(query) if query else df

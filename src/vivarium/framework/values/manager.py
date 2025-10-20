@@ -60,6 +60,9 @@ class ValuesManager(Manager):
         builder.lifecycle.add_constraint(
             self.register_value_modifier, allow_during=[lifecycle_states.SETUP]
         )
+        builder.lifecycle.add_constraint(
+            self.get_attribute_pipelines, restrict_during=[lifecycle_states.SETUP]
+        )
 
     def on_post_setup(self, _event: Event) -> None:
         """Finalizes dependency structure for the pipelines."""
@@ -247,9 +250,12 @@ class ValuesManager(Manager):
             raise DynamicValueError(
                 f"'{name}' is already registered as an attribute pipeline."
             )
-        pipeline = self._value_pipelines.get(name) or Pipeline(name)
+        pipeline = self._value_pipelines.get(name, Pipeline(name))
         self._value_pipelines[name] = pipeline
         return pipeline
+
+    def get_value_pipelines(self) -> dict[str, Pipeline]:
+        return self._value_pipelines
 
     def get_attribute(self, name: str) -> AttributePipeline:
         """Retrieve the pipeline representing the named attribute.
@@ -267,9 +273,12 @@ class ValuesManager(Manager):
         """
         if name in self._value_pipelines:
             raise DynamicValueError(f"'{name}' is already registered as a value pipeline.")
-        pipeline = self._attribute_pipelines.get(name) or AttributePipeline(name)
+        pipeline = self._attribute_pipelines.get(name, AttributePipeline(name))
         self._attribute_pipelines[name] = pipeline
         return pipeline
+
+    def get_attribute_pipelines(self) -> dict[str, AttributePipeline]:
+        return self._attribute_pipelines
 
     ##################
     # Helper methods #

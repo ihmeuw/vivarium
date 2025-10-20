@@ -49,7 +49,7 @@ class Movement(Component):
     ##################################
 
     def base_acceleration(self, index: pd.Index[int]) -> pd.DataFrame:
-        return pd.DataFrame(0.0, columns=["x", "y"], index=index)
+        return pd.DataFrame(0.0, columns=["acc_x", "acc_y"], index=index)
 
     ########################
     # Event-driven methods #
@@ -76,7 +76,7 @@ class Movement(Component):
         # Accelerate and limit velocity
         if not isinstance(acceleration, pd.DataFrame):
             raise ValueError("Acceleration must be a pd.DataFrame")
-        pop[["vx", "vy"]] += acceleration.rename(columns=lambda c: f"v{c}")
+        pop[["vx", "vy"]] += acceleration.rename(columns=lambda c: c.replace("acc_", "v"))
         speed = np.sqrt(np.square(pop.vx) + np.square(pop.vy))
         velocity_scaling_factor = np.where(
             speed > self.config.movement.max_speed,
