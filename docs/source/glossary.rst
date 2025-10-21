@@ -7,6 +7,7 @@ Glossary
 .. glossary::
 
     STEVE TEST DELETE THIS
+        A DUMMY THING FOR TESTING.
 
     Attribute
         A variable associated with each :term:`simulant <Simulant>`. For
