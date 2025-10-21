@@ -43,7 +43,7 @@ if __name__ == "__main__":
     install_requirements = [
         "vivarium_dependencies[numpy_lt_2,pandas,pyyaml,scipy,click,tables,loguru,pyarrow,networkx]",
         # "vivarium_build_utils>=2.0.1,<3.0.0",
-        "vivarium_build_utils @ git+github.com/ihmeuw/vivarium_build_utils.git@sbachmei/mic-6346/skip-builds-if-changelog-change-only",
+        "vivarium_build_utils @ git+https://github.com/ihmeuw/vivarium_build_utils.git@sbachmei/mic-6346/skip-builds-if-changelog-change-only",
         "layered_config_tree",
         "dill",
     ]
