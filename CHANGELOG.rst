@@ -1,5 +1,6 @@
 **3.5.6 - 10/21/25**
 
+  - Another change
   - Dummy changelog change for testing vbu
 
 **3.5.5 - 10/14/25**
