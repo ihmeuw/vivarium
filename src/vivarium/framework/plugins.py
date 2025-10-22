@@ -16,7 +16,7 @@ from layered_config_tree.main import LayeredConfigTree
 
 from vivarium.exceptions import VivariumError
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
-from vivarium.framework.components.manager import ComponentInterface, ComponentManager
+from vivarium.framework.components import ComponentInterface, ComponentManager
 from vivarium.framework.components.parser import ComponentConfigurationParser
 from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager

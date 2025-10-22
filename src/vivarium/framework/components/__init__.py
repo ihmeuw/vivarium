@@ -1,6 +1,6 @@
+from vivarium.framework.components.interface import ComponentInterface
 from vivarium.framework.components.manager import (
     ComponentConfigError,
-    ComponentInterface,
     ComponentManager,
     OrderedComponentSet,
 )
