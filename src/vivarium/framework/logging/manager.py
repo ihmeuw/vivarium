@@ -1,7 +1,7 @@
 """
-=====================
-The Logging Subsystem
-=====================
+===================
+The Logging Manager
+===================
 
 """
 from __future__ import annotations
@@ -9,7 +9,7 @@ from __future__ import annotations
 import loguru
 
 from vivarium.framework.logging.utilities import configure_logging_to_terminal
-from vivarium.manager import Interface, Manager
+from vivarium.manager import Manager
 
 
 class LoggingManager(Manager):
@@ -48,11 +48,3 @@ class LoggingManager(Manager):
         if component_name:
             bind_args["component"] = component_name
         return loguru.logger.bind(**bind_args)
-
-
-class LoggingInterface(Interface):
-    def __init__(self, manager: LoggingManager) -> None:
-        self._manager = manager
-
-    def get_logger(self, component_name: str | None = None) -> loguru.Logger:
-        return self._manager.get_logger(component_name)

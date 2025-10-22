@@ -20,7 +20,7 @@ from vivarium.framework.components import ComponentInterface, ComponentManager
 from vivarium.framework.components.parser import ComponentConfigurationParser
 from vivarium.framework.event import EventInterface, EventManager
 from vivarium.framework.lifecycle import LifeCycleInterface, LifeCycleManager
-from vivarium.framework.logging.manager import LoggingInterface, LoggingManager
+from vivarium.framework.logging import LoggingInterface, LoggingManager
 from vivarium.framework.lookup.manager import LookupTableInterface, LookupTableManager
 from vivarium.framework.population.manager import PopulationInterface, PopulationManager
 from vivarium.framework.randomness.manager import RandomnessInterface, RandomnessManager
