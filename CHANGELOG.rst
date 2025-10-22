@@ -1,3 +1,7 @@
+**3.6.0 - 10/22/25**
+
+  - Move simulate profile command to vivarium_profiling package
+
 **3.5.5 - 10/14/25**
 
   - Update simulation step log message to info level
