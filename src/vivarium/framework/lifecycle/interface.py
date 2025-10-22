@@ -3,7 +3,7 @@
 Life Cycle Interface
 ====================
 
-Interface to the life cycle management system.
+This module provides an interface to the :class:`LifeCycleManager <vivarium.framework.lifecycle.manager.LifeCycleManager>`.
 
 """
 from __future__ import annotations

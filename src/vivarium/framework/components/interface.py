@@ -3,8 +3,8 @@
 Component Interface
 ===================
 
-This module provides an :class:`ComponentInterface <ComponentInterface>` class with
-methods to list and get vivarium components.
+This module provides an interface to the :class:`ComponentManager <vivarium.framework.components.manager.ComponentManager>`.
+
 
 """
 

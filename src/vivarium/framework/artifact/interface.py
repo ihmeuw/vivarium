@@ -3,8 +3,8 @@
 Artifact Interface
 ==================
 
-This module provides an :class:`ArtifactInterface <ArtifactInterface>` class with
-methods to interact with a loaded artifact.
+This module provides an interface to the :class:`ArtifactManager <vivarium.framework.artifact.manager.ArtifactManager>`.
+
 
 """
 

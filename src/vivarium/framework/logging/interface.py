@@ -3,8 +3,8 @@
 Logging Interface
 =================
 
-This module provides an :class:`LoggingInterface <LoggingInterface>` class which
-includes a method to get the logger system.
+This module provides an interface to the :class:`LoggingManager <vivarium.framework.logging.manager.LoggingManager>`.
+
 
 """
 
