@@ -20,5 +20,6 @@ For more information, see the Resource Management
 
 """
 
-from vivarium.framework.resource.manager import ResourceInterface, ResourceManager
+from vivarium.framework.resource.interface import ResourceInterface
+from vivarium.framework.resource.manager import ResourceManager
 from vivarium.framework.resource.resource import Resource

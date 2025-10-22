@@ -24,7 +24,7 @@ from vivarium.framework.logging import LoggingInterface, LoggingManager
 from vivarium.framework.lookup import LookupTableInterface, LookupTableManager
 from vivarium.framework.population.manager import PopulationInterface, PopulationManager
 from vivarium.framework.randomness import RandomnessInterface, RandomnessManager
-from vivarium.framework.resource.manager import ResourceInterface, ResourceManager
+from vivarium.framework.resource import ResourceInterface, ResourceManager
 from vivarium.framework.results.interface import ResultsInterface
 from vivarium.framework.results.manager import ResultsManager
 from vivarium.framework.time import SimulationClock, TimeInterface
