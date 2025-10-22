@@ -3,9 +3,7 @@
 Results Interface
 =================
 
-This module provides a :class:`ResultsInterface <ResultsInterface>` class with
-methods to register stratifications and results producers (referred to as "observations")
-to a simulation.
+This module provides an interface to the :class:`ResultsManager <vivarium.framework.results.manager.ResultsManager>`.
 
 """
 from __future__ import annotations
