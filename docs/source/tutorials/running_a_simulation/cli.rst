@@ -6,7 +6,7 @@ Running from the Command Line
 
 To run from the command line, we'll use the
 :mod:`simulate <vivarium.interface.cli>` command. This command is actually a
-group containing three sub-commands: ``run``, ``test``, and ``profile``. We will
+group containing two sub-commands: ``run`` and ``test``. We will
 focus on ``run`` here.
 
 The basic use of ``simulate run`` requires no more than a
