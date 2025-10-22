@@ -1,3 +1,7 @@
+**3.5.6 - 10/23/25**
+
+  - Split Interfaces and their respective Managers into different modules
+
 **3.5.5 - 10/14/25**
 
   - Update simulation step log message to info level
