@@ -27,10 +27,7 @@ simulations from the command line.
 
 """
 
-import cProfile
 import os
-import pstats
-from datetime import datetime as dt
 from pathlib import Path
 from time import time
 
