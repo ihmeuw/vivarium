@@ -154,7 +154,7 @@ Registering simulants
 ++++++++++++++++++++++
 
 Let's start with registering simulants. The randomness system provides the
-aptly named :func:`register_simulants <vivarium.framework.randomness.manager.RandomnessInterface.register_simulants>`,
+aptly named :func:`register_simulants <vivarium.framework.randomness.interface.RandomnessInterface.register_simulants>`,
 which handles the mapping process we looked at above where simulants'
 chosen characteristics are used to map them to a specific location in the
 **randomness index**. This should be used in initializing simulants.
@@ -178,7 +178,7 @@ RandomnessStreams
 
 More commonly, you may want to get and use RandomnessStreams for specific
 **decision points**. The randomness system provides the
-:func:`get_stream <vivarium.framework.randomness.manager.RandomnessInterface.get_stream>` to do this. Let's
+:func:`get_stream <vivarium.framework.randomness.interface.RandomnessInterface.get_stream>` to do this. Let's
 look at a quick example of how we'd use this. Say we want a component that will
 move simulants one position left every time step with probability 0.5. We should
 use a :class:`RandomnessStreams <vivarium.framework.randomness.stream.RandomnessStream>`

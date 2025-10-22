@@ -5,7 +5,6 @@ Component Interface
 
 This module provides an interface to the :class:`ComponentManager <vivarium.framework.components.manager.ComponentManager>`.
 
-
 """
 
 from __future__ import annotations
