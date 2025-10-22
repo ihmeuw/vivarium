@@ -447,15 +447,16 @@ class PopulationManager(Manager):
 
         if isinstance(attributes, list):
             # check for duplicate request
-            duplicates = list(set([x for x in attributes if attributes.count(x) > 1]))
-            if duplicates:
+            if len(attributes) != len(set(attributes)):
+                # deduplicate while preserving order
+                deduplicated = list(dict.fromkeys(attributes))
                 self.logger.warning(
-                    f"Duplicate attributes requested and will be dropped: {duplicates}"
+                    f"Duplicate attributes requested and will be dropped: {set(attributes) - set(deduplicated)}"
                 )
-                attributes = list(set(attributes))
+                attributes = deduplicated
 
         attributes_to_include = (
-            self._attribute_pipelines.keys() if attributes == "all" else attributes
+            list(self._attribute_pipelines.keys()) if attributes == "all" else attributes
         )
 
         non_existent_attributes = set(attributes_to_include) - set(self._attribute_pipelines)

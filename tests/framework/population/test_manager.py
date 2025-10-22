@@ -183,7 +183,8 @@ def test_get_population_different_attribute_types() -> None:
         pd.testing.assert_series_equal(pop[col], expected, check_names=False)
 
 
-def test_get_population_column_ordering() -> None:
+@pytest.mark.parametrize("include_duplicates", [False, True])
+def test_get_population_column_ordering(include_duplicates: bool) -> None:
     def _extract_ordered_list(cols: list[str]) -> list[tuple[str, str]]:
         col_mapping = {
             "tracked": ("tracked", ""),
@@ -196,11 +197,14 @@ def test_get_population_column_ordering() -> None:
         }
         expected_cols = []
         for col in cols:
-            mapping = col_mapping[col]
-            if isinstance(mapping, list):
-                expected_cols.extend(mapping)
+            col_tuple = col_mapping[col]
+            if isinstance(col_tuple, list):
+                for item in col_tuple:
+                    if item not in expected_cols:
+                        expected_cols.append(item)
             else:
-                expected_cols.append(mapping)
+                if col_tuple not in expected_cols:
+                    expected_cols.append(col_tuple)
         return expected_cols
 
     def _check_col_ordering(sim: InteractiveContext, cols: list[str]) -> None:
@@ -214,10 +218,12 @@ def test_get_population_column_ordering() -> None:
     sim = InteractiveContext(components=[component], setup=True)
 
     cols = ["tracked", "test_column_1", "attribute_generating_columns_4_5", "test_attribute"]
+    if include_duplicates:
+        cols.extend(cols)  # duplicate the list
     _check_col_ordering(sim, cols)
     # Now try reversing the order
     # NOTE: we specifically do not parameterize this test to ensure that the two
-    # 'get_population' calls are happening on exaclty the same population manager
+    # 'get_population' calls are happening on exactly the same population manager
     cols.reverse()
     _check_col_ordering(sim, cols)
 
