@@ -339,7 +339,10 @@ Let's run the simulation with our new component and look again at the population
    )
 
    # Peek at the population table
-   print(sim.get_population()[["color", "x", "y", "vx", "vy"]].head())
+   pop = sim.get_population()[["color", "x", "y", "vx", "vy"]].head()
+   # flatten MultiIndex for display
+   pop.columns = pop.columns.get_level_values(0)
+   print(pop)
 
 .. testoutput::
 
@@ -376,7 +379,10 @@ but their velocity stay the same.
    sim.step()
 
    # Peek at the population table
-   print(sim.get_population()[["color", "x", "y", "vx", "vy"]].head())
+   pop = sim.get_population()[["color", "x", "y", "vx", "vy"]].head()
+   # flatten MultiIndex for display
+   pop.columns = pop.columns.get_level_values(0)
+   print(pop)
 
 .. testoutput::
 
