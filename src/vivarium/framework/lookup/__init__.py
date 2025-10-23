@@ -1,5 +1,5 @@
+from vivarium.framework.lookup.interface import LookupTableInterface
 from vivarium.framework.lookup.manager import (
-    LookupTableInterface,
     LookupTableManager,
     validate_build_table_parameters,
 )
