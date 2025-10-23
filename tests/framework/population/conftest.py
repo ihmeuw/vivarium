@@ -1,5 +1,6 @@
 import itertools
 import math
+from collections import defaultdict
 
 import pandas as pd
 import pytest
@@ -45,7 +46,10 @@ def population_manager(mocker: MockerFixture) -> PopulationManager:
     mocker.patch.object(ValuesManager, "logger", mocker.Mock(), create=True)
     mocker.patch.object(ValuesManager, "resources", mocker.Mock(), create=True)
     mocker.patch.object(ValuesManager, "add_constraint", mocker.Mock(), create=True)
-    mocker.patch.object(ValuesManager, "_population_mgr", mgr, create=True)
+    mocker.patch.object(ValuesManager, "population_mgr", mgr, create=True)
+    mocker.patch.object(
+        ValuesManager.population_mgr, "metadata", defaultdict(list), create=True
+    )
     sim._lifecycle.set_state("setup")
     mgr.setup(builder)
     sim._lifecycle.set_state("post_setup")

@@ -203,7 +203,7 @@ class Pipeline(Resource):
                 f"The dynamic value pipeline for {self.name} has no source. This likely means "
                 f"you are attempting to modify a value that hasn't been created."
             )
-        value = self.source(self.manager._population_mgr, *args, **kwargs)
+        value = self.source(self.manager.population_mgr, *args, **kwargs)
         for mutator in self.mutators:
             value = self.combiner(value, mutator, *args, **kwargs)
         if self.post_processor and not skip_post_processor:

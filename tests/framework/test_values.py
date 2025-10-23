@@ -9,7 +9,9 @@ import pandas as pd
 import pytest
 from pytest_mock import MockFixture
 
+from tests.helpers import ColumnCreator
 from vivarium import Component as _Component
+from vivarium import InteractiveContext
 from vivarium.framework.engine import SimulationContext
 from vivarium.framework.utilities import from_yearly
 from vivarium.framework.values import (
@@ -237,9 +239,7 @@ def test_attribute_pipeline_creation() -> None:
     assert pipeline.source.resource_id == "missing_attribute_source.test_attribute"
 
 
-def test_attribute_pipeline_register_producer(
-    manager: ValuesManager, mocker: MockFixture
-) -> None:
+def test_register_attribute_producer(manager: ValuesManager, mocker: MockFixture) -> None:
     """Test registering an attribute producer through ValuesManager."""
     # Create a simple attribute source
     def age_source(index: pd.Index[int]) -> pd.DataFrame:
@@ -269,6 +269,18 @@ def test_attribute_pipeline_register_producer(
     assert list(result.columns) == ["age", "birth_year"]
     assert all(result["age"] == [25.0, 30.0, 35.0])
     assert all(result["birth_year"] == [1999, 1994, 1989])
+
+
+def test_register_attribute_producer_metadata() -> None:
+    sim = InteractiveContext(components=[ColumnCreator()], setup=False)
+    assert sim._population.metadata == {}
+    # Running setup registers all attribute pipelines and updates the metadata
+    sim.setup()
+    assert sim._population.metadata == {
+        "population_manager": ["tracked"],
+        "datetime_clock": ["simulant_step_size"],
+        "column_creator": ["test_column_1", "test_column_2", "test_column_3"],
+    }
 
 
 @pytest.mark.parametrize("use_postprocessor", [True, False])

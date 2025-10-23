@@ -45,7 +45,7 @@ class ValuesManager(Manager):
         return {**self._value_pipelines, **self._attribute_pipelines}
 
     def setup(self, builder: Builder) -> None:
-        self._population_mgr = builder.population._manager
+        self.population_mgr = builder.population._manager
         self.logger = builder.logging.get_logger(self.name)
         self.step_size = builder.time.step_size()
         self.simulant_step_sizes = builder.time.simulant_step_sizes()
@@ -133,6 +133,7 @@ class ValuesManager(Manager):
             :meth:`ValuesInterface.register_attribute_producer`
         """
         self.logger.debug(f"Registering attribute pipeline {value_name}")
+        self.population_mgr.metadata[component.name].append(value_name)
         pipeline = self.get_attribute(value_name)
         self._configure_pipeline(
             pipeline,
