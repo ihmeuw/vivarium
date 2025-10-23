@@ -7,7 +7,8 @@ import pytest
 from pytest_mock import MockerFixture
 
 from tests.framework.population.conftest import COL_NAMES, RECORDS
-from vivarium import Component
+from tests.helpers import AttributePipelineCreator
+from vivarium import Component, InteractiveContext
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
     InitializerComponentSet,
@@ -154,6 +155,79 @@ def test_get_population(
     assert pop.index.equals(expected_index)
 
 
+def test_get_population_different_attribute_types() -> None:
+    """Test that get_population works with simple attributes, non-simple attributes,
+    and attribute pipelines that return dataframes instead of series'."""
+    component = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component], setup=True)
+    pop = sim._population.get_population("all", untracked=True)
+    # We have columnar multi-index due to AttributePipelines that return dataframes
+    assert isinstance(pop.columns, pd.MultiIndex)
+    assert set(pop.columns) == {
+        ("tracked", ""),
+        ("simulant_step_size", ""),
+        ("test_column_1", ""),
+        ("test_column_2", ""),
+        ("test_column_3", ""),
+        ("attribute_generating_columns_4_5", "test_column_4"),
+        ("attribute_generating_columns_4_5", "test_column_5"),
+        ("test_attribute", ""),
+        ("attribute_generating_columns_6_7", "test_column_6"),
+        ("attribute_generating_columns_6_7", "test_column_7"),
+    }
+    value_cols = [
+        col for col in pop.columns if not col in [("tracked", ""), ("simulant_step_size", "")]
+    ]
+    expected = pd.Series([idx % 3 for idx in pop.index])
+    for col in value_cols:
+        pd.testing.assert_series_equal(pop[col], expected, check_names=False)
+
+
+@pytest.mark.parametrize("include_duplicates", [False, True])
+def test_get_population_column_ordering(include_duplicates: bool) -> None:
+    def _extract_ordered_list(cols: list[str]) -> list[tuple[str, str]]:
+        col_mapping = {
+            "tracked": ("tracked", ""),
+            "test_column_1": ("test_column_1", ""),
+            "attribute_generating_columns_4_5": [
+                ("attribute_generating_columns_4_5", "test_column_4"),
+                ("attribute_generating_columns_4_5", "test_column_5"),
+            ],
+            "test_attribute": ("test_attribute", ""),
+        }
+        expected_cols = []
+        for col in cols:
+            col_tuple = col_mapping[col]
+            if isinstance(col_tuple, list):
+                for item in col_tuple:
+                    if item not in expected_cols:
+                        expected_cols.append(item)
+            else:
+                if col_tuple not in expected_cols:
+                    expected_cols.append(col_tuple)
+        return expected_cols
+
+    def _check_col_ordering(sim: InteractiveContext, cols: list[str]) -> None:
+        pop = sim._population.get_population(cols, untracked=True)
+        expected_cols = _extract_ordered_list(cols)
+        assert isinstance(pop.columns, pd.MultiIndex)
+        returned_cols = pop.columns.tolist()
+        assert returned_cols == expected_cols
+
+    component = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component], setup=True)
+
+    cols = ["tracked", "test_column_1", "attribute_generating_columns_4_5", "test_attribute"]
+    if include_duplicates:
+        cols.extend(cols)  # duplicate the list
+    _check_col_ordering(sim, cols)
+    # Now try reversing the order
+    # NOTE: we specifically do not parameterize this test to ensure that the two
+    # 'get_population' calls are happening on exactly the same population manager
+    cols.reverse()
+    _check_col_ordering(sim, cols)
+
+
 @pytest.mark.parametrize(
     "attributes",
     (
@@ -171,27 +245,8 @@ def test_get_population_raises_missing_attributes(
         population_manager.get_population(attributes, True)
 
 
-def test_get_population_deduplicates_requested_attributes(
-    population_manager: PopulationManager,
-) -> None:
-    pop = population_manager.get_population(["color", "count", "color"], True)
-    assert set(pop.columns) == {"color", "count"}
-
-
-def test_get_population_raises_duplicate_columns_in_population(
+def test_get_population_deduplicates_requested_columns(
     population_manager: PopulationManager, mocker: MockerFixture
 ) -> None:
-    pipeline = AttributePipeline("whoops", mocker.Mock())
-    pipeline._manager = mocker.Mock()
-    # "color" is already one of the attributes in the population and so adding a
-    # pipeline that returns a dataframe that also has that column should raise
-    pipeline.source = ValueSource(
-        pipeline=pipeline,
-        source=lambda idx: pd.DataFrame(
-            {"shape": ["circle"] * len(idx), "color": ["red"] * len(idx)}, index=idx
-        ),
-        component=mocker.Mock(),
-    )
-    population_manager._attribute_pipelines["whoops"] = pipeline
-    with pytest.raises(PopulationError, match="Population table has duplicate column names"):
-        population_manager.get_population("all", True)
+    pop = population_manager.get_population(["color", "color", "color"], True)
+    assert set(pop.columns) == {"color"}
