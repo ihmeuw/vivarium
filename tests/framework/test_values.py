@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 from pytest_mock import MockFixture
 
-from tests.helpers import ColumnCreator
+from tests.helpers import AttributePipelineCreator
 from vivarium import Component as _Component
 from vivarium import InteractiveContext
 from vivarium.framework.engine import SimulationContext
@@ -272,14 +272,21 @@ def test_register_attribute_producer(manager: ValuesManager, mocker: MockFixture
 
 
 def test_register_attribute_producer_metadata() -> None:
-    sim = InteractiveContext(components=[ColumnCreator()], setup=False)
+    sim = InteractiveContext(components=[AttributePipelineCreator()], setup=False)
     assert sim._population.metadata == {}
     # Running setup registers all attribute pipelines and updates the metadata
     sim.setup()
     assert sim._population.metadata == {
         "population_manager": ["tracked"],
         "datetime_clock": ["simulant_step_size"],
-        "column_creator": ["test_column_1", "test_column_2", "test_column_3"],
+        "attribute_pipeline_creator": [
+            "attribute_generating_columns_4_5",
+            "test_attribute",
+            "attribute_generating_columns_6_7",
+            "test_column_1",
+            "test_column_2",
+            "test_column_3",
+        ],
     }
 
 
