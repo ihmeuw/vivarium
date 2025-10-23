@@ -141,7 +141,7 @@ class PopulationManager(Manager):
 
     @property
     def population(self) -> pd.DataFrame:
-        """The current population state table."""
+        """The population state table private columns."""
         if self._population is None:
             raise PopulationError("Population has not been initialized.")
         return self._population
@@ -449,15 +449,14 @@ class PopulationManager(Manager):
             # check for duplicate request
             if len(attributes) != len(set(attributes)):
                 # deduplicate while preserving order
-                deduplicated = list(dict.fromkeys(attributes))
+                attributes_to_include = list(dict.fromkeys(attributes))
                 self.logger.warning(
-                    f"Duplicate attributes requested and will be dropped: {set(attributes) - set(deduplicated)}"
+                    f"Duplicate attributes requested and will be dropped: {set(attributes) - set(attributes_to_include)}"
                 )
-                attributes = deduplicated
-
-        attributes_to_include = (
-            list(self._attribute_pipelines.keys()) if attributes == "all" else attributes
-        )
+            else:
+                attributes_to_include = attributes
+        else:  # "all"
+            attributes_to_include = list(self._attribute_pipelines.keys())
 
         non_existent_attributes = set(attributes_to_include) - set(self._attribute_pipelines)
         if non_existent_attributes:
