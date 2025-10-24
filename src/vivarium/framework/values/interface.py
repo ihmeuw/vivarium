@@ -126,8 +126,9 @@ class ValuesInterface(Interface):
         source
             The source for the dynamic attribute pipeline. This can be a callable
             or a list of column names. If a list of column names is provided,
-            the component that is registering this attribute producer must be the
-            one that creates those columns.
+            they will be treated as private; the component that is registering
+            this attribute producer must be the one that creates them and they
+            will not be accessible by other components.
         component
             The component that is registering the attribute producer.
         required_resources

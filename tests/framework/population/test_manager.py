@@ -260,13 +260,13 @@ def test_register_private_columns() -> None:
     # The metadata for the manager should be empty because the fixture does not
     # actually go through setup.
     mgr = PopulationManager()
-    assert mgr.metadata == {}
+    assert mgr.source_column_metadata == {}
     # Running setup registers all attribute pipelines and updates the metadata
     component1 = ColumnCreator()
     component2 = ColumnCreator2()
     mgr.register_private_columns(component1)
     mgr.register_private_columns(component2)
-    assert mgr.metadata == {
+    assert mgr.source_column_metadata == {
         component1.name: component1.columns_created,
         component2.name: component2.columns_created,
     }

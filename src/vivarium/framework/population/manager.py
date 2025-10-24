@@ -149,7 +149,7 @@ class PopulationManager(Manager):
 
     def __init__(self) -> None:
         self._population: pd.DataFrame | None = None
-        self.metadata: dict[str, list[str]] = defaultdict(list)
+        self.source_column_metadata: dict[str, list[str]] = defaultdict(list)
         self._initializer_components = InitializerComponentSet()
         self.creating_initial_population = False
         self.adding_simulants = False
@@ -401,7 +401,7 @@ class PopulationManager(Manager):
             The component or manager that is registering its private columns.
         """
         if component.columns_created:
-            self.metadata[component.name].extend(component.columns_created)
+            self.source_column_metadata[component.name].extend(component.columns_created)
 
     ###############
     # Context API #

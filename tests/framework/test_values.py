@@ -511,7 +511,7 @@ def test_source_callable(
             TypeError,
             match=(
                 "The source of an attribute pipeline must be a callable or a list "
-                f"of column names, but got {type(source)}."
+                f"of private column names, but got {type(source)}."
             ),
         ):
             pl(INDEX)
