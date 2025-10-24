@@ -185,7 +185,7 @@ Line 2 simply grabs a copy of the simulation
 a dictionary that supports ``.``-access notation.
 
 Lines 4-18 interact with Vivarium's
-:class:`randomness system <vivarium.framework.randomness.manager.RandomnessInterface>`.
+:class:`randomness system <vivarium.framework.randomness.interface.RandomnessInterface>`.
 Several things are happening here.
 
 Lines 4-13 deal with the topic of :doc:`Common Random Numbers </concepts/crn>`,

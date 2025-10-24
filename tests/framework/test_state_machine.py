@@ -62,7 +62,7 @@ def test_initialize_with_scalar_initialization_weights(
         components=[machine], configuration=base_config, setup=False
     )
     mocker.patch(
-        "vivarium.framework.artifact.manager.ArtifactInterface.load", side_effect=mock_load
+        "vivarium.framework.artifact.interface.ArtifactInterface.load", side_effect=mock_load
     )
     simulation.setup()
 
@@ -119,7 +119,7 @@ def test_initialize_with_array_initialization_weights(
         components=[machine, ColumnCreator()], configuration=config, setup=False
     )
     mocker.patch(
-        "vivarium.framework.artifact.manager.ArtifactInterface.load", side_effect=mock_load
+        "vivarium.framework.artifact.interface.ArtifactInterface.load", side_effect=mock_load
     )
     simulation.setup()
 
