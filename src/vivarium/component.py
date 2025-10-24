@@ -368,7 +368,7 @@ class Component(ABC):
         self.configuration = self.get_configuration(builder)
         self.build_all_lookup_tables(builder)
         self.setup(builder)
-        self._register_private_columns(builder)
+        self._register_attribute_source_columns(builder)
         self._set_population_view(builder)
         self._register_attribute_producers(builder)
         self._register_post_setup_listener(builder)
@@ -736,15 +736,15 @@ class Component(ABC):
 
         return data
 
-    def _register_private_columns(self, builder: Builder) -> None:
-        """Registers the private columns created by this component.
+    def _register_attribute_source_columns(self, builder: Builder) -> None:
+        """Registers the AttributePipeline source columns created by this component.
 
         Parameters
         ----------
         builder
             The builder object used to set up the component.
         """
-        builder.population.register_private_columns(self)
+        builder.population.register_source_columns(self)
 
     def _set_population_view(self, builder: Builder) -> None:
         """Creates the PopulationView for this component if it needs access to

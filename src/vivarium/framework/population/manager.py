@@ -392,13 +392,13 @@ class PopulationManager(Manager):
 
         return index
 
-    def register_private_columns(self, component: Component | Manager) -> None:
-        """Registers the private columns created by a component or manager.
+    def register_source_columns(self, component: Component | Manager) -> None:
+        """Registers the source columns created by a component or manager.
 
         Parameters
         ----------
         component
-            The component or manager that is registering its private columns.
+            The component or manager that is registering its source columns.
         """
         if component.columns_created:
             self.source_column_metadata[component.name].extend(component.columns_created)

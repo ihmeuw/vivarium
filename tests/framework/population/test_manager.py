@@ -251,7 +251,7 @@ def test_get_population_deduplicates_requested_columns(
     assert set(pop.columns) == {"color"}
 
 
-def test_register_private_columns() -> None:
+def test_register_source_columns() -> None:
     class ColumnCreator2(ColumnCreator):
         @property
         def name(self) -> str:
@@ -264,8 +264,8 @@ def test_register_private_columns() -> None:
     # Running setup registers all attribute pipelines and updates the metadata
     component1 = ColumnCreator()
     component2 = ColumnCreator2()
-    mgr.register_private_columns(component1)
-    mgr.register_private_columns(component2)
+    mgr.register_source_columns(component1)
+    mgr.register_source_columns(component2)
     assert mgr.source_column_metadata == {
         component1.name: component1.columns_created,
         component2.name: component2.columns_created,

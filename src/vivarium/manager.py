@@ -72,7 +72,7 @@ class Manager(ABC):
                 source=[column],
                 component=self,
             )
-        builder.population.register_private_columns(self)
+        builder.population.register_source_columns(self)
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """

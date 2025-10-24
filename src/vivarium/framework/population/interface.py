@@ -151,12 +151,12 @@ class PopulationInterface(Interface):
             required_resources,
         )
 
-    def register_private_columns(self, component: Component | Manager) -> None:
-        """Registers the private columns created by a component or manager.
+    def register_source_columns(self, component: Component | Manager) -> None:
+        """Registers the source columns created by a component or manager.
 
         Parameters
         ----------
         component
-            The component or manager that is registering its private columns.
+            The component or manager that is registering its source columns.
         """
-        self._manager.register_private_columns(component)
+        self._manager.register_source_columns(component)
