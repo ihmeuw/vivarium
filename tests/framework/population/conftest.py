@@ -9,9 +9,6 @@ from vivarium.framework.engine import SimulationContext
 from vivarium.framework.population import PopulationManager
 from vivarium.framework.values import ValuesManager
 
-# from collections import defaultdict
-
-
 COL_NAMES = ["color", "count", "pie", "pi", "tracked"]
 COLORS = ["red", "green", "yellow"]
 COUNTS = [10, 20, 30]
