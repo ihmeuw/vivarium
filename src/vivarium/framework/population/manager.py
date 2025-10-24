@@ -10,6 +10,7 @@ The manager and :ref:`builder <builder_concept>` interface for the
 from __future__ import annotations
 
 import warnings
+from collections import defaultdict
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
@@ -148,6 +149,7 @@ class PopulationManager(Manager):
 
     def __init__(self) -> None:
         self._population: pd.DataFrame | None = None
+        self.metadata: dict[str, list[str]] = defaultdict(list)
         self._initializer_components = InitializerComponentSet()
         self.creating_initial_population = False
         self.adding_simulants = False
@@ -389,6 +391,17 @@ class PopulationManager(Manager):
         self.adding_simulants = False
 
         return index
+
+    def register_private_columns(self, component: Component | Manager) -> None:
+        """Registers the private columns created by a component or manager.
+
+        Parameters
+        ----------
+        component
+            The component or manager that is registering its private columns.
+        """
+        if component.columns_created:
+            self.metadata[component.name].extend(component.columns_created)
 
     ###############
     # Context API #
