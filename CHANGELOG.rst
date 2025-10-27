@@ -1,3 +1,7 @@
+**3.6.0 - 10/27/25**
+
+  - Move simulate profile command to vivarium_profiling package
+  
 **3.5.6 - 10/23/25**
 
   - Split Interfaces and their respective Managers into different modules
