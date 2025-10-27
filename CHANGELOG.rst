@@ -1,4 +1,4 @@
-**3.6.0 - 10/24/25**
+**3.6.0 - 10/27/25**
 
   - Move simulate profile command to vivarium_profiling package
   
