@@ -150,3 +150,13 @@ class PopulationInterface(Interface):
             requires_streams,
             required_resources,
         )
+
+    def register_source_columns(self, component: Component | Manager) -> None:
+        """Registers the source columns created by a component or manager.
+
+        Parameters
+        ----------
+        component
+            The component or manager that is registering its source columns.
+        """
+        self._manager.register_source_columns(component)
