@@ -65,7 +65,7 @@ class ValueSource(Resource):
         else:
             raise TypeError(
                 "The source of an attribute pipeline must be a callable or a list "
-                f"of column names, but got {type(self._source)}."
+                f"of source column names, but got {type(self._source)}."
             )
 
         return source_callable(*args, **kwargs)
