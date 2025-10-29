@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import re
 from typing import Any
 
 import pandas as pd
@@ -175,28 +176,30 @@ def test_get(population_manager: PopulationManager) -> None:
     full_idx = pd.RangeIndex(0, len(RECORDS))
 
     # Get full data set
-    pop_full = pv.get(full_idx)
+    pop_full = pv.get(full_idx, COL_NAMES)
     assert set(pop_full.columns) == set(COL_NAMES)
     assert pop_full.index.equals(full_idx)
 
     # Get data subset
-    pop = pv.get(full_idx, query=f"color == 'red'")
+    pop = pv.get(full_idx, COL_NAMES, query=f"color == 'red'")
     assert set(pop.columns) == set(COL_NAMES)
     assert pop.index.equals(pop_full[pop_full["color"] == "red"].index)
 
     ###############################
     # View without tracked column #
     ###############################
+    # A population view instantiated without the 'tracked' column will by default
+    # filter out the untracked simulants.
     cols_without_tracked = [col for col in COL_NAMES if col != "tracked"]
     pv = population_manager.get_view(cols_without_tracked)
 
     # Get all tracked
-    pop = pv.get(full_idx)
+    pop = pv.get(full_idx, cols_without_tracked)
     assert set(pop.columns) == set(cols_without_tracked)
     assert pop.index.equals(pop_full[pop_full["tracked"]].index)
 
     # get subset of tracked
-    pop = pv.get(full_idx, query=f"color == 'red'")
+    pop = pv.get(full_idx, cols_without_tracked, query=f"color == 'red'")
     assert set(pop.columns) == set(cols_without_tracked)
     assert pop.index.equals(
         pop_full[(pop_full["tracked"]) & (pop_full["color"] == "red")].index
@@ -206,10 +209,24 @@ def test_get(population_manager: PopulationManager) -> None:
 def test_get_empty_idx(population_manager: PopulationManager) -> None:
     pv = population_manager.get_view(COL_NAMES)
 
-    pop = pv.get(pd.Index([]))
+    pop = pv.get(pd.Index([]), COL_NAMES)
     assert isinstance(pop, pd.DataFrame)
     assert set(pop.columns) == set(COL_NAMES)
     assert pop.empty
+
+
+def test_get_raises(population_manager: PopulationManager) -> None:
+    pv = population_manager.get_view(COL_NAMES)
+
+    # Unknown columns
+    with pytest.raises(
+        PopulationError,
+        match=re.compile(
+            "Invalid subview requested. Requested columns must be a non-empty subset "
+            "of this view's columns.",
+        ),
+    ):
+        pv.get(pd.Index([]), "foo")
 
 
 #################################

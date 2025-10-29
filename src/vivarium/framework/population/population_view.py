@@ -131,18 +131,21 @@ class PopulationView:
         # Skip constraints for requesting subviews.
         return self._manager._get_view(columns, self.query)
 
-    def get(self, index: pd.Index[int], query: str = "") -> pd.DataFrame:
-        """Select the rows represented by the given index from this view.
+    def get(
+        self, index: pd.Index[int], attributes: str | list[str], query: str = ""
+    ) -> pd.DataFrame:
+        """Get a specific subset of this ``PopulationView``.
 
-        For the rows in ``index`` get the columns from the simulation's
-        state table to which this view has access. The resulting rows may be
-        further filtered by the view's query and only return a subset
-        of the population represented by the index.
+        For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
+        simulation's state table. The resulting rows may be further filtered by the
+        view's query and only return a subset of the population represented by the index.
 
         Parameters
         ----------
         index
             Index of the population to get.
+        attributes
+            The columns to retrieve from the population state table.
         query
             Additional conditions used to filter the index. These conditions
             will be unioned with the default query of this view. The query
@@ -155,21 +158,27 @@ class PopulationView:
         Raises
         ------
         PopulationError
-            If this view has access to columns that have not yet been created
-            and this method is called. If you see this error, you should
-            request a subview with the columns you need read access to.
+            If the requested attributes are not a proper subset of this view's columns.
 
-        See Also
-        --------
-        :meth:`subview <PopulationView.subview>`
         """
 
-        combined_query = " and ".join(filter(None, [self.query, query]))
-        pop = self._manager.get_population(
-            self.columns, "tracked" in self.columns, index, combined_query
-        )
+        if isinstance(attributes, str):
+            attributes = [attributes]
 
-        return pop.loc[:, self.columns]
+        if set(attributes) - set(self.columns):
+            raise PopulationError(
+                "Invalid subview requested. Requested columns must be a non-empty "
+                f"subset of this view's columns. Requested columns: {attributes}, "
+                f"Available columns: {self.columns}"
+            )
+
+        combined_query = " and ".join(filter(None, [self.query, query]))
+        return self._manager.get_population(
+            attributes=attributes,
+            untracked="tracked" in self.columns,
+            index=index,
+            query=combined_query,
+        )
 
     def update(self, population_update: pd.Series[Any] | pd.DataFrame) -> None:
         """Updates the state table with the provided data.
