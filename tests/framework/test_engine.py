@@ -535,12 +535,12 @@ def test_private_columns_get_registered() -> None:
     # the PopulationManager itself for the 'tracked' column.
     metadata = sim._population.source_column_metadata
     assert metadata == {
-        sim._population.name: ["tracked"],
+        sim._population.name: sim._population.columns_created,
         component.name: component.columns_created,
     }
     # Check that there are indeed other attributes registered besides via column_created
     len(sim.get_population().columns) > len(
-        [item for sublist in metadata.values() for item in sublist]
+        sim._population.columns_created + component.columns_created
     )
 
 
