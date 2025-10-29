@@ -7,7 +7,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from tests.framework.population.conftest import COL_NAMES, RECORDS
-from tests.helpers import AttributePipelineCreator
+from tests.helpers import AttributePipelineCreator, ColumnCreator
 from vivarium import Component, InteractiveContext
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
@@ -15,7 +15,6 @@ from vivarium.framework.population.manager import (
     PopulationManager,
     SimulantData,
 )
-from vivarium.framework.values import AttributePipeline, ValueSource
 
 
 def test_initializer_set_fail_type() -> None:
@@ -250,3 +249,24 @@ def test_get_population_deduplicates_requested_columns(
 ) -> None:
     pop = population_manager.get_population(["color", "color", "color"], True)
     assert set(pop.columns) == {"color"}
+
+
+def test_register_source_columns() -> None:
+    class ColumnCreator2(ColumnCreator):
+        @property
+        def name(self) -> str:
+            return "column_creator_2"
+
+    # The metadata for the manager should be empty because the fixture does not
+    # actually go through setup.
+    mgr = PopulationManager()
+    assert mgr.source_column_metadata == {}
+    # Running setup registers all attribute pipelines and updates the metadata
+    component1 = ColumnCreator()
+    component2 = ColumnCreator2()
+    mgr.register_source_columns(component1)
+    mgr.register_source_columns(component2)
+    assert mgr.source_column_metadata == {
+        component1.name: component1.columns_created,
+        component2.name: component2.columns_created,
+    }
