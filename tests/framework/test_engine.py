@@ -24,8 +24,8 @@ from tests.framework.results.helpers import (
     NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
 )
-from tests.helpers import Listener, MockComponentA, MockComponentB
-from vivarium import Component
+from tests.helpers import AttributePipelineCreator, Listener, MockComponentA, MockComponentB
+from vivarium import Component, InteractiveContext
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
 from vivarium.framework.components import (
     ComponentConfigError,
@@ -523,6 +523,25 @@ def test_SimulationContext_load_from_backup(
     # Load from backup
     sim_backup = SimulationContext.load_from_backup(backup_path)
     assert isinstance(sim_backup, SimulationContext)
+
+
+def test_private_columns_get_registered() -> None:
+    component = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component], setup=False)
+    assert sim._population.source_column_metadata == {}
+    sim.setup()
+    # The only components or managers to have a non-empty columns_created are
+    # the AttributePipelineCreator component used in the context as well as
+    # the PopulationManager itself for the 'tracked' column.
+    metadata = sim._population.source_column_metadata
+    assert metadata == {
+        sim._population.name: sim._population.columns_created,
+        component.name: component.columns_created,
+    }
+    # Check that there are indeed other attributes registered besides via column_created
+    len(sim.get_population().columns) > len(
+        sim._population.columns_created + component.columns_created
+    )
 
 
 ####################
