@@ -90,7 +90,7 @@ class Mortality(Component):
             representing the simulants affected by the event and timing
             information.
         """
-        population = self.population_view.get(event.index)
+        population = self.population_view.get(event.index, ["alive", "tracked"])
         population.loc[
             (population["alive"] == "dead") & population["tracked"] == True, "tracked"
         ] = False
