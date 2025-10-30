@@ -56,7 +56,7 @@ class Neighbors(Component):
 
     def _calculate_neighbors(self) -> None:
         # Reset our list of neighbors
-        pop = self.population_view.get(self._neighbors.index)
+        pop = self.population_view.get(self._neighbors.index, ["x", "y"])
         self._neighbors = pd.Series([[] for _ in range(len(pop))], index=pop.index)
 
         tree = spatial.KDTree(pop[["x", "y"]])
