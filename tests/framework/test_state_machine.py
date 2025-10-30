@@ -225,7 +225,7 @@ def test_side_effects() -> None:
             self.population_view.update(pd.Series(0, index=pop_data.index, name="count"))
 
         def transition_side_effect(self, index: pd.Index[int], _: ClockTime) -> None:
-            pop = self.population_view.get(index)
+            pop = self.population_view.get(index, "count")
             self.population_view.update(pop["count"] + 1)
 
     counting_state = CountingState("counting")

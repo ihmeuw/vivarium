@@ -198,7 +198,7 @@ class StepModifierWithUntracking(StepModifierWithRatePipeline):
 
     def on_time_step(self, event: Event) -> None:
         super().on_time_step(event)
-        evens = self.population_view.get(event.index).loc[
+        evens = self.population_view.get(event.index, "tracked").loc[
             get_index_by_parity(event.index, "evens")
         ]
         evens["tracked"] = False
