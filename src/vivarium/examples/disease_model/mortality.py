@@ -73,8 +73,8 @@ class Mortality(Component):
         effective_probability = 1 - np.exp(-effective_rate)
         draw = self.randomness.get_draw(event.index)
         affected_simulants = draw < effective_probability
-        self.population_view.subview("alive").update(
-            pd.Series("dead", index=event.index[affected_simulants])
+        self.population_view.update(
+            pd.Series("dead", index=event.index[affected_simulants], name="alive")
         )
 
     def on_time_step_prepare(self, event: Event) -> None:

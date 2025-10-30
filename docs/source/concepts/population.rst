@@ -51,13 +51,6 @@ the state table according to column and index. Only the columns that the view
 was created with can be updated in this way. The only exception is at simulant
 initialization time, when initial state must be created.
 
-Population views can themselves create subviews through the subview method. This
-generates a new population view that is constrained by it's parents columns and
-query string in addition to whatever arguments it is passed, with the
-requirement that it's columns must be a subset of its parent view's.
-
-<<TODO: Potentially a view to subview picture showing additional constraining>>
-
 Creating Simulants
 ------------------
 
