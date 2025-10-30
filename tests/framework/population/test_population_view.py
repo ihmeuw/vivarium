@@ -222,7 +222,7 @@ def test_get_raises(population_manager: PopulationManager) -> None:
     with pytest.raises(
         PopulationError,
         match=re.compile(
-            "Invalid subview requested. Requested columns must be a non-empty subset "
+            "Invalid subview requested. Requested attributes must be a non-empty subset "
             "of this view's columns.",
         ),
     ):
