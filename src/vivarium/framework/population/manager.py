@@ -443,6 +443,13 @@ class PopulationManager(Manager):
         Returns
         -------
             A copy of the population table.
+
+        Raises
+        ------
+        ValueError
+            If the 'tracked' attribute pipeline does not return a pd.Series.
+        PopulationError
+            If any of the requested attributes do not exist in the population table.
         """
 
         if self._population is None:
