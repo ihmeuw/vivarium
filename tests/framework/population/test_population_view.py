@@ -115,54 +115,6 @@ def test_initialization(population_manager: PopulationManager) -> None:
     assert pv.query == q_string
 
 
-##########################
-# PopulationView.subview #
-##########################
-
-
-@pytest.mark.parametrize(
-    "columns",
-    [["color", "count"], ["color"], ["color", "count", "tracked"]],
-    ids=["multiple columns", "single column", "including tracked"],
-)
-def test_subview_columns_list_input(
-    population_manager: PopulationManager, columns: list[str]
-) -> None:
-    pv = population_manager.get_view(COL_NAMES)
-    sub_pv = pv.subview(columns)
-    assert set(sub_pv.columns) == set(columns)
-
-
-def test_subview_columns_string_input(population_manager: PopulationManager) -> None:
-    pv = population_manager.get_view(COL_NAMES)
-    sub_pv = pv.subview("color")
-    assert set(sub_pv.columns) == {"color"}
-
-
-@pytest.mark.parametrize("columns", [["color", "count"], ["color", "count", "tracked"]])
-def test_subview_queries(population_manager: PopulationManager, columns: list[str]) -> None:
-    pv = population_manager.get_view(COL_NAMES, query="foo == 'red'")
-
-    # get subview
-    sub_pv = pv.subview(columns)
-
-    expected_query = pv.query
-    assert sub_pv.query == expected_query
-
-
-@pytest.mark.parametrize(
-    "columns",
-    [["age", "sex"], COL_NAMES + ["age"], []],
-    ids=["columns not in pop_view", "one column not in pop_view", "no columns"],
-)
-def test_subview_bad_columns_input(
-    population_manager: PopulationManager, columns: list[str]
-) -> None:
-    pv = population_manager.get_view(COL_NAMES)
-    with pytest.raises(PopulationError):
-        pv.subview(columns)
-
-
 ######################
 # PopulationView.get #
 ######################
