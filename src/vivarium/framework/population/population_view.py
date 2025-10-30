@@ -167,8 +167,8 @@ class PopulationView:
 
         if set(attributes) - set(self.columns):
             raise PopulationError(
-                "Invalid subview requested. Requested columns must be a non-empty "
-                f"subset of this view's columns. Requested columns: {attributes}, "
+                "Invalid subview requested. Requested attributes must be a non-empty "
+                f"subset of this view's columns. Requested attributes: {attributes}, "
                 f"Available columns: {self.columns}"
             )
 
