@@ -649,9 +649,6 @@ the computed probability of death for the individual.
 
 Finally, we update the state table ``'alive'`` column with the newly dead simulants.
 
-Note that when getting a view of the state table to update, we are using the 
-``subview`` method which returns only the columns requested.
-
 The ``on_time_step_prepare`` method
 +++++++++++++++++++++++++++++++++++
 

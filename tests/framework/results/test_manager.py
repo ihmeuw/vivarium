@@ -467,7 +467,6 @@ def test_gather_results_with_no_observations(mocker: pytest_mock.MockerFixture) 
     mgr.gather_results(event)
 
     mgr._results_context.get_observations.assert_called_once_with(event)  # type: ignore[attr-defined]
-    mgr.population_view.subview.assert_not_called()  # type: ignore[attr-defined]
     mgr._results_context.gather_results.assert_not_called()  # type: ignore[attr-defined]
 
 
@@ -490,7 +489,6 @@ def test_gather_results_with_empty_index(mocker: pytest_mock.MockerFixture) -> N
     mgr.gather_results(event)
 
     mgr._results_context.get_observations.assert_called_once_with(event)  # type: ignore[attr-defined]
-    mgr.population_view.subview.assert_not_called()  # type: ignore[attr-defined]
     mgr._results_context.gather_results.assert_not_called()  # type: ignore[attr-defined]
 
 
