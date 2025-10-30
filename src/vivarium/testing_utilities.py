@@ -66,7 +66,9 @@ class NonCRNTestPopulation(Component):
         self.population_view.update(population)
 
     def on_time_step(self, event: Event) -> None:
-        population = self.population_view.get(event.index, query="alive == 'alive'")
+        population = self.population_view.get(
+            event.index, ["alive", "age"], query="alive == 'alive'"
+        )
         # This component won't work if event.step_size is an int
         if not isinstance(event.step_size, int):
             population["age"] += event.step_size / pd.Timedelta(days=365)

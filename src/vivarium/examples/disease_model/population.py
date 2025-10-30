@@ -142,6 +142,9 @@ class BasePopulation(Component):
             representing the simulants affected by the event and timing
             information.
         """
-        population = self.population_view.get(event.index, query="alive == 'alive'")
+        # TODO: clarify whether we should require columns needed for query or if we
+        # should parse the query. Requiring is safer/easier, but also means
+        # those columns are returned when they're not necessarily needed.
+        population = self.population_view.get(event.index, ["age", "alive"], query="alive == 'alive'")
         population["age"] += event.step_size / pd.Timedelta(days=365)
         self.population_view.update(population)

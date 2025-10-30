@@ -69,7 +69,7 @@ class Movement(Component):
         self.population_view.update(new_population)
 
     def on_time_step(self, event: Event) -> None:
-        pop = self.population_view.get(event.index)
+        pop = self.population_view.get(event.index, ["x", "y", "vx", "vy"])
 
         acceleration = self.acceleration(event.index)
 
