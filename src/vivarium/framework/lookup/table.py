@@ -131,6 +131,8 @@ class InterpolatedTable(LookupTable):
         param_cols_with_edges = []
         for p in parameter_columns:
             param_cols_with_edges += [(p, f"{p}_start", f"{p}_end")]
+        # We manually remove 'year' from the view columns since it is not an attribute
+        # but rather we compute it dynamically
         view_columns = sorted((set(key_columns) | set(parameter_columns)) - {"year"}) + [
             "tracked"
         ]
@@ -173,9 +175,16 @@ class InterpolatedTable(LookupTable):
             A table with the interpolated values for the population requested.
 
         """
-        pop = self.population_view.get(index)
-        del pop["tracked"]
-        if "year" in [col for col in self.parameter_columns]:
+
+        # Remove 'year' from the requested columns since it is not actually a population
+        # view column (i.e. it is not an attribute) and is instead computed dynamically
+        requested_columns = [
+            col
+            for col in list(self.key_columns) + list(self.parameter_columns)
+            if col != "year"
+        ]
+        pop = self.population_view.get(index, requested_columns)
+        if "year" in self.parameter_columns:
             current_time = self.clock()
             # TODO: [MIC-5478] handle Number output from clock
             if isinstance(current_time, pd.Timestamp) or isinstance(current_time, datetime):
@@ -242,8 +251,9 @@ class CategoricalTable(LookupTable):
         -------
             A table with the mapped values for the population requested.
         """
-        pop = self.population_view.get(index)
-        del pop["tracked"]
+        pop = self.population_view.get(
+            index, list(self.key_columns) + list(self.parameter_columns)
+        )
 
         # specify some numeric type for columns, so they won't be objects but
         # will be updated with whatever column type it actually is
