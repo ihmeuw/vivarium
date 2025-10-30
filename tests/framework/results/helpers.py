@@ -75,20 +75,16 @@ class Hogwarts(Component):
     def setup(self, builder: Builder) -> None:
         self.grade = builder.value.register_value_producer(
             "grade",
-            source=lambda index: self.population_view.get(index)["exam_score"].map(
+            source=lambda index: self.population_view.get(index, "exam_score").map(
                 lambda x: x // 10
             ),
             requires_columns=["exam_score"],
         )
         self.double_power = builder.value.register_value_producer(
             "double_power",
-            source=lambda index: self.population_view.get(index)["power_level"] * 2,
+            source=lambda index: self.population_view.get(index, "power_level") * 2,
             requires_columns=["power_level"],
         )
-
-    def grade_source(self, index: pd.Index[int]) -> pd.Series[str]:
-        pass_mask = self.population_view.get(index)["exam_score"] > 6
-        return pass_mask.map({True: "pass", False: "fail"})
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         size = len(pop_data.index)
@@ -110,7 +106,15 @@ class Hogwarts(Component):
         self.population_view.update(initialization_data)
 
     def on_time_step(self, pop_data: Event) -> None:
-        update = self.population_view.get(pop_data.index)
+        update = self.population_view.get(
+            pop_data.index,
+            [
+                "student_house",
+                "power_level",
+                "familiar",
+                "exam_score",
+            ],
+        )
         update["house_points"] = 0
         update["quidditch_wins"] = 0
         # House points are stratified by 'student_house' and 'power_level_group'.
