@@ -91,46 +91,6 @@ class PopulationView:
             return list(set(all_columns))
         return self._columns
 
-    def subview(self, columns: str | Sequence[str]) -> PopulationView:
-        """Retrieves a new view with a subset of this view's columns.
-
-        Parameters
-        ----------
-        columns
-            The set of columns to provide access to in the subview. Must be
-            a proper subset of this view's columns.
-
-        Returns
-        -------
-            A new view with access to the requested columns.
-
-        Raises
-        ------
-        PopulationError
-            If the requested columns are not a proper subset of this view's
-            columns or no columns are requested.
-
-        Notes
-        -----
-        Subviews are useful during population initialization. The original
-        view may contain both columns that a component needs to create and
-        update as well as columns that the component needs to read. By
-        requesting a subview, a component can read the sections it needs
-        without running the risk of trying to access uncreated columns
-        because the component itself has not created them.
-        """
-        if isinstance(columns, str):
-            columns = [columns]
-
-        if not columns or set(columns) - set(self.columns):
-            raise PopulationError(
-                f"Invalid subview requested. Requested columns must be a non-empty "
-                f"subset of this view's columns. Requested columns: {columns}, "
-                f"Available columns: {self.columns}"
-            )
-        # Skip constraints for requesting subviews.
-        return self._manager._get_view(columns, self.query)
-
     def get(
         self, index: pd.Index[int], attributes: str | list[str], query: str = ""
     ) -> pd.DataFrame:
