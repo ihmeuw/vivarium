@@ -161,20 +161,9 @@ class InteractiveContext(SimulationContext):
             for _ in range(number_of_steps):
                 self.step(step_size)
 
-    def get_population(self, untracked: bool = False) -> pd.DataFrame:
-        """Get a copy of the population state table.
-
-        Parameters
-        ----------
-        untracked
-            Whether or not to return simulants who are no longer being tracked
-            by the simulation.
-
-        Returns
-        -------
-            The population state table.
-        """
-        return self._population.get_population("all", untracked)
+    def get_population(self) -> pd.DataFrame:
+        """Get a copy of the population state table."""
+        return self._population.get_population("all")
 
     def list_values(self) -> list[str]:
         """List the names of all value pipelines in the simulation."""

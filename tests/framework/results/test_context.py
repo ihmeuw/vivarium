@@ -321,11 +321,10 @@ def test_adding_observation_gather_results(
             mapper=None,
             is_vectorized=True,
         )
-    pop_filter = "tracked==True"
     observation = ctx.register_observation(
         observation_type=AddingObservation,
         name="foo",
-        pop_filter=pop_filter,
+        pop_filter="",
         requires_columns=aggregator_sources,
         requires_values=[],
         aggregator_sources=aggregator_sources,
@@ -335,8 +334,7 @@ def test_adding_observation_gather_results(
         results_formatter=lambda: None,
     )
 
-    filtered_pop = population.query(pop_filter)
-    groups = filtered_pop.groupby(stratifications)
+    groups = population.groupby(stratifications)
     if aggregator == sum:
         power_level_sums = groups[aggregator_sources].sum().squeeze()
         assert len(power_level_sums.unique()) == 1
@@ -477,7 +475,7 @@ def test_gather_results_partial_stratifications_in_results(
     observation = ctx.register_observation(
         observation_type=AddingObservation,
         name=name,
-        pop_filter="tracked==True",
+        pop_filter="",
         requires_columns=aggregator_sources,
         requires_values=[],
         aggregator_sources=aggregator_sources,
@@ -741,7 +739,7 @@ def test_get_required_resources(
 
     if resource_type == "columns":
         actual_columns = ctx.get_required_columns(observations, stratifications)
-        assert set(actual_columns) == {"tracked"} | expected_resources
+        assert set(actual_columns) == expected_resources
     elif resource_type == "values":
         actual_columns = [
             p.name for p in ctx.get_required_values(observations, stratifications)
@@ -781,7 +779,6 @@ def test__filter_population(pop_filter: str) -> None:
 def test__drop_na_stratifications(stratifications: tuple[str, ...]) -> None:
     population = BASE_POPULATION.copy()
     population["new_col1"] = "new_value1"
-    population.loc[population["tracked"] == True, "new_col1"] = np.nan
     population["new_col2"] = "new_value2"
     population.loc[population["new_col1"].notna(), "new_col2"] = np.nan
     # Add on the post-stratified columns

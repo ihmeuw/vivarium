@@ -372,8 +372,8 @@ class SimulationContext:
         """Adds new components to the simulation."""
         self._component_manager.add_components(component_list)
 
-    def get_population(self, untracked: bool = True) -> pd.DataFrame:
-        return self._population.get_population("all", untracked)
+    def get_population(self) -> pd.DataFrame:
+        return self._population.get_population("all")
 
     def get_population_index(self) -> pd.Index[int]:
         return self._population.population.index

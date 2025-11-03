@@ -337,11 +337,10 @@ def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
         aggregator=_silly_aggregator,
     )
     # Test observation gets added
-    assert len(interface._manager._results_context.grouped_observations) == 1
+    grouped_observations = interface._manager._results_context.grouped_observations
+    assert len(grouped_observations) == 1
     assert (
-        interface._manager._results_context.grouped_observations[
-            lifecycle_states.TIME_STEP_CLEANUP
-        ]["tracked==True"][()][0].name
+        grouped_observations[lifecycle_states.TIME_STEP_CLEANUP][""][()][0].name
         == "living_person_time"
     )
 
@@ -352,17 +351,14 @@ def test_register_multiple_adding_observations(mocker: MockerFixture) -> None:
         aggregator=_silly_aggregator,
     )
     # Test new observation gets added
-    assert len(interface._manager._results_context.grouped_observations) == 2
+    grouped_observations = interface._manager._results_context.grouped_observations
+    assert len(grouped_observations) == 2
     assert (
-        interface._manager._results_context.grouped_observations[
-            lifecycle_states.TIME_STEP_CLEANUP
-        ]["tracked==True"][()][0].name
+        grouped_observations[lifecycle_states.TIME_STEP_CLEANUP][""][()][0].name
         == "living_person_time"
     )
     assert (
-        interface._manager._results_context.grouped_observations[
-            lifecycle_states.TIME_STEP_PREPARE
-        ]["undead==True"][()][0].name
+        grouped_observations[lifecycle_states.TIME_STEP_PREPARE]["undead==True"][()][0].name
         == "undead_person_time"
     )
 

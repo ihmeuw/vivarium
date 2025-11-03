@@ -29,7 +29,7 @@ class Mortality(Component):
 
     @property
     def columns_required(self) -> list[str] | None:
-        return ["tracked", "alive"]
+        return ["alive"]
 
     #####################
     # Lifecycle methods #
@@ -77,24 +77,6 @@ class Mortality(Component):
             pd.Series("dead", index=event.index[affected_simulants], name="alive")
         )
 
-    def on_time_step_prepare(self, event: Event) -> None:
-        """Untrack any simulants who died during the previous time step.
-
-        We do this after the previous time step because the mortality
-        observer needs to collect observations before updating.
-
-        Parameters
-        ----------
-        event
-            An event object emitted by the simulation containing an index
-            representing the simulants affected by the event and timing
-            information.
-        """
-        population = self.population_view.get(event.index, ["alive", "tracked"])
-        population.loc[
-            (population["alive"] == "dead") & population["tracked"] == True, "tracked"
-        ] = False
-        self.population_view.update(population)
 
     ##################################
     # Pipeline sources and modifiers #
