@@ -28,9 +28,9 @@ class PopulationInterface(Interface):
     """Provides access to the system for reading and updating the population.
 
     The most important aspect of the simulation state is the ``population
-    table`` or ``state table``.  It is a table with a row for every
+    table`` or ``state table``. It is a table with a row for every
     individual or cohort (referred to as a simulant) being simulated and a
-    column for each of the attributes of the simulant being modeled.  All
+    column for each of the attributes of the simulant being modeled. All
     access to the state table is mediated by
     :class:`population views <vivarium.framework.population.population_view.PopulationView>`,
     which may be requested from this system during setup time.
@@ -41,10 +41,7 @@ class PopulationInterface(Interface):
         self._manager = manager
 
     def get_view(
-        self,
-        columns: str | Sequence[str],
-        query: str = "",
-        requires_all_columns: bool = False,
+        self, private_columns: str | Sequence[str], query: str = ""
     ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
@@ -53,26 +50,20 @@ class PopulationInterface(Interface):
 
         Parameters
         ----------
-        columns
-            A subset of the state table columns that will be available in the
-            returned view. If requires_all_columns is True, this should be set to
-            the columns created by the component containing the population view.
+        private_columns
+            The private columns created by the component requesting this view.
         query
-            A filter on the population state.  This filters out particular
+            A filter on the population state. This filters out particular
             simulants (rows in the state table) based on their current state.
             The query should be provided in a way that is understood by the
             :meth:`pandas.DataFrame.query` method and may reference state
-            table columns not requested in the ``columns`` argument.
-        requires_all_columns
-            If True, all columns in the population state table will be
-            included in the population view.
+            table columns not requested in the ``private_columns`` argument.
 
         Returns
         -------
-            A filtered view of the requested columns of the population state
-            table.
+            A filtered view of the requested columns of the population state table.
         """
-        return self._manager.get_view(columns, query, requires_all_columns)
+        return self._manager.get_view(private_columns, query)
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.

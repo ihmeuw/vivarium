@@ -197,7 +197,7 @@ one last way to set up the simulation in an interactive setting.
 .. testcode::
    :hide:
 
-   from vivarium.examples.disease_model import (BasePopulation, Mortality, DeathsObserver,
+   from vivarium.examples.disease_model import (BasePopulation, DeathsObserver,
                                                 YllsObserver, SISDiseaseModel, Risk,
                                                 RiskEffect, TreatmentIntervention)
    from vivarium import InteractiveContext
@@ -229,7 +229,6 @@ one last way to set up the simulation in an interactive setting.
    }
 
    components = [BasePopulation(),
-                 Mortality(),
                  SISDiseaseModel('diarrhea'),
                  Risk('child_growth_failure'),
                  RiskEffect('child_growth_failure', 'infected_with_diarrhea.incidence_rate'),
