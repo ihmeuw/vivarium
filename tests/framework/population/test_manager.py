@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 import pandas as pd
 import pytest
@@ -85,7 +85,7 @@ def test_initializer_set_population_manager() -> None:
     component_set = InitializerComponentSet()
     population_manager = PopulationManager()
 
-    component_set.add(population_manager.on_initialize_simulants, ["tracked"])
+    component_set.add(population_manager.on_initialize_simulants, ["foo"])
 
 
 def test_initializer_set() -> None:
@@ -97,21 +97,15 @@ def test_initializer_set() -> None:
 
 
 @pytest.mark.parametrize(
-    "contains_tracked, query, expected_query",
+    "query, expected_query",
     [
-        (True, "", ""),
-        (True, "foo == True", "foo == True"),
-        (False, "", ""),
-        (False, "foo == True", "foo == True"),
+        ("", ""),
+        ("foo == True", "foo == True"),
     ],
 )
-def test_setting_query_with_get_view(
-    contains_tracked: bool, query: str, expected_query: str
-) -> None:
+def test_setting_query_with_get_view(query: str, expected_query: str) -> None:
     manager = PopulationManager()
     columns = ["age", "sex"]
-    if contains_tracked:
-        columns.append("tracked")
     view = manager._get_view(columns=columns, query=query)
     assert view.query == expected_query
 
@@ -128,30 +122,25 @@ def test_setting_columns_with_get_view(
     assert view._columns == view_columns
 
 
+@pytest.mark.parametrize("attributes", ("all", COL_NAMES))
 @pytest.mark.parametrize("index", [None, pd.RangeIndex(0, len(RECORDS) // 2)])
-@pytest.mark.parametrize(
-    "attributes", ("all", COL_NAMES, [col for col in COL_NAMES if col != "tracked"])
-)
-@pytest.mark.parametrize("untracked", [True, False])
+@pytest.mark.parametrize("query", [None, "pie == 'apple'"])
 def test_get_population(
-    index: pd.Index[int] | None,
     attributes: Literal["all"] | list[str],
-    untracked: bool,
+    index: pd.Index[int] | None,
+    query: str,
     population_manager: PopulationManager,
 ) -> None:
+    kwargs: dict[str, Any] = {"attributes": attributes}
+    if index is not None:
+        kwargs["index"] = index
+    if query is not None:
+        kwargs["query"] = query
     assert attributes == "all" or isinstance(attributes, list)
-    pop = population_manager.get_population(attributes, untracked, index)
+    pop = population_manager.get_population(**kwargs)
     assert set(pop.columns) == set(COL_NAMES) if attributes == "all" else set(attributes)
-    if untracked:
-        expected_index = pd.RangeIndex(0, len(RECORDS)) if index is None else index
-    else:
-        # all tracked simulants are even indexed
-        expected_index = (
-            pd.RangeIndex(0, len(RECORDS), 2)
-            if index is None
-            else pd.RangeIndex(0, len(index), 2)
-        )
-    assert pop.index.equals(expected_index)
+    if query is not None:
+        assert (pop["pie"] == "apple").all()
 
 
 def test_get_population_different_attribute_types() -> None:
@@ -159,11 +148,10 @@ def test_get_population_different_attribute_types() -> None:
     and attribute pipelines that return dataframes instead of series'."""
     component = AttributePipelineCreator()
     sim = InteractiveContext(components=[component], setup=True)
-    pop = sim._population.get_population("all", untracked=True)
+    pop = sim._population.get_population("all")
     # We have columnar multi-index due to AttributePipelines that return dataframes
     assert isinstance(pop.columns, pd.MultiIndex)
     assert set(pop.columns) == {
-        ("tracked", ""),
         ("simulant_step_size", ""),
         ("test_column_1", ""),
         ("test_column_2", ""),
@@ -174,9 +162,7 @@ def test_get_population_different_attribute_types() -> None:
         ("attribute_generating_columns_6_7", "test_column_6"),
         ("attribute_generating_columns_6_7", "test_column_7"),
     }
-    value_cols = [
-        col for col in pop.columns if not col in [("tracked", ""), ("simulant_step_size", "")]
-    ]
+    value_cols = [col for col in pop.columns if col != ("simulant_step_size", "")]
     expected = pd.Series([idx % 3 for idx in pop.index])
     for col in value_cols:
         pd.testing.assert_series_equal(pop[col], expected, check_names=False)
@@ -186,7 +172,6 @@ def test_get_population_different_attribute_types() -> None:
 def test_get_population_column_ordering(include_duplicates: bool) -> None:
     def _extract_ordered_list(cols: list[str]) -> list[tuple[str, str]]:
         col_mapping = {
-            "tracked": ("tracked", ""),
             "test_column_1": ("test_column_1", ""),
             "attribute_generating_columns_4_5": [
                 ("attribute_generating_columns_4_5", "test_column_4"),
@@ -207,7 +192,7 @@ def test_get_population_column_ordering(include_duplicates: bool) -> None:
         return expected_cols
 
     def _check_col_ordering(sim: InteractiveContext, cols: list[str]) -> None:
-        pop = sim._population.get_population(cols, untracked=True)
+        pop = sim._population.get_population(cols)
         expected_cols = _extract_ordered_list(cols)
         assert isinstance(pop.columns, pd.MultiIndex)
         returned_cols = pop.columns.tolist()
@@ -216,7 +201,7 @@ def test_get_population_column_ordering(include_duplicates: bool) -> None:
     component = AttributePipelineCreator()
     sim = InteractiveContext(components=[component], setup=True)
 
-    cols = ["tracked", "test_column_1", "attribute_generating_columns_4_5", "test_attribute"]
+    cols = ["test_column_1", "attribute_generating_columns_4_5", "test_attribute"]
     if include_duplicates:
         cols.extend(cols)  # duplicate the list
     _check_col_ordering(sim, cols)
@@ -232,7 +217,6 @@ def test_get_population_column_ordering(include_duplicates: bool) -> None:
     (
         ["age", "sex"],
         COL_NAMES + ["age", "sex"],
-        ["age", "sex", "tracked"],
         ["age", "sex"],
         ["color", "count", "age"],
     ),
@@ -241,13 +225,13 @@ def test_get_population_raises_missing_attributes(
     attributes: list[str], population_manager: PopulationManager
 ) -> None:
     with pytest.raises(PopulationError, match="not in population table"):
-        population_manager.get_population(attributes, True)
+        population_manager.get_population(attributes)
 
 
 def test_get_population_deduplicates_requested_columns(
     population_manager: PopulationManager, mocker: MockerFixture
 ) -> None:
-    pop = population_manager.get_population(["color", "color", "color"], True)
+    pop = population_manager.get_population(["color", "color", "color"])
     assert set(pop.columns) == {"color"}
 
 
