@@ -563,7 +563,7 @@ Mortality
 ---------
 
 Now that we have demonstrated that population generation and aging works, let's 
-investigate the Mortality component. Note that Mortality is a so-called "sub-component"
+investigate the Mortality component. Note that Mortality is a sub-component
 of the BasePopulation component and comes for free when we request BasePopulation
 via the model specification; there is no need to add Mortality separately.
 
@@ -599,7 +599,7 @@ Columns Required
 
 This component creates a single ``'alive'`` column. This column is also required
 by the BasePopulation component since the simulation should only age simulants
-who are dead and so the column is used in a query string "alive == 'alive'".
+who are alive, so the column is used in a query string "alive == 'alive'".
 
 The ``setup`` method
 ++++++++++++++++++++
