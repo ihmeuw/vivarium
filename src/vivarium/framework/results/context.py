@@ -414,7 +414,7 @@ class ResultsContext:
         -------
             A list of all columns required for producing results for the given Event.
         """
-        required_columns = {"tracked"}
+        required_columns = set()
         for observation in observations:
             required_columns.update(observation.requires_columns)
         for stratification in stratifications:

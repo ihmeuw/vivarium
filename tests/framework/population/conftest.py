@@ -9,17 +9,14 @@ from vivarium.framework.engine import SimulationContext
 from vivarium.framework.population import PopulationManager
 from vivarium.framework.values import ValuesManager
 
-COL_NAMES = ["color", "count", "pie", "pi", "tracked"]
+COL_NAMES = ["color", "count", "pie", "pi"]
 COLORS = ["red", "green", "yellow"]
 COUNTS = [10, 20, 30]
 PIES = ["apple", "chocolate", "pecan"]
 PIS = [math.pi**i for i in range(1, 4)]
-TRACKED_STATUSES = [True, False]
 RECORDS = [
-    (color, count, pie, pi, ts)
-    for color, count, pie, pi, ts in itertools.product(
-        COLORS, COUNTS, PIES, PIS, TRACKED_STATUSES
-    )
+    (color, count, pie, pi)
+    for color, count, pie, pi in itertools.product(COLORS, COUNTS, PIES, PIS)
 ]
 
 
