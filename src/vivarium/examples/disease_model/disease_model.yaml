@@ -2,8 +2,6 @@ components:
     vivarium.examples.disease_model:
         population:
             - BasePopulation()
-        mortality:
-            - Mortality()
         disease:
             - SISDiseaseModel('lower_respiratory_infections')
         risk:

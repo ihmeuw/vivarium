@@ -7,6 +7,7 @@ from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
 from vivarium.framework.population import SimulantData
+from vivarium.examples.disease_model import Mortality
 
 
 class BasePopulation(Component):
@@ -34,7 +35,11 @@ class BasePopulation(Component):
 
     @property
     def columns_created(self) -> list[str]:
-        return ["age", "sex", "alive", "entrance_time"]
+        return ["age", "sex", "entrance_time"]
+    
+    @property
+    def sub_components(self) -> list[Component]:
+        return [Mortality()]
 
     #####################
     # Lifecycle methods #
@@ -78,15 +83,13 @@ class BasePopulation(Component):
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """Called by the simulation whenever new simulants are added.
 
-        This component is responsible for creating and filling four columns
+        This component is responsible for creating and filling three columns
         in the population state table:
 
         'age'
             The age of the simulant in fractional years.
         'sex'
             The sex of the simulant. One of {'Male', 'Female'}
-        'alive'
-            Whether or not the simulant is alive. One of {'alive', 'dead'}
         'entrance_time'
             The time that the simulant entered the simulation. The 'birthday'
             for simulants that enter as newborns. A `pandas.Timestamp`.
@@ -118,13 +121,11 @@ class BasePopulation(Component):
             )
             self.register(population)
             population["sex"] = self.sex_randomness.choice(pop_data.index, ["Male", "Female"])
-            population["alive"] = "alive"
         else:
             population = pd.DataFrame(
                 {
                     "age": age.values,
                     "sex": self.sex_randomness.choice(pop_data.index, ["Male", "Female"]),
-                    "alive": pd.Series("alive", index=pop_data.index),
                     "entrance_time": pop_data.creation_time,
                 },
                 index=pop_data.index,
@@ -147,4 +148,4 @@ class BasePopulation(Component):
         # those columns are returned when they're not necessarily needed.
         population = self.population_view.get(event.index, ["age", "alive"], query="alive == 'alive'")
         population["age"] += event.step_size / pd.Timedelta(days=365)
-        self.population_view.update(population)
+        self.population_view.update(population["age"])

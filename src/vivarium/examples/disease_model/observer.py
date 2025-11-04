@@ -21,10 +21,6 @@ class DeathsObserver(Observer):
     def initialization_requirements(self) -> list[str | Resource]:
         """Requirements for observer initialization."""
         return ["alive"]
-
-    @property
-    def columns_required(self) -> list[str] | None:
-        return ["alive"]
     
     @property
     def columns_created(self) -> list[str] | None:
@@ -51,9 +47,9 @@ class DeathsObserver(Observer):
 
     def on_time_step_prepare(self, event: Event) -> None:
         """Update the previous deaths column to the current deaths."""
-        prior_alive = self.population_view.get(event.index, "alive")
-        prior_alive["previous_alive"] = prior_alive["alive"]
-        self.population_view.update(prior_alive)
+        previous_alive = self.population_view.get(event.index, "alive").squeeze()
+        previous_alive.name = "previous_alive"
+        self.population_view.update(previous_alive)
 
 
 class YllsObserver(Observer):
@@ -62,10 +58,6 @@ class YllsObserver(Observer):
     ##############
     # Properties #
     ##############
-
-    @property
-    def columns_required(self) -> list[str] | None:
-        return ["age", "alive"]
 
     @property
     def configuration_defaults(self) -> dict[str, Any]:
@@ -96,7 +88,8 @@ class YllsObserver(Observer):
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(
             name="ylls",
-            requires_columns=["age", "alive"],
+            requires_columns=["age", "alive", "previous_alive"],
+            pop_filter='previous_alive == "alive" and alive == "dead"',
             aggregator=self.calculate_ylls,
         )
 
