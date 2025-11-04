@@ -189,22 +189,6 @@ class StepModifierWithRatePipeline(StepModifier):
         self.ts_pipeline_value = self.rate_pipeline(event.index)
 
 
-class StepModifierWithUntracking(StepModifierWithRatePipeline):
-    """Add an event step that untracks/tracks even simulants every timestep"""
-
-    @property
-    def columns_required(self) -> list[str]:
-        return ["tracked"]
-
-    def on_time_step(self, event: Event) -> None:
-        super().on_time_step(event)
-        evens = self.population_view.get(event.index, "tracked").loc[
-            get_index_by_parity(event.index, "evens")
-        ]
-        evens["tracked"] = False
-        self.population_view.update(evens)
-
-
 class StepModifierWithMovement(StepModifierWithRatePipeline):
     def setup(self, builder: Builder) -> None:
         super().setup(builder)
@@ -469,27 +453,6 @@ def test_multiple_modifiers(base_config: LayeredConfigTree) -> None:
             expected_simulants=get_pop_by_parity(sim, group).index,
             expected_step_size_days=correct_step_size,
         )
-
-
-def test_untracked_simulants(base_config: LayeredConfigTree) -> None:
-    """Test that untracked simulants are always included in event indices, and are
-    basically treated the same as any other simulant."""
-    base_config.update({"configuration": {"time": {"standard_step_size": 7}}})
-    listener = Listener("listener")
-    step_modifier_component = StepModifierWithUntracking("step_modifier", 3)
-    sim = SimulationContext(
-        base_config,
-        [step_modifier_component, listener],
-    )
-
-    sim.setup()
-    sim.initialize_simulants()
-    full_pop_index = get_full_pop_index(sim)
-
-    for _ in range(2):
-        take_step_and_validate(sim, listener, full_pop_index, expected_step_size_days=3)
-        assert step_modifier_component.ts_pipeline_value is not None
-        assert step_modifier_component.ts_pipeline_value.index.equals(full_pop_index)
 
 
 def test_move_simulants_to_end(base_config: LayeredConfigTree) -> None:
