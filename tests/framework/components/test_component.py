@@ -7,11 +7,8 @@ import pytest
 from layered_config_tree.exceptions import ConfigurationError
 
 from tests.helpers import (
-    AllColumnsRequirer,
     ColumnCreator,
-    ColumnCreatorAndAllRequirer,
     ColumnCreatorAndRequirer,
-    ColumnRequirer,
     CustomPriorities,
     DefaultPriorities,
     FilteredPopulationView,
@@ -86,39 +83,7 @@ def test_component_that_creates_columns_population_view() -> None:
 
     # Assert population view is set and has the correct columns
     assert component.population_view is not None
-    assert set(component.population_view.columns) == set(component.columns_created)
-
-
-def test_component_that_requires_columns_population_view() -> None:
-    component = ColumnRequirer()
-    InteractiveContext(components=[ColumnCreator(), component])
-
-    # Assert population view is set and has the correct columns
-    assert component.population_view is not None
-    assert set(component.population_view.columns) == set(component.columns_required)
-
-
-def test_component_that_creates_and_requires_columns_population_view() -> None:
-    component = ColumnCreatorAndRequirer()
-    InteractiveContext(components=[ColumnCreator(), component])
-
-    # Assert population view is set and has the correct columns
-    expected_columns = component.columns_required + component.columns_created
-
-    assert component.population_view is not None
-    assert set(component.population_view.columns) == set(expected_columns)
-
-
-def test_component_that_creates_column_and_requires_all_columns_population_view() -> None:
-    component = ColumnCreatorAndAllRequirer()
-    simulation = InteractiveContext(components=[ColumnCreator(), component])
-    population = simulation.get_population()
-
-    # Assert population view is set and has the correct columns
-    expected_columns = population.columns
-
-    assert component.population_view is not None
-    assert set(component.population_view.columns) == set(expected_columns)
+    assert set(component.population_view.private_columns) == set(component.columns_created)
 
 
 def test_component_with_initialization_requirements() -> None:
@@ -146,20 +111,6 @@ def test_component_with_initialization_requirements() -> None:
     assert "stream.stream_1" in component_dependencies
 
 
-def test_component_that_requires_all_columns_population_view() -> None:
-    component = AllColumnsRequirer()
-    simulation = InteractiveContext(
-        components=[ColumnCreator(), ColumnCreatorAndRequirer(), component]
-    )
-    population = simulation.get_population()
-
-    # Assert population view is set and has the correct columns
-    expected_columns = population.columns
-
-    assert component.population_view is not None
-    assert set(component.population_view.columns) == set(expected_columns)
-
-
 def test_component_with_filtered_population_view() -> None:
     component = FilteredPopulationView()
     InteractiveContext(components=[ColumnCreator(), component])
@@ -168,9 +119,9 @@ def test_component_with_filtered_population_view() -> None:
     assert component.population_view.query == "test_column_1 == 5"
 
 
-def test_component_with_no_population_view() -> None:
+def test_component_population_view_raises_before_setup() -> None:
     component = NoPopulationView()
-    InteractiveContext(components=[ColumnCreator(), component])
+    sim = InteractiveContext(components=[ColumnCreator(), component], setup=False)
 
     # Assert population view is not set
     assert component._population_view is None
@@ -178,6 +129,9 @@ def test_component_with_no_population_view() -> None:
     # Assert trying to access the population view raises an error
     with pytest.raises(PopulationError, match=f"'{component.name}' does not have access"):
         _ = component.population_view
+
+    sim.setup()
+    assert component._population_view is not None
 
 
 def test_component_initializer_is_not_registered_if_not_defined() -> None:
@@ -276,10 +230,10 @@ def test_listeners_are_registered_at_custom_priorities() -> None:
 
 def test_component_configuration_gets_set() -> None:
     without_config = ColumnCreator()
-    with_config = ColumnRequirer()
+    with_config = ColumnCreatorAndRequirer()
 
     column_requirer_config = {
-        "column_requirer": {"test_configuration": "some_config_value"},
+        "column_creator_and_requirer": {"test_configuration": "some_config_value"},
     }
 
     sim = InteractiveContext(components=[with_config, without_config], setup=False)
@@ -292,7 +246,10 @@ def test_component_configuration_gets_set() -> None:
 
     assert without_config.configuration is None
     assert with_config.configuration is not None
-    assert with_config.configuration.to_dict() == column_requirer_config["column_requirer"]
+    assert (
+        with_config.configuration.to_dict()
+        == column_requirer_config["column_creator_and_requirer"]
+    )
 
 
 def test_component_lookup_table_configuration(hdf_file_path: Path) -> None:

@@ -7,7 +7,7 @@ from typing import Any
 import pytest
 import pytest_mock
 
-from tests.helpers import ColumnCreator, ColumnCreatorAndRequirer, ColumnRequirer
+from tests.helpers import ColumnCreator, ColumnCreatorAndRequirer
 from vivarium import Component
 from vivarium.framework.population import SimulantData
 from vivarium.framework.randomness import RandomnessStream
@@ -160,9 +160,11 @@ def test_resource_manager_sorted_nodes_two_node_cycle(
 
 
 def test_resource_manager_sorted_nodes_three_node_cycle(
-    manager: ResourceManager, randomness_stream: RandomnessStream
+    manager: ResourceManager,
+    randomness_stream: RandomnessStream,
+    mocker: pytest_mock.MockFixture,
 ) -> None:
-    pipeline = Pipeline("some_pipeline", ColumnRequirer())
+    pipeline = Pipeline("some_pipeline", mocker.Mock())
 
     manager.add_resources(ColumnCreatorAndRequirer(), ["c_1"], [randomness_stream])
     manager.add_resources(pipeline.component, [pipeline], ["c_1"])

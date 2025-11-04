@@ -207,9 +207,8 @@ class PopulationManager(Manager):
 
     def get_view(
         self,
-        columns: str | Sequence[str],
+        private_columns: str | Sequence[str],
         query: str = "",
-        requires_all_columns: bool = False,
     ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
@@ -218,34 +217,21 @@ class PopulationManager(Manager):
 
         Parameters
         ----------
-        columns
-            A subset of the state table columns that will be available in the
-            returned view. If requires_all_columns is True, this should be set to
-            the columns created by the component containing the population view.
+        private_columns
+            The private columns created by the component requesting this view.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
             The query should be provided in a way that is understood by the
             :meth:`pandas.DataFrame.query` method and may reference state
             table columns not requested in the ``columns`` argument.
-        requires_all_columns
-            If True, all columns in the population state table will be
-            included in the population view.
 
         Returns
         -------
-            A filtered view of the requested columns of the population state table.
+            A filtered view of the requested private columns of the population state table.
 
         """
-        if not columns and not requires_all_columns:
-            warnings.warn(
-                "The empty list [] format for requiring all columns is deprecated. Please "
-                "use the new argument 'requires_all_columns' instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            requires_all_columns = True
-        view = self._get_view(columns, query, requires_all_columns)
+        view = self._get_view(private_columns, query)
         self._add_constraint(
             view.get,
             restrict_during=[
@@ -266,13 +252,11 @@ class PopulationManager(Manager):
         )
         return view
 
-    def _get_view(
-        self, columns: str | Sequence[str], query: str, requires_all_columns: bool = False
-    ) -> PopulationView:
-        if isinstance(columns, str):
-            columns = [columns]
+    def _get_view(self, private_columns: str | Sequence[str], query: str) -> PopulationView:
+        if isinstance(private_columns, str):
+            private_columns = [private_columns]
         self._last_id += 1
-        return PopulationView(self, self._last_id, columns, query, requires_all_columns)
+        return PopulationView(self, self._last_id, private_columns, query)
 
     def register_simulant_initializer(
         self,
@@ -511,4 +495,7 @@ class PopulationManager(Manager):
         # Maintain column ordering
         df = df[attributes_to_include]
 
+        # FIXME [MIC-6572]: Consider parsing the query string earlier to reduce the index
+        # prior to calculating all of the attributes (e.g. including aged out
+        # simulants or not)
         return df.query(query) if query else df

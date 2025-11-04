@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import random
-import re
 from typing import Any
 
 import pandas as pd
@@ -80,7 +79,7 @@ def test_initialization(population_manager: PopulationManager) -> None:
     pv = population_manager.get_view(COL_NAMES)
     assert pv._id == 0
     assert pv.name == "population_view_0"
-    assert set(pv.columns) == set(COL_NAMES)
+    assert set(pv.private_columns) == set(COL_NAMES)
     assert pv.query == ""
 
     # Failure here is lazy.  The manager should give you back views for
@@ -90,20 +89,20 @@ def test_initialization(population_manager: PopulationManager) -> None:
     pv = population_manager.get_view(cols)
     assert pv._id == 1
     assert pv.name == "population_view_1"
-    assert set(pv.columns) == set(cols)
+    assert set(pv.private_columns) == set(cols)
     assert pv.query == ""
 
     col_subset = ["color", "count"]
     pv = population_manager.get_view(col_subset)
     assert pv._id == 2
     assert pv.name == "population_view_2"
-    assert set(pv.columns) == set(col_subset)
+    assert set(pv.private_columns) == set(col_subset)
 
     q_string = "color == 'red'"
     pv = population_manager.get_view(COL_NAMES, query=q_string)
     assert pv._id == 3
     assert pv.name == "population_view_3"
-    assert set(pv.columns) == set(COL_NAMES)
+    assert set(pv.private_columns) == set(COL_NAMES)
     assert pv.query == q_string
 
 
@@ -145,10 +144,7 @@ def test_get_raises(population_manager: PopulationManager) -> None:
     # Unknown columns
     with pytest.raises(
         PopulationError,
-        match=re.compile(
-            "Invalid subview requested. Requested attributes must be a non-empty subset "
-            "of this view's columns.",
-        ),
+        match="Requested attribute\(s\) \{'foo'\} not in population table.",
     ):
         pv.get(pd.Index([]), "foo")
 

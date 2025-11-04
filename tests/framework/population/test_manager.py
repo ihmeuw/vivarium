@@ -106,7 +106,7 @@ def test_initializer_set() -> None:
 def test_setting_query_with_get_view(query: str, expected_query: str) -> None:
     manager = PopulationManager()
     columns = ["age", "sex"]
-    view = manager._get_view(columns=columns, query=query)
+    view = manager._get_view(private_columns=columns, query=query)
     assert view.query == expected_query
 
 
@@ -118,8 +118,8 @@ def test_setting_columns_with_get_view(
 ) -> None:
     view_columns = expected_columns or columns
     manager = PopulationManager()
-    view = manager._get_view(columns=columns, query="")
-    assert view._columns == view_columns
+    view = manager._get_view(private_columns=columns, query="")
+    assert view.private_columns == view_columns
 
 
 @pytest.mark.parametrize("attributes", ("all", COL_NAMES))
