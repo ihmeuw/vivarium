@@ -29,13 +29,12 @@ BIN_SOURCE = "silly_level"
 BIN_LABELS = ["meh", "somewhat", "very", "extra"]
 BIN_SILLY_BIN_EDGES = [0, 20, 40, 60, 90]
 
-COL_NAMES = ["house", "familiar", "power_level", "tracked"]
+COL_NAMES = ["house", "familiar", "power_level"]
 FAMILIARS = ["owl", "cat", "gecko", "banana_slug", "unladen_swallow"]
 POWER_LEVELS = [20, 40, 60, 80]
 POWER_LEVEL_BIN_EDGES = [0, 25, 50, 75, 100]
 POWER_LEVEL_GROUP_LABELS = ["low", "medium", "high", "very high"]
-TRACKED_STATUSES = [True, False]
-RECORDS = list(itertools.product(HOUSE_CATEGORIES, FAMILIARS, POWER_LEVELS, TRACKED_STATUSES))
+RECORDS = list(itertools.product(HOUSE_CATEGORIES, FAMILIARS, POWER_LEVELS))
 BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
 
 HARRY_POTTER_CONFIG = {
@@ -158,7 +157,7 @@ class FullyFilteredHousePointsObserver(Observer):
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_adding_observation(
             name="house_points",
-            pop_filter="tracked==True & power_level=='one billion'",
+            pop_filter="power_level=='one billion'",
             aggregator_sources=["house_points"],
             aggregator=lambda df: df.sum(),
             requires_columns=[
@@ -235,7 +234,7 @@ class CatBombObserver(Observer):
     def register_observations(self, builder: Builder) -> None:
         builder.results.register_stratified_observation(
             name="cat_bomb",
-            pop_filter="familiar=='cat' and tracked==True",
+            pop_filter="familiar=='cat'",
             requires_columns=["familiar"],
             results_updater=self.update_cats,
             excluded_stratifications=["power_level_group"],

@@ -119,10 +119,6 @@ the following:
     DEBUG:vivarium.framework.engine:2005-07-07 00:00:00
     DEBUG:vivarium.framework.engine:2005-07-10 00:00:00
     DEBUG:vivarium.framework.engine:2005-07-13 00:00:00
-    DEBUG:vivarium.framework.engine:{'simulation_run_time': 0.7717499732971191,
-     'total_population': 10000,
-     'total_population_tracked': 10000,
-     'total_population_untracked': 0}
     DEBUG:vivarium.framework.engine:Some configuration keys not used during run: {'input_data.cache_data', 'output_data.results_directory', 'input_data.intermediary_data_cache_path'}
 
 The specifics of these messages will depend on your model specification, but

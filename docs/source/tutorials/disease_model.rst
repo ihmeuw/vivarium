@@ -491,12 +491,12 @@ Now that we've done all this hard work, let's see what it gives us.
 
 ::
 
-          tracked     sex        age entrance_time  alive
-    0     True  Female  13.806775818385496  2005-07-01  alive
-    1     True  Male    59.17289327893596   2005-07-01  alive
-    2     True  Female  11.030887339897     2005-07-01  alive
-    3     True  Female  27.72319127598699   2005-07-01  alive
-    4     True  Female  51.05218820533359   2005-07-01  alive
+     simulant_step_size        age     sex  alive entrance_time
+   0             1 days  13.806776  Female  alive    2005-07-01
+   1             1 days  59.172893    Male  alive    2005-07-01
+   2             1 days  11.030887  Female  alive    2005-07-01
+   3             1 days  27.723191  Female  alive    2005-07-01
+   4             1 days  51.052188  Female  alive    2005-07-01
 
 .. testcode::
    :hide:
@@ -524,12 +524,12 @@ Let's see what happens when our simulation takes a time step.
 
 ::
 
-          tracked     sex        age entrance_time  alive
-    0     True  Female  13.806775818385496  2005-07-01  alive
-    1     True  Male    59.17289327893596   2005-07-01  alive
-    2     True  Female  11.030887339897     2005-07-01  alive
-    3     True  Female  27.72319127598699   2005-07-01  alive
-    4     True  Female  51.05218820533359   2005-07-01  alive
+     simulant_step_size        age     sex  alive entrance_time
+   0             1 days  13.809516  Female  alive    2005-07-01
+   1             1 days  59.175633    Male  alive    2005-07-01
+   2             1 days  11.033627  Female  alive    2005-07-01
+   3             1 days  27.725931  Female  alive    2005-07-01
+   4             1 days  51.054928  Female  alive    2005-07-01
 
 
 .. testcode::
@@ -581,9 +581,8 @@ Columns Required
    :lines: 29-31
 
 While this component does not create any new columns like the ``BasePopulation``
-component, it does require the ``'tracked'`` and ``'alive'`` columns to be 
-present in the population table. You'll see that these columns are indeed used 
-in the ``on_time_step`` and ``on_time_step_prepare`` methods.
+component, it does require the ``'alive'`` column to be present in the population 
+table. You'll see that this column is indeed used in the ``on_time_step`` method.
 
 The ``setup`` method
 ++++++++++++++++++++
@@ -649,23 +648,6 @@ the computed probability of death for the individual.
 
 Finally, we update the state table ``'alive'`` column with the newly dead simulants.
 
-The ``on_time_step_prepare`` method
-+++++++++++++++++++++++++++++++++++
-
-This method simply updates any simulants who died during the previous time step 
-to be marked as untracked (that is, their ``'tracked'`` value is set to ``False``).
-
-.. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 79, 92-96
-
-Why didn't we update the newly-dead simulants ``'tracked'`` values at the same time 
-as their ``'alive'`` values in the ``on_time_step`` method? The reason is that the 
-deaths observer (discussed later) records the number of deaths that occurred during 
-the previous time step during the ``collect_metrics`` phase. By updating 
-the ``'alive'`` column during the ``time_step`` phase (which occurs *before* 
-``collect_metrics``) and the ``'tracked'`` column during the ``time_step_prepare``
-phase (which occurs *after* ``collect_metrics``), we ensure that the observer 
-can distinguish which simulants died specifically during the previous time step.
 
 Supplying a base mortality rate
 +++++++++++++++++++++++++++++++
@@ -676,7 +658,7 @@ a ``pandas.Series`` that assigns each individual the mortality rate
 specified in the configuration.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
-   :lines: 102, 115
+   :lines: 85, 98
 
 In an actual simulation, we'd inform the base mortality rate with data
 specific to the age, sex, location, year (and potentially other demographic
@@ -712,12 +694,12 @@ can see the impact of our mortality component without taking too many steps.
 
 ::
 
-          tracked     sex        age entrance_time  alive
-    0     True  Female  13.806775818385496  2005-07-01  alive
-    1     True  Male    59.17289327893596   2005-07-01  alive
-    2     True  Female  11.030887339897     2005-07-01  alive
-    3     True  Female  27.72319127598699   2005-07-01  alive
-    4     True  Female  51.05218820533359   2005-07-01  alive
+     simulant_step_size        age     sex  alive entrance_time  mortality_rate
+   0             1 days  13.806776  Female  alive    2005-07-01        0.000027
+   1             1 days  59.172893    Male  alive    2005-07-01        0.000027
+   2             1 days  11.030887  Female  alive    2005-07-01        0.000027
+   3             1 days  27.723191  Female  alive    2005-07-01        0.000027
+   4             1 days  51.052188  Female  alive    2005-07-01        0.000027
 
 .. testcode::
    :hide:
@@ -764,7 +746,7 @@ and see what happens.
 .. code-block:: python
 
    sim.take_steps(365)  # Run for one year with one day time steps
-   sim.get_population('tracked==True').alive.value_counts()
+   sim.get_population().alive.value_counts()
 
 ::
 
@@ -783,7 +765,7 @@ to 0.0099 deaths per person-year, very close to the 0.01 rate we provided.
 
    sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
    sim.take_steps(2)
-   assert sim.get_population('tracked==True')['alive'].value_counts()['dead'] == 6
+   assert sim.get_population()['alive'].value_counts()['dead'] == 6
 
 Disease
 -------
@@ -825,7 +807,21 @@ This example's observers are shown below.
 There are two observers that have each registered a single observation to the 
 simulation: deaths and years of life lost (YLLs). It is important to note that 
 neither of those observations are population state table columns; they are 
-more complex results that require some computation to determine. 
+more complex results that require some computation to determine.
+
+Note that the deaths observer actually creates a column called ``'previous_alive'``.
+The purpose of this column is to distinguish newly-dead simulants (for adding purposes) 
+from those that died in previous time steps. We update this column in the 
+``on_time_step_prepare`` method of the observer.
+
+Why didn't we update the ``'previous_alive'`` values at the same time 
+as the ``'alive'`` values in the Mortality component's ``on_time_step`` method?
+The reason is that the deaths observer records the number of deaths that occurred during 
+the previous time step during the ``collect_metrics`` phase. By updating 
+the ``'alive'`` column during the ``time_step`` phase (which occurs *before* 
+``collect_metrics``) and the ``'previous_alive'`` column during the ``time_step_prepare``
+phase (which occurs *after* ``collect_metrics``), we ensure that the observer 
+can distinguish which simulants died specifically during the previous time step.
 
 In an interactive setting, we can access these observations via the 
 ``sim.get_results()`` command. This will return a dictionary of all  
@@ -892,7 +888,7 @@ been a total of 27,987 years of life lost.
    assert dead["value"][0] == 6
    ylls = sim.get_results()["ylls"]
    assert len(ylls) == 1
-   assert ylls["value"][0] == 333.9956932528944
+   assert ylls["value"][0] == 388.5595493229374
 
 .. note::
 

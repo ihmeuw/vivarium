@@ -164,10 +164,6 @@ class PopulationManager(Manager):
         """The name of this component."""
         return "population_manager"
 
-    @property
-    def columns_created(self) -> list[str]:
-        return ["tracked"]
-
     def setup(self, builder: Builder) -> None:
         """Registers the population manager with other vivarium systems."""
         super().setup(builder)
@@ -196,17 +192,11 @@ class PopulationManager(Manager):
         )
 
         self.register_simulant_initializer(self, creates_columns=self.columns_created)
-        self._view = self.get_view("tracked")
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
 
     def on_post_setup(self, event: Event) -> None:
         # All pipelines are registered during setup and so exist at this point.
         self._attribute_pipelines = self._get_attribute_pipelines()
-
-    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
-        """Adds a ``tracked`` column to the state table for new simulants."""
-        status = pd.Series(True, index=pop_data.index)
-        self._view.update(status)
 
     def __repr__(self) -> str:
         return "PopulationManager()"
@@ -340,15 +330,8 @@ class PopulationManager(Manager):
         if isinstance(creates_columns, str):
             creates_columns = [creates_columns]
 
-        if "tracked" not in creates_columns:
-            # The population view itself uses the tracked column, so include
-            # to be safe.
-            all_dependencies = list(required_resources) + ["tracked"]
-        else:
-            all_dependencies = list(required_resources)
-
         self._initializer_components.add(component.on_initialize_simulants, creates_columns)
-        self.resources.add_resources(component, creates_columns, all_dependencies)
+        self.resources.add_resources(component, creates_columns, list(required_resources))
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.
@@ -419,7 +402,6 @@ class PopulationManager(Manager):
     def get_population(
         self,
         attributes: list[str] | Literal["all"],
-        untracked: bool,
         index: pd.Index[int] | None = None,
         query: str = "",
     ) -> pd.DataFrame:
@@ -429,12 +411,9 @@ class PopulationManager(Manager):
         ----------
         attributes
             The attributes to include as the state table. If "all", all attributes are included.
-        untracked
-            Whether to include untracked simulants in the returned population.
         index
             The index of simulants to include in the returned population. If None,
-            all simulants are included (unless they are untracked and the untracked
-            argument is False).
+            all simulants are included.
         query
             Additional conditions used to filter the index. The query
             provided may not use columns that are not explicitly passed in via
@@ -446,8 +425,6 @@ class PopulationManager(Manager):
 
         Raises
         ------
-        ValueError
-            If the 'tracked' attribute pipeline does not return a pd.Series.
         PopulationError
             If any of the requested attributes do not exist in the population table.
         """
@@ -456,14 +433,6 @@ class PopulationManager(Manager):
             return pd.DataFrame()
 
         idx = index if index is not None else self._population.index
-        if not untracked:
-            tracked = self._attribute_pipelines["tracked"](idx)
-            if not isinstance(tracked, pd.Series):
-                raise ValueError(
-                    "The 'tracked' attribute pipeline should return a pd.Series but instead "
-                    f"returned a {type(tracked)}."
-                )
-            idx = tracked[tracked].index
 
         if isinstance(attributes, list):
             # check for duplicate request

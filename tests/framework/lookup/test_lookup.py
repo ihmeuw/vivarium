@@ -65,7 +65,7 @@ def test_interpolated_tables(base_config: LayeredConfigTree) -> None:
         one_d_age_df, key_columns=("sex",), parameter_columns=("age",), value_columns=()
     )
 
-    pop = simulation.get_population(untracked=True)
+    pop = simulation.get_population()
     result_years = years(pop.index)
     result_ages = ages(pop.index)
     result_ages_1d = one_d_age(pop.index)

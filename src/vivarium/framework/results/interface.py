@@ -195,7 +195,7 @@ class ResultsInterface(Interface):
     def register_stratified_observation(
         self,
         name: str,
-        pop_filter: str = "tracked==True",
+        pop_filter: str = "",
         when: str = lifecycle_states.COLLECT_METRICS,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
@@ -266,7 +266,7 @@ class ResultsInterface(Interface):
     def register_unstratified_observation(
         self,
         name: str,
-        pop_filter: str = "tracked==True",
+        pop_filter: str = "",
         when: str = lifecycle_states.COLLECT_METRICS,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
@@ -329,7 +329,7 @@ class ResultsInterface(Interface):
     def register_adding_observation(
         self,
         name: str,
-        pop_filter: str = "tracked==True",
+        pop_filter: str = "",
         when: str = lifecycle_states.COLLECT_METRICS,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
@@ -397,7 +397,7 @@ class ResultsInterface(Interface):
     def register_concatenating_observation(
         self,
         name: str,
-        pop_filter: str = "tracked==True",
+        pop_filter: str = "",
         when: str = lifecycle_states.COLLECT_METRICS,
         requires_columns: list[str] = [],
         requires_values: list[str] = [],
