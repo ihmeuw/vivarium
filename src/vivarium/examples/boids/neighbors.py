@@ -14,10 +14,6 @@ class Neighbors(Component):
     ##############
     configuration_defaults = {"neighbors": {"radius": 60}}
 
-    @property
-    def columns_required(self) -> list[str]:
-        return ["x", "y"]
-
     #####################
     # Lifecycle methods #
     #####################
@@ -28,7 +24,7 @@ class Neighbors(Component):
         self.neighbors_calculated = False
         self._neighbors = pd.Series()
         self.neighbors = builder.value.register_attribute_producer(
-            "neighbors", source=self.get_neighbors, component=self, required_resources=self.columns_required
+            "neighbors", source=self.get_neighbors, component=self, required_resources=["x", "y"]
         )
 
     ########################

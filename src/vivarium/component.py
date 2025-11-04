@@ -16,7 +16,7 @@ from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
 from importlib import import_module
 from inspect import signature
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 from typing import SupportsFloat as Numeric
 from typing import cast
 
@@ -66,7 +66,6 @@ class Component(ABC):
     - `sub_components`
     - `configuration_defaults`
     - `columns_created`
-    - `columns_required`
     - `initialization_requirements`
     - `population_view_query`
     - `post_setup_priority`
@@ -203,9 +202,8 @@ class Component(ABC):
         """
         if self._population_view is None:
             raise PopulationError(
-                f"Component '{self.name}' does not have access to the state "
-                "table. This is likely due to a failure to set columns_required "
-                "or columns_created for this component."
+                f"Component '{self.name}' does not have access to the state table. "
+                "This is likely due to having called this prior to simulation setup."
             )
         return self._population_view
 
@@ -245,18 +243,6 @@ class Component(ABC):
             none.
         """
         return []
-
-    @property
-    def columns_required(self) -> list[str] | Literal["all"] | None:
-        """Provides names of columns required by the component.
-
-        Returns
-        -------
-            Names of required columns not created by this component. A string of
-            "all" means all available columns are needed. `None` means no
-            additional columns are necessary.
-        """
-        return None
 
     @property
     def initialization_requirements(
@@ -747,47 +733,16 @@ class Component(ABC):
         builder.population.register_source_columns(self)
 
     def _set_population_view(self, builder: Builder) -> None:
-        """Creates the PopulationView for this component if it needs access to
-        the state table.
-
-        The method determines the necessary columns for the PopulationView
-        based on the columns required and created by this component. If no
-        columns are required or created, no PopulationView is set.
+        """Creates the PopulationView for this component.
 
         Parameters
         ----------
         builder
             The builder object used to set up the component.
         """
-        requires_all_columns = False
-        if self.columns_required == []:
-            warnings.warn(
-                "The empty list [] format for requiring all columns is deprecated. Please "
-                "use the string 'all' instead.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-        if self.columns_required and self.columns_required != "all":
-            # Get all columns created and required
-            population_view_columns = self.columns_created + self.columns_required
-        elif self.columns_required == "all" or self.columns_required == []:
-            # Empty list means population view needs all available columns
-            requires_all_columns = True
-            if self.columns_created:
-                population_view_columns = self.columns_created
-            else:
-                population_view_columns = []
-        elif self.columns_required is None and self.columns_created:
-            # No additional columns required, so just get columns created
-            population_view_columns = self.columns_created
-        else:
-            # no need for a population view if no columns created or required
-            population_view_columns = None
-
-        if population_view_columns is not None:
-            self._population_view = builder.population.get_view(
-                population_view_columns, self.population_view_query, requires_all_columns
-            )
+        self._population_view = builder.population.get_view(
+            self.columns_created, self.population_view_query
+        )
 
     def _register_attribute_producers(self, builder: Builder) -> None:
         for column in self.columns_created:

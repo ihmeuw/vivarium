@@ -72,10 +72,6 @@ class DiseaseState(State):
     ##############
 
     @property
-    def columns_required(self) -> list[str] | None:
-        return [self.model, "alive"]
-
-    @property
     def population_view_query(self) -> str | None:
         return f"alive == 'alive' and {self.model} == '{self.state_id}'"
 

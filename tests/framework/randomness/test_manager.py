@@ -2,7 +2,7 @@ import pandas as pd
 import pytest
 from layered_config_tree import LayeredConfigTree
 
-from tests.helpers import ColumnCreator, ColumnRequirer
+from tests.helpers import ColumnCreator, ColumnCreatorAndRequirer
 from vivarium import InteractiveContext
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.randomness.manager import RandomnessError, RandomnessManager
@@ -33,7 +33,7 @@ def test_randomness_manager_get_randomness_stream() -> None:
     assert stream.component == component
 
     with pytest.raises(RandomnessError):
-        rm._get_randomness_stream("test", ColumnRequirer())
+        rm._get_randomness_stream("test", ColumnCreatorAndRequirer())
 
 
 def test_randomness_manager_register_simulants() -> None:

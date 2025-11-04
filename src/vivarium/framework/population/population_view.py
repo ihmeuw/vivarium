@@ -27,8 +27,10 @@ if TYPE_CHECKING:
 class PopulationView:
     """A read/write manager for the simulation state table.
 
-    It can be used to both read and update the state of the population. A
-    PopulationView can only read and write columns for which it is configured.
+    It can be used to both read and update the state of the population. While a
+    PopulationView can read any columns, it can only write those columns that the
+    component it is attached to created.
+
     Attempts to update non-existent columns are ignored except during
     simulant creation when new columns are allowed to be created.
 
@@ -38,9 +40,8 @@ class PopulationView:
         self,
         manager: PopulationManager,
         view_id: int,
-        columns: Sequence[str] = (),
+        private_columns: Sequence[str] = (),
         query: str = "",
-        requires_all_columns: bool = False,
     ):
         """
 
@@ -50,43 +51,26 @@ class PopulationView:
             The population manager for the simulation.
         view_id
             The unique identifier for this view.
-        columns
-            The columns this view should have access to. If ``requires_all_columns``
-            is True, this should be set to the columns created by the component
-            containing the population view.
+        private_columns
+            The columns this view should have write access to.
         query
             A :mod:`pandas`-style filter that will be applied any time this
             view is read from.
-        requires_all_columns
-            If True, all columns from the population state table will be
-            included in the population view.
         """
         self._manager = manager
         self._id = view_id
-        self._columns = list(columns)
+        self.private_columns = list(private_columns)
         self.query = query
-        self.requires_all_columns = requires_all_columns
 
     @property
     def name(self) -> str:
         return f"population_view_{self._id}"
 
-    @property
-    def columns(self) -> list[str]:
-        """The columns that the view can read and update.
-
-        Set of columns the view will have access to. This is a subset of the
-        population state table columns. If self.requires_all_columns is True,
-        then this will be the columns created by the component containing the
-        population view.
-        """
-        if self.requires_all_columns:
-            all_columns = self._manager.get_population_columns() + self._columns
-            return list(set(all_columns))
-        return self._columns
-
     def get(
-        self, index: pd.Index[int], attributes: str | list[str], query: str = ""
+        self,
+        index: pd.Index[int],
+        attributes: str | list[str],
+        query: str = "",
     ) -> pd.DataFrame:
         """Get a specific subset of this ``PopulationView``.
 
@@ -109,22 +93,10 @@ class PopulationView:
         -------
             A table with the subset of the population requested.
 
-        Raises
-        ------
-        PopulationError
-            If the requested attributes are not a proper subset of this view's columns.
-
         """
 
         if isinstance(attributes, str):
             attributes = [attributes]
-
-        if set(attributes) - set(self.columns):
-            raise PopulationError(
-                "Invalid subview requested. Requested attributes must be a non-empty "
-                f"subset of this view's columns. Requested attributes: {attributes}, "
-                f"Available columns: {self.columns}"
-            )
 
         combined_query = " and ".join(filter(None, [self.query, query]))
         return self._manager.get_population(
@@ -158,7 +130,7 @@ class PopulationView:
         population_update = self._format_update_and_check_preconditions(
             population_update,
             state_table,
-            self.columns,
+            self.private_columns,
             self._manager.creating_initial_population,
             self._manager.adding_simulants,
         )
@@ -176,7 +148,7 @@ class PopulationView:
                 self._manager.population[column] = column_update
 
     def __repr__(self) -> str:
-        return f"PopulationView(_id={self._id}, _columns={self.columns}, query={self.query})"
+        return f"PopulationView(_id={self._id}, private_columns={self.private_columns}, query={self.query})"
 
     ##################
     # Helper methods #
@@ -186,7 +158,7 @@ class PopulationView:
     def _format_update_and_check_preconditions(
         population_update: pd.Series[Any] | pd.DataFrame,
         state_table: pd.DataFrame,
-        view_columns: list[str],
+        private_columns: list[str],
         creating_initial_population: bool,
         adding_simulants: bool,
     ) -> pd.DataFrame:
@@ -226,8 +198,8 @@ class PopulationView:
             The update to the simulation state table.
         state_table
             The existing simulation state table.
-        view_columns
-            The columns managed by this PopulationView.
+        private_columns
+            The private columns managed by this PopulationView.
         creating_initial_population
             Whether the initial population is being created.
         adding_simulants
@@ -252,7 +224,7 @@ class PopulationView:
 
         population_update = PopulationView._coerce_to_dataframe(
             population_update,
-            view_columns,
+            private_columns,
         )
 
         unknown_simulants = len(population_update.index.difference(state_table.index))
@@ -294,7 +266,7 @@ class PopulationView:
     @staticmethod
     def _coerce_to_dataframe(
         population_update: pd.Series[Any] | pd.DataFrame,
-        view_columns: list[str],
+        private_columns: list[str],
     ) -> pd.DataFrame:
         """Coerce all population updates to a :class:`pandas.DataFrame` format.
 
@@ -302,6 +274,8 @@ class PopulationView:
         ----------
         population_update
             The update to the simulation state table.
+        private_columns
+            The private columns managed by this PopulationView.
 
         Returns
         -------
@@ -325,8 +299,8 @@ class PopulationView:
 
         if isinstance(population_update, pd.Series):
             if population_update.name is None:
-                if len(view_columns) == 1:
-                    population_update.name = view_columns[0]
+                if len(private_columns) == 1:
+                    population_update.name = private_columns[0]
                 else:
                     raise PopulationError(
                         "Cannot update with an unnamed pandas series unless there "
@@ -335,11 +309,11 @@ class PopulationView:
 
             population_update = pd.DataFrame(population_update)
 
-        if not set(population_update.columns).issubset(view_columns):
+        if not set(population_update.columns).issubset(private_columns):
             raise PopulationError(
                 f"Cannot update with a DataFrame or Series that contains columns "
                 f"the view does not. Dataframe contains the following extra columns: "
-                f"{set(population_update.columns).difference(view_columns)}."
+                f"{set(population_update.columns).difference(private_columns)}."
             )
 
         update_columns = list(population_update)

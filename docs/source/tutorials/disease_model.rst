@@ -466,8 +466,7 @@ The ``query`` argument needs to be consistent with the
 
 What we get back is another ``pandas.DataFrame`` containing the filtered
 rows corresponding to the index we passed in. The columns of the returned
-``DataFrame`` are precisely the columns this component created (as well as 
-any additional ``columns_required``, of which this component has none).
+``DataFrame`` are precisely the columns this component created.
 
 We next update the age of our simulants by adding on the width of the time step
 to their current age and passing the updated table to the ``update`` method
@@ -487,16 +486,16 @@ Now that we've done all this hard work, let's see what it gives us.
 
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
-   print(sim.get_population().head())
+   print(sim.get_population().head()[['age', 'sex']])
 
 ::
 
-     simulant_step_size        age     sex  alive entrance_time
-   0             1 days  13.806776  Female  alive    2005-07-01
-   1             1 days  59.172893    Male  alive    2005-07-01
-   2             1 days  11.030887  Female  alive    2005-07-01
-   3             1 days  27.723191  Female  alive    2005-07-01
-   4             1 days  51.052188  Female  alive    2005-07-01
+            age     sex
+   0  13.806776  Female
+   1  59.172893    Male
+   2  11.030887  Female
+   3  27.723191  Female
+   4  51.052188  Female
 
 .. testcode::
    :hide:
@@ -508,11 +507,17 @@ Now that we've done all this hard work, let's see what it gives us.
 
    config = {'randomness': {'key_columns': ['entrance_time', 'age']}}
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
-   expected = pd.DataFrame({
-      'age': [13.806775818385496, 59.17289327893596, 11.030887339897, 27.72319127598699, 51.05218820533359],
-      'sex': ['Female', 'Male', 'Female', 'Female', 'Female'],
-   })
-   pd.testing.assert_frame_equal(sim.get_population().head()[['age', 'sex']], expected)
+
+   print(sim.get_population().head()[['age', 'sex']])
+
+.. testoutput::
+
+            age     sex
+   0  13.806776  Female
+   1  59.172893    Male
+   2  11.030887  Female
+   3  27.723191  Female
+   4  51.052188  Female
 
 Great!  We generate a population with a non-trivial age and sex distribution.
 Let's see what happens when our simulation takes a time step.
@@ -520,16 +525,16 @@ Let's see what happens when our simulation takes a time step.
 .. code-block:: python
 
    sim.step()
-   print(sim.get_population().head())
+   print(sim.get_population().head()[['age', 'sex']])
 
 ::
 
-     simulant_step_size        age     sex  alive entrance_time
-   0             1 days  13.809516  Female  alive    2005-07-01
-   1             1 days  59.175633    Male  alive    2005-07-01
-   2             1 days  11.033627  Female  alive    2005-07-01
-   3             1 days  27.725931  Female  alive    2005-07-01
-   4             1 days  51.054928  Female  alive    2005-07-01
+            age     sex
+   0  13.809516  Female
+   1  59.175633    Male
+   2  11.033627  Female
+   3  27.725931  Female
+   4  51.054928  Female
 
 
 .. testcode::
@@ -538,7 +543,17 @@ Let's see what happens when our simulation takes a time step.
    import numpy as np 
 
    sim.step()
-   assert np.isclose((sim.get_population().head()['age'] - expected['age'])*365, 1, 0.000001).all()
+
+   print(sim.get_population().head()[['age', 'sex']])
+
+.. testoutput::
+
+            age     sex
+   0  13.809516  Female
+   1  59.175633    Male
+   2  11.033627  Female
+   3  27.725931  Female
+   4  51.054928  Female
 
 Everyone gets older by exactly one time step! We could just keep taking steps in 
 our simulation and people would continue getting infinitely older. This, of 
@@ -547,8 +562,10 @@ course, does not reflect how the world goes. Time to introduce the grim reaper.
 Mortality
 ---------
 
-Now that we have population generation and aging working, the next step
-is introducing mortality into our simulation.
+Now that we have demonstrated that population generation and aging works, let's 
+investigate the Mortality component. Note that Mortality is a so-called "sub-component"
+of the BasePopulation component and comes for free when we request BasePopulation
+via the model specification; there is no need to add Mortality separately.
 
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
    :caption: **File**: :file:`~/code/vivarium/examples/disease_model/mortality.py`
@@ -580,9 +597,9 @@ Columns Required
 .. literalinclude:: ../../../src/vivarium/examples/disease_model/mortality.py
    :lines: 29-31
 
-While this component does not create any new columns like the ``BasePopulation``
-component, it does require the ``'alive'`` column to be present in the population 
-table. You'll see that this column is indeed used in the ``on_time_step`` method.
+This component creates a single ``'alive'`` column. This column is also required
+by the BasePopulation component since the simulation should only age simulants
+who are dead and so the column is used in a query string "alive == 'alive'".
 
 The ``setup`` method
 ++++++++++++++++++++
@@ -678,34 +695,31 @@ can see the impact of our mortality component without taking too many steps.
 
    from vivarium import InteractiveContext
    from vivarium.examples.disease_model.population import BasePopulation
-   from vivarium.examples.disease_model.mortality import Mortality
 
    config = {
-       'population': {
-           'population_size': 100_000
-       },
-       'randomness': {
-           'key_columns': ['entrance_time', 'age']
-       }
+         'population': {
+            'population_size': 100_000
+         },
+         'randomness': {
+            'key_columns': ['entrance_time', 'age']
+         }
    }
 
-   sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
+   sim = InteractiveContext(components=[BasePopulation()], configuration=config)
    print(sim.get_population().head())
 
 ::
 
-     simulant_step_size        age     sex  alive entrance_time  mortality_rate
-   0             1 days  13.806776  Female  alive    2005-07-01        0.000027
-   1             1 days  59.172893    Male  alive    2005-07-01        0.000027
-   2             1 days  11.030887  Female  alive    2005-07-01        0.000027
-   3             1 days  27.723191  Female  alive    2005-07-01        0.000027
-   4             1 days  51.052188  Female  alive    2005-07-01        0.000027
+     simulant_step_size        age     sex entrance_time  mortality_rate  alive
+   0             1 days  13.806776  Female    2005-07-01        0.000027  alive
+   1             1 days  59.172893    Male    2005-07-01        0.000027  alive
+   2             1 days  11.030887  Female    2005-07-01        0.000027  alive
+   3             1 days  27.723191  Female    2005-07-01        0.000027  alive
+   4             1 days  51.052188  Female    2005-07-01        0.000027  alive
 
 .. testcode::
    :hide:
    
-   from vivarium.examples.disease_model.mortality import Mortality
-
    config = {
        'population': {
            'population_size': 100_000
@@ -714,16 +728,27 @@ can see the impact of our mortality component without taking too many steps.
            'key_columns': ['entrance_time', 'age']
        }
    }
-   sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
+   sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
-   expected = pd.DataFrame({
-      'age': [13.806775818385496, 59.17289327893596, 11.030887339897, 27.72319127598699, 51.05218820533359],
-      'sex': ['Female', 'Male', 'Female', 'Female', 'Female'],
-   })
-   pd.testing.assert_frame_equal(sim.get_population().head()[['age', 'sex']], expected)
+   print(sim.get_population().head())
 
-This looks (exactly!) the same as it did prior to implementing mortality. Good - 
-we haven't taken a time step yet and so no one should have died.
+.. testoutput::
+
+     simulant_step_size        age     sex entrance_time  mortality_rate  alive
+   0             1 days  13.806776  Female    2005-07-01        0.000027  alive
+   1             1 days  59.172893    Male    2005-07-01        0.000027  alive
+   2             1 days  11.030887  Female    2005-07-01        0.000027  alive
+   3             1 days  27.723191  Female    2005-07-01        0.000027  alive
+   4             1 days  51.052188  Female    2005-07-01        0.000027  alive
+
+Note that aside from modifying the population size in the config, we haven't actually
+done anything different than before. Indeed, the ages and sexes of the first five
+simulants are the same. Here, however, we are not subsetting the dataframe to only
+show the ``'age'`` and ``'sex'`` columns, however, and so we see various others 
+(notably, the ``'mortality_rate'`` and ``'alive'`` columns created by the Mortality 
+component).
+
+As we haven't taken a time step yet, everyone should still be alive.
 
 .. code-block:: python
 
@@ -731,17 +756,23 @@ we haven't taken a time step yet and so no one should have died.
 
 ::
 
-    alive
-    alive    100000
-    Name: count, dtype: int64
+   alive
+   alive    100000
+   Name: count, dtype: int64
 
 .. testcode::
    :hide:
    
-   assert sim.get_population().alive.value_counts().alive == 100_000
+   print(sim.get_population().alive.value_counts())
 
-Just checking that everyone is alive. Let's run our simulation for a while
-and see what happens.
+.. testoutput::
+
+   alive
+   alive    100000
+   Name: count, dtype: int64
+
+
+Now let's run our simulation for a while and see what happens.
 
 .. code-block:: python
 
@@ -751,21 +782,21 @@ and see what happens.
 ::
 
    alive
-   alive    99015
-   dead       985
+   alive    99023
+   dead       977
    Name: count, dtype: int64
 
-We simulated somewhere between 99,015 (if everyone died in the first time step)
+We simulated somewhere between 99,023 (if everyone died in the first time step)
 and 100,000 (if everyone died in the last time step) living person-years and
-saw 985 deaths. This means our empirical mortality rate is somewhere close
-to 0.0099 deaths per person-year, very close to the 0.01 rate we provided.
+saw 977 deaths. This means our empirical mortality rate is somewhere close
+to 0.0098 deaths per person-year, very close to the 0.01 rate we provided.
 
 .. testcode::
    :hide:
-
-   sim = InteractiveContext(components=[BasePopulation(), Mortality()], configuration=config)
-   sim.take_steps(2)
-   assert sim.get_population()['alive'].value_counts()['dead'] == 6
+   
+   # It takes too long to run 365 steps in the test, so we just run 10 steps here
+   sim.take_steps(10)
+   assert sim.get_population()['alive'].value_counts()['dead'] == 27
 
 Disease
 -------
@@ -831,7 +862,6 @@ observations up to this point in the simulation.
 
    from vivarium import InteractiveContext
    from vivarium.examples.disease_model.population import BasePopulation
-   from vivarium.examples.disease_model.mortality import Mortality
    from vivarium.examples.disease_model.observer import DeathsObserver, YllsObserver
 
    config = {
@@ -846,27 +876,26 @@ observations up to this point in the simulation.
    sim = InteractiveContext(
       components=[
          BasePopulation(),
-         Mortality(),
          DeathsObserver(),
          YllsObserver(),
       ],
       configuration=config
    )
    sim.take_steps(365)  # Run for one year with one day time steps
-   
+
    print(sim.get_results()["dead"])
    print(sim.get_results()["ylls"])
 
 ::
 
-   stratification  value
-   0            all  985.0
+     stratification  value
+   0            all  977.0
 
-   stratification         value
-   0            all  27966.647762
+     stratification         value
+   0            all  27720.319912
 
-We see that after 365 days of simulation, 985 simlants have died and there has
-been a total of 27,987 years of life lost.
+We see that after 365 days of simulation, 977 simlants have died and there has
+been a total of 27,720 years of life lost.
 
 .. testcode::
    :hide:
@@ -876,19 +905,20 @@ been a total of 27,987 years of life lost.
    sim = InteractiveContext(
       components=[
          BasePopulation(),
-         Mortality(),
          DeathsObserver(),
          YllsObserver(),
       ],
       configuration=config
    )
-   sim.take_steps(2)
+
+   # It takes too long to run 365 steps in the test, so we just run 10 steps here
+   sim.take_steps(10)
    dead = sim.get_results()["dead"]
    assert len(dead) == 1
-   assert dead["value"][0] == 6
+   assert dead["value"][0] == 27
    ylls = sim.get_results()["ylls"]
    assert len(ylls) == 1
-   assert ylls["value"][0] == 388.5595493229374
+   assert ylls["value"][0] == 1030.7382838676458
 
 .. note::
 

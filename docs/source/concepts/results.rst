@@ -83,10 +83,6 @@ to the existing number of people who have died from previous time steps.
         }
       }
 
-    @property
-    def columns_required(self) -> list[str] | None:
-      return ["age", "alive"]
-
     def register_observations(self, builder: Builder) -> None:
       builder.results.register_adding_observation(
         name="total_population_dead",
