@@ -697,12 +697,12 @@ can see the impact of our mortality component without taking too many steps.
    from vivarium.examples.disease_model.population import BasePopulation
 
    config = {
-         'population': {
-            'population_size': 100_000
-         },
-         'randomness': {
-            'key_columns': ['entrance_time', 'age']
-         }
+      'population': {
+         'population_size': 100_000
+      },
+      'randomness': {
+         'key_columns': ['entrance_time', 'age']
+      }
    }
 
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)

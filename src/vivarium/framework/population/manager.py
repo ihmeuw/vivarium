@@ -495,7 +495,7 @@ class PopulationManager(Manager):
         # Maintain column ordering
         df = df[attributes_to_include]
 
-        # FIXME [MIC-xxx]: Consider parsing the query string earlier to reduce the index
+        # FIXME [MIC-6572]: Consider parsing the query string earlier to reduce the index
         # prior to calculating all of the attributes (e.g. including aged out
         # simulants or not)
         return df.query(query) if query else df
