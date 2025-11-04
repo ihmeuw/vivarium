@@ -43,10 +43,6 @@ class SimulationClock(Manager):
         return "simulation_clock"
 
     @property
-    def columns_required(self) -> list[str]:
-        return ["tracked"]
-
-    @property
     def time(self) -> ClockTime:
         """The current simulation time."""
         if self._clock_time is None:
@@ -105,7 +101,7 @@ class SimulationClock(Manager):
         self._clock_step_size: ClockStepSize | None = None
         self._individual_clocks: pd.DataFrame | None = None
         self._pipeline_name = "simulant_step_size"
-        # TODO: Delegate this functionality to "tracked" or similar when appropriate
+        # TODO: Delegate this functionality a better place when appropriate
         self._simulants_to_snooze = pd.Index([])
 
     def setup(self, builder: Builder) -> None:
@@ -124,9 +120,7 @@ class SimulationClock(Manager):
         )
         builder.population.initializes_simulants(self, creates_columns=self.columns_created)
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
-        self._individual_clocks = pd.DataFrame(
-            columns=self.columns_created + self.columns_required
-        )
+        self._individual_clocks = pd.DataFrame(columns=self.columns_created)
 
     def on_post_setup(self, event: Event) -> None:
         if not self._step_size_pipeline.mutators:
@@ -178,7 +172,7 @@ class SimulationClock(Manager):
                 self._individual_clocks.loc[self._simulants_to_snooze, "step_size"] = (
                     self.stop_time + self.minimum_step_size - self.time  # type: ignore [operator]
                 )
-                # TODO: Delegate this functionality to "tracked" or similar when appropriate
+                # TODO: Delegate this functionality to a better place when appropriate
                 self._simulants_to_snooze = pd.Index([])
                 self._individual_clocks.loc[update_index, "next_event_time"] = (
                     self.time + self._individual_clocks.loc[update_index, "step_size"]

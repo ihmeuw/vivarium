@@ -70,9 +70,9 @@ def test_is_stratified(observation_type: type[Observation], is_stratified: bool)
         ((), ["power_level"], len),
         ((), [], len),
         # Multiple-column dataframe return
-        (("familiar",), ["power_level", "tracked"], sum),
-        (("familiar", "house"), ["power_level", "tracked"], sum),
-        ((), ["power_level", "tracked"], sum),
+        (("familiar",), ["power_level"], sum),
+        (("familiar", "house"), ["power_level"], sum),
+        ((), ["power_level"], sum),
     ],
 )
 def test_stratified_observation__aggregate(
@@ -113,8 +113,8 @@ def test_stratified_observation__aggregate(
             assert len(aggregates.values) == 1
             assert aggregates.values[0] == len(BASE_POPULATION)
     else:  # sum aggregator
-        assert aggregates.shape[1] == 2
-        expected = BASE_POPULATION[["power_level", "tracked"]].sum() / groups.ngroups
+        assert aggregates.shape[1] == 1
+        expected = BASE_POPULATION[["power_level"]].sum() / groups.ngroups
         if stratifications:
             stratification_idx = (
                 set(itertools.product(*(FAMILIARS, HOUSE_CATEGORIES)))
@@ -127,7 +127,7 @@ def test_stratified_observation__aggregate(
             assert final.equals(expected)
         else:
             assert len(aggregates.values) == 1
-            for col in ["power_level", "tracked"]:
+            for col in ["power_level"]:
                 assert aggregates.loc["all", col] == expected[col]
 
 

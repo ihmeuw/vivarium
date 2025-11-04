@@ -269,9 +269,9 @@ def test_SimulationContext_initialize_simulants(
     sim.setup()
     pop_size = sim.configuration.population.population_size
     current_time = sim._clock.time
-    assert sim._population.get_population("all", True).empty
+    assert sim._population.get_population("all").empty
     sim.initialize_simulants()
-    pop = sim._population.get_population("all", True)
+    pop = sim._population.get_population("all")
     assert len(pop) == pop_size
     assert sim._clock.time == current_time
 
@@ -531,13 +531,9 @@ def test_private_columns_get_registered() -> None:
     assert sim._population.source_column_metadata == {}
     sim.setup()
     # The only components or managers to have a non-empty columns_created are
-    # the AttributePipelineCreator component used in the context as well as
-    # the PopulationManager itself for the 'tracked' column.
+    # the AttributePipelineCreator component used in the context.
     metadata = sim._population.source_column_metadata
-    assert metadata == {
-        sim._population.name: sim._population.columns_created,
-        component.name: component.columns_created,
-    }
+    assert metadata == {component.name: component.columns_created}
     # Check that there are indeed other attributes registered besides via column_created
     len(sim.get_population().columns) > len(
         sim._population.columns_created + component.columns_created

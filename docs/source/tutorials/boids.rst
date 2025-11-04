@@ -199,7 +199,7 @@ we can set up our simulation with the following code:
    )
 
    # Peek at the population table
-   print(sim.get_population()[["tracked", "entrance_time", "color"]].head())
+   print(sim.get_population()[["entrance_time", "color"]].head())
 
 
 .. testcode::
@@ -214,16 +214,16 @@ we can set up our simulation with the following code:
       logging_verbosity=0,
    )
 
-   print(sim.get_population()[["tracked", "entrance_time", "color"]].head())
+   print(sim.get_population()[["entrance_time", "color"]].head())
 
 .. testoutput::
 
-      tracked entrance_time color
-   0     True    2005-07-01   red
-   1     True    2005-07-01   red
-   2     True    2005-07-01   red
-   3     True    2005-07-01   red
-   4     True    2005-07-01  blue
+     entrance_time color
+   0    2005-07-01   red
+   1    2005-07-01   red
+   2    2005-07-01   red
+   3    2005-07-01   red
+   4    2005-07-01  blue
 
 
 Movement
