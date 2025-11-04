@@ -278,17 +278,7 @@ class OrderedColumnsLookupCreator(Component):
         )
 
 
-class ColumnRequirer(Component):
-    @property
-    def columns_required(self) -> list[str]:
-        return ["test_column_1", "test_column_2"]
-
-
 class ColumnCreatorAndRequirer(Component):
-    @property
-    def columns_required(self) -> list[str]:
-        return ["test_column_1", "test_column_2"]
-
     @property
     def columns_created(self) -> list[str]:
         return ["test_column_4"]
@@ -306,19 +296,7 @@ class ColumnCreatorAndRequirer(Component):
         self.population_view.update(initialization_data)
 
 
-class ColumnCreatorAndAllRequirer(ColumnCreatorAndRequirer):
-    @property
-    def columns_required(self) -> list[str]:
-        return []
-
-
-class AllColumnsRequirer(Component):
-    @property
-    def columns_required(self) -> list[str]:
-        return []
-
-
-class FilteredPopulationView(ColumnRequirer):
+class FilteredPopulationView(Component):
     @property
     def population_view_query(self) -> str:
         return "test_column_1 == 5"
