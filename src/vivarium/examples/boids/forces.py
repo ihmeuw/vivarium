@@ -21,10 +21,6 @@ class Force(Component, ABC):
             },
         }
 
-    @property
-    def columns_required(self) -> list[str]:
-        return ["x", "y", "vx", "vy"]
-
     #####################
     # Lifecycle methods #
     #####################
@@ -38,7 +34,7 @@ class Force(Component, ABC):
         builder.value.register_attribute_modifier(
             "acceleration",
             modifier=self.apply_force,
-            required_resources=self.columns_required + [self.neighbors],
+            required_resources=["x", "y", "vx", "vy", self.neighbors],
             component=self,
         )
 

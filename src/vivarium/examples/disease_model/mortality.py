@@ -7,7 +7,7 @@ import pandas as pd
 from vivarium import Component
 from vivarium.framework.engine import Builder
 from vivarium.framework.event import Event
-
+from vivarium.framework.population import SimulantData
 
 class Mortality(Component):
     ##############
@@ -26,10 +26,11 @@ class Mortality(Component):
                 "mortality_rate": 0.01,
             }
         }
-
+    
     @property
-    def columns_required(self) -> list[str] | None:
+    def columns_created(self) -> list[str]:
         return ["alive"]
+    
 
     #####################
     # Lifecycle methods #
@@ -58,6 +59,22 @@ class Mortality(Component):
     ########################
     # Event-driven methods #
     ########################
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        """Called by the simulation whenever new simulants are added.
+
+        This component is responsible for creating and filling the 'alive' column
+        in the population state table.
+
+        Parameters
+        ----------
+        pop_data
+            A record containing the index of the new simulants, the
+            start of the time step the simulants are added on, the width
+            of the time step, and the age boundaries for the simulants to
+            generate.
+        """
+        self.population_view.update(pd.Series("alive", index=pop_data.index, name="alive"))
 
     def on_time_step(self, event: Event) -> None:
         """Determines who dies each time step.
