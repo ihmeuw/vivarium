@@ -29,8 +29,8 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
 
     pop = simulation.get_population()
     expected_columns = {
-        "tracked",
         "alive",
+        "previous_alive",
         "age",
         "sex",
         "entrance_time",
@@ -55,7 +55,6 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
     }
     assert set(pop.columns) == expected_columns
     assert len(pop) == 100_000
-    assert np.all(pop["tracked"] == True)
     assert np.all(pop["alive"] == "alive")
     assert np.all((pop["age"] >= 0) & (pop["age"] <= 5))
     assert np.all(pop["entrance_time"] == datetime(2021, 12, 31, 12))

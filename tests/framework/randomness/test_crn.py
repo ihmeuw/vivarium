@@ -254,8 +254,8 @@ def test_multi_sim_reproducibility_with_different_pop_growth(
         sim1.step()
         sim2.step()
 
-    pop1 = sim1.get_population().set_index(["crn_attr1", "crn_attr2"]).drop(columns="tracked")
-    pop2 = sim2.get_population().set_index(["crn_attr1", "crn_attr2"]).drop(columns="tracked")
+    pop1 = sim1.get_population().set_index(["crn_attr1", "crn_attr2"])
+    pop2 = sim2.get_population().set_index(["crn_attr1", "crn_attr2"])
 
     if with_crn:
         overlap = pop1.index.intersection(pop2.index)
