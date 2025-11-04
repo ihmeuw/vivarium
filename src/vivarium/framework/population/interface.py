@@ -35,16 +35,6 @@ class PopulationInterface(Interface):
     :class:`population views <vivarium.framework.population.population_view.PopulationView>`,
     which may be requested from this system during setup time.
 
-    The population system itself manages a single attribute of simulants
-    called ``tracked``. This attribute allows global control of which
-    simulants are available to read and update in the state table by
-    default.
-
-    For example, in a simulation of childhood illness, we might not
-    need information about individuals or cohorts once they reach five years
-    of age, and so we can have them "age out" of the simulation at five years
-    old by setting the ``tracked`` attribute to ``False``.
-
     """
 
     def __init__(self, manager: PopulationManager):
@@ -60,12 +50,6 @@ class PopulationInterface(Interface):
 
         The requested population view can be used to view the current state or
         to update the state with new values.
-
-        If the column 'tracked' is not specified in the ``columns`` argument,
-        the query string 'tracked == True' will be added to the provided
-        query argument. This allows components to ignore untracked simulants
-        by default. If the columns argument is empty, the population view will
-        have access to the entire state table.
 
         Parameters
         ----------

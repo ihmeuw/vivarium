@@ -77,17 +77,9 @@ def population_update_new_cols(
 
 
 def test_initialization(population_manager: PopulationManager) -> None:
-    # The first pop view is generated in setup for the tracked column
-    pv = population_manager._view
+    pv = population_manager.get_view(COL_NAMES)
     assert pv._id == 0
     assert pv.name == "population_view_0"
-    assert set(pv.columns) == {"tracked"}
-    assert pv.query == ""
-
-    # Now get a COL_NAMES view
-    pv = population_manager.get_view(COL_NAMES)
-    assert pv._id == 1
-    assert pv.name == "population_view_1"
     assert set(pv.columns) == set(COL_NAMES)
     assert pv.query == ""
 
@@ -96,21 +88,21 @@ def test_initialization(population_manager: PopulationManager) -> None:
     # we don't necessarily know all the columns yet.
     cols = ["foo", "bar"]
     pv = population_manager.get_view(cols)
-    assert pv._id == 2
-    assert pv.name == "population_view_2"
+    assert pv._id == 1
+    assert pv.name == "population_view_1"
     assert set(pv.columns) == set(cols)
     assert pv.query == ""
 
     col_subset = ["color", "count"]
     pv = population_manager.get_view(col_subset)
-    assert pv._id == 3
-    assert pv.name == "population_view_3"
+    assert pv._id == 2
+    assert pv.name == "population_view_2"
     assert set(pv.columns) == set(col_subset)
 
     q_string = "color == 'red'"
     pv = population_manager.get_view(COL_NAMES, query=q_string)
-    assert pv._id == 4
-    assert pv.name == "population_view_4"
+    assert pv._id == 3
+    assert pv.name == "population_view_3"
     assert set(pv.columns) == set(COL_NAMES)
     assert pv.query == q_string
 
@@ -136,26 +128,6 @@ def test_get(population_manager: PopulationManager) -> None:
     pop = pv.get(full_idx, COL_NAMES, query=f"color == 'red'")
     assert set(pop.columns) == set(COL_NAMES)
     assert pop.index.equals(pop_full[pop_full["color"] == "red"].index)
-
-    ###############################
-    # View without tracked column #
-    ###############################
-    # A population view instantiated without the 'tracked' column will by default
-    # filter out the untracked simulants.
-    cols_without_tracked = [col for col in COL_NAMES if col != "tracked"]
-    pv = population_manager.get_view(cols_without_tracked)
-
-    # Get all tracked
-    pop = pv.get(full_idx, cols_without_tracked)
-    assert set(pop.columns) == set(cols_without_tracked)
-    assert pop.index.equals(pop_full[pop_full["tracked"]].index)
-
-    # get subset of tracked
-    pop = pv.get(full_idx, cols_without_tracked, query=f"color == 'red'")
-    assert set(pop.columns) == set(cols_without_tracked)
-    assert pop.index.equals(
-        pop_full[(pop_full["tracked"]) & (pop_full["color"] == "red")].index
-    )
 
 
 def test_get_empty_idx(population_manager: PopulationManager) -> None:

@@ -32,11 +32,6 @@ class PopulationView:
     Attempts to update non-existent columns are ignored except during
     simulant creation when new columns are allowed to be created.
 
-    Notes
-    -----
-    By default, this view will filter out untracked simulants unless "tracked" is
-    included in the ``columns`` initialization parameter.
-
     """
 
     def __init__(
@@ -58,8 +53,7 @@ class PopulationView:
         columns
             The columns this view should have access to. If ``requires_all_columns``
             is True, this should be set to the columns created by the component
-            containing the population view. If "tracked" is not included, untracked
-            simulants will be filtered out.
+            containing the population view.
         query
             A :mod:`pandas`-style filter that will be applied any time this
             view is read from.
@@ -135,7 +129,6 @@ class PopulationView:
         combined_query = " and ".join(filter(None, [self.query, query]))
         return self._manager.get_population(
             attributes=attributes,
-            untracked="tracked" in self.columns,
             index=index,
             query=combined_query,
         )

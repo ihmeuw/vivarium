@@ -133,9 +133,7 @@ class InterpolatedTable(LookupTable):
             param_cols_with_edges += [(p, f"{p}_start", f"{p}_end")]
         # We manually remove 'year' from the view columns since it is not an attribute
         # but rather we compute it dynamically
-        view_columns = sorted((set(key_columns) | set(parameter_columns)) - {"year"}) + [
-            "tracked"
-        ]
+        view_columns = sorted((set(key_columns) | set(parameter_columns)) - {"year"})
 
         self.parameter_columns_with_edges = param_cols_with_edges
 
@@ -228,7 +226,7 @@ class CategoricalTable(LookupTable):
             value_columns=value_columns,
         )
         self.data = data
-        self.population_view = population_view_builder(list(self.key_columns) + ["tracked"])
+        self.population_view = population_view_builder(list(self.key_columns))
 
         extra_columns = self.data.columns.difference(
             list(set(self.key_columns) | set(self.value_columns))

@@ -625,7 +625,7 @@ def test_prepare_population(
 
     population = mgr._prepare_population(event, observations, stratifications)
 
-    assert set(population.columns) == set(["tracked"] + expected_columns)
+    assert set(population.columns) == set(expected_columns)
     if "current_time" in expected_columns:
         assert (population["current_time"] == prepare_population_sim._clock.time).all()
     if "event_time" in expected_columns:

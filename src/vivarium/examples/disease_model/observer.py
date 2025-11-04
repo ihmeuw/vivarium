@@ -6,7 +6,9 @@ import pandas as pd
 
 from vivarium.framework.engine import Builder
 from vivarium.framework.results import Observer
-
+from vivarium.framework.population import SimulantData
+from vivarium.framework.event import Event
+from vivarium.framework.resource import Resource
 
 class DeathsObserver(Observer):
     """Observes the number of deaths."""
@@ -16,21 +18,42 @@ class DeathsObserver(Observer):
     ##############
 
     @property
+    def initialization_requirements(self) -> list[str | Resource]:
+        """Requirements for observer initialization."""
+        return ["alive"]
+
+    @property
     def columns_required(self) -> list[str] | None:
         return ["alive"]
+    
+    @property
+    def columns_created(self) -> list[str] | None:
+        return ["previous_alive"]
 
     #################
     # Setup methods #
     #################
 
     def register_observations(self, builder: Builder) -> None:
-        """We define a newly-dead simulant as one who is 'dead' but who has not
-        yet become untracked."""
         builder.results.register_adding_observation(
             name="dead",
-            requires_columns=["alive"],
-            pop_filter='tracked == True and alive == "dead"',
+            requires_columns=["alive", "previous_alive"],
+            pop_filter='previous_alive == "alive" and alive == "dead"',
         )
+
+    ########################
+    # Event-driven methods #
+    ########################
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        """Initialize simulants as alive"""
+        self.population_view.update(pd.Series("alive", index=pop_data.index, name="previous_alive"))
+
+    def on_time_step_prepare(self, event: Event) -> None:
+        """Update the previous deaths column to the current deaths."""
+        prior_alive = self.population_view.get(event.index, "alive")
+        prior_alive["previous_alive"] = prior_alive["alive"]
+        self.population_view.update(prior_alive)
 
 
 class YllsObserver(Observer):
