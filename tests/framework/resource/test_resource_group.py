@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from tests.helpers import ColumnCreator, ColumnRequirer
+from tests.helpers import ColumnCreator
 from vivarium.framework.randomness import RandomnessStream
 from vivarium.framework.randomness.index_map import IndexMap
 from vivarium.framework.resource.exceptions import ResourceError
@@ -60,7 +60,7 @@ def test_resource_group_with_no_resources() -> None:
 def test_resource_group_with_multiple_components() -> None:
     resources = [
         ValueModifier(Pipeline("foo"), lambda: 1, ColumnCreator()),
-        ValueSource(Pipeline("bar"), lambda: 2, ColumnRequirer()),
+        ValueSource(Pipeline("bar"), lambda: 2, ColumnCreator()),
     ]
 
     with pytest.raises(ResourceError, match="resources must have the same component"):
