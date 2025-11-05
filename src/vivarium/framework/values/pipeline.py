@@ -58,15 +58,9 @@ class ValueSource(Resource):
         if callable(self._source):
             source_callable = self._source
         elif isinstance(self._source, list):
-            if self.component is None:
-                raise DynamicValueError(
-                    f"The dynamic {self._pipeline_type} pipeline for {self.name} is "
-                    "attempting to get private data but has no associated component assigned."
-                )
             columns: list[str] = self._source
-            component = self.component
             source_callable = (
-                lambda index: population_mgr.get_private_data(component)
+                lambda index: population_mgr.get_private_data(self.component)
                 .loc[index, columns]
                 .squeeze(axis=1)
             )

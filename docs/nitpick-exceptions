@@ -61,5 +61,3 @@ py:class LookupTableData
 
 # typing
 py:data typing.Union
-py:class ClassWithName
-py:class vivarium.types.ClassWithName
