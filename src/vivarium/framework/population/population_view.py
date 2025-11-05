@@ -4,11 +4,11 @@ The Population View
 ===================
 
 The :class:`PopulationView` is a user-facing abstraction that manages read and write access
-to the underlying simulation :term:`State Table`. It has two primary responsibilities:
+to the underlying simulation :term:`state table`. It has two primary responsibilities:
 
     1. To provide user access to subsets of the simulation state table
        when it is safe to do so.
-    2. To allow the user to update the simulation state in a controlled way.
+    2. To allow the user to update private data in a controlled way.
 
 """
 from __future__ import annotations
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 class PopulationView:
-    """A read/write manager for the simulation state table.
+    """A read/write manager for the simulation private data.
 
     It can be used to both read and update the state of the population. While a
     PopulationView can read any columns, it can only write those columns that the
@@ -80,7 +80,7 @@ class PopulationView:
         """Get a specific subset of this ``PopulationView``.
 
         For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
-        simulation's state table. The resulting rows may be further filtered by the
+        simulation's private data. The resulting rows may be further filtered by the
         view's query and only return a subset of the population represented by the index.
 
         Parameters
@@ -88,7 +88,7 @@ class PopulationView:
         index
             Index of the population to get.
         attributes
-            The columns to retrieve from the population state table.
+            The columns to retrieve from the population private data.
         query
             Additional conditions used to filter the index. These conditions
             will be unioned with the default query of this view. The query
@@ -111,7 +111,7 @@ class PopulationView:
         )
 
     def update(self, population_update: pd.Series[Any] | pd.DataFrame) -> None:
-        """Updates the state table with the provided data.
+        """Updates the private data with the provided data.
 
         Parameters
         ----------
@@ -166,21 +166,21 @@ class PopulationView:
     @staticmethod
     def _format_update_and_check_preconditions(
         population_update: pd.Series[Any] | pd.DataFrame,
-        state_table: pd.DataFrame,
+        private_data: pd.DataFrame,
         private_columns: list[str],
         creating_initial_population: bool,
         adding_simulants: bool,
     ) -> pd.DataFrame:
         """Standardizes the population update format and checks preconditions.
 
-        Managing how values get written to the underlying population state table is critical
-        to rule out several categories of error in client simulation code. The state table
+        Managing how values get written to the underlying population private data is critical
+        to rule out several categories of error in client simulation code. The private data
         is modified at three different times. In the first, the initial population table
-        is being created and new columns are being added to the state table with their
+        is being created and new columns are being added to the private data with their
         initial values. In the second, the population manager has added new rows with
-        appropriate null values to the state table in response to population creation
+        appropriate null values to the private data in response to population creation
         dictated by client code, and population updates are being provided to fill in
-        initial values for those new rows. In the final case, state table values for
+        initial values for those new rows. In the final case, private data values for
         existing simulants are being overridden as part of a time step.
 
         All of these modification scenarios require that certain preconditions are met.
@@ -192,21 +192,21 @@ class PopulationView:
             3. The update matches at least one column in this PopulationView.
             4. The update columns are a subset of the columns managed by this
                PopulationView.
-            5. The update index is a subset of the existing state table index.
+            5. The update index is a subset of the existing private data index.
                PopulationViews don't make rows, they just fill them in.
 
         For initial population creation additional preconditions are documented in
         :meth:`PopulationView._ensure_coherent_initialization`. Outside population
         initialization, we require that all columns in the update to be present in
-        the existing state table. When new simulants are added in the middle of the
+        the existing private data. When new simulants are added in the middle of the
         simulation, we require that only one component provide updates to a column.
 
         Parameters
         ----------
         population_update
-            The update to the simulation state table.
-        state_table
-            The existing simulation state table.
+            The update to the private data owned by the component that created this view.
+        private_data
+            The existing private data owned by the component that created this view.
         private_columns
             The private columns managed by this PopulationView.
         creating_initial_population
@@ -236,38 +236,38 @@ class PopulationView:
             private_columns,
         )
 
-        unknown_simulants = len(population_update.index.difference(state_table.index))
+        unknown_simulants = len(population_update.index.difference(private_data.index))
         if unknown_simulants:
             raise PopulationError(
                 "Population updates must have an index that is a subset of the current "
-                f"population state table. {unknown_simulants} simulants were provided "
+                f"private data. {unknown_simulants} simulants were provided "
                 f"in an update with no matching index in the existing table."
             )
 
         if creating_initial_population:
-            PopulationView._ensure_coherent_initialization(population_update, state_table)
+            PopulationView._ensure_coherent_initialization(population_update, private_data)
         else:
-            new_columns = list(set(population_update).difference(state_table))
+            new_columns = list(set(population_update).difference(private_data))
             if new_columns:
                 raise PopulationError(
-                    f"Attempting to add new columns {new_columns} to the state table "
+                    f"Attempting to add new columns {new_columns} to the private data "
                     f"outside the initial population creation phase."
                 )
 
             if adding_simulants:
-                state_table_new_simulants = state_table.loc[population_update.index, :]
+                private_data_new_simulants = private_data.loc[population_update.index, :]
                 conflicting_columns = [
                     column
                     for column in population_update
-                    if state_table_new_simulants[column].notnull().any()
+                    if private_data_new_simulants[column].notnull().any()
                     and not population_update[column].equals(
-                        state_table_new_simulants[column]
+                        private_data_new_simulants[column]
                     )
                 ]
                 if conflicting_columns:
                     raise PopulationError(
                         "Two components are providing conflicting initialization data "
-                        f"for the state table columns: {conflicting_columns}."
+                        f"for the private data columns: {conflicting_columns}."
                     )
 
         return population_update
@@ -282,9 +282,9 @@ class PopulationView:
         Parameters
         ----------
         population_update
-            The update to the simulation state table.
-        private_columns
-            The private columns managed by this PopulationView.
+            The update to the private data owned by the component that created this view.
+        private_data
+            The existing private data owned by the component that created this view.
 
         Returns
         -------
@@ -336,11 +336,11 @@ class PopulationView:
 
     @staticmethod
     def _ensure_coherent_initialization(
-        population_update: pd.DataFrame, state_table: pd.DataFrame
+        population_update: pd.DataFrame, private_data: pd.DataFrame
     ) -> None:
         """Ensure that overlapping population updates have the same information.
 
-        During population initialization, each state table column should be updated by
+        During population initialization, each private data column should be updated by
         exactly one component and each component with an initializer should create at
         least one column. Sometimes components are a little sloppy and provide
         duplicate column information, which we should continue to allow. We want to ensure
@@ -349,36 +349,37 @@ class PopulationView:
         Parameters
         ----------
         population_update
-            The update to the simulation state table.
-        state_table
-            The existing simulation state table. When this method is called, the table
-            should be in a partially complete state. That is the provided population
-            update should carry some new attributes we need to assign.
+            The update to the private data owned by the component that created this view.
+        private_data
+            The existing private data owned by the component that created this view.
+            When this method is called, the table should be in a partially complete
+            state. That is the provided population update should carry some new
+            attributes we need to assign.
 
         Raises
         -----
         PopulationError
             If the population update contains no new information or if it contains
-            information in conflict with the existing state table.
+            information in conflict with the existing private data.
         """
-        missing_pops = len(state_table.index.difference(population_update.index))
+        missing_pops = len(private_data.index.difference(population_update.index))
         if missing_pops:
             raise PopulationError(
                 f"Components should initialize the same population at the simulation start. "
                 f"A component is missing updates for {missing_pops} simulants."
             )
-        new_columns = set(population_update).difference(state_table)
-        overlapping_columns = set(population_update).intersection(state_table)
+        new_columns = set(population_update).difference(private_data)
+        overlapping_columns = set(population_update).intersection(private_data)
         if not new_columns:
             raise PopulationError(
                 f"A component is providing a population update for {list(population_update)} "
                 "but all provided columns are initialized by other components."
             )
         for column in overlapping_columns:
-            if not population_update[column].equals(state_table[column]):
+            if not population_update[column].equals(private_data[column]):
                 raise PopulationError(
                     "Two components are providing conflicting initialization data for the "
-                    f"{column} state table column."
+                    f"{column} private data column."
                 )
 
     @staticmethod
@@ -387,14 +388,14 @@ class PopulationView:
         existing: pd.Series[Any],
         adding_simulants: bool,
     ) -> pd.Series[Any]:
-        """Build the updated state table column with an appropriate dtype.
+        """Build the updated private data column with an appropriate dtype.
 
         Parameters
         ----------
         update
             The new column values for a subset of the existing index.
         existing
-            The existing column values for all simulants in the state table.
+            The existing column values for all simulants in the private data.
         adding_simulants
             Whether new simulants are currently being initialized.
 
@@ -407,7 +408,7 @@ class PopulationView:
         #  I've also seen this error, though I don't have a reproducible and useful example.
         #  I'm reasonably sure what's really being accounted for here is non-nullable columns
         #  that temporarily have null values introduced in the space between rows being
-        #  added to the state table and initializers filling them with their first values.
+        #  added to the private data and initializers filling them with their first values.
         #  That means the space of dtype casting issues is actually quite small. What should
         #  actually happen in the long term is to separate the population creation entirely
         #  from the mutation of existing state. I.e. there's not an actual reason we need
@@ -415,13 +416,13 @@ class PopulationView:
         #  the creation of new simulants besides the fact that it's the existing
         #  implementation.
         update_values = update.array.copy()
-        new_state_table_values = existing.array.copy()
+        new_private_data_values = existing.array.copy()
         update_index_positional = existing.index.get_indexer(update.index)  # type: ignore [no-untyped-call]
 
         # Assumes the update index labels can be interpreted as an array position.
-        new_state_table_values[update_index_positional] = update_values
+        new_private_data_values[update_index_positional] = update_values
 
-        unmatched_dtypes = new_state_table_values.dtype != update_values.dtype
+        unmatched_dtypes = new_private_data_values.dtype != update_values.dtype
         if unmatched_dtypes and not adding_simulants:
             # This happens when the population is being grown because extending
             # the index forces columns that don't have a natural null type
@@ -430,8 +431,8 @@ class PopulationView:
                 "A component is corrupting the population table by modifying the dtype of "
                 f"the {update.name} column from {existing.dtype} to {update.dtype}."
             )
-        new_state_table_values = new_state_table_values.astype(update_values.dtype)
-        new_state_table: pd.Series[Any] = pd.Series(
-            new_state_table_values, index=existing.index, name=existing.name
+        new_private_data_values = new_private_data_values.astype(update_values.dtype)
+        new_private_data: pd.Series[Any] = pd.Series(
+            new_private_data_values, index=existing.index, name=existing.name
         )
-        return new_state_table
+        return new_private_data
