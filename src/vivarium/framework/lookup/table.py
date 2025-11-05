@@ -107,7 +107,7 @@ class InterpolatedTable(LookupTable):
         self,
         table_number: int,
         data: pd.DataFrame,
-        population_view_builder: Callable[[None, list[str]], PopulationView],
+        population_view_builder: Callable[[list[str]], PopulationView],
         key_columns: Sequence[str],
         parameter_columns: Sequence[str],
         value_columns: Sequence[str],
@@ -149,7 +149,7 @@ class InterpolatedTable(LookupTable):
         else:
             self.data = self.data.drop(columns=extra_columns)
 
-        self.population_view = population_view_builder(None, view_columns)
+        self.population_view = population_view_builder(view_columns)
         self.interpolation = Interpolation(
             data,
             self.key_columns,
@@ -216,7 +216,7 @@ class CategoricalTable(LookupTable):
         self,
         table_number: int,
         data: pd.DataFrame,
-        population_view_builder: Callable[[None, list[str]], PopulationView],
+        population_view_builder: Callable[[list[str]], PopulationView],
         key_columns: Sequence[str],
         value_columns: Sequence[str],
     ):
@@ -226,7 +226,7 @@ class CategoricalTable(LookupTable):
             value_columns=value_columns,
         )
         self.data = data
-        self.population_view = population_view_builder(None, list(self.key_columns))
+        self.population_view = population_view_builder(list(self.key_columns))
 
         extra_columns = self.data.columns.difference(
             list(set(self.key_columns) | set(self.value_columns))

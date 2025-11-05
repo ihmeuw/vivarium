@@ -209,8 +209,8 @@ class PopulationManager(Manager):
 
     def get_view(
         self,
-        component: Component | Manager | None,
         private_columns: str | Sequence[str],
+        component: Component | Manager | None = None,
         query: str = "",
     ) -> PopulationView:
         """Get a time-varying view of the population state table.
@@ -220,11 +220,11 @@ class PopulationManager(Manager):
 
         Parameters
         ----------
+        private_columns
+            The private columns created by the component requesting this view.
         component
             The component or manager requesting this view or None if it's another
             class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
-        private_columns
-            The private columns created by the component requesting this view.
         query
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
@@ -237,7 +237,7 @@ class PopulationManager(Manager):
             A filtered view of the requested private columns of the population state table.
 
         """
-        view = self._get_view(component, private_columns, query)
+        view = self._get_view(private_columns, component, query)
         self._add_constraint(
             view.get,
             restrict_during=[
@@ -260,8 +260,8 @@ class PopulationManager(Manager):
 
     def _get_view(
         self,
-        component: Component | Manager | None,
         private_columns: str | Sequence[str],
+        component: Component | Manager | None,
         query: str,
     ) -> PopulationView:
         if isinstance(private_columns, str):

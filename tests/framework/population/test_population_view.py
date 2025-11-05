@@ -76,7 +76,7 @@ def population_update_new_cols(
 
 
 def test_initialization(population_manager: PopulationManager) -> None:
-    pv = population_manager.get_view(population_manager, COL_NAMES)
+    pv = population_manager.get_view(COL_NAMES, population_manager)
     assert pv._id == 0
     assert pv.name == "population_view_0"
     assert set(pv.private_columns) == set(COL_NAMES)
@@ -86,20 +86,20 @@ def test_initialization(population_manager: PopulationManager) -> None:
     # columns that don't exist since views are built during setup when
     # we don't necessarily know all the columns yet.
     cols = ["foo", "bar"]
-    pv = population_manager.get_view(population_manager, cols)
+    pv = population_manager.get_view(cols, population_manager)
     assert pv._id == 1
     assert pv.name == "population_view_1"
     assert set(pv.private_columns) == set(cols)
     assert pv.query == ""
 
     col_subset = ["color", "count"]
-    pv = population_manager.get_view(population_manager, col_subset)
+    pv = population_manager.get_view(col_subset, population_manager)
     assert pv._id == 2
     assert pv.name == "population_view_2"
     assert set(pv.private_columns) == set(col_subset)
 
     q_string = "color == 'red'"
-    pv = population_manager.get_view(population_manager, COL_NAMES, query=q_string)
+    pv = population_manager.get_view(COL_NAMES, population_manager, query=q_string)
     assert pv._id == 3
     assert pv.name == "population_view_3"
     assert set(pv.private_columns) == set(COL_NAMES)
@@ -115,7 +115,7 @@ def test_get(population_manager: PopulationManager) -> None:
     ########################
     # Full population view #
     ########################
-    pv = population_manager.get_view(population_manager, COL_NAMES)
+    pv = population_manager.get_view(COL_NAMES, population_manager)
     full_idx = pd.RangeIndex(0, len(RECORDS))
 
     # Get full data set
@@ -130,7 +130,7 @@ def test_get(population_manager: PopulationManager) -> None:
 
 
 def test_get_empty_idx(population_manager: PopulationManager) -> None:
-    pv = population_manager.get_view(population_manager, COL_NAMES)
+    pv = population_manager.get_view(COL_NAMES, population_manager)
 
     pop = pv.get(pd.Index([]), COL_NAMES)
     assert isinstance(pop, pd.DataFrame)
@@ -139,7 +139,7 @@ def test_get_empty_idx(population_manager: PopulationManager) -> None:
 
 
 def test_get_raises(population_manager: PopulationManager) -> None:
-    pv = population_manager.get_view(population_manager, COL_NAMES)
+    pv = population_manager.get_view(COL_NAMES, population_manager)
 
     # Unknown columns
     with pytest.raises(
@@ -611,7 +611,7 @@ def test_population_view_update_format_fail(
     population_update: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
-    pv = population_manager.get_view(population_manager, COL_NAMES)
+    pv = population_manager.get_view(COL_NAMES, population_manager)
     population_manager.creating_initial_population = True
     population_manager.adding_simulants = True
     # Bad type
@@ -654,7 +654,7 @@ def test_population_view_update_format_fail_new_cols(
     population_update_new_cols: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
-    pv = population_manager.get_view(population_manager, COL_NAMES)
+    pv = population_manager.get_view(COL_NAMES, population_manager)
 
     population_manager.creating_initial_population = True
     population_manager.adding_simulants = True
@@ -663,7 +663,7 @@ def test_population_view_update_format_fail_new_cols(
         pv.update(BASE_POPULATION.iloc[:, 0].rename(None))
 
     for view_cols in [COL_NAMES, [COL_NAMES[0]]]:
-        pv = population_manager.get_view(population_manager, view_cols)
+        pv = population_manager.get_view(view_cols, population_manager)
 
         with pytest.raises(PopulationError, match="extra columns"):
             pv.update(population_update_new_cols)
@@ -671,7 +671,7 @@ def test_population_view_update_format_fail_new_cols(
         with pytest.raises(PopulationError, match="no columns"):
             pv.update(pd.DataFrame(index=BASE_POPULATION.index))
 
-    pv = population_manager.get_view(population_manager, COL_NAMES + NEW_COL_NAMES)
+    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES, population_manager)
     if not update_index.equals(BASE_POPULATION.index):
         with pytest.raises(PopulationError, match="missing updates"):
             pv.update(population_update_new_cols)
@@ -700,7 +700,7 @@ def test_population_view_update_init(
     if isinstance(population_update_new_cols, pd.Series):
         pytest.skip()
 
-    pv = population_manager.get_view(population_manager, COL_NAMES + NEW_COL_NAMES)
+    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES, population_manager)
 
     population_manager.population = BASE_POPULATION.loc[update_index]
     population_manager.creating_initial_population = True
@@ -719,7 +719,7 @@ def test_population_view_update_add(
     if isinstance(population_update, pd.Series):
         pytest.skip()
 
-    pv = population_manager.get_view(population_manager, COL_NAMES + NEW_COL_NAMES)
+    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES, population_manager)
 
     population_manager.population = BASE_POPULATION.loc[update_index]
     for col in population_update:
@@ -742,7 +742,7 @@ def test_population_view_update_time_step(
 ) -> None:
     if isinstance(population_update, pd.Series):
         pytest.skip()
-    pv = population_manager.get_view(population_manager, COL_NAMES + NEW_COL_NAMES)
+    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES, population_manager)
 
     population_manager.creating_initial_population = False
     population_manager.adding_simulants = False
