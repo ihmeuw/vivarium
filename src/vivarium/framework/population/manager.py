@@ -140,6 +140,13 @@ class PopulationManager(Manager):
         },
     }
 
+    ######################################
+    ######################################
+    ######################################
+    # TODO: DELETE THIS AS PART OF THIS PR
+    ######################################
+    ######################################
+    ######################################
     @property
     def population(self) -> pd.DataFrame:
         """The population state table private columns."""
@@ -147,9 +154,13 @@ class PopulationManager(Manager):
             raise PopulationError("Population has not been initialized.")
         return self._population
 
+    def get_private_columns(self, component: Component | Manager | None) -> pd.DataFrame:
+        attributes = self.private_column_metadata.get(component.name, []) if component else []
+        return self.get_population(attributes=attributes)
+
     def __init__(self) -> None:
         self._population: pd.DataFrame | None = None
-        self.source_column_metadata: dict[str, list[str]] = defaultdict(list)
+        self.private_column_metadata: dict[str, list[str]] = defaultdict(list)
         self._initializer_components = InitializerComponentSet()
         self.creating_initial_population = False
         self.adding_simulants = False
@@ -205,8 +216,15 @@ class PopulationManager(Manager):
     # Builder API and helpers #
     ###########################
 
+    def get_population_index(self) -> pd.Index[int]:
+        """Get the index of the current population."""
+        if self._population is None:
+            raise PopulationError("Population has not been initialized and so has no index.")
+        return self._population.index
+
     def get_view(
         self,
+        component: Component | Manager | None,
         private_columns: str | Sequence[str],
         query: str = "",
     ) -> PopulationView:
@@ -217,6 +235,9 @@ class PopulationManager(Manager):
 
         Parameters
         ----------
+        component
+            The component or manager requesting this view or None if it's another
+            class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
         private_columns
             The private columns created by the component requesting this view.
         query
@@ -231,7 +252,7 @@ class PopulationManager(Manager):
             A filtered view of the requested private columns of the population state table.
 
         """
-        view = self._get_view(private_columns, query)
+        view = self._get_view(component, private_columns, query)
         self._add_constraint(
             view.get,
             restrict_during=[
@@ -252,11 +273,16 @@ class PopulationManager(Manager):
         )
         return view
 
-    def _get_view(self, private_columns: str | Sequence[str], query: str) -> PopulationView:
+    def _get_view(
+        self,
+        component: Component | Manager | None,
+        private_columns: str | Sequence[str],
+        query: str,
+    ) -> PopulationView:
         if isinstance(private_columns, str):
             private_columns = [private_columns]
         self._last_id += 1
-        return PopulationView(self, self._last_id, private_columns, query)
+        return PopulationView(self, component, self._last_id, private_columns, query)
 
     def register_simulant_initializer(
         self,
@@ -359,16 +385,16 @@ class PopulationManager(Manager):
 
         return index
 
-    def register_source_columns(self, component: Component | Manager) -> None:
-        """Registers the source columns created by a component or manager.
+    def register_private_columns(self, component: Component | Manager) -> None:
+        """Registers the private columns created by a component or manager.
 
         Parameters
         ----------
         component
-            The component or manager that is registering its source columns.
+            The component or manager that is registering its private columns.
         """
         if component.columns_created:
-            self.source_column_metadata[component.name].extend(component.columns_created)
+            self.private_column_metadata[component.name].extend(component.columns_created)
 
     ###############
     # Context API #
@@ -446,14 +472,18 @@ class PopulationManager(Manager):
 
         attributes_list: list[pd.Series[Any] | pd.DataFrame] = []
 
-        # batch simple attributes and pop right off the backing data
+        # batch simple attributes and directly leverage private column backing dataframe
         simple_attributes = [
             name
             for name, pipeline in self._attribute_pipelines.items()
             if name in attributes_to_include and pipeline.is_simple
         ]
         if simple_attributes:
-            attributes_list.append(self._population.loc[idx, simple_attributes])
+            if self.creating_initial_population:
+                # These columns won't exist yet so just return a columnless dataframe
+                return self._population.loc[idx]
+            else:
+                attributes_list.append(self._population.loc[idx, simple_attributes])
 
         # handle remaining non-simple attributes one by one
         remaining_attributes = [

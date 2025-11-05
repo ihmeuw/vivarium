@@ -79,7 +79,7 @@ class ResultsManager(Manager):
         self._results_context.setup(builder)
 
         self.logger = builder.logging.get_logger(self.name)
-        self.population_view = builder.population.get_view([])
+        self.population_view = builder.population.get_view(self, [])
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
 

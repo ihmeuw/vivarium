@@ -27,12 +27,17 @@ def population_manager(mocker: MockerFixture) -> PopulationManager:
         def columns_created(self) -> list[str]:
             return COL_NAMES
 
+        @property
+        def name(self) -> str:
+            return "test_population_manager"
+
         def __init__(self) -> None:
             super().__init__()
             self._population = pd.DataFrame(
                 data=RECORDS,
-                columns=COL_NAMES,
+                columns=self.columns_created,
             )
+            self.private_column_metadata[self.name] = self.columns_created
 
     mgr = _PopulationManager()
 

@@ -21,7 +21,9 @@ import pandas as pd
 from vivarium.framework.population.exceptions import PopulationError
 
 if TYPE_CHECKING:
+    from vivarium.component import Component
     from vivarium.framework.population.manager import PopulationManager
+    from vivarium.manager import Manager
 
 
 class PopulationView:
@@ -39,6 +41,7 @@ class PopulationView:
     def __init__(
         self,
         manager: PopulationManager,
+        component: Component | Manager | None,
         view_id: int,
         private_columns: Sequence[str] = (),
         query: str = "",
@@ -49,6 +52,9 @@ class PopulationView:
         ----------
         manager
             The population manager for the simulation.
+        component
+            The component or manager that created this view or None if it's another
+            class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
         view_id
             The unique identifier for this view.
         private_columns
@@ -58,6 +64,7 @@ class PopulationView:
             view is read from.
         """
         self._manager = manager
+        self._component = component
         self._id = view_id
         self.private_columns = list(private_columns)
         self.query = query
@@ -126,7 +133,7 @@ class PopulationView:
             this view manages or if the view is being updated with a data
             type inconsistent with the original population data.
         """
-        state_table = self._manager.population.copy()
+        state_table = self._manager.get_private_columns(self._component)
         population_update = self._format_update_and_check_preconditions(
             population_update,
             state_table,
@@ -148,7 +155,8 @@ class PopulationView:
                 self._manager.population[column] = column_update
 
     def __repr__(self) -> str:
-        return f"PopulationView(_id={self._id}, private_columns={self.private_columns}, query={self.query})"
+        name = self._component.name if self._component else "None"
+        return f"PopulationView(_id={self._id}, _component={name}, private_columns={self.private_columns}, query={self.query})"
 
     ##################
     # Helper methods #

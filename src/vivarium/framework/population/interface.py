@@ -41,7 +41,10 @@ class PopulationInterface(Interface):
         self._manager = manager
 
     def get_view(
-        self, private_columns: str | Sequence[str], query: str = ""
+        self,
+        component: Component | Manager | None,
+        private_columns: str | Sequence[str],
+        query: str = "",
     ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
@@ -50,6 +53,9 @@ class PopulationInterface(Interface):
 
         Parameters
         ----------
+        component
+            The component or manager requesting this view or None if it's another
+            class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
         private_columns
             The private columns created by the component requesting this view.
         query
@@ -63,7 +69,7 @@ class PopulationInterface(Interface):
         -------
             A filtered view of the requested columns of the population state table.
         """
-        return self._manager.get_view(private_columns, query)
+        return self._manager.get_view(component, private_columns, query)
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.
@@ -126,12 +132,12 @@ class PopulationInterface(Interface):
             required_resources,
         )
 
-    def register_source_columns(self, component: Component | Manager) -> None:
-        """Registers the source columns created by a component or manager.
+    def register_private_columns(self, component: Component | Manager) -> None:
+        """Registers the private columns created by a component or manager.
 
         Parameters
         ----------
         component
-            The component or manager that is registering its source columns.
+            The component or manager that is registering its private columns.
         """
-        self._manager.register_source_columns(component)
+        self._manager.register_private_columns(component)

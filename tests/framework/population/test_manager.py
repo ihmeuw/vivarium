@@ -103,10 +103,12 @@ def test_initializer_set() -> None:
         ("foo == True", "foo == True"),
     ],
 )
-def test_setting_query_with_get_view(query: str, expected_query: str) -> None:
+def test_setting_query_with_get_view(
+    query: str, expected_query: str, mocker: MockerFixture
+) -> None:
     manager = PopulationManager()
     columns = ["age", "sex"]
-    view = manager._get_view(private_columns=columns, query=query)
+    view = manager._get_view(component=mocker.Mock(), private_columns=columns, query=query)
     assert view.query == expected_query
 
 
@@ -114,11 +116,11 @@ def test_setting_query_with_get_view(query: str, expected_query: str) -> None:
     "columns, expected_columns", [("age", ["age"]), (["age"], None), (["age", "sex"], None)]
 )
 def test_setting_columns_with_get_view(
-    columns: str | list[str], expected_columns: list[str] | None
+    columns: str | list[str], expected_columns: list[str] | None, mocker: MockerFixture
 ) -> None:
     view_columns = expected_columns or columns
     manager = PopulationManager()
-    view = manager._get_view(private_columns=columns, query="")
+    view = manager._get_view(component=mocker.Mock(), private_columns=columns, query="")
     assert view.private_columns == view_columns
 
 
@@ -235,7 +237,7 @@ def test_get_population_deduplicates_requested_columns(
     assert set(pop.columns) == {"color"}
 
 
-def test_register_source_columns() -> None:
+def test_register_private_columns() -> None:
     class ColumnCreator2(ColumnCreator):
         @property
         def name(self) -> str:
@@ -244,13 +246,13 @@ def test_register_source_columns() -> None:
     # The metadata for the manager should be empty because the fixture does not
     # actually go through setup.
     mgr = PopulationManager()
-    assert mgr.source_column_metadata == {}
+    assert mgr.private_column_metadata == {}
     # Running setup registers all attribute pipelines and updates the metadata
     component1 = ColumnCreator()
     component2 = ColumnCreator2()
-    mgr.register_source_columns(component1)
-    mgr.register_source_columns(component2)
-    assert mgr.source_column_metadata == {
+    mgr.register_private_columns(component1)
+    mgr.register_private_columns(component2)
+    assert mgr.private_column_metadata == {
         component1.name: component1.columns_created,
         component2.name: component2.columns_created,
     }
