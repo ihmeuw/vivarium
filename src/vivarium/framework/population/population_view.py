@@ -135,23 +135,23 @@ class PopulationView:
             raise PopulationError(
                 "Trying to update a population that has not yet been initialized."
             )
-        state_table = self._manager.get_private_data(self._component)
+        private_data = self._manager.get_private_data(self._component)
         population_update_df: pd.DataFrame = self._format_update_and_check_preconditions(
             population_update,
-            state_table,
+            private_data,
             self.private_columns,
             self._manager.creating_initial_population,
             self._manager.adding_simulants,
         )
         if self._manager.creating_initial_population:
-            new_columns = list(set(population_update_df).difference(state_table))
+            new_columns = list(set(population_update_df).difference(private_data))
             self._manager.population[new_columns] = population_update_df[new_columns]
         elif not population_update_df.empty:
-            update_columns = list(set(population_update_df).intersection(state_table))
+            update_columns = list(set(population_update_df).intersection(private_data))
             for column in update_columns:
                 column_update = self._update_column_and_ensure_dtype(
                     population_update_df[column],
-                    state_table[column],
+                    private_data[column],
                     self._manager.adding_simulants,
                 )
                 self._manager.population[column] = column_update
