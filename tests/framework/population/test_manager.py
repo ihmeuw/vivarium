@@ -7,7 +7,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from tests.framework.population.conftest import COL_NAMES, RECORDS
-from tests.helpers import AttributePipelineCreator, ColumnCreator
+from tests.helpers import AttributePipelineCreator, ColumnCreator, ColumnCreatorAndRequirer
 from vivarium import Component, InteractiveContext
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
@@ -256,3 +256,28 @@ def test_register_private_columns() -> None:
         component1.name: component1.columns_created,
         component2.name: component2.columns_created,
     }
+
+
+def test_get_private_data() -> None:
+    component1 = ColumnCreator()
+    component2 = ColumnCreatorAndRequirer()
+    sim = InteractiveContext(components=[component1, component2])
+    assert (
+        list(sim._population.get_private_data(component1).columns)
+        == component1.columns_created
+    )
+    assert (
+        list(sim._population.get_private_data(component2).columns)
+        == component2.columns_created
+    )
+
+
+def test_get_population_index() -> None:
+    component = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component], setup=False)
+    with pytest.raises(
+        PopulationError, match="Population has not been initialized and so has no index."
+    ):
+        sim._population.get_population_index()
+    sim.setup()
+    sim.get_population().index.equals(sim._population.get_population_index())

@@ -385,15 +385,6 @@ class PopulationManager(Manager):
     # Context API #
     ###############
 
-    def get_population_columns(self) -> list[str]:
-        """Get the list of columns in the population state table.
-
-        Returns
-        -------
-            The list of columns in the population state table.
-        """
-        return list(self._attribute_pipelines.keys())
-
     def get_population(
         self,
         attributes: list[str] | Literal["all"],
