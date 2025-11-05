@@ -78,7 +78,7 @@ def test_interpolated_tables(base_config: LayeredConfigTree) -> None:
     assert np.allclose(result_ages_1d, pop.age)
 
     simulation._clock._clock_time += pd.Timedelta(30.5 * 125, unit="D")  # type: ignore [operator]
-    simulation._population._population.age += 125 / 12  # type: ignore [union-attr]
+    simulation._population.population.age += 125 / 12  # type: ignore [union-attr]
 
     result_years = years(pop.index)
     result_ages = ages(pop.index)

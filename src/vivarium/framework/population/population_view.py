@@ -133,8 +133,12 @@ class PopulationView:
             this view manages or if the view is being updated with a data
             type inconsistent with the original population data.
         """
+        if not isinstance(self._manager.population, pd.DataFrame):
+            raise PopulationError(
+                "Trying to update a population that has not yet been initialized."
+            )
         state_table = self._manager.get_private_columns(self._component)
-        population_update = self._format_update_and_check_preconditions(
+        population_update_df: pd.DataFrame = self._format_update_and_check_preconditions(
             population_update,
             state_table,
             self.private_columns,
@@ -142,13 +146,13 @@ class PopulationView:
             self._manager.adding_simulants,
         )
         if self._manager.creating_initial_population:
-            new_columns = list(set(population_update).difference(state_table))
-            self._manager.population[new_columns] = population_update[new_columns]
-        elif not population_update.empty:
-            update_columns = list(set(population_update).intersection(state_table))
+            new_columns = list(set(population_update_df).difference(state_table))
+            self._manager.population[new_columns] = population_update_df[new_columns]
+        elif not population_update_df.empty:
+            update_columns = list(set(population_update_df).intersection(state_table))
             for column in update_columns:
                 column_update = self._update_column_and_ensure_dtype(
-                    population_update[column],
+                    population_update_df[column],
                     state_table[column],
                     self._manager.adding_simulants,
                 )

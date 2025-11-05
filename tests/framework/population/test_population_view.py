@@ -629,7 +629,7 @@ def test_population_view_update_format_fail(
             pv.update(update)
 
     # Missing an update
-    population_manager._population = BASE_POPULATION.loc[update_index]
+    population_manager.population = BASE_POPULATION.loc[update_index]
     if not update_index.empty:
         with pytest.raises(PopulationError, match="A component is missing updates for"):
             pv.update(population_update.loc[update_index[::2]])
@@ -677,7 +677,7 @@ def test_population_view_update_format_fail_new_cols(
             pv.update(population_update_new_cols)
 
     # Conflicting data in existing cols.
-    population_manager._population = BASE_POPULATION.loc[update_index]
+    population_manager.population = BASE_POPULATION.loc[update_index]
     cols_overlap = [c for c in population_update_new_cols if c in COL_NAMES]
     if not update_index.empty and cols_overlap:
         update = population_update_new_cols.copy()
@@ -702,13 +702,13 @@ def test_population_view_update_init(
 
     pv = population_manager.get_view(population_manager, COL_NAMES + NEW_COL_NAMES)
 
-    population_manager._population = BASE_POPULATION.loc[update_index]
+    population_manager.population = BASE_POPULATION.loc[update_index]
     population_manager.creating_initial_population = True
     population_manager.adding_simulants = True
     pv.update(population_update_new_cols)
 
     for col in population_update_new_cols:
-        assert population_manager._population[col].equals(population_update_new_cols[col])
+        assert population_manager.population[col].equals(population_update_new_cols[col])
 
 
 def test_population_view_update_add(
@@ -721,18 +721,18 @@ def test_population_view_update_add(
 
     pv = population_manager.get_view(population_manager, COL_NAMES + NEW_COL_NAMES)
 
-    population_manager._population = BASE_POPULATION.loc[update_index]
+    population_manager.population = BASE_POPULATION.loc[update_index]
     for col in population_update:
-        population_manager._population[col] = None
+        population_manager.population[col] = None
     population_manager.creating_initial_population = False
     population_manager.adding_simulants = True
     pv.update(population_update)
 
     for col in population_update:
         if update_index.empty:
-            assert population_manager._population[col].empty
+            assert population_manager.population[col].empty
         else:
-            assert population_manager._population[col].equals(population_update[col])
+            assert population_manager.population[col].equals(population_update[col])
 
 
 def test_population_view_update_time_step(
@@ -749,6 +749,6 @@ def test_population_view_update_time_step(
     pv.update(population_update)
 
     for col in population_update.columns:
-        pop = population_manager._population
+        pop = population_manager.population
         assert pop is not None
         assert pop.loc[update_index, col].equals(population_update[col])

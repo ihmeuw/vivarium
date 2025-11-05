@@ -33,7 +33,7 @@ def population_manager(mocker: MockerFixture) -> PopulationManager:
 
         def __init__(self) -> None:
             super().__init__()
-            self._population = pd.DataFrame(
+            self.population = pd.DataFrame(
                 data=RECORDS,
                 columns=self.columns_created,
             )

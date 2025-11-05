@@ -9,7 +9,6 @@ The manager and :ref:`builder <builder_concept>` interface for the
 """
 from __future__ import annotations
 
-import warnings
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
@@ -140,26 +139,12 @@ class PopulationManager(Manager):
         },
     }
 
-    ######################################
-    ######################################
-    ######################################
-    # TODO: DELETE THIS AS PART OF THIS PR
-    ######################################
-    ######################################
-    ######################################
-    @property
-    def population(self) -> pd.DataFrame:
-        """The population state table private columns."""
-        if self._population is None:
-            raise PopulationError("Population has not been initialized.")
-        return self._population
-
     def get_private_columns(self, component: Component | Manager | None) -> pd.DataFrame:
         attributes = self.private_column_metadata.get(component.name, []) if component else []
         return self.get_population(attributes=attributes)
 
     def __init__(self) -> None:
-        self._population: pd.DataFrame | None = None
+        self.population: pd.DataFrame | None = None
         self.private_column_metadata: dict[str, list[str]] = defaultdict(list)
         self._initializer_components = InitializerComponentSet()
         self.creating_initial_population = False
@@ -218,9 +203,9 @@ class PopulationManager(Manager):
 
     def get_population_index(self) -> pd.Index[int]:
         """Get the index of the current population."""
-        if self._population is None:
+        if self.population is None:
             raise PopulationError("Population has not been initialized and so has no index.")
-        return self._population.index
+        return self.population.index
 
     def get_view(
         self,
@@ -367,14 +352,14 @@ class PopulationManager(Manager):
         population_configuration = (
             population_configuration if population_configuration else {}
         )
-        if self._population is None:
+        if self.population is None:
             self.creating_initial_population = True
-            self._population = pd.DataFrame()
+            self.population = pd.DataFrame()
 
-        new_index = range(len(self._population) + count)
-        new_population = self._population.reindex(new_index)
-        index = new_population.index.difference(self._population.index)
-        self._population = new_population
+        new_index = range(len(self.population) + count)
+        new_population = self.population.reindex(new_index)
+        index = new_population.index.difference(self.population.index)
+        self.population = new_population
         self.adding_simulants = True
         for initializer in self.resources.get_population_initializers():
             initializer(
@@ -439,10 +424,10 @@ class PopulationManager(Manager):
             If any of the requested attributes do not exist in the population table.
         """
 
-        if self._population is None:
+        if self.population is None:
             return pd.DataFrame()
 
-        idx = index if index is not None else self._population.index
+        idx = index if index is not None else self.population.index
 
         if isinstance(attributes, list):
             # check for duplicate request
@@ -481,9 +466,9 @@ class PopulationManager(Manager):
         if simple_attributes:
             if self.creating_initial_population:
                 # These columns won't exist yet so just return a columnless dataframe
-                return self._population.loc[idx]
+                return self.population.loc[idx]
             else:
-                attributes_list.append(self._population.loc[idx, simple_attributes])
+                attributes_list.append(self.population.loc[idx, simple_attributes])
 
         # handle remaining non-simple attributes one by one
         remaining_attributes = [
