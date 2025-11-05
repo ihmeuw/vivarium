@@ -139,7 +139,7 @@ class PopulationManager(Manager):
         },
     }
 
-    def get_private_columns(self, component: Component | Manager | None) -> pd.DataFrame:
+    def get_private_data(self, component: Component | Manager | None) -> pd.DataFrame:
         attributes = self.private_column_metadata.get(component.name, []) if component else []
         return self.get_population(attributes=attributes)
 

@@ -137,7 +137,7 @@ class PopulationView:
             raise PopulationError(
                 "Trying to update a population that has not yet been initialized."
             )
-        state_table = self._manager.get_private_columns(self._component)
+        state_table = self._manager.get_private_data(self._component)
         population_update_df: pd.DataFrame = self._format_update_and_check_preconditions(
             population_update,
             state_table,

@@ -60,7 +60,7 @@ class ValueSource(Resource):
         elif isinstance(self._source, list):
             columns: list[str] = self._source
             source_callable = (
-                lambda index: population_mgr.get_private_columns(self.component)
+                lambda index: population_mgr.get_private_data(self.component)
                 .loc[index, columns]
                 .squeeze(axis=1)
             )
