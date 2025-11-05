@@ -22,6 +22,7 @@ from vivarium.manager import Interface, Manager
 if TYPE_CHECKING:
     from vivarium import Component
     from vivarium.framework.population.manager import PopulationManager
+    from vivarium.types import ClassWithName
 
 
 class PopulationInterface(Interface):
@@ -42,7 +43,7 @@ class PopulationInterface(Interface):
 
     def get_view(
         self,
-        component: Component | Manager | None,
+        component: ClassWithName,
         private_columns: str | Sequence[str],
         query: str = "",
     ) -> PopulationView:
@@ -54,8 +55,7 @@ class PopulationInterface(Interface):
         Parameters
         ----------
         component
-            The component or manager requesting this view or None if it's another
-            class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
+            The class requesting this view.
         private_columns
             The private columns created by the component requesting this view.
         query

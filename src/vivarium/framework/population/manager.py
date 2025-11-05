@@ -27,7 +27,7 @@ from vivarium.manager import Manager
 if TYPE_CHECKING:
     from vivarium import Component
     from vivarium.framework.engine import Builder
-    from vivarium.types import ClockStepSize, ClockTime
+    from vivarium.types import ClassWithName, ClockStepSize, ClockTime
 
 
 @dataclass
@@ -139,9 +139,10 @@ class PopulationManager(Manager):
         },
     }
 
-    def get_private_data(self, component: Component | Manager | None) -> pd.DataFrame:
-        attributes = self.private_column_metadata.get(component.name, []) if component else []
-        return self.get_population(attributes=attributes)
+    def get_private_data(self, component: ClassWithName) -> pd.DataFrame:
+        return self.get_population(
+            attributes=self.private_column_metadata.get(component.name, [])
+        )
 
     def __init__(self) -> None:
         self.population: pd.DataFrame | None = None
@@ -209,7 +210,7 @@ class PopulationManager(Manager):
 
     def get_view(
         self,
-        component: Component | Manager | None,
+        component: ClassWithName,
         private_columns: str | Sequence[str],
         query: str = "",
     ) -> PopulationView:
@@ -221,8 +222,7 @@ class PopulationManager(Manager):
         Parameters
         ----------
         component
-            The component or manager requesting this view or None if it's another
-            class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
+            The class requesting this view.
         private_columns
             The private columns created by the component requesting this view.
         query
@@ -260,7 +260,7 @@ class PopulationManager(Manager):
 
     def _get_view(
         self,
-        component: Component | Manager | None,
+        component: ClassWithName,
         private_columns: str | Sequence[str],
         query: str,
     ) -> PopulationView:

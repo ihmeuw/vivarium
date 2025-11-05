@@ -1,6 +1,6 @@
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 from typing import SupportsFloat as Numeric
 from typing import Union
 
@@ -41,3 +41,9 @@ NumberLike = Union[
 
 VectorMapper = Callable[[pd.DataFrame], pd.Series]  # type: ignore [type-arg]
 ScalarMapper = Callable[[pd.Series], str]  # type: ignore [type-arg]
+
+
+class ClassWithName(Protocol):
+    @property
+    def name(self) -> str:
+        ...

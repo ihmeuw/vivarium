@@ -21,9 +21,8 @@ import pandas as pd
 from vivarium.framework.population.exceptions import PopulationError
 
 if TYPE_CHECKING:
-    from vivarium.component import Component
     from vivarium.framework.population.manager import PopulationManager
-    from vivarium.manager import Manager
+    from vivarium.types import ClassWithName
 
 
 class PopulationView:
@@ -41,7 +40,7 @@ class PopulationView:
     def __init__(
         self,
         manager: PopulationManager,
-        component: Component | Manager | None,
+        component: ClassWithName,
         view_id: int,
         private_columns: Sequence[str] = (),
         query: str = "",
@@ -53,8 +52,7 @@ class PopulationView:
         manager
             The population manager for the simulation.
         component
-            The component or manager that created this view or None if it's another
-            class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
+            The class that created this view.
         view_id
             The unique identifier for this view.
         private_columns
@@ -159,8 +157,7 @@ class PopulationView:
                 self._manager.population[column] = column_update
 
     def __repr__(self) -> str:
-        name = self._component.name if self._component else "None"
-        return f"PopulationView(_id={self._id}, _component={name}, private_columns={self.private_columns}, query={self.query})"
+        return f"PopulationView(_id={self._id}, _component={self._component.name}, private_columns={self.private_columns}, query={self.query})"
 
     ##################
     # Helper methods #
