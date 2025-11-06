@@ -233,68 +233,6 @@ def test_single_column_population_view__coerce_to_dataframe_fail(
 
 #################################
 # PopulationView.update helpers #
-##################################################
-# PopulationView._ensure_coherent_initialization #
-##################################################
-
-
-def test__ensure_coherent_initialization_no_new_columns(
-    population_update: pd.Series[Any] | pd.DataFrame,
-    update_index: pd.Index[int],
-) -> None:
-    if isinstance(population_update, pd.Series):
-        pytest.skip()
-
-    # Missing population
-    if not update_index.empty:
-        with pytest.raises(PopulationError, match="missing updates"):
-            PopulationView._ensure_coherent_initialization(
-                population_update.loc[update_index[::2]], BASE_POPULATION.loc[update_index]
-            )
-
-    # No new columns
-    with pytest.raises(PopulationError, match="all provided columns"):
-        PopulationView._ensure_coherent_initialization(
-            population_update,
-            BASE_POPULATION.loc[update_index],
-        )
-
-
-def test__ensure_coherent_initialization_new_columns(
-    population_update_new_cols: pd.Series[Any] | pd.DataFrame,
-    update_index: pd.Index[int],
-) -> None:
-    if isinstance(population_update_new_cols, pd.Series):
-        pytest.skip()
-
-    # All new cols, should be good
-    PopulationView._ensure_coherent_initialization(
-        population_update_new_cols,
-        BASE_POPULATION.loc[update_index],
-    )
-
-    # Missing rows
-    if not update_index.equals(BASE_POPULATION.index):
-        with pytest.raises(PopulationError, match="missing updates"):
-            PopulationView._ensure_coherent_initialization(
-                population_update_new_cols,
-                BASE_POPULATION,
-            )
-
-    # Conflicting data in existing cols.
-    cols_overlap = [c for c in population_update_new_cols if c in COL_NAMES]
-    if not update_index.empty and cols_overlap:
-        update = population_update_new_cols.copy()
-        update[COL_NAMES[0]] = "bad_values"
-        with pytest.raises(PopulationError, match="conflicting"):
-            PopulationView._ensure_coherent_initialization(
-                update,
-                BASE_POPULATION.loc[update_index],
-            )
-
-
-#################################
-# PopulationView.update helpers #
 #########################################################
 # PopulationView._format_update_and_check_preconditions #
 #########################################################
@@ -361,7 +299,10 @@ def test__format_update_and_check_preconditions_unknown_pop_fail(
     update = population_update.copy()
     update.index += 2 * update.index.max()
 
-    with pytest.raises(PopulationError, match=f"{len(update)} simulants"):
+    with pytest.raises(
+        PopulationError,
+        match="Population updates must have an index that is a subset of the current private data.",
+    ):
         PopulationView._format_update_and_check_preconditions(
             update,
             BASE_POPULATION,
@@ -377,7 +318,7 @@ def test__format_update_and_check_preconditions_coherent_initialization_fail(
 ) -> None:
     # Missing population
     if not update_index.empty:
-        with pytest.raises(PopulationError, match="missing updates"):
+        with pytest.raises(PopulationError, match="A component is missing updates"):
             PopulationView._format_update_and_check_preconditions(
                 population_update.loc[update_index[::2]],
                 BASE_POPULATION.loc[update_index],
@@ -386,40 +327,16 @@ def test__format_update_and_check_preconditions_coherent_initialization_fail(
                 True,
             )
 
-    # No new columns
-    with pytest.raises(PopulationError, match="all provided columns"):
-        PopulationView._format_update_and_check_preconditions(
-            population_update,
-            BASE_POPULATION.loc[update_index],
-            COL_NAMES,
-            True,
-            True,
-        )
-
 
 def test__format_update_and_check_preconditions_coherent_initialization_fail_new_cols(
     population_update_new_cols: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
     if not update_index.equals(BASE_POPULATION.index):
-        with pytest.raises(PopulationError, match="missing updates"):
+        with pytest.raises(PopulationError, match="A component is missing updates"):
             PopulationView._format_update_and_check_preconditions(
                 population_update_new_cols,
                 BASE_POPULATION,
-                COL_NAMES + NEW_COL_NAMES,
-                True,
-                True,
-            )
-
-    # Conflicting data in existing cols.
-    cols_overlap = [c for c in population_update_new_cols if c in COL_NAMES]
-    if not update_index.empty and cols_overlap:
-        update = population_update_new_cols.copy()
-        update[COL_NAMES[0]] = "bad_values"
-        with pytest.raises(PopulationError, match="conflicting"):
-            PopulationView._format_update_and_check_preconditions(
-                update,
-                BASE_POPULATION.loc[update_index],
                 COL_NAMES + NEW_COL_NAMES,
                 True,
                 True,
@@ -438,26 +355,6 @@ def test__format_update_and_check_preconditions_new_columns_non_init(
                 COL_NAMES + NEW_COL_NAMES,
                 False,
                 adding_simulants,
-            )
-
-
-def test__format_update_and_check_preconditions_conflicting_non_init(
-    population_update: pd.Series[Any] | pd.DataFrame,
-    update_index: pd.Index[int],
-) -> None:
-    update = population_update.copy()
-    if isinstance(update, pd.Series):
-        update[:] = "bad_value"
-    else:
-        update.loc[:, COL_NAMES[0]] = "bad_value"
-    if not update_index.empty:
-        with pytest.raises(PopulationError, match="conflicting"):
-            PopulationView._format_update_and_check_preconditions(
-                update,
-                BASE_POPULATION.loc[update_index],
-                COL_NAMES + NEW_COL_NAMES,
-                False,
-                True,
             )
 
 
@@ -600,7 +497,10 @@ def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
     assert new_values.loc[update_index].equals(update)
 
     # And be bad news otherwise.
-    with pytest.raises(PopulationError, match="corrupting"):
+    with pytest.raises(
+        PopulationError,
+        match="A component is corrupting the population table by modifying the dtype",
+    ):
         PopulationView._update_column_and_ensure_dtype(
             update,
             existing,
@@ -642,20 +542,6 @@ def test_population_view_update_format_fail(
         with pytest.raises(PopulationError, match="A component is missing updates for"):
             pv.update(population_update.loc[update_index[::2]])
 
-    # No new columns
-    with pytest.raises(PopulationError, match="all provided columns"):
-        pv.update(population_update)
-
-    population_manager.creating_initial_population = False
-    update = population_update.copy()
-    if isinstance(update, pd.Series):
-        update[:] = "bad_value"
-    else:
-        update.loc[:, COL_NAMES[0]] = "bad_value"
-    if not update_index.empty:
-        with pytest.raises(PopulationError, match="conflicting"):
-            pv.update(update)
-
 
 def test_population_view_update_format_fail_new_cols(
     sim: InteractiveContext,
@@ -685,15 +571,6 @@ def test_population_view_update_format_fail_new_cols(
     if not update_index.equals(BASE_POPULATION.index):
         with pytest.raises(PopulationError, match="missing updates"):
             pv.update(population_update_new_cols)
-
-    # Conflicting data in existing cols.
-    population_manager._private_columns = BASE_POPULATION.loc[update_index]
-    cols_overlap = [c for c in population_update_new_cols if c in COL_NAMES]
-    if not update_index.empty and cols_overlap:
-        update = population_update_new_cols.copy()
-        update[COL_NAMES[0]] = "bad_values"
-        with pytest.raises(PopulationError, match="conflicting"):
-            pv.update(update)
 
     population_manager.creating_initial_population = False
     for adding_simulants in [True, False]:

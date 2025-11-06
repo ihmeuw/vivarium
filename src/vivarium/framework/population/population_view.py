@@ -249,32 +249,23 @@ class PopulationView:
             raise PopulationError(
                 "Population updates must have an index that is a subset of the current "
                 f"private data. {unknown_simulants} simulants were provided "
-                f"in an update with no matching index in the existing table."
+                "in an update with no matching index in the existing table."
             )
 
         if creating_initial_population:
-            PopulationView._ensure_coherent_initialization(update, existing)
+            missing_pops = len(existing.index.difference(update.index))
+            if missing_pops:
+                raise PopulationError(
+                    "Components must initialize all simulants during population initialization. "
+                    f"A component is missing updates for {missing_pops} simulants."
+                )
         else:
-            new_columns = list(set(update).difference(existing))
+            new_columns = list(set(update.columns).difference(set(existing.columns)))
             if new_columns:
                 raise PopulationError(
                     f"Attempting to add new columns {new_columns} to the private data "
                     f"outside the initial population creation phase."
                 )
-
-            if adding_simulants:
-                new_simulants = existing.loc[update.index, :]
-                conflicting_columns = [
-                    column
-                    for column in update
-                    if new_simulants[column].notnull().any()
-                    and not update[column].equals(new_simulants[column])
-                ]
-                if conflicting_columns:
-                    raise PopulationError(
-                        "Two components are providing conflicting initialization data "
-                        f"for the private data columns: {conflicting_columns}."
-                    )
 
         return update
 
@@ -339,52 +330,6 @@ class PopulationView:
             )
 
         return update
-
-    @staticmethod
-    def _ensure_coherent_initialization(update: pd.DataFrame, existing: pd.DataFrame) -> None:
-        """Ensure that overlapping population updates have the same information.
-
-        During population initialization, each private data column should be updated by
-        exactly one component and each component with an initializer should create at
-        least one column. Sometimes components are a little sloppy and provide
-        duplicate column information, which we should continue to allow. We want to ensure
-        that a column is only getting one set of unique values though.
-
-        Parameters
-        ----------
-        update
-            The update to the private data owned by the component that created this view.
-        existing
-            The existing private data owned by the component that created this view.
-            When this method is called, the table should be in a partially complete
-            state. That is the provided population update should carry some new
-            attributes we need to assign.
-
-        Raises
-        -----
-        PopulationError
-            If the population update contains no new information or if it contains
-            information in conflict with the existing private data.
-        """
-        missing_pops = len(existing.index.difference(update.index))
-        if missing_pops:
-            raise PopulationError(
-                f"Components should initialize the same population at the simulation start. "
-                f"A component is missing updates for {missing_pops} simulants."
-            )
-        new_columns = set(update).difference(existing)
-        overlapping_columns = set(update).intersection(existing)
-        if not new_columns:
-            raise PopulationError(
-                f"A component is providing a population update for {list(update)} "
-                "but all provided columns are initialized by other components."
-            )
-        for column in overlapping_columns:
-            if not update[column].equals(existing[column]):
-                raise PopulationError(
-                    "Two components are providing conflicting initialization data for the "
-                    f"{column} private data column."
-                )
 
     @staticmethod
     def _update_column_and_ensure_dtype(

@@ -163,10 +163,11 @@ class PopulationManager(Manager):
         -------
             The private columns created by the specified component.
         """
-        attributes = (
-            self._private_column_metadata.get(component.name, []) if component else []
-        )
-        return self.get_population(attributes=attributes)
+        if self.creating_initial_population or component is None:
+            attributes = []
+        else:
+            attributes = self._private_column_metadata.get(component.name, [])
+        return self.private_columns[attributes]
 
     def __init__(self) -> None:
         self._private_columns: pd.DataFrame | None = None
@@ -478,11 +479,7 @@ class PopulationManager(Manager):
             if name in attributes_to_include and pipeline.is_simple
         ]
         if simple_attributes:
-            if self.creating_initial_population:
-                # These columns won't exist yet so just return a columnless dataframe
-                return self._private_columns.loc[idx]
-            else:
-                attributes_list.append(self._private_columns.loc[idx, simple_attributes])
+            attributes_list.append(self._private_columns.loc[idx, simple_attributes])
 
         # handle remaining non-simple attributes one by one
         remaining_attributes = [
