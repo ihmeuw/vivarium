@@ -155,6 +155,9 @@ class ComponentManager(Manager):
                 lifecycle_states.POPULATION_CREATION,
             ],
         )
+        # FIXME: are these constraints correct? `list_components` is basically the
+        # same as `get_component` except it's a dict but it basically allows
+        # someone to get a component during population_creation.
         lifecycle_manager.add_constraint(
             self.get_component, restrict_during=[lifecycle_states.POPULATION_CREATION]
         )

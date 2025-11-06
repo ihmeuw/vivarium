@@ -43,7 +43,7 @@ class PopulationInterface(Interface):
     def get_view(
         self,
         private_columns: str | Sequence[str],
-        component: Component | Manager | None = None,
+        component: Component | None = None,
         query: str = "",
     ) -> PopulationView:
         """Get a time-varying view of the population state table.
@@ -56,7 +56,7 @@ class PopulationInterface(Interface):
         private_columns
             The private columns created by the component requesting this view.
         component
-            The component or manager requesting this view or None if it's another
+            The component requesting this view or None if it's another
             class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
         query
             A filter on the population state. This filters out particular
@@ -132,12 +132,12 @@ class PopulationInterface(Interface):
             required_resources,
         )
 
-    def register_private_columns(self, component: Component | Manager) -> None:
-        """Registers the private columns created by a component or manager.
+    def register_private_columns(self, component: Component) -> None:
+        """Registers the private columns created by a component.
 
         Parameters
         ----------
         component
-            The component or manager that is registering its private columns.
+            The component that is registering its private columns.
         """
         self._manager.register_private_columns(component)

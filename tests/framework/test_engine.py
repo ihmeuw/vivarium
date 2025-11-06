@@ -24,7 +24,13 @@ from tests.framework.results.helpers import (
     NoStratificationsQuidditchWinsObserver,
     QuidditchWinsObserver,
 )
-from tests.helpers import AttributePipelineCreator, Listener, MockComponentA, MockComponentB
+from tests.helpers import (
+    AttributePipelineCreator,
+    ColumnCreator,
+    Listener,
+    MockComponentA,
+    MockComponentB,
+)
 from vivarium import Component, InteractiveContext
 from vivarium.framework.artifact import ArtifactInterface, ArtifactManager
 from vivarium.framework.components import (
@@ -526,17 +532,18 @@ def test_SimulationContext_load_from_backup(
 
 
 def test_private_columns_get_registered() -> None:
-    component = AttributePipelineCreator()
-    sim = InteractiveContext(components=[component], setup=False)
+    component1 = ColumnCreator()
+    component2 = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component1, component2], setup=False)
     assert sim._population.private_column_metadata == {}
     sim.setup()
-    # The only components or managers to have a non-empty columns_created are
-    # the AttributePipelineCreator component used in the context.
+    # The only components or managers to have a non-empty columns_created is
+    # the ColumnCreator() component used in the context.
     metadata = sim._population.private_column_metadata
-    assert metadata == {component.name: component.columns_created}
+    assert metadata == {component1.name: component1.columns_created}
     # Check that there are indeed other attributes registered besides via column_created
     len(sim.get_population().columns) > len(
-        sim._population.columns_created + component.columns_created
+        sim._population.columns_created + component1.columns_created
     )
 
 

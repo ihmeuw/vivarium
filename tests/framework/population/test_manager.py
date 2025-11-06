@@ -6,8 +6,14 @@ import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 
-from tests.framework.population.conftest import COL_NAMES, RECORDS
-from tests.helpers import AttributePipelineCreator, ColumnCreator, ColumnCreatorAndRequirer
+from tests.helpers import (
+    COL_NAMES,
+    RECORDS,
+    AttributePipelineCreator,
+    ColumnCreator,
+    ColumnCreatorAndRequirer,
+    TestComponent,
+)
 from vivarium import Component, InteractiveContext
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
@@ -131,7 +137,7 @@ def test_get_population(
     attributes: Literal["all"] | list[str],
     index: pd.Index[int] | None,
     query: str,
-    population_manager: PopulationManager,
+    sim: InteractiveContext,
 ) -> None:
     kwargs: dict[str, Any] = {"attributes": attributes}
     if index is not None:
@@ -139,17 +145,53 @@ def test_get_population(
     if query is not None:
         kwargs["query"] = query
     assert attributes == "all" or isinstance(attributes, list)
-    pop = population_manager.get_population(**kwargs)
-    assert set(pop.columns) == set(COL_NAMES) if attributes == "all" else set(attributes)
+    pop = sim._population.get_population(**kwargs)
+    assert (
+        set(pop.columns) == set(COL_NAMES + ["simulant_step_size"])
+        if attributes == "all"
+        else set(attributes)
+    )
     if query is not None:
         assert (pop["pie"] == "apple").all()
+
+
+# # FIXED USING COLUMNCREATOR
+# # We can do this instead if we want to streamline helper classes, but it would be more work.
+# @pytest.mark.parametrize("attributes", ("all", ["test_column_1", "simulant_step_size"]))
+# @pytest.mark.parametrize("index", [None, "reduced"])
+# @pytest.mark.parametrize("query", [None, "test_column_1 == 2"])
+# def test_get_population(
+#     attributes: Literal["all"] | list[str],
+#     index: str | None,
+#     query: str,
+# ) -> None:
+#     component = ColumnCreator()
+#     sim = InteractiveContext(components=[component])
+
+#     kwargs: dict[str, Any] = {"attributes": attributes}
+#     if index == "half":
+#         kwargs["index"] = pd.Index(
+#             pd.RangeIndex(0, len(sim._population.get_population_index()) // 2)
+#         )
+#     if query is not None:
+#         kwargs["query"] = query
+
+#     pop = sim._population.get_population(**kwargs)
+#     assert (
+#         set(pop.columns) == set(component.columns_created + ["simulant_step_size"])
+#         if attributes == "all"
+#         else set(attributes)
+#     )
+#     if query is not None:
+#         assert (pop["test_column_1"] == 2).all()
 
 
 def test_get_population_different_attribute_types() -> None:
     """Test that get_population works with simple attributes, non-simple attributes,
     and attribute pipelines that return dataframes instead of series'."""
-    component = AttributePipelineCreator()
-    sim = InteractiveContext(components=[component], setup=True)
+    component1 = ColumnCreator()
+    component2 = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component1, component2], setup=True)
     pop = sim._population.get_population("all")
     # We have columnar multi-index due to AttributePipelines that return dataframes
     assert isinstance(pop.columns, pd.MultiIndex)
@@ -200,8 +242,9 @@ def test_get_population_column_ordering(include_duplicates: bool) -> None:
         returned_cols = pop.columns.tolist()
         assert returned_cols == expected_cols
 
-    component = AttributePipelineCreator()
-    sim = InteractiveContext(components=[component], setup=True)
+    component1 = ColumnCreator()
+    component2 = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component1, component2], setup=True)
 
     cols = ["test_column_1", "attribute_generating_columns_4_5", "test_attribute"]
     if include_duplicates:
@@ -224,16 +267,16 @@ def test_get_population_column_ordering(include_duplicates: bool) -> None:
     ),
 )
 def test_get_population_raises_missing_attributes(
-    attributes: list[str], population_manager: PopulationManager
+    attributes: list[str], sim: InteractiveContext
 ) -> None:
     with pytest.raises(PopulationError, match="not in population table"):
-        population_manager.get_population(attributes)
+        sim._population.get_population(attributes)
 
 
 def test_get_population_deduplicates_requested_columns(
-    population_manager: PopulationManager, mocker: MockerFixture
+    sim: InteractiveContext, mocker: MockerFixture
 ) -> None:
-    pop = population_manager.get_population(["color", "color", "color"])
+    pop = sim._population.get_population(["color", "color", "color"])
     assert set(pop.columns) == {"color"}
 
 

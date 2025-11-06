@@ -6,7 +6,8 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from tests.framework.population.conftest import COL_NAMES, RECORDS
+from tests.helpers import COL_NAMES, RECORDS
+from vivarium import InteractiveContext
 from vivarium.framework.population import PopulationError, PopulationManager, PopulationView
 
 ##########################
@@ -75,10 +76,13 @@ def population_update_new_cols(
 ##################
 
 
-def test_initialization(population_manager: PopulationManager) -> None:
-    pv = population_manager.get_view(COL_NAMES, population_manager)
-    assert pv._id == 0
-    assert pv.name == "population_view_0"
+def test_initialization(sim: InteractiveContext) -> None:
+    # some population views are created during simulation setup
+    last_id = sim._population._last_id
+    pv = sim._population.get_view(COL_NAMES)
+    last_id += 1
+    assert pv._id == last_id
+    assert pv.name == f"population_view_{last_id}"
     assert set(pv.private_columns) == set(COL_NAMES)
     assert pv.query == ""
 
@@ -86,22 +90,25 @@ def test_initialization(population_manager: PopulationManager) -> None:
     # columns that don't exist since views are built during setup when
     # we don't necessarily know all the columns yet.
     cols = ["foo", "bar"]
-    pv = population_manager.get_view(cols, population_manager)
-    assert pv._id == 1
-    assert pv.name == "population_view_1"
+    pv = sim._population.get_view(cols)
+    last_id += 1
+    assert pv._id == last_id
+    assert pv.name == f"population_view_{last_id}"
     assert set(pv.private_columns) == set(cols)
     assert pv.query == ""
 
     col_subset = ["color", "count"]
-    pv = population_manager.get_view(col_subset, population_manager)
-    assert pv._id == 2
-    assert pv.name == "population_view_2"
+    pv = sim._population.get_view(col_subset)
+    last_id += 1
+    assert pv._id == last_id
+    assert pv.name == f"population_view_{last_id}"
     assert set(pv.private_columns) == set(col_subset)
 
     q_string = "color == 'red'"
-    pv = population_manager.get_view(COL_NAMES, population_manager, query=q_string)
-    assert pv._id == 3
-    assert pv.name == "population_view_3"
+    pv = sim._population.get_view(COL_NAMES, query=q_string)
+    last_id += 1
+    assert pv._id == last_id
+    assert pv.name == f"population_view_{last_id}"
     assert set(pv.private_columns) == set(COL_NAMES)
     assert pv.query == q_string
 
@@ -111,11 +118,11 @@ def test_initialization(population_manager: PopulationManager) -> None:
 ######################
 
 
-def test_get(population_manager: PopulationManager) -> None:
+def test_get(sim: InteractiveContext) -> None:
     ########################
     # Full population view #
     ########################
-    pv = population_manager.get_view(COL_NAMES, population_manager)
+    pv = sim._population.get_view(COL_NAMES)
     full_idx = pd.RangeIndex(0, len(RECORDS))
 
     # Get full data set
@@ -129,8 +136,8 @@ def test_get(population_manager: PopulationManager) -> None:
     assert pop.index.equals(pop_full[pop_full["color"] == "red"].index)
 
 
-def test_get_empty_idx(population_manager: PopulationManager) -> None:
-    pv = population_manager.get_view(COL_NAMES, population_manager)
+def test_get_empty_idx(sim: InteractiveContext) -> None:
+    pv = sim._population.get_view(COL_NAMES)
 
     pop = pv.get(pd.Index([]), COL_NAMES)
     assert isinstance(pop, pd.DataFrame)
@@ -138,8 +145,8 @@ def test_get_empty_idx(population_manager: PopulationManager) -> None:
     assert pop.empty
 
 
-def test_get_raises(population_manager: PopulationManager) -> None:
-    pv = population_manager.get_view(COL_NAMES, population_manager)
+def test_get_raises(sim: InteractiveContext) -> None:
+    pv = sim._population.get_view(COL_NAMES)
 
     # Unknown columns
     with pytest.raises(
@@ -607,11 +614,12 @@ def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
 
 
 def test_population_view_update_format_fail(
-    population_manager: PopulationManager,
+    sim: InteractiveContext,
     population_update: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
-    pv = population_manager.get_view(COL_NAMES, population_manager)
+    population_manager = sim._population
+    pv = population_manager.get_view(COL_NAMES, sim.list_components()["test_component"])
     population_manager.creating_initial_population = True
     population_manager.adding_simulants = True
     # Bad type
@@ -650,11 +658,13 @@ def test_population_view_update_format_fail(
 
 
 def test_population_view_update_format_fail_new_cols(
-    population_manager: PopulationManager,
+    sim: InteractiveContext,
     population_update_new_cols: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
-    pv = population_manager.get_view(COL_NAMES, population_manager)
+    population_manager = sim._population
+    component = sim.list_components()["test_component"]
+    pv = population_manager.get_view(COL_NAMES, component)
 
     population_manager.creating_initial_population = True
     population_manager.adding_simulants = True
@@ -663,7 +673,7 @@ def test_population_view_update_format_fail_new_cols(
         pv.update(BASE_POPULATION.iloc[:, 0].rename(None))
 
     for view_cols in [COL_NAMES, [COL_NAMES[0]]]:
-        pv = population_manager.get_view(view_cols, population_manager)
+        pv = population_manager.get_view(view_cols, component)
 
         with pytest.raises(PopulationError, match="extra columns"):
             pv.update(population_update_new_cols)
@@ -671,7 +681,7 @@ def test_population_view_update_format_fail_new_cols(
         with pytest.raises(PopulationError, match="no columns"):
             pv.update(pd.DataFrame(index=BASE_POPULATION.index))
 
-    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES, population_manager)
+    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES, component)
     if not update_index.equals(BASE_POPULATION.index):
         with pytest.raises(PopulationError, match="missing updates"):
             pv.update(population_update_new_cols)
@@ -693,14 +703,17 @@ def test_population_view_update_format_fail_new_cols(
 
 
 def test_population_view_update_init(
-    population_manager: PopulationManager,
+    sim: InteractiveContext,
     population_update_new_cols: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
     if isinstance(population_update_new_cols, pd.Series):
         pytest.skip()
 
-    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES, population_manager)
+    population_manager = sim._population
+    pv = population_manager.get_view(
+        COL_NAMES + NEW_COL_NAMES, sim.list_components()["test_component"]
+    )
 
     population_manager.population = BASE_POPULATION.loc[update_index]
     population_manager.creating_initial_population = True
@@ -712,14 +725,17 @@ def test_population_view_update_init(
 
 
 def test_population_view_update_add(
-    population_manager: PopulationManager,
+    sim: InteractiveContext,
     population_update: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
     if isinstance(population_update, pd.Series):
         pytest.skip()
 
-    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES, population_manager)
+    population_manager = sim._population
+    pv = population_manager.get_view(
+        COL_NAMES + NEW_COL_NAMES, sim.list_components()["test_component"]
+    )
 
     population_manager.population = BASE_POPULATION.loc[update_index]
     for col in population_update:
@@ -736,13 +752,17 @@ def test_population_view_update_add(
 
 
 def test_population_view_update_time_step(
-    population_manager: PopulationManager,
+    sim: InteractiveContext,
     population_update: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
     if isinstance(population_update, pd.Series):
         pytest.skip()
-    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES, population_manager)
+
+    population_manager = sim._population
+    pv = population_manager.get_view(
+        COL_NAMES + NEW_COL_NAMES, sim.list_components()["test_component"]
+    )
 
     population_manager.creating_initial_population = False
     population_manager.adding_simulants = False

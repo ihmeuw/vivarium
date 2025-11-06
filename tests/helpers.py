@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import itertools
+import math
 from typing import Any
 
 import pandas as pd
@@ -154,7 +156,13 @@ class ColumnCreator(Component):
         )
 
 
-class AttributePipelineCreator(ColumnCreator):
+class AttributePipelineCreator(Component):
+    """A helper class to register different types of attribute pipelines.
+
+    It does NOT include any columns_created; use the ColumnCreator class for that.
+
+    """
+
     def setup(self, builder: Builder) -> None:
 
         # Simple attributes
@@ -373,3 +381,30 @@ class MockManager(Manager):
 
     def __init__(self, name: str) -> None:
         self._name = name
+
+
+# FIXME: Streamline with already-existing classes above
+COL_NAMES = ["color", "count", "pie", "pi"]
+COLORS = ["red", "green", "yellow"]
+COUNTS = [10, 20, 30]
+PIES = ["apple", "chocolate", "pecan"]
+PIS = [math.pi**i for i in range(1, 4)]
+RECORDS = [
+    (color, count, pie, pi)
+    for color, count, pie, pi in itertools.product(COLORS, COUNTS, PIES, PIS)
+]
+
+
+class TestComponent(Component):
+    @property
+    def columns_created(self) -> list[str]:
+        return COL_NAMES
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        self.population_view.update(self.get_initial_state(pop_data.index))
+
+    def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
+        return pd.DataFrame(
+            data=RECORDS,
+            columns=self.columns_created,
+        )

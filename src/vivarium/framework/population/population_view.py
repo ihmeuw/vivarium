@@ -41,7 +41,7 @@ class PopulationView:
     def __init__(
         self,
         manager: PopulationManager,
-        component: Component | Manager | None,
+        component: Component | None,
         view_id: int,
         private_columns: Sequence[str] = (),
         query: str = "",
@@ -53,7 +53,7 @@ class PopulationView:
         manager
             The population manager for the simulation.
         component
-            The component or manager that created this view or None if it's another
+            The component that created this view or None if it's another
             class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
         view_id
             The unique identifier for this view.
@@ -137,6 +137,11 @@ class PopulationView:
             raise PopulationError(
                 "Trying to update a population that has not yet been initialized."
             )
+        if self._component is None:
+            raise PopulationError(
+                "Only components that created a PopulationView can update it."
+            )
+
         private_data = self._manager.get_private_data(self._component)
         population_update_df: pd.DataFrame = self._format_update_and_check_preconditions(
             population_update,

@@ -187,7 +187,7 @@ class PopulationManager(Manager):
             self.register_simulant_initializer, allow_during=[lifecycle_states.SETUP]
         )
 
-        self.register_simulant_initializer(self, creates_columns=self.columns_created)
+        self.register_simulant_initializer(self)
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
 
     def on_post_setup(self, event: Event) -> None:
@@ -210,7 +210,7 @@ class PopulationManager(Manager):
     def get_view(
         self,
         private_columns: str | Sequence[str],
-        component: Component | Manager | None = None,
+        component: Component | None = None,
         query: str = "",
     ) -> PopulationView:
         """Get a time-varying view of the population state table.
@@ -223,7 +223,7 @@ class PopulationManager(Manager):
         private_columns
             The private columns created by the component requesting this view.
         component
-            The component or manager requesting this view or None if it's another
+            The component requesting this view or None if it's another
             class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
         query
             A filter on the population state.  This filters out particular
@@ -261,7 +261,7 @@ class PopulationManager(Manager):
     def _get_view(
         self,
         private_columns: str | Sequence[str],
-        component: Component | Manager | None,
+        component: Component | None,
         query: str,
     ) -> PopulationView:
         if isinstance(private_columns, str):
@@ -370,13 +370,13 @@ class PopulationManager(Manager):
 
         return index
 
-    def register_private_columns(self, component: Component | Manager) -> None:
-        """Registers the private columns created by a component or manager.
+    def register_private_columns(self, component: Component) -> None:
+        """Registers the private columns created by a component.
 
         Parameters
         ----------
         component
-            The component or manager that is registering its private columns.
+            The component that is registering its private columns.
         """
         if component.columns_created:
             self.private_column_metadata[component.name].extend(component.columns_created)
