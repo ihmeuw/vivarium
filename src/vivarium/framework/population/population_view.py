@@ -158,7 +158,7 @@ class PopulationView:
             new_columns = list(set(update_df).difference(existing))
             self._manager.population[new_columns] = update_df[new_columns]
         elif not update_df.empty:
-            update_columns = list(set(update_df).intersection(existing))
+            update_columns = list(set(update_df.columns).intersection(set(existing.columns)))
             for column in update_columns:
                 column_update = self._update_column_and_ensure_dtype(
                     update_df[column],
