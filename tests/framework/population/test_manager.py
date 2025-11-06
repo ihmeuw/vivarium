@@ -12,7 +12,6 @@ from tests.helpers import (
     AttributePipelineCreator,
     ColumnCreator,
     ColumnCreatorAndRequirer,
-    TestComponent,
 )
 from vivarium import Component, InteractiveContext
 from vivarium.framework.population.exceptions import PopulationError
@@ -301,16 +300,16 @@ def test_register_private_columns() -> None:
     }
 
 
-def test_get_private_data() -> None:
+def test_get_private_columns() -> None:
     component1 = ColumnCreator()
     component2 = ColumnCreatorAndRequirer()
     sim = InteractiveContext(components=[component1, component2])
     assert (
-        list(sim._population.get_private_data(component1).columns)
+        list(sim._population.get_private_columns(component1).columns)
         == component1.columns_created
     )
     assert (
-        list(sim._population.get_private_data(component2).columns)
+        list(sim._population.get_private_columns(component2).columns)
         == component2.columns_created
     )
 

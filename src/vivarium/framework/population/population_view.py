@@ -53,8 +53,8 @@ class PopulationView:
         manager
             The population manager for the simulation.
         component
-            The component that created this view or None if it's another
-            class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
+            The component requesting this view. If None, the view will provide
+            read-only access.
         view_id
             The unique identifier for this view.
         private_columns
@@ -112,13 +112,13 @@ class PopulationView:
             query=combined_query,
         )
 
-    def update(self, population_update: pd.Series[Any] | pd.DataFrame) -> None:
+    def update(self, update: pd.Series[Any] | pd.DataFrame) -> None:
         """Updates the private data with the provided data.
 
         Parameters
         ----------
-        population_update
-            The data which should be copied into the simulation's state. If
+        update
+            The data which should be copied into the simulation's private data. If
             the update is a :class:`pandas.DataFrame`, it can contain a subset
             of the view's columns but no extra columns. If ``pop`` is a
             :class:`pandas.Series` it must have a name that matches one of
@@ -129,9 +129,13 @@ class PopulationView:
         Raises
         ------
         PopulationError
-            If the provided data name or columns do not match columns that
-            this view manages or if the view is being updated with a data
-            type inconsistent with the original population data.
+            - If the population has not yet been initialized.
+            - If the ``component`` attribute is set to None (indicating that this
+            view is to be read-only and thus cannot be updated).
+            - If the provided update name or columns do not match columns that this
+            view manages.
+            - If the view is being updated with a data type inconsistent with the
+            original data.
         """
         if not isinstance(self._manager.population, pd.DataFrame):
             raise PopulationError(
@@ -142,23 +146,23 @@ class PopulationView:
                 "Only components that created a PopulationView can update it."
             )
 
-        private_data = self._manager.get_private_data(self._component)
-        population_update_df: pd.DataFrame = self._format_update_and_check_preconditions(
-            population_update,
-            private_data,
+        existing = self._manager.get_private_columns(self._component)
+        update_df: pd.DataFrame = self._format_update_and_check_preconditions(
+            update,
+            existing,
             self.private_columns,
             self._manager.creating_initial_population,
             self._manager.adding_simulants,
         )
         if self._manager.creating_initial_population:
-            new_columns = list(set(population_update_df).difference(private_data))
-            self._manager.population[new_columns] = population_update_df[new_columns]
-        elif not population_update_df.empty:
-            update_columns = list(set(population_update_df).intersection(private_data))
+            new_columns = list(set(update_df).difference(existing))
+            self._manager.population[new_columns] = update_df[new_columns]
+        elif not update_df.empty:
+            update_columns = list(set(update_df).intersection(existing))
             for column in update_columns:
                 column_update = self._update_column_and_ensure_dtype(
-                    population_update_df[column],
-                    private_data[column],
+                    update_df[column],
+                    existing[column],
                     self._manager.adding_simulants,
                 )
                 self._manager.population[column] = column_update
@@ -173,8 +177,8 @@ class PopulationView:
 
     @staticmethod
     def _format_update_and_check_preconditions(
-        population_update: pd.Series[Any] | pd.DataFrame,
-        private_data: pd.DataFrame,
+        update: pd.Series[Any] | pd.DataFrame,
+        existing: pd.DataFrame,
         private_columns: list[str],
         creating_initial_population: bool,
         adding_simulants: bool,
@@ -211,9 +215,9 @@ class PopulationView:
 
         Parameters
         ----------
-        population_update
+        update
             The update to the private data owned by the component that created this view.
-        private_data
+        existing
             The existing private data owned by the component that created this view.
         private_columns
             The private columns managed by this PopulationView.
@@ -239,12 +243,12 @@ class PopulationView:
         """
         assert not creating_initial_population or adding_simulants
 
-        population_update = PopulationView._coerce_to_dataframe(
-            population_update,
+        update = PopulationView._coerce_to_dataframe(
+            update,
             private_columns,
         )
 
-        unknown_simulants = len(population_update.index.difference(private_data.index))
+        unknown_simulants = len(update.index.difference(existing.index))
         if unknown_simulants:
             raise PopulationError(
                 "Population updates must have an index that is a subset of the current "
@@ -253,9 +257,9 @@ class PopulationView:
             )
 
         if creating_initial_population:
-            PopulationView._ensure_coherent_initialization(population_update, private_data)
+            PopulationView._ensure_coherent_initialization(update, existing)
         else:
-            new_columns = list(set(population_update).difference(private_data))
+            new_columns = list(set(update).difference(existing))
             if new_columns:
                 raise PopulationError(
                     f"Attempting to add new columns {new_columns} to the private data "
@@ -263,14 +267,12 @@ class PopulationView:
                 )
 
             if adding_simulants:
-                private_data_new_simulants = private_data.loc[population_update.index, :]
+                new_simulants = existing.loc[update.index, :]
                 conflicting_columns = [
                     column
-                    for column in population_update
-                    if private_data_new_simulants[column].notnull().any()
-                    and not population_update[column].equals(
-                        private_data_new_simulants[column]
-                    )
+                    for column in update
+                    if new_simulants[column].notnull().any()
+                    and not update[column].equals(new_simulants[column])
                 ]
                 if conflicting_columns:
                     raise PopulationError(
@@ -278,21 +280,21 @@ class PopulationView:
                         f"for the private data columns: {conflicting_columns}."
                     )
 
-        return population_update
+        return update
 
     @staticmethod
     def _coerce_to_dataframe(
-        population_update: pd.Series[Any] | pd.DataFrame,
+        update: pd.Series[Any] | pd.DataFrame,
         private_columns: list[str],
     ) -> pd.DataFrame:
         """Coerce all population updates to a :class:`pandas.DataFrame` format.
 
         Parameters
         ----------
-        population_update
+        update
             The update to the private data owned by the component that created this view.
-        private_data
-            The existing private data owned by the component that created this view.
+        private_columns
+            The private column names owned by the component that created this view.
 
         Returns
         -------
@@ -308,44 +310,42 @@ class PopulationView:
             manages multiple columns or if the population update contains columns not
             managed by this view.
         """
-        if not isinstance(population_update, (pd.Series, pd.DataFrame)):
+        if not isinstance(update, (pd.Series, pd.DataFrame)):
             raise TypeError(
                 "The population update must be a pandas Series or DataFrame. "
-                f"A {type(population_update)} was provided."
+                f"A {type(update)} was provided."
             )
 
-        if isinstance(population_update, pd.Series):
-            if population_update.name is None:
+        if isinstance(update, pd.Series):
+            if update.name is None:
                 if len(private_columns) == 1:
-                    population_update.name = private_columns[0]
+                    update.name = private_columns[0]
                 else:
                     raise PopulationError(
                         "Cannot update with an unnamed pandas series unless there "
                         "is only a single column in the view."
                     )
 
-            population_update = pd.DataFrame(population_update)
+            update = pd.DataFrame(update)
 
-        if not set(population_update.columns).issubset(private_columns):
+        if not set(update.columns).issubset(private_columns):
             raise PopulationError(
                 f"Cannot update with a DataFrame or Series that contains columns "
                 f"the view does not. Dataframe contains the following extra columns: "
-                f"{set(population_update.columns).difference(private_columns)}."
+                f"{set(update.columns).difference(private_columns)}."
             )
 
-        update_columns = list(population_update)
+        update_columns = list(update)
         if not update_columns:
             raise PopulationError(
                 "The update method of population view is being called "
                 "on a DataFrame with no columns."
             )
 
-        return population_update
+        return update
 
     @staticmethod
-    def _ensure_coherent_initialization(
-        population_update: pd.DataFrame, private_data: pd.DataFrame
-    ) -> None:
+    def _ensure_coherent_initialization(update: pd.DataFrame, existing: pd.DataFrame) -> None:
         """Ensure that overlapping population updates have the same information.
 
         During population initialization, each private data column should be updated by
@@ -356,9 +356,9 @@ class PopulationView:
 
         Parameters
         ----------
-        population_update
+        update
             The update to the private data owned by the component that created this view.
-        private_data
+        existing
             The existing private data owned by the component that created this view.
             When this method is called, the table should be in a partially complete
             state. That is the provided population update should carry some new
@@ -370,21 +370,21 @@ class PopulationView:
             If the population update contains no new information or if it contains
             information in conflict with the existing private data.
         """
-        missing_pops = len(private_data.index.difference(population_update.index))
+        missing_pops = len(existing.index.difference(update.index))
         if missing_pops:
             raise PopulationError(
                 f"Components should initialize the same population at the simulation start. "
                 f"A component is missing updates for {missing_pops} simulants."
             )
-        new_columns = set(population_update).difference(private_data)
-        overlapping_columns = set(population_update).intersection(private_data)
+        new_columns = set(update).difference(existing)
+        overlapping_columns = set(update).intersection(existing)
         if not new_columns:
             raise PopulationError(
-                f"A component is providing a population update for {list(population_update)} "
+                f"A component is providing a population update for {list(update)} "
                 "but all provided columns are initialized by other components."
             )
         for column in overlapping_columns:
-            if not population_update[column].equals(private_data[column]):
+            if not update[column].equals(existing[column]):
                 raise PopulationError(
                     "Two components are providing conflicting initialization data for the "
                     f"{column} private data column."
@@ -424,13 +424,13 @@ class PopulationView:
         #  the creation of new simulants besides the fact that it's the existing
         #  implementation.
         update_values = update.array.copy()
-        new_private_data_values = existing.array.copy()
+        new_values = existing.array.copy()
         update_index_positional = existing.index.get_indexer(update.index)  # type: ignore [no-untyped-call]
 
         # Assumes the update index labels can be interpreted as an array position.
-        new_private_data_values[update_index_positional] = update_values
+        new_values[update_index_positional] = update_values
 
-        unmatched_dtypes = new_private_data_values.dtype != update_values.dtype
+        unmatched_dtypes = new_values.dtype != update_values.dtype
         if unmatched_dtypes and not adding_simulants:
             # This happens when the population is being grown because extending
             # the index forces columns that don't have a natural null type
@@ -439,8 +439,8 @@ class PopulationView:
                 "A component is corrupting the population table by modifying the dtype of "
                 f"the {update.name} column from {existing.dtype} to {update.dtype}."
             )
-        new_private_data_values = new_private_data_values.astype(update_values.dtype)
-        new_private_data: pd.Series[Any] = pd.Series(
-            new_private_data_values, index=existing.index, name=existing.name
+        new_values = new_values.astype(update_values.dtype)
+        new_data: pd.Series[Any] = pd.Series(
+            new_values, index=existing.index, name=existing.name
         )
-        return new_private_data
+        return new_data

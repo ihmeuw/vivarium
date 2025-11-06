@@ -56,8 +56,8 @@ class PopulationInterface(Interface):
         private_columns
             The private columns created by the component requesting this view.
         component
-            The component requesting this view or None if it's another
-            class (e.g. a `~vivarium.framework.lookup.table.LookupTable`).
+            The component requesting this view. If None, the view will provide
+            read-only access.
         query
             A filter on the population state. This filters out particular
             simulants (rows in the state table) based on their current state.
