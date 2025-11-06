@@ -154,37 +154,6 @@ def test_get_population(
         assert (pop["pie"] == "apple").all()
 
 
-# # FIXED USING COLUMNCREATOR
-# # We can do this instead if we want to streamline helper classes, but it would be more work.
-# @pytest.mark.parametrize("attributes", ("all", ["test_column_1", "simulant_step_size"]))
-# @pytest.mark.parametrize("index", [None, "reduced"])
-# @pytest.mark.parametrize("query", [None, "test_column_1 == 2"])
-# def test_get_population(
-#     attributes: Literal["all"] | list[str],
-#     index: str | None,
-#     query: str,
-# ) -> None:
-#     component = ColumnCreator()
-#     sim = InteractiveContext(components=[component])
-
-#     kwargs: dict[str, Any] = {"attributes": attributes}
-#     if index == "half":
-#         kwargs["index"] = pd.Index(
-#             pd.RangeIndex(0, len(sim._population.get_population_index()) // 2)
-#         )
-#     if query is not None:
-#         kwargs["query"] = query
-
-#     pop = sim._population.get_population(**kwargs)
-#     assert (
-#         set(pop.columns) == set(component.columns_created + ["simulant_step_size"])
-#         if attributes == "all"
-#         else set(attributes)
-#     )
-#     if query is not None:
-#         assert (pop["test_column_1"] == 2).all()
-
-
 def test_get_population_different_attribute_types() -> None:
     """Test that get_population works with simple attributes, non-simple attributes,
     and attribute pipelines that return dataframes instead of series'."""
