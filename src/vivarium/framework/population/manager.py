@@ -139,13 +139,38 @@ class PopulationManager(Manager):
         },
     }
 
+    @property
+    def private_columns(self) -> pd.DataFrame:
+        """The entire population private columns."""
+        if self._private_columns is None:
+            raise PopulationError("Population has not been initialized.")
+        return self._private_columns
+
     def get_private_columns(self, component: Component | Manager | None) -> pd.DataFrame:
-        attributes = self.private_column_metadata.get(component.name, []) if component else []
+        """Gets the private columns for a given component.
+
+        While the ``private_columns`` property provides the entire private column
+        dataframe, this method returns only the columns created by the specified
+        component. If no component is specified, then no columns are returned.
+
+        Parameters
+        ----------
+        component
+            The component whose private columns are to be retrieved. If None,
+            no columns are returned.
+
+        Returns
+        -------
+            The private columns created by the specified component.
+        """
+        attributes = (
+            self._private_column_metadata.get(component.name, []) if component else []
+        )
         return self.get_population(attributes=attributes)
 
     def __init__(self) -> None:
-        self.population: pd.DataFrame | None = None
-        self.private_column_metadata: dict[str, list[str]] = defaultdict(list)
+        self._private_columns: pd.DataFrame | None = None
+        self._private_column_metadata: dict[str, list[str]] = defaultdict(list)
         self._initializer_components = InitializerComponentSet()
         self.creating_initial_population = False
         self.adding_simulants = False
@@ -203,9 +228,7 @@ class PopulationManager(Manager):
 
     def get_population_index(self) -> pd.Index[int]:
         """Get the index of the current population."""
-        if self.population is None:
-            raise PopulationError("Population has not been initialized and so has no index.")
-        return self.population.index
+        return self.private_columns.index
 
     def get_view(
         self,
@@ -352,14 +375,14 @@ class PopulationManager(Manager):
         population_configuration = (
             population_configuration if population_configuration else {}
         )
-        if self.population is None:
+        if self._private_columns is None:
             self.creating_initial_population = True
-            self.population = pd.DataFrame()
+            self._private_columns = pd.DataFrame()
 
-        new_index = range(len(self.population) + count)
-        new_population = self.population.reindex(new_index)
-        index = new_population.index.difference(self.population.index)
-        self.population = new_population
+        new_index = range(len(self._private_columns) + count)
+        new_population = self._private_columns.reindex(new_index)
+        index = new_population.index.difference(self._private_columns.index)
+        self._private_columns = new_population
         self.adding_simulants = True
         for initializer in self.resources.get_population_initializers():
             initializer(
@@ -379,7 +402,7 @@ class PopulationManager(Manager):
             The component that is registering its private columns.
         """
         if component.columns_created:
-            self.private_column_metadata[component.name].extend(component.columns_created)
+            self._private_column_metadata[component.name].extend(component.columns_created)
 
     ###############
     # Context API #
@@ -415,10 +438,10 @@ class PopulationManager(Manager):
             If any of the requested attributes do not exist in the population table.
         """
 
-        if self.population is None:
+        if self._private_columns is None:
             return pd.DataFrame()
 
-        idx = index if index is not None else self.population.index
+        idx = index if index is not None else self._private_columns.index
 
         if isinstance(attributes, list):
             # check for duplicate request
@@ -457,9 +480,9 @@ class PopulationManager(Manager):
         if simple_attributes:
             if self.creating_initial_population:
                 # These columns won't exist yet so just return a columnless dataframe
-                return self.population.loc[idx]
+                return self._private_columns.loc[idx]
             else:
-                attributes_list.append(self.population.loc[idx, simple_attributes])
+                attributes_list.append(self._private_columns.loc[idx, simple_attributes])
 
         # handle remaining non-simple attributes one by one
         remaining_attributes = [

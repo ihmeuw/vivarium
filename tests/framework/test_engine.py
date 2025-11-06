@@ -535,11 +535,11 @@ def test_private_columns_get_registered() -> None:
     component1 = ColumnCreator()
     component2 = AttributePipelineCreator()
     sim = InteractiveContext(components=[component1, component2], setup=False)
-    assert sim._population.private_column_metadata == {}
+    assert sim._population._private_column_metadata == {}
     sim.setup()
     # The only components or managers to have a non-empty columns_created is
     # the ColumnCreator() component used in the context.
-    metadata = sim._population.private_column_metadata
+    metadata = sim._population._private_column_metadata
     assert metadata == {component1.name: component1.columns_created}
     # Check that there are indeed other attributes registered besides via column_created
     len(sim.get_population().columns) > len(

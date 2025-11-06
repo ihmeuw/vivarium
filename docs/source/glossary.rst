@@ -27,6 +27,9 @@ Glossary
         adjust the behavior of :term:`components <Component>`.  Components
         themselves may provide defaults for several configuration parameters.
 
+    Metrics
+        Simulation outputs, often used interchangeable with "results".
+
     Model Specification
         A complete description of a ``vivarium`` model. This description
         details all :term:`plugins <Plugin>`, :term:`components <Component>`,

@@ -71,6 +71,7 @@ def simulate() -> None:
     "-o",
     type=click.Path(resolve_path=True),
     default=Path("~/vivarium_results/").expanduser(),
+    show_default=True,
     help="The directory to write results to. A folder will be created "
     "in this directory with the same name as the configuration file.",
 )

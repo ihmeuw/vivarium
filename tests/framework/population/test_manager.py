@@ -288,13 +288,13 @@ def test_register_private_columns() -> None:
     # The metadata for the manager should be empty because the fixture does not
     # actually go through setup.
     mgr = PopulationManager()
-    assert mgr.private_column_metadata == {}
+    assert mgr._private_column_metadata == {}
     # Running setup registers all attribute pipelines and updates the metadata
     component1 = ColumnCreator()
     component2 = ColumnCreator2()
     mgr.register_private_columns(component1)
     mgr.register_private_columns(component2)
-    assert mgr.private_column_metadata == {
+    assert mgr._private_column_metadata == {
         component1.name: component1.columns_created,
         component2.name: component2.columns_created,
     }
@@ -317,9 +317,7 @@ def test_get_private_columns() -> None:
 def test_get_population_index() -> None:
     component = AttributePipelineCreator()
     sim = InteractiveContext(components=[component], setup=False)
-    with pytest.raises(
-        PopulationError, match="Population has not been initialized and so has no index."
-    ):
+    with pytest.raises(PopulationError, match="Population has not been initialized."):
         sim._population.get_population_index()
     sim.setup()
     sim.get_population().index.equals(sim._population.get_population_index())

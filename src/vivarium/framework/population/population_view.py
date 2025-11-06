@@ -129,7 +129,6 @@ class PopulationView:
         Raises
         ------
         PopulationError
-            - If the population has not yet been initialized.
             - If the ``component`` attribute is set to None (indicating that this
             view is to be read-only and thus cannot be updated).
             - If the provided update name or columns do not match columns that this
@@ -137,10 +136,7 @@ class PopulationView:
             - If the view is being updated with a data type inconsistent with the
             original data.
         """
-        if not isinstance(self._manager.population, pd.DataFrame):
-            raise PopulationError(
-                "Trying to update a population that has not yet been initialized."
-            )
+
         if self._component is None:
             raise PopulationError(
                 "Only components that created a PopulationView can update it."
@@ -156,7 +152,7 @@ class PopulationView:
         )
         if self._manager.creating_initial_population:
             new_columns = list(set(update_df).difference(existing))
-            self._manager.population[new_columns] = update_df[new_columns]
+            self._manager.private_columns[new_columns] = update_df[new_columns]
         elif not update_df.empty:
             update_columns = list(set(update_df.columns).intersection(set(existing.columns)))
             for column in update_columns:
@@ -165,7 +161,7 @@ class PopulationView:
                     existing[column],
                     self._manager.adding_simulants,
                 )
-                self._manager.population[column] = column_update
+                self._manager.private_columns[column] = column_update
 
     def __repr__(self) -> str:
         name = self._component.name if self._component else "None"
