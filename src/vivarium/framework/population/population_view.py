@@ -155,13 +155,17 @@ class PopulationView:
             self._manager.private_columns[new_columns] = update_df[new_columns]
         elif not update_df.empty:
             update_columns = list(set(update_df.columns).intersection(set(existing.columns)))
+            updated_cols_list = []
             for column in update_columns:
                 column_update = self._update_column_and_ensure_dtype(
                     update_df[column],
                     existing[column],
                     self._manager.adding_simulants,
                 )
-                self._manager.private_columns[column] = column_update
+                updated_cols_list.append(column_update)
+            self._manager.private_columns[update_columns] = pd.concat(
+                updated_cols_list, axis=1
+            )
 
     def __repr__(self) -> str:
         name = self._component.name if self._component else "None"
