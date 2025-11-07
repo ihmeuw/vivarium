@@ -163,9 +163,7 @@ class PopulationView:
                     self._manager.adding_simulants,
                 )
                 updated_cols_list.append(column_update)
-            self._manager.private_columns[update_columns] = pd.concat(
-                updated_cols_list, axis=1
-            )
+            self._manager.update(pd.concat(updated_cols_list, axis=1))
 
     def __repr__(self) -> str:
         name = self._component.name if self._component else "None"

@@ -525,3 +525,6 @@ class PopulationManager(Manager):
         # prior to calculating all of the attributes (e.g. including aged out
         # simulants or not)
         return df.query(query) if query else df
+
+    def update(self, update: pd.DataFrame) -> None:
+        self.private_columns[update.columns] = update
