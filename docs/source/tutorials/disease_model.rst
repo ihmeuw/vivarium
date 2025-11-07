@@ -706,7 +706,7 @@ can see the impact of our mortality component without taking too many steps.
    }
 
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
-   print(sim.get_population().head())
+   print(sim.get_population().head()[['age', 'sex', 'alive', 'mortality_rate']])
 
 ::
 
@@ -730,23 +730,21 @@ can see the impact of our mortality component without taking too many steps.
    }
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
-   print(sim.get_population().head())
+   print(sim.get_population().head()[['age', 'sex', 'alive', 'mortality_rate']])
 
 .. testoutput::
 
-     simulant_step_size        age     sex entrance_time  mortality_rate  alive
-   0             1 days  13.806776  Female    2005-07-01        0.000027  alive
-   1             1 days  59.172893    Male    2005-07-01        0.000027  alive
-   2             1 days  11.030887  Female    2005-07-01        0.000027  alive
-   3             1 days  27.723191  Female    2005-07-01        0.000027  alive
-   4             1 days  51.052188  Female    2005-07-01        0.000027  alive
+            age     sex  alive  mortality_rate
+   0  13.806776  Female  alive        0.000027
+   1  59.172893    Male  alive        0.000027
+   2  11.030887  Female  alive        0.000027
+   3  27.723191  Female  alive        0.000027
+   4  51.052188  Female  alive        0.000027
 
 Note that aside from modifying the population size in the config, we haven't actually
 done anything different than before. Indeed, the ages and sexes of the first five
-simulants are the same. Here, however, we are not subsetting the dataframe to only
-show the ``'age'`` and ``'sex'`` columns, however, and so we see various others 
-(notably, the ``'mortality_rate'`` and ``'alive'`` columns created by the Mortality 
-component).
+simulants are the same. Here, however, we are including the ``'mortality_rate'`` and 
+``'alive'`` columns created by the Mortality component.
 
 As we haven't taken a time step yet, everyone should still be alive.
 

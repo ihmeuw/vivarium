@@ -49,7 +49,7 @@ class PopulationInterface(Interface):
         """Get a time-varying view of the population state table.
 
         The requested population view can be used to view the current state or
-        to update the state with new values.
+        to update private columns with new values.
 
         Parameters
         ----------
@@ -67,7 +67,7 @@ class PopulationInterface(Interface):
 
         Returns
         -------
-            A filtered view of the requested columns of the population state table.
+            A filtered view of the requested private columns.
         """
         return self._manager.get_view(private_columns, component, query)
 

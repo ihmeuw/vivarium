@@ -27,11 +27,10 @@ if TYPE_CHECKING:
 
 
 class PopulationView:
-    """A read/write manager for the simulation private data.
+    """A read/write manager for the simulation state table.
 
-    It can be used to both read and update the state of the population. While a
-    PopulationView can read any columns, it can only write those columns that the
-    component it is attached to created.
+    It can be used to read the state of the population as well as update the private
+    columns owned by the component that created this view.
 
     Attempts to update non-existent columns are ignored except during
     simulant creation when new columns are allowed to be created.
@@ -79,10 +78,10 @@ class PopulationView:
         attributes: str | list[str],
         query: str = "",
     ) -> pd.DataFrame:
-        """Get a specific subset of this ``PopulationView``.
+        """Get a specific subset of the population state table.
 
         For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
-        simulation's private data. The resulting rows may be further filtered by the
+        simulation state table. The resulting rows may be further filtered by the
         view's query and only return a subset of the population represented by the index.
 
         Parameters
@@ -90,7 +89,7 @@ class PopulationView:
         index
             Index of the population to get.
         attributes
-            The columns to retrieve from the population private data.
+            The columns to retrieve from the population state table.
         query
             Additional conditions used to filter the index. These conditions
             will be unioned with the default query of this view. The query
@@ -113,12 +112,12 @@ class PopulationView:
         )
 
     def update(self, update: pd.Series[Any] | pd.DataFrame) -> None:
-        """Updates the private data with the provided data.
+        """Updates private columns with the provided data.
 
         Parameters
         ----------
         update
-            The data which should be copied into the simulation's private data. If
+            The data which should be copied into the simulation's private columns. If
             the update is a :class:`pandas.DataFrame`, it can contain a subset
             of the view's columns but no extra columns. If ``pop`` is a
             :class:`pandas.Series` it must have a name that matches one of
@@ -183,14 +182,14 @@ class PopulationView:
     ) -> pd.DataFrame:
         """Standardizes the population update format and checks preconditions.
 
-        Managing how values get written to the underlying population private data is critical
-        to rule out several categories of error in client simulation code. The private data
-        is modified at three different times. In the first, the initial population table
-        is being created and new columns are being added to the private data with their
+        Managing how values get written to the underlying population private columns is critical
+        to rule out several categories of error in client simulation code. Private columns
+        are modified at three different times. In the first, the initial population table
+        is being created and new columns are being added with their
         initial values. In the second, the population manager has added new rows with
-        appropriate null values to the private data in response to population creation
+        appropriate null values to the private columns in response to population creation
         dictated by client code, and population updates are being provided to fill in
-        initial values for those new rows. In the final case, private data values for
+        initial values for those new rows. In the final case, private columns for
         existing simulants are being overridden as part of a time step.
 
         All of these modification scenarios require that certain preconditions are met.
@@ -202,21 +201,21 @@ class PopulationView:
             3. The update matches at least one column in this PopulationView.
             4. The update columns are a subset of the columns managed by this
                PopulationView.
-            5. The update index is a subset of the existing private data index.
-               PopulationViews don't make rows, they just fill them in.
+            5. The update index is a subset of the existing index; PopulationViews
+               don't make rows, they just fill them in.
 
         For initial population creation additional preconditions are documented in
         :meth:`PopulationView._ensure_coherent_initialization`. Outside population
         initialization, we require that all columns in the update to be present in
-        the existing private data. When new simulants are added in the middle of the
+        the existing private dataframe. When new simulants are added in the middle of the
         simulation, we require that only one component provide updates to a column.
 
         Parameters
         ----------
         update
-            The update to the private data owned by the component that created this view.
+            The update to the private columns owned by the component that created this view.
         existing
-            The existing private data owned by the component that created this view.
+            The existing private columns owned by the component that created this view.
         private_columns
             The private columns managed by this PopulationView.
         creating_initial_population
@@ -281,7 +280,7 @@ class PopulationView:
         Parameters
         ----------
         update
-            The update to the private data owned by the component that created this view.
+            The update to the private columns owned by the component that created this view.
         private_columns
             The private column names owned by the component that created this view.
 
@@ -339,14 +338,14 @@ class PopulationView:
         existing: pd.Series[Any],
         adding_simulants: bool,
     ) -> pd.Series[Any]:
-        """Build the updated private data column with an appropriate dtype.
+        """Build the updated private column with an appropriate dtype.
 
         Parameters
         ----------
         update
             The new column values for a subset of the existing index.
         existing
-            The existing column values for all simulants in the private data.
+            The existing private column values for all simulants.
         adding_simulants
             Whether new simulants are currently being initialized.
 
@@ -359,7 +358,7 @@ class PopulationView:
         #  I've also seen this error, though I don't have a reproducible and useful example.
         #  I'm reasonably sure what's really being accounted for here is non-nullable columns
         #  that temporarily have null values introduced in the space between rows being
-        #  added to the private data and initializers filling them with their first values.
+        #  added to the private dataframe and initializers filling them with their first values.
         #  That means the space of dtype casting issues is actually quite small. What should
         #  actually happen in the long term is to separate the population creation entirely
         #  from the mutation of existing state. I.e. there's not an actual reason we need

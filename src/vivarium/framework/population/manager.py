@@ -258,7 +258,7 @@ class PopulationManager(Manager):
 
         Returns
         -------
-            A filtered view of the requested private columns of the population state table.
+            A filtered view of the requested private columns.
 
         """
         view = self._get_view(private_columns, component, query)
@@ -415,7 +415,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
     ) -> pd.DataFrame:
-        """Provides a copy of the population state table.
+        """Provides a copy of a specific subset of the population state table.
 
         Parameters
         ----------
