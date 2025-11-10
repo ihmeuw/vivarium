@@ -241,6 +241,7 @@ def test_single_column_population_view__coerce_to_dataframe_fail(
 def test__format_update_and_check_preconditions_bad_args() -> None:
     with pytest.raises(AssertionError):
         PopulationView._format_update_and_check_preconditions(
+            "foo",
             BASE_POPULATION,
             BASE_POPULATION,
             COL_NAMES,
@@ -250,6 +251,7 @@ def test__format_update_and_check_preconditions_bad_args() -> None:
 
     with pytest.raises(TypeError, match="must be a pandas Series or DataFrame"):
         PopulationView._format_update_and_check_preconditions(
+            "foo",
             BASE_POPULATION.iloc[:, 0].tolist(),  # type: ignore[arg-type]
             BASE_POPULATION,
             COL_NAMES,
@@ -263,6 +265,7 @@ def test__format_update_and_check_preconditions_coerce_failures(
 ) -> None:
     with pytest.raises(PopulationError, match="unnamed pandas series"):
         PopulationView._format_update_and_check_preconditions(
+            "foo",
             BASE_POPULATION.iloc[:, 0].rename(None),
             BASE_POPULATION,
             COL_NAMES,
@@ -273,6 +276,7 @@ def test__format_update_and_check_preconditions_coerce_failures(
     for view_cols in [COL_NAMES, [COL_NAMES[0]]]:
         with pytest.raises(PopulationError, match="extra columns"):
             PopulationView._format_update_and_check_preconditions(
+                "foo",
                 population_update_new_cols,
                 BASE_POPULATION,
                 view_cols,
@@ -282,6 +286,7 @@ def test__format_update_and_check_preconditions_coerce_failures(
 
         with pytest.raises(PopulationError, match="no columns"):
             PopulationView._format_update_and_check_preconditions(
+                "foo",
                 pd.DataFrame(index=BASE_POPULATION.index),
                 BASE_POPULATION,
                 view_cols,
@@ -304,6 +309,7 @@ def test__format_update_and_check_preconditions_unknown_pop_fail(
         match="Population updates must have an index that is a subset of the current private data.",
     ):
         PopulationView._format_update_and_check_preconditions(
+            "foo",
             update,
             BASE_POPULATION,
             COL_NAMES,
@@ -318,8 +324,9 @@ def test__format_update_and_check_preconditions_coherent_initialization_fail(
 ) -> None:
     # Missing population
     if not update_index.empty:
-        with pytest.raises(PopulationError, match="A component is missing updates"):
+        with pytest.raises(PopulationError, match="Component 'foo' is missing updates"):
             PopulationView._format_update_and_check_preconditions(
+                "foo",
                 population_update.loc[update_index[::2]],
                 BASE_POPULATION.loc[update_index],
                 COL_NAMES,
@@ -333,8 +340,9 @@ def test__format_update_and_check_preconditions_coherent_initialization_fail_new
     update_index: pd.Index[int],
 ) -> None:
     if not update_index.equals(BASE_POPULATION.index):
-        with pytest.raises(PopulationError, match="A component is missing updates"):
+        with pytest.raises(PopulationError, match="Component 'foo' is missing updates"):
             PopulationView._format_update_and_check_preconditions(
+                "foo",
                 population_update_new_cols,
                 BASE_POPULATION,
                 COL_NAMES + NEW_COL_NAMES,
@@ -350,6 +358,7 @@ def test__format_update_and_check_preconditions_new_columns_non_init(
     for adding_simulants in [True, False]:
         with pytest.raises(PopulationError, match="outside the initial population creation"):
             PopulationView._format_update_and_check_preconditions(
+                "foo",
                 population_update_new_cols,
                 BASE_POPULATION.loc[update_index],
                 COL_NAMES + NEW_COL_NAMES,
@@ -363,6 +372,7 @@ def test__format_update_and_check_preconditions_init_pass(
     update_index: pd.Index[int],
 ) -> None:
     result = PopulationView._format_update_and_check_preconditions(
+        "foo",
         population_update_new_cols,
         BASE_POPULATION.loc[update_index],
         COL_NAMES + NEW_COL_NAMES,
@@ -385,6 +395,7 @@ def test__format_update_and_check_preconditions_add_pass(
 ) -> None:
     state_table = BASE_POPULATION.drop(update_index).reindex(BASE_POPULATION.index)
     result = PopulationView._format_update_and_check_preconditions(
+        "foo",
         population_update,
         state_table,
         COL_NAMES + NEW_COL_NAMES,
@@ -405,6 +416,7 @@ def test__format_update_and_check_preconditions_time_step_pass(
     population_update: pd.Series[Any] | pd.DataFrame,
 ) -> None:
     result = PopulationView._format_update_and_check_preconditions(
+        "foo",
         population_update,
         BASE_POPULATION,
         COL_NAMES + NEW_COL_NAMES,
@@ -425,6 +437,7 @@ def test__format_update_and_check_preconditions_adding_simulants_replace_identic
     population_update: pd.Series[Any] | pd.DataFrame,
 ) -> None:
     result = PopulationView._format_update_and_check_preconditions(
+        "foo",
         population_update,
         BASE_POPULATION,
         COL_NAMES + NEW_COL_NAMES,
@@ -539,7 +552,9 @@ def test_population_view_update_format_fail(
     # Missing an update
     population_manager._private_columns = BASE_POPULATION.loc[update_index]
     if not update_index.empty:
-        with pytest.raises(PopulationError, match="A component is missing updates for"):
+        with pytest.raises(
+            PopulationError, match="Component 'test_component' is missing updates for"
+        ):
             pv.update(population_update.loc[update_index[::2]])
 
 

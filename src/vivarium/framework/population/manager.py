@@ -163,11 +163,12 @@ class PopulationManager(Manager):
         -------
             The private columns created by the specified component.
         """
+
         if self.creating_initial_population or component is None:
-            attributes = []
+            cols = []
         else:
-            attributes = self._private_column_metadata.get(component.name, [])
-        return self.private_columns[attributes]
+            cols = self._private_column_metadata.get(component.name, [])
+        return self.private_columns[cols]
 
     def __init__(self) -> None:
         self._private_columns: pd.DataFrame | None = None

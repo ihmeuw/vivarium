@@ -43,11 +43,6 @@ class Manager(ABC):
         """
         return self.CONFIGURATION_DEFAULTS
 
-    @property
-    def columns_created(self) -> list[str]:
-        """Provides names of columns created by the manager."""
-        return []
-
     #####################
     # Lifecycle methods #
     #####################

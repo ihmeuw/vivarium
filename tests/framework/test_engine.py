@@ -542,9 +542,7 @@ def test_private_columns_get_registered() -> None:
     metadata = sim._population._private_column_metadata
     assert metadata == {component1.name: component1.columns_created}
     # Check that there are indeed other attributes registered besides via column_created
-    len(sim.get_population().columns) > len(
-        sim._population.columns_created + component1.columns_created
-    )
+    len(sim.get_population().columns) > len(component1.columns_created)
 
 
 ####################

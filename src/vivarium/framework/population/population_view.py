@@ -139,11 +139,12 @@ class PopulationView:
 
         if self._component is None:
             raise PopulationError(
-                "Only components that created a PopulationView can update it."
+                "This PopulationView is read-only, so it doesn't have access to update()."
             )
 
         existing = self._manager.get_private_columns(self._component)
         update_df: pd.DataFrame = self._format_update_and_check_preconditions(
+            self._component.name,
             update,
             existing,
             self.private_columns,
@@ -151,10 +152,10 @@ class PopulationView:
             self._manager.adding_simulants,
         )
         if self._manager.creating_initial_population:
-            new_columns = list(set(update_df).difference(existing))
+            new_columns = list(set(update_df.columns).difference(existing.columns))
             self._manager.private_columns[new_columns] = update_df[new_columns]
         elif not update_df.empty:
-            update_columns = list(set(update_df.columns).intersection(set(existing.columns)))
+            update_columns = list(set(update_df.columns).intersection(existing.columns))
             updated_cols_list = []
             for column in update_columns:
                 column_update = self._update_column_and_ensure_dtype(
@@ -175,6 +176,7 @@ class PopulationView:
 
     @staticmethod
     def _format_update_and_check_preconditions(
+        component_name: str,
         update: pd.Series[Any] | pd.DataFrame,
         existing: pd.DataFrame,
         private_columns: list[str],
@@ -213,6 +215,8 @@ class PopulationView:
 
         Parameters
         ----------
+        component_name
+            The name of the component requesting the update.
         update
             The update to the private data owned by the component that created this view.
         existing
@@ -259,7 +263,7 @@ class PopulationView:
             if missing_pops:
                 raise PopulationError(
                     "Components must initialize all simulants during population initialization. "
-                    f"A component is missing updates for {missing_pops} simulants."
+                    f"Component '{component_name}' is missing updates for {missing_pops} simulants."
                 )
         else:
             new_columns = list(set(update.columns).difference(set(existing.columns)))
