@@ -275,7 +275,6 @@ def test_SimulationContext_initialize_simulants(
     sim.setup()
     pop_size = sim.configuration.population.population_size
     current_time = sim._clock.time
-    assert sim._population.get_population("all").empty
     sim.initialize_simulants()
     pop = sim._population.get_population("all")
     assert len(pop) == pop_size

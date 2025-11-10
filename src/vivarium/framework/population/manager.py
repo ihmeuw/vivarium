@@ -212,6 +212,13 @@ class PopulationManager(Manager):
         builder.lifecycle.add_constraint(
             self.register_simulant_initializer, allow_during=[lifecycle_states.SETUP]
         )
+        self._add_constraint(
+            self.get_population,
+            restrict_during=[
+                lifecycle_states.SETUP,
+                lifecycle_states.POST_SETUP,
+            ],
+        )
 
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
 
