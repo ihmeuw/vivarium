@@ -145,7 +145,7 @@ class PopulationManager(Manager):
             raise PopulationError("Population has not been initialized.")
         return self._private_columns
 
-    def get_private_columns(self, component: Component | Manager | None) -> pd.DataFrame:
+    def get_private_columns(self, component: Component | Manager) -> pd.DataFrame:
         """Gets the private columns for a given component.
 
         While the ``private_columns`` property provides the entire private column
@@ -163,7 +163,7 @@ class PopulationManager(Manager):
             The private columns created by the specified component.
         """
 
-        if self.creating_initial_population or component is None:
+        if self.creating_initial_population:
             cols = []
         else:
             cols = self._private_column_metadata.get(component.name, [])

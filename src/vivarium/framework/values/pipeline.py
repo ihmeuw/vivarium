@@ -59,8 +59,14 @@ class ValueSource(Resource):
             source_callable = self._source
         elif isinstance(self._source, list):
             columns: list[str] = self._source
+            component = self.component
+            if component is None:
+                raise DynamicValueError(
+                    "The source of an attribute pipeline defined as a list of column names "
+                    "must be registered by a component or manager."
+                )
             source_callable = (
-                lambda index: population_mgr.get_private_columns(self.component)
+                lambda index: population_mgr.get_private_columns(component)
                 .loc[index, columns]
                 .squeeze(axis=1)
             )
