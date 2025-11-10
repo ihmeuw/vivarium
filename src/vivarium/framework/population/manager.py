@@ -214,7 +214,6 @@ class PopulationManager(Manager):
             self.register_simulant_initializer, allow_during=[lifecycle_states.SETUP]
         )
 
-        self.register_simulant_initializer(self)
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
 
     def on_post_setup(self, event: Event) -> None:
