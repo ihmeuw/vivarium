@@ -9,7 +9,6 @@ The manager and :ref:`builder <builder_concept>` interface for the
 """
 from __future__ import annotations
 
-from collections import defaultdict
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
@@ -172,7 +171,7 @@ class PopulationManager(Manager):
 
     def __init__(self) -> None:
         self._private_columns: pd.DataFrame | None = None
-        self._private_column_metadata: dict[str, list[str]] = defaultdict(list)
+        self._private_column_metadata: dict[str, list[str]] = dict()
         self._initializer_components = InitializerComponentSet()
         self.creating_initial_population = False
         self.adding_simulants = False
@@ -401,9 +400,19 @@ class PopulationManager(Manager):
         ----------
         component
             The component that is registering its private columns.
+
+        Raises
+        ------
+        PopulationError
+            If this component name has already registered private columns.
         """
+        if component.name in self._private_column_metadata:
+            raise PopulationError(
+                f"Component {component.name} has already registered private columns. "
+                "A component may only register its private columns once."
+            )
         if component.columns_created:
-            self._private_column_metadata[component.name].extend(component.columns_created)
+            self._private_column_metadata[component.name] = component.columns_created
 
     ###############
     # Context API #
