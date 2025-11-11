@@ -333,6 +333,11 @@ class PopulationView:
     ) -> pd.Series[Any]:
         """Build the updated private data column with an appropriate dtype.
 
+        This method updates any existing column values with their corresponding
+        new values from the update; existing values not in the update are preserved.
+        It also ensures that the resulting column has a dtype consistent with the
+        original column (unless new simulants are being added).
+
         Parameters
         ----------
         update

@@ -422,6 +422,7 @@ def test__update_column_and_ensure_dtype() -> None:
     random.seed("test__update_column_and_ensure_dtype")
 
     for adding_simulants in [True, False]:
+        # Test full and partial column updates
         for update_index in [PIE_DF.index, PIE_DF.index[::2]]:
             for col in PIE_DF:
                 update = pd.Series(
