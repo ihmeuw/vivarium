@@ -121,31 +121,6 @@ def test_setting_columns_with_get_view(
     assert view.private_columns == columns_created
 
 
-# @pytest.mark.parametrize("attributes", ("all", PIE_COL_NAMES))
-# @pytest.mark.parametrize("index", [None, pd.RangeIndex(0, len(PIE_RECORDS) // 2)])
-# @pytest.mark.parametrize("query", [None, "pie == 'apple'"])
-# def test_get_population(
-#     attributes: Literal["all"] | list[str],
-#     index: pd.Index[int] | None,
-#     query: str,
-#     pie_sim: InteractiveContext,
-# ) -> None:
-#     kwargs: dict[str, Any] = {"attributes": attributes}
-#     if index is not None:
-#         kwargs["index"] = index
-#     if query is not None:
-#         kwargs["query"] = query
-#     assert attributes == "all" or isinstance(attributes, list)
-#     pop = pie_sim._population.get_population(**kwargs)
-#     assert (
-#         set(pop.columns) == set(PIE_COL_NAMES + ["simulant_step_size"])
-#         if attributes == "all"
-#         else set(attributes)
-#     )
-#     if query is not None:
-#         assert (pop["pie"] == "apple").all()
-
-
 @pytest.mark.parametrize("attributes", ("all", PIE_COL_NAMES, ["pie", "cube"]))
 @pytest.mark.parametrize("index", [None, pd.RangeIndex(0, len(PIE_RECORDS) // 2)])
 @pytest.mark.parametrize("query", [None, "pie == 'apple'"])

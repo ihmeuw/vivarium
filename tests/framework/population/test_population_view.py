@@ -71,26 +71,6 @@ def population_update_new_cols(
 ##################
 
 
-# def test_initialization(sim: InteractiveContext) -> None:
-#     component = sim.list_components()["test_component"]
-#     # some population views are created during simulation setup
-#     last_id = sim._population._last_id
-#     pv = sim._population.get_view(component)
-#     last_id += 1
-#     assert pv._id == last_id
-#     assert pv.name == f"population_view_{last_id}"
-#     assert set(pv.private_columns) == set(component.columns_created)
-#     assert pv.query == ""
-
-#     q_string = "color == 'red'"
-#     pv = sim._population.get_view(component, query=q_string)
-#     last_id += 1
-#     assert pv._id == last_id
-#     assert pv.name == f"population_view_{last_id}"
-#     assert set(pv.private_columns) == set(component.columns_created)
-#     assert pv.query == q_string
-
-
 def test_initialization(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     component = PieComponent()
     pv = pies_and_cubes_pop_mgr.get_view(component)
@@ -112,24 +92,6 @@ def test_initialization(pies_and_cubes_pop_mgr: PopulationManager) -> None:
 ######################
 
 
-# def test_get(sim: InteractiveContext) -> None:
-#     ########################
-#     # Full population view #
-#     ########################
-#     pv = sim._population.get_view(sim.list_components()["test_component"])
-#     full_idx = pd.RangeIndex(0, len(RECORDS))
-
-#     # Get full data set
-#     pop_full = pv.get(full_idx, COL_NAMES)
-#     assert set(pop_full.columns) == set(COL_NAMES)
-#     assert pop_full.index.equals(full_idx)
-
-#     # Get data subset
-#     pop = pv.get(full_idx, COL_NAMES, query=f"color == 'red'")
-#     assert set(pop.columns) == set(COL_NAMES)
-#     assert pop.index.equals(pop_full[pop_full["color"] == "red"].index)
-
-
 def test_get(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     ########################
     # Full population view #
@@ -149,15 +111,6 @@ def test_get(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     assert pop.index.equals(pop_full[pop_full["pie"] == "apple"].index)
 
 
-# def test_get_empty_idx(sim: InteractiveContext) -> None:
-#     pv = sim._population.get_view(sim.list_components()["test_component"])
-
-#     pop = pv.get(pd.Index([]), COL_NAMES)
-#     assert isinstance(pop, pd.DataFrame)
-#     assert set(pop.columns) == set(COL_NAMES)
-#     assert pop.empty
-
-
 def test_get_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
@@ -165,17 +118,6 @@ def test_get_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     assert isinstance(pop, pd.DataFrame)
     assert set(pop.columns) == set(PIE_COL_NAMES)
     assert pop.empty
-
-
-# def test_get_raises(sim: InteractiveContext) -> None:
-#     pv = sim._population.get_view(sim.list_components()["test_component"])
-
-#     # Unknown columns
-#     with pytest.raises(
-#         PopulationError,
-#         match="Requested attribute\(s\) \{'foo'\} not in population table.",
-#     ):
-#         pv.get(pd.Index([]), "foo")
 
 
 def test_get_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
