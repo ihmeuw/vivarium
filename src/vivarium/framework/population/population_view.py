@@ -150,7 +150,7 @@ class PopulationView:
         )
         if self._manager.creating_initial_population:
             new_columns = list(set(update_df.columns).difference(existing.columns))
-            self._manager.private_columns[new_columns] = update_df[new_columns]
+            self._manager.update(update_df[new_columns])
         elif not update_df.empty:
             update_columns = list(set(update_df.columns).intersection(existing.columns))
             updated_cols_list = []
