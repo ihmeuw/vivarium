@@ -239,7 +239,6 @@ class PopulationManager(Manager):
 
     def get_view(
         self,
-        private_columns: str | Sequence[str],
         component: Component | None = None,
         query: str = "",
     ) -> PopulationView:
@@ -250,8 +249,6 @@ class PopulationManager(Manager):
 
         Parameters
         ----------
-        private_columns
-            The private columns created by the component requesting this view.
         component
             The component requesting this view. If None, the view will provide
             read-only access.
@@ -267,7 +264,7 @@ class PopulationManager(Manager):
             A filtered view of the requested private columns of the population state table.
 
         """
-        view = self._get_view(private_columns, component, query)
+        view = self._get_view(component, query)
         self._add_constraint(
             view.get,
             restrict_during=[
@@ -290,14 +287,11 @@ class PopulationManager(Manager):
 
     def _get_view(
         self,
-        private_columns: str | Sequence[str],
         component: Component | None,
         query: str,
     ) -> PopulationView:
-        if isinstance(private_columns, str):
-            private_columns = [private_columns]
         self._last_id += 1
-        return PopulationView(self, component, self._last_id, private_columns, query)
+        return PopulationView(self, component, self._last_id, query)
 
     def register_simulant_initializer(
         self,
@@ -398,6 +392,18 @@ class PopulationManager(Manager):
         self.creating_initial_population = False
         self.adding_simulants = False
 
+        missing = {}
+        for component, cols_created in self._private_column_metadata.items():
+            missing_cols = [col for col in cols_created if col not in self._private_columns]
+            if missing_cols:
+                missing[component] = missing_cols
+        if missing:
+            raise PopulationError(
+                "The following components include columns in their 'columns_created' "
+                "property but did not actually update their population views with "
+                f"those columns: {missing}."
+            )
+
         return index
 
     def register_private_columns(self, component: Component) -> None:
@@ -419,6 +425,14 @@ class PopulationManager(Manager):
                 "A component may only register its private columns once."
             )
         if component.columns_created:
+            for column_name in component.columns_created:
+                for component_name, columns_list in self._private_column_metadata.items():
+                    if column_name in columns_list:
+                        raise PopulationError(
+                            f"Component '{component.name}' is attempting to register "
+                            f"private column '{column_name}' but it is already registered "
+                            f"by component '{component_name}'."
+                        )
             self._private_column_metadata[component.name] = component.columns_created
 
     ###############

@@ -43,7 +43,6 @@ class PopulationView:
         manager: PopulationManager,
         component: Component | None,
         view_id: int,
-        private_columns: Sequence[str] = (),
         query: str = "",
     ):
         """
@@ -57,8 +56,6 @@ class PopulationView:
             read-only access.
         view_id
             The unique identifier for this view.
-        private_columns
-            The columns this view should have write access to.
         query
             A :mod:`pandas`-style filter that will be applied any time this
             view is read from.
@@ -66,7 +63,7 @@ class PopulationView:
         self._manager = manager
         self._component = component
         self._id = view_id
-        self.private_columns = list(private_columns)
+        self.private_columns = component.columns_created if component else []
         self.query = query
 
     @property
@@ -174,6 +171,7 @@ class PopulationView:
     # Helper methods #
     ##################
 
+    # FIXME: make this not a static method
     @staticmethod
     def _format_update_and_check_preconditions(
         component_name: str,
@@ -245,10 +243,7 @@ class PopulationView:
         """
         assert not creating_initial_population or adding_simulants
 
-        update = PopulationView._coerce_to_dataframe(
-            update,
-            private_columns,
-        )
+        update = PopulationView._coerce_to_dataframe(update, private_columns)
 
         unknown_simulants = len(update.index.difference(existing.index))
         if unknown_simulants:
@@ -264,13 +259,6 @@ class PopulationView:
                 raise PopulationError(
                     "Components must initialize all simulants during population initialization. "
                     f"Component '{component_name}' is missing updates for {missing_pops} simulants."
-                )
-        else:
-            new_columns = list(set(update.columns).difference(set(existing.columns)))
-            if new_columns:
-                raise PopulationError(
-                    f"Attempting to add new columns {new_columns} to the private data "
-                    f"outside the initial population creation phase."
                 )
 
         return update
@@ -331,8 +319,8 @@ class PopulationView:
         update_columns = list(update)
         if not update_columns:
             raise PopulationError(
-                "The update method of population view is being called "
-                "on a DataFrame with no columns."
+                "The update method of population view is being called on a DataFrame "
+                "with no columns."
             )
 
         return update

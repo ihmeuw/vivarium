@@ -42,7 +42,6 @@ class PopulationInterface(Interface):
 
     def get_view(
         self,
-        private_columns: str | Sequence[str],
         component: Component | None = None,
         query: str = "",
     ) -> PopulationView:
@@ -53,8 +52,6 @@ class PopulationInterface(Interface):
 
         Parameters
         ----------
-        private_columns
-            The private columns created by the component requesting this view.
         component
             The component requesting this view. If None, the view will provide
             read-only access.
@@ -69,7 +66,7 @@ class PopulationInterface(Interface):
         -------
             A filtered view of the requested columns of the population state table.
         """
-        return self._manager.get_view(private_columns, component, query)
+        return self._manager.get_view(component, query)
 
     def get_simulant_creator(self) -> Callable[[int, dict[str, Any] | None], pd.Index[int]]:
         """Gets a function that can generate new simulants.

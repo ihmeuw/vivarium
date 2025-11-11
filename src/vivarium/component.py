@@ -741,9 +741,7 @@ class Component(ABC):
             The builder object used to set up the component.
         """
         # FIXME: can we just pass the component only and refer to it for the columns and query?
-        self._population_view = builder.population.get_view(
-            self.columns_created, self, self.population_view_query
-        )
+        self._population_view = builder.population.get_view(self, self.population_view_query)
 
     def _register_attribute_producers(self, builder: Builder) -> None:
         for column in self.columns_created:
