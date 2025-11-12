@@ -145,7 +145,7 @@ class PopulationManager(Manager):
             raise PopulationError("Population has not been initialized.")
         return self._private_columns
 
-    def get_private_columns(self, component: Component | Manager) -> pd.DataFrame:
+    def get_private_columns(self, component: Component) -> pd.DataFrame:
         """Gets the private columns for a given component.
 
         While the ``private_columns`` property provides the entire private column
@@ -400,8 +400,7 @@ class PopulationManager(Manager):
         if missing:
             raise PopulationError(
                 "The following components include columns in their 'columns_created' "
-                "property but did not actually update their population views with "
-                f"those columns: {missing}."
+                "property but did not actually create them: {missing}."
             )
 
         return index
@@ -424,16 +423,15 @@ class PopulationManager(Manager):
                 f"Component {component.name} has already registered private columns. "
                 "A component may only register its private columns once."
             )
-        if component.columns_created:
-            for column_name in component.columns_created:
-                for component_name, columns_list in self._private_column_metadata.items():
-                    if column_name in columns_list:
-                        raise PopulationError(
-                            f"Component '{component.name}' is attempting to register "
-                            f"private column '{column_name}' but it is already registered "
-                            f"by component '{component_name}'."
-                        )
-            self._private_column_metadata[component.name] = component.columns_created
+        for column_name in component.columns_created:
+            for component_name, columns_list in self._private_column_metadata.items():
+                if column_name in columns_list:
+                    raise PopulationError(
+                        f"Component '{component.name}' is attempting to register "
+                        f"private column '{column_name}' but it is already registered "
+                        f"by component '{component_name}'."
+                    )
+        self._private_column_metadata[component.name] = component.columns_created
 
     ###############
     # Context API #

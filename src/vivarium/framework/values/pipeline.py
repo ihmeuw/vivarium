@@ -63,7 +63,12 @@ class ValueSource(Resource):
             if component is None:
                 raise DynamicValueError(
                     "The source of an attribute pipeline defined as a list of column names "
-                    "must be registered by a component or manager."
+                    "must be registered by a component."
+                )
+            if not isinstance(component, Component):
+                raise DynamicValueError(
+                    "The source of an attribute pipeline defined as a list of column names "
+                    f"must be registered by a component, but '{component.name}' is of type {type(component)}."
                 )
             source_callable = (
                 lambda index: population_mgr.get_private_columns(component)

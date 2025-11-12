@@ -293,9 +293,7 @@ def test_forget_to_create_columns() -> None:
         def on_initialize_simulants(self, pop_data: SimulantData) -> None:
             pass
 
-    with pytest.raises(
-        PopulationError, match="did not actually update their population views"
-    ):
+    with pytest.raises(PopulationError, match="but did not actually create them"):
         InteractiveContext(components=[ColumnForgetter()])
 
 
