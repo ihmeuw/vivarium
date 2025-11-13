@@ -44,7 +44,7 @@ class Force(Component, ABC):
 
     def apply_force(self, index: pd.Index[int], acceleration: pd.DataFrame) -> pd.DataFrame:
         neighbors = self.neighbors(index)
-        pop = self.population_view.get(index, ["x", "y", "vx", "vy"])
+        pop = self.population_view.get_attributes(index, ["x", "y", "vx", "vy"])
         if not isinstance(neighbors, pd.Series):
             raise ValueError("Neighbors must be a pd.Series of ints")
         pairs = self._get_pairs(neighbors, pop)

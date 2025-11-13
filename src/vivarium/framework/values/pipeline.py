@@ -70,11 +70,9 @@ class ValueSource(Resource):
                     "The source of an attribute pipeline defined as a list of column names "
                     f"must be registered by a component, but '{component.name}' is of type {type(component)}."
                 )
-            source_callable = (
-                lambda index: population_mgr.get_private_columns(component)
-                .loc[index, columns]
-                .squeeze(axis=1)
-            )
+            source_callable = lambda index: population_mgr.get_private_columns(
+                component, index, columns
+            ).squeeze(axis=1)
         else:
             raise TypeError(
                 "The source of an attribute pipeline must be a callable or a list "

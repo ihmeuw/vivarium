@@ -405,7 +405,7 @@ def test_register_adding_observation_when_options(when: str, mocker: MockerFixtu
     )
     mgr.setup(builder)
     mgr.population_view = mocker.Mock()
-    mgr.population_view.get.return_value = BASE_POPULATION.copy()  # type: ignore[attr-defined]
+    mgr.population_view.get_attributes.return_value = BASE_POPULATION.copy()  # type: ignore[attr-defined]
 
     # register stratifications
     results_interface.register_stratification(
