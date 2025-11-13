@@ -1,38 +1,73 @@
+from __future__ import annotations
+
 import itertools
 import math
+from typing import Any
 
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 
+from vivarium import Component, InteractiveContext
 from vivarium.framework.engine import SimulationContext
-from vivarium.framework.population import PopulationManager
+from vivarium.framework.population import PopulationManager, SimulantData
 from vivarium.framework.values import ValuesManager
 
-COL_NAMES = ["color", "count", "pie", "pi"]
-COLORS = ["red", "green", "yellow"]
-COUNTS = [10, 20, 30]
+# FIXME: Streamline with already-existing classes in tests/helpers.py
+PIE_COL_NAMES = ["pie", "pi"]
 PIES = ["apple", "chocolate", "pecan"]
 PIS = [math.pi**i for i in range(1, 4)]
-RECORDS = [
-    (color, count, pie, pi)
-    for color, count, pie, pi in itertools.product(COLORS, COUNTS, PIES, PIS)
-]
+PIE_RECORDS = [(pie, pi) for pie, pi in itertools.product(PIES, PIS)]
+PIE_DF = pd.DataFrame(data=PIE_RECORDS, columns=PIE_COL_NAMES)
+CUBE_COL_NAMES = ["cube", "cube_string"]
+CUBE = [i**3 for i in range(len(PIE_RECORDS))]
+CUBE_STRING = [str(i**3) for i in range(len(PIE_RECORDS))]
+CUBE_DF = pd.DataFrame(
+    zip(CUBE, CUBE_STRING),
+    columns=CUBE_COL_NAMES,
+    index=PIE_DF.index,
+)
+
+
+class PieComponent(Component):
+    @property
+    def columns_created(self) -> list[str]:
+        return PIE_COL_NAMES
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        self.population_view.update(self.get_initial_state(pop_data.index))
+
+    def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
+        return PIE_DF
+
+
+class CubeComponent(Component):
+    @property
+    def columns_created(self) -> list[str]:
+        return CUBE_COL_NAMES
+
+    def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+        self.population_view.update(self.get_initial_state(pop_data.index))
+
+    def get_initial_state(self, index: pd.Index[int]) -> pd.DataFrame:
+        return CUBE_DF
 
 
 @pytest.fixture(scope="function")
-def population_manager(mocker: MockerFixture) -> PopulationManager:
-    class _PopulationManager(PopulationManager):
-        @property
-        def columns_created(self) -> list[str]:
-            return COL_NAMES
+def pies_and_cubes_pop_mgr(mocker: MockerFixture) -> PopulationManager:
+    """A mocked PopulationManager with some private columns set up.
 
+    This fixture is tied directly to the PieComponent and CubeComponent helper classes.
+
+    """
+
+    class _PopulationManager(PopulationManager):
         def __init__(self) -> None:
             super().__init__()
-            self._population = pd.DataFrame(
-                data=RECORDS,
-                columns=COL_NAMES,
-            )
+            self._private_columns: pd.DataFrame = pd.concat([PIE_DF, CUBE_DF], axis=1)
+
+        def _add_constraint(self, *args: Any, **kwargs: Any) -> None:
+            pass
 
     mgr = _PopulationManager()
 
@@ -43,10 +78,17 @@ def population_manager(mocker: MockerFixture) -> PopulationManager:
     mocker.patch.object(ValuesManager, "resources", mocker.Mock(), create=True)
     mocker.patch.object(ValuesManager, "add_constraint", mocker.Mock(), create=True)
     mocker.patch.object(ValuesManager, "_population_mgr", mgr, create=True)
+    mocked_attribute_pipelines = {}
     sim._lifecycle.set_state("setup")
     mgr.setup(builder)
     sim._lifecycle.set_state("post_setup")
-    mgr.on_post_setup(mocker.Mock())
     sim._lifecycle.set_state("population_creation")
 
+    for col in mgr._private_columns.columns:
+        mocked_attribute_pipelines[col] = mocker.Mock()
+    mgr._attribute_pipelines = mocked_attribute_pipelines
+    mgr._private_column_metadata = {
+        "pie_component": PIE_COL_NAMES,
+        "cube_component": CUBE_COL_NAMES,
+    }
     return mgr

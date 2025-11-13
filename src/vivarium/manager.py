@@ -43,11 +43,6 @@ class Manager(ABC):
         """
         return self.CONFIGURATION_DEFAULTS
 
-    @property
-    def columns_created(self) -> list[str]:
-        """Provides names of columns created by the manager."""
-        return []
-
     #####################
     # Lifecycle methods #
     #####################
@@ -65,14 +60,7 @@ class Manager(ABC):
         builder
             The builder object used to set up the manager.
         """
-        for column in self.columns_created:
-            # Probably combine both into a single method.
-            builder.value.register_attribute_producer(
-                column,
-                source=[column],
-                component=self,
-            )
-        builder.population.register_source_columns(self)
+        pass
 
     def on_initialize_simulants(self, pop_data: SimulantData) -> None:
         """

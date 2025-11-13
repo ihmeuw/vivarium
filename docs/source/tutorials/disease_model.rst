@@ -706,16 +706,16 @@ can see the impact of our mortality component without taking too many steps.
    }
 
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
-   print(sim.get_population().head())
+   print(sim.get_population().head()[['age', 'sex', 'mortality_rate', 'alive']])
 
 ::
 
-     simulant_step_size        age     sex entrance_time  mortality_rate  alive
-   0             1 days  13.806776  Female    2005-07-01        0.000027  alive
-   1             1 days  59.172893    Male    2005-07-01        0.000027  alive
-   2             1 days  11.030887  Female    2005-07-01        0.000027  alive
-   3             1 days  27.723191  Female    2005-07-01        0.000027  alive
-   4             1 days  51.052188  Female    2005-07-01        0.000027  alive
+            age     sex  mortality_rate  alive
+   0  13.806776  Female        0.000027  alive
+   1  59.172893    Male        0.000027  alive
+   2  11.030887  Female        0.000027  alive
+   3  27.723191  Female        0.000027  alive
+   4  51.052188  Female        0.000027  alive
 
 .. testcode::
    :hide:
@@ -730,16 +730,16 @@ can see the impact of our mortality component without taking too many steps.
    }
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
-   print(sim.get_population().head())
+   print(sim.get_population().head()[['age', 'sex', 'mortality_rate', 'alive']])
 
 .. testoutput::
 
-     simulant_step_size        age     sex entrance_time  mortality_rate  alive
-   0             1 days  13.806776  Female    2005-07-01        0.000027  alive
-   1             1 days  59.172893    Male    2005-07-01        0.000027  alive
-   2             1 days  11.030887  Female    2005-07-01        0.000027  alive
-   3             1 days  27.723191  Female    2005-07-01        0.000027  alive
-   4             1 days  51.052188  Female    2005-07-01        0.000027  alive
+            age     sex  mortality_rate  alive
+   0  13.806776  Female        0.000027  alive
+   1  59.172893    Male        0.000027  alive
+   2  11.030887  Female        0.000027  alive
+   3  27.723191  Female        0.000027  alive
+   4  51.052188  Female        0.000027  alive
 
 Note that aside from modifying the population size in the config, we haven't actually
 done anything different than before. Indeed, the ages and sexes of the first five

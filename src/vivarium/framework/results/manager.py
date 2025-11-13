@@ -8,8 +8,7 @@ Results System Manager
 from __future__ import annotations
 
 from collections import defaultdict
-from enum import Enum
-from typing import TYPE_CHECKING, Any, Iterable, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 import pandas as pd
 
@@ -18,7 +17,6 @@ from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.results.context import ResultsContext
 from vivarium.framework.results.observation import Observation
 from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
-from vivarium.framework.values import Pipeline
 from vivarium.manager import Manager
 from vivarium.types import ScalarMapper, VectorMapper
 
@@ -79,7 +77,7 @@ class ResultsManager(Manager):
         self._results_context.setup(builder)
 
         self.logger = builder.logging.get_logger(self.name)
-        self.population_view = builder.population.get_view([])
+        self.population_view = builder.population.get_view()
         self.clock = builder.time.clock()
         self.step_size = builder.time.step_size()
 

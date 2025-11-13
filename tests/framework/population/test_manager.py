@@ -6,8 +6,8 @@ import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 
-from tests.framework.population.conftest import COL_NAMES, RECORDS
-from tests.helpers import AttributePipelineCreator, ColumnCreator
+from tests.framework.population.conftest import CUBE_COL_NAMES, PIE_COL_NAMES, PIE_RECORDS
+from tests.helpers import AttributePipelineCreator, ColumnCreator, ColumnCreatorAndRequirer
 from vivarium import Component, InteractiveContext
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
@@ -106,30 +106,29 @@ def test_initializer_set() -> None:
 def test_setting_query_with_get_view(query: str, expected_query: str) -> None:
     manager = PopulationManager()
     columns = ["age", "sex"]
-    view = manager._get_view(private_columns=columns, query=query)
+    view = manager._get_view(component=None, query=query)
     assert view.query == expected_query
 
 
-@pytest.mark.parametrize(
-    "columns, expected_columns", [("age", ["age"]), (["age"], None), (["age", "sex"], None)]
-)
+@pytest.mark.parametrize("columns_created", [[], ["age", "sex"]])
 def test_setting_columns_with_get_view(
-    columns: str | list[str], expected_columns: list[str] | None
+    columns_created: list[str], mocker: MockerFixture
 ) -> None:
-    view_columns = expected_columns or columns
     manager = PopulationManager()
-    view = manager._get_view(private_columns=columns, query="")
-    assert view.private_columns == view_columns
+    component = mocker.Mock()
+    component.columns_created = columns_created
+    view = manager._get_view(component=component, query="")
+    assert view.private_columns == columns_created
 
 
-@pytest.mark.parametrize("attributes", ("all", COL_NAMES))
-@pytest.mark.parametrize("index", [None, pd.RangeIndex(0, len(RECORDS) // 2)])
+@pytest.mark.parametrize("attributes", ("all", PIE_COL_NAMES, ["pie", "cube"]))
+@pytest.mark.parametrize("index", [None, pd.RangeIndex(0, len(PIE_RECORDS) // 2)])
 @pytest.mark.parametrize("query", [None, "pie == 'apple'"])
 def test_get_population(
     attributes: Literal["all"] | list[str],
     index: pd.Index[int] | None,
     query: str,
-    population_manager: PopulationManager,
+    pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     kwargs: dict[str, Any] = {"attributes": attributes}
     if index is not None:
@@ -137,8 +136,12 @@ def test_get_population(
     if query is not None:
         kwargs["query"] = query
     assert attributes == "all" or isinstance(attributes, list)
-    pop = population_manager.get_population(**kwargs)
-    assert set(pop.columns) == set(COL_NAMES) if attributes == "all" else set(attributes)
+    pop = pies_and_cubes_pop_mgr.get_population(**kwargs)
+    assert (
+        set(pop.columns) == set(PIE_COL_NAMES + CUBE_COL_NAMES)
+        if attributes == "all"
+        else set(attributes)
+    )
     if query is not None:
         assert (pop["pie"] == "apple").all()
 
@@ -146,8 +149,9 @@ def test_get_population(
 def test_get_population_different_attribute_types() -> None:
     """Test that get_population works with simple attributes, non-simple attributes,
     and attribute pipelines that return dataframes instead of series'."""
-    component = AttributePipelineCreator()
-    sim = InteractiveContext(components=[component], setup=True)
+    component1 = ColumnCreator()
+    component2 = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component1, component2], setup=True)
     pop = sim._population.get_population("all")
     # We have columnar multi-index due to AttributePipelines that return dataframes
     assert isinstance(pop.columns, pd.MultiIndex)
@@ -198,8 +202,9 @@ def test_get_population_column_ordering(include_duplicates: bool) -> None:
         returned_cols = pop.columns.tolist()
         assert returned_cols == expected_cols
 
-    component = AttributePipelineCreator()
-    sim = InteractiveContext(components=[component], setup=True)
+    component1 = ColumnCreator()
+    component2 = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component1, component2], setup=True)
 
     cols = ["test_column_1", "attribute_generating_columns_4_5", "test_attribute"]
     if include_duplicates:
@@ -216,41 +221,88 @@ def test_get_population_column_ordering(include_duplicates: bool) -> None:
     "attributes",
     (
         ["age", "sex"],
-        COL_NAMES + ["age", "sex"],
+        PIE_COL_NAMES + ["age", "sex"],
         ["age", "sex"],
         ["color", "count", "age"],
     ),
 )
 def test_get_population_raises_missing_attributes(
-    attributes: list[str], population_manager: PopulationManager
+    attributes: list[str], pies_and_cubes_pop_mgr: PopulationManager
 ) -> None:
     with pytest.raises(PopulationError, match="not in population table"):
-        population_manager.get_population(attributes)
+        pies_and_cubes_pop_mgr.get_population(attributes)
 
 
 def test_get_population_deduplicates_requested_columns(
-    population_manager: PopulationManager, mocker: MockerFixture
+    pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
-    pop = population_manager.get_population(["color", "color", "color"])
-    assert set(pop.columns) == {"color"}
+    pop = pies_and_cubes_pop_mgr.get_population(["pie", "pie", "pie"])
+    assert set(pop.columns) == {"pie"}
 
 
-def test_register_source_columns() -> None:
-    class ColumnCreator2(ColumnCreator):
+def test_register_private_columns() -> None:
+    class ColumnCreator2(Component):
         @property
         def name(self) -> str:
             return "column_creator_2"
 
+        @property
+        def columns_created(self) -> list[str]:
+            return ["test_column_5", "test_column_6"]
+
     # The metadata for the manager should be empty because the fixture does not
     # actually go through setup.
     mgr = PopulationManager()
-    assert mgr.source_column_metadata == {}
+    assert mgr._private_column_metadata == {}
     # Running setup registers all attribute pipelines and updates the metadata
     component1 = ColumnCreator()
     component2 = ColumnCreator2()
-    mgr.register_source_columns(component1)
-    mgr.register_source_columns(component2)
-    assert mgr.source_column_metadata == {
+    mgr.register_private_columns(component1)
+    mgr.register_private_columns(component2)
+    assert mgr._private_column_metadata == {
         component1.name: component1.columns_created,
         component2.name: component2.columns_created,
     }
+
+
+def test_get_private_columns() -> None:
+    component1 = ColumnCreator()
+    component2 = ColumnCreatorAndRequirer()
+    sim = InteractiveContext(components=[component1, component2])
+    assert (
+        list(sim._population.get_private_columns(component1).columns)
+        == component1.columns_created
+    )
+    assert (
+        list(sim._population.get_private_columns(component2).columns)
+        == component2.columns_created
+    )
+
+
+def test_get_population_index() -> None:
+    component = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component], setup=False)
+    with pytest.raises(PopulationError, match="Population has not been initialized."):
+        sim._population.get_population_index()
+    sim.setup()
+    sim.get_population().index.equals(sim._population.get_population_index())
+
+
+def test_forget_to_create_columns() -> None:
+    class ColumnForgetter(ColumnCreator):
+        def on_initialize_simulants(self, pop_data: SimulantData) -> None:
+            pass
+
+    with pytest.raises(PopulationError, match="but did not actually create them"):
+        InteractiveContext(components=[ColumnForgetter()])
+
+
+def test_create_already_existing_columns_fails() -> None:
+    class SameColumnCreator(ColumnCreator):
+        ...
+
+    with pytest.raises(
+        PopulationError,
+        match="Component 'same_column_creator' is attempting to register private column 'test_column_1' but it is already registered by component 'column_creator'.",
+    ):
+        InteractiveContext(components=[ColumnCreator(), SameColumnCreator()])

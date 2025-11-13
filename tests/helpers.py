@@ -154,7 +154,13 @@ class ColumnCreator(Component):
         )
 
 
-class AttributePipelineCreator(ColumnCreator):
+class AttributePipelineCreator(Component):
+    """A helper class to register different types of attribute pipelines.
+
+    It does NOT include any columns_created; use the ColumnCreator class for that.
+
+    """
+
     def setup(self, builder: Builder) -> None:
 
         # Simple attributes

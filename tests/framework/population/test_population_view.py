@@ -6,29 +6,27 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from tests.framework.population.conftest import COL_NAMES, RECORDS
+from tests.framework.population.conftest import (
+    CUBE_COL_NAMES,
+    CUBE_DF,
+    PIE_COL_NAMES,
+    PIE_DF,
+    PIE_RECORDS,
+    CubeComponent,
+    PieComponent,
+)
 from vivarium.framework.population import PopulationError, PopulationManager, PopulationView
 
 ##########################
 # Mock data and fixtures #
 ##########################
 
-BASE_POPULATION = pd.DataFrame(data=RECORDS, columns=COL_NAMES)
-NEW_COL_NAMES = ["cube", "cube_string"]
-CUBE = [i**3 for i in range(len(RECORDS))]
-CUBE_STRING = [str(i**3) for i in range(len(RECORDS))]
-NEW_ATTRIBUTES = pd.DataFrame(
-    zip(CUBE, CUBE_STRING),
-    columns=NEW_COL_NAMES,
-    index=BASE_POPULATION.index,
-)
-
 
 @pytest.fixture(
     params=[
-        BASE_POPULATION.index,
-        BASE_POPULATION.index[::2],
-        BASE_POPULATION.index[:0],
+        PIE_DF.index,
+        PIE_DF.index[::2],
+        PIE_DF.index[:0],
     ]
 )
 def update_index(request: pytest.FixtureRequest) -> pd.Index[int]:
@@ -39,10 +37,10 @@ def update_index(request: pytest.FixtureRequest) -> pd.Index[int]:
 
 @pytest.fixture(
     params=[
-        BASE_POPULATION.copy(),
-        BASE_POPULATION[COL_NAMES[:2]].copy(),
-        BASE_POPULATION[[COL_NAMES[0]]].copy(),
-        BASE_POPULATION[COL_NAMES[0]].copy(),
+        PIE_DF.copy(),
+        PIE_DF[PIE_COL_NAMES[:2]].copy(),
+        PIE_DF[[PIE_COL_NAMES[0]]].copy(),
+        PIE_DF[PIE_COL_NAMES[0]].copy(),
     ]
 )
 def population_update(
@@ -55,11 +53,9 @@ def population_update(
 
 @pytest.fixture(
     params=[
-        NEW_ATTRIBUTES.copy(),
-        NEW_ATTRIBUTES[[NEW_COL_NAMES[0]]].copy(),
-        NEW_ATTRIBUTES[NEW_COL_NAMES[0]].copy(),
-        pd.concat([BASE_POPULATION, NEW_ATTRIBUTES], axis=1),
-        pd.concat([BASE_POPULATION.iloc[:, 0], NEW_ATTRIBUTES.iloc[:, 0]], axis=1),
+        CUBE_DF.copy(),
+        CUBE_DF[[CUBE_COL_NAMES[0]]].copy(),
+        CUBE_DF[CUBE_COL_NAMES[0]].copy(),
     ]
 )
 def population_update_new_cols(
@@ -75,34 +71,19 @@ def population_update_new_cols(
 ##################
 
 
-def test_initialization(population_manager: PopulationManager) -> None:
-    pv = population_manager.get_view(COL_NAMES)
+def test_initialization(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+    component = PieComponent()
+    pv = pies_and_cubes_pop_mgr.get_view(component)
     assert pv._id == 0
-    assert pv.name == "population_view_0"
-    assert set(pv.private_columns) == set(COL_NAMES)
+    assert pv.name == f"population_view_{pv._id}"
+    assert set(pv.private_columns) == set(component.columns_created)
     assert pv.query == ""
-
-    # Failure here is lazy.  The manager should give you back views for
-    # columns that don't exist since views are built during setup when
-    # we don't necessarily know all the columns yet.
-    cols = ["foo", "bar"]
-    pv = population_manager.get_view(cols)
-    assert pv._id == 1
-    assert pv.name == "population_view_1"
-    assert set(pv.private_columns) == set(cols)
-    assert pv.query == ""
-
-    col_subset = ["color", "count"]
-    pv = population_manager.get_view(col_subset)
-    assert pv._id == 2
-    assert pv.name == "population_view_2"
-    assert set(pv.private_columns) == set(col_subset)
 
     q_string = "color == 'red'"
-    pv = population_manager.get_view(COL_NAMES, query=q_string)
-    assert pv._id == 3
-    assert pv.name == "population_view_3"
-    assert set(pv.private_columns) == set(COL_NAMES)
+    pv = pies_and_cubes_pop_mgr.get_view(component, query=q_string)
+    assert pv._id == 1
+    assert pv.name == f"population_view_{pv._id}"
+    assert set(pv.private_columns) == set(component.columns_created)
     assert pv.query == q_string
 
 
@@ -111,35 +92,36 @@ def test_initialization(population_manager: PopulationManager) -> None:
 ######################
 
 
-def test_get(population_manager: PopulationManager) -> None:
+def test_get(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     ########################
     # Full population view #
     ########################
-    pv = population_manager.get_view(COL_NAMES)
-    full_idx = pd.RangeIndex(0, len(RECORDS))
+    component = PieComponent()
+    pv = pies_and_cubes_pop_mgr.get_view(component)
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
 
     # Get full data set
-    pop_full = pv.get(full_idx, COL_NAMES)
-    assert set(pop_full.columns) == set(COL_NAMES)
+    pop_full = pv.get(full_idx, PIE_COL_NAMES)
+    assert set(pop_full.columns) == set(PIE_COL_NAMES)
     assert pop_full.index.equals(full_idx)
 
     # Get data subset
-    pop = pv.get(full_idx, COL_NAMES, query=f"color == 'red'")
-    assert set(pop.columns) == set(COL_NAMES)
-    assert pop.index.equals(pop_full[pop_full["color"] == "red"].index)
+    pop = pv.get(full_idx, PIE_COL_NAMES, query=f"pie == 'apple'")
+    assert set(pop.columns) == set(PIE_COL_NAMES)
+    assert pop.index.equals(pop_full[pop_full["pie"] == "apple"].index)
 
 
-def test_get_empty_idx(population_manager: PopulationManager) -> None:
-    pv = population_manager.get_view(COL_NAMES)
+def test_get_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
-    pop = pv.get(pd.Index([]), COL_NAMES)
+    pop = pv.get(pd.Index([]), PIE_COL_NAMES)
     assert isinstance(pop, pd.DataFrame)
-    assert set(pop.columns) == set(COL_NAMES)
+    assert set(pop.columns) == set(PIE_COL_NAMES)
     assert pop.empty
 
 
-def test_get_raises(population_manager: PopulationManager) -> None:
-    pv = population_manager.get_view(COL_NAMES)
+def test_get_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
     # Unknown columns
     with pytest.raises(
@@ -164,37 +146,35 @@ def test_full_population_view__coerce_to_dataframe(
         cols = [population_update.name]
     else:
         cols = list(population_update.columns)
-    coerced_df = PopulationView._coerce_to_dataframe(population_update, COL_NAMES)
-    assert BASE_POPULATION.loc[update_index, cols].equals(coerced_df)
+    coerced_df = PopulationView._coerce_to_dataframe(population_update, PIE_COL_NAMES)
+    assert PIE_DF.loc[update_index, cols].equals(coerced_df)
 
 
 def test_full_population_view__coerce_to_dataframe_fail(
     population_update_new_cols: pd.Series[Any] | pd.DataFrame,
 ) -> None:
     with pytest.raises(TypeError, match="must be a pandas Series or DataFrame"):
-        PopulationView._coerce_to_dataframe(BASE_POPULATION.iloc[:, 0].tolist(), COL_NAMES)  # type: ignore[arg-type]
+        PopulationView._coerce_to_dataframe(PIE_DF.iloc[:, 0].tolist(), PIE_COL_NAMES)  # type: ignore[arg-type]
 
     with pytest.raises(PopulationError, match="unnamed pandas series"):
         PopulationView._coerce_to_dataframe(
-            BASE_POPULATION.iloc[:, 0].rename(None),
-            COL_NAMES,
+            PIE_DF.iloc[:, 0].rename(None),
+            PIE_COL_NAMES,
         )
 
     with pytest.raises(PopulationError, match="extra columns"):
-        PopulationView._coerce_to_dataframe(population_update_new_cols, COL_NAMES)
+        PopulationView._coerce_to_dataframe(population_update_new_cols, PIE_COL_NAMES)
 
     with pytest.raises(PopulationError, match="no columns"):
-        PopulationView._coerce_to_dataframe(
-            pd.DataFrame(index=BASE_POPULATION.index), COL_NAMES
-        )
+        PopulationView._coerce_to_dataframe(pd.DataFrame(index=PIE_DF.index), PIE_COL_NAMES)
 
 
 def test_single_column_population_view__coerce_to_dataframe(
     update_index: pd.Index[int],
 ) -> None:
-    column = COL_NAMES[0]
-    update = BASE_POPULATION.loc[update_index].copy()
-    output = BASE_POPULATION.loc[update_index, [column]]
+    column = PIE_COL_NAMES[0]
+    update = PIE_DF.loc[update_index].copy()
+    output = PIE_DF.loc[update_index, [column]]
 
     passing_cases = [
         update[[column]],  # Single col df
@@ -212,78 +192,16 @@ def test_single_column_population_view__coerce_to_dataframe_fail(
 ) -> None:
     with pytest.raises(TypeError, match="must be a pandas Series or DataFrame"):
         PopulationView._coerce_to_dataframe(
-            BASE_POPULATION.iloc[:, 0].tolist(), [COL_NAMES[0]]  # type: ignore[arg-type]
+            PIE_DF.iloc[:, 0].tolist(), [PIE_COL_NAMES[0]]  # type: ignore[arg-type]
         )
 
     with pytest.raises(PopulationError, match="extra columns"):
-        PopulationView._coerce_to_dataframe(population_update_new_cols, [COL_NAMES[0]])
+        PopulationView._coerce_to_dataframe(population_update_new_cols, [PIE_COL_NAMES[0]])
 
     with pytest.raises(PopulationError, match="no columns"):
         PopulationView._coerce_to_dataframe(
-            pd.DataFrame(index=BASE_POPULATION.index), [COL_NAMES[0]]
+            pd.DataFrame(index=PIE_DF.index), [PIE_COL_NAMES[0]]
         )
-
-
-#################################
-# PopulationView.update helpers #
-##################################################
-# PopulationView._ensure_coherent_initialization #
-##################################################
-
-
-def test__ensure_coherent_initialization_no_new_columns(
-    population_update: pd.Series[Any] | pd.DataFrame,
-    update_index: pd.Index[int],
-) -> None:
-    if isinstance(population_update, pd.Series):
-        pytest.skip()
-
-    # Missing population
-    if not update_index.empty:
-        with pytest.raises(PopulationError, match="missing updates"):
-            PopulationView._ensure_coherent_initialization(
-                population_update.loc[update_index[::2]], BASE_POPULATION.loc[update_index]
-            )
-
-    # No new columns
-    with pytest.raises(PopulationError, match="all provided columns"):
-        PopulationView._ensure_coherent_initialization(
-            population_update,
-            BASE_POPULATION.loc[update_index],
-        )
-
-
-def test__ensure_coherent_initialization_new_columns(
-    population_update_new_cols: pd.Series[Any] | pd.DataFrame,
-    update_index: pd.Index[int],
-) -> None:
-    if isinstance(population_update_new_cols, pd.Series):
-        pytest.skip()
-
-    # All new cols, should be good
-    PopulationView._ensure_coherent_initialization(
-        population_update_new_cols,
-        BASE_POPULATION.loc[update_index],
-    )
-
-    # Missing rows
-    if not update_index.equals(BASE_POPULATION.index):
-        with pytest.raises(PopulationError, match="missing updates"):
-            PopulationView._ensure_coherent_initialization(
-                population_update_new_cols,
-                BASE_POPULATION,
-            )
-
-    # Conflicting data in existing cols.
-    cols_overlap = [c for c in population_update_new_cols if c in COL_NAMES]
-    if not update_index.empty and cols_overlap:
-        update = population_update_new_cols.copy()
-        update[COL_NAMES[0]] = "bad_values"
-        with pytest.raises(PopulationError, match="conflicting"):
-            PopulationView._ensure_coherent_initialization(
-                update,
-                BASE_POPULATION.loc[update_index],
-            )
 
 
 #################################
@@ -296,18 +214,20 @@ def test__ensure_coherent_initialization_new_columns(
 def test__format_update_and_check_preconditions_bad_args() -> None:
     with pytest.raises(AssertionError):
         PopulationView._format_update_and_check_preconditions(
-            BASE_POPULATION,
-            BASE_POPULATION,
-            COL_NAMES,
+            "foo",
+            PIE_DF,
+            PIE_DF,
+            PIE_COL_NAMES,
             creating_initial_population=True,
             adding_simulants=False,
         )
 
     with pytest.raises(TypeError, match="must be a pandas Series or DataFrame"):
         PopulationView._format_update_and_check_preconditions(
-            BASE_POPULATION.iloc[:, 0].tolist(),  # type: ignore[arg-type]
-            BASE_POPULATION,
-            COL_NAMES,
+            "foo",
+            PIE_DF.iloc[:, 0].tolist(),  # type: ignore[arg-type]
+            PIE_DF,
+            PIE_COL_NAMES,
             True,
             True,
         )
@@ -318,18 +238,20 @@ def test__format_update_and_check_preconditions_coerce_failures(
 ) -> None:
     with pytest.raises(PopulationError, match="unnamed pandas series"):
         PopulationView._format_update_and_check_preconditions(
-            BASE_POPULATION.iloc[:, 0].rename(None),
-            BASE_POPULATION,
-            COL_NAMES,
+            "foo",
+            PIE_DF.iloc[:, 0].rename(None),
+            PIE_DF,
+            PIE_COL_NAMES,
             True,
             True,
         )
 
-    for view_cols in [COL_NAMES, [COL_NAMES[0]]]:
+    for view_cols in [PIE_COL_NAMES, [PIE_COL_NAMES[0]]]:
         with pytest.raises(PopulationError, match="extra columns"):
             PopulationView._format_update_and_check_preconditions(
+                "foo",
                 population_update_new_cols,
-                BASE_POPULATION,
+                PIE_DF,
                 view_cols,
                 True,
                 True,
@@ -337,8 +259,9 @@ def test__format_update_and_check_preconditions_coerce_failures(
 
         with pytest.raises(PopulationError, match="no columns"):
             PopulationView._format_update_and_check_preconditions(
-                pd.DataFrame(index=BASE_POPULATION.index),
-                BASE_POPULATION,
+                "foo",
+                pd.DataFrame(index=PIE_DF.index),
+                PIE_DF,
                 view_cols,
                 True,
                 True,
@@ -354,11 +277,15 @@ def test__format_update_and_check_preconditions_unknown_pop_fail(
     update = population_update.copy()
     update.index += 2 * update.index.max()
 
-    with pytest.raises(PopulationError, match=f"{len(update)} simulants"):
+    with pytest.raises(
+        PopulationError,
+        match="Population updates must have an index that is a subset of the current private data.",
+    ):
         PopulationView._format_update_and_check_preconditions(
+            "foo",
             update,
-            BASE_POPULATION,
-            COL_NAMES,
+            PIE_DF,
+            PIE_COL_NAMES,
             True,
             True,
         )
@@ -370,86 +297,29 @@ def test__format_update_and_check_preconditions_coherent_initialization_fail(
 ) -> None:
     # Missing population
     if not update_index.empty:
-        with pytest.raises(PopulationError, match="missing updates"):
+        with pytest.raises(PopulationError, match="Component 'foo' is missing updates"):
             PopulationView._format_update_and_check_preconditions(
+                "foo",
                 population_update.loc[update_index[::2]],
-                BASE_POPULATION.loc[update_index],
-                COL_NAMES,
+                PIE_DF.loc[update_index],
+                PIE_COL_NAMES,
                 True,
                 True,
             )
-
-    # No new columns
-    with pytest.raises(PopulationError, match="all provided columns"):
-        PopulationView._format_update_and_check_preconditions(
-            population_update,
-            BASE_POPULATION.loc[update_index],
-            COL_NAMES,
-            True,
-            True,
-        )
 
 
 def test__format_update_and_check_preconditions_coherent_initialization_fail_new_cols(
     population_update_new_cols: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
-    if not update_index.equals(BASE_POPULATION.index):
-        with pytest.raises(PopulationError, match="missing updates"):
+    if not update_index.equals(PIE_DF.index):
+        with pytest.raises(PopulationError, match="Component 'foo' is missing updates"):
             PopulationView._format_update_and_check_preconditions(
+                "foo",
                 population_update_new_cols,
-                BASE_POPULATION,
-                COL_NAMES + NEW_COL_NAMES,
+                PIE_DF,
+                PIE_COL_NAMES + CUBE_COL_NAMES,
                 True,
-                True,
-            )
-
-    # Conflicting data in existing cols.
-    cols_overlap = [c for c in population_update_new_cols if c in COL_NAMES]
-    if not update_index.empty and cols_overlap:
-        update = population_update_new_cols.copy()
-        update[COL_NAMES[0]] = "bad_values"
-        with pytest.raises(PopulationError, match="conflicting"):
-            PopulationView._format_update_and_check_preconditions(
-                update,
-                BASE_POPULATION.loc[update_index],
-                COL_NAMES + NEW_COL_NAMES,
-                True,
-                True,
-            )
-
-
-def test__format_update_and_check_preconditions_new_columns_non_init(
-    population_update_new_cols: pd.Series[Any] | pd.DataFrame,
-    update_index: pd.Index[int],
-) -> None:
-    for adding_simulants in [True, False]:
-        with pytest.raises(PopulationError, match="outside the initial population creation"):
-            PopulationView._format_update_and_check_preconditions(
-                population_update_new_cols,
-                BASE_POPULATION.loc[update_index],
-                COL_NAMES + NEW_COL_NAMES,
-                False,
-                adding_simulants,
-            )
-
-
-def test__format_update_and_check_preconditions_conflicting_non_init(
-    population_update: pd.Series[Any] | pd.DataFrame,
-    update_index: pd.Index[int],
-) -> None:
-    update = population_update.copy()
-    if isinstance(update, pd.Series):
-        update[:] = "bad_value"
-    else:
-        update.loc[:, COL_NAMES[0]] = "bad_value"
-    if not update_index.empty:
-        with pytest.raises(PopulationError, match="conflicting"):
-            PopulationView._format_update_and_check_preconditions(
-                update,
-                BASE_POPULATION.loc[update_index],
-                COL_NAMES + NEW_COL_NAMES,
-                False,
                 True,
             )
 
@@ -459,15 +329,16 @@ def test__format_update_and_check_preconditions_init_pass(
     update_index: pd.Index[int],
 ) -> None:
     result = PopulationView._format_update_and_check_preconditions(
+        "foo",
         population_update_new_cols,
-        BASE_POPULATION.loc[update_index],
-        COL_NAMES + NEW_COL_NAMES,
+        PIE_DF.loc[update_index],
+        PIE_COL_NAMES + CUBE_COL_NAMES,
         True,
         True,
     )
     update = PopulationView._coerce_to_dataframe(
         population_update_new_cols,
-        COL_NAMES + NEW_COL_NAMES,
+        PIE_COL_NAMES + CUBE_COL_NAMES,
     )
 
     assert set(result.columns) == set(update)
@@ -479,17 +350,18 @@ def test__format_update_and_check_preconditions_add_pass(
     population_update: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
-    state_table = BASE_POPULATION.drop(update_index).reindex(BASE_POPULATION.index)
+    state_table = PIE_DF.drop(update_index).reindex(PIE_DF.index)
     result = PopulationView._format_update_and_check_preconditions(
+        "foo",
         population_update,
         state_table,
-        COL_NAMES + NEW_COL_NAMES,
+        PIE_COL_NAMES + CUBE_COL_NAMES,
         False,
         True,
     )
     update = PopulationView._coerce_to_dataframe(
         population_update,
-        COL_NAMES + NEW_COL_NAMES,
+        PIE_COL_NAMES + CUBE_COL_NAMES,
     )
 
     assert set(result.columns) == set(update)
@@ -501,15 +373,16 @@ def test__format_update_and_check_preconditions_time_step_pass(
     population_update: pd.Series[Any] | pd.DataFrame,
 ) -> None:
     result = PopulationView._format_update_and_check_preconditions(
+        "foo",
         population_update,
-        BASE_POPULATION,
-        COL_NAMES + NEW_COL_NAMES,
+        PIE_DF,
+        PIE_COL_NAMES + CUBE_COL_NAMES,
         False,
         False,
     )
     update = PopulationView._coerce_to_dataframe(
         population_update,
-        COL_NAMES + NEW_COL_NAMES,
+        PIE_COL_NAMES + CUBE_COL_NAMES,
     )
 
     assert set(result.columns) == set(update)
@@ -521,15 +394,16 @@ def test__format_update_and_check_preconditions_adding_simulants_replace_identic
     population_update: pd.Series[Any] | pd.DataFrame,
 ) -> None:
     result = PopulationView._format_update_and_check_preconditions(
+        "foo",
         population_update,
-        BASE_POPULATION,
-        COL_NAMES + NEW_COL_NAMES,
+        PIE_DF,
+        PIE_COL_NAMES + CUBE_COL_NAMES,
         False,
         True,
     )
     update = PopulationView._coerce_to_dataframe(
         population_update,
-        COL_NAMES + NEW_COL_NAMES,
+        PIE_COL_NAMES + CUBE_COL_NAMES,
     )
 
     assert set(result.columns) == set(update)
@@ -548,14 +422,15 @@ def test__update_column_and_ensure_dtype() -> None:
     random.seed("test__update_column_and_ensure_dtype")
 
     for adding_simulants in [True, False]:
-        for update_index in [BASE_POPULATION.index, BASE_POPULATION.index[::2]]:
-            for col in BASE_POPULATION:
+        # Test full and partial column updates
+        for update_index in [PIE_DF.index, PIE_DF.index[::2]]:
+            for col in PIE_DF:
                 update = pd.Series(
-                    random.sample(BASE_POPULATION[col].tolist(), k=len(update_index)),
+                    random.sample(PIE_DF[col].tolist(), k=len(update_index)),
                     index=update_index,
                     name=col,
                 )
-                existing = BASE_POPULATION[col].copy()
+                existing = PIE_DF[col].copy()
 
                 new_values = PopulationView._update_column_and_ensure_dtype(
                     update,
@@ -573,16 +448,16 @@ def test__update_column_and_ensure_dtype() -> None:
 def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
     # This tests a very specific failure case as the code is
     # not robust to general dtype silliness.
-    update_index = BASE_POPULATION.index
-    col = "count"
+    update_index = PIE_DF.index
+    col = "pi"
     update = pd.Series(
-        random.sample(BASE_POPULATION[col].tolist(), k=len(update_index)),
+        random.sample(PIE_DF[col].tolist(), k=len(update_index)),
         index=update_index,
         name=col,
     )
-    existing = BASE_POPULATION[col].copy()
-    # Count is an int, this coerces it to a float since there's no null type for ints.
-    existing[:] = None
+    existing = PIE_DF[col].copy()
+    # change the type
+    existing = existing.astype(str)
 
     # Should work fine when we're adding simulants
     new_values = PopulationView._update_column_and_ensure_dtype(
@@ -593,7 +468,10 @@ def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
     assert new_values.loc[update_index].equals(update)
 
     # And be bad news otherwise.
-    with pytest.raises(PopulationError, match="corrupting"):
+    with pytest.raises(
+        PopulationError,
+        match="A component is corrupting the population table by modifying the dtype",
+    ):
         PopulationView._update_column_and_ensure_dtype(
             update,
             existing,
@@ -607,147 +485,124 @@ def test__update_column_and_ensure_dtype_unmatched_dtype() -> None:
 
 
 def test_population_view_update_format_fail(
-    population_manager: PopulationManager,
+    pies_and_cubes_pop_mgr: PopulationManager,
     population_update: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
-    pv = population_manager.get_view(COL_NAMES)
-
-    population_manager.creating_initial_population = True
-    population_manager.adding_simulants = True
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    pies_and_cubes_pop_mgr.creating_initial_population = True
+    pies_and_cubes_pop_mgr.adding_simulants = True
     # Bad type
     with pytest.raises(TypeError):
-        pv.update(BASE_POPULATION.iloc[:, 0].tolist())  # type: ignore[arg-type]
+        pv.update(PIE_DF.iloc[:, 0].tolist())  # type: ignore[arg-type]
 
     # Unknown population index
     if not update_index.empty:
         update = population_update.copy()
         update.index += 2 * update.index.max()
-        with pytest.raises(PopulationError, match=f"{len(update)} simulants"):
+        with pytest.raises(
+            PopulationError,
+            match=f"{len(update)} simulants were provided in an update with no matching index in the existing table",
+        ):
             pv.update(update)
 
-    # Missing population
-    population_manager._population = BASE_POPULATION.loc[update_index]
+    # Missing an update
+    pies_and_cubes_pop_mgr._private_columns = PIE_DF.loc[update_index]
     if not update_index.empty:
-        with pytest.raises(PopulationError, match="missing updates"):
+        with pytest.raises(
+            PopulationError, match="Component 'pie_component' is missing updates for"
+        ):
             pv.update(population_update.loc[update_index[::2]])
-
-    # No new columns
-    with pytest.raises(PopulationError, match="all provided columns"):
-        pv.update(population_update)
-
-    population_manager.creating_initial_population = False
-    update = population_update.copy()
-    if isinstance(update, pd.Series):
-        update[:] = "bad_value"
-    else:
-        update.loc[:, COL_NAMES[0]] = "bad_value"
-    if not update_index.empty:
-        with pytest.raises(PopulationError, match="conflicting"):
-            pv.update(update)
 
 
 def test_population_view_update_format_fail_new_cols(
-    population_manager: PopulationManager,
+    pies_and_cubes_pop_mgr: PopulationManager,
     population_update_new_cols: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
-    pv = population_manager.get_view(COL_NAMES)
 
-    population_manager.creating_initial_population = True
-    population_manager.adding_simulants = True
+    pv_pies = pies_and_cubes_pop_mgr.get_view(PieComponent())
+
+    pies_and_cubes_pop_mgr.creating_initial_population = True
+    pies_and_cubes_pop_mgr.adding_simulants = True
 
     with pytest.raises(PopulationError, match="unnamed pandas series"):
-        pv.update(BASE_POPULATION.iloc[:, 0].rename(None))
+        pv_pies.update(PIE_DF.iloc[:, 0].rename(None))
 
-    for view_cols in [COL_NAMES, [COL_NAMES[0]]]:
-        pv = population_manager.get_view(view_cols)
+    with pytest.raises(PopulationError, match="extra columns"):
+        pv_pies.update(population_update_new_cols)
 
-        with pytest.raises(PopulationError, match="extra columns"):
-            pv.update(population_update_new_cols)
+    with pytest.raises(PopulationError, match="no columns"):
+        pv_pies.update(pd.DataFrame(index=PIE_DF.index))
 
-        with pytest.raises(PopulationError, match="no columns"):
-            pv.update(pd.DataFrame(index=BASE_POPULATION.index))
-
-    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES)
-    if not update_index.equals(BASE_POPULATION.index):
+    pv_cubes = pies_and_cubes_pop_mgr.get_view(CubeComponent())
+    if not update_index.equals(CUBE_DF.index):
         with pytest.raises(PopulationError, match="missing updates"):
-            pv.update(population_update_new_cols)
-
-    # Conflicting data in existing cols.
-    population_manager._population = BASE_POPULATION.loc[update_index]
-    cols_overlap = [c for c in population_update_new_cols if c in COL_NAMES]
-    if not update_index.empty and cols_overlap:
-        update = population_update_new_cols.copy()
-        update[COL_NAMES[0]] = "bad_values"
-        with pytest.raises(PopulationError, match="conflicting"):
-            pv.update(update)
-
-    population_manager.creating_initial_population = False
-    for adding_simulants in [True, False]:
-        population_manager.adding_simulants = adding_simulants
-        with pytest.raises(PopulationError, match="outside the initial population creation"):
-            pv.update(population_update_new_cols)
+            pv_cubes.update(population_update_new_cols)
 
 
 def test_population_view_update_init(
-    population_manager: PopulationManager,
+    pies_and_cubes_pop_mgr: PopulationManager,
     population_update_new_cols: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
     if isinstance(population_update_new_cols, pd.Series):
         pytest.skip()
 
-    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES)
+    # Remove the cubes backing data to test that initialization works
+    pies_and_cubes_pop_mgr._private_columns = PIE_DF.loc[update_index]
 
-    population_manager._population = BASE_POPULATION.loc[update_index]
-    population_manager.creating_initial_population = True
-    population_manager.adding_simulants = True
+    pv = pies_and_cubes_pop_mgr.get_view(CubeComponent())
+
+    pies_and_cubes_pop_mgr.creating_initial_population = True
+    pies_and_cubes_pop_mgr.adding_simulants = True
+
     pv.update(population_update_new_cols)
 
     for col in population_update_new_cols:
-        assert population_manager._population[col].equals(population_update_new_cols[col])
+        assert pies_and_cubes_pop_mgr._private_columns[col].equals(
+            population_update_new_cols[col]
+        )
 
 
 def test_population_view_update_add(
-    population_manager: PopulationManager,
+    pies_and_cubes_pop_mgr: PopulationManager,
     population_update: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
     if isinstance(population_update, pd.Series):
         pytest.skip()
 
-    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES)
-
-    population_manager._population = BASE_POPULATION.loc[update_index]
+    pv_pies = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    pies_and_cubes_pop_mgr._private_columns = PIE_DF.loc[update_index]
     for col in population_update:
-        population_manager._population[col] = None
-    population_manager.creating_initial_population = False
-    population_manager.adding_simulants = True
-    pv.update(population_update)
+        pies_and_cubes_pop_mgr._private_columns[col] = None
+    pies_and_cubes_pop_mgr.creating_initial_population = False
+    pies_and_cubes_pop_mgr.adding_simulants = True
+    pv_pies.update(population_update)
 
     for col in population_update:
         if update_index.empty:
-            assert population_manager._population[col].empty
+            assert pies_and_cubes_pop_mgr._private_columns[col].empty
         else:
-            assert population_manager._population[col].equals(population_update[col])
+            assert pies_and_cubes_pop_mgr._private_columns[col].equals(population_update[col])
 
 
 def test_population_view_update_time_step(
-    population_manager: PopulationManager,
+    pies_and_cubes_pop_mgr: PopulationManager,
     population_update: pd.Series[Any] | pd.DataFrame,
     update_index: pd.Index[int],
 ) -> None:
     if isinstance(population_update, pd.Series):
         pytest.skip()
 
-    pv = population_manager.get_view(COL_NAMES + NEW_COL_NAMES)
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
-    population_manager.creating_initial_population = False
-    population_manager.adding_simulants = False
+    pies_and_cubes_pop_mgr.creating_initial_population = False
+    pies_and_cubes_pop_mgr.adding_simulants = False
     pv.update(population_update)
 
     for col in population_update.columns:
-        pop = population_manager._population
+        pop = pies_and_cubes_pop_mgr._private_columns
         assert pop is not None
         assert pop.loc[update_index, col].equals(population_update[col])
