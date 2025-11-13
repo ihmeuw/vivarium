@@ -402,7 +402,10 @@ class ResultsManager(Manager):
 
         if required_columns:
             population = pd.concat(
-                [self.population_view.get(event.index, required_columns), population],
+                [
+                    self.population_view.get_attributes(event.index, required_columns),
+                    population,
+                ],
                 axis=1,
             )
         for stratification in stratifications:

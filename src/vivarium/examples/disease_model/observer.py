@@ -47,7 +47,7 @@ class DeathsObserver(Observer):
 
     def on_time_step_prepare(self, event: Event) -> None:
         """Update the previous deaths column to the current deaths."""
-        previous_alive = self.population_view.get(event.index, "alive").squeeze()
+        previous_alive = self.population_view.get_attributes(event.index, "alive").squeeze()
         previous_alive.name = "previous_alive"
         self.population_view.update(previous_alive)
 

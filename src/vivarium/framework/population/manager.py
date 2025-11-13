@@ -145,7 +145,12 @@ class PopulationManager(Manager):
             raise PopulationError("Population has not been initialized.")
         return self._private_columns
 
-    def get_private_columns(self, component: Component) -> pd.DataFrame:
+    def get_private_columns(
+        self,
+        component: Component,
+        index: pd.Index[int] | None = None,
+        columns: list[str] | None = None,
+    ) -> pd.DataFrame:
         """Gets the private columns for a given component.
 
         While the ``private_columns`` property provides the entire private column
@@ -157,6 +162,19 @@ class PopulationManager(Manager):
         component
             The component whose private columns are to be retrieved. If None,
             no columns are returned.
+        index
+            The index of simulants to include in the returned dataframe. If None,
+            all simulants are included.
+        columns
+            The specific columns to include. If None, all columns created by the
+            component are included.
+
+        Raises
+        ------
+        PopulationError
+            If ``columns`` are requested during initial population creation
+            (when no columns yet exist) or if the provided ``component`` does not
+            create one or more of them.
 
         Returns
         -------
@@ -164,10 +182,26 @@ class PopulationManager(Manager):
         """
 
         if self.creating_initial_population:
-            cols = []
+            if columns:
+                raise PopulationError(
+                    "Cannot get private columns during initial population "
+                    "creation when no columns yet exist."
+                )
+            returned_cols = []
         else:
-            cols = self._private_column_metadata.get(component.name, [])
-        return self.private_columns[cols]
+            all_private_columns = self._private_column_metadata.get(component.name, [])
+            if columns is None:
+                returned_cols = all_private_columns
+            else:
+                missing_cols = [col for col in columns if col not in all_private_columns]
+                if missing_cols:
+                    raise PopulationError(
+                        f"Component {component.name} does not create the following "
+                        f"requested private columns: {missing_cols}."
+                    )
+                returned_cols = columns
+        private_columns = self.private_columns[returned_cols]
+        return private_columns.loc[index] if index is not None else private_columns
 
     def __init__(self) -> None:
         self._private_columns: pd.DataFrame | None = None
@@ -266,7 +300,7 @@ class PopulationManager(Manager):
         """
         view = self._get_view(component, query)
         self._add_constraint(
-            view.get,
+            view.get_attributes,
             restrict_during=[
                 lifecycle_states.INITIALIZATION,
                 lifecycle_states.SETUP,

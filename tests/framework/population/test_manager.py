@@ -265,18 +265,57 @@ def test_register_private_columns() -> None:
     }
 
 
-def test_get_private_columns() -> None:
-    component1 = ColumnCreator()
-    component2 = ColumnCreatorAndRequirer()
-    sim = InteractiveContext(components=[component1, component2])
-    assert (
-        list(sim._population.get_private_columns(component1).columns)
-        == component1.columns_created
-    )
-    assert (
-        list(sim._population.get_private_columns(component2).columns)
-        == component2.columns_created
-    )
+@pytest.mark.parametrize(
+    "components, index, columns",
+    [
+        ([ColumnCreator(), ColumnCreatorAndRequirer()], None, None),
+        ([ColumnCreator()], pd.Index([4, 8, 15, 16, 23, 42]), None),
+        ([ColumnCreator()], None, ["test_column_2"]),
+        (
+            [ColumnCreator()],
+            pd.Index([4, 8, 15, 16, 23, 42]),
+            ["test_column_1", "test_column_3"],
+        ),
+    ],
+)
+def test_get_private_columns(
+    components: list[Component], index: pd.Index[int] | None, columns: list[str] | None
+) -> None:
+    sim = InteractiveContext(components=components)
+    kwargs = dict()
+    if index is not None:
+        kwargs["index"] = index
+    if columns is not None:
+        kwargs["columns"] = columns  # type: ignore[assignment]
+    for component in components:
+        private_columns = sim._population.get_private_columns(component, **kwargs)  # type: ignore[arg-type]
+        if index is not None:
+            assert private_columns.index.equals(index)
+        else:
+            assert private_columns.index.equals(sim._population.get_population_index())
+        if columns is not None:
+            assert list(private_columns.columns) == columns
+        else:
+            assert list(private_columns.columns) == component.columns_created
+
+
+def test_get_private_columns_raises_on_initial_pop_creation() -> None:
+    mgr = PopulationManager()
+    mgr.creating_initial_population = True
+    with pytest.raises(
+        PopulationError,
+        match="Cannot get private columns during initial population creation",
+    ):
+        mgr.get_private_columns(ColumnCreator(), columns=["test_column_1"])
+
+
+def test_get_private_columns_raises_bad_column_request() -> None:
+    mgr = PopulationManager()
+    with pytest.raises(
+        PopulationError,
+        match="does not create the following requested private columns",
+    ):
+        mgr.get_private_columns(ColumnCreator(), columns=["foo"])
 
 
 def test_get_population_index() -> None:
