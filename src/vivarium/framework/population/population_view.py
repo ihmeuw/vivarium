@@ -13,8 +13,7 @@ to the underlying simulation :term:`state table`. It has two primary responsibil
 """
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import pandas as pd
 
@@ -23,7 +22,6 @@ from vivarium.framework.population.exceptions import PopulationError
 if TYPE_CHECKING:
     from vivarium.component import Component
     from vivarium.framework.population.manager import PopulationManager
-    from vivarium.manager import Manager
 
 
 class PopulationView:
@@ -70,7 +68,7 @@ class PopulationView:
     def name(self) -> str:
         return f"population_view_{self._id}"
 
-    def get(
+    def get_attributes(
         self,
         index: pd.Index[int],
         attributes: str | list[str],
@@ -79,15 +77,15 @@ class PopulationView:
         """Get a specific subset of this ``PopulationView``.
 
         For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
-        simulation's private data. The resulting rows may be further filtered by the
-        view's query and only return a subset of the population represented by the index.
+        simulation's population. The resulting rows may be further filtered by the
+        view's ``query`` and only return a subset of the population represented by the index.
 
         Parameters
         ----------
         index
             Index of the population to get.
         attributes
-            The columns to retrieve from the population private data.
+            The columns to retrieve.
         query
             Additional conditions used to filter the index. These conditions
             will be unioned with the default query of this view. The query
@@ -108,6 +106,43 @@ class PopulationView:
             index=index,
             query=combined_query,
         )
+
+    def get_private_columns(
+        self,
+        index: pd.Index[int],
+        private_columns: list[str] | Literal["all"] = "all",
+        query_columns: list[str] = [],
+        query: str = "",
+    ) -> pd.DataFrame:
+        """Get a specific subset of this ``PopulationView's`` private columns.
+
+        For the rows in ``index``, return the requested ``private_columns``. The
+        resulting rows may be further filtered by the view's ``query`` and only
+        return a subset of the data represented by the index.
+
+        Parameters
+        ----------
+        index
+            Index of the population to get.
+        private_columns
+            The private columns to retrieve.
+        query_columns
+            The (public) columns needed to evaluate the query string.
+        query
+            Additional conditions used to filter the index.
+
+        Returns
+        -------
+            A table with the subset of the requested private columns.
+        """
+
+        if self._component is None:
+            raise PopulationError(
+                "This PopulationView is read-only, so it doesn't have access to get_private_columns()."
+            )
+        filtered_idx = self.get_attributes(index, query_columns, query).index
+        cols = self.private_columns if private_columns == "all" else private_columns
+        return self._manager.get_private_columns(self._component, filtered_idx, cols)
 
     def update(self, update: pd.Series[Any] | pd.DataFrame) -> None:
         """Updates the private data with the provided data.
