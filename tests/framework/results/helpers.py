@@ -106,7 +106,7 @@ class Hogwarts(Component):
         self.population_view.update(initialization_data)
 
     def on_time_step(self, pop_data: Event) -> None:
-        update = self.population_view.get_attributes(
+        update = self.population_view.get_private_columns(
             pop_data.index,
             [
                 "student_house",
