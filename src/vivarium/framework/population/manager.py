@@ -193,11 +193,11 @@ class PopulationManager(Manager):
             if columns is None:
                 returned_cols = all_private_columns
             else:
-                missing_cols = [col for col in columns if col not in all_private_columns]
+                missing_cols = set(columns).difference(set(all_private_columns))
                 if missing_cols:
                     raise PopulationError(
-                        f"Component {component.name} does not create the following "
-                        f"requested private columns: {missing_cols}."
+                        f"Component {component.name} is requesting the following "
+                        f"private columns to which it does not have access: {missing_cols}."
                     )
                 returned_cols = columns
         private_columns = self.private_columns[returned_cols]

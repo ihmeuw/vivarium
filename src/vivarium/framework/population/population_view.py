@@ -97,7 +97,6 @@ class PopulationView:
 
         """
 
-        # TODO: add test if attributes and query are empty
         if isinstance(attributes, str):
             attributes = [attributes]
 
@@ -143,12 +142,6 @@ class PopulationView:
             )
         filtered_idx = self.get_attributes(index, query_columns, query).index
         cols = self.private_columns if private_columns == "all" else private_columns
-        missing_cols = [col for col in cols if col not in self.private_columns]
-        if missing_cols:
-            raise PopulationError(
-                f"Component {self._component.name} does not create the following "
-                f"requested private columns: {missing_cols}."
-            )
         return self._manager.get_private_columns(self._component, filtered_idx, cols)
 
     def update(self, update: pd.Series[Any] | pd.DataFrame) -> None:

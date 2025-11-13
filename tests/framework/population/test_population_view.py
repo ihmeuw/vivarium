@@ -121,6 +121,11 @@ def test_get_attributes_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> 
     assert pop.empty
 
 
+@pytest.mark.skip(reason="TODO [MIC-6609] add tests for empty attributes and/or query string")
+def test_get_attributes_empty_attributes_query() -> None:
+    pass
+
+
 def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
@@ -158,13 +163,13 @@ def test_get_private_columns(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
-    kwargs = dict()
+    kwargs: dict[str, list[str] | str] = {}
     if private_columns is not None:
         kwargs["private_columns"] = private_columns
     if query_columns is not None:
         kwargs["query_columns"] = query_columns
     if query is not None:
-        kwargs["query"] = query  # type: ignore[assignment]
+        kwargs["query"] = query
 
     private_data = pv.get_private_columns(index, **kwargs)  # type: ignore[arg-type]
     expected_cols = private_columns if private_columns is not None else PIE_COL_NAMES
@@ -183,7 +188,7 @@ def test_get_private_columns_raises(pies_and_cubes_pop_mgr: PopulationManager) -
     with pytest.raises(
         PopulationError,
         match=re.escape(
-            "Component pie_component does not create the following requested private columns: ['foo']."
+            "is requesting the following private columns to which it does not have access"
         ),
     ):
         pv.get_private_columns(pd.Index([]), private_columns=["pie", "pi", "foo"])

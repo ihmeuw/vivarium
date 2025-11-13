@@ -282,11 +282,11 @@ def test_get_private_columns(
     components: list[Component], index: pd.Index[int] | None, columns: list[str] | None
 ) -> None:
     sim = InteractiveContext(components=components)
-    kwargs = dict()
+    kwargs: dict[str, pd.Index[int] | list[str]] = {}
     if index is not None:
         kwargs["index"] = index
     if columns is not None:
-        kwargs["columns"] = columns  # type: ignore[assignment]
+        kwargs["columns"] = columns
     for component in components:
         private_columns = sim._population.get_private_columns(component, **kwargs)  # type: ignore[arg-type]
         if index is not None:
@@ -313,7 +313,7 @@ def test_get_private_columns_raises_bad_column_request() -> None:
     mgr = PopulationManager()
     with pytest.raises(
         PopulationError,
-        match="does not create the following requested private columns",
+        match="is requesting the following private columns to which it does not have access",
     ):
         mgr.get_private_columns(ColumnCreator(), columns=["foo"])
 
