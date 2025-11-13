@@ -646,7 +646,7 @@ class Machine(Component):
                 state.cleanup_effect(affected.index, event_time)
 
     def _get_state_pops(self, index: pd.Index[int]) -> list[tuple[State, pd.DataFrame]]:
-        population = self.population_view.get(index, self.state_column)
+        population = self.population_view.get_attributes(index, self.state_column)
         return [
             (state, population[population[self.state_column] == state.state_id])
             for state in self.states

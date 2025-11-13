@@ -66,7 +66,7 @@ class NonCRNTestPopulation(Component):
         self.population_view.update(population)
 
     def on_time_step(self, event: Event) -> None:
-        population = self.population_view.get(
+        population = self.population_view.get_attributes(
             event.index, ["alive", "age"], query="alive == 'alive'"
         )
         # This component won't work if event.step_size is an int
