@@ -376,7 +376,7 @@ class SimulationContext:
         return self._population.get_population("all")
 
     def get_population_index(self) -> pd.Index[int]:
-        return self._population.population.index
+        return self._population.get_population_index()
 
     def __repr__(self) -> str:
         return f"SimulationContext({self.name})"

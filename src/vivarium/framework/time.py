@@ -118,9 +118,9 @@ class SimulationClock(Manager):
             self._pipeline_name,
             component=self,
         )
-        builder.population.initializes_simulants(self, creates_columns=self.columns_created)
+        builder.population.initializes_simulants(self)
         builder.event.register_listener(lifecycle_states.POST_SETUP, self.on_post_setup)
-        self._individual_clocks = pd.DataFrame(columns=self.columns_created)
+        self._individual_clocks = pd.DataFrame()
 
     def on_post_setup(self, event: Event) -> None:
         if not self._step_size_pipeline.mutators:
