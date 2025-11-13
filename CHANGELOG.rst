@@ -1,3 +1,7 @@
+**3.6.1 - 11/13/25**
+
+  - Enable setting simulation duration as a string in InteractiveContext.run_for()
+  
 **3.6.0 - 10/27/25**
 
   - Move simulate profile command to vivarium_profiling package

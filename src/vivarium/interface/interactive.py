@@ -82,9 +82,7 @@ class InteractiveContext(SimulationContext):
         """
         self.run_until(self._clock.stop_time, with_logging=with_logging)
 
-    def run_for(
-            self, duration: ClockStepSize | str, with_logging: bool = True
-        ) -> None:
+    def run_for(self, duration: ClockStepSize | str, with_logging: bool = True) -> None:
         """Run the simulation for the given time duration.
 
         Parameters
