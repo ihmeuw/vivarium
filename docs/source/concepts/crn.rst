@@ -211,7 +211,7 @@ for this decision point of whether to move left or not. Here's how we'd do it:
         def on_time_step(self, event):
             # with probability 0.5 simulants move to the left 1 position
             to_move_index = self.randomness.filter_for_probability(event.index, pd.Series(0.5, index=event.index))
-            moved_locations = self.population_view.get(to_move_index).location - 1
+            moved_locations = self.population_view.get_attributes(to_move_index).location - 1
             self.population_view.update(moved_locations)
 
 

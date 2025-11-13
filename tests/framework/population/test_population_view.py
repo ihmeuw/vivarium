@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import re
 from typing import Any
 
 import pandas as pd
@@ -87,12 +88,12 @@ def test_initialization(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     assert pv.query == q_string
 
 
-######################
-# PopulationView.get #
-######################
+#################################
+# PopulationView.get_attributes #
+#################################
 
 
-def test_get(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+def test_get_attributes(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     ########################
     # Full population view #
     ########################
@@ -101,26 +102,31 @@ def test_get(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
 
     # Get full data set
-    pop_full = pv.get(full_idx, PIE_COL_NAMES)
+    pop_full = pv.get_attributes(full_idx, PIE_COL_NAMES)
     assert set(pop_full.columns) == set(PIE_COL_NAMES)
     assert pop_full.index.equals(full_idx)
 
     # Get data subset
-    pop = pv.get(full_idx, PIE_COL_NAMES, query=f"pie == 'apple'")
+    pop = pv.get_attributes(full_idx, PIE_COL_NAMES, query=f"pie == 'apple'")
     assert set(pop.columns) == set(PIE_COL_NAMES)
     assert pop.index.equals(pop_full[pop_full["pie"] == "apple"].index)
 
 
-def test_get_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+def test_get_attributes_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
-    pop = pv.get(pd.Index([]), PIE_COL_NAMES)
+    pop = pv.get_attributes(pd.Index([]), PIE_COL_NAMES)
     assert isinstance(pop, pd.DataFrame)
     assert set(pop.columns) == set(PIE_COL_NAMES)
     assert pop.empty
 
 
-def test_get_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+@pytest.mark.skip(reason="TODO [MIC-6609] add tests for empty attributes and/or query string")
+def test_get_attributes_empty_attributes_query() -> None:
+    pass
+
+
+def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
     # Unknown columns
@@ -128,7 +134,71 @@ def test_get_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
         PopulationError,
         match="Requested attribute\(s\) \{'foo'\} not in population table.",
     ):
-        pv.get(pd.Index([]), "foo")
+        pv.get_attributes(pd.Index([]), "foo")
+
+
+######################################
+# PopulationView.get_private_columns #
+######################################
+
+
+@pytest.mark.parametrize(
+    "index", [pd.RangeIndex(0, len(PIE_RECORDS)), pd.RangeIndex(0, len(PIE_RECORDS) // 2)]
+)
+@pytest.mark.parametrize("private_columns", [None, PIE_COL_NAMES[1:]])
+@pytest.mark.parametrize(
+    "query_columns, query",
+    [
+        (None, None),
+        (["pie"], "pie == 'chocolate'"),
+        (["pie", "pi"], "pie == 'apple' and pi < 10"),
+        (["pi"], "pi == 'oops'"),
+    ],
+)
+def test_get_private_columns(
+    index: pd.Index[int],
+    private_columns: list[str] | None,
+    query_columns: list[str] | None,
+    query: str | None,
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    kwargs: dict[str, list[str] | str] = {}
+    if private_columns is not None:
+        kwargs["private_columns"] = private_columns
+    if query_columns is not None:
+        kwargs["query_columns"] = query_columns
+    if query is not None:
+        kwargs["query"] = query
+
+    private_data = pv.get_private_columns(index, **kwargs)  # type: ignore[arg-type]
+    expected_cols = private_columns if private_columns is not None else PIE_COL_NAMES
+    assert list(private_data.columns) == expected_cols
+    expected_idx = index
+    if query:
+        expected_idx = PIE_DF.loc[index].query(query).index
+    assert private_data.index.equals(expected_idx)
+    if query is not None and "oops" in query:
+        assert private_data.empty
+
+
+def test_get_private_columns_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+
+    with pytest.raises(
+        PopulationError,
+        match=re.escape(
+            "is requesting the following private columns to which it does not have access"
+        ),
+    ):
+        pv.get_private_columns(pd.Index([]), private_columns=["pie", "pi", "foo"])
+
+    pv._component = None
+    with pytest.raises(
+        PopulationError,
+        match="This PopulationView is read-only, so it doesn't have access to get_private_columns().",
+    ):
+        pv.get_private_columns(pd.Index([]))
 
 
 #################################

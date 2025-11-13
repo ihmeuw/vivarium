@@ -470,6 +470,7 @@ def test_duplicate_names_raise(manager: ValuesManager, mocker: MockFixture) -> N
     [
         (lambda idx: pd.Series(1.0, index=INDEX), pd.Series(1.0, index=INDEX)),
         (["attr1", "attr2"], pd.DataFrame({"attr1": [10.0], "attr2": [20.0]}, index=INDEX)),
+        (["attr2"], pd.Series(20.0, index=INDEX, name="attr2")),
         (42, None),  # should raise
     ],
 )
