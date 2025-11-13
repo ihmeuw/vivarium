@@ -82,7 +82,9 @@ class InteractiveContext(SimulationContext):
         """
         self.run_until(self._clock.stop_time, with_logging=with_logging)
 
-    def run_for(self, duration: ClockStepSize, with_logging: bool = True) -> None:
+    def run_for(
+            self, duration: ClockStepSize | str, with_logging: bool = True
+        ) -> None:
         """Run the simulation for the given time duration.
 
         Parameters
@@ -90,7 +92,8 @@ class InteractiveContext(SimulationContext):
         duration
             The length of time to run the simulation for. Should be compatible
             with the simulation clock's step size (usually a pandas
-            Timedelta).
+            Timedelta). If a string is provided, it will be passed to
+            `pandas.Timedelta` to be converted.
         with_logging
             Whether or not to log the simulation steps. Only works in an ipython
             environment.
@@ -99,6 +102,8 @@ class InteractiveContext(SimulationContext):
         -------
             The number of steps the simulation took.
         """
+        if isinstance(duration, str):
+            duration = pd.Timedelta(duration)
         self.run_until(self._clock.time + duration, with_logging=with_logging)  # type: ignore [operator]
 
     def run_until(self, end_time: ClockTime, with_logging: bool = True) -> None:
