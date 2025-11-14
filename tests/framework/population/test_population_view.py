@@ -150,9 +150,9 @@ def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> Non
     "query_columns, query",
     [
         (None, None),
-        (["pie"], "pie == 'chocolate'"),
+        ("pie", "pie == 'chocolate'"),
         (["pie", "pi"], "pie == 'apple' and pi < 10"),
-        (["pi"], "pi == 'oops'"),
+        ("pi", "pi == 'oops'"),
     ],
 )
 def test_get_private_columns(
