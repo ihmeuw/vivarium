@@ -125,8 +125,8 @@ class PopulationView:
         index
             Index of the population to get.
         private_columns
-            The private columns to retrieve. If None, returns all owned by the
-            component that created this view.
+            The private columns to retrieve. If None, all columns created by the
+            component that created this view are included.
         query_columns
             The (public) columns needed to evaluate the query string.
         query
