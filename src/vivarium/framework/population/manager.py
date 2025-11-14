@@ -149,7 +149,7 @@ class PopulationManager(Manager):
         self,
         component: Component,
         index: pd.Index[int] | None = None,
-        columns: list[str] | None = None,
+        columns: str | list[str] | None = None,
     ) -> pd.DataFrame:
         """Gets the private columns for a given component.
 
@@ -166,7 +166,7 @@ class PopulationManager(Manager):
             The index of simulants to include in the returned dataframe. If None,
             all simulants are included.
         columns
-            The specific columns to include. If None, all columns created by the
+            The specific column(s) to include. If None, all columns created by the
             component are included.
 
         Raises
@@ -193,6 +193,8 @@ class PopulationManager(Manager):
             if columns is None:
                 returned_cols = all_private_columns
             else:
+                if isinstance(columns, str):
+                    columns = [columns]
                 missing_cols = set(columns).difference(set(all_private_columns))
                 if missing_cols:
                     raise PopulationError(
