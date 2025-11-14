@@ -110,7 +110,7 @@ class PopulationView:
     def get_private_columns(
         self,
         index: pd.Index[int],
-        private_columns: list[str] | Literal["all"] = "all",
+        private_columns: str | list[str] | None = None,
         query_columns: list[str] = [],
         query: str = "",
     ) -> pd.DataFrame:
@@ -125,7 +125,8 @@ class PopulationView:
         index
             Index of the population to get.
         private_columns
-            The private columns to retrieve.
+            The private columns to retrieve. If None, returns all owned by the
+            component that created this view.
         query_columns
             The (public) columns needed to evaluate the query string.
         query
@@ -141,8 +142,9 @@ class PopulationView:
                 "This PopulationView is read-only, so it doesn't have access to get_private_columns()."
             )
         filtered_idx = self.get_attributes(index, query_columns, query).index
-        cols = self.private_columns if private_columns == "all" else private_columns
-        return self._manager.get_private_columns(self._component, filtered_idx, cols)
+        return self._manager.get_private_columns(
+            self._component, filtered_idx, private_columns
+        )
 
     def update(self, update: pd.Series[Any] | pd.DataFrame) -> None:
         """Updates the private data with the provided data.
