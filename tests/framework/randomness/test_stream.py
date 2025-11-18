@@ -22,7 +22,7 @@ from vivarium.framework.randomness.stream import (
 
 @pytest.fixture
 def randomness_stream() -> RandomnessStream:
-    # Provide different tates to each fixture to ensure independence
+    # Provide different dates to each fixture to ensure independence
     dates = [
         pd.Timestamp(1991, 1, 1),
         pd.Timestamp(1990, 1, 1),
