@@ -111,7 +111,7 @@ class PopulationView:
         self,
         index: pd.Index[int],
         private_columns: str | list[str] | None = None,
-        query_columns: list[str] = [],
+        query_columns: str | list[str] = [],
         query: str = "",
     ) -> pd.DataFrame:
         """Get a specific subset of this ``PopulationView's`` private columns.
@@ -128,7 +128,7 @@ class PopulationView:
             The private columns to retrieve. If None, all columns created by the
             component that created this view are included.
         query_columns
-            The (public) columns needed to evaluate the query string.
+            The (public) column(s) needed to evaluate the query string.
         query
             Additional conditions used to filter the index.
 
