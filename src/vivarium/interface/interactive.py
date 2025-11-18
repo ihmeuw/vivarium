@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from math import ceil
-from typing import Any
+from typing import Any, Literal
 
 import pandas as pd
 
@@ -161,9 +161,27 @@ class InteractiveContext(SimulationContext):
             for _ in range(number_of_steps):
                 self.step(step_size)
 
-    def get_population(self) -> pd.DataFrame:
-        """Get a copy of the population state table."""
-        return self._population.get_population("all")
+    def get_population(self, attributes: str | list[str] | None = None) -> pd.DataFrame:
+        """Get a copy of the population state table.
+
+        Parameters
+        ----------
+        attributes
+            The list of attribute pipelines to include in the returned table. If
+            None, all attributes are included.
+
+        Returns
+        -------
+            The current state of requested population attributes.
+        """
+        returned_attributes: list[str] | Literal["all"]
+        if attributes is None:
+            returned_attributes = "all"
+        elif isinstance(attributes, str):
+            returned_attributes = [attributes]
+        else:
+            returned_attributes = attributes
+        return self._population.get_population(attributes=returned_attributes)
 
     def list_values(self) -> list[str]:
         """List the names of all value pipelines in the simulation."""
@@ -181,15 +199,6 @@ class InteractiveContext(SimulationContext):
                 "Are you looking for an attribute pipeline?"
             )
         return self._values.get_value(value_pipeline_name)
-
-    def get_attribute(self, attribute_pipeline_name: str) -> Pipeline:
-        """Get the attribute pipeline associated with the given name."""
-        if attribute_pipeline_name not in self.list_attributes():
-            raise ValueError(
-                f"No value pipeline '{attribute_pipeline_name}' registered. "
-                "Are you looking for a value pipeline?"
-            )
-        return self._values.get_attribute(attribute_pipeline_name)
 
     def list_events(self) -> list[str]:
         """List all event types registered with the simulation."""
