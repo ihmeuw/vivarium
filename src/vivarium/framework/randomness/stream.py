@@ -278,8 +278,14 @@ class RandomnessStream(Resource):
         else:
             index = population.index
 
-        draws = self.get_draw(index, additional_key)
-        mask = np.array(draws < probability)
+        probabilities = pd.Series(probability, index=index)
+        # We skip draws for simulants who have a zero probability
+        non_zero_idx = probabilities[probabilities > 0].index
+        draws = self.get_draw(non_zero_idx, additional_key)
+        # instantiate mask as False and fill in True based on draws
+        mask = np.zeros(len(index), dtype=bool)
+        mask_indices = index.get_indexer(non_zero_idx)  # type: ignore [no-untyped-call]
+        mask[mask_indices] = draws < probabilities[non_zero_idx]
         return population[mask]
 
     def choice(

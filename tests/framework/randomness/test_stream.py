@@ -84,6 +84,25 @@ def test_filter_for_probability_multiple_probabilities(
     )
 
 
+@pytest.mark.parametrize("all_zeros", [False, True])
+def test_filter_for_probability_with_zeros(
+    all_zeros: bool, randomness_stream: RandomnessStream, index: pd.Index[int]
+) -> None:
+    if all_zeros:
+        probabilities = pd.Series([0.0] * len(index), index=index)
+    else:
+        probabilities = pd.Series([0.0, 0.0, 0.0, 0.6, 0.6] * (index.size // 5), index=index)
+    threshold_0_0 = probabilities.index[probabilities == 0.0]
+    threshold_0_6 = probabilities.index.difference(threshold_0_0)
+    sub_index = randomness_stream.filter_for_probability(index, probabilities)
+    # Nothing should be selected from the zero-probability group
+    assert len(sub_index.intersection(threshold_0_0)) == 0
+    if not all_zeros:
+        assert np.isclose(
+            len(sub_index.intersection(threshold_0_6)) / len(threshold_0_6), 0.6, rtol=0.1
+        )
+
+
 @pytest.mark.parametrize(
     "rate, time_scaling_factor",
     [
