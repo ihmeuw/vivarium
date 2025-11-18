@@ -242,7 +242,11 @@ class RandomnessStream(Resource):
     def filter_for_probability(
         self,
         population: PandasObject,
-        probability: float | list[float] | tuple[float] | NumericArray | pd.Series[float],
+        probability: float
+        | list[float]
+        | tuple[float, ...]
+        | NumericArray
+        | pd.Series[float],
         additional_key: Any = None,
     ) -> PandasObject:
         """Decide an outcome for each individual from probabilities.
@@ -279,13 +283,15 @@ class RandomnessStream(Resource):
             index = population.index
 
         probabilities = pd.Series(probability, index=index)
-        # We skip draws for simulants who have a zero probability
-        non_zero_idx = probabilities[probabilities > 0].index
-        draws = self.get_draw(non_zero_idx, additional_key)
-        # instantiate mask as False and fill in True based on draws
+        # We skip draws for simulants who have a zero or one probability
+        zeros_idx = probabilities[probabilities == 0].index
+        ones_idx = probabilities[probabilities == 1].index
+        get_draws_idx = probabilities.index.difference(zeros_idx).difference(ones_idx)
+        draws = self.get_draw(get_draws_idx, additional_key)
+        # instantiate mask as False and fill in True where appropriate
         mask = np.zeros(len(index), dtype=bool)
-        mask_indices = index.get_indexer(non_zero_idx)  # type: ignore [no-untyped-call]
-        mask[mask_indices] = draws < probabilities[non_zero_idx]
+        mask[index.get_indexer(ones_idx)] = True  # type: ignore [no-untyped-call]
+        mask[index.get_indexer(get_draws_idx)] = draws < probabilities[get_draws_idx]  # type: ignore [no-untyped-call]
         return population[mask]
 
     def choice(
