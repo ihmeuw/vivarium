@@ -342,6 +342,63 @@ def test_get_private_columns_query_removes_all(
 #######################################
 
 
+@pytest.mark.parametrize(
+    "index", [pd.RangeIndex(0, len(PIE_RECORDS)), pd.RangeIndex(0, len(PIE_RECORDS) // 2)]
+)
+@pytest.mark.parametrize(
+    "pv_query",
+    [
+        None,
+        "pi > 10",
+        "pie == 'chocolate'",
+        "cube > 20000",
+        "pi < 10000 and pie != 'apple' and 10000 < cube < 40000",
+    ],
+)
+@pytest.mark.parametrize(
+    "query_cols, query",
+    [
+        (None, None),
+        ("pi", "pi < 1000"),
+        ("pie", "pie != 'pumpkin'"),
+        (["pi", "pie"], "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato')"),
+        # We can also filter by public columns
+        ("cube", "cube > 20000"),
+        (
+            ["pi", "pie", "cube"],
+            "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 10000 < cube < 30000",
+        ),
+    ],
+)
+def test_get_population_index(
+    index: pd.Index[int],
+    pv_query: str | None,
+    query_cols: str | list[str] | None,
+    query: str | None,
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    pv_kwargs = {}
+    if pv_query is not None:
+        pv_kwargs["query"] = pv_query
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
+    kwargs = {}
+    if query is not None and query_cols is not None:
+        kwargs["query"] = query
+        kwargs["query_columns"] = query_cols  # type: ignore[assignment]
+    pop_idx = pv.get_population_index(index, **kwargs)
+
+    # Note that we do NOT combine the pop view query here
+    expected_pop = PIE_DF.loc[index].copy()
+    if query:
+        if "cube" in query:
+            expected_pop = expected_pop.join(CUBE_DF[["cube"]].copy())
+        expected_pop = expected_pop.query(query)
+        if "cube" in expected_pop.columns:
+            expected_pop.drop("cube", axis=1, inplace=True)
+
+    assert pop_idx.equals(expected_pop.index)
+
+
 def test_get_population_index_raises(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
