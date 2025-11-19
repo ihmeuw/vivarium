@@ -219,36 +219,66 @@ def test_get_attributes_query_removes_all(pies_and_cubes_pop_mgr: PopulationMana
 )
 @pytest.mark.parametrize("private_columns", [None, PIE_COL_NAMES[1:]])
 @pytest.mark.parametrize(
-    "query_columns, query",
+    "pv_query",
+    [
+        None,
+        "pi > 10",
+        "pie == 'chocolate'",
+        "cube > 20000",
+        "pi < 10000 and pie != 'apple' and 10000 < cube < 40000",
+    ],
+)
+@pytest.mark.parametrize(
+    "query_cols, query",
     [
         (None, None),
-        ("pie", "pie == 'chocolate'"),
-        (["pie", "pi"], "pie == 'apple' and pi < 10"),
+        ("pi", "pi < 1000"),
+        ("pie", "pie != 'pumpkin'"),
+        (["pi", "pie"], "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato')"),
+        # We can also filter by public columns
+        ("cube", "cube > 20000"),
+        (
+            ["pi", "pie", "cube"],
+            "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 10000 < cube < 30000",
+        ),
     ],
 )
 def test_get_private_columns(
     index: pd.Index[int],
     private_columns: list[str] | None,
-    query_columns: list[str] | None,
+    pv_query: str | None,
+    query_cols: str | list[str] | None,
     query: str | None,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
-    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
-    kwargs: dict[str, list[str] | str] = {}
+    """Test that query works as expected.
+
+    Note that the population view's base query is ignored when getting private columns
+    """
+    pv_kwargs = {}
+    if pv_query is not None:
+        pv_kwargs["query"] = pv_query
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
+    kwargs = {}
     if private_columns is not None:
         kwargs["private_columns"] = private_columns
-    if query_columns is not None:
-        kwargs["query_columns"] = query_columns
-    if query is not None:
-        kwargs["query"] = query
+    if query is not None and query_cols is not None:
+        kwargs["query"] = query  # type: ignore[assignment]
+        kwargs["query_columns"] = query_cols  # type: ignore[assignment]
+    pop = pv.get_private_columns(index, **kwargs)  # type: ignore[arg-type]
 
-    private_data = pv.get_private_columns(index, **kwargs)  # type: ignore[arg-type]
-    expected_cols = private_columns if private_columns is not None else PIE_COL_NAMES
-    assert list(private_data.columns) == expected_cols
-    expected_idx = index
+    # Note that we do NOT combine the pop view query here
+    expected_pop = PIE_DF.loc[index].copy()
     if query:
-        expected_idx = PIE_DF.loc[index].query(query).index
-    assert private_data.index.equals(expected_idx)
+        if "cube" in query:
+            expected_pop = expected_pop.join(CUBE_DF[["cube"]].copy())
+        expected_pop = expected_pop.query(query)
+        if "cube" in expected_pop.columns:
+            expected_pop.drop("cube", axis=1, inplace=True)
+    if private_columns:
+        expected_pop = expected_pop[private_columns]
+
+    assert pop.equals(expected_pop)
 
 
 def test_get_private_columns_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
@@ -281,64 +311,6 @@ def test_get_private_columns_raises(pies_and_cubes_pop_mgr: PopulationManager) -
         match="This PopulationView is read-only, so it doesn't have access to get_private_columns().",
     ):
         pv.get_private_columns(index)
-
-
-@pytest.mark.parametrize(
-    "pv_query",
-    [
-        None,
-        "pi > 10",
-        "pie == 'chocolate'",
-        "cube > 20000",
-        "pi < 10000 and pie != 'apple' and 10000 < cube < 40000",
-    ],
-)
-@pytest.mark.parametrize(
-    "query_cols, query",
-    [
-        (None, None),
-        ("pi", "pi < 1000"),
-        ("pie", "pie != 'pumpkin'"),
-        (["pi", "pie"], "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato')"),
-        # We can also filter by public columns
-        ("cube", "cube > 20000"),
-        (
-            ["pi", "pie", "cube"],
-            "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 10000 < cube < 30000",
-        ),
-    ],
-)
-def test_get_private_columns_query(
-    pv_query: str | None,
-    query_cols: str | list[str] | None,
-    query: str | None,
-    pies_and_cubes_pop_mgr: PopulationManager,
-) -> None:
-    """Test that query works as expected.
-
-    Note that the population view's base query is ignored when getting private columns
-    """
-    pv_kwargs = {}
-    if pv_query is not None:
-        pv_kwargs["query"] = pv_query
-    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
-    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
-    kwargs = {}
-    if query is not None:
-        kwargs["query_columns"] = query_cols
-        kwargs["query"] = query
-    pop = pv.get_private_columns(full_idx, **kwargs)  # type: ignore[arg-type]
-
-    # Note that we do NOT combine the pop view query here
-    expected_pop = PIE_DF.copy()
-    if query:
-        if "cube" in query:
-            expected_pop = expected_pop.join(CUBE_DF[["cube"]].copy())
-        expected_pop = expected_pop.query(query)
-        if "cube" in expected_pop.columns:
-            expected_pop.drop("cube", axis=1, inplace=True)
-
-    assert pop.equals(expected_pop)
 
 
 def test_get_private_columns_empty_list(pies_and_cubes_pop_mgr: PopulationManager) -> None:
