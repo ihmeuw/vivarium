@@ -156,6 +156,36 @@ class PopulationView:
                 "This PopulationView is read-only, so it doesn't have access to get_private_columns()."
             )
 
+        index = self.get_population_index(index, query_columns=query_columns, query=query)
+
+        return self._manager.get_private_columns(self._component, index, private_columns)
+
+    def get_population_index(
+        self,
+        index: pd.Index[int],
+        query_columns: str | list[str] = [],
+        query: str = "",
+    ) -> pd.Index[int]:
+        """Get a specific index of the population.
+
+        The requested index may be further filtered by the view's ``query``.
+
+        Parameters
+        ----------
+        index
+            Index of the population to get.
+        query_columns
+            The (public) column(s) needed to evaluate the query string.
+        query
+            Additional conditions used to filter the index. Note that it will
+            *not* be combined with this PopulationView's query property (in order
+            to allow for full updates to the private column data).
+
+        Returns
+        -------
+            The requested and filtered population index.
+        """
+
         if (query_columns and not query) or (not query_columns and query):
             raise PopulationError(
                 "When providing a ``query``, you must also provide the ``query_columns``"
@@ -167,7 +197,7 @@ class PopulationView:
                 index, query_columns, query, combine_queries=False
             ).index
 
-        return self._manager.get_private_columns(self._component, index, private_columns)
+        return index
 
     def update(self, update: pd.Series[Any] | pd.DataFrame) -> None:
         """Updates the private data with the provided data.

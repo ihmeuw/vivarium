@@ -123,13 +123,19 @@ def test_get_attributes_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> 
 
 def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    index = pd.Index([])
 
-    # Unknown columns
     with pytest.raises(
         PopulationError,
         match="Requested attribute\(s\) \{'foo'\} not in population table.",
     ):
-        pv.get_attributes(pd.Index([]), "foo")
+        pv.get_attributes(index, "foo")
+
+    with pytest.raises(
+        PopulationError,
+        match="provide the columns needed to evaluate that query",
+    ):
+        pv.get_attributes(index, [], "pie == 'apple'")
 
 
 @pytest.mark.parametrize(
@@ -194,11 +200,6 @@ def test_get_attributes_empty_list(pies_and_cubes_pop_mgr: PopulationManager) ->
     no_attributes = pv.get_attributes(full_index, [])
     assert no_attributes.empty
     assert no_attributes.index.equals(full_index)
-    with pytest.raises(
-        PopulationError,
-        match="provide the columns needed to evaluate that query",
-    ):
-        pv.get_attributes(full_index, [], "pie == 'apple'")
 
 
 def test_get_attributes_query_removes_all(pies_and_cubes_pop_mgr: PopulationManager) -> None:
@@ -252,6 +253,7 @@ def test_get_private_columns(
 
 def test_get_private_columns_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    index = pd.Index([])
 
     with pytest.raises(
         PopulationError,
@@ -259,14 +261,26 @@ def test_get_private_columns_raises(pies_and_cubes_pop_mgr: PopulationManager) -
             "is requesting the following private columns to which it does not have access"
         ),
     ):
-        pv.get_private_columns(pd.Index([]), private_columns=["pie", "pi", "foo"])
+        pv.get_private_columns(index, private_columns=["pie", "pi", "foo"])
+
+    with pytest.raises(
+        PopulationError,
+        match="you must also provide the ``query_columns``",
+    ):
+        pv.get_private_columns(index, query="pi < 10")
+
+    with pytest.raises(
+        PopulationError,
+        match="you must also provide the ``query_columns``",
+    ):
+        pv.get_private_columns(index, query_columns=["pi"])
 
     pv._component = None
     with pytest.raises(
         PopulationError,
         match="This PopulationView is read-only, so it doesn't have access to get_private_columns().",
     ):
-        pv.get_private_columns(pd.Index([]))
+        pv.get_private_columns(index)
 
 
 @pytest.mark.parametrize(
@@ -351,24 +365,31 @@ def test_get_private_columns_query_removes_all(
     assert empty_pop.equals(PIE_DF.iloc[0:0][PIE_COL_NAMES])
 
 
-def test_get_private_columns_query_columns_mismatch(
+#######################################
+# PopulationView.get_population_index #
+#######################################
+
+
+def test_get_population_index_raises(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     full_index = pd.RangeIndex(0, len(PIE_RECORDS))
+
     with pytest.raises(
         PopulationError,
         match="you must also provide the ``query_columns``",
     ):
-        pv.get_private_columns(
+        pv.get_population_index(
             full_index,
             query="pi < 10",
         )
+
     with pytest.raises(
         PopulationError,
         match="you must also provide the ``query_columns``",
     ):
-        pv.get_private_columns(
+        pv.get_population_index(
             full_index,
             query_columns=["pi"],
         )
