@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from math import ceil
-from typing import Any, Literal
+from typing import Any, Literal, Sequence
 
 import pandas as pd
 
@@ -161,14 +161,14 @@ class InteractiveContext(SimulationContext):
             for _ in range(number_of_steps):
                 self.step(step_size)
 
-    def get_population(self, attributes: str | list[str] | None = None) -> pd.DataFrame:
+    def get_population(self, attributes: str | Sequence[str] | None = None) -> pd.DataFrame:
         """Get a copy of the population state table.
 
         Parameters
         ----------
         attributes
-            The list of attribute pipelines to include in the returned table. If
-            None, all attributes are included.
+            The attribute pipelines to include in the returned table. If None, all
+            attributes are included.
 
         Returns
         -------
@@ -180,7 +180,7 @@ class InteractiveContext(SimulationContext):
         elif isinstance(attributes, str):
             returned_attributes = [attributes]
         else:
-            returned_attributes = attributes
+            returned_attributes = list(attributes)
         return self._population.get_population(attributes=returned_attributes)
 
     def list_values(self) -> list[str]:

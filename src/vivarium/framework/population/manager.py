@@ -149,7 +149,7 @@ class PopulationManager(Manager):
         self,
         component: Component,
         index: pd.Index[int] | None = None,
-        columns: str | list[str] | None = None,
+        columns: str | Sequence[str] | None = None,
     ) -> pd.DataFrame:
         """Gets the private columns for a given component.
 
@@ -193,8 +193,7 @@ class PopulationManager(Manager):
             if columns is None:
                 returned_cols = all_private_columns
             else:
-                if isinstance(columns, str):
-                    columns = [columns]
+                columns = [columns] if isinstance(columns, str) else list(columns)
                 missing_cols = set(columns).difference(set(all_private_columns))
                 if missing_cols:
                     raise PopulationError(
@@ -475,7 +474,7 @@ class PopulationManager(Manager):
 
     def get_population(
         self,
-        attributes: list[str] | Literal["all"],
+        attributes: Sequence[str] | Literal["all"],
         index: pd.Index[int] | None = None,
         query: str = "",
     ) -> pd.DataFrame:
@@ -506,9 +505,14 @@ class PopulationManager(Manager):
         if self._private_columns is None:
             return pd.DataFrame()
 
-        idx = index if index is not None else self._private_columns.index
-
-        if isinstance(attributes, list):
+        if isinstance(attributes, str) and attributes != "all":
+            raise PopulationError(
+                f"Attributes must be a list of strings or 'all'; got '{attributes}'."
+            )
+        if attributes == "all":
+            attributes_to_include = list(self._attribute_pipelines.keys())
+        else:
+            attributes = list(attributes)
             # check for duplicate request
             if len(attributes) != len(set(attributes)):
                 # deduplicate while preserving order
@@ -518,8 +522,6 @@ class PopulationManager(Manager):
                 )
             else:
                 attributes_to_include = attributes
-        else:  # "all"
-            attributes_to_include = list(self._attribute_pipelines.keys())
 
         non_existent_attributes = set(attributes_to_include) - set(self._attribute_pipelines)
         if non_existent_attributes:
@@ -534,6 +536,7 @@ class PopulationManager(Manager):
                 "different run settings."
             )
 
+        idx = index if index is not None else self._private_columns.index
         attributes_list: list[pd.Series[Any] | pd.DataFrame] = []
 
         # batch simple attributes and directly leverage private column backing dataframe
