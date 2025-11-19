@@ -221,7 +221,7 @@ def test_get_population_column_ordering(include_duplicates: bool) -> None:
     "attributes",
     (
         ["age", "sex"],
-        PIE_COL_NAMES + ["age", "sex"],
+        list(PIE_COL_NAMES) + ["age", "sex"],
         ["age", "sex"],
         ["color", "count", "age"],
     ),

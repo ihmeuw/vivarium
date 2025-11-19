@@ -39,7 +39,7 @@ def update_index(request: pytest.FixtureRequest) -> pd.Index[int]:
 @pytest.fixture(
     params=[
         PIE_DF.copy(),
-        PIE_DF[PIE_COL_NAMES[:2]].copy(),
+        PIE_DF[PIE_COL_NAMES[1:2]].copy(),
         PIE_DF[[PIE_COL_NAMES[0]]].copy(),
         PIE_DF[PIE_COL_NAMES[0]].copy(),
     ]
@@ -121,11 +121,6 @@ def test_get_attributes_empty_idx(pies_and_cubes_pop_mgr: PopulationManager) -> 
     assert pop.empty
 
 
-@pytest.mark.skip(reason="TODO [MIC-6609] add tests for empty attributes and/or query string")
-def test_get_attributes_empty_attributes_query() -> None:
-    pass
-
-
 def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
 
@@ -135,6 +130,82 @@ def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> Non
         match="Requested attribute\(s\) \{'foo'\} not in population table.",
     ):
         pv.get_attributes(pd.Index([]), "foo")
+
+
+@pytest.mark.parametrize(
+    "pv_query",
+    [
+        None,
+        "pi > 10",
+        "pie == 'chocolate'",
+        "cube > 20000",
+        "pi < 10000 and pie != 'apple' and cube < 40000",
+    ],
+)
+@pytest.mark.parametrize(
+    "additional_query",
+    [
+        None,
+        "pi < 3000",
+        "pie != 'pumpkin'",
+        # We can also filter by public columns
+        "10000 <= cube <= 40000",
+        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and cube > 15000",
+    ],
+)
+def test_get_attributes_combined_query(
+    pv_query: str | None,
+    additional_query: str | None,
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    """Test that queries provided to the pop view and via get_attributes are combined correctly."""
+    pv_kwargs = {}
+    if pv_query is not None:
+        pv_kwargs["query"] = pv_query
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+    kwargs = {}
+    if additional_query is not None:
+        kwargs["query"] = additional_query
+
+    combined_query_parts = []
+    if pv_query is not None:
+        combined_query_parts.append(f"{pv_query}")
+    if additional_query is not None:
+        combined_query_parts.append(f"{additional_query}")
+    combined_query = " and ".join(combined_query_parts)
+
+    col_request = PIE_COL_NAMES.copy()
+    if combined_query and "cube" in combined_query:
+        col_request += ["cube"]
+    pop = pv.get_attributes(full_idx, col_request, **kwargs)  # type: ignore[arg-type]
+
+    expected_pop = PIE_DF.copy()
+    if combined_query:
+        if "cube" in combined_query:
+            expected_pop = expected_pop.join(CUBE_DF[["cube"]].copy())
+        expected_pop = expected_pop.query(combined_query)
+    assert pop.equals(expected_pop)
+
+
+def test_get_attributes_empty_list(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_index = pd.RangeIndex(0, len(PIE_RECORDS))
+    no_attributes = pv.get_attributes(full_index, [])
+    assert no_attributes.empty
+    assert no_attributes.index.equals(full_index)
+    with pytest.raises(
+        PopulationError,
+        match="provide the columns needed to evaluate that query",
+    ):
+        pv.get_attributes(full_index, [], "pie == 'apple'")
+
+
+def test_get_attributes_query_removes_all(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_index = pd.RangeIndex(0, len(PIE_RECORDS))
+    empty_pop = pv.get_attributes(full_index, PIE_COL_NAMES, "pi == 'oops'")
+    assert empty_pop.equals(PIE_DF.iloc[0:0][PIE_COL_NAMES])
 
 
 ######################################
@@ -152,7 +223,6 @@ def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> Non
         (None, None),
         ("pie", "pie == 'chocolate'"),
         (["pie", "pi"], "pie == 'apple' and pi < 10"),
-        ("pi", "pi == 'oops'"),
     ],
 )
 def test_get_private_columns(
@@ -178,8 +248,6 @@ def test_get_private_columns(
     if query:
         expected_idx = PIE_DF.loc[index].query(query).index
     assert private_data.index.equals(expected_idx)
-    if query is not None and "oops" in query:
-        assert private_data.empty
 
 
 def test_get_private_columns_raises(pies_and_cubes_pop_mgr: PopulationManager) -> None:
@@ -199,6 +267,111 @@ def test_get_private_columns_raises(pies_and_cubes_pop_mgr: PopulationManager) -
         match="This PopulationView is read-only, so it doesn't have access to get_private_columns().",
     ):
         pv.get_private_columns(pd.Index([]))
+
+
+@pytest.mark.parametrize(
+    "pv_query",
+    [
+        None,
+        "pi > 10",
+        "pie == 'chocolate'",
+        "cube > 20000",
+        "pi < 10000 and pie != 'apple' and 10000 < cube < 40000",
+    ],
+)
+@pytest.mark.parametrize(
+    "query_cols, query",
+    [
+        (None, None),
+        ("pi", "pi < 1000"),
+        ("pie", "pie != 'pumpkin'"),
+        (["pi", "pie"], "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato')"),
+        # We can also filter by public columns
+        ("cube", "cube > 20000"),
+        (
+            ["pi", "pie", "cube"],
+            "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 10000 < cube < 30000",
+        ),
+    ],
+)
+def test_get_private_columns_query(
+    pv_query: str | None,
+    query_cols: str | list[str] | None,
+    query: str | None,
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    """Test that query works as expected.
+
+    Note that the population view's base query is ignored when getting private columns
+    """
+    pv_kwargs = {}
+    if pv_query is not None:
+        pv_kwargs["query"] = pv_query
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
+    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
+    kwargs = {}
+    if query is not None:
+        kwargs["query_columns"] = query_cols
+        kwargs["query"] = query
+    pop = pv.get_private_columns(full_idx, **kwargs)  # type: ignore[arg-type]
+
+    # Note that we do NOT combine the pop view query here
+    expected_pop = PIE_DF.copy()
+    if query:
+        if "cube" in query:
+            expected_pop = expected_pop.join(CUBE_DF[["cube"]].copy())
+        expected_pop = expected_pop.query(query)
+        if "cube" in expected_pop.columns:
+            expected_pop.drop("cube", axis=1, inplace=True)
+
+    assert pop.equals(expected_pop)
+
+
+def test_get_private_columns_empty_list(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_index = pd.RangeIndex(0, len(PIE_RECORDS))
+    no_attributes = pv.get_private_columns(full_index, [])
+    assert no_attributes.empty
+    assert no_attributes.index.equals(full_index)
+    assert no_attributes.equals(pd.DataFrame(index=full_index))
+
+    apples = pv.get_private_columns(
+        full_index, [], query_columns="pie", query="pie == 'apple'"
+    )
+    apple_index = PIE_DF[PIE_DF["pie"] == "apple"].index
+    assert apples.equals(pd.DataFrame(index=apple_index))
+
+
+def test_get_private_columns_query_removes_all(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_index = pd.RangeIndex(0, len(PIE_RECORDS))
+    empty_pop = pv.get_private_columns(full_index, query_columns="pi", query="pi == 'oops'")
+    assert empty_pop.equals(PIE_DF.iloc[0:0][PIE_COL_NAMES])
+
+
+def test_get_private_columns_query_columns_mismatch(
+    pies_and_cubes_pop_mgr: PopulationManager,
+) -> None:
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
+    full_index = pd.RangeIndex(0, len(PIE_RECORDS))
+    with pytest.raises(
+        PopulationError,
+        match="you must also provide the ``query_columns``",
+    ):
+        pv.get_private_columns(
+            full_index,
+            query="pi < 10",
+        )
+    with pytest.raises(
+        PopulationError,
+        match="you must also provide the ``query_columns``",
+    ):
+        pv.get_private_columns(
+            full_index,
+            query_columns=["pi"],
+        )
 
 
 #################################
