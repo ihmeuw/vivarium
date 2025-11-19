@@ -292,7 +292,7 @@ class PopulationManager(Manager):
             A filter on the population state.  This filters out particular
             simulants (rows in the state table) based on their current state.
             The query should be provided in a way that is understood by the
-            :meth:`pandas.DataFrame.query` method and may reference any attrubytes
+            :meth:`pandas.DataFrame.query` method and may reference any attributes
             (not just created by the ``component``).
 
         Returns
