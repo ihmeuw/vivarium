@@ -1,3 +1,7 @@
+**3.6.2 - 11/20/25**
+
+  - Improve 'make build-env': better handle args and make the env name optional
+
 **3.6.1 - 11/13/25**
 
   - Enable setting simulation duration as a string in InteractiveContext.run_for()
