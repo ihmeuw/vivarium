@@ -13,7 +13,7 @@ to the underlying simulation :term:`state table`. It has two primary responsibil
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Sequence
 
 import pandas as pd
 
@@ -71,7 +71,7 @@ class PopulationView:
     def get_attributes(
         self,
         index: pd.Index[int],
-        attributes: str | list[str],
+        attributes: str | Sequence[str],
         query: str = "",
         combine_queries: bool = True,
     ) -> pd.DataFrame:
@@ -101,8 +101,7 @@ class PopulationView:
 
         """
 
-        if isinstance(attributes, str):
-            attributes = [attributes]
+        attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
         if query and not attributes:
             raise PopulationError(
@@ -122,8 +121,8 @@ class PopulationView:
     def get_private_columns(
         self,
         index: pd.Index[int],
-        private_columns: str | list[str] | None = None,
-        query_columns: str | list[str] = [],
+        private_columns: str | Sequence[str] | None = None,
+        query_columns: str | Sequence[str] = (),
         query: str = "",
     ) -> pd.DataFrame:
         """Get a specific subset of this ``PopulationView's`` private columns.
@@ -163,7 +162,7 @@ class PopulationView:
     def get_filtered_index(
         self,
         index: pd.Index[int],
-        query_columns: str | list[str] = [],
+        query_columns: str | Sequence[str] = (),
         query: str = "",
     ) -> pd.Index[int]:
         """Get a specific index of the population.
