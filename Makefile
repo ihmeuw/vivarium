@@ -81,5 +81,6 @@ build-env: # Create a new environment with installed packages
 	@echo "  name: $(name)"
 	@echo "  python version: $(py)"
 	@echo
-	@echo "Don't forget to activate it with: 'conda activate $(name)'"
+	@echo "Don't forget to activate it with:"
+    @echo "conda activate $(name)"
 	@echo
