@@ -233,6 +233,13 @@ def test_get_population_raises_missing_attributes(
         pies_and_cubes_pop_mgr.get_population(attributes)
 
 
+def test_get_population_raises_bad_string(pies_and_cubes_pop_mgr: PopulationManager) -> None:
+    with pytest.raises(
+        PopulationError, match="Attributes must be a list of strings or 'all'"
+    ):
+        pies_and_cubes_pop_mgr.get_population("invalid_string")
+
+
 def test_get_population_deduplicates_requested_columns(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
