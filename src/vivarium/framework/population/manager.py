@@ -293,7 +293,7 @@ class PopulationManager(Manager):
             simulants (rows in the state table) based on their current state.
             The query should be provided in a way that is understood by the
             :meth:`pandas.DataFrame.query` method and may reference any attributes
-            (not just created by the ``component``).
+            (not just those created by the ``component``).
 
         Returns
         -------

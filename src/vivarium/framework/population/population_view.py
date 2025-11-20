@@ -156,11 +156,11 @@ class PopulationView:
                 "This PopulationView is read-only, so it doesn't have access to get_private_columns()."
             )
 
-        index = self.get_population_index(index, query_columns=query_columns, query=query)
+        index = self.get_filtered_index(index, query_columns=query_columns, query=query)
 
         return self._manager.get_private_columns(self._component, index, private_columns)
 
-    def get_population_index(
+    def get_filtered_index(
         self,
         index: pd.Index[int],
         query_columns: str | list[str] = [],
@@ -186,7 +186,7 @@ class PopulationView:
             The requested and filtered population index.
         """
 
-        if (query_columns and not query) or (not query_columns and query):
+        if bool(query) != bool(query_columns):
             raise PopulationError(
                 "When providing a ``query``, you must also provide the ``query_columns``"
                 "needed to evaluate that query (and vice versa)."
