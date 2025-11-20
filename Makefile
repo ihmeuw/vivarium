@@ -68,9 +68,14 @@ build-env: # Create a new environment with installed packages
 #   Handle arguments and set defaults
 #	name
 	@$(eval name ?= $(PACKAGE_NAME))
-#	python version
-	@$(eval py ?= $(shell python -c "import json; versions = json.load(open('python_versions.json')); print(max(versions, key=lambda x: tuple(map(int, x.split('.')))))"))
+#	python version - validate if specified, else get default from json file
+	@if [ -n "$(py)" ] && ! python -c "import json; exit(0 if '$(py)' in json.load(open('python_versions.json')) else 1)" 2>/dev/null; then \
+		echo "Error: Python version '$(py)' is not supported. Available: $$(python -c "import json; print(', '.join(json.load(open('python_versions.json'))))")" >&2; \
+		exit 1; \
+	fi
+	@$(eval py ?= $(shell python -c "import json; print(max(json.load(open('python_versions.json')), key=lambda x: tuple(map(int, x.split('.')))))"))
 	
+
 	conda create -n $(name) python=$(py) --yes
 # 	Bootstrap vivarium_build_utils into the new environment
 	conda run -n $(name) pip install vivarium_build_utils
@@ -82,5 +87,5 @@ build-env: # Create a new environment with installed packages
 	@echo "  python version: $(py)"
 	@echo
 	@echo "Don't forget to activate it with:"
-    @echo "conda activate $(name)"
+	@echo "conda activate $(name)"
 	@echo
