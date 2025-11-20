@@ -274,12 +274,8 @@ class RandomnessStream(Resource):
             return population
 
         # Check for null values in probabilities
-        if isinstance(probability, (float, int)):
-            if np.isnan(probability):
-                raise ValueError("Probabilities contain null values")
-        else:
-            if np.isnan(probability).any():
-                raise ValueError("Probabilities contain null values")
+        if np.any(np.isnan(probability)):
+            raise ValueError("Probabilities contain null values")
 
         if isinstance(population, pd.Index):
             index = population
