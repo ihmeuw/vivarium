@@ -102,7 +102,7 @@ class PopulationView:
         """
 
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
-        
+
         if query and not attributes:
             raise PopulationError(
                 "When providing a query to get_attributes(), you must also provide "
@@ -122,7 +122,7 @@ class PopulationView:
         self,
         index: pd.Index[int],
         private_columns: str | Sequence[str] | None = None,
-        query_columns: str | Sequence[str] = [],
+        query_columns: str | Sequence[str] = (),
         query: str = "",
     ) -> pd.DataFrame:
         """Get a specific subset of this ``PopulationView's`` private columns.
@@ -162,7 +162,7 @@ class PopulationView:
     def get_filtered_index(
         self,
         index: pd.Index[int],
-        query_columns: str | Sequence[str] = [],
+        query_columns: str | Sequence[str] = (),
         query: str = "",
     ) -> pd.Index[int]:
         """Get a specific index of the population.
