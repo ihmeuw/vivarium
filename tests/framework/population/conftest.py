@@ -8,15 +8,15 @@ import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 
-from vivarium import Component, InteractiveContext
+from vivarium import Component
 from vivarium.framework.engine import SimulationContext
 from vivarium.framework.population import PopulationManager, SimulantData
 from vivarium.framework.values import ValuesManager
 
 # FIXME: Streamline with already-existing classes in tests/helpers.py
 PIE_COL_NAMES = ["pie", "pi"]
-PIES = ["apple", "chocolate", "pecan"]
-PIS = [math.pi**i for i in range(1, 4)]
+PIES = ["apple", "chocolate", "pecan", "pumpkin", "sweet_potato"]
+PIS = [math.pi**i for i in range(1, 11)]
 PIE_RECORDS = [(pie, pi) for pie, pi in itertools.product(PIES, PIS)]
 PIE_DF = pd.DataFrame(data=PIE_RECORDS, columns=PIE_COL_NAMES)
 CUBE_COL_NAMES = ["cube", "cube_string"]
