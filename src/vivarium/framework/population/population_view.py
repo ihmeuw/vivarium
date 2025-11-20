@@ -124,6 +124,7 @@ class PopulationView:
         private_columns: str | Sequence[str] | None = None,
         query_columns: str | Sequence[str] = (),
         query: str = "",
+        combine_queries: bool = True,
     ) -> pd.DataFrame:
         """Get a specific subset of this ``PopulationView's`` private columns.
 
@@ -144,6 +145,8 @@ class PopulationView:
             Additional conditions used to filter the index. Note that it will
             *not* be combined with this PopulationView's query property (in order
             to allow for full updates to the private column data).
+        combine_queries
+            Whether to combine this view's query property with the provided query.
 
         Returns
         -------
@@ -154,6 +157,8 @@ class PopulationView:
             raise PopulationError(
                 "This PopulationView is read-only, so it doesn't have access to get_private_columns()."
             )
+        
+        # TODO: combine the queries if true
 
         index = self.get_filtered_index(index, query_columns=query_columns, query=query)
 
@@ -164,6 +169,7 @@ class PopulationView:
         index: pd.Index[int],
         query_columns: str | Sequence[str] = (),
         query: str = "",
+        combine_queries: bool = True,
     ) -> pd.Index[int]:
         """Get a specific index of the population.
 
@@ -179,12 +185,16 @@ class PopulationView:
             Additional conditions used to filter the index. Note that it will
             *not* be combined with this PopulationView's query property (in order
             to allow for full updates to the private column data).
+        combine_queries
+            Whether to combine this view's query property with the provided query.
 
         Returns
         -------
             The requested and filtered population index.
         """
 
+        # TODO: combine the queries if true
+        
         if bool(query) != bool(query_columns):
             raise PopulationError(
                 "When providing a ``query``, you must also provide the ``query_columns``"
