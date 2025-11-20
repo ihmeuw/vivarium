@@ -275,12 +275,21 @@ def test_stream_rate_conversion_config(
     assert sim._randomness._rate_conversion_type == rate_conversion
 
 
-def test_filter_for_probability_error_with_null_values():
+def test_filter_for_probability_error_with_null_values() -> None:
     randomness_stream = RandomnessStream(
         "test", lambda: pd.Timestamp(2020, 1, 1), 1, IndexMap()
     )
     pop = pd.DataFrame({"age": [10, 11, 12, 13, 14], "id": [1, 2, 3, 4, 5]}).set_index("id")
-    draws = pd.Series([0.5] * 5)
-    probs = [0.3, np.nan, 0.5, np.nan, 0.7]
     with pytest.raises(ValueError, match="Probabilities contain null values"):
-        randomness_stream.filter_for_probability(draws.index, pd.Series(probs))
+        randomness_stream.filter_for_probability(pop, [0.3, np.nan, 0.5, np.nan, 0.7])
+
+    with pytest.raises(ValueError, match="Probabilities contain null values"):
+        randomness_stream.filter_for_probability(pop, np.nan)
+
+    with pytest.raises(ValueError, match="Probabilities contain null values"):
+        randomness_stream.filter_for_probability(
+            pop, pd.Series([0.2, 0.3, np.nan, 0.4, 0.5], index=pop.index)
+        )
+
+    # Doesn't raise
+    randomness_stream.filter_for_probability(pop, [0.3, 0.4, 0.5, 0.6, 0.7])
