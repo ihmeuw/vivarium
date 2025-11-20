@@ -13,7 +13,7 @@ to the underlying simulation :term:`state table`. It has two primary responsibil
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -73,6 +73,7 @@ class PopulationView:
         index: pd.Index[int],
         attributes: str | list[str],
         query: str = "",
+        combine_queries: bool = True,
     ) -> pd.DataFrame:
         """Get a specific subset of this ``PopulationView``.
 
@@ -89,7 +90,10 @@ class PopulationView:
         query
             Additional conditions used to filter the index. These conditions
             will be unioned with the default query of this view. The query
-            provided may not use columns that this view does not have access to.
+            provided may not use columns that are not included in the ``attributes``
+            argument.
+        combine_queries
+            Whether to combine this view's query property with the provided query.
 
         Returns
         -------
@@ -100,11 +104,19 @@ class PopulationView:
         if isinstance(attributes, str):
             attributes = [attributes]
 
-        combined_query = " and ".join(filter(None, [self.query, query]))
+        if query and not attributes:
+            raise PopulationError(
+                "When providing a query to get_attributes(), you must also provide "
+                "the columns needed to evaluate that query in the attributes argument."
+            )
+
+        if combine_queries:
+            query = " and ".join(filter(None, [self.query, query]))
+
         return self._manager.get_population(
             attributes=attributes,
             index=index,
-            query=combined_query,
+            query=query,
         )
 
     def get_private_columns(
@@ -130,7 +142,9 @@ class PopulationView:
         query_columns
             The (public) column(s) needed to evaluate the query string.
         query
-            Additional conditions used to filter the index.
+            Additional conditions used to filter the index. Note that it will
+            *not* be combined with this PopulationView's query property (in order
+            to allow for full updates to the private column data).
 
         Returns
         -------
@@ -141,10 +155,49 @@ class PopulationView:
             raise PopulationError(
                 "This PopulationView is read-only, so it doesn't have access to get_private_columns()."
             )
-        filtered_idx = self.get_attributes(index, query_columns, query).index
-        return self._manager.get_private_columns(
-            self._component, filtered_idx, private_columns
-        )
+
+        index = self.get_filtered_index(index, query_columns=query_columns, query=query)
+
+        return self._manager.get_private_columns(self._component, index, private_columns)
+
+    def get_filtered_index(
+        self,
+        index: pd.Index[int],
+        query_columns: str | list[str] = [],
+        query: str = "",
+    ) -> pd.Index[int]:
+        """Get a specific index of the population.
+
+        The requested index may be further filtered by the view's ``query``.
+
+        Parameters
+        ----------
+        index
+            Index of the population to get.
+        query_columns
+            The (public) column(s) needed to evaluate the query string.
+        query
+            Additional conditions used to filter the index. Note that it will
+            *not* be combined with this PopulationView's query property (in order
+            to allow for full updates to the private column data).
+
+        Returns
+        -------
+            The requested and filtered population index.
+        """
+
+        if bool(query) != bool(query_columns):
+            raise PopulationError(
+                "When providing a ``query``, you must also provide the ``query_columns``"
+                "needed to evaluate that query (and vice versa)."
+            )
+
+        if query:
+            index = self.get_attributes(
+                index, query_columns, query, combine_queries=False
+            ).index
+
+        return index
 
     def update(self, update: pd.Series[Any] | pd.DataFrame) -> None:
         """Updates the private data with the provided data.
