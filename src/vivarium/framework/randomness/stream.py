@@ -272,6 +272,7 @@ class RandomnessStream(Resource):
         """
         if population.empty:
             return population
+        # TODO: error if probabilities has any null values
 
         if isinstance(population, pd.Index):
             index = population
