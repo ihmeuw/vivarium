@@ -19,6 +19,9 @@ endif
 # Set the package name as the last part of this file's parent directory path
 PACKAGE_NAME = $(notdir $(CURDIR))
 
+# Helper function for validating enum arguments
+validate_arg = $(if $(filter-out $(2),$(1)),$(error Error: '$(3)' must be one of: $(2), got '$(1)'))
+
 ifneq ($(MAKE_INCLUDES),) # not empty
 # Include makefiles from vivarium_build_utils
 include $(MAKE_INCLUDES)/base.mk
@@ -35,15 +38,13 @@ help:
 	@echo "make build-env"
 	@echo
 	@echo "USAGE:"
-	@echo "  make build-env name=<environment_name> [py=<python_version>]"
+	@echo "  make build-env [name=<environment name>] [py=<python version>]"
 	@echo
 	@echo "ARGUMENTS:"
-	@echo "  name  [required]  Name of the conda environment to create"
-	@echo "  py    [optional]  Python version (defaults to latest supported)"
-	@echo
-	@echo "EXAMPLE:"
-	@echo "  make build-env name=vivarium_dev"
-	@echo "  make build-env name=vivarium_dev py=3.9"
+	@echo "  name [optional]"
+	@echo "      Name of the conda environment to create (defaults to <PACKAGE_NAME>)"
+	@echo "  py [optional]"
+	@echo "      Python version (defaults to latest supported)"
 	@echo
 	@echo "After creating the environment:"
 	@echo "  1. Activate it: 'conda activate <environment_name>'"
@@ -52,18 +53,36 @@ help:
 endif
 
 build-env: # Create a new environment with installed packages
-ifndef name
-	@echo "Error: name is required and must be passed in as a keyword argument."
-	@echo "Usage: make build-env name=<ENV_NAME> py=<PYTHON_VERSION>"
-	@exit 1
-endif
-#	Check if py is set, otherwise use the latest supported version
+#	Validate arguments - exit if unsupported arguments are passed
+	@allowed="name py"; \
+	for arg in $(filter-out build-env,$(MAKECMDGOALS)) $(MAKEFLAGS); do \
+		case $$arg in \
+			*=*) \
+				arg_name=$${arg%%=*}; \
+				if ! echo " $$allowed " | grep -q " $$arg_name "; then \
+					allowed_list=$$(echo $$allowed | sed 's/ /, /g'); \
+					echo "Error: Invalid argument '$$arg_name'. Allowed arguments are: $$allowed_list" >&2; \
+					exit 1; \
+				fi \
+				;; \
+		esac; \
+	done
+	
+#   Handle arguments and set defaults
+#	name
+	@$(eval name ?= $(PACKAGE_NAME))
+#	python version
 	@$(eval py ?= $(shell python -c "import json; versions = json.load(open('python_versions.json')); print(max(versions, key=lambda x: tuple(map(int, x.split('.')))))"))
+	
 	conda create -n $(name) python=$(py) --yes
 # 	Bootstrap vivarium_build_utils into the new environment
 	conda run -n $(name) pip install vivarium_build_utils
 	conda run -n $(name) make install
+
 	@echo
-	@echo "Environment built ($(name))"
+	@echo "Finished building environment"
+	@echo "  name: $(name)"
+	@echo "  python version: $(py)"
+	@echo
 	@echo "Don't forget to activate it with: 'conda activate $(name)'"
 	@echo
