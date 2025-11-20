@@ -69,8 +69,9 @@ build-env: # Create a new environment with installed packages
 #	name
 	@$(eval name ?= $(PACKAGE_NAME))
 #	python version - validate if specified, else get default from json file
-	@if [ -n "$(py)" ] && ! python -c "import json; exit(0 if '$(py)' in json.load(open('python_versions.json')) else 1)" 2>/dev/null; then \
-		echo "Error: Python version '$(py)' is not supported. Available: $$(python -c "import json; print(', '.join(json.load(open('python_versions.json'))))")" >&2; \
+	@supported_versions=$$(python -c "import json; print(' '.join(json.load(open('python_versions.json'))))" 2>/dev/null || echo ""); \
+	if [ -n "$(py)" ] && ! echo "$$supported_versions" | grep -q "$(py)"; then \
+		echo "Error: Python version '$(py)' is not supported. Available: $$(echo $$supported_versions | sed 's/ /, /g')" >&2; \
 		exit 1; \
 	fi
 	@$(eval py ?= $(shell python -c "import json; print(max(json.load(open('python_versions.json')), key=lambda x: tuple(map(int, x.split('.')))))"))
