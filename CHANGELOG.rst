@@ -1,3 +1,7 @@
+**3.6.3 - 11/20/25**
+
+  - Raise ValueError if null values are present in probabilities in RandomnessStream.filter_for_probability()
+  
 **3.6.2 - 11/20/25**
 
   - Improve 'make build-env': better handle args and make the env name optional
