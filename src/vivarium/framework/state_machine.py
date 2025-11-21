@@ -647,10 +647,7 @@ class Machine(Component):
 
     def _get_state_pops(self, index: pd.Index[int]) -> list[tuple[State, pd.DataFrame]]:
         population = self.population_view.get_attributes(index, self.state_column)
-        return [
-            (state, population[population[self.state_column] == state.state_id])
-            for state in self.states
-        ]
+        return [(state, population[population == state.state_id]) for state in self.states]
 
     ##################
     # Helper methods #

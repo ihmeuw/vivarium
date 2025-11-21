@@ -15,7 +15,14 @@ from tests.framework.population.conftest import (
     PIE_RECORDS,
     CubeComponent,
     PieComponent,
+    assert_squeezing_multi_level_multi_outer,
+    assert_squeezing_multi_level_single_outer_multi_inner,
+    assert_squeezing_multi_level_single_outer_single_inner,
+    assert_squeezing_single_level_multi_col,
+    assert_squeezing_single_level_single_col,
 )
+from tests.helpers import AttributePipelineCreator, ColumnCreator
+from vivarium import InteractiveContext
 from vivarium.framework.population import PopulationError, PopulationManager, PopulationView
 
 ##########################
@@ -209,6 +216,45 @@ def test_get_attributes_query_removes_all(pies_and_cubes_pop_mgr: PopulationMana
     assert empty_pop.equals(PIE_DF.iloc[0:0][PIE_COL_NAMES])
 
 
+def test_get_attributes_squeezing() -> None:
+    class SomeComponent(ColumnCreator, AttributePipelineCreator):
+        """Class that creates multi-level column attributes and private columns."""
+
+        ...
+
+    component = SomeComponent()
+    sim = InteractiveContext(components=[component], setup=True)
+    pv = sim._population.get_view()
+    index = sim._population.get_population_index()
+
+    # Single-level, single-column -> series
+    unsqueezed = pv.get_attributes(index, ["test_column_1"])
+    squeezed = pv.get_attributes(index, "test_column_1")
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+
+    # Single-level, multiple-column -> dataframe
+    # There's no way to request a squeezed dataframe here.
+    df = pv.get_attributes(index, ["test_column_1", "test_column_2"])
+    assert isinstance(df, pd.DataFrame)
+    assert not isinstance(df.columns, pd.MultiIndex)
+
+    # Multi-level, single outer, single inner -> series
+    unsqueezed = pv.get_attributes(index, ["attribute_generating_column_8"])
+    squeezed = pv.get_attributes(index, "attribute_generating_column_8")
+    assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed)  # type: ignore[arg-type]
+
+    # Multi-level, single outer, multiple inner -> inner dataframe
+    unsqueezed = pv.get_attributes(index, ["attribute_generating_columns_4_5"])
+    squeezed = pv.get_attributes(index, "attribute_generating_columns_4_5")
+    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)  # type: ignore[arg-type]
+
+    # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
+    # There's no way to request a squeezed dataframe here.
+    df = pv.get_attributes(index, ["test_column_1", "attribute_generating_columns_6_7"])
+    assert isinstance(df, pd.DataFrame)
+    assert isinstance(df.columns, pd.MultiIndex)
+
+
 ######################################
 # PopulationView.get_private_columns #
 ######################################
@@ -321,6 +367,25 @@ def test_get_private_columns_query_removes_all(
     full_index = pd.RangeIndex(0, len(PIE_RECORDS))
     empty_pop = pv.get_private_columns(full_index, query_columns="pi", query="pi == 'oops'")
     assert empty_pop.equals(PIE_DF.iloc[0:0][PIE_COL_NAMES])
+
+
+def test_get_private_columns_squeezing() -> None:
+
+    component = ColumnCreator()
+    sim = InteractiveContext(components=[component], setup=True)
+    pv = sim._population.get_view(component)
+    index = sim._population.get_population_index()
+
+    # Single-level, single-column -> series
+    unsqueezed = pv.get_private_columns(index, ["test_column_1"])
+    squeezed = pv.get_private_columns(index, "test_column_1")
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+
+    # Single-level, multiple-column -> dataframe
+    # There's no way to request a squeezed dataframe here.
+    df = pv.get_private_columns(index, ["test_column_1", "test_column_2"])
+    assert isinstance(df, pd.DataFrame)
+    assert not isinstance(df.columns, pd.MultiIndex)
 
 
 #####################################

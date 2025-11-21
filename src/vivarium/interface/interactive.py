@@ -176,12 +176,17 @@ class InteractiveContext(SimulationContext):
         """
         returned_attributes: list[str] | Literal["all"]
         if attributes is None:
+            squeeze = True
             returned_attributes = "all"
         elif isinstance(attributes, str):
+            squeeze = True
             returned_attributes = [attributes]
         else:
+            squeeze = False
             returned_attributes = list(attributes)
-        return self._population.get_population(attributes=returned_attributes)
+        return self._population.get_population(
+            attributes=returned_attributes, squeeze=squeeze
+        )
 
     def list_values(self) -> list[str]:
         """List the names of all value pipelines in the simulation."""

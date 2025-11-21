@@ -74,7 +74,7 @@ class PopulationView:
         attributes: str | Sequence[str],
         query: str = "",
         combine_queries: bool = True,
-    ) -> pd.DataFrame:
+    ) -> pd.DataFrame | pd.Series[Any]:
         """Get a specific subset of this ``PopulationView``.
 
         For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
@@ -86,7 +86,8 @@ class PopulationView:
         index
             Index of the population to get.
         attributes
-            The columns to retrieve.
+            The columns to retrieve. If a single column is passed in via a string, the
+            result will be attempted to be squeezed to
         query
             Additional conditions used to filter the index. These conditions
             will be unioned with the default query of this view. The query
@@ -101,6 +102,7 @@ class PopulationView:
 
         """
 
+        squeeze = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
         if query and not attributes:
@@ -116,6 +118,7 @@ class PopulationView:
             attributes=attributes,
             index=index,
             query=query,
+            squeeze=squeeze,
         )
 
     def get_private_columns(
@@ -124,7 +127,7 @@ class PopulationView:
         private_columns: str | Sequence[str] | None = None,
         query_columns: str | Sequence[str] = (),
         query: str = "",
-    ) -> pd.DataFrame:
+    ) -> pd.Series[Any] | pd.DataFrame:
         """Get a specific subset of this ``PopulationView's`` private columns.
 
         For the rows in ``index``, return the requested ``private_columns``. The
@@ -228,7 +231,7 @@ class PopulationView:
                 "This PopulationView is read-only, so it doesn't have access to update()."
             )
 
-        existing = self._manager.get_private_columns(self._component)
+        existing = pd.DataFrame(self._manager.get_private_columns(self._component))
         update_df: pd.DataFrame = self._format_update_and_check_preconditions(
             self._component.name,
             update,

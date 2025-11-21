@@ -150,7 +150,7 @@ class PopulationManager(Manager):
         component: Component,
         index: pd.Index[int] | None = None,
         columns: str | Sequence[str] | None = None,
-    ) -> pd.DataFrame:
+    ) -> pd.DataFrame | pd.Series[Any]:
         """Gets the private columns for a given component.
 
         While the ``private_columns`` property provides the entire private column
@@ -188,12 +188,19 @@ class PopulationManager(Manager):
                     "creation when no columns yet exist."
                 )
             returned_cols = []
+            squeeze = False  # does not really matter (will return an empty df anyway)
         else:
             all_private_columns = self._private_column_metadata.get(component.name, [])
             if columns is None:
                 returned_cols = all_private_columns
+                squeeze = True
             else:
-                columns = [columns] if isinstance(columns, str) else list(columns)
+                if isinstance(columns, str):
+                    columns = [columns]
+                    squeeze = True
+                else:
+                    columns = list(columns)
+                    squeeze = False
                 missing_cols = set(columns).difference(set(all_private_columns))
                 if missing_cols:
                     raise PopulationError(
@@ -202,6 +209,8 @@ class PopulationManager(Manager):
                     )
                 returned_cols = columns
         private_columns = self.private_columns[returned_cols]
+        if squeeze:
+            private_columns = private_columns.squeeze(axis=1)
         return private_columns.loc[index] if index is not None else private_columns
 
     def __init__(self) -> None:
@@ -477,7 +486,8 @@ class PopulationManager(Manager):
         attributes: Sequence[str] | Literal["all"],
         index: pd.Index[int] | None = None,
         query: str = "",
-    ) -> pd.DataFrame:
+        squeeze: bool = True,
+    ) -> pd.DataFrame | pd.Series[Any]:
         """Provides a copy of the population state table.
 
         Parameters
@@ -491,6 +501,9 @@ class PopulationManager(Manager):
             Additional conditions used to filter the index. The query
             provided may not use columns that are not explicitly passed in via
             the `attributes` argument.
+        squeeze
+            Whether or not to attempt to squeeze a single-column dataframe into a
+            series and/or a multi-level column into a single-level column.
 
         Returns
         -------
@@ -591,7 +604,20 @@ class PopulationManager(Manager):
         # FIXME [MIC-6572]: Consider parsing the query string earlier to reduce the index
         # prior to calculating all of the attributes (e.g. including aged out
         # simulants or not)
-        return df.query(query) if query else df
+        df = df.query(query) if query else df
+
+        if squeeze:
+            if (
+                isinstance(df.columns, pd.MultiIndex)
+                and len(set(df.columns.get_level_values(0))) == 1
+            ):
+                # If multi-index columns with a single outer level, drop the outer level
+                df = df.droplevel(0, axis=1)
+            if len(df.columns) == 1:
+                # If single column df, squeeze to series
+                df = df.squeeze(axis=1)
+
+        return df
 
     def update(self, update: pd.DataFrame) -> None:
         self.private_columns[update.columns] = update

@@ -176,6 +176,11 @@ class AttributePipelineCreator(Component):
             ),
             component=self,
         )
+        builder.value.register_attribute_producer(
+            "attribute_generating_column_8",
+            lambda idx: pd.DataFrame({"test_column_8": [i % 3 for i in idx]}, index=idx),
+            component=self,
+        )
 
         # Non-simple attributes
         # For this test, we make them non-simple by registering a modifer that doesn't actually modify anything
