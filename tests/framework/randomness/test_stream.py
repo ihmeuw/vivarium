@@ -292,9 +292,3 @@ def test_filter_for_probability_error_with_null_values(
     pop = pd.DataFrame({"age": [10, 11, 12, 13, 14], "id": [1, 2, 3, 4, 5]}).set_index("id")
     with pytest.raises(ValueError, match="Probabilities contain null values"):
         randomness_stream.filter_for_probability(pop, probs)
-
-    with pytest.raises(ValueError, match="Probabilities contain null values"):
-        randomness_stream.filter_for_probability(pop, probs)
-
-    with pytest.raises(ValueError, match="Probabilities contain null values"):
-        randomness_stream.filter_for_probability(pop, probs)
