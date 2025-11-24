@@ -167,7 +167,7 @@ class PopulationManager(Manager):
         self,
         component: Component,
         index: pd.Index[int] | None = None,
-        columns: str | Sequence[str] | None = None,
+        columns: str | list[str] | tuple[str, ...] | None = None,
     ) -> pd.DataFrame | pd.Series[Any]:
         """Gets the private columns for a given component.
 
