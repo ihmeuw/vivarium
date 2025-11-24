@@ -417,7 +417,7 @@ def test_get_private_columns_squeezing() -> None:
     squeezed = sim._population.get_private_columns(
         single_col_creator, columns="test_column_1"
     )
-    assert_squeezing_single_level_single_col(unsqueezed, squeezed)
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
     default = sim._population.get_private_columns(single_col_creator)
     assert isinstance(default, pd.Series) and isinstance(squeezed, pd.Series)
     assert default.equals(squeezed)

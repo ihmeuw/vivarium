@@ -150,7 +150,7 @@ class PopulationManager(Manager):
         self,
         component: Component,
         index: pd.Index[int] | None = None,
-        columns: None = None,
+        columns: list[str] | tuple[str, ...] | None = None,
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
@@ -161,15 +161,6 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         columns: str = ...,
     ) -> pd.Series[Any]:
-        ...
-
-    @overload
-    def get_private_columns(
-        self,
-        component: Component,
-        index: pd.Index[int] | None = None,
-        columns: list[str] | tuple[str, ...] = ...,
-    ) -> pd.DataFrame:
         ...
 
     def get_private_columns(
