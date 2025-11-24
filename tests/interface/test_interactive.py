@@ -36,7 +36,7 @@ def test_get_population_squeezing() -> None:
     squeezed = sim.get_population("simulant_step_size")
     assert_squeezing_single_level_single_col(unsqueezed, squeezed, "simulant_step_size")  # type: ignore[arg-type]
     default = sim.get_population()
-    assert default.equals(squeezed)  # type: ignore[arg-type]
+    assert default.equals(squeezed)
 
     # Single-level, multiple-column -> dataframe
     component = ColumnCreator()
@@ -57,7 +57,7 @@ def test_get_population_squeezing() -> None:
     squeezed = sim.get_population("some_attribute")
     assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed, ("some_attribute", "some_column"))  # type: ignore[arg-type]
     default = sim.get_population()
-    assert default.equals(squeezed)  # type: ignore[arg-type]
+    assert default.equals(squeezed)
 
     # Multi-level, single outer, multiple inner -> inner dataframe
     sim = InteractiveContext(components=[MultiLevelMultiColumnCreator()], setup=True)
@@ -66,7 +66,7 @@ def test_get_population_squeezing() -> None:
     squeezed = sim.get_population("some_attribute")
     assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)  # type: ignore[arg-type]
     default = sim.get_population()
-    assert default.equals(squeezed)  # type: ignore[arg-type]
+    assert default.equals(squeezed)
 
     # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
     sim = InteractiveContext(components=[MultiLevelMultiColumnCreator()], setup=True)

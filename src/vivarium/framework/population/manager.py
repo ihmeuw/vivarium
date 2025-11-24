@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 import pandas as pd
 
@@ -144,6 +144,33 @@ class PopulationManager(Manager):
         if self._private_columns is None:
             raise PopulationError("Population has not been initialized.")
         return self._private_columns
+
+    @overload
+    def get_private_columns(
+        self,
+        component: Component,
+        index: pd.Index[int] | None = None,
+        columns: None = None,
+    ) -> pd.Series[Any] | pd.DataFrame:
+        ...
+
+    @overload
+    def get_private_columns(
+        self,
+        component: Component,
+        index: pd.Index[int] | None = None,
+        columns: str = ...,
+    ) -> pd.Series[Any]:
+        ...
+
+    @overload
+    def get_private_columns(
+        self,
+        component: Component,
+        index: pd.Index[int] | None = None,
+        columns: list[str] | tuple[str, ...] = ...,
+    ) -> pd.DataFrame:
+        ...
 
     def get_private_columns(
         self,
@@ -481,9 +508,29 @@ class PopulationManager(Manager):
     # Context API #
     ###############
 
+    @overload
     def get_population(
         self,
-        attributes: Sequence[str] | Literal["all"],
+        attributes: list[str] | tuple[str, ...],
+        index: pd.Index[int] | None = None,
+        query: str = "",
+        squeeze: bool = True,
+    ) -> pd.DataFrame:
+        ...
+
+    @overload
+    def get_population(
+        self,
+        attributes: Literal["all"],
+        index: pd.Index[int] | None = None,
+        query: str = "",
+        squeeze: bool = True,
+    ) -> pd.Series[Any] | pd.DataFrame:
+        ...
+
+    def get_population(
+        self,
+        attributes: list[str] | tuple[str, ...] | Literal["all"],
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: bool = True,

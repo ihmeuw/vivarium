@@ -206,7 +206,7 @@ def test_get_population_squeezing() -> None:
     squeezed = sim._population.get_population(
         ["test_column_1", "test_column_2"], squeeze=True
     )
-    assert_squeezing_single_level_multi_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_single_level_multi_col(unsqueezed, squeezed)
 
     # Multi-level, single outer, single inner -> series
     unsqueezed = sim._population.get_population(
@@ -222,7 +222,7 @@ def test_get_population_squeezing() -> None:
     squeezed = sim._population.get_population(
         ["attribute_generating_columns_4_5"], squeeze=True
     )
-    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)
 
     # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
     unsqueezed = sim._population.get_population(
@@ -231,7 +231,7 @@ def test_get_population_squeezing() -> None:
     squeezed = sim._population.get_population(
         ["test_column_1", "attribute_generating_columns_6_7"], squeeze=True
     )
-    assert_squeezing_multi_level_multi_outer(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_multi_level_multi_outer(unsqueezed, squeezed)
 
 
 def test_get_population_squeezing_all() -> None:
@@ -337,7 +337,7 @@ def test_get_population_raises_bad_string(pies_and_cubes_pop_mgr: PopulationMana
     with pytest.raises(
         PopulationError, match="Attributes must be a list of strings or 'all'"
     ):
-        pies_and_cubes_pop_mgr.get_population("invalid_string")
+        pies_and_cubes_pop_mgr.get_population("invalid_string")  # type: ignore[call-overload]
 
 
 def test_get_population_deduplicates_requested_columns(
@@ -417,7 +417,7 @@ def test_get_private_columns_squeezing() -> None:
     squeezed = sim._population.get_private_columns(
         single_col_creator, columns="test_column_1"
     )
-    assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed)
     default = sim._population.get_private_columns(single_col_creator)
     assert isinstance(default, pd.Series) and isinstance(squeezed, pd.Series)
     assert default.equals(squeezed)

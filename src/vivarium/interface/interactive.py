@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from math import ceil
-from typing import Any, Literal, Sequence
+from typing import Any, Literal, overload
 
 import pandas as pd
 
@@ -161,8 +161,22 @@ class InteractiveContext(SimulationContext):
             for _ in range(number_of_steps):
                 self.step(step_size)
 
+    @overload
+    def get_population(self, attributes: None = None) -> pd.Series[Any] | pd.DataFrame:
+        ...
+
+    @overload
+    def get_population(self, attributes: str) -> pd.Series[Any]:
+        ...
+
+    @overload
     def get_population(
-        self, attributes: str | Sequence[str] | None = None
+        self, attributes: list[str] | tuple[str, ...]
+    ) -> pd.Series[Any] | pd.DataFrame:
+        ...
+
+    def get_population(
+        self, attributes: str | list[str] | tuple[str, ...] | None = None
     ) -> pd.Series[Any] | pd.DataFrame:
         """Get a copy of the population state table.
 

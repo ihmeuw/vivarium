@@ -13,7 +13,7 @@ to the underlying simulation :term:`state table`. It has two primary responsibil
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence, overload
 
 import pandas as pd
 
@@ -68,10 +68,30 @@ class PopulationView:
     def name(self) -> str:
         return f"population_view_{self._id}"
 
+    @overload
     def get_attributes(
         self,
         index: pd.Index[int],
-        attributes: str | Sequence[str],
+        attributes: str,
+        query: str = "",
+        combine_queries: bool = True,
+    ) -> pd.Series[Any]:
+        ...
+
+    @overload
+    def get_attributes(
+        self,
+        index: pd.Index[int],
+        attributes: list[str] | tuple[str, ...],
+        query: str = "",
+        combine_queries: bool = True,
+    ) -> pd.Series[Any] | pd.DataFrame:
+        ...
+
+    def get_attributes(
+        self,
+        index: pd.Index[int],
+        attributes: str | list[str] | tuple[str, ...],
         query: str = "",
         combine_queries: bool = True,
     ) -> pd.DataFrame | pd.Series[Any]:
@@ -121,11 +141,41 @@ class PopulationView:
             squeeze=squeeze,
         )
 
+    @overload
     def get_private_columns(
         self,
         index: pd.Index[int],
-        private_columns: str | Sequence[str] | None = None,
-        query_columns: str | Sequence[str] = (),
+        private_columns: None = None,
+        query_columns: str | list[str] | tuple[str, ...] = (),
+        query: str = "",
+    ) -> pd.Series[Any] | pd.DataFrame:
+        ...
+
+    @overload
+    def get_private_columns(
+        self,
+        index: pd.Index[int],
+        private_columns: str,
+        query_columns: str | list[str] | tuple[str, ...] = (),
+        query: str = "",
+    ) -> pd.Series[Any]:
+        ...
+
+    @overload
+    def get_private_columns(
+        self,
+        index: pd.Index[int],
+        private_columns: list[str] | tuple[str, ...],
+        query_columns: str | list[str] | tuple[str, ...] = (),
+        query: str = "",
+    ) -> pd.DataFrame:
+        ...
+
+    def get_private_columns(
+        self,
+        index: pd.Index[int],
+        private_columns: str | list[str] | tuple[str, ...] | None = None,
+        query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
     ) -> pd.Series[Any] | pd.DataFrame:
         """Get a specific subset of this ``PopulationView's`` private columns.
@@ -165,7 +215,7 @@ class PopulationView:
     def get_filtered_index(
         self,
         index: pd.Index[int],
-        query_columns: str | Sequence[str] = (),
+        query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
     ) -> pd.Index[int]:
         """Get a specific index of the population.

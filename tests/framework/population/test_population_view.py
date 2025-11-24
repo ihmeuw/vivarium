@@ -189,7 +189,7 @@ def test_get_attributes_combined_query(
     col_request = PIE_COL_NAMES.copy()
     if combined_query and "cube" in combined_query:
         col_request += ["cube"]
-    pop = pv.get_attributes(full_idx, col_request, **kwargs)  # type: ignore[arg-type]
+    pop = pv.get_attributes(full_idx, col_request, **kwargs)  # type: ignore[call-overload]
     assert isinstance(pop, pd.DataFrame)
     expected_pop = PIE_DF
     if combined_query:
@@ -296,7 +296,7 @@ def test_get_private_columns(
     if query is not None and query_cols is not None:
         kwargs["query"] = query  # type: ignore[assignment]
         kwargs["query_columns"] = query_cols  # type: ignore[assignment]
-    pop = pv.get_private_columns(index, **kwargs)  # type: ignore[arg-type]
+    pop = pv.get_private_columns(index, **kwargs)  # type: ignore[call-overload]
     assert isinstance(pop, pd.DataFrame)
     assert not pop.empty, "Test setup error: expected non-empty population."
     # Note that we do NOT combine the pop view query here
@@ -381,7 +381,7 @@ def test_get_private_columns_squeezing() -> None:
     index = sim._population.get_population_index()
     unsqueezed = pv.get_private_columns(index, ["test_column_1"])
     squeezed = pv.get_private_columns(index, "test_column_1")
-    assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed)
     default = pv.get_private_columns(index)
     assert isinstance(default, pd.Series) and isinstance(squeezed, pd.Series)
     assert default.equals(squeezed)
