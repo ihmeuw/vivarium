@@ -455,7 +455,7 @@ def test_get_population_index() -> None:
     with pytest.raises(PopulationError, match="Population has not been initialized."):
         sim._population.get_population_index()
     sim.setup()
-    sim.get_population().index.equals(sim._population.get_population_index())
+    sim._population._private_columns.index.equals(sim._population.get_population_index())
 
 
 def test_forget_to_create_columns() -> None:

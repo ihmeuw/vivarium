@@ -613,7 +613,7 @@ def test_prepare_population(
 
     event = Event(
         name=lifecycle_states.COLLECT_METRICS,
-        index=prepare_population_sim.get_population().index,
+        index=prepare_population_sim.get_population_index(),
         user_data={
             "train": "Hogwarts Express",
             "headmaster": "Albus Dumbledore",
@@ -650,7 +650,11 @@ def test_stratified_observation_results() -> None:
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     assert (sim.get_results()["cat_bomb"]["value"] == 0.0).all()
     sim.step()
-    num_familiars = sim.get_population().groupby(["familiar", "student_house"]).apply(len)
+    num_familiars = (
+        sim.get_population(["familiar", "student_house"])
+        .groupby(["familiar", "student_house"])
+        .apply(len)
+    )
     expected = num_familiars.loc["cat"] ** 1.0
     expected.name = "value"
     expected = expected.sort_values().reset_index()
@@ -661,7 +665,11 @@ def test_stratified_observation_results() -> None:
         sim.get_results()["cat_bomb"].sort_values("value").reset_index(drop=True)
     )
     sim.step()
-    num_familiars = sim.get_population().groupby(["familiar", "student_house"]).apply(len)
+    num_familiars = (
+        sim.get_population(["familiar", "student_house"])
+        .groupby(["familiar", "student_house"])
+        .apply(len)
+    )
     expected = num_familiars.loc["cat"] ** 2.0
     expected.name = "value"
     expected = expected.sort_values().reset_index()
@@ -762,12 +770,16 @@ def test_adding_observation_results() -> None:
     ]
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     sim.step()
-    pop = sim.get_population()
+    pop = sim.get_population(
+        ["house_points", "quidditch_wins", "student_house", "power_level", "familiar"]
+    )
     _check_house_points(pop, step_number=1)
     _check_quidditch_wins(pop, step_number=1)
 
     sim.step()
-    pop = sim.get_population()
+    pop = sim.get_population(
+        ["house_points", "quidditch_wins", "student_house", "power_level", "familiar"]
+    )
     _check_house_points(pop, step_number=2)
     _check_quidditch_wins(pop, step_number=2)
     _assert_standard_index(sim.get_results()["house_points"])
@@ -814,13 +826,13 @@ def test_update__raw_results_no_stratifications() -> None:
     components = [Hogwarts(), NoStratificationsQuidditchWinsObserver()]
     sim = InteractiveContext(configuration=HARRY_POTTER_CONFIG, components=components)
     sim.step()
-    pop = sim.get_population()
+    wins = sim.get_population("quidditch_wins")
     raw_results = sim._results._raw_results["no_stratifications_quidditch_wins"]
-    assert raw_results.loc["all"][VALUE_COLUMN] == pop["quidditch_wins"].sum()
+    assert raw_results.loc["all"][VALUE_COLUMN] == wins.sum()
     sim.step()
-    pop = sim.get_population()
+    wins = sim.get_population("quidditch_wins")
     raw_results = sim._results._raw_results["no_stratifications_quidditch_wins"]
-    assert raw_results.loc["all"][VALUE_COLUMN] == pop["quidditch_wins"].sum() * 2
+    assert raw_results.loc["all"][VALUE_COLUMN] == wins.sum() * 2
 
 
 def test_update__raw_results_extra_columns() -> None:

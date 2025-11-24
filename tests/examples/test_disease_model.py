@@ -27,7 +27,7 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
 
     simulation = InteractiveContext(config)
 
-    pop = simulation.get_population()
+    pop = simulation.get_population(None)
     expected_columns = {
         "alive",
         "previous_alive",
@@ -72,7 +72,7 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
     assert np.all((pop["child_wasting_propensity"] >= 0) & (pop["child_wasting_propensity"] <= 1))
 
     simulation.step()
-    pop = simulation.get_population()
+    pop = simulation.get_population(["alive", "lower_respiratory_infections"])
     is_alive = pop["alive"] == "alive"
 
     fuzzy_checker.fuzzy_assert_proportion(

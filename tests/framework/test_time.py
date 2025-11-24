@@ -42,7 +42,7 @@ def components() -> list[Component | Listener]:
 def validate_step_column_is_pipeline(sim: SimulationContext) -> None:
     """Ensure that the pipeline and column step sizes are aligned"""
     step_pipeline = sim._values.get_attribute("simulant_step_size")(
-        sim.get_population().index
+        sim.get_population_index()
     )
     assert sim._clock._individual_clocks is not None
     assert np.all(step_pipeline == sim._clock._individual_clocks["step_size"])
@@ -75,7 +75,7 @@ def take_step(sim: SimulationContext) -> ClockStepSize:
 
 
 def get_full_pop_index(sim: SimulationContext) -> pd.Index[int]:
-    return sim.get_population().index
+    return sim.get_population_index()
 
 
 def get_index_by_parity(index: pd.Index[int], parity: str) -> pd.Index[int]:

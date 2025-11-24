@@ -30,7 +30,7 @@ def test_initialize_with_initial_state() -> None:
     other_state = State("other")
     machine = Machine("state", states=[start_state, other_state], initial_state=start_state)
     simulation = InteractiveContext(components=[machine])
-    assert simulation.get_population()["state"].unique() == ["start"]
+    assert simulation.get_population("state").unique() == ["start"]
 
 
 @pytest.mark.parametrize("weights_type", ["artifact", "callable", "scalar"])
@@ -66,8 +66,8 @@ def test_initialize_with_scalar_initialization_weights(
     )
     simulation.setup()
 
-    state = simulation.get_population()["state"]
-    assert np.all(simulation.get_population().state != "start")
+    state = simulation.get_population("state")
+    assert np.all(simulation.get_population("state") != "start")
     assert round((state == "a").mean(), 1) == 0.2
     assert round((state == "b").mean(), 1) == 0.8
 
@@ -123,7 +123,7 @@ def test_initialize_with_array_initialization_weights(
     )
     simulation.setup()
 
-    pop = simulation.get_population()[["state", "test_column_1"]]
+    pop = simulation.get_population(["state", "test_column_1"])
     state_a_weights = state_weights["state_a.weights"]
     state_b_weights = state_weights["state_b.weights"]
     for i in range(3):
@@ -164,9 +164,9 @@ def test_transition(
     machine = Machine("state", states=[start_state, done_state], initial_state=start_state)
 
     simulation = InteractiveContext(components=[machine], configuration=base_config)
-    assert np.all(simulation.get_population().state == "start")
+    assert np.all(simulation.get_population("state") == "start")
     simulation.step()
-    assert np.all(simulation.get_population().state == "done")
+    assert np.all(simulation.get_population("state") == "done")
 
 
 def test_no_null_transition(base_config: LayeredConfigTree) -> None:
@@ -187,12 +187,12 @@ def test_no_null_transition(base_config: LayeredConfigTree) -> None:
     )
 
     simulation = InteractiveContext(components=[machine], configuration=base_config)
-    assert np.all(simulation.get_population().state == "start")
+    assert np.all(simulation.get_population("state") == "start")
 
     simulation.step()
 
-    state = simulation.get_population()["state"]
-    assert np.all(simulation.get_population().state != "start")
+    state = simulation.get_population("state")
+    assert np.all(state != "start")
     assert round((state == "a").mean(), 1) == 0.4
     assert round((state == "b").mean(), 1) == 0.6
 
@@ -211,7 +211,7 @@ def test_null_transition(base_config: LayeredConfigTree) -> None:
 
     simulation = InteractiveContext(components=[machine], configuration=base_config)
     simulation.step()
-    state = simulation.get_population()["state"]
+    state = simulation.get_population("state")
     assert round((state == "a").mean(), 1) == 0.4
 
 
@@ -237,16 +237,16 @@ def test_side_effects() -> None:
         "state", states=[start_state, counting_state], initial_state=start_state
     )
     simulation = InteractiveContext(components=[machine])
-    assert np.all(simulation.get_population()["count"] == 0)
+    assert np.all(simulation.get_population("count") == 0)
 
     # transitioning to counting state
     simulation.step()
-    assert np.all(simulation.get_population()["count"] == 1)
+    assert np.all(simulation.get_population("count") == 1)
 
     # transitioning back to start state
     simulation.step()
-    assert np.all(simulation.get_population()["count"] == 1)
+    assert np.all(simulation.get_population("count") == 1)
 
     # transitioning to counting state again
     simulation.step()
-    assert np.all(simulation.get_population()["count"] == 2)
+    assert np.all(simulation.get_population("count") == 2)
