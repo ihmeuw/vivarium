@@ -190,7 +190,7 @@ def test_get_attributes_combined_query(
     if combined_query and "cube" in combined_query:
         col_request += ["cube"]
     pop = pv.get_attributes(full_idx, col_request, **kwargs)  # type: ignore[arg-type]
-
+    assert isinstance(pop, pd.DataFrame)
     expected_pop = PIE_DF
     if combined_query:
         if "cube" in combined_query:
@@ -211,6 +211,7 @@ def test_get_attributes_query_removes_all(pies_and_cubes_pop_mgr: PopulationMana
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     full_index = pd.RangeIndex(0, len(PIE_RECORDS))
     empty_pop = pv.get_attributes(full_index, PIE_COL_NAMES, "pi == 'oops'")
+    assert isinstance(empty_pop, pd.DataFrame)
     assert empty_pop.equals(PIE_DF.iloc[0:0][PIE_COL_NAMES])
 
 
@@ -296,6 +297,7 @@ def test_get_private_columns(
         kwargs["query"] = query  # type: ignore[assignment]
         kwargs["query_columns"] = query_cols  # type: ignore[assignment]
     pop = pv.get_private_columns(index, **kwargs)  # type: ignore[arg-type]
+    assert isinstance(pop, pd.DataFrame)
     assert not pop.empty, "Test setup error: expected non-empty population."
     # Note that we do NOT combine the pop view query here
     expected_pop = PIE_DF.loc[index]
@@ -347,6 +349,7 @@ def test_get_private_columns_empty_list(pies_and_cubes_pop_mgr: PopulationManage
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     full_index = pd.RangeIndex(0, len(PIE_RECORDS))
     no_attributes = pv.get_private_columns(full_index, [])
+    assert isinstance(no_attributes, pd.DataFrame)
     assert no_attributes.empty
     assert no_attributes.index.equals(full_index)
     assert no_attributes.equals(pd.DataFrame(index=full_index))
@@ -354,6 +357,7 @@ def test_get_private_columns_empty_list(pies_and_cubes_pop_mgr: PopulationManage
     apples = pv.get_private_columns(
         full_index, [], query_columns="pie", query="pie == 'apple'"
     )
+    assert isinstance(apples, pd.DataFrame)
     apple_index = PIE_DF[PIE_DF["pie"] == "apple"].index
     assert apples.equals(pd.DataFrame(index=apple_index))
 
@@ -364,32 +368,35 @@ def test_get_private_columns_query_removes_all(
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     full_index = pd.RangeIndex(0, len(PIE_RECORDS))
     empty_pop = pv.get_private_columns(full_index, query_columns="pi", query="pi == 'oops'")
+    assert isinstance(empty_pop, pd.DataFrame)
     assert empty_pop.equals(PIE_DF.iloc[0:0][PIE_COL_NAMES])
 
 
 def test_get_private_columns_squeezing() -> None:
 
     # Single-level, single-column -> series
-    component = SingleColumnCreator()
-    sim = InteractiveContext(components=[component], setup=True)
-    pv = sim._population.get_view(component)
+    single_col_creator = SingleColumnCreator()
+    sim = InteractiveContext(components=[single_col_creator], setup=True)
+    pv = sim._population.get_view(single_col_creator)
     index = sim._population.get_population_index()
     unsqueezed = pv.get_private_columns(index, ["test_column_1"])
     squeezed = pv.get_private_columns(index, "test_column_1")
     assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
     default = pv.get_private_columns(index)
+    assert isinstance(default, pd.Series) and isinstance(squeezed, pd.Series)
     assert default.equals(squeezed)
 
     # Single-level, multiple-column -> dataframe
-    component = ColumnCreator()
-    sim = InteractiveContext(components=[component], setup=True)
-    pv = sim._population.get_view(component)
+    col_creator = ColumnCreator()
+    sim = InteractiveContext(components=[col_creator], setup=True)
+    pv = sim._population.get_view(col_creator)
     index = sim._population.get_population_index()
     # There's no way to squeeze here.
     df = pv.get_private_columns(index, ["test_column_1", "test_column_2", "test_column_3"])
     assert isinstance(df, pd.DataFrame)
     assert not isinstance(df.columns, pd.MultiIndex)
     default = pv.get_private_columns(index)
+    assert isinstance(default, pd.DataFrame)
     assert default.equals(df)
 
 

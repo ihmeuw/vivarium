@@ -409,24 +409,30 @@ def test_get_private_columns(
 def test_get_private_columns_squeezing() -> None:
 
     # Single-level, single-column -> series
-    component = SingleColumnCreator()
-    sim = InteractiveContext(components=[component], setup=True)
-    unsqueezed = sim._population.get_private_columns(component, columns=["test_column_1"])
-    squeezed = sim._population.get_private_columns(component, columns="test_column_1")
+    single_col_creator = SingleColumnCreator()
+    sim = InteractiveContext(components=[single_col_creator], setup=True)
+    unsqueezed = sim._population.get_private_columns(
+        single_col_creator, columns=["test_column_1"]
+    )
+    squeezed = sim._population.get_private_columns(
+        single_col_creator, columns="test_column_1"
+    )
     assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
-    default = sim._population.get_private_columns(component)
+    default = sim._population.get_private_columns(single_col_creator)
+    assert isinstance(default, pd.Series) and isinstance(squeezed, pd.Series)
     assert default.equals(squeezed)
 
     # Single-level, multiple-column -> dataframe
-    component = ColumnCreator()
-    sim = InteractiveContext(components=[component], setup=True)
+    col_creator = ColumnCreator()
+    sim = InteractiveContext(components=[col_creator], setup=True)
     # There's no way to squeeze here.
     df = sim._population.get_private_columns(
-        component, columns=["test_column_1", "test_column_2", "test_column_3"]
+        col_creator, columns=["test_column_1", "test_column_2", "test_column_3"]
     )
     assert isinstance(df, pd.DataFrame)
     assert not isinstance(df.columns, pd.MultiIndex)
-    default = sim._population.get_private_columns(component)
+    default = sim._population.get_private_columns(col_creator)
+    assert isinstance(default, pd.DataFrame)
     assert default.equals(df)
 
 
@@ -455,7 +461,8 @@ def test_get_population_index() -> None:
     with pytest.raises(PopulationError, match="Population has not been initialized."):
         sim._population.get_population_index()
     sim.setup()
-    sim._population._private_columns.index.equals(sim._population.get_population_index())
+    private_cols = pd.DataFrame(sim._population._private_columns)
+    private_cols.index.equals(sim._population.get_population_index())
 
 
 def test_forget_to_create_columns() -> None:

@@ -52,7 +52,7 @@ def test_interpolated_tables(base_config: LayeredConfigTree) -> None:
         ),
         value_columns=(),
     )
-    ages = manager.build_table(
+    age_table = manager.build_table(
         ages_df,
         key_columns=("sex",),
         parameter_columns=(
@@ -67,21 +67,21 @@ def test_interpolated_tables(base_config: LayeredConfigTree) -> None:
 
     ages = simulation.get_population("age")
     result_years = years(ages.index)
-    result_ages = ages(ages.index)
+    result_ages = age_table(ages.index)
     result_ages_1d = one_d_age(ages.index)
 
     fractional_year = simulation._clock.time.year  # type: ignore [union-attr]
     fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25  # type: ignore [union-attr]
 
     assert np.allclose(result_years, fractional_year)
-    assert np.allclose(result_ages, ages.age)
-    assert np.allclose(result_ages_1d, ages.age)
+    assert np.allclose(result_ages, ages)
+    assert np.allclose(result_ages_1d, ages)
 
     simulation._clock._clock_time += pd.Timedelta(30.5 * 125, unit="D")  # type: ignore [operator]
     simulation._population._private_columns.age += 125 / 12  # type: ignore [union-attr]
 
     result_years = years(ages.index)
-    result_ages = ages(ages.index)
+    result_ages = age_table(ages.index)
     result_ages_1d = one_d_age(ages.index)
 
     fractional_year = simulation._clock.time.year  # type: ignore [union-attr]

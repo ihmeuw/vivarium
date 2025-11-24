@@ -153,7 +153,7 @@ def test_component_initializer_is_registered_and_called_if_defined() -> None:
     config = {"population": {"population_size": pop_size}}
     simulation = InteractiveContext(components=[component], configuration=config)
     population = simulation.get_population(component.columns_created)
-
+    assert isinstance(population, pd.DataFrame)
     # Assert that simulant initializer has been registered
     assert (
         component.on_initialize_simulants

@@ -161,7 +161,9 @@ class InteractiveContext(SimulationContext):
             for _ in range(number_of_steps):
                 self.step(step_size)
 
-    def get_population(self, attributes: str | Sequence[str] | None = None) -> pd.DataFrame:
+    def get_population(
+        self, attributes: str | Sequence[str] | None = None
+    ) -> pd.Series[Any] | pd.DataFrame:
         """Get a copy of the population state table.
 
         Parameters

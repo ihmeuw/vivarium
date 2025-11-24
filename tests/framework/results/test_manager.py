@@ -773,6 +773,7 @@ def test_adding_observation_results() -> None:
     pop = sim.get_population(
         ["house_points", "quidditch_wins", "student_house", "power_level", "familiar"]
     )
+    assert isinstance(pop, pd.DataFrame)
     _check_house_points(pop, step_number=1)
     _check_quidditch_wins(pop, step_number=1)
 
@@ -780,6 +781,7 @@ def test_adding_observation_results() -> None:
     pop = sim.get_population(
         ["house_points", "quidditch_wins", "student_house", "power_level", "familiar"]
     )
+    assert isinstance(pop, pd.DataFrame)
     _check_house_points(pop, step_number=2)
     _check_quidditch_wins(pop, step_number=2)
     _assert_standard_index(sim.get_results()["house_points"])

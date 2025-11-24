@@ -30,7 +30,7 @@ def test_initialize_with_initial_state() -> None:
     other_state = State("other")
     machine = Machine("state", states=[start_state, other_state], initial_state=start_state)
     simulation = InteractiveContext(components=[machine])
-    assert simulation.get_population("state").unique() == ["start"]
+    assert all(simulation.get_population("state") == "start")
 
 
 @pytest.mark.parametrize("weights_type", ["artifact", "callable", "scalar"])

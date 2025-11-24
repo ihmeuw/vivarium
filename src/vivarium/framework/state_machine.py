@@ -645,8 +645,13 @@ class Machine(Component):
             if not affected.empty:
                 state.cleanup_effect(affected.index, event_time)
 
-    def _get_state_pops(self, index: pd.Index[int]) -> list[tuple[State, pd.DataFrame]]:
+    def _get_state_pops(self, index: pd.Index[int]) -> list[tuple[State, pd.Series[Any]]]:
         population = self.population_view.get_attributes(index, self.state_column)
+        if not isinstance(population, pd.Series):
+            raise TypeError(
+                "Expected population view to return a pandas Series for"
+                f" state column '{self.state_column}', but got: {type(population)}"
+            )
         return [(state, population[population == state.state_id]) for state in self.states]
 
     ##################

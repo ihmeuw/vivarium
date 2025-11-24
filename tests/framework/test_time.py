@@ -88,7 +88,7 @@ def get_index_by_parity(index: pd.Index[int], parity: str) -> pd.Index[int]:
 
 
 def get_pop_by_parity(sim: SimulationContext, parity: str) -> pd.DataFrame:
-    pop = sim.get_population()
+    pop = pd.DataFrame(sim.get_population())
     return pop.loc[get_index_by_parity(pop.index, parity)]
 
 

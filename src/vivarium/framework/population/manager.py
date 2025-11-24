@@ -487,7 +487,7 @@ class PopulationManager(Manager):
         index: pd.Index[int] | None = None,
         query: str = "",
         squeeze: bool = True,
-    ) -> pd.DataFrame | pd.Series[Any]:
+    ) -> pd.Series[Any] | pd.DataFrame:
         """Provides a copy of the population state table.
 
         Parameters
