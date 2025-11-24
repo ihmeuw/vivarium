@@ -16,7 +16,14 @@ from tests.framework.population.conftest import (
     assert_squeezing_single_level_multi_col,
     assert_squeezing_single_level_single_col,
 )
-from tests.helpers import AttributePipelineCreator, ColumnCreator, ColumnCreatorAndRequirer
+from tests.helpers import (
+    AttributePipelineCreator,
+    ColumnCreator,
+    ColumnCreatorAndRequirer,
+    MultiLevelMultiColumnCreator,
+    MultiLevelSingleColumnCreator,
+    SingleColumnCreator,
+)
 from vivarium import Component, InteractiveContext
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
@@ -227,6 +234,44 @@ def test_get_population_squeezing() -> None:
     assert_squeezing_multi_level_multi_outer(unsqueezed, squeezed)  # type: ignore[arg-type]
 
 
+def test_get_population_squeezing_all() -> None:
+
+    # Single-level, single-column -> series
+    # The time manager creates the 'simulant_step_size' column always
+    sim = InteractiveContext(setup=True)
+    unsqueezed = sim._population.get_population("all", squeeze=False)
+    squeezed = sim._population.get_population("all", squeeze=True)
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed, "simulant_step_size")  # type: ignore[arg-type]
+
+    # Single-level, multiple-column -> dataframe
+    sim = InteractiveContext(components=[ColumnCreator()], setup=True)
+    unsqueezed = sim._population.get_population("all", squeeze=False)
+    squeezed = sim._population.get_population("all", squeeze=True)
+    assert_squeezing_single_level_multi_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+
+    # Multi-level, single outer, single inner -> series
+    sim = InteractiveContext(components=[MultiLevelSingleColumnCreator()], setup=True)
+    sim._population._attribute_pipelines.pop("simulant_step_size")
+    unsqueezed = sim._population.get_population("all", squeeze=False)
+    squeezed = sim._population.get_population("all", squeeze=True)
+    assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed, ("some_attribute", "some_column"))  # type: ignore[arg-type]
+
+    # Multi-level, single outer, multiple inner -> inner dataframe
+    sim = InteractiveContext(components=[MultiLevelMultiColumnCreator()], setup=True)
+    sim._population._attribute_pipelines.pop("simulant_step_size")
+    unsqueezed = sim._population.get_population("all", squeeze=False)
+    squeezed = sim._population.get_population("all", squeeze=True)
+    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)  # type: ignore[arg-type]
+
+    # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
+    sim = InteractiveContext(
+        components=[ColumnCreator(), AttributePipelineCreator()], setup=True
+    )
+    unsqueezed = sim._population.get_population("all", squeeze=False)
+    squeezed = sim._population.get_population("all", squeeze=True)
+    assert_squeezing_multi_level_multi_outer(unsqueezed, squeezed)  # type: ignore[arg-type]
+
+
 @pytest.mark.parametrize("include_duplicates", [False, True])
 def test_get_population_column_ordering(include_duplicates: bool) -> None:
     def _extract_ordered_list(cols: list[str]) -> list[tuple[str, str]]:
@@ -362,21 +407,27 @@ def test_get_private_columns(
 
 
 def test_get_private_columns_squeezing() -> None:
-    component = ColumnCreator()
-    sim = InteractiveContext(components=[component], setup=True)
 
     # Single-level, single-column -> series
+    component = SingleColumnCreator()
+    sim = InteractiveContext(components=[component], setup=True)
     unsqueezed = sim._population.get_private_columns(component, columns=["test_column_1"])
     squeezed = sim._population.get_private_columns(component, columns="test_column_1")
     assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+    default = sim._population.get_private_columns(component)
+    assert default.equals(squeezed)
 
     # Single-level, multiple-column -> dataframe
-    # There's no way to request a squeezed dataframe here.
+    component = ColumnCreator()
+    sim = InteractiveContext(components=[component], setup=True)
+    # There's no way to squeeze here.
     df = sim._population.get_private_columns(
-        component, columns=["test_column_1", "test_column_2"]
+        component, columns=["test_column_1", "test_column_2", "test_column_3"]
     )
     assert isinstance(df, pd.DataFrame)
     assert not isinstance(df.columns, pd.MultiIndex)
+    default = sim._population.get_private_columns(component)
+    assert default.equals(df)
 
 
 def test_get_private_columns_raises_on_initial_pop_creation() -> None:

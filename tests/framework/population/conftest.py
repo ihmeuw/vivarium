@@ -116,12 +116,14 @@ def assert_squeezing_multi_level_single_outer_multi_inner(
 
 
 def assert_squeezing_multi_level_single_outer_single_inner(
-    unsqueezed: pd.DataFrame, squeezed: pd.Series[Any]
+    unsqueezed: pd.DataFrame,
+    squeezed: pd.Series[Any],
+    column: tuple[str, str] = ("attribute_generating_column_8", "test_column_8"),
 ) -> None:
     assert isinstance(unsqueezed, pd.DataFrame)
     assert isinstance(unsqueezed.columns, pd.MultiIndex)
     assert isinstance(squeezed, pd.Series)
-    assert unsqueezed[("attribute_generating_column_8", "test_column_8")].equals(squeezed)
+    assert unsqueezed[column].equals(squeezed)
 
 
 def assert_squeezing_single_level_multi_col(
@@ -133,9 +135,9 @@ def assert_squeezing_single_level_multi_col(
 
 
 def assert_squeezing_single_level_single_col(
-    unsqueezed: pd.DataFrame, squeezed: pd.Series[Any]
+    unsqueezed: pd.DataFrame, squeezed: pd.Series[Any], column: str = "test_column_1"
 ) -> None:
     assert isinstance(unsqueezed, pd.DataFrame)
     assert not isinstance(unsqueezed.columns, pd.MultiIndex)
     assert isinstance(squeezed, pd.Series)
-    assert unsqueezed["test_column_1"].equals(squeezed)
+    assert unsqueezed[column].equals(squeezed)

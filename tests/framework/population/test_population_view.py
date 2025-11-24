@@ -15,13 +15,11 @@ from tests.framework.population.conftest import (
     PIE_RECORDS,
     CubeComponent,
     PieComponent,
-    assert_squeezing_multi_level_multi_outer,
     assert_squeezing_multi_level_single_outer_multi_inner,
     assert_squeezing_multi_level_single_outer_single_inner,
-    assert_squeezing_single_level_multi_col,
     assert_squeezing_single_level_single_col,
 )
-from tests.helpers import AttributePipelineCreator, ColumnCreator
+from tests.helpers import AttributePipelineCreator, ColumnCreator, SingleColumnCreator
 from vivarium import InteractiveContext
 from vivarium.framework.population import PopulationError, PopulationManager, PopulationView
 
@@ -371,21 +369,28 @@ def test_get_private_columns_query_removes_all(
 
 def test_get_private_columns_squeezing() -> None:
 
+    # Single-level, single-column -> series
+    component = SingleColumnCreator()
+    sim = InteractiveContext(components=[component], setup=True)
+    pv = sim._population.get_view(component)
+    index = sim._population.get_population_index()
+    unsqueezed = pv.get_private_columns(index, ["test_column_1"])
+    squeezed = pv.get_private_columns(index, "test_column_1")
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+    default = pv.get_private_columns(index)
+    assert default.equals(squeezed)
+
+    # Single-level, multiple-column -> dataframe
     component = ColumnCreator()
     sim = InteractiveContext(components=[component], setup=True)
     pv = sim._population.get_view(component)
     index = sim._population.get_population_index()
-
-    # Single-level, single-column -> series
-    unsqueezed = pv.get_private_columns(index, ["test_column_1"])
-    squeezed = pv.get_private_columns(index, "test_column_1")
-    assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
-
-    # Single-level, multiple-column -> dataframe
-    # There's no way to request a squeezed dataframe here.
-    df = pv.get_private_columns(index, ["test_column_1", "test_column_2"])
+    # There's no way to squeeze here.
+    df = pv.get_private_columns(index, ["test_column_1", "test_column_2", "test_column_3"])
     assert isinstance(df, pd.DataFrame)
     assert not isinstance(df.columns, pd.MultiIndex)
+    default = pv.get_private_columns(index)
+    assert default.equals(df)
 
 
 #####################################
