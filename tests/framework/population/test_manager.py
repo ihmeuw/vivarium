@@ -7,7 +7,21 @@ import pytest
 from pytest_mock import MockerFixture
 
 from tests.framework.population.conftest import CUBE_COL_NAMES, PIE_COL_NAMES, PIE_RECORDS
-from tests.helpers import AttributePipelineCreator, ColumnCreator, ColumnCreatorAndRequirer
+from tests.framework.population.helpers import (
+    assert_squeezing_multi_level_multi_outer,
+    assert_squeezing_multi_level_single_outer_multi_inner,
+    assert_squeezing_multi_level_single_outer_single_inner,
+    assert_squeezing_single_level_multi_col,
+    assert_squeezing_single_level_single_col,
+)
+from tests.helpers import (
+    AttributePipelineCreator,
+    ColumnCreator,
+    ColumnCreatorAndRequirer,
+    MultiLevelMultiColumnCreator,
+    MultiLevelSingleColumnCreator,
+    SingleColumnCreator,
+)
 from vivarium import Component, InteractiveContext
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
@@ -162,6 +176,7 @@ def test_get_population_different_attribute_types() -> None:
         ("test_column_3", ""),
         ("attribute_generating_columns_4_5", "test_column_4"),
         ("attribute_generating_columns_4_5", "test_column_5"),
+        ("attribute_generating_column_8", "test_column_8"),
         ("test_attribute", ""),
         ("attribute_generating_columns_6_7", "test_column_6"),
         ("attribute_generating_columns_6_7", "test_column_7"),
@@ -170,6 +185,91 @@ def test_get_population_different_attribute_types() -> None:
     expected = pd.Series([idx % 3 for idx in pop.index])
     for col in value_cols:
         pd.testing.assert_series_equal(pop[col], expected, check_names=False)
+
+
+def test_get_population_squeezing() -> None:
+    component1 = ColumnCreator()
+    component2 = AttributePipelineCreator()
+    sim = InteractiveContext(components=[component1, component2], setup=True)
+
+    # Single-level, single-column -> series
+    unsqueezed = sim._population.get_population(["test_column_1"], squeeze=False)
+    squeezed = sim._population.get_population(["test_column_1"], squeeze=True)
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed)
+
+    # Single-level, multiple-column -> dataframe
+    unsqueezed = sim._population.get_population(
+        ["test_column_1", "test_column_2"], squeeze=False
+    )
+    squeezed = sim._population.get_population(
+        ["test_column_1", "test_column_2"], squeeze=True
+    )
+    assert_squeezing_single_level_multi_col(unsqueezed, squeezed)
+
+    # Multi-level, single outer, single inner -> series
+    unsqueezed = sim._population.get_population(
+        ["attribute_generating_column_8"], squeeze=False
+    )
+    squeezed = sim._population.get_population(["attribute_generating_column_8"], squeeze=True)
+    assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed)
+
+    # Multi-level, single outer, multiple inner -> inner dataframe
+    unsqueezed = sim._population.get_population(
+        ["attribute_generating_columns_4_5"], squeeze=False
+    )
+    squeezed = sim._population.get_population(
+        ["attribute_generating_columns_4_5"], squeeze=True
+    )
+    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)
+
+    # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
+    unsqueezed = sim._population.get_population(
+        ["test_column_1", "attribute_generating_columns_6_7"], squeeze=False
+    )
+    squeezed = sim._population.get_population(
+        ["test_column_1", "attribute_generating_columns_6_7"], squeeze=True
+    )
+    assert_squeezing_multi_level_multi_outer(unsqueezed, squeezed)
+
+
+def test_get_population_squeezing_all() -> None:
+
+    # Single-level, single-column -> series
+    # The time manager creates the 'simulant_step_size' column always
+    sim = InteractiveContext(setup=True)
+    unsqueezed = sim._population.get_population("all", squeeze=False)
+    squeezed = sim._population.get_population("all", squeeze=True)
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed, "simulant_step_size")
+
+    # Single-level, multiple-column -> dataframe
+    sim = InteractiveContext(components=[ColumnCreator()], setup=True)
+    unsqueezed = sim._population.get_population("all", squeeze=False)
+    squeezed = sim._population.get_population("all", squeeze=True)
+    assert_squeezing_single_level_multi_col(unsqueezed, squeezed)
+
+    # Multi-level, single outer, single inner -> series
+    sim = InteractiveContext(components=[MultiLevelSingleColumnCreator()], setup=True)
+    sim._population._attribute_pipelines.pop("simulant_step_size")
+    unsqueezed = sim._population.get_population("all", squeeze=False)
+    squeezed = sim._population.get_population("all", squeeze=True)
+    assert_squeezing_multi_level_single_outer_single_inner(
+        unsqueezed, squeezed, ("some_attribute", "some_column")
+    )
+
+    # Multi-level, single outer, multiple inner -> inner dataframe
+    sim = InteractiveContext(components=[MultiLevelMultiColumnCreator()], setup=True)
+    sim._population._attribute_pipelines.pop("simulant_step_size")
+    unsqueezed = sim._population.get_population("all", squeeze=False)
+    squeezed = sim._population.get_population("all", squeeze=True)
+    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)
+
+    # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
+    sim = InteractiveContext(
+        components=[ColumnCreator(), AttributePipelineCreator()], setup=True
+    )
+    unsqueezed = sim._population.get_population("all", squeeze=False)
+    squeezed = sim._population.get_population("all", squeeze=True)
+    assert_squeezing_multi_level_multi_outer(unsqueezed, squeezed)
 
 
 @pytest.mark.parametrize("include_duplicates", [False, True])
@@ -237,13 +337,13 @@ def test_get_population_raises_bad_string(pies_and_cubes_pop_mgr: PopulationMana
     with pytest.raises(
         PopulationError, match="Attributes must be a list of strings or 'all'"
     ):
-        pies_and_cubes_pop_mgr.get_population("invalid_string")
+        pies_and_cubes_pop_mgr.get_population("invalid_string")  # type: ignore[call-overload]
 
 
 def test_get_population_deduplicates_requested_columns(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
-    pop = pies_and_cubes_pop_mgr.get_population(["pie", "pie", "pie"])
+    pop = pies_and_cubes_pop_mgr.get_population(["pie", "pie", "pie"], squeeze=False)
     assert set(pop.columns) == {"pie"}
 
 
@@ -295,7 +395,7 @@ def test_get_private_columns(
     if columns is not None:
         kwargs["columns"] = columns
     for component in components:
-        private_columns = sim._population.get_private_columns(component, **kwargs)  # type: ignore[arg-type]
+        private_columns = pd.DataFrame(sim._population.get_private_columns(component, **kwargs))  # type: ignore[arg-type]
         if index is not None:
             assert private_columns.index.equals(index)
         else:
@@ -304,6 +404,36 @@ def test_get_private_columns(
             assert list(private_columns.columns) == columns
         else:
             assert list(private_columns.columns) == component.columns_created
+
+
+def test_get_private_columns_squeezing() -> None:
+
+    # Single-level, single-column -> series
+    single_col_creator = SingleColumnCreator()
+    sim = InteractiveContext(components=[single_col_creator], setup=True)
+    unsqueezed = sim._population.get_private_columns(
+        single_col_creator, columns=["test_column_1"]
+    )
+    squeezed = sim._population.get_private_columns(
+        single_col_creator, columns="test_column_1"
+    )
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed)
+    default = sim._population.get_private_columns(single_col_creator)
+    assert isinstance(default, pd.Series) and isinstance(squeezed, pd.Series)
+    assert default.equals(squeezed)
+
+    # Single-level, multiple-column -> dataframe
+    col_creator = ColumnCreator()
+    sim = InteractiveContext(components=[col_creator], setup=True)
+    # There's no way to squeeze here.
+    df = sim._population.get_private_columns(
+        col_creator, columns=["test_column_1", "test_column_2", "test_column_3"]
+    )
+    assert isinstance(df, pd.DataFrame)
+    assert not isinstance(df.columns, pd.MultiIndex)
+    default = sim._population.get_private_columns(col_creator)
+    assert isinstance(default, pd.DataFrame)
+    assert default.equals(df)
 
 
 def test_get_private_columns_raises_on_initial_pop_creation() -> None:
@@ -331,7 +461,8 @@ def test_get_population_index() -> None:
     with pytest.raises(PopulationError, match="Population has not been initialized."):
         sim._population.get_population_index()
     sim.setup()
-    sim.get_population().index.equals(sim._population.get_population_index())
+    private_cols = pd.DataFrame(sim._population._private_columns)
+    private_cols.index.equals(sim._population.get_population_index())
 
 
 def test_forget_to_create_columns() -> None:
