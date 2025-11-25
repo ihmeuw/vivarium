@@ -74,7 +74,7 @@ class PopulationView:
         index: pd.Index[int],
         attributes: str,
         query: str = "",
-        combine_queries: bool = True,
+        include_pop_view_query: bool = True,
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
@@ -84,7 +84,7 @@ class PopulationView:
         index: pd.Index[int],
         attributes: list[str] | tuple[str, ...],
         query: str = "",
-        combine_queries: bool = True,
+        include_pop_view_query: bool = True,
     ) -> pd.DataFrame:
         ...
 
@@ -93,7 +93,7 @@ class PopulationView:
         index: pd.Index[int],
         attributes: str | list[str] | tuple[str, ...],
         query: str = "",
-        combine_queries: bool = True,
+        include_pop_view_query: bool = True,
     ) -> pd.DataFrame | pd.Series[Any]:
         """Get a specific subset of this ``PopulationView``.
 
@@ -109,11 +109,11 @@ class PopulationView:
             The columns to retrieve. If a single column is passed in via a string, the
             result will be attempted to be squeezed to a Series.
         query
-            Additional conditions used to filter the index. These conditions
-            will be unioned with the default query of this view. The query
-            provided may not use columns that are not included in the ``attributes``
-            argument.
-        combine_queries
+            Additional conditions used to filter the index. If ``include_pop_view_query``
+            is True, it will be combined with this PopulationView's query property.
+            The query provided may *not* use columns that are not included in the
+            ``attributes`` argument.
+        include_pop_view_query
             Whether to combine this view's query property with the provided query.
 
         Returns
@@ -131,7 +131,7 @@ class PopulationView:
                 "the columns needed to evaluate that query in the attributes argument."
             )
 
-        if combine_queries:
+        if include_pop_view_query:
             query = " and ".join(filter(None, [self.query, query]))
 
         return self._manager.get_population(
@@ -148,6 +148,7 @@ class PopulationView:
         private_columns: str = ...,
         query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
+        include_pop_view_query: bool = True,
     ) -> pd.Series[Any]:
         ...
 
@@ -158,6 +159,7 @@ class PopulationView:
         private_columns: list[str] | tuple[str, ...] = ...,
         query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
+        include_pop_view_query: bool = True,
     ) -> pd.DataFrame:
         ...
 
@@ -168,6 +170,7 @@ class PopulationView:
         private_columns: None = None,
         query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
+        include_pop_view_query: bool = True,
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
@@ -177,6 +180,7 @@ class PopulationView:
         private_columns: str | list[str] | tuple[str, ...] | None = None,
         query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
+        include_pop_view_query: bool = True,
     ) -> pd.Series[Any] | pd.DataFrame:
         """Get a specific subset of this ``PopulationView's`` private columns.
 
@@ -192,11 +196,13 @@ class PopulationView:
             The private columns to retrieve. If None, all columns created by the
             component that created this view are included.
         query_columns
-            The (public) column(s) needed to evaluate the query string.
+            The (public) column(s) needed to evaluate the query string as well
+            as the PopulationView's query if ``include_pop_view_query`` is True.
         query
-            Additional conditions used to filter the index. Note that it will
-            *not* be combined with this PopulationView's query property (in order
-            to allow for full updates to the private column data).
+            Additional conditions used to filter the index. If ``include_pop_view_query``
+            is True, it will be combined with this PopulationView's query property.
+        include_pop_view_query
+            Whether to combine this view's query property with the provided query.
 
         Returns
         -------
@@ -209,7 +215,12 @@ class PopulationView:
                 "This PopulationView is read-only, so it doesn't have access to get_private_columns()."
             )
 
-        index = self.get_filtered_index(index, query_columns=query_columns, query=query)
+        if include_pop_view_query:
+            query = " and ".join(filter(None, [self.query, query]))
+
+        index = self.get_filtered_index(
+            index, query_columns=query_columns, query=query, include_pop_view_query=False
+        )
 
         return self._manager.get_private_columns(self._component, index, private_columns)
 
@@ -218,6 +229,7 @@ class PopulationView:
         index: pd.Index[int],
         query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
+        include_pop_view_query: bool = True,
     ) -> pd.Index[int]:
         """Get a specific index of the population.
 
@@ -228,16 +240,21 @@ class PopulationView:
         index
             Index of the population to get.
         query_columns
-            The (public) column(s) needed to evaluate the query string.
+            The (public) column(s) needed to evaluate the query string as well
+            as the PopulationView's query if ``include_pop_view_query`` is True.
         query
-            Additional conditions used to filter the index. Note that it will
-            *not* be combined with this PopulationView's query property (in order
-            to allow for full updates to the private column data).
+            Additional conditions used to filter the index. If ``include_pop_view_query``
+            is True, it will be combined with this PopulationView's query property.
+        include_pop_view_query
+            Whether to combine this view's query property with the provided query.
 
         Returns
         -------
             The requested and filtered population index.
         """
+
+        if include_pop_view_query:
+            query = " and ".join(filter(None, [self.query, query]))
 
         if bool(query) != bool(query_columns):
             raise PopulationError(
@@ -247,7 +264,7 @@ class PopulationView:
 
         if query:
             index = self.get_attributes(
-                index, query_columns, query, combine_queries=False
+                index, query_columns, query, include_pop_view_query=False
             ).index
 
         return index
