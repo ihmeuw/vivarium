@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from tests.framework.population.conftest import (
+from tests.framework.population.helpers import (
     assert_squeezing_multi_level_single_outer_multi_inner,
     assert_squeezing_multi_level_single_outer_single_inner,
     assert_squeezing_single_level_single_col,
@@ -34,8 +34,10 @@ def test_get_population_squeezing() -> None:
     sim = InteractiveContext(setup=True)
     unsqueezed = sim.get_population(["simulant_step_size"])
     squeezed = sim.get_population("simulant_step_size")
-    assert_squeezing_single_level_single_col(unsqueezed, squeezed, "simulant_step_size")  # type: ignore[arg-type]
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed, "simulant_step_size")
     default = sim.get_population()
+    assert isinstance(default, pd.Series)
+    assert isinstance(squeezed, pd.Series)
     assert default.equals(squeezed)
 
     # Single-level, multiple-column -> dataframe
@@ -55,8 +57,12 @@ def test_get_population_squeezing() -> None:
     sim._population._attribute_pipelines.pop("simulant_step_size")
     unsqueezed = sim.get_population(["some_attribute"])
     squeezed = sim.get_population("some_attribute")
-    assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed, ("some_attribute", "some_column"))  # type: ignore[arg-type]
+    assert_squeezing_multi_level_single_outer_single_inner(
+        unsqueezed, squeezed, ("some_attribute", "some_column")
+    )
     default = sim.get_population()
+    assert isinstance(default, pd.Series)
+    assert isinstance(squeezed, pd.Series)
     assert default.equals(squeezed)
 
     # Multi-level, single outer, multiple inner -> inner dataframe
@@ -64,8 +70,9 @@ def test_get_population_squeezing() -> None:
     sim._population._attribute_pipelines.pop("simulant_step_size")
     unsqueezed = sim.get_population(["some_attribute"])
     squeezed = sim.get_population("some_attribute")
-    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)
     default = sim.get_population()
+    assert isinstance(default, pd.DataFrame)
     assert default.equals(squeezed)
 
     # Multi-level, multiple outer -> full unsqueezed multi-level dataframe

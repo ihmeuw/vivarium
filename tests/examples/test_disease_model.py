@@ -27,7 +27,7 @@ def test_disease_model(fuzzy_checker: FuzzyChecker, disease_model_spec: Path) ->
 
     simulation = InteractiveContext(config)
 
-    pop = simulation.get_population(None)
+    pop = simulation.get_population()
     expected_columns = {
         "alive",
         "previous_alive",

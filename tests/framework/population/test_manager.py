@@ -6,10 +6,8 @@ import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 
-from tests.framework.population.conftest import (
-    CUBE_COL_NAMES,
-    PIE_COL_NAMES,
-    PIE_RECORDS,
+from tests.framework.population.conftest import CUBE_COL_NAMES, PIE_COL_NAMES, PIE_RECORDS
+from tests.framework.population.helpers import (
     assert_squeezing_multi_level_multi_outer,
     assert_squeezing_multi_level_single_outer_multi_inner,
     assert_squeezing_multi_level_single_outer_single_inner,
@@ -197,7 +195,7 @@ def test_get_population_squeezing() -> None:
     # Single-level, single-column -> series
     unsqueezed = sim._population.get_population(["test_column_1"], squeeze=False)
     squeezed = sim._population.get_population(["test_column_1"], squeeze=True)
-    assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed)
 
     # Single-level, multiple-column -> dataframe
     unsqueezed = sim._population.get_population(
@@ -213,7 +211,7 @@ def test_get_population_squeezing() -> None:
         ["attribute_generating_column_8"], squeeze=False
     )
     squeezed = sim._population.get_population(["attribute_generating_column_8"], squeeze=True)
-    assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed)
 
     # Multi-level, single outer, multiple inner -> inner dataframe
     unsqueezed = sim._population.get_population(
@@ -241,27 +239,29 @@ def test_get_population_squeezing_all() -> None:
     sim = InteractiveContext(setup=True)
     unsqueezed = sim._population.get_population("all", squeeze=False)
     squeezed = sim._population.get_population("all", squeeze=True)
-    assert_squeezing_single_level_single_col(unsqueezed, squeezed, "simulant_step_size")  # type: ignore[arg-type]
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed, "simulant_step_size")
 
     # Single-level, multiple-column -> dataframe
     sim = InteractiveContext(components=[ColumnCreator()], setup=True)
     unsqueezed = sim._population.get_population("all", squeeze=False)
     squeezed = sim._population.get_population("all", squeeze=True)
-    assert_squeezing_single_level_multi_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_single_level_multi_col(unsqueezed, squeezed)
 
     # Multi-level, single outer, single inner -> series
     sim = InteractiveContext(components=[MultiLevelSingleColumnCreator()], setup=True)
     sim._population._attribute_pipelines.pop("simulant_step_size")
     unsqueezed = sim._population.get_population("all", squeeze=False)
     squeezed = sim._population.get_population("all", squeeze=True)
-    assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed, ("some_attribute", "some_column"))  # type: ignore[arg-type]
+    assert_squeezing_multi_level_single_outer_single_inner(
+        unsqueezed, squeezed, ("some_attribute", "some_column")
+    )
 
     # Multi-level, single outer, multiple inner -> inner dataframe
     sim = InteractiveContext(components=[MultiLevelMultiColumnCreator()], setup=True)
     sim._population._attribute_pipelines.pop("simulant_step_size")
     unsqueezed = sim._population.get_population("all", squeeze=False)
     squeezed = sim._population.get_population("all", squeeze=True)
-    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)
 
     # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
     sim = InteractiveContext(
@@ -269,7 +269,7 @@ def test_get_population_squeezing_all() -> None:
     )
     unsqueezed = sim._population.get_population("all", squeeze=False)
     squeezed = sim._population.get_population("all", squeeze=True)
-    assert_squeezing_multi_level_multi_outer(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_multi_level_multi_outer(unsqueezed, squeezed)
 
 
 @pytest.mark.parametrize("include_duplicates", [False, True])
@@ -417,7 +417,7 @@ def test_get_private_columns_squeezing() -> None:
     squeezed = sim._population.get_private_columns(
         single_col_creator, columns="test_column_1"
     )
-    assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed)
     default = sim._population.get_private_columns(single_col_creator)
     assert isinstance(default, pd.Series) and isinstance(squeezed, pd.Series)
     assert default.equals(squeezed)

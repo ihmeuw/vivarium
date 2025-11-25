@@ -150,8 +150,8 @@ class PopulationManager(Manager):
         self,
         component: Component,
         index: pd.Index[int] | None = None,
-        columns: list[str] | tuple[str, ...] | None = None,
-    ) -> pd.Series[Any] | pd.DataFrame:
+        columns: str = ...,
+    ) -> pd.Series[Any]:
         ...
 
     @overload
@@ -159,8 +159,17 @@ class PopulationManager(Manager):
         self,
         component: Component,
         index: pd.Index[int] | None = None,
-        columns: str = ...,
-    ) -> pd.Series[Any]:
+        columns: list[str] | tuple[str, ...] = ...,
+    ) -> pd.DataFrame:
+        ...
+
+    @overload
+    def get_private_columns(
+        self,
+        component: Component,
+        index: pd.Index[int] | None = None,
+        columns: None = None,
+    ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
     def get_private_columns(
@@ -196,7 +205,8 @@ class PopulationManager(Manager):
 
         Returns
         -------
-            The private columns created by the specified component.
+            The private column(s) created by the specified component. Will return
+            a Series if a single column is requested or a Dataframe otherwise.
         """
 
         if self.creating_initial_population:
@@ -502,21 +512,21 @@ class PopulationManager(Manager):
     @overload
     def get_population(
         self,
-        attributes: list[str] | tuple[str, ...],
+        attributes: list[str] | tuple[str, ...] | Literal["all"],
         index: pd.Index[int] | None = None,
         query: str = "",
-        squeeze: bool = True,
-    ) -> pd.DataFrame:
+        squeeze: Literal[True] = True,
+    ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
     @overload
     def get_population(
         self,
-        attributes: Literal["all"],
+        attributes: list[str] | tuple[str, ...] | Literal["all"],
         index: pd.Index[int] | None = None,
         query: str = "",
-        squeeze: bool = True,
-    ) -> pd.Series[Any] | pd.DataFrame:
+        squeeze: Literal[False] = ...,
+    ) -> pd.DataFrame:
         ...
 
     def get_population(
@@ -524,7 +534,7 @@ class PopulationManager(Manager):
         attributes: list[str] | tuple[str, ...] | Literal["all"],
         index: pd.Index[int] | None = None,
         query: str = "",
-        squeeze: bool = True,
+        squeeze: Literal[True, False] = True,
     ) -> pd.Series[Any] | pd.DataFrame:
         """Provides a copy of the population state table.
 

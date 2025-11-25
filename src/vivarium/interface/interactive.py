@@ -162,17 +162,11 @@ class InteractiveContext(SimulationContext):
                 self.step(step_size)
 
     @overload
-    def get_population(self, attributes: None = None) -> pd.Series[Any] | pd.DataFrame:
+    def get_population(self, attributes: str | None = None) -> pd.Series[Any] | pd.DataFrame:
         ...
 
     @overload
-    def get_population(self, attributes: str) -> pd.Series[Any]:
-        ...
-
-    @overload
-    def get_population(
-        self, attributes: list[str] | tuple[str, ...]
-    ) -> pd.Series[Any] | pd.DataFrame:
+    def get_population(self, attributes: list[str] | tuple[str, ...] = ...) -> pd.DataFrame:
         ...
 
     def get_population(
@@ -190,14 +184,11 @@ class InteractiveContext(SimulationContext):
         -------
             The current state of requested population attributes.
         """
-        returned_attributes: list[str] | Literal["all"]
-        if attributes is None:
-            squeeze = True
-            returned_attributes = "all"
-        elif isinstance(attributes, str):
-            squeeze = True
+        returned_attributes: list[str] | tuple[str, ...] | Literal["all"] = "all"
+        squeeze: Literal[True, False] = True
+        if isinstance(attributes, str):
             returned_attributes = [attributes]
-        else:
+        elif attributes is not None:
             squeeze = False
             returned_attributes = list(attributes)
         return self._population.get_population(

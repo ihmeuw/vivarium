@@ -15,6 +15,8 @@ from tests.framework.population.conftest import (
     PIE_RECORDS,
     CubeComponent,
     PieComponent,
+)
+from tests.framework.population.helpers import (
     assert_squeezing_multi_level_single_outer_multi_inner,
     assert_squeezing_multi_level_single_outer_single_inner,
     assert_squeezing_single_level_single_col,
@@ -229,7 +231,7 @@ def test_get_attributes_squeezing() -> None:
     # Single-level, single-column -> series
     unsqueezed = pv.get_attributes(index, ["test_column_1"])
     squeezed = pv.get_attributes(index, "test_column_1")
-    assert_squeezing_single_level_single_col(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_single_level_single_col(unsqueezed, squeezed)
 
     # Single-level, multiple-column -> dataframe
     # There's no way to request a squeezed dataframe here.
@@ -240,12 +242,12 @@ def test_get_attributes_squeezing() -> None:
     # Multi-level, single outer, single inner -> series
     unsqueezed = pv.get_attributes(index, ["attribute_generating_column_8"])
     squeezed = pv.get_attributes(index, "attribute_generating_column_8")
-    assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_multi_level_single_outer_single_inner(unsqueezed, squeezed)
 
     # Multi-level, single outer, multiple inner -> inner dataframe
     unsqueezed = pv.get_attributes(index, ["attribute_generating_columns_4_5"])
     squeezed = pv.get_attributes(index, "attribute_generating_columns_4_5")
-    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)  # type: ignore[arg-type]
+    assert_squeezing_multi_level_single_outer_multi_inner(unsqueezed, squeezed)
 
     # Multi-level, multiple outer -> full unsqueezed multi-level dataframe
     # There's no way to request a squeezed dataframe here.
