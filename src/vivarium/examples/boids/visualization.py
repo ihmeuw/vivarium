@@ -35,7 +35,7 @@ def plot_boids_animated(simulation: InteractiveContext) -> FuncAnimation:
     frame_pops = []
     for _ in frames:
         simulation.step()
-        frame_pops.append(simulation.get_population()[["x", "y"]])
+        frame_pops.append(simulation.get_population(["x", "y"]))
 
     def animate(i: int) -> None:
         s.set_offsets(frame_pops[i])

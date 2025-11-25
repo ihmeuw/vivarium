@@ -154,6 +154,33 @@ class ColumnCreator(Component):
         )
 
 
+class SingleColumnCreator(ColumnCreator):
+    @property
+    def columns_created(self) -> list[str]:
+        return ["test_column_1"]
+
+
+class MultiLevelSingleColumnCreator(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.value.register_attribute_producer(
+            "some_attribute",
+            lambda idx: pd.DataFrame({"some_column": [i % 3 for i in idx]}, index=idx),
+            component=self,
+        )
+
+
+class MultiLevelMultiColumnCreator(Component):
+    def setup(self, builder: Builder) -> None:
+        builder.value.register_attribute_producer(
+            "some_attribute",
+            lambda idx: pd.DataFrame(
+                {"column_1": [i % 3 for i in idx], "column_2": [i % 3 for i in idx]},
+                index=idx,
+            ),
+            component=self,
+        )
+
+
 class AttributePipelineCreator(Component):
     """A helper class to register different types of attribute pipelines.
 
@@ -174,6 +201,11 @@ class AttributePipelineCreator(Component):
                 },
                 index=idx,
             ),
+            component=self,
+        )
+        builder.value.register_attribute_producer(
+            "attribute_generating_column_8",
+            lambda idx: pd.DataFrame({"test_column_8": [i % 3 for i in idx]}, index=idx),
             component=self,
         )
 

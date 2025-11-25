@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from math import ceil
-from typing import Any, Literal, Sequence
+from typing import Any, Literal, overload
 
 import pandas as pd
 
@@ -161,7 +161,17 @@ class InteractiveContext(SimulationContext):
             for _ in range(number_of_steps):
                 self.step(step_size)
 
-    def get_population(self, attributes: str | Sequence[str] | None = None) -> pd.DataFrame:
+    @overload
+    def get_population(self, attributes: str | None = None) -> pd.Series[Any] | pd.DataFrame:
+        ...
+
+    @overload
+    def get_population(self, attributes: list[str] | tuple[str, ...] = ...) -> pd.DataFrame:
+        ...
+
+    def get_population(
+        self, attributes: str | list[str] | tuple[str, ...] | None = None
+    ) -> pd.Series[Any] | pd.DataFrame:
         """Get a copy of the population state table.
 
         Parameters
@@ -174,14 +184,16 @@ class InteractiveContext(SimulationContext):
         -------
             The current state of requested population attributes.
         """
-        returned_attributes: list[str] | Literal["all"]
-        if attributes is None:
-            returned_attributes = "all"
-        elif isinstance(attributes, str):
+        returned_attributes: list[str] | tuple[str, ...] | Literal["all"] = "all"
+        squeeze: Literal[True, False] = True
+        if isinstance(attributes, str):
             returned_attributes = [attributes]
-        else:
+        elif attributes is not None:
+            squeeze = False
             returned_attributes = list(attributes)
-        return self._population.get_population(attributes=returned_attributes)
+        return self._population.get_population(
+            attributes=returned_attributes, squeeze=squeeze
+        )
 
     def list_values(self) -> list[str]:
         """List the names of all value pipelines in the simulation."""

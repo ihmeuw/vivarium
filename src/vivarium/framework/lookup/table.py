@@ -181,7 +181,7 @@ class InterpolatedTable(LookupTable):
             for col in list(self.key_columns) + list(self.parameter_columns)
             if col != "year"
         ]
-        pop = self.population_view.get_attributes(index, requested_columns)
+        pop = pd.DataFrame(self.population_view.get_attributes(index, requested_columns))
         if "year" in self.parameter_columns:
             current_time = self.clock()
             # TODO: [MIC-5478] handle Number output from clock
@@ -249,8 +249,10 @@ class CategoricalTable(LookupTable):
         -------
             A table with the mapped values for the population requested.
         """
-        pop = self.population_view.get_attributes(
-            index, list(self.key_columns) + list(self.parameter_columns)
+        pop = pd.DataFrame(
+            self.population_view.get_attributes(
+                index, list(self.key_columns) + list(self.parameter_columns)
+            )
         )
 
         # specify some numeric type for columns, so they won't be objects but

@@ -13,7 +13,7 @@ to the underlying simulation :term:`state table`. It has two primary responsibil
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any, Literal, overload
 
 import pandas as pd
 
@@ -68,13 +68,33 @@ class PopulationView:
     def name(self) -> str:
         return f"population_view_{self._id}"
 
+    @overload
     def get_attributes(
         self,
         index: pd.Index[int],
-        attributes: str | Sequence[str],
+        attributes: str,
+        query: str = "",
+        combine_queries: bool = True,
+    ) -> pd.Series[Any] | pd.DataFrame:
+        ...
+
+    @overload
+    def get_attributes(
+        self,
+        index: pd.Index[int],
+        attributes: list[str] | tuple[str, ...],
         query: str = "",
         combine_queries: bool = True,
     ) -> pd.DataFrame:
+        ...
+
+    def get_attributes(
+        self,
+        index: pd.Index[int],
+        attributes: str | list[str] | tuple[str, ...],
+        query: str = "",
+        combine_queries: bool = True,
+    ) -> pd.DataFrame | pd.Series[Any]:
         """Get a specific subset of this ``PopulationView``.
 
         For the rows in ``index``, return the ``attributes`` (i.e. columns) from the
@@ -86,7 +106,8 @@ class PopulationView:
         index
             Index of the population to get.
         attributes
-            The columns to retrieve.
+            The columns to retrieve. If a single column is passed in via a string, the
+            result will be attempted to be squeezed to a Series.
         query
             Additional conditions used to filter the index. These conditions
             will be unioned with the default query of this view. The query
@@ -97,10 +118,11 @@ class PopulationView:
 
         Returns
         -------
-            A table with the subset of the population requested.
+            The attribute(s) requested subset to the ``index`` and ``query``. Will return
+            a Series if a single column is requested or a Dataframe otherwise.
 
         """
-
+        squeeze: Literal[True] | Literal[False] = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
         if query and not attributes:
@@ -116,15 +138,46 @@ class PopulationView:
             attributes=attributes,
             index=index,
             query=query,
+            squeeze=squeeze,
         )
+
+    @overload
+    def get_private_columns(
+        self,
+        index: pd.Index[int],
+        private_columns: str = ...,
+        query_columns: str | list[str] | tuple[str, ...] = (),
+        query: str = "",
+    ) -> pd.Series[Any]:
+        ...
+
+    @overload
+    def get_private_columns(
+        self,
+        index: pd.Index[int],
+        private_columns: list[str] | tuple[str, ...] = ...,
+        query_columns: str | list[str] | tuple[str, ...] = (),
+        query: str = "",
+    ) -> pd.DataFrame:
+        ...
+
+    @overload
+    def get_private_columns(
+        self,
+        index: pd.Index[int],
+        private_columns: None = None,
+        query_columns: str | list[str] | tuple[str, ...] = (),
+        query: str = "",
+    ) -> pd.Series[Any] | pd.DataFrame:
+        ...
 
     def get_private_columns(
         self,
         index: pd.Index[int],
-        private_columns: str | Sequence[str] | None = None,
-        query_columns: str | Sequence[str] = (),
+        private_columns: str | list[str] | tuple[str, ...] | None = None,
+        query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
-    ) -> pd.DataFrame:
+    ) -> pd.Series[Any] | pd.DataFrame:
         """Get a specific subset of this ``PopulationView's`` private columns.
 
         For the rows in ``index``, return the requested ``private_columns``. The
@@ -147,7 +200,8 @@ class PopulationView:
 
         Returns
         -------
-            A table with the subset of the requested private columns.
+            The private column(s) requested subset to the ``index`` and ``query``. Will return
+            a Series if a single column is requested or a Dataframe otherwise.
         """
 
         if self._component is None:
@@ -162,7 +216,7 @@ class PopulationView:
     def get_filtered_index(
         self,
         index: pd.Index[int],
-        query_columns: str | Sequence[str] = (),
+        query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
     ) -> pd.Index[int]:
         """Get a specific index of the population.
@@ -228,7 +282,7 @@ class PopulationView:
                 "This PopulationView is read-only, so it doesn't have access to update()."
             )
 
-        existing = self._manager.get_private_columns(self._component)
+        existing = pd.DataFrame(self._manager.get_private_columns(self._component))
         update_df: pd.DataFrame = self._format_update_and_check_preconditions(
             self._component.name,
             update,

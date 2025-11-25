@@ -486,7 +486,7 @@ Now that we've done all this hard work, let's see what it gives us.
 
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
-   print(sim.get_population().head()[['age', 'sex']])
+   print(sim.get_population(['age', 'sex']).head())
 
 ::
 
@@ -508,7 +508,7 @@ Now that we've done all this hard work, let's see what it gives us.
    config = {'randomness': {'key_columns': ['entrance_time', 'age']}}
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
-   print(sim.get_population().head()[['age', 'sex']])
+   print(sim.get_population(['age', 'sex']).head())
 
 .. testoutput::
 
@@ -525,7 +525,7 @@ Let's see what happens when our simulation takes a time step.
 .. code-block:: python
 
    sim.step()
-   print(sim.get_population().head()[['age', 'sex']])
+   print(sim.get_population(['age', 'sex']).head())
 
 ::
 
@@ -544,7 +544,7 @@ Let's see what happens when our simulation takes a time step.
 
    sim.step()
 
-   print(sim.get_population().head()[['age', 'sex']])
+   print(sim.get_population(['age', 'sex']).head())
 
 .. testoutput::
 
@@ -706,7 +706,7 @@ can see the impact of our mortality component without taking too many steps.
    }
 
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
-   print(sim.get_population().head()[['age', 'sex', 'mortality_rate', 'alive']])
+   print(sim.get_population(['age', 'sex', 'mortality_rate', 'alive']).head())
 
 ::
 
@@ -730,7 +730,7 @@ can see the impact of our mortality component without taking too many steps.
    }
    sim = InteractiveContext(components=[BasePopulation()], configuration=config)
 
-   print(sim.get_population().head()[['age', 'sex', 'mortality_rate', 'alive']])
+   print(sim.get_population(['age', 'sex', 'mortality_rate', 'alive']).head())
 
 .. testoutput::
 
@@ -752,7 +752,7 @@ As we haven't taken a time step yet, everyone should still be alive.
 
 .. code-block:: python
 
-   print(sim.get_population().alive.value_counts())
+   print(sim.get_population("alive").value_counts())
 
 ::
 
@@ -763,7 +763,7 @@ As we haven't taken a time step yet, everyone should still be alive.
 .. testcode::
    :hide:
    
-   print(sim.get_population().alive.value_counts())
+   print(sim.get_population("alive").value_counts())
 
 .. testoutput::
 
@@ -777,7 +777,7 @@ Now let's run our simulation for a while and see what happens.
 .. code-block:: python
 
    sim.take_steps(365)  # Run for one year with one day time steps
-   sim.get_population().alive.value_counts()
+   sim.get_population("alive").value_counts()
 
 ::
 
@@ -796,7 +796,7 @@ to 0.0098 deaths per person-year, very close to the 0.01 rate we provided.
    
    # It takes too long to run 365 steps in the test, so we just run 10 steps here
    sim.take_steps(10)
-   assert sim.get_population()['alive'].value_counts()['dead'] == 27
+   assert sim.get_population("alive").value_counts()['dead'] == 27
 
 Disease
 -------

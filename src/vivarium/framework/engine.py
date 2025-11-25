@@ -372,7 +372,7 @@ class SimulationContext:
         """Adds new components to the simulation."""
         self._component_manager.add_components(component_list)
 
-    def get_population(self) -> pd.DataFrame:
+    def get_population(self) -> pd.Series[Any] | pd.DataFrame:
         return self._population.get_population("all")
 
     def get_population_index(self) -> pd.Index[int]:
