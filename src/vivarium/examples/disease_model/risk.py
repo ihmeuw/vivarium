@@ -79,8 +79,8 @@ class Risk(Component):
     ##################################
 
     def _exposure(self, index):
-        propensity = self.population_view.get_attributes(index, [self.propensity_column])
-        return self.exposure_threshold(index) > propensity.squeeze()
+        propensity = self.population_view.get_attributes(index, self.propensity_column)
+        return self.exposure_threshold(index) > propensity
 
 
 class RiskEffect(Component):

@@ -199,7 +199,7 @@ we can set up our simulation with the following code:
    )
 
    # Peek at the population table
-   print(sim.get_population()[["entrance_time", "color"]].head())
+   print(sim.get_population(["entrance_time", "color"]).head())
 
 
 .. testcode::
@@ -214,7 +214,7 @@ we can set up our simulation with the following code:
       logging_verbosity=0,
    )
 
-   print(sim.get_population()[["entrance_time", "color"]].head())
+   print(sim.get_population(["entrance_time", "color"]).head())
 
 .. testoutput::
 
@@ -324,7 +324,7 @@ Let's run the simulation with our new component and look again at the population
    )
 
    # Peek at the population table
-   print(sim.get_population()[["color", "x", "y", "vx", "vy"]].head())
+   print(sim.get_population(["color", "x", "y", "vx", "vy"]).head())
 
 .. testcode::
    :hide:
@@ -339,7 +339,7 @@ Let's run the simulation with our new component and look again at the population
    )
 
    # Peek at the population table
-   pop = sim.get_population()[["color", "x", "y", "vx", "vy"]].head()
+   pop = sim.get_population(["color", "x", "y", "vx", "vy"]).head()
    # flatten MultiIndex for display
    pop.columns = pop.columns.get_level_values(0)
    print(pop)
@@ -363,7 +363,7 @@ but their velocity stay the same.
    sim.step()
 
    # Peek at the population table
-   print(sim.get_population()[["color", "x", "y", "vx", "vy"]].head())
+   print(sim.get_population(["color", "x", "y", "vx", "vy"]).head())
 
 .. testcode::
    :hide:
@@ -379,7 +379,7 @@ but their velocity stay the same.
    sim.step()
 
    # Peek at the population table
-   pop = sim.get_population()[["color", "x", "y", "vx", "vy"]].head()
+   pop = sim.get_population(["color", "x", "y", "vx", "vy"]).head()
    # flatten MultiIndex for display
    pop.columns = pop.columns.get_level_values(0)
    print(pop)
