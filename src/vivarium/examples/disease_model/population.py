@@ -143,6 +143,6 @@ class BasePopulation(Component):
             representing the simulants affected by the event and timing
             information.
         """
-        population = self.population_view.get_private_columns(event.index, ["age"], query_columns=["alive"], query="alive == 'alive'")
-        population["age"] += event.step_size / pd.Timedelta(days=365)
-        self.population_view.update(population["age"])
+        population = self.population_view.get_private_columns(event.index, "age", query_columns=["alive"], query="alive == 'alive'")
+        population += event.step_size / pd.Timedelta(days=365)
+        self.population_view.update(population)

@@ -52,7 +52,7 @@ def test_interpolated_tables(base_config: LayeredConfigTree) -> None:
         ),
         value_columns=(),
     )
-    ages = manager.build_table(
+    age_table = manager.build_table(
         ages_df,
         key_columns=("sex",),
         parameter_columns=(
@@ -65,31 +65,31 @@ def test_interpolated_tables(base_config: LayeredConfigTree) -> None:
         one_d_age_df, key_columns=("sex",), parameter_columns=("age",), value_columns=()
     )
 
-    pop = simulation.get_population()
-    result_years = years(pop.index)
-    result_ages = ages(pop.index)
-    result_ages_1d = one_d_age(pop.index)
+    ages = simulation.get_population("age")
+    result_years = years(ages.index)
+    result_ages = age_table(ages.index)
+    result_ages_1d = one_d_age(ages.index)
 
     fractional_year = simulation._clock.time.year  # type: ignore [union-attr]
     fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25  # type: ignore [union-attr]
 
     assert np.allclose(result_years, fractional_year)
-    assert np.allclose(result_ages, pop.age)
-    assert np.allclose(result_ages_1d, pop.age)
+    assert np.allclose(result_ages, ages)
+    assert np.allclose(result_ages_1d, ages)
 
     simulation._clock._clock_time += pd.Timedelta(30.5 * 125, unit="D")  # type: ignore [operator]
     simulation._population._private_columns.age += 125 / 12  # type: ignore [union-attr]
 
-    result_years = years(pop.index)
-    result_ages = ages(pop.index)
-    result_ages_1d = one_d_age(pop.index)
+    result_years = years(ages.index)
+    result_ages = age_table(ages.index)
+    result_ages_1d = one_d_age(ages.index)
 
     fractional_year = simulation._clock.time.year  # type: ignore [union-attr]
     fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25  # type: ignore [union-attr]
 
     assert np.allclose(result_years, fractional_year)
-    assert np.allclose(result_ages, pop.age)
-    assert np.allclose(result_ages_1d, pop.age)
+    assert np.allclose(result_ages, ages)
+    assert np.allclose(result_ages_1d, ages)
 
 
 @pytest.mark.skip(reason="only order 0 interpolation currently supported")
@@ -123,7 +123,7 @@ def test_interpolated_tables_without_uninterpolated_columns(
         value_columns=(),
     )
 
-    result_years = years(simulation.get_population().index)
+    result_years = years(simulation.get_population_index())
 
     fractional_year = simulation._clock.time.year  # type: ignore [union-attr]
     fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25  # type: ignore [union-attr]
@@ -132,7 +132,7 @@ def test_interpolated_tables_without_uninterpolated_columns(
 
     simulation._clock._clock_time += pd.Timedelta(30.5 * 125, unit="D")  # type: ignore [operator]
 
-    result_years = years(simulation.get_population().index)
+    result_years = years(simulation.get_population_index())
 
     fractional_year = simulation._clock.time.year  # type: ignore [union-attr]
     fractional_year += simulation._clock.time.timetuple().tm_yday / 365.25  # type: ignore [union-attr]
@@ -165,7 +165,7 @@ def test_interpolated_tables__exact_values_at_input_points(
     for year in input_years:
         simulation._clock._clock_time = pd.Timestamp(year, 1, 1)
         assert np.allclose(
-            years(simulation.get_population().index), simulation._clock.time.year + 1 / 365  # type: ignore [union-attr]
+            years(simulation.get_population_index()), simulation._clock.time.year + 1 / 365  # type: ignore [union-attr]
         )
 
 
@@ -190,7 +190,7 @@ def test_interpolated_tables__only_categorical_parameters(
         input_data, key_columns=["sex", "location"], parameter_columns=(), value_columns=()
     )
 
-    population = simulation.get_population()[["sex", "location"]]
+    population = simulation.get_population(["sex", "location"])
     output_data = lookup_table(population.index)
 
     for i, (sex, location) in combinations:
@@ -206,7 +206,7 @@ def test_lookup_table_scalar_from_list(
     manager = simulation._tables
     table = manager._build_table(
         data, key_columns=(), parameter_columns=(), value_columns=["a", "b"]  # type: ignore [arg-type]
-    )(simulation.get_population().index)
+    )(simulation.get_population_index())
 
     assert isinstance(table, pd.DataFrame)
     assert table.columns.values.tolist() == ["a", "b"]
@@ -219,7 +219,7 @@ def test_lookup_table_scalar_from_single_value(base_config: LayeredConfigTree) -
     manager = simulation._tables
     table = manager._build_table(
         1, key_columns=(), parameter_columns=(), value_columns=["a"]
-    )(simulation.get_population().index)
+    )(simulation.get_population_index())
     assert isinstance(table, pd.Series)
     assert np.all(table == 1)
 
@@ -246,7 +246,7 @@ def test_lookup_table_interpolated_return_types(base_config: LayeredConfigTree) 
     manager = simulation._tables
     table = manager._build_table(
         data, key_columns=["sex"], parameter_columns=["age", "year"], value_columns=()
-    )(simulation.get_population().index)
+    )(simulation.get_population_index())
     # make sure a single value column is returned as a series
     assert isinstance(table, pd.Series)
 
@@ -254,7 +254,7 @@ def test_lookup_table_interpolated_return_types(base_config: LayeredConfigTree) 
     data["value2"] = data.value
     table = manager._build_table(
         data, key_columns=["sex"], parameter_columns=["age", "year"], value_columns=()
-    )(simulation.get_population().index)
+    )(simulation.get_population_index())
 
     assert isinstance(table, pd.DataFrame)
 
