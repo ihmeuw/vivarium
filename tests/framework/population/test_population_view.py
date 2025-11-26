@@ -81,7 +81,7 @@ def population_update_new_cols(
         "pie != 'pumpkin'",
         "pi > 1000 and (pie == 'apple' or pie == 'sweet_potato')",
         # We can also filter by public columns
-        "1000 < cube > 10000",
+        "1000 < cube < 10000",
         "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 500 < cube < 1000",
     ]
 )
@@ -206,14 +206,10 @@ def test_get_attributes_combined_query(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     """Test that queries provided to the pop view and via get_attributes are combined correctly."""
-    pv_kwargs: dict[str, str] = {}
-    if pv_query is not None:
-        pv_kwargs["query"] = pv_query
-    kwargs: dict[str, bool | str] = {}
-    kwargs["include_pop_view_query"] = include_pop_view_query
-    if query is not None:
-        kwargs["query"] = query
 
+    pv_kwargs, kwargs = _resolve_kwargs(
+        include_pop_view_query, None, pv_query, None, query, exclude_cols_kwargs=True
+    )
     combined_query = _combine_queries(include_pop_view_query, pv_query, query)
 
     col_request = PIE_COL_NAMES.copy()
@@ -221,7 +217,7 @@ def test_get_attributes_combined_query(
         col_request += ["cube"]
 
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
-    pop = pv.get_attributes(update_index, col_request, **kwargs)  # type: ignore[arg-type]
+    pop = pv.get_attributes(update_index, col_request, **kwargs)
     assert isinstance(pop, pd.DataFrame)
 
     expected_pop = _get_expected(update_index, combined_query)
@@ -950,27 +946,29 @@ def _resolve_kwargs(
     pv_query: str | None,
     query_cols: str | list[str] | None,
     query: str | None,
+    exclude_cols_kwargs: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     kwargs: dict[str, bool | str | list[str]] = {}
     kwargs["include_pop_view_query"] = include_pop_view_query
     pv_kwargs: dict[str, str] = {}
     if pv_query is not None:
         pv_kwargs["query"] = pv_query
-        if include_pop_view_query:
+        if include_pop_view_query and not exclude_cols_kwargs:
             assert pv_query_cols is not None
             kwargs["query_columns"] = pv_query_cols
     if query is not None:
         kwargs["query"] = query
-        assert query_cols is not None
-        existing_cols = kwargs.get("query_columns", [])
-        if isinstance(existing_cols, str):
-            existing_cols = [existing_cols]
-        if isinstance(query_cols, str):
-            query_cols = [query_cols]
+        if not exclude_cols_kwargs:
+            assert query_cols is not None
+            existing_cols = kwargs.get("query_columns", [])
+            if isinstance(existing_cols, str):
+                existing_cols = [existing_cols]
+            if isinstance(query_cols, str):
+                query_cols = [query_cols]
 
-        assert isinstance(existing_cols, list) and isinstance(query_cols, list)
-        all_cols = existing_cols + query_cols
-        kwargs["query_columns"] = all_cols if len(all_cols) > 1 else all_cols[0]
+            assert isinstance(existing_cols, list) and isinstance(query_cols, list)
+            all_cols = existing_cols + query_cols
+            kwargs["query_columns"] = all_cols if len(all_cols) > 1 else all_cols[0]
 
     return pv_kwargs, kwargs
 

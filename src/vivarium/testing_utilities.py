@@ -36,7 +36,7 @@ class NonCRNTestPopulation(Component):
     }
 
     @property
-    def columns_created(s0elf) -> list[str]:
+    def columns_created(self) -> list[str]:
         return ["age", "sex", "location", "alive", "entrance_time", "exit_time"]
 
     def setup(self, builder: Builder) -> None:
