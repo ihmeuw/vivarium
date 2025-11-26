@@ -191,41 +191,51 @@ class TestGetPopulationSqueezing:
     """Tests for squeeze behavior on get_population with specific columns."""
 
     @pytest.fixture
-    def sim(self):
+    def sim(self) -> InteractiveContext:
         return InteractiveContext(
             components=[ColumnCreator(), AttributePipelineCreator()], setup=True
         )
 
-    def assert_squeezing(self, sim, columns, assert_fn, *assert_args):
+    def assert_squeezing(
+        self,
+        sim: InteractiveContext,
+        columns: list[str],
+        assert_fn: Any,
+        *assert_args: Any,
+    ) -> None:
         unsqueezed = sim._population.get_population(columns, squeeze=False)
         squeezed = sim._population.get_population(columns, squeeze=True)
         assert_fn(unsqueezed, squeezed, *assert_args)
 
-    def test_single_level_single_column_returns_series(self, sim):
+    def test_single_level_single_column_returns_series(self, sim: InteractiveContext) -> None:
         self.assert_squeezing(
             sim, ["test_column_1"], assert_squeezing_single_level_single_col
         )
 
-    def test_single_level_multi_column_returns_dataframe(self, sim):
+    def test_single_level_multi_column_returns_dataframe(self, sim: InteractiveContext) -> None:
         self.assert_squeezing(
             sim, ["test_column_1", "test_column_2"], assert_squeezing_single_level_multi_col
         )
 
-    def test_multi_level_single_outer_single_inner_returns_series(self, sim):
+    def test_multi_level_single_outer_single_inner_returns_series(
+        self, sim: InteractiveContext
+    ) -> None:
         self.assert_squeezing(
             sim,
             ["attribute_generating_column_8"],
             assert_squeezing_multi_level_single_outer_single_inner,
         )
 
-    def test_multi_level_single_outer_multi_inner_returns_inner_dataframe(self, sim):
+    def test_multi_level_single_outer_multi_inner_returns_inner_dataframe(
+        self, sim: InteractiveContext
+    ) -> None:
         self.assert_squeezing(
             sim,
             ["attribute_generating_columns_4_5"],
             assert_squeezing_multi_level_single_outer_multi_inner,
         )
 
-    def test_multi_level_multi_outer_returns_full_dataframe(self, sim):
+    def test_multi_level_multi_outer_returns_full_dataframe(self, sim: InteractiveContext) -> None:
         self.assert_squeezing(
             sim,
             ["test_column_1", "attribute_generating_columns_6_7"],
@@ -236,22 +246,24 @@ class TestGetPopulationSqueezing:
 class TestGetPopulationSqueezingAll:
     """Tests for squeeze behavior on get_population with 'all' columns."""
 
-    def assert_squeezing(self, sim, assert_fn, *assert_args):
+    def assert_squeezing(
+        self, sim: InteractiveContext, assert_fn: Any, *assert_args: Any
+    ) -> None:
         unsqueezed = sim._population.get_population("all", squeeze=False)
         squeezed = sim._population.get_population("all", squeeze=True)
         assert_fn(unsqueezed, squeezed, *assert_args)
 
-    def test_single_level_single_column_returns_series(self):
+    def test_single_level_single_column_returns_series(self) -> None:
         sim = InteractiveContext(setup=True)
         self.assert_squeezing(
             sim, assert_squeezing_single_level_single_col, "simulant_step_size"
         )
 
-    def test_single_level_multi_column_returns_dataframe(self):
+    def test_single_level_multi_column_returns_dataframe(self) -> None:
         sim = InteractiveContext(components=[ColumnCreator()], setup=True)
         self.assert_squeezing(sim, assert_squeezing_single_level_multi_col)
 
-    def test_multi_level_single_outer_single_inner_returns_series(self):
+    def test_multi_level_single_outer_single_inner_returns_series(self) -> None:
         sim = InteractiveContext(components=[MultiLevelSingleColumnCreator()], setup=True)
         sim._population._attribute_pipelines.pop("simulant_step_size")
         self.assert_squeezing(
@@ -260,12 +272,12 @@ class TestGetPopulationSqueezingAll:
             ("some_attribute", "some_column"),
         )
 
-    def test_multi_level_single_outer_multi_inner_returns_inner_dataframe(self):
+    def test_multi_level_single_outer_multi_inner_returns_inner_dataframe(self) -> None:
         sim = InteractiveContext(components=[MultiLevelMultiColumnCreator()], setup=True)
         sim._population._attribute_pipelines.pop("simulant_step_size")
         self.assert_squeezing(sim, assert_squeezing_multi_level_single_outer_multi_inner)
 
-    def test_multi_level_multi_outer_returns_full_dataframe(self):
+    def test_multi_level_multi_outer_returns_full_dataframe(self) -> None:
         sim = InteractiveContext(
             components=[ColumnCreator(), AttributePipelineCreator()], setup=True
         )
