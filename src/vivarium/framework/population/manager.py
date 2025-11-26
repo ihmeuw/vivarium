@@ -611,15 +611,15 @@ class PopulationManager(Manager):
             query_df = query_df.query(query)
             idx = query_df.index
 
-        # Get requested attributes for the filtered index
+        # Get requested attributes for the (potentially filtered) index
+        # Skip getting attributes that were already retrieved in the query
         df = self._get_requested_attributes(
             idx,
             list(set(requested_attributes).difference(query_columns))
             if query
             else requested_attributes,
         )
-        if query:
-            df = pd.concat([df, query_df], axis=1)
+        df = pd.concat([df, query_df], axis=1) if query else df
 
         # Maintain column ordering
         df = df[requested_attributes]
