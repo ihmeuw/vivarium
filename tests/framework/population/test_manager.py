@@ -497,9 +497,9 @@ def test_extract_columns_from_query() -> None:
         # Basic
         "alive == 'Alive' and is_aged_out == False "
         # No spaces
-        "age==42 or "
+        "answer==42 or "
         # Mixed operators and casing
-        "(10 < age < 20 OR sex == 'Female') IF alive == 'alive' AND "
+        "(10 < age < 20 OR sex == 'Female') IF tiger == 'hobbes' AND "
         # Column-column comparisons and @constants
         "(bar >= baz if @some_const <= 100) or "
         # Names w/ 'and', 'or', or 'if'
@@ -516,14 +516,16 @@ def test_extract_columns_from_query() -> None:
         "`column{3}` < 50 or "
         # Quotes
         "`\"quz\"` == 'value' or "
-        'foo = "something"'
+        'nothing != "something"'
     )
     query_columns = manager.extract_columns_from_query(query)
     assert query_columns == {
         "alive",
         "is_aged_out",
+        "answer",
         "age",
         "sex",
+        "tiger",
         "bar",
         "baz",
         "band",
@@ -538,5 +540,5 @@ def test_extract_columns_from_query() -> None:
         "column[2]",
         "column{3}",
         '"quz"',
-        "foo",
+        "nothing",
     }

@@ -599,26 +599,24 @@ class PopulationManager(Manager):
         idx = index if index is not None else self._private_columns.index
 
         # Filter the index based on the query
+        columns_to_get = set(requested_attributes)
         if query:
             query_columns = self.extract_columns_from_query(query)
+            # We can remove these columns from requested columns to be fetched later
+            columns_to_get = columns_to_get.difference(query_columns)
             missing_query_columns = query_columns - set(self._attribute_pipelines)
             if missing_query_columns:
                 raise PopulationError(
                     f"Query references attribute(s) {missing_query_columns} not in "
                     "population table."
                 )
-            query_df = self._get_requested_attributes(idx, list(query_columns))
+            query_df = self._get_attributes(idx, list(query_columns))
             query_df = query_df.query(query)
             idx = query_df.index
 
         # Get requested attributes for the (potentially filtered) index
         # Skip getting attributes that were already retrieved in the query
-        df = self._get_requested_attributes(
-            idx,
-            list(set(requested_attributes).difference(query_columns))
-            if query
-            else requested_attributes,
-        )
+        df = self._get_attributes(idx, list(columns_to_get))
         df = pd.concat([df, query_df], axis=1) if query else df
 
         # Maintain column ordering
@@ -657,7 +655,7 @@ class PopulationManager(Manager):
         # Remove entirely non-alphanumeric strings
         query = re.sub(
             r"\b[^a-zA-Z0-9_\s]+\b|[^a-zA-Z0-9_\s]+(?=\s|$)|(?<=\s)[^a-zA-Z0-9_\s]+",
-            " ",
+            "",
             query,
         )
 
@@ -665,7 +663,7 @@ class PopulationManager(Manager):
         query = re.sub(r"\s+", " ", query).strip()
         return set(query.split(" ") + columns)
 
-    def _get_requested_attributes(
+    def _get_attributes(
         self, idx: pd.Index[int], requested_attributes: Sequence[str]
     ) -> pd.DataFrame:
         """Gets the popoulation for a given index and requested attributes."""
