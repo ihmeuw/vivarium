@@ -212,7 +212,9 @@ class TestGetPopulationSqueezing:
             sim, ["test_column_1"], assert_squeezing_single_level_single_col
         )
 
-    def test_single_level_multi_column_returns_dataframe(self, sim: InteractiveContext) -> None:
+    def test_single_level_multi_column_returns_dataframe(
+        self, sim: InteractiveContext
+    ) -> None:
         self.assert_squeezing(
             sim, ["test_column_1", "test_column_2"], assert_squeezing_single_level_multi_col
         )
@@ -235,7 +237,9 @@ class TestGetPopulationSqueezing:
             assert_squeezing_multi_level_single_outer_multi_inner,
         )
 
-    def test_multi_level_multi_outer_returns_full_dataframe(self, sim: InteractiveContext) -> None:
+    def test_multi_level_multi_outer_returns_full_dataframe(
+        self, sim: InteractiveContext
+    ) -> None:
         self.assert_squeezing(
             sim,
             ["test_column_1", "attribute_generating_columns_6_7"],
