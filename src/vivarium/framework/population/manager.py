@@ -636,7 +636,7 @@ class PopulationManager(Manager):
                 df = df.squeeze(axis=1)
 
         return df
-    
+
     def extract_columns_from_query(self, query: str) -> set[str]:
         """Extract column names required by a query string."""
 
