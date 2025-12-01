@@ -189,8 +189,12 @@ def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> Non
 
 
 @pytest.mark.parametrize("include_default_query", [True, False])
+@pytest.mark.parametrize("register_tracked_query", [True, False])
+@pytest.mark.parametrize("exclude_untracked", [True, False])
 def test_get_attributes_combined_query(
     include_default_query: bool,
+    register_tracked_query: bool,
+    exclude_untracked: bool,
     update_index: pd.Index[int],
     pv_query: str | None,
     query: str | None,
@@ -198,8 +202,18 @@ def test_get_attributes_combined_query(
 ) -> None:
     """Test that queries provided to the pop view and via get_attributes are combined correctly."""
 
-    pv_kwargs, kwargs = _resolve_kwargs(include_default_query, pv_query, query)
-    combined_query = _combine_queries(include_default_query, pv_query, query)
+    if register_tracked_query:
+        pies_and_cubes_pop_mgr.register_tracked_query("cube < 1000")
+    pv_kwargs, kwargs = _resolve_kwargs(
+        include_default_query, exclude_untracked, pv_query, query
+    )
+    combined_query = _combine_queries(
+        include_default_query,
+        pv_query,
+        exclude_untracked,
+        pies_and_cubes_pop_mgr.tracked_queries,
+        query,
+    )
 
     col_request = PIE_COL_NAMES.copy()
     if combined_query and "cube" in combined_query:
@@ -275,27 +289,36 @@ def test_get_attributes_squeezing() -> None:
 
 @pytest.mark.parametrize("private_columns", [None, PIE_COL_NAMES[1:]])
 @pytest.mark.parametrize("include_default_query", [True, False])
+@pytest.mark.parametrize("register_tracked_query", [True, False])
+@pytest.mark.parametrize("exclude_untracked", [True, False])
 def test_get_private_columns(
     private_columns: list[str] | None,
     include_default_query: bool,
+    register_tracked_query: bool,
+    exclude_untracked: bool,
     update_index: pd.Index[int],
     pv_query: str | None,
     query: str | None,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
-    """Test that query works as expected.
-
-    Note that the population view's base query is ignored when getting private columns
-    """
-    pv_kwargs, kwargs = _resolve_kwargs(include_default_query, pv_query, query)
+    if register_tracked_query:
+        pies_and_cubes_pop_mgr.register_tracked_query("cube < 1000")
+    pv_kwargs, kwargs = _resolve_kwargs(
+        include_default_query, exclude_untracked, pv_query, query
+    )
     if private_columns is not None:
         kwargs["private_columns"] = private_columns
 
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
     pop = pv.get_private_columns(update_index, **kwargs)
     assert isinstance(pop, pd.DataFrame)
-
-    combined_query = _combine_queries(include_default_query, pv_query, query)
+    combined_query = _combine_queries(
+        include_default_query,
+        pv_query,
+        exclude_untracked,
+        pies_and_cubes_pop_mgr.tracked_queries,
+        query,
+    )
     expected_pop = _get_expected(update_index, combined_query)
     # We need to remove public columns that were used for filtering
     if "cube" in expected_pop.columns:
@@ -384,18 +407,32 @@ def test_get_private_columns_squeezing() -> None:
 
 
 @pytest.mark.parametrize("include_default_query", [True, False])
+@pytest.mark.parametrize("register_tracked_query", [True, False])
+@pytest.mark.parametrize("exclude_untracked", [True, False])
 def test_get_filtered_index(
     include_default_query: bool,
+    register_tracked_query: bool,
+    exclude_untracked: bool,
     update_index: pd.Index[int],
     pv_query: str | None,
     query: str | None,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
-    pv_kwargs, kwargs = _resolve_kwargs(include_default_query, pv_query, query)
+    if register_tracked_query:
+        pies_and_cubes_pop_mgr.register_tracked_query("cube < 1000")
+    pv_kwargs, kwargs = _resolve_kwargs(
+        include_default_query, exclude_untracked, pv_query, query
+    )
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
     pop_idx = pv.get_filtered_index(update_index, **kwargs)
 
-    combined_query = _combine_queries(include_default_query, pv_query, query)
+    combined_query = _combine_queries(
+        include_default_query,
+        pv_query,
+        exclude_untracked,
+        pies_and_cubes_pop_mgr.tracked_queries,
+        query,
+    )
     expected_pop = _get_expected(update_index, combined_query)
     assert pop_idx.equals(expected_pop.index)
 
@@ -884,11 +921,14 @@ def test_population_view_update_time_step(
 
 def _resolve_kwargs(
     include_default_query: bool,
+    exclude_untracked: bool,
     pv_query: str | None,
     query: str | None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     kwargs: dict[str, bool | str | list[str]] = {}
     kwargs["include_default_query"] = include_default_query
+    kwargs["exclude_untracked"] = exclude_untracked
+
     pv_kwargs: dict[str, str] = {}
     if pv_query is not None:
         pv_kwargs["default_query"] = pv_query
@@ -910,11 +950,17 @@ def _get_expected(update_index: pd.Index[int], combined_query: str | None) -> pd
 
 
 def _combine_queries(
-    include_default_query: bool, pv_query: str | None, query: str | None
+    include_default_query: bool,
+    pv_query: str | None,
+    exclude_untracked: bool,
+    tracked_queries: list[str],
+    query: str | None,
 ) -> str:
     combined_query_parts = []
     if include_default_query and pv_query is not None:
         combined_query_parts.append(f"{pv_query}")
+    if exclude_untracked and tracked_queries:
+        combined_query_parts += tracked_queries
     if query is not None:
         combined_query_parts.append(f"{query}")
     combined_query = " and ".join(combined_query_parts)
