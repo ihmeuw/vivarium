@@ -9,6 +9,7 @@ The manager and :ref:`builder <builder_concept>` interface for the
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from types import MethodType
@@ -546,9 +547,7 @@ class PopulationManager(Manager):
             The index of simulants to include in the returned population. If None,
             all simulants are included.
         query
-            Additional conditions used to filter the index. The query
-            provided may not use columns that are not explicitly passed in via
-            the `attributes` argument.
+            Additional conditions used to filter the index.
         squeeze
             Whether or not to attempt to squeeze a single-column dataframe into a
             series and/or a multi-level column into a single-level column.
@@ -571,20 +570,20 @@ class PopulationManager(Manager):
                 f"Attributes must be a list of strings or 'all'; got '{attributes}'."
             )
         if attributes == "all":
-            attributes_to_include = list(self._attribute_pipelines.keys())
+            requested_attributes = list(self._attribute_pipelines.keys())
         else:
             attributes = list(attributes)
             # check for duplicate request
             if len(attributes) != len(set(attributes)):
                 # deduplicate while preserving order
-                attributes_to_include = list(dict.fromkeys(attributes))
+                requested_attributes = list(dict.fromkeys(attributes))
                 self.logger.warning(
-                    f"Duplicate attributes requested and will be dropped: {set(attributes) - set(attributes_to_include)}"
+                    f"Duplicate attributes requested and will be dropped: {set(attributes) - set(requested_attributes)}"
                 )
             else:
-                attributes_to_include = attributes
+                requested_attributes = attributes
 
-        non_existent_attributes = set(attributes_to_include) - set(self._attribute_pipelines)
+        non_existent_attributes = set(requested_attributes) - set(self._attribute_pipelines)
         if non_existent_attributes:
             raise PopulationError(
                 f"Requested attribute(s) {non_existent_attributes} not in population table. "
@@ -598,21 +597,93 @@ class PopulationManager(Manager):
             )
 
         idx = index if index is not None else self._private_columns.index
+
+        # Filter the index based on the query
+        columns_to_get = set(requested_attributes)
+        if query:
+            query_columns = self.extract_columns_from_query(query)
+            # We can remove these columns from requested columns to be fetched later
+            columns_to_get = columns_to_get.difference(query_columns)
+            missing_query_columns = query_columns - set(self._attribute_pipelines)
+            if missing_query_columns:
+                raise PopulationError(
+                    f"Query references attribute(s) {missing_query_columns} not in "
+                    "population table."
+                )
+            query_df = self._get_attributes(idx, list(query_columns))
+            query_df = query_df.query(query)
+            idx = query_df.index
+
+        # Get requested attributes for the (potentially filtered) index
+        # Skip getting attributes that were already retrieved in the query
+        df = self._get_attributes(idx, list(columns_to_get))
+        df = pd.concat([df, query_df], axis=1) if query else df
+
+        # Maintain column ordering
+        df = df[requested_attributes]
+
+        if squeeze:
+            if (
+                isinstance(df.columns, pd.MultiIndex)
+                and len(set(df.columns.get_level_values(0))) == 1
+            ):
+                # If multi-index columns with a single outer level, drop the outer level
+                df = df.droplevel(0, axis=1)
+            if len(df.columns) == 1:
+                # If single column df, squeeze to series
+                df = df.squeeze(axis=1)
+
+        return df
+
+    def extract_columns_from_query(self, query: str) -> set[str]:
+        """Extract column names required by a query string."""
+
+        # Extract columns with backticks
+        columns = re.findall(r"`([^`]*)`", query)
+
+        # Begin dropping known non-columns from query
+        # Remove backticked content
+        query = re.sub(r"`[^`]*`", "", query)
+        # Remove keywords including "in" and "not in"
+        query = re.sub(
+            r"\b(and|if|or|True|False|in|not\s+in)\b", "", query, flags=re.IGNORECASE
+        )
+        # Remove quoted strings
+        query = re.sub(r"'[^']*'|\"[^\"]*\"", "", query)
+        # Remove numbers
+        query = re.sub(r"\d+", "", query)
+        # Remove @ references
+        query = re.sub(r"@\S+", "", query)
+        # Remove list/array syntax
+        query = re.sub(r"\[[^\]]*\]", "", query)
+        # Remove operators and punctuation but preserve column names
+        query = re.sub(r"[!=<>]+|[()&|~\-+*/,.]", " ", query)
+
+        # Combine query words and columns
+        query = re.sub(r"\s+", " ", query).strip()
+        return set(query.split(" ") + columns)
+
+    def _get_attributes(
+        self, idx: pd.Index[int], requested_attributes: Sequence[str]
+    ) -> pd.DataFrame:
+        """Gets the popoulation for a given index and requested attributes."""
         attributes_list: list[pd.Series[Any] | pd.DataFrame] = []
 
         # batch simple attributes and directly leverage private column backing dataframe
         simple_attributes = [
             name
             for name, pipeline in self._attribute_pipelines.items()
-            if name in attributes_to_include and pipeline.is_simple
+            if name in requested_attributes and pipeline.is_simple
         ]
         if simple_attributes:
+            if self._private_columns is None:
+                raise PopulationError("Population has not been initialized.")
             attributes_list.append(self._private_columns.loc[idx, simple_attributes])
 
         # handle remaining non-simple attributes one by one
         remaining_attributes = [
             attribute
-            for attribute in attributes_to_include
+            for attribute in requested_attributes
             if attribute not in simple_attributes
         ]
         contains_column_multi_index = False
@@ -646,24 +717,6 @@ class PopulationManager(Manager):
         df = (
             pd.concat(attributes_list, axis=1) if attributes_list else pd.DataFrame(index=idx)
         )
-        # Maintain column ordering
-        df = df[attributes_to_include]
-
-        # FIXME [MIC-6572]: Consider parsing the query string earlier to reduce the index
-        # prior to calculating all of the attributes (e.g. including aged out
-        # simulants or not)
-        df = df.query(query) if query else df
-
-        if squeeze:
-            if (
-                isinstance(df.columns, pd.MultiIndex)
-                and len(set(df.columns.get_level_values(0))) == 1
-            ):
-                # If multi-index columns with a single outer level, drop the outer level
-                df = df.droplevel(0, axis=1)
-            if len(df.columns) == 1:
-                # If single column df, squeeze to series
-                df = df.squeeze(axis=1)
 
         return df
 
