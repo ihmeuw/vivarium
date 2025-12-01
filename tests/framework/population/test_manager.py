@@ -489,3 +489,68 @@ def test_create_already_existing_columns_fails() -> None:
         match="Component 'same_column_creator' is attempting to register private column 'test_column_1' but it is already registered by component 'column_creator'.",
     ):
         InteractiveContext(components=[ColumnCreator(), SameColumnCreator()])
+
+
+def test_extract_columns_from_query() -> None:
+    manager = PopulationManager()
+    query = (
+        # Basic
+        "alive == 'Alive' and is_aged_out == False and "
+        # No spaces
+        "answer==42 or "
+        "answer_str=='forty-two' or "
+        "43!=correct_answer and "
+        "duck!=goose or "
+        # Mixed operators and casing
+        "(10 < age < 20 OR sex == 'Female') IF tiger == 'hobbes' AND "
+        # Column-column comparisons and @constants
+        "(bar >= baz if @some_const <= 100) or "
+        # Names w/ 'and', 'or', or 'if'
+        "band == xplor or iffy == 'sketchy' and "
+        # Underscores
+        "some_col == True or "
+        # Casing
+        "Foo != Bar and "
+        # Special names requiring backticks
+        "`spaced column` == False or "
+        "`???` != 'unknown' and "
+        "`column(1)` < 50 or "
+        "`column[2]` < 50 or "
+        "`column{3}` < 50 or "
+        # Quotes
+        "`\"quz\"` == 'value' or "
+        'nothing != "something" and '
+        # in logic
+        "color in ['red', 'blue', 'green'] or "
+        "shape not in ['circle', 'square']"
+    )
+    query_columns = manager.extract_columns_from_query(query)
+    assert query_columns == {
+        "alive",
+        "is_aged_out",
+        "answer",
+        "answer_str",
+        "correct_answer",
+        "duck",
+        "goose",
+        "age",
+        "sex",
+        "tiger",
+        "bar",
+        "baz",
+        "band",
+        "xplor",
+        "iffy",
+        "some_col",
+        "Foo",
+        "Bar",
+        "spaced column",
+        "???",
+        "column(1)",
+        "column[2]",
+        "column{3}",
+        '"quz"',
+        "nothing",
+        "color",
+        "shape",
+    }
