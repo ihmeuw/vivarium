@@ -17,8 +17,8 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 
 import pandas as pd
 
+import vivarium.framework.population.utilities as pop_utils
 from vivarium.framework.population.exceptions import PopulationError
-from vivarium.framework.utilities import combine_queries
 
 if TYPE_CHECKING:
     from vivarium.component import Component
@@ -144,7 +144,7 @@ class PopulationView:
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
         if include_default_query:
-            query = combine_queries(self._default_query, query)
+            query = pop_utils.combine_queries(self._default_query, query)
         if exclude_untracked:
             query = self._manager.add_tracked_query(query)
 
@@ -229,7 +229,7 @@ class PopulationView:
             )
 
         if include_default_query:
-            query = combine_queries(self._default_query, query)
+            query = pop_utils.combine_queries(self._default_query, query)
         if exclude_untracked:
             query = self._manager.add_tracked_query(query)
 

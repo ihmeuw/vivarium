@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import vivarium.framework.population.utilities as pop_utils
 from vivarium.framework.utilities import (
     collapse_nested_dict,
-    combine_queries,
     from_yearly,
     handle_exceptions,
     import_by_path,
@@ -176,7 +176,7 @@ def test_rate_to_probability_clipped(
 @pytest.mark.parametrize("query2", ["", "age < 5", ["age < 5", "sex == 'Female'"]])
 def test_combine_queries(query1: str | list[str], query2: str | list[str]) -> None:
 
-    combined = combine_queries(query1, query2)
+    combined = pop_utils.combine_queries(query1, query2)
 
     expected_parts = []
     if query1:

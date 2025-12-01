@@ -17,12 +17,12 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 
 import pandas as pd
 
+import vivarium.framework.population.utilities as pop_utils
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
-from vivarium.framework.utilities import combine_queries
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
@@ -685,7 +685,7 @@ class PopulationManager(Manager):
 
     def add_tracked_query(self, query: str) -> str:
         """Combines the provided query with all registered tracked queries."""
-        return combine_queries(self.tracked_queries, query)
+        return pop_utils.combine_queries(self.tracked_queries, query)
 
     def _get_attributes(
         self, idx: pd.Index[int], requested_attributes: Sequence[str]
