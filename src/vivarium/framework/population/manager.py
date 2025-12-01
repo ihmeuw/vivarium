@@ -248,6 +248,23 @@ class PopulationManager(Manager):
         self.creating_initial_population = False
         self.adding_simulants = False
         self._last_id = -1
+        self.tracked_queries: list[str] = []
+
+    def register_tracked_query(self, query: str) -> None:
+        """Updates list of registered tracked queries.
+
+        Parameters
+        ----------
+        query
+            The new default query to apply to all population views.
+        """
+        if query in self.tracked_queries:
+            self.logger.warning(
+                f"The tracked query '{query}' has already been registered. "
+                "Duplicate registrations are ignored."
+            )
+            return
+        self.tracked_queries.append(query)
 
     ############################
     # Normal Component Methods #
@@ -312,7 +329,7 @@ class PopulationManager(Manager):
     def get_view(
         self,
         component: Component | None = None,
-        query: str = "",
+        default_query: str = "",
     ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
@@ -324,8 +341,8 @@ class PopulationManager(Manager):
         component
             The component requesting this view. If None, the view will provide
             read-only access.
-        query
-            A filter on the population state.  This filters out particular
+        default_query
+            A filter on the population state. This filters out particular
             simulants (rows in the state table) based on their current state.
             The query should be provided in a way that is understood by the
             :meth:`pandas.DataFrame.query` method and may reference any attributes
@@ -336,7 +353,7 @@ class PopulationManager(Manager):
             A filtered view of the requested private columns of the population state table.
 
         """
-        view = self._get_view(component, query)
+        view = self._get_view(component, default_query)
         self._add_constraint(
             view.get_attributes,
             restrict_during=[
@@ -360,10 +377,12 @@ class PopulationManager(Manager):
     def _get_view(
         self,
         component: Component | None,
-        query: str,
+        default_query: str,
     ) -> PopulationView:
         self._last_id += 1
-        return PopulationView(self, component, self._last_id, query)
+        view = PopulationView(self, component, self._last_id)
+        view.set_default_query(default_query)
+        return view
 
     def register_simulant_initializer(
         self,
@@ -597,7 +616,18 @@ class PopulationManager(Manager):
                 "different run settings."
             )
 
+        all_possible_columns = set(self._attribute_pipelines.keys()).union(set(self._private_columns.columns))
+        # extract any of the possible columns if they show up anywhere in the query string
+        import re
+        # FIXME: need column names to be able to include _, (), [], {}
+        query_parts = set(re.sub(r'\b(and|or|if)\b', ' ', re.sub(r'[^a-zA-Z0-9\s]', ' ', query), flags=re.IGNORECASE).split())
+        query_columns = all_possible_columns.intersection(query_parts)
+
+        
+
+
         idx = index if index is not None else self._private_columns.index
+
         attributes_list: list[pd.Series[Any] | pd.DataFrame] = []
 
         # batch simple attributes and directly leverage private column backing dataframe

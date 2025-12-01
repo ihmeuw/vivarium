@@ -67,13 +67,6 @@ class DiseaseTransition(Transition):
 
 
 class DiseaseState(State):
-    ##############
-    # Properties #
-    ##############
-
-    @property
-    def population_view_query(self) -> str | None:
-        return f"alive == 'alive' and {self.model} == '{self.state_id}'"
 
     #####################
     # Lifecycle methods #

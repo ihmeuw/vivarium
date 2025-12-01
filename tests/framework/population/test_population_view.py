@@ -6,6 +6,7 @@ from typing import Any
 
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from tests.framework.population.conftest import (
     CUBE_COL_NAMES,
@@ -137,14 +138,26 @@ def test_initialization(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     assert pv._id == 0
     assert pv.name == f"population_view_{pv._id}"
     assert set(pv.private_columns) == set(component.columns_created)
-    assert pv.query == ""
+    assert pv._default_query == ""
 
     q_string = "color == 'red'"
-    pv = pies_and_cubes_pop_mgr.get_view(component, query=q_string)
+    pv = pies_and_cubes_pop_mgr.get_view(component, default_query=q_string)
     assert pv._id == 1
     assert pv.name == f"population_view_{pv._id}"
     assert set(pv.private_columns) == set(component.columns_created)
-    assert pv.query == q_string
+    assert pv._default_query == q_string
+
+
+####################################
+# PopulationView.set_default_query #
+####################################
+
+
+def test_set_default_query(mocker: MockerFixture) -> None:
+    pv = PopulationView(mocker.Mock(), mocker.Mock(), 0)
+    assert pv._default_query == ""
+    pv.set_default_query("foo == 'bar'")
+    assert pv._default_query == "foo == 'bar'"
 
 
 #################################
@@ -197,9 +210,9 @@ def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> Non
         pv.get_attributes(index, [], "pie == 'apple'")
 
 
-@pytest.mark.parametrize("include_pop_view_query", [True, False])
+@pytest.mark.parametrize("include_default_query", [True, False])
 def test_get_attributes_combined_query(
-    include_pop_view_query: bool,
+    include_default_query: bool,
     update_index: pd.Index[int],
     pv_query: str | None,
     query: str | None,
@@ -208,9 +221,9 @@ def test_get_attributes_combined_query(
     """Test that queries provided to the pop view and via get_attributes are combined correctly."""
 
     pv_kwargs, kwargs = _resolve_kwargs(
-        include_pop_view_query, None, pv_query, None, query, exclude_cols_kwargs=True
+        include_default_query, None, pv_query, None, query, exclude_cols_kwargs=True
     )
-    combined_query = _combine_queries(include_pop_view_query, pv_query, query)
+    combined_query = _combine_queries(include_default_query, pv_query, query)
 
     col_request = PIE_COL_NAMES.copy()
     if combined_query and "cube" in combined_query:
@@ -285,10 +298,10 @@ def test_get_attributes_squeezing() -> None:
 
 
 @pytest.mark.parametrize("private_columns", [None, PIE_COL_NAMES[1:]])
-@pytest.mark.parametrize("include_pop_view_query", [True, False])
+@pytest.mark.parametrize("include_default_query", [True, False])
 def test_get_private_columns(
     private_columns: list[str] | None,
-    include_pop_view_query: bool,
+    include_default_query: bool,
     update_index: pd.Index[int],
     pv_query_cols: str | list[str] | None,
     pv_query: str | None,
@@ -301,7 +314,7 @@ def test_get_private_columns(
     Note that the population view's base query is ignored when getting private columns
     """
     pv_kwargs, kwargs = _resolve_kwargs(
-        include_pop_view_query, pv_query_cols, pv_query, query_cols, query
+        include_default_query, pv_query_cols, pv_query, query_cols, query
     )
     if private_columns is not None:
         kwargs["private_columns"] = private_columns
@@ -310,7 +323,7 @@ def test_get_private_columns(
     pop = pv.get_private_columns(update_index, **kwargs)
     assert isinstance(pop, pd.DataFrame)
 
-    combined_query = _combine_queries(include_pop_view_query, pv_query, query)
+    combined_query = _combine_queries(include_default_query, pv_query, query)
     expected_pop = _get_expected(update_index, combined_query)
     # We need to remove public columns that were used for filtering
     if "cube" in expected_pop.columns:
@@ -412,9 +425,9 @@ def test_get_private_columns_squeezing() -> None:
 #####################################
 
 
-@pytest.mark.parametrize("include_pop_view_query", [True, False])
+@pytest.mark.parametrize("include_default_query", [True, False])
 def test_get_filtered_index(
-    include_pop_view_query: bool,
+    include_default_query: bool,
     update_index: pd.Index[int],
     pv_query_cols: str | list[str] | None,
     pv_query: str | None,
@@ -423,12 +436,12 @@ def test_get_filtered_index(
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     pv_kwargs, kwargs = _resolve_kwargs(
-        include_pop_view_query, pv_query_cols, pv_query, query_cols, query
+        include_default_query, pv_query_cols, pv_query, query_cols, query
     )
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
     pop_idx = pv.get_filtered_index(update_index, **kwargs)
 
-    combined_query = _combine_queries(include_pop_view_query, pv_query, query)
+    combined_query = _combine_queries(include_default_query, pv_query, query)
     expected_pop = _get_expected(update_index, combined_query)
     assert pop_idx.equals(expected_pop.index)
 
@@ -941,7 +954,7 @@ def test_population_view_update_time_step(
 
 
 def _resolve_kwargs(
-    include_pop_view_query: bool,
+    include_default_query: bool,
     pv_query_cols: str | list[str] | None,
     pv_query: str | None,
     query_cols: str | list[str] | None,
@@ -949,11 +962,11 @@ def _resolve_kwargs(
     exclude_cols_kwargs: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     kwargs: dict[str, bool | str | list[str]] = {}
-    kwargs["include_pop_view_query"] = include_pop_view_query
+    kwargs["include_default_query"] = include_default_query
     pv_kwargs: dict[str, str] = {}
     if pv_query is not None:
-        pv_kwargs["query"] = pv_query
-        if include_pop_view_query and not exclude_cols_kwargs:
+        pv_kwargs["default_query"] = pv_query
+        if include_default_query and not exclude_cols_kwargs:
             assert pv_query_cols is not None
             kwargs["query_columns"] = pv_query_cols
     if query is not None:
@@ -985,10 +998,10 @@ def _get_expected(update_index: pd.Index[int], combined_query: str | None) -> pd
 
 
 def _combine_queries(
-    include_pop_view_query: bool, pv_query: str | None, query: str | None
+    include_default_query: bool, pv_query: str | None, query: str | None
 ) -> str:
     combined_query_parts = []
-    if include_pop_view_query and pv_query is not None:
+    if include_default_query and pv_query is not None:
         combined_query_parts.append(f"{pv_query}")
     if query is not None:
         combined_query_parts.append(f"{query}")
