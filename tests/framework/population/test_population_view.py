@@ -91,17 +91,6 @@ def query(request: pytest.FixtureRequest) -> str | None:
     return request.param
 
 
-@pytest.fixture()
-def query_cols(query: str | None) -> str | list[str] | None:
-    if query is None:
-        return None
-    cols = []
-    for col in ["pi", "pie", "cube"]:
-        if col in query:
-            cols.append(col)
-    return cols if len(cols) > 1 else cols[0]
-
-
 @pytest.fixture(
     params=[
         None,
@@ -114,17 +103,6 @@ def query_cols(query: str | None) -> str | list[str] | None:
 def pv_query(request: pytest.FixtureRequest) -> str | None:
     assert isinstance(request.param, (str, type(None)))
     return request.param
-
-
-@pytest.fixture()
-def pv_query_cols(pv_query: str | None) -> str | list[str] | None:
-    if pv_query is None:
-        return None
-    cols = []
-    for col in ["pi", "pie", "cube"]:
-        if col in pv_query:
-            cols.append(col)
-    return cols if len(cols) > 1 else cols[0]
 
 
 ##################
@@ -220,9 +198,7 @@ def test_get_attributes_combined_query(
 ) -> None:
     """Test that queries provided to the pop view and via get_attributes are combined correctly."""
 
-    pv_kwargs, kwargs = _resolve_kwargs(
-        include_default_query, None, pv_query, None, query, exclude_cols_kwargs=True
-    )
+    pv_kwargs, kwargs = _resolve_kwargs(include_default_query, pv_query, query)
     combined_query = _combine_queries(include_default_query, pv_query, query)
 
     col_request = PIE_COL_NAMES.copy()
@@ -303,9 +279,7 @@ def test_get_private_columns(
     private_columns: list[str] | None,
     include_default_query: bool,
     update_index: pd.Index[int],
-    pv_query_cols: str | list[str] | None,
     pv_query: str | None,
-    query_cols: str | list[str] | None,
     query: str | None,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
@@ -313,9 +287,7 @@ def test_get_private_columns(
 
     Note that the population view's base query is ignored when getting private columns
     """
-    pv_kwargs, kwargs = _resolve_kwargs(
-        include_default_query, pv_query_cols, pv_query, query_cols, query
-    )
+    pv_kwargs, kwargs = _resolve_kwargs(include_default_query, pv_query, query)
     if private_columns is not None:
         kwargs["private_columns"] = private_columns
 
@@ -345,18 +317,6 @@ def test_get_private_columns_raises(pies_and_cubes_pop_mgr: PopulationManager) -
     ):
         pv.get_private_columns(index, private_columns=["pie", "pi", "foo"])
 
-    with pytest.raises(
-        PopulationError,
-        match="you must also provide the ``query_columns``",
-    ):
-        pv.get_private_columns(index, query="pi < 10")
-
-    with pytest.raises(
-        PopulationError,
-        match="you must also provide the ``query_columns``",
-    ):
-        pv.get_private_columns(index, query_columns=["pi"])
-
     pv._component = None
     with pytest.raises(
         PopulationError,
@@ -374,9 +334,7 @@ def test_get_private_columns_empty_list(pies_and_cubes_pop_mgr: PopulationManage
     assert no_attributes.index.equals(full_index)
     assert no_attributes.equals(pd.DataFrame(index=full_index))
 
-    apples = pv.get_private_columns(
-        full_index, [], query_columns="pie", query="pie == 'apple'"
-    )
+    apples = pv.get_private_columns(full_index, [], query="pie == 'apple'")
     assert isinstance(apples, pd.DataFrame)
     apple_index = PIE_DF[PIE_DF["pie"] == "apple"].index
     assert apples.equals(pd.DataFrame(index=apple_index))
@@ -387,7 +345,7 @@ def test_get_private_columns_query_removes_all(
 ) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     full_index = pd.RangeIndex(0, len(PIE_RECORDS))
-    empty_pop = pv.get_private_columns(full_index, query_columns="pi", query="pi == 'oops'")
+    empty_pop = pv.get_private_columns(full_index, query="pi == 'oops'")
     assert isinstance(empty_pop, pd.DataFrame)
     assert empty_pop.equals(PIE_DF.iloc[0:0][PIE_COL_NAMES])
 
@@ -429,46 +387,17 @@ def test_get_private_columns_squeezing() -> None:
 def test_get_filtered_index(
     include_default_query: bool,
     update_index: pd.Index[int],
-    pv_query_cols: str | list[str] | None,
     pv_query: str | None,
-    query_cols: str | list[str] | None,
     query: str | None,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
-    pv_kwargs, kwargs = _resolve_kwargs(
-        include_default_query, pv_query_cols, pv_query, query_cols, query
-    )
+    pv_kwargs, kwargs = _resolve_kwargs(include_default_query, pv_query, query)
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
     pop_idx = pv.get_filtered_index(update_index, **kwargs)
 
     combined_query = _combine_queries(include_default_query, pv_query, query)
     expected_pop = _get_expected(update_index, combined_query)
     assert pop_idx.equals(expected_pop.index)
-
-
-def test_get_filtered_index_raises(
-    pies_and_cubes_pop_mgr: PopulationManager,
-) -> None:
-    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
-    full_index = pd.RangeIndex(0, len(PIE_RECORDS))
-
-    with pytest.raises(
-        PopulationError,
-        match="you must also provide the ``query_columns``",
-    ):
-        pv.get_filtered_index(
-            full_index,
-            query="pi < 10",
-        )
-
-    with pytest.raises(
-        PopulationError,
-        match="you must also provide the ``query_columns``",
-    ):
-        pv.get_filtered_index(
-            full_index,
-            query_columns=["pi"],
-        )
 
 
 #################################
@@ -955,33 +884,16 @@ def test_population_view_update_time_step(
 
 def _resolve_kwargs(
     include_default_query: bool,
-    pv_query_cols: str | list[str] | None,
     pv_query: str | None,
-    query_cols: str | list[str] | None,
     query: str | None,
-    exclude_cols_kwargs: bool = False,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     kwargs: dict[str, bool | str | list[str]] = {}
     kwargs["include_default_query"] = include_default_query
     pv_kwargs: dict[str, str] = {}
     if pv_query is not None:
         pv_kwargs["default_query"] = pv_query
-        if include_default_query and not exclude_cols_kwargs:
-            assert pv_query_cols is not None
-            kwargs["query_columns"] = pv_query_cols
     if query is not None:
         kwargs["query"] = query
-        if not exclude_cols_kwargs:
-            assert query_cols is not None
-            existing_cols = kwargs.get("query_columns", [])
-            if isinstance(existing_cols, str):
-                existing_cols = [existing_cols]
-            if isinstance(query_cols, str):
-                query_cols = [query_cols]
-
-            assert isinstance(existing_cols, list) and isinstance(query_cols, list)
-            all_cols = existing_cols + query_cols
-            kwargs["query_columns"] = all_cols if len(all_cols) > 1 else all_cols[0]
 
     return pv_kwargs, kwargs
 

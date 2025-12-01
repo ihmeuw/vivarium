@@ -170,7 +170,6 @@ class PopulationView:
         self,
         index: pd.Index[int],
         private_columns: str = ...,
-        query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
@@ -182,7 +181,6 @@ class PopulationView:
         self,
         index: pd.Index[int],
         private_columns: list[str] | tuple[str, ...] = ...,
-        query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
@@ -194,7 +192,6 @@ class PopulationView:
         self,
         index: pd.Index[int],
         private_columns: None = None,
-        query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
@@ -205,7 +202,6 @@ class PopulationView:
         self,
         index: pd.Index[int],
         private_columns: str | list[str] | tuple[str, ...] | None = None,
-        query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
@@ -223,9 +219,6 @@ class PopulationView:
         private_columns
             The private columns to retrieve. If None, all columns created by the
             component that created this view are included.
-        query_columns
-            The (public) column(s) needed to evaluate the query string as well
-            as the PopulationView's query if ``include_default_query`` is True.
         query
             Additional conditions used to filter the index. If ``include_default_query``
             is True, it will be combined with this PopulationView's query property.
@@ -251,7 +244,7 @@ class PopulationView:
             query = " and ".join(filter(None, self._manager.tracked_queries + [query]))
 
         index = self.get_filtered_index(
-            index, query_columns, query, include_default_query=False, exclude_untracked=False
+            index, query, include_default_query=False, exclude_untracked=False
         )
 
         return self._manager.get_private_columns(self._component, index, private_columns)
@@ -259,7 +252,6 @@ class PopulationView:
     def get_filtered_index(
         self,
         index: pd.Index[int],
-        query_columns: str | list[str] | tuple[str, ...] = (),
         query: str = "",
         include_default_query: bool = True,
         exclude_untracked: bool = True,
@@ -272,9 +264,6 @@ class PopulationView:
         ----------
         index
             Index of the population to get.
-        query_columns
-            The (public) column(s) needed to evaluate the query string as well
-            as the PopulationView's query if ``include_default_query`` is True.
         query
             Additional conditions used to filter the index. If ``include_default_query``
             is True, it will be combined with this PopulationView's query property.
@@ -293,13 +282,8 @@ class PopulationView:
         if exclude_untracked:
             query = " and ".join(filter(None, self._manager.tracked_queries + [query]))
 
-        if bool(query) != bool(query_columns):
-            raise PopulationError(
-                "When providing a ``query``, you must also provide the ``query_columns``"
-                "needed to evaluate that query (and vice versa)."
-            )
-
         if query:
+            query_columns = list(self._manager.extract_columns_from_query(query))
             index = self.get_attributes(
                 index,
                 query_columns,
