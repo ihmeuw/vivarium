@@ -22,6 +22,7 @@ from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.population_view import PopulationView
 from vivarium.framework.resource import Resource
+from vivarium.framework.utilities import combine_queries
 from vivarium.manager import Manager
 
 if TYPE_CHECKING:
@@ -623,7 +624,7 @@ class PopulationManager(Manager):
             query_columns = self.extract_columns_from_query(query)
             # We can remove these columns from requested columns to be fetched later
             columns_to_get = columns_to_get.difference(query_columns)
-            missing_query_columns = query_columns - set(self._attribute_pipelines)
+            missing_query_columns = query_columns.difference(set(self._attribute_pipelines))
             if missing_query_columns:
                 raise PopulationError(
                     f"Query references attribute(s) {missing_query_columns} not in "
@@ -681,6 +682,10 @@ class PopulationManager(Manager):
         # Combine query words and columns
         query = re.sub(r"\s+", " ", query).strip()
         return set(query.split(" ") + columns)
+
+    def add_tracked_query(self, query: str) -> str:
+        """Combines the provided query with all registered tracked queries."""
+        return combine_queries(self.tracked_queries, query)
 
     def _get_attributes(
         self, idx: pd.Index[int], requested_attributes: Sequence[str]

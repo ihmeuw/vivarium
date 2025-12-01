@@ -500,6 +500,7 @@ def test_register_tracked_query(mocker: MockerFixture) -> None:
     # Check duplicates are ignored
     mocker.patch.object(mgr, "logger", mocker.Mock(), create=True)
     mgr.register_tracked_query("foo == 'bar'")
+    mgr.logger.warning.assert_called_once()  # type: ignore[attr-defined]
     assert mgr.tracked_queries == ["foo == 'bar'", "cat != dog"]
 
 
