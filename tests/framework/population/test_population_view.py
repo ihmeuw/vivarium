@@ -266,24 +266,20 @@ def test_get_attributes_squeezing() -> None:
 )
 @pytest.mark.parametrize("private_columns", [None, PIE_COL_NAMES[1:]])
 @pytest.mark.parametrize(
-    "query_cols, query",
+    "query",
     [
-        (None, None),
-        ("pi", "pi < 1000"),
-        ("pie", "pie != 'pumpkin'"),
-        (["pi", "pie"], "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato')"),
+        None,
+        "pi < 1000",
+        "pie != 'pumpkin'",
+        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato')",
         # We can also filter by public columns
-        ("cube", "cube > 1000"),
-        (
-            ["pi", "pie", "cube"],
-            "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 500 < cube < 1000",
-        ),
+        "cube > 1000",
+        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 500 < cube < 1000",
     ],
 )
 def test_get_private_columns(
     index: pd.Index[int],
     private_columns: list[str] | None,
-    query_cols: str | list[str] | None,
     query: str | None,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
@@ -295,9 +291,8 @@ def test_get_private_columns(
     kwargs = {}
     if private_columns is not None:
         kwargs["private_columns"] = private_columns
-    if query is not None and query_cols is not None:
+    if query is not None:
         kwargs["query"] = query  # type: ignore[assignment]
-        kwargs["query_columns"] = query_cols  # type: ignore[assignment]
     pop = pv.get_private_columns(index, **kwargs)  # type: ignore[call-overload]
     assert isinstance(pop, pd.DataFrame)
     assert not pop.empty, "Test setup error: expected non-empty population."
@@ -327,18 +322,6 @@ def test_get_private_columns_raises(pies_and_cubes_pop_mgr: PopulationManager) -
     ):
         pv.get_private_columns(index, private_columns=["pie", "pi", "foo"])
 
-    with pytest.raises(
-        PopulationError,
-        match="you must also provide the ``query_columns``",
-    ):
-        pv.get_private_columns(index, query="pi < 10")
-
-    with pytest.raises(
-        PopulationError,
-        match="you must also provide the ``query_columns``",
-    ):
-        pv.get_private_columns(index, query_columns=["pi"])
-
     pv._component = None
     with pytest.raises(
         PopulationError,
@@ -356,9 +339,7 @@ def test_get_private_columns_empty_list(pies_and_cubes_pop_mgr: PopulationManage
     assert no_attributes.index.equals(full_index)
     assert no_attributes.equals(pd.DataFrame(index=full_index))
 
-    apples = pv.get_private_columns(
-        full_index, [], query_columns="pie", query="pie == 'apple'"
-    )
+    apples = pv.get_private_columns(full_index, [], query="pie == 'apple'")
     assert isinstance(apples, pd.DataFrame)
     apple_index = PIE_DF[PIE_DF["pie"] == "apple"].index
     assert apples.equals(pd.DataFrame(index=apple_index))
@@ -369,7 +350,7 @@ def test_get_private_columns_query_removes_all(
 ) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
     full_index = pd.RangeIndex(0, len(PIE_RECORDS))
-    empty_pop = pv.get_private_columns(full_index, query_columns="pi", query="pi == 'oops'")
+    empty_pop = pv.get_private_columns(full_index, query="pi == 'oops'")
     assert isinstance(empty_pop, pd.DataFrame)
     assert empty_pop.equals(PIE_DF.iloc[0:0][PIE_COL_NAMES])
 
@@ -411,31 +392,26 @@ def test_get_private_columns_squeezing() -> None:
     "index", [pd.RangeIndex(0, len(PIE_RECORDS)), pd.RangeIndex(0, len(PIE_RECORDS) // 2)]
 )
 @pytest.mark.parametrize(
-    "query_cols, query",
+    "query",
     [
-        (None, None),
-        ("pi", "pi < 1000"),
-        ("pie", "pie != 'pumpkin'"),
-        (["pi", "pie"], "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato')"),
+        None,
+        "pi < 1000",
+        "pie != 'pumpkin'",
+        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato')",
         # We can also filter by public columns
-        ("cube", "cube > 1000"),
-        (
-            ["pi", "pie", "cube"],
-            "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 500 < cube < 1000",
-        ),
+        "cube > 1000",
+        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 500 < cube < 1000",
     ],
 )
 def test_get_filtered_index(
     index: pd.Index[int],
-    query_cols: str | list[str] | None,
     query: str | None,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), query="foo == 'bar'")
     kwargs = {}
-    if query is not None and query_cols is not None:
+    if query is not None:
         kwargs["query"] = query
-        kwargs["query_columns"] = query_cols  # type: ignore[assignment]
     pop_idx = pv.get_filtered_index(index, **kwargs)
     assert not pop_idx.empty, "Test setup error: expected non-empty population."
     # Note that we do NOT combine the pop view query here
@@ -448,31 +424,6 @@ def test_get_filtered_index(
             expected_pop.drop("cube", axis=1, inplace=True)
 
     assert pop_idx.equals(expected_pop.index)
-
-
-def test_get_filtered_index_raises(
-    pies_and_cubes_pop_mgr: PopulationManager,
-) -> None:
-    pv = pies_and_cubes_pop_mgr.get_view(PieComponent())
-    full_index = pd.RangeIndex(0, len(PIE_RECORDS))
-
-    with pytest.raises(
-        PopulationError,
-        match="you must also provide the ``query_columns``",
-    ):
-        pv.get_filtered_index(
-            full_index,
-            query="pi < 10",
-        )
-
-    with pytest.raises(
-        PopulationError,
-        match="you must also provide the ``query_columns``",
-    ):
-        pv.get_filtered_index(
-            full_index,
-            query_columns=["pi"],
-        )
 
 
 #################################
