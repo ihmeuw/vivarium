@@ -495,9 +495,12 @@ def test_extract_columns_from_query() -> None:
     manager = PopulationManager()
     query = (
         # Basic
-        "alive == 'Alive' and is_aged_out == False "
+        "alive == 'Alive' and is_aged_out == False and "
         # No spaces
         "answer==42 or "
+        "answer_str=='forty-two' or "
+        "43!=correct_answer and "
+        "duck!=goose or "
         # Mixed operators and casing
         "(10 < age < 20 OR sex == 'Female') IF tiger == 'hobbes' AND "
         # Column-column comparisons and @constants
@@ -516,13 +519,20 @@ def test_extract_columns_from_query() -> None:
         "`column{3}` < 50 or "
         # Quotes
         "`\"quz\"` == 'value' or "
-        'nothing != "something"'
+        'nothing != "something" and '
+        # in logic
+        "color in ['red', 'blue', 'green'] or "
+        "shape not in ['circle', 'square']"
     )
     query_columns = manager.extract_columns_from_query(query)
     assert query_columns == {
         "alive",
         "is_aged_out",
         "answer",
+        "answer_str",
+        "correct_answer",
+        "duck",
+        "goose",
         "age",
         "sex",
         "tiger",
@@ -541,4 +551,6 @@ def test_extract_columns_from_query() -> None:
         "column{3}",
         '"quz"',
         "nothing",
+        "color",
+        "shape",
     }

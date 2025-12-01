@@ -644,20 +644,20 @@ class PopulationManager(Manager):
         # Begin dropping known non-columns from query
         # Remove backticked content
         query = re.sub(r"`[^`]*`", "", query)
-        # Remove keywords
-        query = re.sub(r"\b(and|if|or|True|False)\b", "", query, flags=re.IGNORECASE)
+        # Remove keywords including "in" and "not in"
+        query = re.sub(
+            r"\b(and|if|or|True|False|in|not\s+in)\b", "", query, flags=re.IGNORECASE
+        )
         # Remove quoted strings
         query = re.sub(r"'[^']*'|\"[^\"]*\"", "", query)
         # Remove numbers
         query = re.sub(r"\d+", "", query)
         # Remove @ references
         query = re.sub(r"@\S+", "", query)
-        # Remove entirely non-alphanumeric strings
-        query = re.sub(
-            r"\b[^a-zA-Z0-9_\s]+\b|[^a-zA-Z0-9_\s]+(?=\s|$)|(?<=\s)[^a-zA-Z0-9_\s]+",
-            "",
-            query,
-        )
+        # Remove list/array syntax
+        query = re.sub(r"\[[^\]]*\]", "", query)
+        # Remove operators and punctuation but preserve column names
+        query = re.sub(r"[!=<>]+|[()&|~\-+*/,.]", " ", query)
 
         # Combine query words and columns
         query = re.sub(r"\s+", " ", query).strip()
