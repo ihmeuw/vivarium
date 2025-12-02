@@ -360,26 +360,6 @@ def test_get_population_raises_bad_string(pies_and_cubes_pop_mgr: PopulationMana
         pies_and_cubes_pop_mgr.get_population("invalid_string")  # type: ignore[call-overload]
 
 
-def test_get_population_raises_multilevel_query_columns(
-    pies_and_cubes_pop_mgr: PopulationManager,
-) -> None:
-    with pytest.raises(
-        NotImplementedError, match="Queries on multi-index columns are not supported"
-    ):
-        # Manually convert the private columns to multi-index
-        assert isinstance(pies_and_cubes_pop_mgr._private_columns, pd.DataFrame)
-        private_columns = pd.DataFrame(
-            pies_and_cubes_pop_mgr._private_columns.values,
-            index=pies_and_cubes_pop_mgr._private_columns.index,
-            columns=pd.MultiIndex.from_tuples(
-                [("pie", ""), ("pi", ""), ("cube", "number"), ("cube", "string")]
-            ),
-        )
-        pies_and_cubes_pop_mgr._private_columns = private_columns
-        # Query on the multi-index column
-        pies_and_cubes_pop_mgr.get_population(["pie"], query="cube < 1000")
-
-
 def test__get_attributes_three_or_more_levels_not_implemented() -> None:
     class BadAttributeCreator(Component):
         def setup(self, builder: Builder) -> None:

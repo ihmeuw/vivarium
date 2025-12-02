@@ -631,13 +631,6 @@ class PopulationManager(Manager):
                     "population table."
                 )
             query_df = self._get_attributes(idx, list(query_columns))
-            if isinstance(query_df.columns, pd.MultiIndex):
-                # FIXME [MIC-6645]
-                raise NotImplementedError(
-                    "Queries on multi-index columns are not supported.\n"
-                    f"query: {query}\n"
-                    f"query columns: {query_df.columns}"
-                )
             query_df = query_df.query(query)
             idx = query_df.index
 
@@ -733,6 +726,7 @@ class PopulationManager(Manager):
             values = self._attribute_pipelines[name](idx)
             # Check for multi-level columns in values
             if isinstance(values, pd.DataFrame) and isinstance(values.columns, pd.MultiIndex):
+                # FIXME [MIC-6645]
                 raise NotImplementedError(
                     f"The '{name}' attribute pipeline returned a DataFrame with multi-level "
                     f"columns (nlevels={values.columns.nlevels}). Multi-level columns in "
