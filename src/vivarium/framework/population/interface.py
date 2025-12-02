@@ -138,3 +138,13 @@ class PopulationInterface(Interface):
             The component that is registering its private columns.
         """
         self._manager.register_private_columns(component)
+
+    def register_tracked_query(self, query: str) -> None:
+        """Updates the default query for all population views.
+
+        Parameters
+        ----------
+        query
+            The new default query to apply to all population views.
+        """
+        self._manager.register_tracked_query(query)
