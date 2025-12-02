@@ -23,6 +23,7 @@ from tests.helpers import (
     SingleColumnCreator,
 )
 from vivarium import Component, InteractiveContext
+from vivarium.framework.engine import Builder
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
     InitializerComponentSet,
@@ -377,6 +378,31 @@ def test_get_population_raises_multilevel_query_columns(
         pies_and_cubes_pop_mgr._private_columns = private_columns
         # Query on the multi-index column
         pies_and_cubes_pop_mgr.get_population(["pie"], query="cube < 1000")
+
+
+def test__get_attributes_three_or_more_levels_not_implemented() -> None:
+    class BadAttributeCreator(Component):
+        def setup(self, builder: Builder) -> None:
+            builder.value.register_attribute_producer(
+                "animals",
+                lambda idx: pd.DataFrame(
+                    {
+                        ("cat", "size"): "teeny-tiny",
+                        ("cat", "color"): "tuxedo",
+                        ("dog", "size"): "huge",
+                        ("dog", "color"): "spotted",
+                    },
+                    index=idx,
+                ),
+                component=self,
+            )
+
+    sim = InteractiveContext(components=[BadAttributeCreator()], setup=True)
+    with pytest.raises(
+        NotImplementedError,
+        match="Multi-level columns in attribute pipeline outputs are not supported.",
+    ):
+        sim._population.get_population(["animals"])
 
 
 def test_get_population_deduplicates_requested_columns(
