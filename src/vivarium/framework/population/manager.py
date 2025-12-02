@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 
 import pandas as pd
 
+import vivarium.framework.population.utilities as pop_utils
 from vivarium.framework.event import Event
 from vivarium.framework.lifecycle import lifecycle_states
 from vivarium.framework.population.exceptions import PopulationError
@@ -249,6 +250,23 @@ class PopulationManager(Manager):
         self.creating_initial_population = False
         self.adding_simulants = False
         self._last_id = -1
+        self.tracked_queries: list[str] = []
+
+    def register_tracked_query(self, query: str) -> None:
+        """Updates list of registered tracked queries.
+
+        Parameters
+        ----------
+        query
+            The new default query to apply to all population views.
+        """
+        if query in self.tracked_queries:
+            self.logger.warning(
+                f"The tracked query '{query}' has already been registered. "
+                "Duplicate registrations are ignored."
+            )
+            return
+        self.tracked_queries.append(query)
 
     ############################
     # Normal Component Methods #
@@ -313,7 +331,7 @@ class PopulationManager(Manager):
     def get_view(
         self,
         component: Component | None = None,
-        query: str = "",
+        default_query: str = "",
     ) -> PopulationView:
         """Get a time-varying view of the population state table.
 
@@ -325,8 +343,8 @@ class PopulationManager(Manager):
         component
             The component requesting this view. If None, the view will provide
             read-only access.
-        query
-            A filter on the population state.  This filters out particular
+        default_query
+            A filter on the population state. This filters out particular
             simulants (rows in the state table) based on their current state.
             The query should be provided in a way that is understood by the
             :meth:`pandas.DataFrame.query` method and may reference any attributes
@@ -337,7 +355,7 @@ class PopulationManager(Manager):
             A filtered view of the requested private columns of the population state table.
 
         """
-        view = self._get_view(component, query)
+        view = self._get_view(component, default_query)
         self._add_constraint(
             view.get_attributes,
             restrict_during=[
@@ -361,10 +379,12 @@ class PopulationManager(Manager):
     def _get_view(
         self,
         component: Component | None,
-        query: str,
+        default_query: str,
     ) -> PopulationView:
         self._last_id += 1
-        return PopulationView(self, component, self._last_id, query)
+        view = PopulationView(self, component, self._last_id)
+        view.set_default_query(default_query)
+        return view
 
     def register_simulant_initializer(
         self,
@@ -604,7 +624,7 @@ class PopulationManager(Manager):
             query_columns = self.extract_columns_from_query(query)
             # We can remove these columns from requested columns to be fetched later
             columns_to_get = columns_to_get.difference(query_columns)
-            missing_query_columns = query_columns - set(self._attribute_pipelines)
+            missing_query_columns = query_columns.difference(set(self._attribute_pipelines))
             if missing_query_columns:
                 raise PopulationError(
                     f"Query references attribute(s) {missing_query_columns} not in "
@@ -662,6 +682,10 @@ class PopulationManager(Manager):
         # Combine query words and columns
         query = re.sub(r"\s+", " ", query).strip()
         return set(query.split(" ") + columns)
+
+    def add_tracked_query(self, query: str) -> str:
+        """Combines the provided query with all registered tracked queries."""
+        return pop_utils.combine_queries(self.tracked_queries, query)
 
     def _get_attributes(
         self, idx: pd.Index[int], requested_attributes: Sequence[str]

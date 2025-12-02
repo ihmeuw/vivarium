@@ -11,7 +11,6 @@ from tests.helpers import (
     ColumnCreatorAndRequirer,
     CustomPriorities,
     DefaultPriorities,
-    FilteredPopulationView,
     LookupCreator,
     NoPopulationView,
     OrderedColumnsLookupCreator,
@@ -109,14 +108,6 @@ def test_component_with_initialization_requirements() -> None:
     assert "value.pipeline_1" in component_dependencies
     assert "column.test_column_2" in component_dependencies
     assert "stream.stream_1" in component_dependencies
-
-
-def test_component_with_filtered_population_view() -> None:
-    component = FilteredPopulationView()
-    InteractiveContext(components=[ColumnCreator(), component])
-
-    # Assert population view is being filtered using the desired query
-    assert component.population_view.query == "test_column_1 == 5"
 
 
 def test_component_population_view_raises_before_setup() -> None:
