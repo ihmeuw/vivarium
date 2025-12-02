@@ -23,6 +23,7 @@ from tests.helpers import (
     SingleColumnCreator,
 )
 from vivarium import Component, InteractiveContext
+from vivarium.framework.engine import Builder
 from vivarium.framework.population.exceptions import PopulationError
 from vivarium.framework.population.manager import (
     InitializerComponentSet,
@@ -278,7 +279,15 @@ class TestGetPopulationSqueezing:
 
 
 @pytest.mark.parametrize("include_duplicates", [False, True])
-def test_get_population_column_ordering(include_duplicates: bool) -> None:
+@pytest.mark.parametrize(
+    "query",
+    [
+        None,  # default
+        "test_column_1 < 2",  # query on a requested column
+        "test_column_2 < 2",  # query on a non-requested column
+    ],
+)
+def test_get_population_column_ordering(include_duplicates: bool, query: str | None) -> None:
     def _extract_ordered_list(cols: list[str]) -> list[tuple[str, str]]:
         col_mapping = {
             "test_column_1": ("test_column_1", ""),
@@ -300,8 +309,10 @@ def test_get_population_column_ordering(include_duplicates: bool) -> None:
                     expected_cols.append(col_tuple)
         return expected_cols
 
-    def _check_col_ordering(sim: InteractiveContext, cols: list[str]) -> None:
-        pop = sim._population.get_population(cols)
+    def _check_col_ordering(
+        sim: InteractiveContext, kwargs: dict[str, str | list[str]]
+    ) -> None:
+        pop = sim._population.get_population(**kwargs)  # type: ignore[call-overload]
         expected_cols = _extract_ordered_list(cols)
         assert isinstance(pop.columns, pd.MultiIndex)
         returned_cols = pop.columns.tolist()
@@ -314,12 +325,16 @@ def test_get_population_column_ordering(include_duplicates: bool) -> None:
     cols = ["test_column_1", "attribute_generating_columns_4_5", "test_attribute"]
     if include_duplicates:
         cols.extend(cols)  # duplicate the list
-    _check_col_ordering(sim, cols)
+    kwargs: dict[str, str | list[str]] = {}
+    kwargs["attributes"] = cols
+    if query is not None:
+        kwargs["query"] = query
+    _check_col_ordering(sim, kwargs)
     # Now try reversing the order
-    # NOTE: we specifically do not parameterize this test to ensure that the two
+    # NOTE: we specifically do not parametrize this test to ensure that the two
     # 'get_population' calls are happening on exactly the same population manager
     cols.reverse()
-    _check_col_ordering(sim, cols)
+    _check_col_ordering(sim, kwargs)
 
 
 @pytest.mark.parametrize(
@@ -343,6 +358,31 @@ def test_get_population_raises_bad_string(pies_and_cubes_pop_mgr: PopulationMana
         PopulationError, match="Attributes must be a list of strings or 'all'"
     ):
         pies_and_cubes_pop_mgr.get_population("invalid_string")  # type: ignore[call-overload]
+
+
+def test__get_attributes_three_or_more_levels_not_implemented() -> None:
+    class BadAttributeCreator(Component):
+        def setup(self, builder: Builder) -> None:
+            builder.value.register_attribute_producer(
+                "animals",
+                lambda idx: pd.DataFrame(
+                    {
+                        ("cat", "size"): "teeny-tiny",
+                        ("cat", "color"): "tuxedo",
+                        ("dog", "size"): "huge",
+                        ("dog", "color"): "spotted",
+                    },
+                    index=idx,
+                ),
+                component=self,
+            )
+
+    sim = InteractiveContext(components=[BadAttributeCreator()], setup=True)
+    with pytest.raises(
+        NotImplementedError,
+        match="Multi-level columns in attribute pipeline outputs are not supported.",
+    ):
+        sim._population.get_population(["animals"])
 
 
 def test_get_population_deduplicates_requested_columns(
@@ -522,6 +562,7 @@ def test_extract_columns_from_query() -> None:
         "band == xplor or iffy == 'sketchy' and "
         # Underscores
         "some_col == True or "
+        "test_column_1 != 5 and "
         # Casing
         "Foo != Bar and "
         # Special names requiring backticks
@@ -555,6 +596,7 @@ def test_extract_columns_from_query() -> None:
         "xplor",
         "iffy",
         "some_col",
+        "test_column_1",
         "Foo",
         "Bar",
         "spaced column",

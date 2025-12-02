@@ -622,7 +622,7 @@ class PopulationManager(Manager):
         columns_to_get = set(requested_attributes)
         if query:
             query_columns = self.extract_columns_from_query(query)
-            # We can remove these columns from requested columns to be fetched later
+            # We can remove these query columns from requested columns (and will fetch later)
             columns_to_get = columns_to_get.difference(query_columns)
             missing_query_columns = query_columns.difference(set(self._attribute_pipelines))
             if missing_query_columns:
@@ -634,10 +634,21 @@ class PopulationManager(Manager):
             query_df = query_df.query(query)
             idx = query_df.index
 
-        # Get requested attributes for the (potentially filtered) index
-        # Skip getting attributes that were already retrieved in the query
         df = self._get_attributes(idx, list(columns_to_get))
-        df = pd.concat([df, query_df], axis=1) if query else df
+
+        # Add on any query columns that are actually requested to be returned
+        requested_query_columns = (
+            query_columns.intersection(set(requested_attributes)) if query else set()
+        )
+        if requested_query_columns:
+            requested_query_df = query_df[list(requested_query_columns)]
+            if isinstance(df.columns, pd.MultiIndex):
+                # Make the query df multi-index to prevent converting columns from
+                # multi-index to single index w/ tuples for column names
+                requested_query_df.columns = pd.MultiIndex.from_product(
+                    [requested_query_df.columns, [""]]
+                )
+            df = pd.concat([df, requested_query_df], axis=1)
 
         # Maintain column ordering
         df = df[requested_attributes]
@@ -670,8 +681,8 @@ class PopulationManager(Manager):
         )
         # Remove quoted strings
         query = re.sub(r"'[^']*'|\"[^\"]*\"", "", query)
-        # Remove numbers
-        query = re.sub(r"\d+", "", query)
+        # Remove standalone numbers (not part of identifiers)
+        query = re.sub(r"\b\d+\b", "", query)
         # Remove @ references
         query = re.sub(r"@\S+", "", query)
         # Remove list/array syntax
@@ -724,7 +735,15 @@ class PopulationManager(Manager):
                     )
                 values.name = name
             else:
-                # Must be a dataframe - need to add another index level to each column
+                # Must be a dataframe. Coerce the columns to multi-index and set the
+                # attribute name as the outer level.
+                if isinstance(values.columns, pd.MultiIndex):
+                    # FIXME [MIC-6645]
+                    raise NotImplementedError(
+                        f"The '{name}' attribute pipeline returned a DataFrame with multi-level "
+                        f"columns (nlevels={values.columns.nlevels}). Multi-level columns in "
+                        "attribute pipeline outputs are not supported."
+                    )
                 values.columns = pd.MultiIndex.from_product([[name], values.columns])
                 contains_column_multi_index = True
             attributes_list.append(values)
