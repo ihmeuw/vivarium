@@ -6,6 +6,7 @@ from typing import Any
 
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from tests.framework.population.conftest import (
     CUBE_COL_NAMES,
@@ -74,6 +75,36 @@ def population_update_new_cols(
     return update
 
 
+@pytest.fixture(
+    params=[
+        None,
+        "pi < 1000",
+        "pie != 'pumpkin'",
+        "pi > 1000 and (pie == 'apple' or pie == 'sweet_potato')",
+        # We can also filter by public columns
+        "1000 < cube < 10000",
+        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 500 < cube < 1000",
+    ]
+)
+def query(request: pytest.FixtureRequest) -> str | None:
+    assert isinstance(request.param, (str, type(None)))
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        None,
+        "pi > 10",
+        "pie == 'chocolate'",
+        "cube > 20000",
+        "pi < 10000 and pie != 'apple' and cube < 40000",
+    ]
+)
+def pop_view_default_query(request: pytest.FixtureRequest) -> str | None:
+    assert isinstance(request.param, (str, type(None)))
+    return request.param
+
+
 ##################
 # Initialization #
 ##################
@@ -85,14 +116,26 @@ def test_initialization(pies_and_cubes_pop_mgr: PopulationManager) -> None:
     assert pv._id == 0
     assert pv.name == f"population_view_{pv._id}"
     assert set(pv.private_columns) == set(component.columns_created)
-    assert pv.query == ""
+    assert pv._default_query == ""
 
     q_string = "color == 'red'"
-    pv = pies_and_cubes_pop_mgr.get_view(component, query=q_string)
+    pv = pies_and_cubes_pop_mgr.get_view(component, default_query=q_string)
     assert pv._id == 1
     assert pv.name == f"population_view_{pv._id}"
     assert set(pv.private_columns) == set(component.columns_created)
-    assert pv.query == q_string
+    assert pv._default_query == q_string
+
+
+####################################
+# PopulationView.set_default_query #
+####################################
+
+
+def test_set_default_query(mocker: MockerFixture) -> None:
+    pv = PopulationView(mocker.Mock(), mocker.Mock(), 0)
+    assert pv._default_query == ""
+    pv.set_default_query("foo == 'bar'")
+    assert pv._default_query == "foo == 'bar'"
 
 
 #################################
@@ -138,66 +181,43 @@ def test_get_attributes_raises(pies_and_cubes_pop_mgr: PopulationManager) -> Non
     ):
         pv.get_attributes(index, "foo")
 
-    with pytest.raises(
-        PopulationError,
-        match="provide the columns needed to evaluate that query",
-    ):
-        pv.get_attributes(index, [], "pie == 'apple'")
 
-
-@pytest.mark.parametrize(
-    "pv_query",
-    [
-        None,
-        "pi > 10",
-        "pie == 'chocolate'",
-        "cube > 20000",
-        "pi < 10000 and pie != 'apple' and cube < 40000",
-    ],
-)
-@pytest.mark.parametrize(
-    "additional_query",
-    [
-        None,
-        "pi < 3000",
-        "pie != 'pumpkin'",
-        # We can also filter by public columns
-        "10000 <= cube <= 40000",
-        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and cube > 15000",
-    ],
-)
+@pytest.mark.parametrize("include_default_query", [True, False])
+@pytest.mark.parametrize("register_tracked_query", [True, False])
+@pytest.mark.parametrize("exclude_untracked", [True, False])
 def test_get_attributes_combined_query(
-    pv_query: str | None,
-    additional_query: str | None,
+    include_default_query: bool,
+    register_tracked_query: bool,
+    exclude_untracked: bool,
+    update_index: pd.Index[int],
+    pop_view_default_query: str | None,
+    query: str | None,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
     """Test that queries provided to the pop view and via get_attributes are combined correctly."""
-    pv_kwargs = {}
-    if pv_query is not None:
-        pv_kwargs["query"] = pv_query
-    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
-    full_idx = pd.RangeIndex(0, len(PIE_RECORDS))
-    kwargs = {}
-    if additional_query is not None:
-        kwargs["query"] = additional_query
 
-    combined_query_parts = []
-    if pv_query is not None:
-        combined_query_parts.append(f"{pv_query}")
-    if additional_query is not None:
-        combined_query_parts.append(f"{additional_query}")
-    combined_query = " and ".join(combined_query_parts)
+    if register_tracked_query:
+        pies_and_cubes_pop_mgr.register_tracked_query("cube < 1000")
+    pv_kwargs, kwargs = _resolve_kwargs(
+        include_default_query, exclude_untracked, pop_view_default_query, query
+    )
+    combined_query = _combine_queries(
+        include_default_query,
+        pop_view_default_query,
+        exclude_untracked,
+        pies_and_cubes_pop_mgr.tracked_queries,
+        query,
+    )
 
     col_request = PIE_COL_NAMES.copy()
     if combined_query and "cube" in combined_query:
         col_request += ["cube"]
-    pop = pv.get_attributes(full_idx, col_request, **kwargs)  # type: ignore[call-overload]
+
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
+    pop = pv.get_attributes(update_index, col_request, **kwargs)
     assert isinstance(pop, pd.DataFrame)
-    expected_pop = PIE_DF
-    if combined_query:
-        if "cube" in combined_query:
-            expected_pop = pd.concat([expected_pop, CUBE_DF["cube"]], axis=1)
-        expected_pop = expected_pop.query(combined_query)
+
+    expected_pop = _get_expected(update_index, combined_query)
     assert pop.equals(expected_pop)
 
 
@@ -261,52 +281,44 @@ def test_get_attributes_squeezing() -> None:
 ######################################
 
 
-@pytest.mark.parametrize(
-    "index", [pd.RangeIndex(0, len(PIE_RECORDS)), pd.RangeIndex(0, len(PIE_RECORDS) // 2)]
-)
 @pytest.mark.parametrize("private_columns", [None, PIE_COL_NAMES[1:]])
-@pytest.mark.parametrize(
-    "query",
-    [
-        None,
-        "pi < 1000",
-        "pie != 'pumpkin'",
-        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato')",
-        # We can also filter by public columns
-        "cube > 1000",
-        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 500 < cube < 1000",
-    ],
-)
+@pytest.mark.parametrize("include_default_query", [True, False])
+@pytest.mark.parametrize("register_tracked_query", [True, False])
+@pytest.mark.parametrize("exclude_untracked", [True, False])
 def test_get_private_columns(
-    index: pd.Index[int],
     private_columns: list[str] | None,
+    include_default_query: bool,
+    register_tracked_query: bool,
+    exclude_untracked: bool,
+    update_index: pd.Index[int],
+    pop_view_default_query: str | None,
     query: str | None,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
-    """Test that query works as expected.
-
-    Note that the population view's base query is ignored when getting private columns
-    """
-    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), query="foo == 'bar'")
-    kwargs = {}
+    if register_tracked_query:
+        pies_and_cubes_pop_mgr.register_tracked_query("cube < 1000")
+    pv_kwargs, kwargs = _resolve_kwargs(
+        include_default_query, exclude_untracked, pop_view_default_query, query
+    )
     if private_columns is not None:
         kwargs["private_columns"] = private_columns
-    if query is not None:
-        kwargs["query"] = query  # type: ignore[assignment]
-    pop = pv.get_private_columns(index, **kwargs)  # type: ignore[call-overload]
+
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
+    pop = pv.get_private_columns(update_index, **kwargs)
     assert isinstance(pop, pd.DataFrame)
-    assert not pop.empty, "Test setup error: expected non-empty population."
-    # Note that we do NOT combine the pop view query here
-    expected_pop = PIE_DF.loc[index]
-    if query:
-        if "cube" in query:
-            expected_pop = pd.concat([expected_pop, CUBE_DF.loc[index, "cube"]], axis=1)
-        expected_pop = expected_pop.query(query)
-        if "cube" in expected_pop.columns:
-            expected_pop.drop("cube", axis=1, inplace=True)
+    combined_query = _combine_queries(
+        include_default_query,
+        pop_view_default_query,
+        exclude_untracked,
+        pies_and_cubes_pop_mgr.tracked_queries,
+        query,
+    )
+    expected_pop = _get_expected(update_index, combined_query)
+    # We need to remove public columns that were used for filtering
+    if "cube" in expected_pop.columns:
+        expected_pop.drop("cube", axis=1, inplace=True)
     if private_columns:
         expected_pop = expected_pop[private_columns]
-
     assert pop.equals(expected_pop)
 
 
@@ -388,41 +400,34 @@ def test_get_private_columns_squeezing() -> None:
 #####################################
 
 
-@pytest.mark.parametrize(
-    "index", [pd.RangeIndex(0, len(PIE_RECORDS)), pd.RangeIndex(0, len(PIE_RECORDS) // 2)]
-)
-@pytest.mark.parametrize(
-    "query",
-    [
-        None,
-        "pi < 1000",
-        "pie != 'pumpkin'",
-        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato')",
-        # We can also filter by public columns
-        "cube > 1000",
-        "pi > 3000 and (pie == 'apple' or pie == 'sweet_potato') and 500 < cube < 1000",
-    ],
-)
+@pytest.mark.parametrize("include_default_query", [True, False])
+@pytest.mark.parametrize("register_tracked_query", [True, False])
+@pytest.mark.parametrize("exclude_untracked", [True, False])
 def test_get_filtered_index(
-    index: pd.Index[int],
+    include_default_query: bool,
+    register_tracked_query: bool,
+    exclude_untracked: bool,
+    update_index: pd.Index[int],
+    pop_view_default_query: str | None,
     query: str | None,
     pies_and_cubes_pop_mgr: PopulationManager,
 ) -> None:
-    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), query="foo == 'bar'")
-    kwargs = {}
-    if query is not None:
-        kwargs["query"] = query
-    pop_idx = pv.get_filtered_index(index, **kwargs)
-    assert not pop_idx.empty, "Test setup error: expected non-empty population."
-    # Note that we do NOT combine the pop view query here
-    expected_pop = PIE_DF.loc[index]
-    if query:
-        if "cube" in query:
-            expected_pop = pd.concat([expected_pop, CUBE_DF.loc[index, "cube"]], axis=1)
-        expected_pop = expected_pop.query(query)
-        if "cube" in expected_pop.columns:
-            expected_pop.drop("cube", axis=1, inplace=True)
+    if register_tracked_query:
+        pies_and_cubes_pop_mgr.register_tracked_query("cube < 1000")
+    pv_kwargs, kwargs = _resolve_kwargs(
+        include_default_query, exclude_untracked, pop_view_default_query, query
+    )
+    pv = pies_and_cubes_pop_mgr.get_view(PieComponent(), **pv_kwargs)
+    pop_idx = pv.get_filtered_index(update_index, **kwargs)
 
+    combined_query = _combine_queries(
+        include_default_query,
+        pop_view_default_query,
+        exclude_untracked,
+        pies_and_cubes_pop_mgr.tracked_queries,
+        query,
+    )
+    expected_pop = _get_expected(update_index, combined_query)
     assert pop_idx.equals(expected_pop.index)
 
 
@@ -901,3 +906,56 @@ def test_population_view_update_time_step(
         pop = pies_and_cubes_pop_mgr._private_columns
         assert pop is not None
         assert pop.loc[update_index, col].equals(population_update[col])
+
+
+####################
+# Helper functions #
+####################
+
+
+def _resolve_kwargs(
+    include_default_query: bool,
+    exclude_untracked: bool,
+    pop_view_default_query: str | None,
+    query: str | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    kwargs: dict[str, bool | str | list[str]] = {}
+    kwargs["include_default_query"] = include_default_query
+    kwargs["exclude_untracked"] = exclude_untracked
+
+    pv_kwargs: dict[str, str] = {}
+    if pop_view_default_query is not None:
+        pv_kwargs["default_query"] = pop_view_default_query
+    if query is not None:
+        kwargs["query"] = query
+
+    return pv_kwargs, kwargs
+
+
+def _get_expected(update_index: pd.Index[int], combined_query: str | None) -> pd.DataFrame:
+    expected_pop = PIE_DF.loc[update_index]
+    if combined_query:
+        if "cube" in combined_query:
+            expected_pop = pd.concat(
+                [expected_pop, CUBE_DF.loc[update_index, "cube"]], axis=1
+            )
+        expected_pop = expected_pop.query(combined_query)
+    return expected_pop
+
+
+def _combine_queries(
+    include_default_query: bool,
+    pop_view_default_query: str | None,
+    exclude_untracked: bool,
+    tracked_queries: list[str],
+    query: str | None,
+) -> str:
+    combined_query_parts = []
+    if include_default_query and pop_view_default_query is not None:
+        combined_query_parts.append(f"{pop_view_default_query}")
+    if exclude_untracked and tracked_queries:
+        combined_query_parts += tracked_queries
+    if query is not None:
+        combined_query_parts.append(f"{query}")
+    combined_query = " and ".join(combined_query_parts)
+    return combined_query

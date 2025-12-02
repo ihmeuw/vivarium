@@ -334,12 +334,6 @@ class ColumnCreatorAndRequirer(Component):
         self.population_view.update(initialization_data)
 
 
-class FilteredPopulationView(Component):
-    @property
-    def population_view_query(self) -> str:
-        return "test_column_1 == 5"
-
-
 class NoPopulationView(Component):
     pass
 
