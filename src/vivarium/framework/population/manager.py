@@ -724,14 +724,6 @@ class PopulationManager(Manager):
         contains_column_multi_index = False
         for name in remaining_attributes:
             values = self._attribute_pipelines[name](idx)
-            # Check for multi-level columns in values
-            if isinstance(values, pd.DataFrame) and isinstance(values.columns, pd.MultiIndex):
-                # FIXME [MIC-6645]
-                raise NotImplementedError(
-                    f"The '{name}' attribute pipeline returned a DataFrame with multi-level "
-                    f"columns (nlevels={values.columns.nlevels}). Multi-level columns in "
-                    "attribute pipeline outputs are not supported."
-                )
 
             # Handle column names
             if isinstance(values, pd.Series):
@@ -743,7 +735,15 @@ class PopulationManager(Manager):
                     )
                 values.name = name
             else:
-                # Must be a dataframe - need to add another index level to each column
+                # Must be a dataframe. Coerce the columns to multi-index and set the
+                # attribute name as the outer level.
+                if isinstance(values.columns, pd.MultiIndex):
+                    # FIXME [MIC-6645]
+                    raise NotImplementedError(
+                        f"The '{name}' attribute pipeline returned a DataFrame with multi-level "
+                        f"columns (nlevels={values.columns.nlevels}). Multi-level columns in "
+                        "attribute pipeline outputs are not supported."
+                    )
                 values.columns = pd.MultiIndex.from_product([[name], values.columns])
                 contains_column_multi_index = True
             attributes_list.append(values)
