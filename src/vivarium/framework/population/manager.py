@@ -622,7 +622,7 @@ class PopulationManager(Manager):
         columns_to_get = set(requested_attributes)
         if query:
             query_columns = self.extract_columns_from_query(query)
-            # We can remove these columns from requested columns to be fetched later
+            # We can remove these query columns from requested columns (and will fetch later)
             columns_to_get = columns_to_get.difference(query_columns)
             missing_query_columns = query_columns.difference(set(self._attribute_pipelines))
             if missing_query_columns:
@@ -631,13 +631,31 @@ class PopulationManager(Manager):
                     "population table."
                 )
             query_df = self._get_attributes(idx, list(query_columns))
+            if isinstance(query_df.columns, pd.MultiIndex):
+                # FIXME [MIC-6645]
+                raise NotImplementedError(
+                    "Queries on multi-index columns are not supported.\n"
+                    f"query: {query}\n"
+                    f"query columns: {query_df.columns}"
+                )
             query_df = query_df.query(query)
             idx = query_df.index
 
-        # Get requested attributes for the (potentially filtered) index
-        # Skip getting attributes that were already retrieved in the query
         df = self._get_attributes(idx, list(columns_to_get))
-        df = pd.concat([df, query_df], axis=1) if query else df
+
+        # Add on any query columns that are actually requested to be returned
+        requested_query_columns = (
+            query_columns.intersection(set(requested_attributes)) if query else set()
+        )
+        if requested_query_columns:
+            requested_query_df = query_df[list(requested_query_columns)]
+            if isinstance(df.columns, pd.MultiIndex):
+                # Make the query df multi-index to prevent converting columns from
+                # multi-index to single index w/ tuples for column names
+                requested_query_df.columns = pd.MultiIndex.from_product(
+                    [requested_query_df.columns, [""]]
+                )
+            df = pd.concat([df, requested_query_df], axis=1)
 
         # Maintain column ordering
         df = df[requested_attributes]
@@ -670,8 +688,8 @@ class PopulationManager(Manager):
         )
         # Remove quoted strings
         query = re.sub(r"'[^']*'|\"[^\"]*\"", "", query)
-        # Remove numbers
-        query = re.sub(r"\d+", "", query)
+        # Remove standalone numbers (not part of identifiers)
+        query = re.sub(r"\b\d+\b", "", query)
         # Remove @ references
         query = re.sub(r"@\S+", "", query)
         # Remove list/array syntax

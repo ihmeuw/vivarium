@@ -213,7 +213,7 @@ class AttributePipelineCreator(Component):
         # For this test, we make them non-simple by registering a modifer that doesn't actually modify anything
         builder.value.register_attribute_producer(
             "test_attribute",
-            lambda idx: pd.Series([i % 3 for i in idx]),
+            lambda idx: pd.Series([i % 3 for i in idx], index=idx),
             component=self,
         )
         builder.value.register_attribute_producer(
