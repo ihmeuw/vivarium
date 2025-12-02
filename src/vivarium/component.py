@@ -67,7 +67,6 @@ class Component(ABC):
     - `configuration_defaults`
     - `columns_created`
     - `initialization_requirements`
-    - `population_view_query`
     - `post_setup_priority`
     - `time_step_prepare_priority`
     - `time_step_priority`
@@ -251,17 +250,6 @@ class Component(ABC):
         """A list containing the columns, pipelines, and randomness streams
         required by this component's simulant initializer."""
         return []
-
-    @property
-    def population_view_query(self) -> str:
-        """Provides a query to use when filtering the component's `PopulationView`.
-
-        Returns
-        -------
-            A pandas query string for filtering the component's `PopulationView`.
-            Returns an empty string if no filtering is required.
-        """
-        return ""
 
     @property
     def post_setup_priority(self) -> int:
@@ -740,7 +728,7 @@ class Component(ABC):
         builder
             The builder object used to set up the component.
         """
-        self._population_view = builder.population.get_view(self, self.population_view_query)
+        self._population_view = builder.population.get_view(self)
 
     def _register_attribute_producers(self, builder: Builder) -> None:
         for column in self.columns_created:

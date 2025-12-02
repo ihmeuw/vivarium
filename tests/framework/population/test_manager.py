@@ -119,9 +119,8 @@ def test_initializer_set() -> None:
 )
 def test_setting_query_with_get_view(query: str, expected_query: str) -> None:
     manager = PopulationManager()
-    columns = ["age", "sex"]
-    view = manager._get_view(component=None, query=query)
-    assert view.query == expected_query
+    view = manager._get_view(component=None, default_query=query)
+    assert view._default_query == expected_query
 
 
 @pytest.mark.parametrize("columns_created", [[], ["age", "sex"]])
@@ -131,7 +130,7 @@ def test_setting_columns_with_get_view(
     manager = PopulationManager()
     component = mocker.Mock()
     component.columns_created = columns_created
-    view = manager._get_view(component=component, query="")
+    view = manager._get_view(component=component, default_query="")
     assert view.private_columns == columns_created
 
 
@@ -489,6 +488,20 @@ def test_create_already_existing_columns_fails() -> None:
         match="Component 'same_column_creator' is attempting to register private column 'test_column_1' but it is already registered by component 'column_creator'.",
     ):
         InteractiveContext(components=[ColumnCreator(), SameColumnCreator()])
+
+
+def test_register_tracked_query(mocker: MockerFixture) -> None:
+    mgr = PopulationManager()
+    assert mgr.tracked_queries == []
+    mgr.register_tracked_query("foo == 'bar'")
+    assert mgr.tracked_queries == ["foo == 'bar'"]
+    mgr.register_tracked_query("cat != dog")
+    assert mgr.tracked_queries == ["foo == 'bar'", "cat != dog"]
+    # Check duplicates are ignored
+    mocker.patch.object(mgr, "logger", mocker.Mock(), create=True)
+    mgr.register_tracked_query("foo == 'bar'")
+    mgr.logger.warning.assert_called_once()  # type: ignore[attr-defined]
+    assert mgr.tracked_queries == ["foo == 'bar'", "cat != dog"]
 
 
 def test_extract_columns_from_query() -> None:

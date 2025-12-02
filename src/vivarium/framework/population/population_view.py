@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Literal, overload
 
 import pandas as pd
 
+import vivarium.framework.population.utilities as pop_utils
 from vivarium.framework.population.exceptions import PopulationError
 
 if TYPE_CHECKING:
@@ -41,7 +42,6 @@ class PopulationView:
         manager: PopulationManager,
         component: Component | None,
         view_id: int,
-        query: str = "",
     ):
         """
 
@@ -54,19 +54,34 @@ class PopulationView:
             read-only access.
         view_id
             The unique identifier for this view.
-        query
-            A :mod:`pandas`-style filter that will be applied any time this
-            view is read from.
         """
         self._manager = manager
         self._component = component
         self._id = view_id
         self.private_columns = component.columns_created if component else []
-        self.query = query
+        self._default_query = ""
+
+    ##############
+    # Properties #
+    ##############
 
     @property
     def name(self) -> str:
         return f"population_view_{self._id}"
+
+    ###########
+    # Methods #
+    ###########
+
+    def set_default_query(self, query: str) -> None:
+        """Sets the default query for this population view.
+
+        Parameters
+        ----------
+        query
+            The new default query to apply to this population view.
+        """
+        self._default_query = query
 
     @overload
     def get_attributes(
@@ -74,7 +89,8 @@ class PopulationView:
         index: pd.Index[int],
         attributes: str,
         query: str = "",
-        combine_queries: bool = True,
+        include_default_query: bool = True,
+        exclude_untracked: bool = True,
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
@@ -84,7 +100,8 @@ class PopulationView:
         index: pd.Index[int],
         attributes: list[str] | tuple[str, ...],
         query: str = "",
-        combine_queries: bool = True,
+        include_default_query: bool = True,
+        exclude_untracked: bool = True,
     ) -> pd.DataFrame:
         ...
 
@@ -93,7 +110,8 @@ class PopulationView:
         index: pd.Index[int],
         attributes: str | list[str] | tuple[str, ...],
         query: str = "",
-        combine_queries: bool = True,
+        include_default_query: bool = True,
+        exclude_untracked: bool = True,
     ) -> pd.DataFrame | pd.Series[Any]:
         """Get a specific subset of this ``PopulationView``.
 
@@ -109,12 +127,12 @@ class PopulationView:
             The columns to retrieve. If a single column is passed in via a string, the
             result will be attempted to be squeezed to a Series.
         query
-            Additional conditions used to filter the index. These conditions
-            will be unioned with the default query of this view. The query
-            provided may not use columns that are not included in the ``attributes``
-            argument.
-        combine_queries
-            Whether to combine this view's query property with the provided query.
+            Additional conditions used to filter the index. If ``include_default_query``
+            is True, it will be combined with this PopulationView's query property.
+        include_default_query
+            Whether to combine this view's default query with the provided ``query``.
+        exclude_untracked
+            Whether to exclude untracked simulants.
 
         Returns
         -------
@@ -125,14 +143,10 @@ class PopulationView:
         squeeze: Literal[True] | Literal[False] = isinstance(attributes, str)
         attributes = [attributes] if isinstance(attributes, str) else list(attributes)
 
-        if query and not attributes:
-            raise PopulationError(
-                "When providing a query to get_attributes(), you must also provide "
-                "the columns needed to evaluate that query in the attributes argument."
-            )
-
-        if combine_queries:
-            query = " and ".join(filter(None, [self.query, query]))
+        if include_default_query:
+            query = pop_utils.combine_queries(self._default_query, query)
+        if exclude_untracked:
+            query = self._manager.add_tracked_query(query)
 
         return self._manager.get_population(
             attributes=attributes,
@@ -147,6 +161,8 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: str = ...,
         query: str = "",
+        include_default_query: bool = True,
+        exclude_untracked: bool = True,
     ) -> pd.Series[Any]:
         ...
 
@@ -156,6 +172,8 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: list[str] | tuple[str, ...] = ...,
         query: str = "",
+        include_default_query: bool = True,
+        exclude_untracked: bool = True,
     ) -> pd.DataFrame:
         ...
 
@@ -165,6 +183,8 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: None = None,
         query: str = "",
+        include_default_query: bool = True,
+        exclude_untracked: bool = True,
     ) -> pd.Series[Any] | pd.DataFrame:
         ...
 
@@ -173,6 +193,8 @@ class PopulationView:
         index: pd.Index[int],
         private_columns: str | list[str] | tuple[str, ...] | None = None,
         query: str = "",
+        include_default_query: bool = True,
+        exclude_untracked: bool = True,
     ) -> pd.Series[Any] | pd.DataFrame:
         """Get a specific subset of this ``PopulationView's`` private columns.
 
@@ -188,9 +210,12 @@ class PopulationView:
             The private columns to retrieve. If None, all columns created by the
             component that created this view are included.
         query
-            Additional conditions used to filter the index. Note that it will
-            *not* be combined with this PopulationView's query property (in order
-            to allow for full updates to the private column data).
+            Additional conditions used to filter the index. If ``include_default_query``
+            is True, it will be combined with this PopulationView's query property.
+        include_default_query
+            Whether to combine this view's default query with the provided ``query``.
+        exclude_untracked
+            Whether to exclude untracked simulants.
 
         Returns
         -------
@@ -203,7 +228,14 @@ class PopulationView:
                 "This PopulationView is read-only, so it doesn't have access to get_private_columns()."
             )
 
-        index = self.get_filtered_index(index, query=query)
+        if include_default_query:
+            query = pop_utils.combine_queries(self._default_query, query)
+        if exclude_untracked:
+            query = self._manager.add_tracked_query(query)
+
+        index = self.get_filtered_index(
+            index, query, include_default_query=False, exclude_untracked=False
+        )
 
         return self._manager.get_private_columns(self._component, index, private_columns)
 
@@ -211,6 +243,8 @@ class PopulationView:
         self,
         index: pd.Index[int],
         query: str = "",
+        include_default_query: bool = True,
+        exclude_untracked: bool = True,
     ) -> pd.Index[int]:
         """Get a specific index of the population.
 
@@ -221,22 +255,25 @@ class PopulationView:
         index
             Index of the population to get.
         query
-            Additional conditions used to filter the index. Note that it will
-            *not* be combined with this PopulationView's query property (in order
-            to allow for full updates to the private column data).
+            Additional conditions used to filter the index. If ``include_default_query``
+            is True, it will be combined with this PopulationView's query property.
+        include_default_query
+            Whether to combine this view's default query with the provided ``query``.
+        exclude_untracked
+            Whether to exclude untracked simulants.
 
         Returns
         -------
             The requested and filtered population index.
         """
 
-        if query:
-            query_columns = list(self._manager.extract_columns_from_query(query))
-            index = self.get_attributes(
-                index, query_columns, query, combine_queries=False
-            ).index
-
-        return index
+        return self.get_attributes(
+            index,
+            attributes=[],
+            query=query,
+            include_default_query=include_default_query,
+            exclude_untracked=exclude_untracked,
+        ).index
 
     def update(self, update: pd.Series[Any] | pd.DataFrame) -> None:
         """Updates the private data with the provided data.
@@ -294,7 +331,7 @@ class PopulationView:
 
     def __repr__(self) -> str:
         name = self._component.name if self._component else "None"
-        return f"PopulationView(_id={self._id}, _component={name}, private_columns={self.private_columns}, query={self.query})"
+        return f"PopulationView(_id={self._id}, _component={name}, private_columns={self.private_columns}, default_query={self._default_query})"
 
     ##################
     # Helper methods #

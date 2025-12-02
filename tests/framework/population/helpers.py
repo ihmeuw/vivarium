@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import itertools
-import math
 from typing import Any
 
 import pandas as pd
