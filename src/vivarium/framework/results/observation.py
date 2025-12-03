@@ -55,7 +55,7 @@ class Observation(ABC):
     """Name of the lifecycle phase the observation should happen. Valid values are:
     "time_step__prepare", "time_step", "time_step__cleanup", or "collect_metrics"."""
     requires_attributes: list[str]
-    """List of columns required for this observation. FIXME"""
+    """The population attributes required for this observation."""
     results_initializer: Callable[[], pd.DataFrame]
     """Method or function that initializes the raw observation results
     prior to starting the simulation. This could return, for example, an empty

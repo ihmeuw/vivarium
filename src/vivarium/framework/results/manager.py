@@ -355,7 +355,6 @@ class ResultsManager(Manager):
         required_attributes = self._results_context.get_required_attributes(
             observations, stratifications
         )
-        required_attributes = required_attributes.copy()
         population = pd.DataFrame(index=event.index)
 
         if "current_time" in required_attributes:
