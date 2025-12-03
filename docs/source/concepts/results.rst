@@ -368,7 +368,7 @@ results of an observation:
     - Description
   * - | :attr:`name <vivarium.framework.results.stratification.Stratification.name>`
     - | Name of the stratification.
-  * - | :attr:`sources <vivarium.framework.results.stratification.Stratification.requires_attributes>`
+  * - | :attr:`requires_attributes <vivarium.framework.results.stratification.Stratification.requires_attributes>`
     - | The population attributes needed as input for the `mapper`.
   * - | :attr:`categories <vivarium.framework.results.stratification.Stratification.categories>`
     - | Exhaustive list of all possible stratification values.
@@ -388,7 +388,7 @@ results of an observation:
 Each **Stratification** also contains the 
 :meth:`stratify <vivarium.framework.results.stratification.Stratification.stratify>`
 method which is called at each :ref:`event <event_concept>` and :ref:`time step <time_concept>` 
-to use the **mapper** to map values in the **sources** columns to **categories** 
+to use the **mapper** to map values in the **requires_attributes** columns to **categories** 
 (excluding any categories specified in **excluded_categories**).
 
 .. note::
