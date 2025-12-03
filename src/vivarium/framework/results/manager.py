@@ -213,7 +213,7 @@ class ResultsManager(Manager):
         Parameters
         ----------
         target
-            Name of the state table column or value pipeline to be binned.
+            Name of population attribute to be binned.
         binned_column
             Name of the (binned) stratification.
         bin_edges

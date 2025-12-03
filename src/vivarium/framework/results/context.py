@@ -20,9 +20,7 @@ from vivarium.framework.results.observation import Observation
 from vivarium.framework.results.stratification import (
     Stratification,
     get_mapped_col_name,
-    get_original_col_name,
 )
-from vivarium.framework.values import Pipeline
 from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
@@ -160,8 +158,8 @@ class ResultsContext:
             List of possible stratification values to exclude from results processing.
             If None (the default), will use exclusions as defined in the configuration.
         mapper
-            A callable that maps the columns and value pipelines specified by
-            `sources` to the stratification categories. It can either map the entire
+            A callable that maps the population attributes specified by
+            `requires_attributes` to the stratification categories. It can either map the entire
             population or an individual simulant. A simulation will fail if the `mapper`
             ever produces an invalid value.
         is_vectorized

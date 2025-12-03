@@ -32,7 +32,6 @@ from pandas.core.groupby.generic import DataFrameGroupBy
 from vivarium.exceptions import VivariumError
 from vivarium.framework.event import Event
 from vivarium.framework.results.stratification import Stratification, get_original_col_name
-from vivarium.framework.values import Pipeline
 
 VALUE_COLUMN = "value"
 

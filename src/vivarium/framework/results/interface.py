@@ -70,11 +70,7 @@ class ResultsInterface(Interface):
     The results management system allows users to delegate results production
     to the simulation framework. This process attempts to roughly mimic the
     groupby-apply logic commonly done when manipulating :mod:`pandas`
-    DataFrames. The representation of state in the simulation is complex,
-    however, as it includes information both in the population state table
-    and dynamically generated information available from the
-    :class:`value pipelines <vivarium.framework.values.pipeline.Pipeline>`.
-    Additionally, good encapsulation of simulation logic typically has
+    DataFrames. Good encapsulation of simulation logic typically has
     results production separated from the modeling code into specialized
     `Observer` components. This often highlights the need for transformations
     of the simulation state into representations that aren't needed for
@@ -153,7 +149,7 @@ class ResultsInterface(Interface):
         Parameters
         ----------
         target
-            Name of the state table column or value pipeline to be binned.
+            Name of the population attribute to be binned.
         binned_column
             Name of the (binned) stratification.
         bin_edges
