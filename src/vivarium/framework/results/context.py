@@ -17,10 +17,7 @@ from pandas.core.groupby.generic import DataFrameGroupBy
 from vivarium.framework.event import Event
 from vivarium.framework.results.exceptions import ResultsConfigurationError
 from vivarium.framework.results.observation import Observation
-from vivarium.framework.results.stratification import (
-    Stratification,
-    get_mapped_col_name,
-)
+from vivarium.framework.results.stratification import Stratification, get_mapped_col_name
 from vivarium.types import ScalarMapper, VectorMapper
 
 if TYPE_CHECKING:
